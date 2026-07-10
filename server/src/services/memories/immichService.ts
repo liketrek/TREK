@@ -22,10 +22,16 @@ export function isValidAssetId(id: string): boolean {
 }
 
 /**
- * Hidden assets (e.g. Live Photo motion parts) have no generated thumbnail —
- * Immich's own UI never shows them standalone. Surfacing or persisting one
- * yields a permanently broken tile, since nothing re-checks visibility on the
- * render path (#1474). Legacy Immich exposes the same state as `isVisible:false`.
+ * Hidden assets have no generated thumbnail — Immich's own enum documents
+ * `AssetVisibility.Hidden` as "Video part of the LivePhotos and MotionPhotos",
+ * and its UI never shows them standalone. Surfacing or persisting one yields a
+ * permanently broken tile, since nothing re-checks visibility on the render
+ * path (#1474).
+ *
+ * Load-bearing on Immich < 1.133, which predates the `visibility` field: those
+ * servers strip the `visibility: 'timeline'` search filter and never defaulted
+ * `isVisible`, so they return hidden assets and this is the only thing stopping
+ * them. They mark the same state as `isVisible: false`.
  */
 function isVisibleAsset(a: any): boolean {
   return a.visibility !== 'hidden' && a.isVisible !== false;
@@ -180,11 +186,17 @@ export async function searchPhotos(
         takenAfter: from ? `${from}T00:00:00.000Z` : undefined,
         takenBefore: to ? `${to}T23:59:59.999Z` : undefined,
         // No type filter — surface videos alongside images (#823).
-        // Immich v2 hard-defaulted metadata search to `timeline` visibility; v3
-        // defaults to any visibility except `locked`, which is what started
+        // Immich 1.133–1.144 defaulted metadata search to `timeline` visibility;
+        // v3 defaults to any visibility except `locked`, which is what started
         // surfacing Live Photo motion parts as broken tiles (#1474). Ask for
-        // `timeline` explicitly so hidden assets never cross the wire and a
-        // full page stays a full page of renderable tiles.
+        // `timeline` explicitly so hidden assets never cross the wire and a full
+        // page stays a full page of renderable tiles.
+        //
+        // `visibility` only exists from 1.133.0. Older servers strip it — Immich
+        // validates with `whitelist: true` and no `forbidNonWhitelisted`, so an
+        // unknown property is dropped, never a 400 — and they never defaulted
+        // `isVisible` either, so they still return hidden assets. isVisibleAsset()
+        // below is the only guard on those versions. Do not remove it.
         visibility: 'timeline',
         size,
         page,
@@ -377,13 +389,22 @@ const ALBUM_MAX_PAGES = 20;
  * `albumIds`-filtered metadata search.
  *
  * We feature-detect on the presence of `assets` rather than switching on a
- * probed server version. The two paths are NOT interchangeable: on v2,
- * `searchMetadata` unconditionally scopes results to `[self, ...partners]`
- * (`asset.ownerId = ANY(userIds)`), so an albumIds search against an album
- * shared by a non-partner returns nothing. v3 added an albumIds branch that
- * checks `AlbumRead` and skips that owner filter. v2 also hard-defaults
- * `visibility` to `timeline`, dropping archived assets. So on v2 the album
- * detail response remains the only correct source.
+ * probed server version. The two paths are NOT interchangeable:
+ *
+ * - Before v3, `searchMetadata` unconditionally scopes results to
+ *   `[self, ...partners]` (`asset.ownerId = ANY(userIds)`), so an albumIds
+ *   search against an album shared by a non-partner returns nothing. v3 added
+ *   an albumIds branch that checks `AlbumRead` and skips that owner filter.
+ * - 1.133–1.144 also default `visibility` to `timeline`, dropping archived
+ *   album assets.
+ * - `albumIds` only exists from 1.135.0, and Immich strips unknown properties
+ *   rather than rejecting them (`whitelist: true`, no `forbidNonWhitelisted`).
+ *   Searching an older server would therefore silently drop the album filter
+ *   and return the user's ENTIRE library as the album's contents.
+ *
+ * Feature detection makes all three moot: `assets` is present on every version
+ * that has any of those problems (through 1.144.1) and absent only on v3, where
+ * the search path is correct. A version probe with a wrong boundary would not be.
  */
 async function fetchAlbumAssets(
   creds: { immich_url: string; immich_api_key: string },
