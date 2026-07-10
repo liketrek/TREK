@@ -16,6 +16,7 @@ export function QuantityInput({ value, onSave }: { value: number; onSave: (qty: 
         type="text" inputMode="numeric"
         value={local}
         onChange={e => setLocal(e.target.value.replace(/\D/g, ''))}
+        onFocus={e => { const t = e.currentTarget; requestAnimationFrame(() => t.select()) }}
         onBlur={commit}
         onKeyDown={e => { if (e.key === 'Enter') { commit(); (e.target as HTMLInputElement).blur() } }}
         style={{ width: 24, border: 'none', outline: 'none', background: 'transparent', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'right', fontFamily: 'inherit', color: 'var(--text-secondary)', padding: 0 }}
