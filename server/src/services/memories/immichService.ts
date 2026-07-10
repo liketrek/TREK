@@ -350,6 +350,79 @@ export async function listAlbums(
   }
 }
 
+/** Immich caps `size` at 1000 for metadata search; a page cap bounds pathological albums. */
+const ALBUM_PAGE_SIZE = 1000;
+const ALBUM_MAX_PAGES = 20;
+
+/**
+ * Fetch every asset in an album, across Immich v2 and v3.
+ *
+ * Immich v3 removed `assets` from `AlbumResponseDto`, so `GET /api/albums/:id`
+ * no longer carries album contents (#1492) and we fall back to an
+ * `albumIds`-filtered metadata search.
+ *
+ * We feature-detect on the presence of `assets` rather than switching on a
+ * probed server version. The two paths are NOT interchangeable: on v2,
+ * `searchMetadata` unconditionally scopes results to `[self, ...partners]`
+ * (`asset.ownerId = ANY(userIds)`), so an albumIds search against an album
+ * shared by a non-partner returns nothing. v3 added an albumIds branch that
+ * checks `AlbumRead` and skips that owner filter. v2 also hard-defaults
+ * `visibility` to `timeline`, dropping archived assets. So on v2 the album
+ * detail response remains the only correct source.
+ */
+async function fetchAlbumAssets(
+  creds: { immich_url: string; immich_api_key: string },
+  albumId: string,
+): Promise<{ assets?: any[]; status?: number }> {
+  const resp = await safeFetch(`${creds.immich_url}/api/albums/${albumId}`, {
+    headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
+    signal: AbortSignal.timeout(15000) as any,
+  });
+  if (!resp.ok) return { status: resp.status };
+
+  const albumData = await resp.json() as { assets?: any[] };
+  if (Array.isArray(albumData.assets)) return { assets: albumData.assets };
+
+  return fetchAlbumAssetsViaSearch(creds, albumId);
+}
+
+/**
+ * Immich v3 album contents, via `POST /api/search/metadata` filtered by `albumIds`.
+ *
+ * `withExif` is required: it has no default and gates an inner join
+ * (`searchAssetBuilder`: `.$if(!!options.withExif, withExifInner)`), so without
+ * it Immich omits `exifInfo` entirely and every photo's city/country goes null.
+ */
+async function fetchAlbumAssetsViaSearch(
+  creds: { immich_url: string; immich_api_key: string },
+  albumId: string,
+): Promise<{ assets?: any[]; status?: number }> {
+  const all: any[] = [];
+
+  for (let page = 1; page <= ALBUM_MAX_PAGES; page++) {
+    const resp = await safeFetch(`${creds.immich_url}/api/search/metadata`, {
+      method: 'POST',
+      headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        albumIds: [albumId],
+        withExif: true,
+        withDeleted: false,
+        size: ALBUM_PAGE_SIZE,
+        page,
+      }),
+      signal: AbortSignal.timeout(15000) as any,
+    });
+    if (!resp.ok) return { status: resp.status };
+
+    const data = await resp.json() as { assets?: { items?: any[] } };
+    const items = data.assets?.items || [];
+    all.push(...items);
+    if (items.length < ALBUM_PAGE_SIZE) break;
+  }
+
+  return { assets: all };
+}
+
 export async function getAlbumPhotos(
   userId: number,
   albumId: string,
@@ -358,15 +431,11 @@ export async function getAlbumPhotos(
   if (!creds) return { error: 'Immich not configured', status: 400 };
 
   try {
-    const resp = await safeFetch(`${creds.immich_url}/api/albums/${albumId}`, {
-      headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(15000) as any,
-    });
-    if (!resp.ok) return { error: 'Failed to fetch album', status: resp.status };
-    const albumData = await resp.json() as { assets?: any[] };
+    const result = await fetchAlbumAssets(creds, albumId);
+    if (!result.assets) return { error: 'Failed to fetch album', status: result.status };
     // Exclude hidden assets (e.g. Live Photo motion parts) that have no
     // thumbnail, mirroring the search path (#1474).
-    const assets = (albumData.assets || [])
+    const assets = result.assets
       .filter((a: any) => a.visibility !== 'hidden' && a.isVisible !== false)
       .map((a: any) => ({
         id: a.id,
@@ -394,13 +463,9 @@ export async function syncAlbumAssets(
   if (!creds) return { error: 'Immich not configured', status: 400 };
 
   try {
-    const resp = await safeFetch(`${creds.immich_url}/api/albums/${response.data}`, {
-      headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(15000) as any,
-    });
-    if (!resp.ok) return { error: 'Failed to fetch album', status: resp.status };
-    const albumData = await resp.json() as { assets?: any[] };
-    const assets = (albumData.assets || []).filter((a: any) => a.type === 'IMAGE');
+    const albumResult = await fetchAlbumAssets(creds, response.data as string);
+    if (!albumResult.assets) return { error: 'Failed to fetch album', status: albumResult.status };
+    const assets = albumResult.assets.filter((a: any) => a.type === 'IMAGE');
 
     const selection: Selection = {
       provider: 'immich',
