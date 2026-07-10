@@ -141,13 +141,14 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
           onChange={e => setEditName(e.target.value)}
           onBlur={handleSaveName}
           onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') { setEditing(false); setEditName(isPlaceholder ? '' : item.name) } }}
-          style={{ flex: 1, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit' }}
+          style={{ flex: 1, minWidth: 0, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit' }}
         />
       ) : (
         <span
           onClick={() => canEdit && !item.checked && setEditing(true)}
           style={{
-            flex: 1, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))',
+            flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            fontSize: 'calc(13.5px * var(--fs-scale-body, 1))',
             cursor: !canEdit || item.checked ? 'default' : 'text',
             color: isPlaceholder ? 'var(--text-faint)' : (item.checked ? 'var(--text-faint)' : 'var(--text-primary)'),
             transition: 'color 200ms cubic-bezier(0.23,1,0.32,1)',
