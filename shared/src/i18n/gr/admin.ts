@@ -332,6 +332,11 @@ const admin: TranslationStrings = {
     'Εμφάνιση προειδοποιήσεων επικύρωσης σε ένα ταξίδι (εμφανίζονται στον σχεδιαστή)',
   'admin.plugins.perm.hook:table-contributor': 'Προσθήκη στηλών και ενεργειών στις προβολές του ταξιδιού (κρατήσεις, τοποθεσίες, ημέρες)',
   'admin.plugins.perm.hook:map-marker-provider': 'Προσθήκη δεικτών στον χάρτη του ταξιδιού (π.χ. εμφάνιση κρατήσεων ή POI)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Προσθήκη ενοτήτων κειμένου στην εξαγωγή PDF του ταξιδιού',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Επισήμανση χωρών στον παγκόσμιο χάρτη του Άτλαντα (π.χ. λίστες επιθυμιών ή ταξιδιωτικές οδηγίες)',
+  'admin.plugins.perm.hook:journal-entry-provider':
+    'Προσθήκη επιπλέον γραμμών (σύνδεσμοι, στατιστικά) στις καταχωρίσεις του ημερολογίου',
   'admin.plugins.perm.events:subscribe':
     'Αντιδρά σε βασικά συμβάντα δραστηριότητας (όνομα συμβάντος + ταξίδι μόνο, ποτέ το περιεχόμενο)',
   'admin.plugins.perm.http:outbound': 'Εκτέλεση εξερχόμενων αιτημάτων προς τους δηλωμένους hosts του',

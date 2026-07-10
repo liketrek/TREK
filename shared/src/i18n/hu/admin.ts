@@ -286,6 +286,11 @@ const admin: TranslationStrings = {
     'Ellenőrzési figyelmeztetések megjelenítése egy utazáson (a tervezőben látható)',
   'admin.plugins.perm.hook:table-contributor': 'Oszlopok és műveletek hozzáadása az utazási nézetekhez (foglalások, helyek, napok)',
   'admin.plugins.perm.hook:map-marker-provider': 'Jelölők hozzáadása az utazás térképéhez (pl. foglalások vagy POI-k megjelenítése)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Szöveges szakaszok hozzáfűzése az utazás PDF-exportjához',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Országok kiemelése az Atlas világtérképén (pl. kívánságlisták vagy utazási figyelmeztetések)',
+  'admin.plugins.perm.hook:journal-entry-provider':
+    'További sorok (hivatkozások, statisztikák) hozzáadása a naplóbejegyzésekhez',
   'admin.plugins.perm.events:subscribe':
     'Reagál az alapvető tevékenységi eseményekre (csak eseménynév + utazás, soha nem a tartalom)',
   'admin.plugins.perm.http:outbound': 'Kimenő kérések küldése a bejelentett kiszolgálók felé',

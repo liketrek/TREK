@@ -47,6 +47,9 @@ beforeEach(() => {
     http.get('/api/maps/place-photo/:placeId', () =>
       HttpResponse.json({ photoUrl: null })
     ),
+    http.get('/api/pdf-sections/:tripId', () =>
+      HttpResponse.json({ sections: [] })
+    ),
   )
 })
 
@@ -371,5 +374,36 @@ describe('downloadTripPDF', () => {
     const iframe = getIframe()
     // The empty-day div should appear (contains the translation key for empty day)
     expect(iframe!.srcdoc).toContain('dayplan.emptyDay')
+  })
+
+  it('FE-COMP-TRIPPDF-021: appends plugin pdf sections after the days, escaped', async () => {
+    server.use(
+      http.get('/api/pdf-sections/:tripId', () =>
+        HttpResponse.json({
+          sections: [{
+            pluginId: 'weather',
+            title: 'Weather <b>Forecast</b>',
+            paragraphs: ['Sunny all week'],
+            table: { headers: ['Day', 'Temp'], rows: [['Mon', '24°C']] },
+          }],
+        })
+      ),
+    )
+    await downloadTripPDF(richArgs)
+    const srcdoc = getIframe()!.srcdoc
+    expect(srcdoc).toContain('class="plugin-section"')
+    // Plugin text is escHtml'd like the core content — no markup passes through.
+    expect(srcdoc).not.toContain('<b>Forecast</b>')
+    expect(srcdoc).toContain('Weather &lt;b&gt;Forecast&lt;/b&gt;')
+    expect(srcdoc).toContain('Sunny all week')
+    expect(srcdoc).toContain('24°C')
+    // Sections come after the last day section.
+    expect(srcdoc.indexOf('class="plugin-sections')).toBeGreaterThan(srcdoc.lastIndexOf('class="day-section'))
+  })
+
+  it('FE-COMP-TRIPPDF-022: renders no plugin block when the sections fetch fails (fail-safe)', async () => {
+    server.use(http.get('/api/pdf-sections/:tripId', () => HttpResponse.error()))
+    await expect(downloadTripPDF(minimalArgs)).resolves.not.toThrow()
+    expect(getIframe()!.srcdoc).not.toContain('class="plugin-sections')
   })
 })

@@ -281,6 +281,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'Vyvolávat ověřovací upozornění u cesty (zobrazená v plánovači)',
   'admin.plugins.perm.hook:table-contributor': 'Přidávat sloupce a akce do zobrazení cesty (rezervace, místa, dny)',
   'admin.plugins.perm.hook:map-marker-provider': 'Přidávat značky na mapu cesty (např. zobrazit rezervace nebo POI)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Připojovat textové sekce k PDF exportu cesty',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Zvýrazňovat země na mapě světa v Atlasu (např. seznamy přání nebo cestovní upozornění)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Přidávat další řádky (odkazy, statistiky) k záznamům deníku',
   'admin.plugins.perm.events:subscribe':
     'Reagovat na základní události aktivity (pouze název události a cesta, nikdy obsah)',
   'admin.plugins.perm.http:outbound': 'Odesílat odchozí požadavky na deklarované hostitele',

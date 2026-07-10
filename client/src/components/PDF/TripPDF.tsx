@@ -2,7 +2,7 @@
 import { createElement } from 'react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship, Sailboat, Bike, CarTaxiFront, Route, Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle, ShoppingBag, Bookmark, Hotel, LogIn, LogOut, KeyRound, BedDouble, Utensils, Users, LucideIcon } from 'lucide-react'
-import { accommodationsApi, mapsApi } from '../../api/client'
+import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { splitReservationDateTime } from '../../utils/formatters'
@@ -148,6 +148,11 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   const coverImg = safeImg(trip?.cover_image)
   //retrieve accommodations for the trip to display on the day sections and prefetch their photos if needed
   const accommodations = await accommodationsApi.list(trip.id);
+
+  // Sections contributed by pdfSectionProvider plugins — server-normalized plain
+  // text (counts + lengths capped), appended after the days. Fail-safe: an error
+  // just means no extra sections, the core export is untouched.
+  const pluginSections = await pluginsApi.pdfSections(trip.id).then(r => r.sections || []).catch(() => [])
 
   // Pre-fetch place photos (Google, OSM and coords-only places)
   const photoMap = await fetchPlacePhotos(assignments, places)
@@ -394,6 +399,22 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
       </table>`
   }).join('')
 
+  // Plugin sections after the days — every value is host-vetted plain text and
+  // still escHtml'd here (same treatment as the core content above).
+  const pluginSectionsHtml = pluginSections.length === 0 ? '' : `
+    <div class="plugin-sections page-break">
+      ${pluginSections.map(s => `
+      <div class="plugin-section">
+        <div class="plugin-section-title">${escHtml(s.title)}</div>
+        ${(s.paragraphs || []).map(p => `<p class="plugin-section-text">${escHtml(p)}</p>`).join('')}
+        ${s.table ? `
+        <table class="plugin-section-table">
+          <thead><tr>${s.table.headers.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr></thead>
+          <tbody>${s.table.rows.map(row => `<tr>${row.map(cell => `<td>${escHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>` : ''}
+      </div>`).join('')}
+    </div>`
+
   const html = `<!DOCTYPE html>
 <html lang="${loc.split('-')[0]}">
 <head>
@@ -547,6 +568,15 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
 
   .empty-day { font-size: 9.5px; color: #cbd5e1; font-style: italic; text-align: center; padding: 14px 0; }
 
+  /* ── Plugin sections ───────────────────────────── */
+  .plugin-sections { padding: 16px 28px 6px; }
+  .plugin-section { margin-bottom: 16px; page-break-inside: avoid; }
+  .plugin-section-title { font-size: 12px; font-weight: 600; color: #1e293b; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; }
+  .plugin-section-text { font-size: 9.5px; color: #334155; line-height: 1.55; margin-bottom: 5px; }
+  .plugin-section-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .plugin-section-table th { font-size: 8px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding: 4px 8px; border-bottom: 1px solid #e2e8f0; }
+  .plugin-section-table td { font-size: 9px; color: #334155; padding: 4px 8px; border-bottom: 1px solid #f1f5f9; }
+
   /* ── Print ─────────────────────────────────────── */
   @media print {
     body { margin: 0; }
@@ -600,7 +630,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
 
 <!-- Days -->
 ${daysHtml}
-
+${pluginSectionsHtml}
 </body></html>`
 
   // Open in modal with srcdoc iframe (no URL loading = no X-Frame-Options issue)

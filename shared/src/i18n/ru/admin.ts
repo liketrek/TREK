@@ -284,6 +284,11 @@ const admin: TranslationStrings = {
     'Выдавать предупреждения проверки для поездки (отображаются в планировщике)',
   'admin.plugins.perm.hook:table-contributor': 'Добавлять столбцы и действия в представления поездки (бронирования, места, дни)',
   'admin.plugins.perm.hook:map-marker-provider': 'Добавлять маркеры на карту поездки (например, показывать бронирования или POI)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Добавлять текстовые разделы в PDF-экспорт поездки',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Выделять страны на карте мира в Атласе (например, списки желаний или предупреждения для путешественников)',
+  'admin.plugins.perm.hook:journal-entry-provider':
+    'Добавлять дополнительные строки (ссылки, статистику) к записям дневника',
   'admin.plugins.perm.events:subscribe':
     'Реагировать на основные события активности (только название события и поездка, никогда содержимое)',
   'admin.plugins.perm.http:outbound': 'Выполнять исходящие запросы к заявленным хостам',

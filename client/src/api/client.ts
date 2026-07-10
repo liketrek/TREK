@@ -571,6 +571,20 @@ export interface PluginMapMarker {
   tone: 'default' | 'success' | 'warn' | 'danger'
 }
 
+/** A text-only section a pdfSectionProvider plugin appends to the trip PDF export.
+ * Server-normalized: counts + lengths are capped, cells are plain strings. */
+export interface PluginPdfSection {
+  pluginId: string; title: string; paragraphs: string[];
+  table?: { headers: string[]; rows: string[][] }
+}
+
+/** A country tint layer an atlasLayerProvider plugin draws over the Atlas map for
+ * the signed-in user. Codes are ISO alpha-2 (server-validated), tone enum-whitelisted. */
+export interface PluginAtlasLayer {
+  pluginId: string; id: string; name?: string;
+  countries: Array<{ code: string; tone: 'default' | 'success' | 'warn' | 'danger'; label?: string }>
+}
+
 export interface PluginUserSettingField {
   key: string; label?: string | null; input_type?: string; placeholder?: string | null;
   hint?: string | null; required?: boolean; secret?: boolean;
@@ -595,6 +609,18 @@ export const pluginsApi = {
   // (#587). Host-normalized + range-checked; fail-safe (skips slow/failing providers).
   mapMarkers: (tripId: number | string) =>
     apiClient.get(`/map-markers/${tripId}`).then(r => r.data as { markers: PluginMapMarker[] }),
+  // Text-only sections plugins append to the trip PDF export via the
+  // pdfSectionProvider hook. Host-normalized (counts + lengths capped); fail-safe.
+  pdfSections: (tripId: number | string) =>
+    apiClient.get(`/pdf-sections/${tripId}`).then(r => r.data as { sections: PluginPdfSection[] }),
+  // Country tint layers plugins draw over the Atlas map for the signed-in user via
+  // the atlasLayerProvider hook. No tripId — user-scoped server-side; fail-safe.
+  atlasLayers: () =>
+    apiClient.get('/atlas-layers').then(r => r.data as { layers: PluginAtlasLayer[] }),
+  // Extra rows plugins add under a journal entry via the journalEntryProvider hook.
+  // Same shape + hardening as placeDetails (label/value/allowlisted url); fail-safe.
+  journalEntryRows: (entryId: number) =>
+    apiClient.get(`/journal-entry-rows/${entryId}`).then(r => r.data as { providers: Array<{ pluginId: string; items: Array<{ label: string; value?: string; url?: string }> }> }),
   // A user's OWN scope:'user' settings for a plugin (API key, prefs). Secrets are
   // masked; the write only accepts declared user-scope keys.
   userSettings: (id: string) =>

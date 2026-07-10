@@ -286,6 +286,10 @@ const admin: TranslationStrings = {
     'Validierungswarnungen zu einer Reise ausgeben (im Planer angezeigt)',
   'admin.plugins.perm.hook:table-contributor': 'Spalten und Aktionen zu Reise-Ansichten hinzufügen (Reservierungen, Orte, Tage)',
   'admin.plugins.perm.hook:map-marker-provider': 'Marker zur Reisekarte hinzufügen (z. B. Buchungen oder POIs anzeigen)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Textabschnitte an den PDF-Export einer Reise anhängen',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Länder auf der Atlas-Weltkarte hervorheben (z. B. Wunschlisten oder Reisehinweise)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Zusatzzeilen (Links, Statistiken) zu Journal-Einträgen beisteuern',
   'admin.plugins.perm.events:subscribe':
     'Auf Kern-Aktivitäts-Events reagieren (nur Event-Name + Reise, nie der Inhalt)',
   'admin.plugins.perm.jobs:run': 'Deklarierte Hintergrund-Jobs zeitgesteuert ausführen (kein Nutzerkontext — kann keine Nutzerdaten lesen)',

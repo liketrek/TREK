@@ -342,6 +342,10 @@ const admin: TranslationStrings = {
     'Đưa ra cảnh báo xác thực trên một chuyến đi (hiển thị trong trình lập kế hoạch)',
   'admin.plugins.perm.hook:table-contributor': 'Thêm cột và hành động vào các chế độ xem chuyến đi (đặt chỗ, địa điểm, ngày)',
   'admin.plugins.perm.hook:map-marker-provider': 'Thêm điểm đánh dấu vào bản đồ chuyến đi (vd. hiển thị đặt chỗ hoặc POI)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Thêm các phần văn bản vào bản xuất PDF của chuyến đi',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Làm nổi bật các quốc gia trên bản đồ thế giới Atlas (vd. danh sách mong muốn hoặc cảnh báo du lịch)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Thêm các dòng bổ sung (liên kết, thống kê) vào các mục nhật ký',
   'admin.plugins.perm.events:subscribe':
     'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',

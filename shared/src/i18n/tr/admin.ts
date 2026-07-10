@@ -328,6 +328,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'Bir gezide doğrulama uyarıları oluşturur (planlayıcıda gösterilir)',
   'admin.plugins.perm.hook:table-contributor': 'Seyahat görünümlerine sütunlar ve eylemler ekler (rezervasyonlar, yerler, günler)',
   'admin.plugins.perm.hook:map-marker-provider': "Seyahat haritasına işaretçiler ekler (ör. rezervasyonları veya POI'leri gösterir)",
+  'admin.plugins.perm.hook:pdf-section-provider': 'Seyahat PDF dışa aktarımına metin bölümleri ekler',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Atlas dünya haritasında ülkeleri vurgular (ör. istek listeleri veya seyahat uyarıları)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Günlük girişlerine ek satırlar (bağlantılar, istatistikler) ekler',
   'admin.plugins.perm.events:subscribe':
     'Temel etkinlik olaylarına tepki verir (yalnızca olay adı + seyahat, asla içerik değil)',
   'admin.plugins.perm.http:outbound': 'Bildirdiği ana bilgisayarlara giden istekler yapar',

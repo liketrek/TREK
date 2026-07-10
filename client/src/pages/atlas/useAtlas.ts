@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getIntlLanguage, getLocaleForLanguage, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
-import apiClient, { mapsApi } from '../../api/client'
+import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
 import { A2_TO_A3, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
@@ -68,6 +68,8 @@ export function useAtlas() {
   const [countryDetail, setCountryDetail] = useState<CountryDetail | null>(null)
   const [geoData, setGeoData] = useState<GeoJsonFeatureCollection | null>(null)
   const [visitedRegions, setVisitedRegions] = useState<Record<string, { code: string; name: string; placeCount: number; manuallyMarked?: boolean }[]>>({})
+  const [pluginLayers, setPluginLayers] = useState<PluginAtlasLayer[]>([])
+  const pluginLayerRef = useRef<L.GeoJSON | null>(null)
   const regionLayerRef = useRef<L.GeoJSON | null>(null)
   const regionGeoCache = useRef<Record<string, GeoJsonFeatureCollection>>({})
   const [showRegions, setShowRegions] = useState(false)
@@ -163,6 +165,14 @@ export function useAtlas() {
     apiClient.get(`/addons/atlas/regions?_t=${Date.now()}`)
       .then(r => setVisitedRegions(r.data?.regions || {}))
       .catch(() => {})
+  }, [])
+
+  // Load plugin tint layers (atlasLayerProvider hook) — once on mount. Fail-safe:
+  // an error just means no plugin overlay, the core map is untouched.
+  useEffect(() => {
+    pluginsApi.atlasLayers()
+      .then(r => setPluginLayers(r.layers || []))
+      .catch(() => setPluginLayers([]))
   }, [])
 
   // Load admin-1 GeoJSON for countries visible in the current viewport
@@ -387,6 +397,49 @@ export function useAtlas() {
     // Restore map view after re-render
     mapInstance.current.setView(currentCenter, currentZoom, { animate: false })
   }, [geoData, data, dark])
+
+  // Render plugin tint layers (atlasLayerProvider hook) — a dashed wash over the
+  // countries a plugin flagged, in its own non-interactive pane above the country
+  // fills. pointer-events stay off so clicks/hovers fall through to the country
+  // layer and the mark/unmark flows are untouched.
+  useEffect(() => {
+    if (!mapInstance.current) return
+    if (pluginLayerRef.current) {
+      mapInstance.current.removeLayer(pluginLayerRef.current)
+      pluginLayerRef.current = null
+    }
+    if (!geoData || pluginLayers.length === 0) return
+
+    // Same tone palette as the plugin map markers; the last layer naming a country wins.
+    const TONE_COLORS: Record<string, string> = { default: '#4F46E5', success: '#10b981', warn: '#f59e0b', danger: '#ef4444' }
+    const toneByA3: Record<string, string> = {}
+    for (const layer of pluginLayers) {
+      for (const c of layer.countries) {
+        const a3 = A2_TO_A3[c.code]
+        if (a3) toneByA3[a3] = c.tone || 'default'
+      }
+    }
+    const featureA3 = (f: any) => f?.properties?.ADM0_A3 || f?.properties?.ISO_A3 || f?.properties?.['ISO3166-1-Alpha-3'] || f?.id
+    const features = ((geoData as any).features || []).filter((f: any) => toneByA3[featureA3(f)] !== undefined)
+    if (features.length === 0) return
+
+    if (!mapInstance.current.getPane('atlasPluginPane')) {
+      mapInstance.current.createPane('atlasPluginPane')
+      const pane = mapInstance.current.getPane('atlasPluginPane')!
+      pane.style.zIndex = '402'
+      pane.style.pointerEvents = 'none'
+    }
+    pluginLayerRef.current = L.geoJSON({ type: 'FeatureCollection', features } as any, {
+      pane: 'atlasPluginPane',
+      interactive: false,
+      style: (feature) => {
+        const color = TONE_COLORS[toneByA3[featureA3(feature)]] || TONE_COLORS.default
+        return { fillColor: color, fillOpacity: 0.18, color, weight: 1.4, dashArray: '4 3' }
+      },
+    } as L.GeoJSONOptions).addTo(mapInstance.current)
+    // `loading` is a dep because the map itself is created once loading flips —
+    // layers fetched before that would otherwise never get drawn.
+  }, [geoData, pluginLayers, dark, loading])
 
   // Render sub-national region layer (zoom >= 5)
   useEffect(() => {

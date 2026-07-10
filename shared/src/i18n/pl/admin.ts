@@ -280,6 +280,11 @@ const admin: TranslationStrings = {
     'Zgłaszanie ostrzeżeń walidacyjnych dla podróży (widocznych w planerze)',
   'admin.plugins.perm.hook:table-contributor': 'Dodawanie kolumn i akcji do widoków podróży (rezerwacje, miejsca, dni)',
   'admin.plugins.perm.hook:map-marker-provider': 'Dodawanie znaczników do mapy podróży (np. pokazywanie rezerwacji lub POI)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Dołączanie sekcji tekstowych do eksportu PDF podróży',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Wyróżnianie krajów na mapie świata Atlasu (np. listy życzeń lub ostrzeżenia dla podróżnych)',
+  'admin.plugins.perm.hook:journal-entry-provider':
+    'Dodawanie dodatkowych wierszy (linki, statystyki) do wpisów dziennika',
   'admin.plugins.perm.events:subscribe':
     'Reagowanie na podstawowe zdarzenia aktywności (tylko nazwa zdarzenia i podróż, nigdy treść)',
   'admin.plugins.perm.http:outbound': 'Wykonywanie wychodzących zapytań do zadeklarowanych hostów',

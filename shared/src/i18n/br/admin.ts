@@ -278,6 +278,11 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'Emitir avisos de validação em uma viagem (exibidos no planejador)',
   'admin.plugins.perm.hook:table-contributor': 'Adicionar colunas e ações às visualizações da viagem (reservas, locais, dias)',
   'admin.plugins.perm.hook:map-marker-provider': 'Adicionar marcadores ao mapa da viagem (ex. mostrar reservas ou POIs)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Anexar seções de texto à exportação em PDF da viagem',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Destacar países no mapa-múndi do Atlas (ex. listas de desejos ou avisos de viagem)',
+  'admin.plugins.perm.hook:journal-entry-provider':
+    'Adicionar linhas extras (links, estatísticas) às entradas do diário',
   'admin.plugins.perm.events:subscribe':
     'Reagir a eventos de atividade do núcleo (apenas nome do evento + viagem, nunca o conteúdo)',
   'admin.plugins.perm.http:outbound': 'Fazer requisições de saída para os hosts declarados',

@@ -390,6 +390,45 @@ export interface MapMarkerProvider {
   getMarkers(tripId: number, ctx: PluginContext): Promise<MapMarkerContribution[]>;
 }
 
+/** A text-only section the host appends to a trip's PDF export. Declarative only —
+ * plain strings the host lays out and escapes; no markup ever reaches the document. */
+export interface PdfSection {
+  title: string;          // section heading (capped at 120 chars)
+  paragraphs?: string[];  // body text — ≤20 paragraphs of ≤2000 chars each
+  table?: { headers: string[]; rows: string[][] }; // simple table — ≤8 headers, ≤50 rows
+}
+export interface PdfSectionProvider {
+  /** Return sections to append to a trip's PDF export. Runs with the current user
+   * bound, on a short timeout; the host caps counts/lengths and skips a failing
+   * call. Needs `hook:pdf-section-provider`. */
+  getSections(tripId: number, ctx: PluginContext): Promise<PdfSection[]>;
+}
+
+/** One country in an Atlas tint layer. `code` is ISO-3166 alpha-2 (uppercased by the host). */
+export interface AtlasLayerCountry { code: string; tone?: ContributionTone; label?: string; }
+/** A country tint layer the host draws over the Atlas world map (wishlists, advisories, …). */
+export interface AtlasLayer {
+  id: string;                    // stable per-layer id (React key / dedupe)
+  name?: string;                 // short layer name
+  countries: AtlasLayerCountry[]; // ≤300 countries per layer
+}
+export interface AtlasLayerProvider {
+  /** Return tint layers for the ACTING USER's Atlas map. User-scoped — the host binds
+   * the current user; the hook takes no target parameter. Runs on a short timeout;
+   * the host caps the layer/country counts and skips a failing call.
+   * Needs `hook:atlas-layer-provider`. */
+  getLayers(ctx: PluginContext): Promise<AtlasLayer[]>;
+}
+
+/** One row of extra info TREK renders under a journal entry (same shape as PlaceDetailItem). */
+export interface JournalEntryRow { label: string; value?: string; url?: string; }
+export interface JournalEntryProvider {
+  /** Return rows for a journal entry. Runs with the current user bound, on a short
+   * timeout; the host caps the row count and skips a failing call.
+   * Needs `hook:journal-entry-provider`. */
+  getRows(entryId: number, ctx: PluginContext): Promise<JournalEntryRow[]>;
+}
+
 /** A core-event subscription (#1429 eco). Handlers run with NO user (like a job).
  * Needs `events:subscribe`. */
 export interface PluginEventSubscription {
@@ -427,6 +466,9 @@ export interface PluginDefinition {
     warningProvider?: WarningProvider;
     tableContributor?: TableContributor;
     mapMarkerProvider?: MapMarkerProvider;
+    pdfSectionProvider?: PdfSectionProvider;
+    atlasLayerProvider?: AtlasLayerProvider;
+    journalEntryProvider?: JournalEntryProvider;
   };
   /** Functions exposed to dependents (names must match manifest `capabilities.provides`). */
   exports?: Record<string, PluginExport>;

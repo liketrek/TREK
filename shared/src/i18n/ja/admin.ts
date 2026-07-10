@@ -309,6 +309,9 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': '旅程に検証警告を表示（プランナー内に表示）',
   'admin.plugins.perm.hook:table-contributor': '旅行のビュー（予約、場所、日程）に列とアクションを追加',
   'admin.plugins.perm.hook:map-marker-provider': '旅行の地図にマーカーを追加（例: 予約や POI を表示）',
+  'admin.plugins.perm.hook:pdf-section-provider': '旅行の PDF エクスポートにテキストセクションを追加',
+  'admin.plugins.perm.hook:atlas-layer-provider': 'Atlas の世界地図で国をハイライト（例: ウィッシュリストや渡航情報）',
+  'admin.plugins.perm.hook:journal-entry-provider': '日記のエントリーに追加の行（リンク、統計）を提供',
   'admin.plugins.perm.events:subscribe':
     'コアのアクティビティイベントに反応（イベント名と旅程のみで、内容には一切アクセスしません）',
   'admin.plugins.perm.http:outbound': '宣言済みホストへの外部リクエストの送信',

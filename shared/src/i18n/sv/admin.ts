@@ -340,6 +340,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'Visa valideringsvarningar på en resa (visas i planeraren)',
   'admin.plugins.perm.hook:table-contributor': 'Lägga till kolumner och åtgärder i rese­vyer (bokningar, platser, dagar)',
   'admin.plugins.perm.hook:map-marker-provider': 'Lägga till markörer på reskartan (t.ex. visa bokningar eller POI:er)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Lägga till textavsnitt i resans PDF-export',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Markera länder på Atlas-världskartan (t.ex. önskelistor eller resevarningar)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Lägga till extra rader (länkar, statistik) i dagboksinlägg',
   'admin.plugins.perm.events:subscribe':
     'Reagera på grundläggande aktivitetshändelser (endast händelsenamn + resa, aldrig innehållet)',
   'admin.plugins.perm.http:outbound': 'Göra utgående anrop till sina deklarerade värdar',

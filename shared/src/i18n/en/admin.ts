@@ -328,6 +328,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
   'admin.plugins.perm.hook:table-contributor': 'Add columns and actions to trip views (reservations, places, days)',
   'admin.plugins.perm.hook:map-marker-provider': 'Add markers to the trip map (e.g. show bookings or POIs)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Append text sections to the trip PDF export',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Highlight countries on the Atlas world map (e.g. wishlists or travel advisories)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Contribute extra rows (links, stats) to journal entries',
   'admin.plugins.perm.events:subscribe': 'React to core activity events (event name + trip only, never the content)',
   'admin.plugins.perm.jobs:run': 'Run its declared background jobs on a schedule (no user context — cannot read user data)',
   'admin.plugins.perm.http:outbound': 'Make outbound requests to its declared hosts',

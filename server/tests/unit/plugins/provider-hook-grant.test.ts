@@ -38,6 +38,17 @@ describe('providersOf enforces the hook:* grant', () => {
     put(s, 'x', 'active', ['mysteryProvider'], ['hook:mystery', 'db:own']);
     expect(s.providersOf('mysteryProvider')).toEqual([]);
   });
+
+  it('maps the pdf-section / atlas-layer / journal-entry hooks to their grants', () => {
+    const s = makeSupervisor();
+    put(s, 'pdf', 'active', ['pdfSectionProvider'], ['hook:pdf-section-provider']);
+    put(s, 'atlas', 'active', ['atlasLayerProvider'], ['hook:atlas-layer-provider']);
+    put(s, 'journal', 'active', ['journalEntryProvider'], ['hook:journal-entry-provider']);
+    put(s, 'crossed', 'active', ['pdfSectionProvider'], ['hook:atlas-layer-provider']); // wrong grant
+    expect(s.providersOf('pdfSectionProvider')).toEqual(['pdf']);
+    expect(s.providersOf('atlasLayerProvider')).toEqual(['atlas']);
+    expect(s.providersOf('journalEntryProvider')).toEqual(['journal']);
+  });
 });
 
 describe('runtime.invokeHook defense-in-depth', () => {

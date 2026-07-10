@@ -297,6 +297,10 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'إظهار تحذيرات التحقق على الرحلة (تظهر في المخطط)',
   'admin.plugins.perm.hook:table-contributor': 'إضافة أعمدة وإجراءات إلى عروض الرحلة (الحجوزات، الأماكن، الأيام)',
   'admin.plugins.perm.hook:map-marker-provider': 'إضافة علامات إلى خريطة الرحلة (مثل عرض الحجوزات أو نقاط الاهتمام)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'إضافة أقسام نصية إلى تصدير PDF للرحلة',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'إبراز دول على خريطة أطلس العالمية (مثل قوائم الأمنيات أو تحذيرات السفر)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'إضافة صفوف إضافية (روابط، إحصاءات) إلى مدخلات اليوميات',
   'admin.plugins.perm.events:subscribe': 'التفاعل مع أحداث النشاط الأساسية (اسم الحدث والرحلة فقط، دون المحتوى مطلقًا)',
   'admin.plugins.perm.http:outbound': 'إجراء طلبات صادرة إلى المضيفات المُعلنة الخاصة بها',
   'admin.plugins.updateConsentTitle': 'يتطلب هذا التحديث أذونات جديدة',
