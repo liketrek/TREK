@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -12,6 +12,13 @@ import DashboardPage from './DashboardPage';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Pin "now" to a date inside the fixtures' trip window (Paris Adventure runs
+  // 2026-07-01..07-10) so the dashboard's past/upcoming/spotlight split is stable
+  // regardless of the wall clock — otherwise these tests break once the date
+  // rolls past the hardcoded fixture window. shouldAdvanceTime keeps userEvent
+  // and async waitFor working under fake timers.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date('2026-07-05T12:00:00Z'));
   resetAllStores();
   // Seed auth with authenticated user
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
@@ -28,6 +35,10 @@ beforeEach(() => {
       ]);
     }),
   );
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('DashboardPage', () => {
