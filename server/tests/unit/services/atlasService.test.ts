@@ -288,6 +288,33 @@ describe('getCountryFromCoords', () => {
     expect(getCountryFromCoords(64.4230, -173.2260)).toBe('RU'); // Provideniya, east of 180
     expect(getCountryFromCoords(-18.1416, 178.4419)).toBe('FJ'); // Suva
   });
+
+  it('ATLAS-SVC-005j: a loose polygon-less box (PS) does not steal Israeli points inside the IL polygon', () => {
+    // PS has no admin0 polygon and its box sprawls across most of Israel. It must NOT win
+    // the smallest-box tie-break over IL's real polygon: Tel Aviv, Jerusalem, Eilat and
+    // Beersheba all lie in the IL polygon and must resolve to IL, not PS.
+    expect(getCountryFromCoords(32.0853, 34.7818)).toBe('IL'); // Tel Aviv
+    expect(getCountryFromCoords(31.7683, 35.2137)).toBe('IL'); // Jerusalem
+    expect(getCountryFromCoords(29.5577, 34.9519)).toBe('IL'); // Eilat
+    expect(getCountryFromCoords(31.2518, 34.7913)).toBe('IL'); // Beersheba
+  });
+
+  it('ATLAS-SVC-005k: a genuine West Bank / Gaza point still resolves to PS via the deferred box', () => {
+    // The fix only defers the loose box behind real polygons; a point that lies in NO
+    // sovereign polygon (the West Bank / Gaza are excluded from the IL polygon) still
+    // lands on the PS box.
+    expect(getCountryFromCoords(31.9038, 35.2034)).toBe('PS'); // Ramallah
+    expect(getCountryFromCoords(31.5017, 34.4668)).toBe('PS'); // Gaza City
+  });
+
+  it('ATLAS-SVC-005l: the loose XK box does not steal North Macedonian points inside the MK polygon', () => {
+    // Same mechanism as PS: XK is polygon-less and its box overlaps North Macedonia.
+    // Skopje and Tetovo lie in the MK polygon and must resolve to MK, not XK — while
+    // Pristina (in no neighbouring polygon) still resolves to XK.
+    expect(getCountryFromCoords(41.9973, 21.4280)).toBe('MK'); // Skopje
+    expect(getCountryFromCoords(42.0106, 20.9714)).toBe('MK'); // Tetovo
+    expect(getCountryFromCoords(42.6629, 21.1655)).toBe('XK'); // Pristina
+  });
 });
 
 // ── Removing a visited country sticks (#1490) ───────────────────────────────

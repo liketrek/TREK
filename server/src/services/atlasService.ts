@@ -92,6 +92,15 @@ const MICRO_TERRITORY_BOXES: Record<string, [number, number, number, number]> = 
   PS:[34.2,29.5,35.6,32.6],XK:[20.0,41.9,21.8,43.3],
 };
 
+// A polygon-less micro-territory box only auto-wins the smallest-box tie-break when it is
+// TIGHT around the enclave. HK(0.25°²), MO(0.008), GI(0.0015) and PR(1.35) hug their
+// territory, so a point inside them really is in that territory. PS(4.34) and XK(2.52) are
+// loose regional rectangles that sprawl across a sovereign neighbour (PS over Israel, XK
+// over North Macedonia) — a point there usually belongs to the neighbour, so those boxes
+// must NOT auto-win; they defer to the neighbour's real polygon first (see #1490-class fix
+// below). This threshold sits between PR and XK.
+const MICRO_BOX_MAX_AREA = 2.0;
+
 export const NAME_TO_CODE: Record<string, string> = {
   'germany':'DE','deutschland':'DE','france':'FR','frankreich':'FR','spain':'ES','spanien':'ES',
   'italy':'IT','italien':'IT','united kingdom':'GB','uk':'GB','england':'GB','united states':'US',
@@ -278,19 +287,28 @@ export function getCountryFromCoords(lat: number, lng: number): string | null {
   // box alone mis-assigns a point just across the border (#1331). Disambiguate with
   // the real admin0 polygon: try candidates smallest-box-first and return the one whose
   // polygon actually contains the point. A candidate with no polygon (a micro-territory
-  // like HK/MO/GI) keeps the smallest-box win.
+  // like HK/MO/GI) keeps the smallest-box win — but only when its box is tight enough to
+  // trust (MICRO_BOX_MAX_AREA); a loose regional box (PS/XK) defers to a real neighbour
+  // polygon so it can't steal a point that lies inside that sovereign (Tel Aviv → IL,
+  // Skopje → MK), while a genuine PS/XK point still lands on the deferred box below.
   //
   // This runs even for a lone candidate. Short-circuiting a single match was what let a
   // point resolve to a country whose polygon plainly excludes it (#1490).
   candidates.sort((a, b) => a.area - b.area);
   const polys = getCountryPolyIndex();
-  for (const { code } of candidates) {
+  let looseBoxFallback: string | null = null;
+  for (const { code, area } of candidates) {
     const poly = polys.get(code);
-    if (!poly) return code;
+    if (!poly) {
+      if (area <= MICRO_BOX_MAX_AREA) return code;
+      if (looseBoxFallback === null) looseBoxFallback = code;
+      continue;
+    }
     if (pointInGeometry(lng, lat, poly)) return code;
   }
-  // No polygon contained the point (coastal slop / data gap) — fall back to smallest box.
-  return candidates[0].code;
+  // No tight micro-box and no polygon contained the point — prefer a deferred loose box
+  // (a real PS/XK point), else fall back to the smallest box (coastal slop / data gap).
+  return looseBoxFallback ?? candidates[0].code;
 }
 
 export function getCountryFromAddress(address: string | null): string | null {
