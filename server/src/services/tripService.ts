@@ -7,7 +7,7 @@ import { db, isOwner } from '../db/database';
 import { erasePluginUserData } from './userCleanupService';
 import { emitUserDeleted } from '../plugin-user-lifecycle';
 import { Trip, User } from '../types';
-import { listDays, listAccommodations } from './dayService';
+import { listDays, listAccommodations, addDays } from './dayService';
 import { listBudgetItems } from './budgetService';
 import { listItems as listPackingItems } from './packingService';
 import { listReservations, loadEndpointsByTrip, resyncReservationDays } from './reservationService';
@@ -679,11 +679,11 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
   ics += `X-WR-CALNAME:${esc(trip.title || 'TREK Trip')}\r\n`;
 
-  // Trip as all-day event
+  // Trip as all-day event. DTEND is exclusive, so it must be the day *after* the last
+  // day. addDays() stays in UTC — building a local-time Date here dropped the trip's
+  // last day on any server east of Greenwich (#1453).
   if (trip.start_date && trip.end_date) {
-    const endNext = new Date(trip.end_date + 'T00:00:00');
-    endNext.setDate(endNext.getDate() + 1);
-    const endStr = endNext.toISOString().split('T')[0].replace(/-/g, '');
+    const endStr = fmtDate(addDays(trip.end_date, 1));
     ics += `BEGIN:VEVENT\r\nUID:${uid(trip.id, 'trip')}\r\nDTSTAMP:${now}\r\nDTSTART;VALUE=DATE:${fmtDate(trip.start_date)}\r\nDTEND;VALUE=DATE:${endStr}\r\nSUMMARY:${esc(trip.title || 'Trip')}\r\n`;
     if (trip.description) ics += `DESCRIPTION:${esc(trip.description)}\r\n`;
     ics += `END:VEVENT\r\n`;
@@ -732,9 +732,7 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     // Build all-day summary event if there are untimed activities or notes
     if (untimed.length > 0 || notes.length > 0) {
       const dayTitle = day.title || `Day ${day.day_number}`;
-      const endNext = new Date(day.date + 'T00:00:00');
-      endNext.setDate(endNext.getDate() + 1);
-      const endStr = endNext.toISOString().split('T')[0].replace(/-/g, '');
+      const endStr = fmtDate(addDays(day.date, 1));
 
       ics += `BEGIN:VEVENT\r\nUID:${uid(day.id, 'day')}\r\nDTSTAMP:${now}\r\n`;
       ics += `DTSTART;VALUE=DATE:${fmtDate(day.date)}\r\nDTEND;VALUE=DATE:${endStr}\r\n`;

@@ -298,7 +298,51 @@ describe('exportICS', () => {
     const { ics } = exportICS(trip.id);
 
     expect(ics).toContain('DTSTART;VALUE=DATE:20250601');
+    // DTEND is exclusive — the day *after* the last day, or the trip loses a day.
+    expect(ics).toContain('DTEND;VALUE=DATE:20250608');
     expect(ics).toContain('SUMMARY:Summer Holiday');
+  });
+
+  describe('#1453 all-day DTEND is timezone-independent', () => {
+    const originalTz = process.env.TZ;
+
+    afterAll(() => {
+      process.env.TZ = originalTz;
+    });
+
+    // The old code did `new Date(date + 'T00:00:00')` — no Z, so parsed as *server-local*
+    // midnight — then setDate(+1) and .toISOString(). East of Greenwich that round-trip
+    // lands a day early, and since DTEND is exclusive the trip's last day was dropped.
+    // Only invisible in CI because containers default to TZ=UTC.
+    for (const tz of ['Europe/Berlin', 'Asia/Tokyo', 'Pacific/Kiritimati', 'America/New_York', 'UTC']) {
+      it(`TRIP-SVC-002b: DTEND is the day after the last day under TZ=${tz}`, () => {
+        process.env.TZ = tz;
+        const { user } = createUser(testDb);
+        const trip = createTrip(testDb, user.id, {
+          title: 'TZ Trip',
+          start_date: '2026-03-28',
+          end_date: '2026-03-30',
+        });
+
+        const { ics } = exportICS(trip.id);
+
+        expect(ics).toContain('DTSTART;VALUE=DATE:20260328');
+        expect(ics).toContain('DTEND;VALUE=DATE:20260331');
+      });
+    }
+
+    it('TRIP-SVC-002c: a per-day all-day summary event has the same exclusive DTEND', () => {
+      process.env.TZ = 'Asia/Tokyo';
+      const { user } = createUser(testDb);
+      const trip = createTrip(testDb, user.id, { title: 'Day Note Trip' });
+      const day = createDay(testDb, trip.id, { date: '2026-03-30', day_number: 1 });
+      createDayNote(testDb, day.id, trip.id, { text: 'Pack the bags' });
+
+      const { ics } = exportICS(trip.id);
+
+      expect(ics).toContain('DTSTART;VALUE=DATE:20260330');
+      expect(ics).toContain('DTEND;VALUE=DATE:20260331');
+    });
   });
 
   it('TRIP-SVC-003: reservation with full datetime (includes T) → DTSTART without VALUE=DATE', () => {
