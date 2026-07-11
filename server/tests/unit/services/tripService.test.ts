@@ -471,6 +471,27 @@ describe('exportICS', () => {
     expect(ics).toContain('Route: CDG → JFK');
   });
 
+  it('TRIP-SVC-010b: an invalid endpoint timezone degrades to floating time instead of crashing the export', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Bad TZ Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'CDG → JFK', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    // A stored/plugin-written timezone can be any string; it must never reach Intl.
+    // The bogus zone takes precedence over the coordinates (first.timezone || resolveZone).
+    insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Not/AZone', '09:00', '2025-06-02');
+    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'garbage', '12:00', '2025-06-02');
+
+    let ics = '';
+    expect(() => { ics = exportICS(trip.id).ics; }).not.toThrow();
+    // Falls back to a floating local time (no TZID) and never emits a bogus VTIMEZONE.
+    expect(ics).toContain('DTSTART:20250602T090000');
+    expect(ics).not.toContain('TZID=Not/AZone');
+    expect(ics).not.toContain('garbage');
+  });
+
   it('TRIP-SVC-011: flight endpoint with no local_date is skipped (relative Day-N trips)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Relative Trip' });

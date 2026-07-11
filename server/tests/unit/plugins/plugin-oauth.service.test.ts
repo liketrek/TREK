@@ -15,6 +15,15 @@ vi.mock('../../../src/services/notifications', () => ({ getAppUrl: () => 'https:
 const { getDb } = vi.hoisted(() => ({ getDb: { current: null as unknown } }));
 vi.mock('../../../src/db/database', () => ({ get db() { return getDb.current; } }));
 
+// The token POST now runs through the SSRF guard (ssrfGuard.safeFetchLlm), which
+// resolves the host before fetching. Stub DNS so the fake provider.example host
+// resolves — to a public IP by default, or to a per-test address for the guard.
+const { dnsState } = vi.hoisted(() => ({ dnsState: { address: '93.184.216.34', family: 4 } }));
+vi.mock('node:dns/promises', () => {
+  const lookup = async () => ({ address: dnsState.address, family: dnsState.family });
+  return { default: { lookup }, lookup };
+});
+
 import Database from 'better-sqlite3';
 import { PluginOAuthService } from '../../../src/nest/plugins/plugin-oauth.service';
 
@@ -41,7 +50,7 @@ const NOW = 1_700_000_000_000;
 
 describe('PluginOAuthService', () => {
   let svc: PluginOAuthService;
-  beforeEach(() => { getDb.current = freshDb(); svc = new PluginOAuthService(); vi.restoreAllMocks(); });
+  beforeEach(() => { getDb.current = freshDb(); svc = new PluginOAuthService(); vi.restoreAllMocks(); dnsState.address = '93.184.216.34'; dnsState.family = 4; });
 
   it('providerConfig returns null unless every piece is present, decrypting the secrets', () => {
     expect(svc.providerConfig('p')).toMatchObject({ clientId: 'client-123', clientSecret: 'secret-abc', scopes: 'read write' });
@@ -119,6 +128,15 @@ describe('PluginOAuthService', () => {
 
     // a user who never connected → null
     expect(await svc.getAccessToken('p', 7, NOW)).toBeNull();
+  });
+
+  it('routes the token exchange through the SSRF guard — a token_url resolving to cloud metadata is refused', async () => {
+    const state = new URL(svc.startConnect('p', 42, NOW)).searchParams.get('state')!;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ access_token: 'AT' }) } as Response);
+    // The provider's token_url now resolves to the cloud-metadata address.
+    dnsState.address = '169.254.169.254';
+    await expect(svc.completeCallback('p', 42, 'the-code', state, NOW + 1000)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled(); // blocked before any request left the host
   });
 
   it('disconnect drops the user\'s tokens', async () => {

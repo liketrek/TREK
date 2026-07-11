@@ -25,6 +25,7 @@ import { createPlace, updatePlace, deletePlace } from '../../../services/placeSe
 import { createDay, getDay, updateDay, deleteDay, listDays, listAccommodations, validateAccommodationRefs, createAccommodation as createAccommodationSvc, getAccommodation, updateAccommodation as updateAccommodationSvc, deleteAccommodation as deleteAccommodationSvc } from '../../../services/dayService';
 import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../services/assignmentService';
 import { isAddonEnabled } from '../../../services/adminService';
+import { isDemoEmail } from '../../../services/demo';
 import { ADDON_IDS } from '../../../addons';
 import { listJourneys, listEntries as listJournalEntriesSvc, createEntry as createJournalEntrySvc, updateEntry as updateJournalEntrySvc, deleteEntry as deleteJournalEntrySvc, createJourney as createJourneySvc, deleteJourney as deleteJourneySvc } from '../../../services/journeyService';
 import { listVisitedCountries, listManuallyVisitedRegions, listBucketList, markCountryVisited, unmarkCountryVisited, markRegionVisited, unmarkRegionVisited, createBucketItem as createBucketItemSvc, deleteBucketItem as deleteBucketItemSvc } from '../../../services/atlasService';
@@ -277,6 +278,14 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     canEditFiles: (tripId, userId) => canEditTripAs('file_edit', tripId, userId),
     canDeleteFiles: (tripId, userId) => canEditTripAs('file_delete', tripId, userId),
     createTripFile: (tripId, input, actingUserId) => {
+      // Mirror the REST upload guard (files.controller): a demo user must not write
+      // bytes to the shared demo instance, even through a plugin's db:write:files.
+      // Only resolve the email when demo mode is actually on — keeps the hot path
+      // (and the schema surface) untouched for self-hosted installs.
+      if (process.env.DEMO_MODE?.toLowerCase() === 'true') {
+        const uploader = db.prepare('SELECT email FROM users WHERE id = ?').get(actingUserId) as { email?: string } | undefined;
+        if (isDemoEmail(uploader?.email)) throw new ForbiddenResource('Uploads are disabled in demo mode.');
+      }
       const i = input as { name: string; content_base64: string; mimetype?: string; description?: string; place_id?: number; reservation_id?: number };
       const original = pathMod.basename(i.name);
       const ext = pathMod.extname(original).toLowerCase();

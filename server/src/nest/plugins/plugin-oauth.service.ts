@@ -4,6 +4,7 @@ import { db } from '../../db/database';
 import { encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
 import { getAppUrl } from '../../services/notifications';
 import { isPrivateIp } from './install/safe-fetch';
+import { safeFetchLlm } from '../../utils/ssrfGuard';
 
 /**
  * Host-brokered outbound OAuth (#plugins). A plugin becomes an OAuth *client* of a
@@ -172,7 +173,12 @@ export class PluginOAuthService {
   private async tokenRequest(cfg: OAuthProviderConfig, params: Record<string, string>): Promise<{ access_token?: string; refresh_token?: string; expires_in?: number; scope?: string }> {
     assertSafeHttps(cfg.tokenUrl, 'token_url');
     const body = new URLSearchParams({ ...params, client_id: cfg.clientId, client_secret: cfg.clientSecret });
-    const resp = await fetch(cfg.tokenUrl, {
+    // Route the server-side token POST through the SSRF guard: it resolves the host
+    // and refuses the link-local / cloud-metadata range (169.254/fe80/IMDSv6) while
+    // pinning the connection to the resolved IP, so a token_url that is a DNS name
+    // (or IPv6 literal) pointing at metadata can't reach it and can't DNS-rebind.
+    // Loopback/LAN stay reachable so a self-hosted internal IdP keeps working.
+    const resp = await safeFetchLlm(cfg.tokenUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
       body: body.toString(),

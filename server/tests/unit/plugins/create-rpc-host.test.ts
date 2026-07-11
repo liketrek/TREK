@@ -20,7 +20,7 @@ vi.mock('../../../src/db/database', () => {
     CREATE TABLE trips (id INTEGER PRIMARY KEY, user_id INTEGER);
     CREATE TABLE places (id INTEGER PRIMARY KEY, trip_id INTEGER);
     CREATE TABLE days (id INTEGER PRIMARY KEY, trip_id INTEGER);
-    CREATE TABLE users (id INTEGER PRIMARY KEY, role TEXT, username TEXT, display_name TEXT, avatar TEXT);
+    CREATE TABLE users (id INTEGER PRIMARY KEY, role TEXT, username TEXT, display_name TEXT, avatar TEXT, email TEXT);
     CREATE TABLE trip_members (trip_id INTEGER, user_id INTEGER);
     CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT, UNIQUE(plugin_id, entity_type, entity_id, key));
     CREATE TABLE packing_items (id INTEGER PRIMARY KEY, trip_id INTEGER, is_private INTEGER, owner_id INTEGER);
@@ -34,8 +34,10 @@ vi.mock('../../../src/db/database', () => {
   d.prepare('INSERT INTO days (id, trip_id) VALUES (3, 1)').run();
   d.prepare('INSERT INTO users (id, role) VALUES (5, ?)').run('trip_owner');
   d.prepare('INSERT INTO users (id, role) VALUES (6, ?)').run('user');
+  d.prepare("INSERT INTO users (id, role, email) VALUES (77, 'user', 'demo@trek.app')").run(); // a demo-account member for the DEMO_MODE upload guard
   d.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (1, 6)').run(); // user 6 shares trip 1 with owner 5
-  return { db: d, canAccessTrip: (tripId: number, userId: number) => (tripId === 1 && (userId === 5 || userId === 6) ? { id: 1, user_id: 5 } : undefined) };
+  d.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (1, 77)').run();
+  return { db: d, canAccessTrip: (tripId: number, userId: number) => (tripId === 1 && (userId === 5 || userId === 6 || userId === 77) ? { id: 1, user_id: 5 } : undefined) };
 });
 vi.mock('../../../src/websocket', () => ({ broadcast, broadcastToUser }));
 // Addon gate — flip per test to exercise the "addon disabled" branch of the reads.
@@ -750,6 +752,22 @@ describe('create-rpc-host — Wave 3 wiring (files write / collab / member-add)'
     expect(((await call(h, 'files.create', { tripId: 1, input: { name: 'evil.exe', content_base64: 'aGk=' } })) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
     expect(((await call(h, 'files.create', { tripId: 1, input: { name: 'noext', content_base64: 'aGk=' } })) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
     expect(((await call(h, 'files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: 'aGk=', reservation_id: 999 } })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+  })
+
+  it('files.create blocks a demo user while DEMO_MODE is on, but not other members', async () => {
+    const prev = process.env.DEMO_MODE
+    process.env.DEMO_MODE = 'true'
+    try {
+      const h = host('db:write:files')
+      // user 77 is the demo account (demo@trek.app) → the plugin upload is refused
+      const denied = await call(h, 'files.create', { tripId: 1, input: { name: 'demo.pdf', content_base64: Buffer.from('x').toString('base64') } }, 77)
+      expect((denied as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
+      // a normal member (user 5, no demo email) is unaffected
+      const ok = await call(h, 'files.create', { tripId: 1, input: { name: 'ok.pdf', content_base64: Buffer.from('x').toString('base64') } }, 5)
+      expect(ok.ok).toBe(true)
+    } finally {
+      if (prev === undefined) delete process.env.DEMO_MODE; else process.env.DEMO_MODE = prev
+    }
   })
 
   it('files link/update/softDelete verify the file is on the trip + same-trip targets', async () => {

@@ -582,6 +582,26 @@ function resolveZone(lat: unknown, lng: unknown): string | null {
   }
 }
 
+// A stored/plugin-provided timezone (e.g. a transport endpoint's `timezone`) is a
+// free string that need not be a real IANA zone. Intl.DateTimeFormat throws a
+// RangeError on an unknown zone, which — via buildVTimezone → tzOffsetString —
+// would crash the whole ICS export (and drop the trip from the all-trips feed).
+// Validate once so an invalid zone degrades to a floating local time instead.
+const _tzValidCache = new Map<string, boolean>();
+function isValidTimeZone(zone: string): boolean {
+  const cached = _tzValidCache.get(zone);
+  if (cached !== undefined) return cached;
+  let ok = false;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: zone });
+    ok = true;
+  } catch {
+    // Unknown/invalid zone → ok stays false.
+  }
+  _tzValidCache.set(zone, ok);
+  return ok;
+}
+
 // UTC offset ("+0200") the zone uses on the given YYYYMMDD date. Only feeds the
 // fallback VTIMEZONE offset; iOS/Google resolve the named zone from their own
 // IANA database, so a single representative offset is sufficient.
@@ -669,7 +689,7 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     refDate?: string,
   ): string => {
     const val = fmtDateTime(wallClock, refDate);
-    if (zone && /^\d{8}T\d{6}$/.test(val)) {
+    if (zone && isValidTimeZone(zone) && /^\d{8}T\d{6}$/.test(val)) {
       if (!usedZones.has(zone)) usedZones.set(zone, val.slice(0, 8));
       return `${prop};TZID=${zone}:${val}\r\n`;
     }

@@ -63,7 +63,7 @@ const KNOWN_PERMISSIONS = [
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider',
   'hook:table-contributor', 'hook:map-marker-provider', 'hook:pdf-section-provider', 'hook:atlas-layer-provider',
-  'hook:journal-entry-provider',
+  'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:user-data',
   'events:subscribe', 'jobs:run', 'http:outbound',
   'weather:read', 'rates:read', 'notify:send', 'ai:invoke', 'oauth:client',
 ];
