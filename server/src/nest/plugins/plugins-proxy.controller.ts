@@ -112,10 +112,11 @@ export class PluginsProxyController {
             path: sub,
             query: req.query,
             body: req.body ?? null,
-            // Webhook (auth:false) routes also receive the raw request bytes so the
-            // plugin can verify a provider's HMAC signature over the exact payload
-            // it was computed on — the parsed JSON can't be re-serialised identically.
-            rawBody: route.auth === false ? ((req as { rawBody?: Buffer }).rawBody?.toString('utf8') ?? null) : undefined,
+            // Webhook (auth:false) routes also receive the raw request bytes (base64,
+            // so a non-UTF-8 signed body survives) — the plugin decodes and verifies a
+            // provider's HMAC over the exact payload; the parsed JSON can't be
+            // re-serialised identically.
+            rawBodyBase64: route.auth === false ? ((req as { rawBody?: Buffer }).rawBody?.toString('base64') ?? null) : undefined,
             // Only auth:false routes (webhooks) get inbound headers, and only the
             // allowlisted, credential-free subset — an authenticated route never
             // needs them and must not see even the safe ones.

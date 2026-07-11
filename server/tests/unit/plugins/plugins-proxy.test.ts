@@ -106,15 +106,16 @@ describe('PluginsProxyController', () => {
     // Webhook route → the plugin gets the raw payload so it can verify an HMAC.
     const wh = makeRuntime({ routesOf: vi.fn(() => [{ i: 1, method: 'POST', path: '/webhook', auth: false }]) } as never);
     await new PluginsProxyController(wh).proxy('p', fakeReq('POST', '/webhook', { rawBody: Buffer.from('{"a":1}') }), fakeRes() as never);
+    // forwarded as base64 so a non-UTF-8 signed body survives
     expect(wh.invoke).toHaveBeenCalledWith('p', 'invoke.route', expect.objectContaining({
-      req: expect.objectContaining({ rawBody: '{"a":1}' }),
+      req: expect.objectContaining({ rawBodyBase64: Buffer.from('{"a":1}').toString('base64') }),
     }), undefined);
 
     // Authenticated route → raw bytes are never handed to the plugin.
     const auth = makeRuntime();
     await new PluginsProxyController(auth).proxy('p', fakeReq('GET', '/status', { rawBody: Buffer.from('secret') }), fakeRes() as never);
-    const fwd = (auth.invoke as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][2] as { req: { rawBody?: unknown } };
-    expect(fwd.req.rawBody).toBeUndefined();
+    const fwd = (auth.invoke as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][2] as { req: { rawBodyBase64?: unknown } };
+    expect(fwd.req.rawBodyBase64).toBeUndefined();
   });
 
   it('a webhook (auth:false) route gets ONLY allowlisted inbound headers — never Cookie/Authorization', async () => {
