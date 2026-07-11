@@ -156,11 +156,13 @@ interface TransportModalProps {
   accommodations?: Accommodation[]
   /** Open directly in the Automated public-transit mode (day-header tram button, "change route"). */
   initialAutomated?: boolean
+  /** Transit search needs real dates to depart on, so the Automated mode is hidden on a dateless trip. */
+  tripHasDates?: boolean
   /** Pre-seed the transit search — used by "change route" on an existing journey. */
   transitPrefill?: { from?: PickedPlace | null; to?: PickedPlace | null } | null
 }
 
-export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, places = [], assignments = {}, accommodations = [], initialAutomated = false, transitPrefill = null }: TransportModalProps) {
+export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, places = [], assignments = {}, accommodations = [], initialAutomated = false, transitPrefill = null, tripHasDates = true }: TransportModalProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
@@ -606,8 +608,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       }
     >
       {/* Manual vs Automated creation switch (#1065) — creating only; editing a
-          journey re-enters via "change route" with the switch hidden. */}
-      {!reservation && (
+          journey re-enters via "change route" with the switch hidden. Without
+          trip dates there is nothing to plan a departure against, so Automated
+          is not offered and only the manual form shows. */}
+      {!reservation && tripHasDates && (
         <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 11, padding: 3, gap: 2, marginBottom: 14 }}>
           {([['manual', t('transport.modeManual')], ['automated', t('transport.modeAutomated')]] as const).map(([m, label]) => {
             const active = (m === 'automated') === automated

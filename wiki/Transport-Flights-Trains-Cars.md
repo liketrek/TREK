@@ -10,6 +10,8 @@ Open the **Transports** tab in the trip planner and click **Add**, or open the p
 
 The **Add transport** dialog has two modes: **Manual transport** (the classic form) and **Automated transport** — a public-transit route search powered by [Transitous](https://transitous.org/), free open data with no API key or paid provider. The **transit button** (tram icon) on each day header opens the dialog straight in the Automated mode. (The rename pencil this button replaced moved next to the day name in the day detail panel.)
 
+The mode switch only appears when the trip has a **start date and an end date** — a transit search needs real dates to depart against. On a trip without dates the dialog opens directly on the manual form; add dates in the trip settings to get the Automated mode back.
+
 - Pick **from** and **to** (stop/station search; the day's own places and hotels appear as quick picks), a **depart/arrive** time, and filter by mode: train, subway, tram, bus, ferry, cable car.
 - Rank the results by **best route**, **fewer transfers**, or **less walking**.
 - Each result shows local departure/arrival times, duration, transfers, walking time and the line badges in their official colors; expand it for the stop-by-stop breakdown.

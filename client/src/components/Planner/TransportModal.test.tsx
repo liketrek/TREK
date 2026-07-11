@@ -387,6 +387,13 @@ describe('TransportModal', () => {
     expect(screen.queryByPlaceholderText(/e\.g\. Lufthansa/i)).not.toBeInTheDocument();
   });
 
+  it('FE-PLANNER-TRANSMODAL-022b: a trip without start/end dates only offers the manual form', () => {
+    render(<TransportModal {...defaultProps} tripHasDates={false} places={[]} accommodations={[]} />);
+    expect(screen.queryByRole('button', { name: 'Automated transport' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Manual transport' })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/e\.g\. Lufthansa/i)).toBeInTheDocument();
+  });
+
   it('FE-PLANNER-TRANSMODAL-023: initialAutomated opens straight in the transit search with the day preset', () => {
     const days = [{ id: 10, trip_id: 1, day_number: 1, date: '2025-06-01', title: 'Day 1' }] as any;
     render(<TransportModal {...defaultProps} days={days} selectedDayId={10} initialAutomated places={[]} accommodations={[]} />);

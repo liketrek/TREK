@@ -657,6 +657,30 @@ describe('TripPlannerPage', () => {
     });
   });
 
+  describe('FE-PAGE-PLANNER-020b: the transit (tram) action needs trip dates', () => {
+    async function renderWithTripDates(dates: { start_date: string | null; end_date: string | null }) {
+      vi.useFakeTimers();
+      const { trip } = seedTripStore({ id: 42 });
+      seedStore(useTripStore, { trip: { ...trip, ...dates } } as any);
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
+      });
+    }
+
+    it('passes onPlanTransit when the trip has a start and end date', async () => {
+      await renderWithTripDates({ start_date: '2025-06-01', end_date: '2025-06-05' });
+      expect(capturedDayPlanSidebarProps.current.onPlanTransit).toBeInstanceOf(Function);
+    });
+
+    it('omits onPlanTransit — hiding the tram button — when the trip has no dates', async () => {
+      await renderWithTripDates({ start_date: null, end_date: null });
+      expect(capturedDayPlanSidebarProps.current.onPlanTransit).toBeUndefined();
+    });
+  });
+
   describe('FE-PAGE-PLANNER-021: handlePlaceClick covers place selection logic', () => {
     it('calls handlePlaceClick through captured DayPlanSidebar props', async () => {
       vi.useFakeTimers();
