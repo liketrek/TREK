@@ -107,15 +107,18 @@ export class FeedsService {
     if (!user) return null;
 
     const cutoff = ninetyDaysAgo();
+    // "All Trips" means every trip the user can open — trips they own AND trips shared with
+    // them as a member — mirroring the single-trip feed's access (tripTokenRow/assertAccess).
+    // A membership WHERE on trips selects each row once, so owned + member trips don't dupe.
     const trips = db
       .prepare(
         `SELECT id FROM trips
-         WHERE user_id = ?
+         WHERE (user_id = ? OR id IN (SELECT trip_id FROM trip_members WHERE user_id = ?))
            AND is_archived = 0
            AND (end_date IS NULL OR end_date >= ?)
          ORDER BY start_date ASC`,
       )
-      .all(user.id, cutoff) as { id: number }[];
+      .all(user.id, user.id, cutoff) as { id: number }[];
 
     const esc = (s: string) =>
       s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');

@@ -196,6 +196,22 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     expect(calledIds).toEqual([5]); // only the active, recent trip — not 6 (archived) or 7 (old)
   });
 
+  it('all-trips feed includes trips shared with the user as a member, not just owned trips', async () => {
+    // user 1 owns active trip 5. Trip 8 is owned by user 2 but shared with user 1 as a
+    // member — "All Trips" must include it, mirroring the single-trip feed's member access.
+    db.prepare("INSERT INTO trips (id, user_id, title, is_archived, start_date, end_date) VALUES (8, 2, 'Shared', 0, '2026-01-01', '2099-01-01')").run();
+    db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (8, 1)').run();
+
+    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(1));
+    const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
+
+    const res = await request(server).get(`/api/feed/user/${token}.ics`);
+    expect(res.status).toBe(200);
+
+    const calledIds = exportICS.mock.calls.map((c) => c[0]).sort();
+    expect(calledIds).toEqual([5, 8]); // owned trip 5 AND member trip 8
+  });
+
   it('public user feed: 404 for an unknown token', async () => {
     const res = await request(server).get('/api/feed/user/00000000-0000-0000-0000-000000000000.ics');
     expect(res.status).toBe(404);
