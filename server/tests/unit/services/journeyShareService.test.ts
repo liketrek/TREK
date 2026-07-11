@@ -255,6 +255,17 @@ describe('validateShareTokenForPhoto', () => {
     expect(result!.ownerId).toBe(user.id);
   });
 
+  // Regression — GHSA-9hc8 sibling: the byte proxy must honour share_gallery.
+  it('JOURNEY-SHARE-017: returns null when the owner disabled the gallery (share_gallery=false)', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    const photoId = insertJourneyPhoto(entry.id, { ownerId: user.id });
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true, share_gallery: false, share_map: true });
+
+    expect(validateShareTokenForPhoto(token, photoId)).toBeNull();
+  });
+
   it('JOURNEY-SHARE-016: resolves correctly when trek_photos.id differs from journey_photos.id (Immich bulk-sync scenario)', () => {
     // Simulate a user who has many trek_photos from Immich syncs before adding a journey photo.
     // trek_photos.id will be higher than journey_photos.id — the previous bug matched on jp.id
@@ -298,6 +309,17 @@ describe('validateShareTokenForAsset', () => {
   it('JOURNEY-SHARE-014: returns null for invalid token', () => {
     const result = validateShareTokenForAsset('bad-token', 'some-asset');
     expect(result).toBeNull();
+  });
+
+  // Regression — GHSA-9hc8 sibling: the asset proxy must honour share_gallery.
+  it('JOURNEY-SHARE-018: returns null when the owner disabled the gallery (share_gallery=false)', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    insertJourneyPhoto(entry.id, { assetId: 'immich-asset-999', ownerId: user.id });
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true, share_gallery: false, share_map: true });
+
+    expect(validateShareTokenForAsset(token, 'immich-asset-999')).toBeNull();
   });
 
   it('JOURNEY-SHARE-015: denies (returns null) when the asset is not part of the shared journey', () => {

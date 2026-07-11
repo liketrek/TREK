@@ -235,8 +235,16 @@ export function getSharedTripData(token: string): Record<string, any> | null {
     }
   }
 
+  // Honour every share flag server-side — the client gates these too, but it must
+  // not rely on that (mirrors journeyShareService). share_map covers the whole
+  // itinerary: days, their assignments/notes, and the place list with coordinates,
+  // addresses and notes. Withhold it when the owner disabled the map.
   return {
-    trip, baseCurrency, days, assignments, dayNotes, places, categories, permissions,
+    trip, baseCurrency, categories, permissions,
+    days: permissions.share_map ? days : [],
+    assignments: permissions.share_map ? assignments : {},
+    dayNotes: permissions.share_map ? dayNotes : {},
+    places: permissions.share_map ? places : [],
     reservations: permissions.share_bookings ? reservations : [],
     accommodations: permissions.share_bookings ? accommodations : [],
     packing: permissions.share_packing ? packing : [],
@@ -255,9 +263,13 @@ export function getSharedTripData(token: string): Record<string, any> | null {
  */
 export function getSharedPlacePhotoPath(token: string, placeId: string): string | null {
   const shareRow = db.prepare(
-    "SELECT trip_id FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
-  ).get(token) as { trip_id: string } | undefined;
+    "SELECT trip_id, share_map FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
+  ).get(token) as { trip_id: string; share_map: number } | undefined;
   if (!shareRow) return null;
+  // Place photos belong to the map/itinerary section — withhold them when the
+  // owner disabled the map, matching getSharedTripData which no longer returns
+  // the places (and thus their ids) in that case.
+  if (!shareRow.share_map) return null;
 
   const expectedUrl = `${PLACE_PHOTO_PROXY_PREFIX}${encodeURIComponent(placeId)}/bytes`;
   const place = db.prepare(
