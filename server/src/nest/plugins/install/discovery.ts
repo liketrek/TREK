@@ -4,6 +4,7 @@ import type BetterSqlite3 from 'better-sqlite3';
 import { pluginsCodeRoot, pluginCodeDir } from '../paths';
 import { parseJsonText, parseManifest, type PluginManifest } from './manifest';
 import { scanForNativeBinaries } from './native-scan';
+import { devLinkEnabled } from '../dev-link';
 
 /**
  * Discover plugins placed on the /plugins volume (#plugins, M4, "install from
@@ -26,6 +27,9 @@ export function discoverPlugins(db: BetterSqlite3.Database): { discovered: strin
     // stat() resolves the link; a dangling/broken link throws and is skipped.
     let isDir = entry.isDirectory();
     if (!isDir && entry.isSymbolicLink()) {
+      // A dev-link symlink only loads in dev-link mode; a stale link left on the
+      // volume must not be discovered/registered on a normal (non-dev) boot.
+      if (!devLinkEnabled()) continue;
       try { isDir = fs.statSync(path.join(root, entry.name)).isDirectory(); } catch { isDir = false; }
     }
     if (!isDir) continue;

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { PluginDataDb, removePluginData } from '../../../src/nest/plugins/host/plugin-data.service';
+import { PluginDataDb, removePluginData, snapshotAllPluginDataDbs } from '../../../src/nest/plugins/host/plugin-data.service';
 
 let tmp: string;
 beforeAll(() => {
@@ -107,5 +107,26 @@ describe('PluginDataDb', () => {
     expect(fs.existsSync(path.join(tmp, 'temp'))).toBe(true);
     removePluginData('temp');
     expect(fs.existsSync(path.join(tmp, 'temp'))).toBe(false);
+  });
+
+  it('snapshots a closed plugin.db together with its -wal/-shm sidecars (no data loss after an unclean shutdown)', () => {
+    const srcDir = path.join(tmp, 'wal-plugin'); // no open PluginDataDb handle → treated as closed
+    fs.mkdirSync(srcDir, { recursive: true });
+    fs.writeFileSync(path.join(srcDir, 'plugin.db'), 'DB');
+    fs.writeFileSync(path.join(srcDir, 'plugin.db-wal'), 'WAL-committed');
+    fs.writeFileSync(path.join(srcDir, 'plugin.db-shm'), 'SHM');
+    const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'trekplug-snap-'));
+    try {
+      snapshotAllPluginDataDbs(dest);
+      const outDir = path.join(dest, 'wal-plugin');
+      expect(fs.existsSync(path.join(outDir, 'plugin.db'))).toBe(true);
+      // No writer, so the WAL is a consistent set with the .db and must be copied —
+      // otherwise committed-but-uncheckpointed rows in the WAL are lost from the backup.
+      expect(fs.readFileSync(path.join(outDir, 'plugin.db-wal'), 'utf8')).toBe('WAL-committed');
+      expect(fs.existsSync(path.join(outDir, 'plugin.db-shm'))).toBe(true);
+    } finally {
+      fs.rmSync(dest, { recursive: true, force: true });
+      fs.rmSync(srcDir, { recursive: true, force: true });
+    }
   });
 });

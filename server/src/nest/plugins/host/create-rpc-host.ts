@@ -260,14 +260,16 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     // A file's bytes as base64, size-capped BEFORE the read so a 500MB video can't
     // be pulled (~667MB base64) through the IPC pipe. 10MB matches the plugin upload
     // cap; trashed files (deleted_at set) are refused like the download path.
-    getTripFileContent: (tripId, fileId) => {
+    getTripFileContent: async (tripId, fileId) => {
       const CONTENT_MAX = 10 * 1024 * 1024;
       const file = getFileById(fileId, tripId) as { filename: string; original_name: string; mime_type: string | null; file_size: number | null; deleted_at: string | null } | undefined;
       if (!file || file.deleted_at) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
       if ((file.file_size ?? 0) > CONTENT_MAX) throw new BadParams(`file too large to read (>${CONTENT_MAX} bytes); use the download UI`);
       const { resolved, safe } = resolveFilePath(file.filename);
       if (!safe) throw new ForbiddenResource('file path is not accessible');
-      const buf = fsMod.readFileSync(resolved);
+      // Read off the event loop — a 10MB read + base64 on the host thread would
+      // otherwise stall every other plugin RPC and request for its duration.
+      const buf = await fsMod.promises.readFile(resolved);
       if (buf.length > CONTENT_MAX) throw new BadParams('file too large to read');
       return { name: file.original_name, mimetype: file.mime_type ?? 'application/octet-stream', size: buf.length, content_base64: buf.toString('base64') };
     },

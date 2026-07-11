@@ -102,6 +102,21 @@ describe('PluginsProxyController', () => {
     }), undefined);
   });
 
+  it('forwards the raw request bytes to a webhook (auth:false) route, but withholds them from an authenticated route', async () => {
+    // Webhook route → the plugin gets the raw payload so it can verify an HMAC.
+    const wh = makeRuntime({ routesOf: vi.fn(() => [{ i: 1, method: 'POST', path: '/webhook', auth: false }]) } as never);
+    await new PluginsProxyController(wh).proxy('p', fakeReq('POST', '/webhook', { rawBody: Buffer.from('{"a":1}') }), fakeRes() as never);
+    expect(wh.invoke).toHaveBeenCalledWith('p', 'invoke.route', expect.objectContaining({
+      req: expect.objectContaining({ rawBody: '{"a":1}' }),
+    }), undefined);
+
+    // Authenticated route → raw bytes are never handed to the plugin.
+    const auth = makeRuntime();
+    await new PluginsProxyController(auth).proxy('p', fakeReq('GET', '/status', { rawBody: Buffer.from('secret') }), fakeRes() as never);
+    const fwd = (auth.invoke as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][2] as { req: { rawBody?: unknown } };
+    expect(fwd.req.rawBody).toBeUndefined();
+  });
+
   it('a webhook (auth:false) route gets ONLY allowlisted inbound headers — never Cookie/Authorization', async () => {
     const runtime = makeRuntime({ routesOf: vi.fn(() => [{ i: 1, method: 'POST', path: '/webhook', auth: false }]) } as never);
     const res = fakeRes();

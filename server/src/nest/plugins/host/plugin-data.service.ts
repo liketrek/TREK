@@ -220,7 +220,13 @@ export function snapshotAllPluginDataDbs(destRoot: string): void {
     fs.mkdirSync(destDir, { recursive: true });
     const open = openById.get(entry.name);
     for (const f of fs.readdirSync(srcDir, { withFileTypes: true })) {
-      if (f.name.endsWith('-wal') || f.name.endsWith('-shm')) continue; // folded into the snapshot
+      // Skip the .db sidecars only when we snapshot the live handle — VACUUM INTO
+      // folds them in, and copying them out of step with a live writer is what
+      // produced torn restores. For a plugin with NO open handle there is no
+      // writer, so the -wal/-shm are a consistent set with the .db; copy them too,
+      // or an unclean shutdown's committed-but-uncheckpointed transactions (still
+      // sitting in the WAL) would be lost from the backup.
+      if ((f.name.endsWith('-wal') || f.name.endsWith('-shm')) && open) continue;
       const src = path.join(srcDir, f.name);
       const dest = path.join(destDir, f.name);
       try {

@@ -38,7 +38,10 @@ import { setupApiDocs } from './nest/platform/api-docs';
  * TrekExceptionFilter (also APP_FILTER).
  */
 export async function buildApp(): Promise<INestApplication> {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter());
+  // rawBody keeps the unparsed request bytes on req.rawBody so a plugin webhook
+  // route can verify a provider's HMAC signature over the exact payload (the
+  // parsed JSON alone can't be re-serialised byte-for-byte).
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(), { rawBody: true });
   const instance = app.getHttpAdapter().getInstance();
   applyGlobalMiddleware(instance, { bodyParser: false });
   applyPlatformUploads(instance);
