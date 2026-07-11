@@ -18,7 +18,7 @@ import { startTripReminders } from '../scheduler';
 import { deleteUserCompletely } from './userCleanupService';
 import { emitUserDeleted } from '../plugin-user-lifecycle';
 import { getFlightDistanceKm } from './distanceService';
-import { getCountryFromCoords } from './atlasService';
+import { getCountryFromCoords, getHiddenCountries } from './atlasService';
 import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { User } from '../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
@@ -1001,18 +1001,24 @@ export function getTravelStats(userId: number) {
   // reached place_regions — a country reached only by a flight/train (no lodging or
   // planned place there) was never counted as visited (#1366). Resolve each endpoint
   // coordinate to a country and fold it in too.
+  // Only 'from'/'to' legs count as actually reached — a 'stop' is an intermediate
+  // connection/layover (e.g. a plane change) the traveler never really visited (#1486).
   const endpoints = db.prepare(`
     SELECT DISTINCT e.lat, e.lng
     FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
     JOIN trips t ON r.trip_id = t.id
     LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE (t.user_id = ? OR tm.user_id = ?)
+    WHERE (t.user_id = ? OR tm.user_id = ?) AND e.role IN ('from', 'to')
   `).all(userId, userId) as { lat: number; lng: number }[];
   for (const e of endpoints) {
     const code = getCountryFromCoords(e.lat, e.lng);
     if (code) countryCodes.add(code.toUpperCase());
   }
+
+  // Countries the user removed in Atlas stay removed on the dashboard too, so the
+  // passport card and the Atlas map agree (#1490).
+  for (const code of getHiddenCountries(userId)) countryCodes.delete(code.toUpperCase());
 
   return {
     countries: [...countryCodes],

@@ -70,7 +70,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, createInviteToken } from '../../helpers/factories';
+import { createUser, createAdmin, createInviteToken, createTrip, createReservation } from '../../helpers/factories';
 import {
   updateSettings,
   updateApiKeys,
@@ -92,7 +92,9 @@ import {
   createMcpToken,
   deleteMcpToken,
   generateToken,
+  getTravelStats,
 } from '../../../src/services/authService';
+import { unmarkCountryVisited } from '../../../src/services/atlasService';
 import { verifyJwtAndLoadUser } from '../../../src/middleware/auth';
 
 // ---------------------------------------------------------------------------
@@ -743,5 +745,59 @@ describe('MCP token service', () => {
 
     const row = testDb.prepare('SELECT id FROM mcp_tokens WHERE id = ?').get(tokenId);
     expect(row).toBeUndefined();
+  });
+});
+
+// ── getTravelStats — dashboard passport card ────────────────────────────────
+
+describe('getTravelStats', () => {
+  function endpoint(reservationId: number, role: 'from' | 'to' | 'stop', sequence: number, lat: number, lng: number) {
+    testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng);
+  }
+
+  it('AUTH-DB-047: #1486 counts the from/to countries of a flight', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip' });
+    const res = createReservation(testDb, trip.id, { type: 'flight' });
+    endpoint(res.id, 'from', 0, 50.9014, 4.4844);   // Brussels
+    endpoint(res.id, 'to', 1, 35.6762, 139.6503);   // Tokyo
+
+    const stats = getTravelStats(user.id);
+    expect(stats.countries).toContain('BE');
+    expect(stats.countries).toContain('JP');
+  });
+
+  it('AUTH-DB-048: #1486 a connecting-flight layover does NOT count as visited', () => {
+    // The Atlas query grew a role filter for #1486 but this copy of it did not, so the
+    // dashboard passport card still counted a plane change as a visited country.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Connection Trip' });
+    const res = createReservation(testDb, trip.id, { type: 'flight' });
+    endpoint(res.id, 'from', 0, 50.9014, 4.4844);     // Brussels
+    endpoint(res.id, 'stop', 1, 35.6762, 139.6503);   // Tokyo — never leaves the airport
+    endpoint(res.id, 'to', 2, -33.8688, 151.2093);    // Sydney
+
+    const stats = getTravelStats(user.id);
+    expect(stats.countries).toContain('BE');
+    expect(stats.countries).toContain('AU');
+    expect(stats.countries).not.toContain('JP');
+  });
+
+  it('AUTH-DB-049: #1490 a country removed in Atlas is not counted on the dashboard either', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip' });
+    const res = createReservation(testDb, trip.id, { type: 'flight' });
+    endpoint(res.id, 'from', 0, 50.9014, 4.4844);
+    endpoint(res.id, 'to', 1, 35.6762, 139.6503);
+
+    expect(getTravelStats(user.id).countries).toContain('JP');
+
+    unmarkCountryVisited(user.id, 'JP');
+
+    const after = getTravelStats(user.id);
+    expect(after.countries).not.toContain('JP');
+    expect(after.countries).toContain('BE');
   });
 });

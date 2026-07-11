@@ -3564,6 +3564,25 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_erasure_plugin ON plugin_user_erasure_queue (plugin_id);');
     },
+
+    // Tombstones for Atlas countries the user has explicitly removed (#1490).
+    // Atlas derives visited countries from trip places and transport endpoints on every
+    // request, so those countries have no row to delete — "Remove" deleted from
+    // visited_countries (which never had the row), the client hid it optimistically, and
+    // the next getStats re-derived it. Recording the removal here lets getStats suppress
+    // a derived country. Re-marking a country deletes its tombstone.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS hidden_countries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          country_code TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (user_id, country_code)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_countries_user ON hidden_countries (user_id);');
+    },
   ];
 
   if (currentVersion < migrations.length) {
