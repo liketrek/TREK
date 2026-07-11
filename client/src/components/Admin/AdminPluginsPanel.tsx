@@ -7,6 +7,7 @@ import {
   BookOpen, Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText,
 } from 'lucide-react'
 import { adminApi } from '../../api/client'
+import { usePluginStore } from '../../store/pluginStore'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import ConfirmDialog from '../shared/ConfirmDialog'
@@ -277,6 +278,9 @@ export default function AdminPluginsPanel() {
   const dragDepth = useRef(0)
 
   const refresh = () => {
+    // Keep the app-wide active-plugin store in sync so widget/hero/tab consumers
+    // (e.g. the dashboard) reflect an activate/deactivate without a full reload (F5).
+    void usePluginStore.getState().loadPlugins()
     adminApi.plugins()
       .then((d: { enabled: boolean; devLink?: boolean; plugins: PluginRow[] }) => {
         setRuntimeOn(!!d.enabled)
