@@ -360,9 +360,15 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       return send(200, preview(id, String(manifest.type)), 'text/html; charset=utf-8');
     }
 
-    // Static plugin UI at /ui (page/widget client bundle)
+    // Static plugin UI at /ui (page/widget client bundle). The iframe loads
+    // `/ui/index.html` (not bare `/ui`) so relative asset URLs — `./assets/x.js`
+    // from a multi-file Vite/React build with `base: './'` — resolve to
+    // `/ui/assets/x.js`, exactly as the real host resolves them against
+    // `/plugin-frame/<id>/index.html`. A bare `/ui` document would resolve them
+    // against the origin root (`/assets/x.js`) and 404. Bare `/ui` and `/ui/` both
+    // still serve index.html for direct navigation.
     if (url.pathname === '/ui' || url.pathname.startsWith('/ui/')) {
-      const relFile = url.pathname === '/ui' ? 'index.html' : url.pathname.slice('/ui/'.length);
+      const relFile = url.pathname === '/ui' ? 'index.html' : (url.pathname.slice('/ui/'.length) || 'index.html');
       const file = path.join(abs, 'client', relFile);
       if (!file.startsWith(path.join(abs, 'client'))) return send(403, 'forbidden');
       if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return send(404, 'not found — build your client/ bundle');
@@ -510,7 +516,7 @@ iframe{width:100%;border:0;background:transparent;min-height:120px;display:block
   <label><input type="checkbox" id="nt"> no transparency</label>
   <label><input type="checkbox" id="trip" checked> trip context</label>
 </header>
-<div class="stage"><div class="wrap"><iframe id="f" src="/ui" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" title="${id}"></iframe></div></div>
+<div class="stage"><div class="wrap"><iframe id="f" src="/ui/index.html" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" title="${id}"></iframe></div></div>
 <p class="hint">The frame runs sandboxed at an opaque origin, exactly like TREK — <code>trek.invoke()</code> is proxied to your /api routes as the dev user.</p>
 <div class="toast" id="toast"></div>
 <script>
