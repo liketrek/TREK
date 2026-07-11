@@ -74,11 +74,20 @@ describe('PluginOAuthService', () => {
     expect((rows.prepare('SELECT COUNT(*) c FROM plugin_oauth_state WHERE user_id = 42').get() as { c: number }).c).toBe(1);
   });
 
-  it('rejects a non-https / private authorize endpoint', () => {
+  it('rejects a non-https / loopback / metadata / internal authorize endpoint', () => {
     getDb.current = freshDb({ ...CFG, oauth_authorize_url: 'http://provider.example/authorize' });
     expect(() => new PluginOAuthService().startConnect('p', 42, NOW)).toThrow(/https/);
     getDb.current = freshDb({ ...CFG, oauth_token_url: 'https://127.0.0.1/token' });
-    expect(() => new PluginOAuthService().startConnect('p', 42, NOW)).toThrow(/private/);
+    expect(() => new PluginOAuthService().startConnect('p', 42, NOW)).toThrow(/loopback|private/);
+    // IPv6-literal loopback must not slip past the fast-fail
+    getDb.current = freshDb({ ...CFG, oauth_token_url: 'https://[::1]/token' });
+    expect(() => new PluginOAuthService().startConnect('p', 42, NOW)).toThrow(/loopback/);
+    // cloud-metadata by literal is refused too
+    getDb.current = freshDb({ ...CFG, oauth_token_url: 'https://169.254.169.254/token' });
+    expect(() => new PluginOAuthService().startConnect('p', 42, NOW)).toThrow(/loopback|metadata/);
+    // an internal name suffix is refused
+    getDb.current = freshDb({ ...CFG, oauth_token_url: 'https://idp.internal/token' });
+    expect(() => new PluginOAuthService().startConnect('p', 42, NOW)).toThrow(/local/);
   });
 
   it('completeCallback verifies state (single-use, user-bound, TTL), exchanges the code, encrypts tokens', async () => {

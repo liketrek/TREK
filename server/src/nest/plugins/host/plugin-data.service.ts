@@ -219,21 +219,31 @@ export function snapshotAllPluginDataDbs(destRoot: string): void {
     const destDir = path.join(destRoot, entry.name);
     fs.mkdirSync(destDir, { recursive: true });
     const open = openById.get(entry.name);
+    // Handle the live db up front so we know whether its WAL got folded in. If both
+    // the VACUUM INTO snapshot and the checkpoint fail, the -wal/-shm are NOT folded,
+    // so they must be copied alongside the .db — a .db stripped of an un-checkpointed
+    // WAL loses committed transactions, whereas the .db + its WAL is a recoverable set.
+    let foldedIn = false;
+    if (open) {
+      try { open.snapshotInto(path.join(destDir, 'plugin.db')); foldedIn = true; }
+      catch {
+        try { open.checkpoint(); foldedIn = true; } catch { /* WAL not folded — keep sidecars */ }
+        try { fs.copyFileSync(path.join(srcDir, 'plugin.db'), path.join(destDir, 'plugin.db')); }
+        catch { /* unreadable live db — best effort */ }
+      }
+    }
     for (const f of fs.readdirSync(srcDir, { withFileTypes: true })) {
-      // Skip the .db sidecars only when we snapshot the live handle — VACUUM INTO
-      // folds them in, and copying them out of step with a live writer is what
-      // produced torn restores. For a plugin with NO open handle there is no
-      // writer, so the -wal/-shm are a consistent set with the .db; copy them too,
-      // or an unclean shutdown's committed-but-uncheckpointed transactions (still
-      // sitting in the WAL) would be lost from the backup.
-      if ((f.name.endsWith('-wal') || f.name.endsWith('-shm')) && open) continue;
+      if (f.name === 'plugin.db' && open) continue; // already snapshotted above
+      // Skip the .db sidecars only when the live handle's WAL was folded in — VACUUM
+      // INTO / checkpoint absorbs them, and copying them out of step with a live writer
+      // is what produced torn restores. For a plugin with NO open handle there is no
+      // writer, so the -wal/-shm are a consistent set with the .db; copy them too, or an
+      // unclean shutdown's committed-but-uncheckpointed transactions (still sitting in
+      // the WAL) would be lost from the backup.
+      if ((f.name.endsWith('-wal') || f.name.endsWith('-shm')) && foldedIn) continue;
       const src = path.join(srcDir, f.name);
       const dest = path.join(destDir, f.name);
       try {
-        if (f.name === 'plugin.db' && open) {
-          try { open.snapshotInto(dest); continue; }
-          catch { try { open.checkpoint(); } catch { /* ignore */ } } // fall through to a checkpointed file copy
-        }
         if (f.isDirectory()) fs.cpSync(src, dest, { recursive: true });
         else fs.copyFileSync(src, dest);
       } catch { /* skip an unreadable entry rather than fail the whole backup */ }

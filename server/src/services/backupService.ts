@@ -287,17 +287,54 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
   const extractDir = path.join(dataDir, `restore-${Date.now()}`);
   let reinitFailed: unknown = null;
   try {
-    // Check the declared uncompressed size from the central directory and bail
-    // if it exceeds the cap, before extracting anything.
+    // Fast reject on the central-directory's declared size, then extract entry-by-entry
+    // enforcing the ACTUAL decompressed bytes. The declared uncompressedSize is
+    // attacker-declarable — a zip bomb can under-report it and expand past the cap during
+    // extraction — so the real guard counts bytes as they are written and aborts once the
+    // running total crosses the cap. Each entry's resolved path is also confined to
+    // extractDir (a `../` entry that escaped the root — zip-slip — is refused).
     const directory = await unzipper.Open.file(zipPath);
     const claimedSize = directory.files.reduce((sum, f) => sum + (f.uncompressedSize || 0), 0);
     if (claimedSize > MAX_BACKUP_DECOMPRESSED_SIZE) {
       return { success: false, error: 'Backup exceeds the maximum decompressed size.', status: 400 };
     }
 
-    await fs.createReadStream(zipPath)
-      .pipe(unzipper.Extract({ path: extractDir }))
-      .promise();
+    fs.mkdirSync(extractDir, { recursive: true });
+    let decompressedBytes = 0;
+    for (const entry of directory.files) {
+      if (entry.type === 'Directory') continue;
+      const dest = path.join(extractDir, entry.path);
+      const rel = path.relative(extractDir, dest);
+      if (rel.startsWith('..') || path.isAbsolute(rel)) {
+        fs.rmSync(extractDir, { recursive: true, force: true });
+        return { success: false, error: 'Invalid backup: an entry path escapes the archive root.', status: 400 };
+      }
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const source = entry.stream();
+          const out = fs.createWriteStream(dest);
+          source.on('data', (chunk: Buffer) => {
+            decompressedBytes += chunk.length;
+            if (decompressedBytes > MAX_BACKUP_DECOMPRESSED_SIZE) {
+              source.destroy();
+              out.destroy();
+              reject(new Error('DECOMPRESSED_CAP_EXCEEDED'));
+            }
+          });
+          source.on('error', reject);
+          out.on('error', reject);
+          out.on('finish', resolve);
+          source.pipe(out);
+        });
+      } catch (err) {
+        fs.rmSync(extractDir, { recursive: true, force: true });
+        if (err instanceof Error && err.message === 'DECOMPRESSED_CAP_EXCEEDED') {
+          return { success: false, error: 'Backup exceeds the maximum decompressed size.', status: 400 };
+        }
+        throw err;
+      }
+    }
 
     const extractedDb = path.join(extractDir, 'travel.db');
     if (!fs.existsSync(extractedDb)) {

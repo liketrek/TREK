@@ -35,8 +35,13 @@ function b64url(buf: Buffer): string {
   return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/** Reject anything that isn't an https URL to a non-private host (SSRF backstop for the
- * host-side token exchange, even though the endpoint is admin-configured). */
+/** Cheap fast-fail for an obviously-internal token endpoint. This is a pre-check, not the
+ * authoritative gate: the real SSRF defence is the DNS-resolving, IP-pinning guard inside
+ * the fetch (tokenRequest), which blocks the cloud-metadata range even for a DNS name. This
+ * rejects the literal loopback / link-local / metadata hosts (v4 AND v6) plus the internal
+ * name suffixes, so a bracketed IPv6 literal or a `.internal` name can't slip past the
+ * fast-fail. Private LAN (10./192.168./…) is deliberately left to the fetch policy so a
+ * self-hosted internal IdP stays reachable. */
 function assertSafeHttps(urlStr: string, what: string): URL {
   let u: URL;
   try {
@@ -45,8 +50,16 @@ function assertSafeHttps(urlStr: string, what: string): URL {
     throw new Error(`${what} is not a valid URL`);
   }
   if (u.protocol !== 'https:') throw new Error(`${what} must be https`);
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname) && isPrivateIp(u.hostname)) throw new Error(`${what} may not point at a private address`);
-  if (u.hostname === 'localhost' || u.hostname.endsWith('.local')) throw new Error(`${what} may not point at a local address`);
+  const host = u.hostname.toLowerCase();
+  const ip = host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host;
+  const loopbackOrMeta =
+    ip === '::1' || ip.startsWith('127.') || ip.startsWith('0.') ||
+    ip.startsWith('169.254.') || /^fe[89ab][0-9a-f]:/.test(ip) || ip.startsWith('fd00:ec2:');
+  if (loopbackOrMeta) throw new Error(`${what} may not point at a loopback or metadata address`);
+  if (host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal')) {
+    throw new Error(`${what} may not point at a local address`);
+  }
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) && isPrivateIp(host)) throw new Error(`${what} may not point at a private address`);
   return u;
 }
 
