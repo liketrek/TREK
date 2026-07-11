@@ -21,7 +21,36 @@ A plugin declares one `type` in its manifest, which decides where it surfaces:
 | **widget** | On the dashboard — in the sidebar, as a boarding-pass style hero overlay (`slot: "hero"`), or docked into a **detail panel** inside the trip planner: the open place (`slot: "place-detail"`), day (`slot: "day-detail"`), or reservation (`slot: "reservation-detail"`) | At-a-glance info like flight status or weather; a detail-panel widget is scoped to just the one place/day/reservation you have open |
 | **page** | As its own entry in the top navigation | A full self-contained tool |
 | **trip-page** | As a tab **inside every trip planner** (alongside Plan / Transports / Files), scoped to the open trip | A tool that works against one trip at a time |
-| **integration** | Nowhere visible — registers into TREK via hooks (e.g. a photo provider or calendar source) | Feed data into existing TREK features |
+| **integration** | Nowhere visible — registers into TREK via hooks (e.g. a photo provider, a calendar source, or a **notification channel**) | Feed data into existing TREK features |
+
+### Notification channels
+
+An `integration` plugin can add a whole new **notification channel** — Gotify, Pushover,
+Telegram, anything that takes a message — alongside TREK's built-in email, webhook and
+ntfy.
+
+Once you install and enable such a plugin, switch its channel on in
+**Admin → Notifications**. It then appears as a new column in every user's
+**Settings → Notifications** matrix, and each user supplies their own credentials on the
+plugin's own settings page and picks per-event what they want pushed — exactly like a
+built-in channel.
+
+Two guarantees hold for a plugin channel specifically:
+
+- **It is user-scoped.** Admin-only events (like *version available*) always go out over
+  your built-in admin channels, never a plugin's.
+- **The plugin never sees anyone's trips.** TREK renders the notification — in the
+  recipient's language, deep link already built — *before* handing it over. The plugin
+  receives that finished message plus that user's own credentials for its service, and
+  nothing else. It is given no acting user, so the trip-reading APIs other plugins use are
+  refused to it outright.
+
+### Plugin settings actions
+
+A plugin can put **buttons on its own settings page** — a "Test connection", a "Sync now".
+Users find them under **Settings → Plugins**, beneath that plugin's fields. An action runs
+**as the user who clicked it**, so a "Test connection" checks *their* credentials and can
+never see anyone else's. TREK refuses any action the plugin didn't declare in its manifest.
 
 ### Trip-page plugins: placement and tab takeover
 
@@ -190,8 +219,37 @@ The **⋯** menu on each row:
 
 - **Restart** — stop and re-spawn the process (shown only while active).
 - **View error log** — the plugin's own crash/failed-request log.
+- **Allowed hosts** — add the hosts a plugin may reach, for a plugin that talks to a
+  service only *you* can name. See [Allowed hosts](#allowed-hosts) below.
 - **Source repository** — opens the plugin's GitHub repo (registry installs only).
 - **Delete** — uninstalls: removes the code and lets you keep or delete its data.
+
+## Allowed hosts
+
+A plugin's outbound hosts are normally fixed in its manifest, and you consent to them at
+install. But a plugin that talks to a **self-hosted service** — a Gotify, an ntfy, an
+Uptime Kuma — cannot know *your* hostname when it is published. Such a plugin declares
+`operatorEgress`, and you supply the hosts yourself.
+
+The plugin card shows a **"+ hosts"** chip when it works this way. Open **⋯ → Allowed
+hosts** and add the hostname (e.g. `gotify.mydomain.com`). TREK restarts the plugin so it
+picks up the new list.
+
+What this does *not* let anyone do:
+
+- **A plugin that never asked for it can never be given a host.** Only a plugin whose
+  manifest declares `operatorEgress` is eligible, so the consent you gave at install still
+  bounds what is possible.
+- **Only you — an admin — can widen egress.** An end user can never add a host, even for
+  a plugin whose credentials they supply themselves.
+- Hosts are validated like manifest egress: no bare `*`, no whole-TLD wildcard, no scheme.
+  Remove a host and the plugin loses it immediately (it restarts again).
+- Uninstalling drops the hosts, so a later plugin reusing the id can't inherit them.
+
+If the service runs on the **same machine or LAN** as TREK (a `localhost` or `192.168.x.x`
+address), you also need `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS=on` — plugins may not reach
+private addresses by default. That relaxes the policy for *every* installed plugin, so
+only enable it if you trust them all.
 
 ## Reviewing what a plugin did — the activity log
 

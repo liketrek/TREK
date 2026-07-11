@@ -205,6 +205,100 @@ The recipient is **forced** by the host: `scope:'user'` can only reach the actin
 
 ---
 
+## Become a notification channel (Gotify, Pushover, …)
+
+**Needs:** `hook:notification-channel` + `http:outbound:<host>` (and a matching `egress`)
+
+The recipe above *produces* a notification. This one **delivers** one — your plugin becomes a
+channel next to email / webhook / ntfy in the user's notification preferences.
+
+```bash
+npx create-trek-plugin my-gotify --type integration --template notification-channel
+```
+
+```js
+module.exports = definePlugin({
+  hooks: {
+    notificationChannel: {
+      async send(msg, config, ctx) {
+        // msg is ALREADY rendered in the recipient's language, deep link included.
+        // config is that recipient's own scope:'user' settings, decrypted for you.
+        const res = await fetch(`${config.serverUrl}/message`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'X-Gotify-Key': config.appToken },
+          body: JSON.stringify({ title: msg.title, message: msg.body }),
+        })
+        if (!res.ok) throw new Error(`Gotify responded ${res.status}`)  // host logs + isolates
+      },
+      async test(config) { /* backs the "Send test" button */ },
+    },
+  },
+})
+```
+
+```json
+"permissions": ["hook:notification-channel", "http:outbound:gotify.example.com"],
+"egress": ["gotify.example.com"],
+"capabilities": { "notificationChannel": { "title": "Gotify" } },
+"settings": [
+  { "key": "serverUrl", "scope": "user", "required": true },
+  { "key": "appToken",  "scope": "user", "required": true, "secret": true }
+]
+```
+
+The gotcha worth knowing up front: this hook is **host-initiated for an arbitrary recipient**, so
+unlike every other hook it runs with **no acting user**. `ctx.settings.get()` returns `undefined`
+and trip reads are refused — the recipient's credentials come in as `config` instead. That's the
+whole point: you can be handed someone's push token without being handed their trips.
+
+Targeting a **self-hosted** Gotify? Your manifest can't name the user's hostname, so add
+`"operatorEgress": true` and let the admin add the real host after install
+(Admin → Plugins → Allowed hosts). See
+[Plugin-Development → Operator-supplied egress hosts](Plugin-Development.md#operator-supplied-egress-hosts-operatoregress),
+plus [Notification channels](Plugin-Development.md#notification-channels) for the event list, the
+"configured" rule, and the `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS` flag you need if the service runs
+on your own LAN.
+
+---
+
+## Put a "Test connection" button on your settings page
+
+**Needs:** nothing — an action is your own code, run for the user who clicked it.
+
+Declare the buttons in the manifest, implement them on the definition:
+
+```json
+"actions": [
+  { "key": "testConnection", "label": "Test connection", "hint": "Pings the API." },
+  { "key": "purge",          "label": "Delete my data", "danger": true }
+]
+```
+
+```js
+module.exports = definePlugin({
+  actions: {
+    async testConnection(ctx) {
+      // USER-INITIATED: the acting user is whoever clicked, so ctx.settings.get()
+      // returns THEIR value — which is what makes "test MY credentials" possible.
+      const token = await ctx.settings.get('appToken')
+      const res = await fetch('https://api.example.com/ping', { headers: { authorization: token } })
+      return { ok: res.ok, message: res.ok ? 'Connected' : `Failed: ${res.status}` }
+    },
+  },
+})
+```
+
+The buttons render under your fields in **Settings → Plugins**, with the result shown
+beside them. Return `{ ok, message? }`; throwing is the same as `{ ok: false }` carrying
+the error text. `danger: true` asks for confirmation first. The host refuses any key your
+manifest didn't declare, and bounds the message it shows (200 chars, emoji stripped).
+
+Contrast with the `notificationChannel` hook, which is **host**-initiated and therefore
+has *no* acting user — there, `ctx.settings.get()` returns `undefined` and the recipient's
+credentials arrive as an argument instead.
+
+---
+
 ## Ask the configured LLM
 
 **Needs:** `ai:invoke`

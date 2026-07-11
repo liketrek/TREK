@@ -65,6 +65,7 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `hook:atlas-layer-provider` | Draw country **tint layers** over the Atlas world map via the `hooks.atlasLayerProvider` provider hook | Implement `AtlasLayerProvider` in `hooks` — returns `{id, name?, countries: [{code, tone?, label?}]}[]` for the **acting user** (the hook takes no target parameter, so a plugin can't ask for anyone else's map). Codes must be ISO-3166 alpha-2 (uppercase-coerced, anything else dropped), tone is enum-whitelisted, counts capped (≤3 layers, ≤300 countries each). **Declarative only** — plugin JS never runs on the map canvas. Exposed at `GET /api/atlas-layers`. |
 | `hook:journal-entry-provider` | Contribute extra **rows** under a journal entry via the `hooks.journalEntryProvider` provider hook | Implement `JournalEntryProvider` in `hooks` — returns `{label, value?, url?}[]` per entry, rendered under the entry card. The entry's journey is access-checked against the acting user (owner/contributor, like the journal detail routes) and the Journey addon must be on. The host caps the row count (≤12) + lengths (label 60, value 200) and allowlists the url (http/https/mailto); a failing provider is skipped. Exposed at `GET /api/journal-entry-rows/:entryId`. |
 | `hook:trip-card-provider` | Add small **badges** to the dashboard trip cards via the `hooks.tripCardProvider` provider hook | Implement `TripCardProvider` in `hooks` — `getCards(tripIds, ctx)` is called ONCE with all the trip cards currently on the user's dashboard (each already access-checked for the acting user), returns `{tripId, id, label, value?, icon?, tone?, url?}[]`. **Declarative only** — plugin JS never runs on the dashboard. The host String-coerces + length-caps every field, enum-whitelists the tone, allowlists the url (http/https/mailto), caps the count (≤40/plugin) and drops any badge whose `tripId` the dashboard didn't ask about; a failing provider is skipped. Exposed at `GET /api/trip-card-contributions?tripIds=…`. |
+| `hook:notification-channel` | Register a new **notification channel** (Gotify, Pushover, …) via the `hooks.notificationChannel` provider hook | Implement `NotificationChannel` in `hooks` — `send(msg, config, ctx)` receives a notification TREK has **already rendered** into the recipient's language (`{event, title, body, url?, tripName?}`) plus that recipient's own decrypted `scope:'user'` settings as `config`. Unlike every other hook this one is **host-initiated for an arbitrary recipient**, so it runs **userless**: `ctx.settings.get()` returns `undefined` and trip reads are refused — the recipient's credentials arrive as `config` precisely so the plugin never gains the right to read anything *as* them. Optional `test(config, ctx)` backs the "Send test" button. Declare the channel with `capabilities.notificationChannel: { title?, events? }`; `title` names the column in the preferences matrix (default: the plugin's name) and `events` may **narrow** which events it carries (default: every non-admin event — admin-scoped events are never deliverable to a plugin). Throw on failure: the host logs it and isolates it, so a dead channel can't stop the others. |
 | `hook:user-data` | Honour GDPR **data-subject rights** — erase and export the data the plugin stores about a user — via the `deleteUserData` / `exportUserData` handlers | Implement `deleteUserData({userId}, ctx)` and/or `exportUserData({userId}, ctx)` on the plugin definition (not on `ctx`). Both are **userless** (no acting user; the plugin only learns the `userId` and touches its OWN db). When a TREK account is deleted, the host queues an erasure for every plugin holding this grant and retries it **durably** until the plugin ACKs — even across restarts — so implement `deleteUserData` idempotently. `exportUserData` returns a JSON-serialisable value the host aggregates for an admin at `GET /api/admin/plugins/user-data/:userId/export`. |
 | `http:outbound` / `http:outbound:<host>` | Make outbound network requests | **Requires** a non-empty `egress[]`. Only a **per-host** `http:outbound:<host>` actually opens a host at runtime — see below. |
 
@@ -87,6 +88,26 @@ Two independent guards restrict a plugin's network, and **both are built from th
 - If **any** `http:outbound` permission (bare or per-host) is declared, `egress[]`
   must be **non-empty**.
 - `egress[]` may not contain a bare `*`.
+
+### `operatorEgress` — hosts only the operator knows
+
+A plugin that talks to a **self-hosted** service (a Gotify, an ntfy) cannot name the
+operator's hostname at publish time. Setting `"operatorEgress": true` in the manifest lets
+an **admin** add hosts after install (**Admin → Plugins → ⋯ → Allowed hosts**); the runtime
+unions them into the child's allow-list and re-spawns the plugin.
+
+It is not an escape hatch:
+
+- Only a plugin whose manifest **declared** `operatorEgress` can be given hosts — so the
+  consent given at install still bounds what is possible.
+- Only an **admin** can add one. An end user never widens a plugin's egress, even for a
+  plugin whose credentials they supply themselves.
+- Added hosts are validated exactly like manifest egress (no bare `*`, no whole-TLD
+  wildcard, no scheme), and are dropped when the plugin is uninstalled.
+- It requires an `http:outbound` permission — the manifest rejects it otherwise.
+
+A LAN/loopback host additionally needs `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS=on`, which relaxes
+private-address egress for **every** installed plugin.
 
 Because the validator never cross-checks `egress[]` against the granted hosts:
 
@@ -149,6 +170,16 @@ flow is in [[Publishing a Plugin|Plugin-Publishing]].
   and pins the key trust-on-first-use. Signing is opt-in — an unsigned entry
   installs on `sha256` alone — but once a plugin has shipped signed, an unsigned
   update for it is refused. See [[Publishing a Plugin|Plugin-Publishing]].
+
+## Not a permission — settings-page actions
+
+A plugin can contribute buttons to its own settings page (`actions` in the manifest — a
+"Test connection", a "Sync now"). These need **no permission**: an action is the plugin's
+own code, and it is run **for the user who clicked it**, so `ctx.settings.get()` returns
+that user's value and any trip read is membership-checked against them — the same gates as
+a route handler. Anything the action *does* (an outbound call, a trip write) still needs
+that capability's own permission. The host refuses any action key the manifest didn't
+declare. See [[Plugin Development#settings-page-actions|Plugin-Development]].
 
 ## Not a permission — inter-plugin calls & events
 

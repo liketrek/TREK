@@ -612,9 +612,159 @@ module.exports = definePlugin({
 | `tripCardProvider.getCards(tripIds, ctx)` → `TripCardContribution[]` | `hook:trip-card-provider` | **live** — small badges on the dashboard trip cards. Called ONCE with all visible `tripIds` (each already access-checked for the acting user), returns `{ tripId, id, label, value?, icon?, tone?, url? }[]`; the host bounds every field (label 64, value 256, tone enum, url http/https/mailto-only), caps the count (≤40/plugin) and drops any badge whose `tripId` wasn't requested. Declarative only. Also `GET /api/trip-card-contributions?tripIds=…` |
 | `photoProvider.search(query, {page, limit}, ctx)` / `.getById(id, ctx)` | `hook:photo-provider` | **live** — plugin photo sources aggregated at `GET /api/plugin-photos/search` (+ `/sources`, `/item`) for the picker. Each `{id, title?, thumbnailUrl, fullUrl, takenAt?}`; thumbnail/full URLs must be http/https, per-source count capped, a failing source skipped |
 | `calendarSource.getName(ctx)` / `.getEvents(userId, start, end, ctx)` | `hook:calendar-source` | **live** — plugin calendar events aggregated for the signed-in user at `GET /api/plugin-calendar?start=&end=`. Each `{id, title, start, end, allDay}` (ISO dates); count capped, a failing source skipped |
+| `notificationChannel.send(msg, config, ctx)` / `.test(config, ctx)` | `hook:notification-channel` | **live** — registers a new notification channel. **Userless** (see below). See [Notification channels](#notification-channels) |
 
 Each hook method receives its args plus the per-invocation `ctx`, so any `ctx.trips.*`
-read it makes is membership-checked against the current user (like a route handler).
+read it makes is membership-checked against the current user (like a route handler) —
+with **one exception**, the notification channel, which has no acting user at all.
+
+## Notification channels
+
+`hook:notification-channel` lets your plugin become a delivery channel alongside TREK's
+built-in email / webhook / ntfy — Gotify, Pushover, Telegram, whatever takes a message.
+
+Scaffold one with:
+
+```bash
+npx create-trek-plugin my-gotify --type integration --template notification-channel
+```
+
+```js
+module.exports = definePlugin({
+  hooks: {
+    notificationChannel: {
+      // msg is ALREADY RENDERED in the recipient's language, with the deep link built.
+      // config is that recipient's own scope:'user' settings, decrypted by the host.
+      async send(msg, config, ctx) {
+        const res = await fetch(`${config.serverUrl}/message`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'X-Gotify-Key': config.appToken },
+          body: JSON.stringify({ title: msg.title, message: msg.body + '\n\n' + (msg.url ?? '') }),
+        })
+        // THROW on failure — the host logs and isolates it, so a dead channel
+        // can never stop email/in-app/the other channels from being delivered.
+        if (!res.ok) throw new Error(`Gotify responded ${res.status}`)
+      },
+      // Optional — backs the "Send test" button in the user's notification settings.
+      async test(config, ctx) { /* … */ },
+    },
+  },
+})
+```
+
+```json
+{
+  "type": "integration",
+  "permissions": ["hook:notification-channel", "http:outbound:gotify.example.com"],
+  "egress": ["gotify.example.com"],
+  "capabilities": { "notificationChannel": { "title": "Gotify" } },
+  "settings": [
+    { "key": "serverUrl", "label": "Server URL", "scope": "user", "required": true },
+    { "key": "appToken", "label": "App token", "scope": "user", "required": true, "secret": true }
+  ]
+}
+```
+
+**This hook is host-initiated, so it runs with NO acting user.** A notification is dispatched
+*to* an arbitrary recipient — nobody is "calling" your plugin — so:
+
+- `ctx.settings.get()` returns `undefined` here, and `ctx.trips.*` reads are refused.
+- The recipient's credentials arrive as the `config` argument instead: the host reads your
+  plugin's `scope:'user'` settings for that recipient, decrypts them, and hands them over.
+
+That is deliberate. It is what lets a channel plugin be given someone's push token *without*
+also being given the right to read their trips as them.
+
+Notes:
+
+- **`title`** names the column in the notification preferences matrix (defaults to your
+  plugin's name). **`events`** may *narrow* which events the channel carries; the default is
+  every non-admin event. Admin-scoped events (`version_available`) are never deliverable to a
+  plugin channel — those go over the admin's own credentials.
+- **Configured-ness is inferred, not asked.** A user's column is "not configured" until every
+  `required`, `scope:'user'` field has a value. A plugin with no required user fields counts as
+  configured for everyone (an instance-wide channel, e.g. a shared workspace webhook).
+- **Per-host egress is mandatory.** Bare `http:outbound` does **not** open any host at runtime —
+  you need `http:outbound:<host>` per host (see below).
+- **For a self-hosted target, set `operatorEgress`** — see the next section. Your manifest can't
+  name the operator's Gotify; the admin does it after install.
+- **Reaching a service on your own LAN** (a Gotify next to TREK) additionally needs
+  `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS=on` on the TREK process — plugins may not reach private
+  addresses by default. It relaxes the policy for *every* installed plugin, so enable it only
+  if you trust them all.
+
+## Settings-page actions
+
+A plugin can put **buttons on its own settings page** — "Test connection", "Sync now",
+"Clear cache". Declare them in the manifest and implement them on the definition:
+
+```json
+"actions": [
+  { "key": "testConnection", "label": "Test connection", "hint": "Pings the API." },
+  { "key": "purge", "label": "Delete my data", "danger": true }
+]
+```
+
+```js
+module.exports = definePlugin({
+  actions: {
+    async testConnection(ctx) {
+      const token = await ctx.settings.get('appToken')   // the CLICKING user's own
+      const res = await fetch('https://api.example.com/ping', { headers: { authorization: token } })
+      return { ok: res.ok, message: res.ok ? 'Connected' : `Failed: ${res.status}` }
+    },
+  },
+})
+```
+
+An action is **user-initiated**, which is what makes it different from the
+`notificationChannel` hook: the acting user is *whoever clicked the button*. So
+`ctx.settings.get()` returns **their** value and any trip read is membership-checked
+against them — exactly what a "test my credentials" button needs.
+
+Notes:
+
+- Return `{ ok, message? }`. Throwing is the same as `{ ok: false }` with the error text.
+  The message is bounded (200 chars) and emoji-stripped host-side before it's shown.
+- `danger: true` renders it destructively and asks for confirmation first.
+- The key must be a valid settings key, and the host refuses any key the manifest didn't
+  declare — the key arrives from the URL, so it is never forwarded to your plugin blindly.
+- Max 8 actions; label capped at 60 chars, hint at 200.
+
+## Operator-supplied egress hosts (`operatorEgress`)
+
+A plugin's `egress` list is fixed in its manifest **at publish time**. That works for a cloud
+API (`api.pushover.net`), but not for a **self-hosted** service — you cannot know that a user's
+Gotify lives at `gotify.alice.net`. Without a way out, a community plugin for a self-hosted
+target could serve nobody.
+
+Declare `operatorEgress` and the **admin** supplies the real hosts after install:
+
+```json
+{
+  "permissions": ["hook:notification-channel", "http:outbound:gotify.net"],
+  "egress": ["gotify.net"],        // hosts you DO know (the cloud offering)
+  "operatorEgress": true            // …plus whatever the admin adds
+}
+```
+
+The admin then opens **Admin → Plugins → ⋯ → Allowed hosts** and adds `gotify.alice.net`. The
+runtime unions that into the child's allow-list and **re-spawns the plugin** — the egress guard
+is installed once at child start and a second `init` is deliberately refused, so a live child's
+allow-list can never be widened in place.
+
+What this deliberately does *not* do:
+
+- **An end user can never widen egress.** Only an admin can, and only for a plugin that
+  *declared* `operatorEgress` — so the consent given at install still bounds what is possible.
+  A plugin that never asked for it can never be given a host.
+- **Hosts get the same validation as manifest egress**: no bare `*`, no whole-TLD `*.com`, no
+  scheme, no spaces. A wildcard needs a real multi-label suffix (`*.mydomain.com`).
+- **Uninstalling drops the hosts**, so a later plugin reusing the id can't inherit consent
+  granted to a different one.
+
+Users then point their own settings at one of the approved hosts. Anything else is refused by
+the guard with `egress: <host> is not in the plugin's declared hosts`.
 
 ## Event subscriptions
 
@@ -851,6 +1001,9 @@ so a test catches a missing `scheduled`/`deleteUserData`/job before release.
 | `egress` | string[] | allowed outbound hosts; required (non-empty, no bare `*`) when any `http:outbound` permission is present. |
 | `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, `place-detail`, `day-detail`, or `reservation-detail`. |
 | `capabilities.tripPage` | object | `{ replaces?, position? }` for `trip-page` plugins — `replaces` names core planner tabs to hide while active (`transports`, `buchungen`, `listen`, `finanzplan`, `dateien`, `collab`; never `plan`), `position` is the tab's 0-based index in the bar (0–50; omitted = appended). |
+| `actions` | array | Buttons on the plugin's own settings page — `{ key, label, hint?, danger? }` (max 8). Implement each as `actions[key](ctx)` on the definition. **User-initiated**, so `ctx.settings.get()` returns the clicking user's value. See [Settings-page actions](#settings-page-actions). |
+| `operatorEgress` | boolean | The plugin talks to a **self-hosted** service whose hostname only the operator knows. The admin adds the real hosts after install (Admin → Plugins → Allowed hosts) and the runtime unions them into the egress allow-list. Requires an `http:outbound` permission. See [Operator-supplied egress hosts](#operator-supplied-egress-hosts-operatoregress). |
+| `capabilities.notificationChannel` | object | `{ title?, events? }` for a plugin implementing the `notificationChannel` hook — `title` names the column in the notification preferences matrix (default: the plugin's `name`), `events` **narrows** which events the channel carries (default: every non-admin event; admin-scoped events are never deliverable). Requires the `hook:notification-channel` permission. See [Notification channels](#notification-channels). |
 | `capabilities.provides` | string[] | function names this plugin exposes to its dependents via `ctx.plugins.call` (see [Talking to other plugins](#talking-to-other-plugins)). |
 | `capabilities.emits` | string[] | event names this plugin publishes to its dependents via `ctx.events.emit`. |
 | `requiredAddons` | string[] | addon ids that must be **enabled** for the plugin to activate (see [Dependencies](#dependencies)). |
