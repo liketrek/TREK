@@ -540,6 +540,47 @@ settings are per-user. `secret: true` fields are stored encrypted and delivered
 decrypted through `ctx.config` (server-side only) — never to the iframe. Resolved
 values arrive in `ctx.config`.
 
+## Host-brokered OAuth (`ctx.oauth`)
+
+A plugin can act as an OAuth *client* of a third-party service **without ever handling the secrets**. The **host** runs the entire flow — authorize → callback → token exchange → refresh — with PKCE (S256) and a `state` check, and holds the tokens. The plugin only triggers "connect" and reads a **short-lived access token** at runtime.
+
+**Setup.** Declare the provider as `scope: "instance"` settings the admin fills in: `oauth_authorize_url`, `oauth_token_url`, `oauth_scopes` (optional), plus the two `secret: true` fields `oauth_client_id` and `oauth_client_secret`. (A settings field may also carry an `oauth: { initPath, callbackPath }` block.)
+
+**Connecting.** A user connects under **Settings → Plugins → Connect**, which sends them to the provider's authorize page. The callback returns to `…/api/plugin-oauth/<id>/callback`; the host verifies the `state` (single-use, 10-minute TTL, bound to that user — CSRF defence), exchanges the code and stores the tokens **per user, encrypted at rest**.
+
+**Using it.** Read the access token in a route handler:
+
+```js
+const token = await ctx.oauth.getAccessToken() // needs the `oauth:client` permission
+if (!token) return { status: 401, body: 'connect this plugin first' }
+// call the third-party API with `Authorization: Bearer ${token}`
+```
+
+- Returns `null` when the acting user hasn't connected, or in a **userless** context (a job / `onLoad`).
+- The host **auto-refreshes** a token that is expiring (60-second skew) using the refresh token it holds.
+- The plugin **never** sees the refresh token or the client secret.
+- The authorize/token URLs must be `https` to a non-private host, and the host-side token exchange goes through the SSRF guard (blocks the link-local / cloud-metadata range and pins the resolved IP against DNS-rebind; a self-hosted internal IdP on loopback/LAN still works).
+
+## GDPR data-subject hooks
+
+Grant `hook:user-data` and implement either handler to honour data-subject rights. Both are **userless** — the plugin only receives the `userId` and acts on its **own** `ctx.db`:
+
+```js
+module.exports = definePlugin({
+  permissions: ['db:own', 'hook:user-data'],
+  async deleteUserData({ userId }, ctx) {           // erasure
+    await ctx.db.exec('DELETE FROM my_prefs WHERE user_id = ?', userId)
+  },
+  async exportUserData({ userId }, ctx) {           // portability / access
+    return await ctx.db.query('SELECT * FROM my_prefs WHERE user_id = ?', userId)
+  },
+})
+```
+
+- **Erasure is durable.** When a user is deleted, `deleteUserData` is queued and **retried until the plugin ACKs**, across restarts and even after the plugin is later reactivated — so make it **idempotent**.
+- **Export is complete-or-flagged.** A data-access request aggregates `exportUserData` across every granted plugin. A plugin that is currently **inactive** but holds `hook:user-data`, or one whose export **errored/timed out**, is flagged `pending` (never silently omitted), so the admin knows to reactivate it to finish the request.
+- Uninstalling a plugin also **purges its stored OAuth tokens and state**.
+
 ## Provider hooks
 
 A hook is core calling **into** your plugin for data (host→plugin). Declare it on

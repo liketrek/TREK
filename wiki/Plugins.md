@@ -18,10 +18,27 @@ A plugin declares one `type` in its manifest, which decides where it surfaces:
 
 | Type | Where it shows | Typical use |
 |---|---|---|
-| **widget** | On the dashboard — in the sidebar, or (with `slot: "hero"`) as a boarding-pass style hero overlay | At-a-glance info like flight status or weather |
+| **widget** | On the dashboard — in the sidebar, as a boarding-pass style hero overlay (`slot: "hero"`), or docked into a **detail panel** inside the trip planner: the open place (`slot: "place-detail"`), day (`slot: "day-detail"`), or reservation (`slot: "reservation-detail"`) | At-a-glance info like flight status or weather; a detail-panel widget is scoped to just the one place/day/reservation you have open |
 | **page** | As its own entry in the top navigation | A full self-contained tool |
 | **trip-page** | As a tab **inside every trip planner** (alongside Plan / Transports / Files), scoped to the open trip | A tool that works against one trip at a time |
 | **integration** | Nowhere visible — registers into TREK via hooks (e.g. a photo provider or calendar source) | Feed data into existing TREK features |
+
+### Trip-page plugins: placement and tab takeover
+
+A **trip-page** plugin normally adds its tab *after* the planner's built-in tabs.
+If it needs a more prominent spot — or wants to stand in for a feature it
+replaces — its manifest can shape the tab bar via `capabilities.tripPage`:
+
+- **`position`** pins the plugin's tab to a preferred slot (a 0-based index)
+  instead of being appended at the end.
+- **`replaces`** lists core planner tabs to **hide** while the plugin is active —
+  e.g. a plugin that supersedes the built-in bookings or files view can take that
+  tab's place rather than sit beside it. The **Plan** tab can never be replaced:
+  a trip always keeps its planner view, so a plugin can take over individual
+  tabs, never the whole trip.
+
+Hidden tabs come back the moment the plugin is deactivated or removed — the
+takeover lasts only as long as the plugin is on.
 
 ## Enabling plugins
 
@@ -175,6 +192,20 @@ The **⋯** menu on each row:
 - **View error log** — the plugin's own crash/failed-request log.
 - **Source repository** — opens the plugin's GitHub repo (registry installs only).
 - **Delete** — uninstalls: removes the code and lets you keep or delete its data.
+
+## Reviewing what a plugin did — the activity log
+
+Every user can see exactly what plugins have done **in their name**. Under
+**Settings → Plugins**, the **activity log** lists every host-mediated action a
+plugin took while acting for you — across all plugins, newest first: each trip or
+cost it read, each place it wrote, each outbound call TREK made on its behalf.
+
+This is the user-facing half of TREK's tamper-evident (hash-chained) plugin
+audit: admins see the per-plugin view in **Admin → Plugins**, while this view is
+**never admin-gated** — anyone can review what was done with their own data. It's
+what keeps a plugin's deliberately broad read grants accountable to the person
+whose data is read. See [[Plugin Permissions|Plugin-Permissions]] for what each
+grant allows in the first place.
 
 ## Updating a plugin
 

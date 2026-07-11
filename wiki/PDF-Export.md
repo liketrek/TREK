@@ -45,6 +45,12 @@ Every printed page carries a small "made with TREK" logo at the bottom.
 
 Poppins, loaded from Google Fonts at render time.
 
+### Plugin sections
+
+Installed plugins can append their own sections to the Trip Plan PDF via the `pdfSectionProvider` hook. A plugin returns plain text — a title, paragraphs, and an optional simple table (headers plus rows) — and TREK escapes and lays it out itself. Sections are text-only and additive: a plugin never renders into the document, and one that errors or is slow contributes nothing.
+
+> **Plugins:** requires the `hook:pdf-section-provider` permission. See [Plugin-Development](Plugin-Development) for the hook contract.
+
 ---
 
 ## Journey Book PDF

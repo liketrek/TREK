@@ -30,6 +30,7 @@ The following events are configurable in user settings:
 | `photos_shared` | Photos were shared with a trip |
 | `collab_message` | A new message in a collaborative trip |
 | `packing_tagged` | You were assigned to a packing category in a trip |
+| `plugin_notification` | An installed plugin sent you a notification (only plugins granted the `notify:send` capability can do this) |
 
 All user-facing events support all four channels (in-app, email, webhook, ntfy). A dash (—) in the matrix means that channel/event combination is not implemented.
 

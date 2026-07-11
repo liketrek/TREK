@@ -186,6 +186,229 @@ gives you bundler-free, kit-styled DOM builders (`ui.el/button/card/chip/input/m
 
 ---
 
+## Notify a user or a trip
+
+**Needs:** `notify:send`
+
+The plugin supplies target + plain text; the host owns delivery and the user's notification preferences.
+
+```js
+await ctx.notify.send({
+  title: 'Trip rechecked',
+  body: '3 places still need a location',
+  scope: 'trip', targetId: tripId,   // or scope:'user', targetId: the acting user
+  link: '/trips/' + tripId,
+})
+```
+
+The recipient is **forced** by the host: `scope:'user'` can only reach the acting user, `scope:'trip'` only a trip they belong to. You can't notify anyone else.
+
+---
+
+## Ask the configured LLM
+
+**Needs:** `ai:invoke`
+
+Uses whatever provider the admin/user set up — your plugin never holds a key.
+
+```js
+const { text } = await ctx.ai.complete('Summarise this trip in one line', 'You are a concise travel assistant')
+
+const { results } = await ctx.ai.extract(
+  pastedBookingText,
+  { type: 'object', properties: { hotel: { type: 'string' }, checkIn: { type: 'string' } } },
+)
+```
+
+Output is **data**. To store it, push it through a gated write yourself (e.g. `ctx.reservations.create`).
+
+---
+
+## Call a third-party API the user connected
+
+**Needs:** `oauth:client` (and `http:outbound` for the fetch)
+
+The user connects the service under Settings → Plugins → Connect. The host keeps the refresh token and client secret; you only ever get a short-lived access token for the acting user.
+
+```js
+const token = await ctx.oauth.getAccessToken()   // null if not connected, or in a userless context
+if (token) {
+  const res = await fetch('https://api.example.com/me', { headers: { Authorization: `Bearer ${token}` } })
+}
+```
+
+---
+
+## Convert currencies
+
+**Needs:** `rates:read`
+
+```js
+const rates = await ctx.rates.get('EUR')   // { USD: 1.08, GBP: 0.85, … } — or null on an upstream failure
+const usd = 100 * rates.USD
+```
+
+Tenant-free and cached upstream — no trip access needed.
+
+---
+
+## Run work on a schedule
+
+**Needs:** `jobs:run`
+
+Two flavours: a fixed **cron job** declared in the manifest, or a **dynamic timer** you set at runtime via `ctx.scheduler`.
+
+```js
+module.exports = {
+  // fixed cron — runs on node-cron
+  jobs: [
+    { id: 'nightly', schedule: '0 3 * * *', async handler(ctx) { /* … */ } },
+  ],
+
+  // dynamic timers fire back into `scheduled`
+  scheduled(input, ctx) {
+    ctx.log.info('fired', { name: input.name, payload: input.payload })
+  },
+
+  routes: [
+    { method: 'POST', path: '/remind', async handler(req, ctx) {
+        await ctx.scheduler.in(60_000, 'remind', { tripId: 1 })
+        // also: .at(epochMs, name, payload) · .every(ms, name, payload) · .cancel(name)
+        return { status: 200 }
+    } },
+  ],
+}
+```
+
+Both jobs and scheduled tasks run with **no acting user** (trip reads are refused; only your own db + declared egress). `ctx.scheduler.set` is an upsert by name and survives restarts. Caps: ≤100 tasks/plugin, ≤128-char name, ≤8 KB payload, recurring interval ≥60s, ≤1 year out.
+
+---
+
+## Contribute native primitives to core views
+
+Six declarative hooks let a plugin push data into TREK's own screens — the host renders and sanitizes everything, so no iframe and no plugin JS on the canvas. Each needs its own `hook:*` permission, runs with the current user bound on a short timeout, and a slow or failing call is skipped (never fatal). The host caps counts and lengths.
+
+```js
+hooks: {
+  // hook:table-contributor — cells/buttons on a row. view ∈ reservations|places|day|costs|packing|files
+  tableContributor: { async getContributions(view, tripId, ctx) {
+    return [{ kind: 'column', entityId: 42, id: 'crowd', label: 'Crowd', value: 'Quiet', tone: 'success' }]
+  } },
+
+  // hook:map-marker-provider — pins on the trip map (#587)
+  mapMarkerProvider: { async getMarkers(tripId, ctx) {
+    return [{ id: 'm1', lat: 35.62, lng: 139.78, label: 'Teamlab', popupText: 'Opens 10:00' }]
+  } },
+
+  // hook:pdf-section-provider — text sections appended to the trip PDF export
+  pdfSectionProvider: { async getSections(tripId, ctx) {
+    return [{ title: 'Notes', paragraphs: ['Bring cash.'], table: { headers: ['Day', 'Plan'], rows: [['1', 'Odaiba']] } }]
+  } },
+
+  // hook:atlas-layer-provider — country tint layers on the Atlas map (user-scoped, no target arg)
+  atlasLayerProvider: { async getLayers(ctx) {
+    return [{ id: 'wishlist', name: 'Wishlist', countries: [{ code: 'JP', tone: 'warn' }] }]
+  } },
+
+  // hook:journal-entry-provider — extra rows under a journal entry
+  journalEntryProvider: { async getRows(entryId, ctx) {
+    return [{ label: 'Weather', value: 'Sunny 22°C' }]
+  } },
+
+  // hook:trip-card-provider — badges on dashboard trip cards (tripIds = the cards on screen)
+  tripCardProvider: { async getCards(tripIds, ctx) {
+    return tripIds.map((id) => ({ tripId: id, id: 'days', label: 'Days left', value: '12' }))
+  } },
+}
+```
+
+`tone` is `'default' | 'success' | 'warn' | 'danger'`; any `url` must be http/https/mailto; `icon` is a lucide icon name. A table `action` (instead of a `column`) is a labelled button whose target opens your sandboxed frame or calls one of your routes.
+
+---
+
+## Honour account deletion and data export (GDPR)
+
+**Needs:** `hook:user-data`
+
+The host calls these when a TREK account is erased or its data is exported. Both are **userless** — you get only a `userId` and act on your OWN db, so the grant leaks no read into core data.
+
+```js
+module.exports = {
+  // Erasure — called durably (queued, retried until it succeeds), so make it idempotent.
+  async deleteUserData({ userId }, ctx) {
+    await ctx.db.exec('DELETE FROM my_rows WHERE user_id = ?', userId)
+  },
+  // Portability — return a JSON-serialisable value the host aggregates into the export.
+  async exportUserData({ userId }, ctx) {
+    return await ctx.db.query('SELECT * FROM my_rows WHERE user_id = ?', userId)
+  },
+}
+```
+
+---
+
+## Write across every subsystem
+
+Beyond places/days/itinerary, TREK 3.3.0 opens create/update/delete on almost every trip subsystem. Each is membership-checked against the acting user and needs its `db:write:*` scope **plus** the app's edit permission — declare only what you use.
+
+```js
+// Bookings & lodging — needs 'reservation_edit' / 'day_edit'
+await ctx.reservations.create(tripId, { type: 'flight', title: 'NRT → HND', endpoints: [/* legs */] })
+await ctx.accommodations.create(tripId, { place_id, start_day_id, end_day_id, check_in: '15:00' })
+// Packing & to-dos — needs 'packing_edit'
+await ctx.packing.create(tripId, { name: 'Passport', visibility: 'personal' })
+await ctx.todos.create(tripId, { name: 'Buy JR pass', due_date: '2027-04-01' })
+// Costs (budget) — needs 'budget_edit' + the Costs addon
+await ctx.costs.create(tripId, { title: 'Hotel', amount: 120, currency: 'EUR' })
+// Collab notes/polls/chat — needs 'collab_edit' + the Collab addon
+await ctx.collab.createNote(tripId, { title: 'Meeting point' })
+// Day notes — needs 'day_edit'
+await ctx.daynotes.create(tripId, dayId, { content: 'Rainy — swap plans' })
+// Tags (the acting user's own)
+const tag = await ctx.tags.create({ name: 'foodie', color: '#4F46E5' })
+```
+
+The matching reads mirror the app 1:1: `ctx.trips.getReservations/getAccommodations/getDays`, `ctx.packing.list`, `ctx.costs.getByTrip`, `ctx.collab.listNotes/listPolls/listMessages`, `ctx.daynotes.list`, `ctx.todos.list`, `ctx.tags.list`, `ctx.categories.list`.
+
+---
+
+## Write the acting user's own Atlas / Vacay / Journal / Collections
+
+These belong to the **user** (not one trip), each gated on its addon being enabled.
+
+```js
+await ctx.atlas.markCountry('JP')                                   // db:write:atlas
+await ctx.atlas.createBucketItem({ name: 'See Mt Fuji', country_code: 'JP' })
+await ctx.vacay.toggleEntry('2027-04-02')                          // db:write:vacay — toggles one PTO day
+const j = await ctx.journal.createJourney({ title: 'Japan 2027' })  // db:write:journal
+await ctx.journal.createEntry(j.id, { entry_date: '2027-04-02' })
+const c = await ctx.collections.create({ name: 'Tokyo eats' })      // db:write:collections
+await ctx.collections.savePlace({ collection_id: c.id, name: 'Ramen shop', lat: 35.6, lng: 139.7 })
+```
+
+Reads: `ctx.atlas.visited()/bucketList()`, `ctx.vacay.mine()`, `ctx.journal.listMine()/getEntries()`, `ctx.collections.listMine()/get()`.
+
+---
+
+## Batch writes atomically, and read per-user settings
+
+**Needs:** `db:own` (for `db.tx`); `ctx.settings` needs no permission.
+
+```js
+// db.tx — all commit or all roll back, on your OWN db (≤100 statements; reads see the batch's earlier writes)
+await ctx.db.tx([
+  { sql: 'INSERT INTO cache(k, v) VALUES(?, ?)', args: ['a', 1] },
+  { sql: 'UPDATE cache SET v = v + 1 WHERE k = ?', args: ['a'] },
+])
+
+// ctx.settings.get — the ACTING USER's own value for a scope:'user' settings field (decrypted host-side)
+const apiKey = await ctx.settings.get('apiKey')   // undefined when unset or userless → fall back to ctx.config
+```
+
+`ctx.config` is the admin-owned instance settings; `ctx.settings` is that user's private values for the `scope:'user'` fields you declared in the manifest.
+
+---
+
 ## Where things run
 
 | Surface | Runs | Gets |

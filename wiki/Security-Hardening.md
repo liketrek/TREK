@@ -64,6 +64,18 @@ Helmet applies a strict CSP on all responses. Key directives:
 - `frameAncestors 'self'` (prevents clickjacking from external frames)
 - `upgrade-insecure-requests` (added automatically when `FORCE_HTTPS=true`)
 
+## Plugin Runtime Hardening
+
+Installed plugins run **untrusted third-party code**. TREK contains a plugin in several independent layers so a hostile or buggy plugin can neither read TREK's data nor take the instance down. Nothing here needs configuration — it is all on by default — but the escape hatches below exist for tuning.
+
+- [ ] Leave the plugin system's defaults in place. It is **on by default** but installed plugins still have to be **activated one by one**, so no third-party code runs until an admin turns a specific plugin on. Set `TREK_PLUGINS_ENABLED=false` (accepts `false`/`0`/`off`/`no`) to switch the whole system off — installed plugins stay on disk, deactivated, and the runtime is idle.
+- [ ] Keep the **OS permission jail** enabled (the default). In production each plugin runs in an isolated child process launched with Node's `--permission` model: filesystem **writes**, `child_process`, worker threads and native addons are denied outright, and reads are scoped to just the plugin's own code — so a plugin cannot read `trek.db` or the secret files, or shell out. The child's environment is scrubbed (no `JWT_SECRET`, no DB credentials). Setting `TREK_PLUGIN_PERMISSIONS=off` disables this jail (isolation then falls back to crash-only) and logs a loud warning — only ever do this on a machine you fully trust.
+- [ ] Rely on the **private-egress block** (SSRF backstop). Even a plugin that declared an outbound host cannot reach a destination that resolves to a loopback, private, link-local, ULA, carrier-grade-NAT, cloud-metadata (`169.254.169.254`), multicast or reserved address — the guard re-checks the resolved IP, so a plugin can't pivot to internal services or DNS-rebind to them. This is independent of `ALLOW_INTERNAL_NETWORK` (which only governs core Immich/Synology features).
+- [ ] The supervisor caps each plugin's **resident memory** (default 300 MB, `TREK_PLUGIN_MAX_RSS_MB`) — measured host-side from the OS, never the plugin's self-report — and kills a plugin that blows the ceiling or stops sending heartbeats; repeat offenders auto-disable. Every `ctx.*` capability call is also **rate-limited** at the dispatch boundary (a token bucket: ~60-call burst, 20 calls/sec sustained, 16 concurrent; `TREK_PLUGIN_RPC_BURST` / `TREK_PLUGIN_RPC_PER_SEC` / `TREK_PLUGIN_RPC_INFLIGHT`), so one plugin in a tight loop gets throttled instead of freezing the instance.
+- [ ] Review the **capability audit** if you grant plugins broad data access. Every host-mediated core-data read and broadcast a plugin makes is recorded at the RPC boundary against the real acting user (not a value the plugin supplies) in a per-plugin, hash-chained, tamper-evident log. Admins see it per plugin; each user can see "what have plugins done in my name?". Retention is capped per plugin (default 20 000 rows, `TREK_PLUGIN_AUDIT_MAX_ROWS`).
+
+> The developer **dev-link** feature (`TREK_PLUGINS_DEV_LINK=1`) loads unsigned local code and, under `npm run dev`, runs with the OS jail off — keep it off on any instance that isn't a throwaway dev box you control. See [Plugins](Plugins) and [Plugin Permissions](Plugin-Permissions).
+
 ## Backups
 
 - [ ] Enable auto-backup with an appropriate retention window. See [Backups](Backups).
