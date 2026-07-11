@@ -233,6 +233,10 @@
    that path and hides the whole bar (issue #1459). */
 .trek-dash .hero-pass {
   position: relative;
+  /* Match the inner panel's radius: the mask + translateZ promotes this wrapper to
+     its own compositing layer whose bounds are otherwise square, which showed as a
+     square edge over the rounded glass panel (regression from the #1459 mask split). */
+  border-radius: 24px;
   -webkit-mask-image: radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px);
           mask-image: radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px);
   transform: translateZ(0);
