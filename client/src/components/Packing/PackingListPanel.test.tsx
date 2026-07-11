@@ -159,17 +159,17 @@ describe('PackingListPanel', () => {
     expect(screen.getByText('Documents')).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-014: Add category button is shown', () => {
+  it('FE-COMP-PACKING-014: Add list button is shown', () => {
     render(<PackingListPanel tripId={1} items={[]} />);
-    // The "Add category" button should be present in the toolbar
-    expect(screen.getByText('Add category')).toBeInTheDocument();
+    // The "Add list" button should be present in the toolbar
+    expect(screen.getByText('Add list')).toBeInTheDocument();
   });
 
   it('FE-COMP-PACKING-015: clicking Add Category shows the category name input', async () => {
     const user = userEvent.setup();
     render(<PackingListPanel tripId={1} items={[]} />);
-    await user.click(screen.getByText('Add category'));
-    await screen.findByPlaceholderText('Category name (e.g. Clothing)');
+    await user.click(screen.getByText('Add list'));
+    await screen.findByPlaceholderText('List name (e.g. Clothing)');
   });
 
   it('FE-COMP-PACKING-016: delete item button exists and triggers API call', async () => {
@@ -340,8 +340,8 @@ describe('PackingListPanel', () => {
     );
     render(<PackingListPanel tripId={1} items={[]} />);
 
-    await user.click(screen.getByText('Add category'));
-    const input = await screen.findByPlaceholderText('Category name (e.g. Clothing)');
+    await user.click(screen.getByText('Add list'));
+    const input = await screen.findByPlaceholderText('List name (e.g. Clothing)');
     await user.type(input, 'Valuables');
     await user.keyboard('{Enter}');
 
@@ -496,7 +496,7 @@ describe('PackingListPanel', () => {
     // Click "Rename" in the menu
     await user.click(await screen.findByText('Rename'));
 
-    // Category name input appears — type new name and save
+    // List name input appears — type new name and save
     const catInput = screen.getByDisplayValue('Clothing');
     await user.clear(catInput);
     await user.type(catInput, 'Apparel');
@@ -858,8 +858,8 @@ describe('PackingListPanel', () => {
     // It's rendered inside the action buttons group (sm:opacity-0 sm:group-hover:opacity-100)
     // In jsdom, CSS classes don't apply so the buttons are accessible
     // The dot button has a circle span inside with category color
-    // Find all buttons with the 'Change Category' title
-    const catChangeBtn = screen.getAllByTitle('Change Category');
+    // Find all buttons with the 'Move to List' title
+    const catChangeBtn = screen.getAllByTitle('Move to List');
     expect(catChangeBtn.length).toBeGreaterThan(0);
     await user.click(catChangeBtn[0]);
 
@@ -999,10 +999,10 @@ describe('PackingListPanel', () => {
     );
     const { container } = render(<PackingListPanel tripId={1} items={[item1, item2]} />);
 
-    // Open context menu and click Delete Category
+    // Open context menu and click Delete List
     const moreBtn = container.querySelector('svg.lucide-more-horizontal')?.closest('button');
     await user.click(moreBtn!);
-    await user.click(await screen.findByText('Delete Category'));
+    await user.click(await screen.findByText('Delete List'));
 
     await waitFor(() => {
       expect(deletedIds).toContain(100);
@@ -1059,7 +1059,7 @@ describe('PackingListPanel', () => {
     render(<PackingListPanel tripId={1} items={[itemA, itemB]} />);
 
     // Use fireEvent (no pointer events) to open the category picker — avoids mouseLeave closing picker
-    const catChangeBtns = screen.getAllByTitle('Change Category');
+    const catChangeBtns = screen.getAllByTitle('Move to List');
     fireEvent.click(catChangeBtns[0]);
 
     // Picker shows available categories — find and click the 'Documents' button (role=button, text=Documents)
