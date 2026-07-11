@@ -9,7 +9,7 @@ const share: TranslationStrings = {
   'share.permMap': '地圖與計劃',
   'share.permBookings': '預訂',
   'share.permPacking': '行李',
-  'share.permBudget': '預算',
+  'share.permBudget': '費用',
   'share.permCollab': '聊天',
 };
 export default share;

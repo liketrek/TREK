@@ -235,7 +235,7 @@ describe('SharedTripPage', () => {
         expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
       });
 
-      const budgetTab = screen.getByRole('button', { name: /budget/i });
+      const budgetTab = screen.getByRole('button', { name: /costs/i });
       expect(budgetTab).toBeInTheDocument();
 
       fireEvent.click(budgetTab);
@@ -532,7 +532,7 @@ describe('SharedTripPage', () => {
 
       renderSharedTrip('cad-token');
       await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /budget/i }));
+      fireEvent.click(screen.getByRole('button', { name: /costs/i }));
 
       await waitFor(() => expect(screen.getByText('Hotel')).toBeInTheDocument());
       // Total + per-row labelled CAD; never the EUR fallback.
@@ -565,7 +565,7 @@ describe('SharedTripPage', () => {
 
       renderSharedTrip('mixed-token');
       await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /budget/i }));
+      fireEvent.click(screen.getByRole('button', { name: /costs/i }));
 
       await waitFor(() => expect(screen.getByText('Dinner')).toBeInTheDocument());
       // 100 EUR / 0.8 = 125.00 NZD once the rate resolves.

@@ -399,7 +399,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.mcp.description': 'Протокол контекста модели для интеграции с ИИ-ассистентами',
   'admin.addons.catalog.packing.name': 'Списки',
   'admin.addons.catalog.packing.description': 'Списки вещей и задачи для ваших поездок',
-  'admin.addons.catalog.budget.name': 'Costs',
+  'admin.addons.catalog.budget.name': 'Расходы',
   'admin.addons.catalog.budget.description': 'Отслеживайте расходы и планируйте бюджет поездки',
   'admin.addons.catalog.documents.name': 'Документы',
   'admin.addons.catalog.documents.description': 'Храните и управляйте документами для путешествий',

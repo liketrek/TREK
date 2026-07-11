@@ -406,7 +406,7 @@ const admin: TranslationStrings = {
   'admin.addons.subtitle': 'فعّل أو عطّل الميزات لتخصيص تجربة TREK.',
   'admin.addons.catalog.packing.name': 'القوائم',
   'admin.addons.catalog.packing.description': 'قوائم التعبئة والمهام لرحلاتك',
-  'admin.addons.catalog.budget.name': 'Costs',
+  'admin.addons.catalog.budget.name': 'التكاليف',
   'admin.addons.catalog.budget.description': 'تتبع النفقات وخطط ميزانية الرحلة',
   'admin.addons.catalog.documents.name': 'المستندات',
   'admin.addons.catalog.documents.description': 'حفظ وإدارة وثائق السفر',

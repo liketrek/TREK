@@ -8,7 +8,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places ومسارات وتجميع',
   'login.features.realtime': 'مزامنة فورية',
   'login.features.realtimeDesc': 'خططوا معًا عبر WebSocket',
-  'login.features.budget': 'تتبع الميزانية',
+  'login.features.budget': 'تتبع التكاليف',
   'login.features.budgetDesc': 'فئات ورسوم وتقسيم لكل شخص',
   'login.features.collab': 'تعاون',
   'login.features.collabDesc': 'عدة مستخدمين مع رحلات مشتركة',

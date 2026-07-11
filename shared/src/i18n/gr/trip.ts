@@ -9,7 +9,7 @@ const trip: TranslationStrings = {
   'trip.tabs.packingShort': 'Αποσκευές',
   'trip.tabs.lists': 'Λίστες',
   'trip.tabs.listsShort': 'Λίστες',
-  'trip.tabs.budget': 'Costs',
+  'trip.tabs.budget': 'Κόστη',
   'trip.tabs.files': 'Αρχεία',
   'trip.loading': 'Φόρτωση ταξιδιού...',
   'trip.loadingPhotos': 'Φόρτωση φωτογραφιών μέρους...',

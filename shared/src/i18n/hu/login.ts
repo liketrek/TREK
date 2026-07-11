@@ -9,7 +9,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places, útvonalak és csoportosítás',
   'login.features.realtime': 'Valós idejű szinkron',
   'login.features.realtimeDesc': 'Közös tervezés WebSocket-en keresztül',
-  'login.features.budget': 'Költségvetés-követés',
+  'login.features.budget': 'Költségkövetés',
   'login.features.budgetDesc': 'Kategóriák, diagramok és személyenkénti költségek',
   'login.features.collab': 'Együttműködés',
   'login.features.collabDesc': 'Többfelhasználós, megosztott utazásokkal',

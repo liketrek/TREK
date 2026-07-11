@@ -8,7 +8,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places, rotas e agrupamento',
   'login.features.realtime': 'Sincronização em tempo real',
   'login.features.realtimeDesc': 'Planejem juntos via WebSocket',
-  'login.features.budget': 'Controle de orçamento',
+  'login.features.budget': 'Controle de custos',
   'login.features.budgetDesc': 'Categorias, gráficos e custo por pessoa',
   'login.features.collab': 'Colaboração',
   'login.features.collabDesc': 'Vários usuários com viagens compartilhadas',

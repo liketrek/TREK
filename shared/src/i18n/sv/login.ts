@@ -9,7 +9,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places, rutter och klusterbildning',
   'login.features.realtime': 'Synkronisering i realtid',
   'login.features.realtimeDesc': 'Planera tillsammans via WebSocket',
-  'login.features.budget': 'Budgetuppföljning',
+  'login.features.budget': 'Kostnadsuppföljning',
   'login.features.budgetDesc': 'Kategorier, diagram och kostnader per person',
   'login.features.collab': 'Samarbete',
   'login.features.collabDesc': 'Flera användare med delade resor',

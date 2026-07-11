@@ -9,7 +9,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Rehber, rotalar ve kümeleme',
   'login.features.realtime': 'Gerçek Zamanlı Senkronizasyon',
   'login.features.realtimeDesc': 'WebSocket aracılığıyla birlikte plan yapın',
-  'login.features.budget': 'Bütçe Takibi',
+  'login.features.budget': 'Maliyet Takibi',
   'login.features.budgetDesc': 'Kategoriler, grafikler ve kişi başı maliyetler',
   'login.features.collab': 'İşbirliği',
   'login.features.collabDesc': 'Paylaşılan gezilerle çok kullanıcılı',

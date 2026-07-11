@@ -10,7 +10,7 @@ const share: TranslationStrings = {
   'share.permMap': 'Карта и план',
   'share.permBookings': 'Бронирования',
   'share.permPacking': 'Вещи',
-  'share.permBudget': 'Бюджет',
+  'share.permBudget': 'Расходы',
   'share.permCollab': 'Чат',
 };
 export default share;

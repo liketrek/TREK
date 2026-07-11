@@ -8,7 +8,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places、経路、クラスタリング',
   'login.features.realtime': 'リアルタイム同期',
   'login.features.realtimeDesc': 'WebSocketで共同計画',
-  'login.features.budget': '予算管理',
+  'login.features.budget': '費用管理',
   'login.features.budgetDesc': 'カテゴリ、グラフ、人数別費用',
   'login.features.collab': 'コラボレーション',
   'login.features.collabDesc': '複数ユーザーで旅行を共有',

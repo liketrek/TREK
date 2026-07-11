@@ -9,7 +9,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places, διαδρομές & ομαδοποίηση',
   'login.features.realtime': 'Συγχρονισμός Πραγματικού Χρόνου',
   'login.features.realtimeDesc': 'Σχεδιάστε μαζί μέσω WebSocket',
-  'login.features.budget': 'Παρακολούθηση Προϋπολογισμού',
+  'login.features.budget': 'Παρακολούθηση Κόστους',
   'login.features.budgetDesc': 'Κατηγορίες, γραφήματα & κόστος ανά άτομο',
   'login.features.collab': 'Συνεργασία',
   'login.features.collabDesc': 'Πολλαπλοί χρήστες με κοινόχρηστα ταξίδια',

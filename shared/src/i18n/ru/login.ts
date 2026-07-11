@@ -9,7 +9,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places, маршруты и кластеризация',
   'login.features.realtime': 'Синхронизация в реальном времени',
   'login.features.realtimeDesc': 'Планируйте вместе через WebSocket',
-  'login.features.budget': 'Контроль бюджета',
+  'login.features.budget': 'Контроль расходов',
   'login.features.budgetDesc': 'Категории, графики и расходы на человека',
   'login.features.collab': 'Совместная работа',
   'login.features.collabDesc': 'Многопользовательский режим с общими поездками',

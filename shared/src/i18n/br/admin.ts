@@ -391,7 +391,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.memories.description': 'Álbuns de fotos compartilhados em cada viagem',
   'admin.addons.catalog.packing.name': 'Listas',
   'admin.addons.catalog.packing.description': 'Listas de bagagem e tarefas a fazer para suas viagens',
-  'admin.addons.catalog.budget.name': 'Costs',
+  'admin.addons.catalog.budget.name': 'Custos',
   'admin.addons.catalog.budget.description': 'Acompanhe despesas e planeje o orçamento da viagem',
   'admin.addons.catalog.documents.name': 'Documentos',
   'admin.addons.catalog.documents.description': 'Armazene e gerencie documentos de viagem',
