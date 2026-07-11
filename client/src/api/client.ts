@@ -239,6 +239,40 @@ apiClient.interceptors.response.use(
     }
 )
 
+/**
+ * POST a FormData body — the ONLY way this client should upload a file.
+ *
+ * The shared axios instance carries `timeout: 8000`, and axios' timeout is a whole-
+ * request deadline rather than an idle one. A file upload that takes longer than 8s to
+ * push its body — a phone photo on a slow uplink, a 500 MB document — is aborted
+ * mid-stream, which the server reports as a multer "Request aborted" (#1495).
+ *
+ * Every upload therefore has to opt out with `timeout: 0`. That opt-out used to be
+ * hand-written per call site, so it was forgotten on 7 of 15 — including the two 500 MB
+ * endpoints (documents, backup restore). Centralizing makes the correct behavior the
+ * default instead of something you have to remember.
+ *
+ * The Content-Type is set for clarity only: axios unsets it for FormData in the browser
+ * so the platform can generate the multipart boundary.
+ */
+export interface UploadOptions {
+  onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void
+  idempotencyKey?: string
+  signal?: AbortSignal
+}
+
+export function postMultipart<T = any>(url: string, formData: FormData, opts?: UploadOptions): Promise<T> {
+  return apiClient.post(url, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}),
+    },
+    timeout: 0,
+    onUploadProgress: opts?.onUploadProgress,
+    signal: opts?.signal,
+  }).then(r => r.data as T)
+}
+
 export const authApi = {
   register: (data: RegisterRequest) => apiClient.post('/auth/register', data).then(r => r.data),
   validateInvite: (token: string) => apiClient.get(`/auth/invite/${token}`).then(r => r.data),
@@ -253,7 +287,7 @@ export const authApi = {
   updateSettings: (data: Record<string, unknown>) => apiClient.put('/auth/me/settings', data).then(r => r.data),
   getSettings: () => apiClient.get('/auth/me/settings').then(r => r.data),
   listUsers: () => apiClient.get('/auth/users').then(r => r.data),
-  uploadAvatar: (formData: FormData) => apiClient.post('/auth/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data),
+  uploadAvatar: (formData: FormData) => postMultipart('/auth/avatar', formData),
   deleteAvatar: () => apiClient.delete('/auth/avatar').then(r => r.data),
   getAppConfig: () => apiClient.get('/auth/app-config').then(r => r.data),
   updateAppSettings: (data: Record<string, unknown>) => apiClient.put('/auth/app-settings', data).then(r => r.data),
@@ -334,7 +368,7 @@ export const tripsApi = {
   get: (id: number | string) => apiClient.get(`/trips/${id}`).then(r => r.data),
   update: (id: number | string, data: TripUpdateRequest) => apiClient.put(`/trips/${id}`, data).then(r => r.data),
   delete: (id: number | string) => apiClient.delete(`/trips/${id}`).then(r => r.data),
-  uploadCover: (id: number | string, formData: FormData) => apiClient.post(`/trips/${id}/cover`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0 }).then(r => r.data),
+  uploadCover: (id: number | string, formData: FormData) => postMultipart(`/trips/${id}/cover`, formData),
   searchCoverImages: (query: string) => apiClient.get('/trips/cover-images/search', { params: { query } }).then(r => r.data),
   archive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: true }).then(r => r.data),
   unarchive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: false }).then(r => r.data),
@@ -370,14 +404,14 @@ export const placesApi = {
     if (opts?.waypoints !== undefined) fd.append('importWaypoints', String(opts.waypoints))
     if (opts?.routes !== undefined) fd.append('importRoutes', String(opts.routes))
     if (opts?.tracks !== undefined) fd.append('importTracks', String(opts.tracks))
-    return apiClient.post(`/trips/${tripId}/places/import/gpx`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+    return postMultipart(`/trips/${tripId}/places/import/gpx`, fd)
   },
   importMapFile: (tripId: number | string, file: File, opts?: { points?: boolean; paths?: boolean }) => {
     const fd = new FormData()
     fd.append('file', file)
     if (opts?.points !== undefined) fd.append('importPoints', String(opts.points))
     if (opts?.paths !== undefined) fd.append('importPaths', String(opts.paths))
-    return apiClient.post(`/trips/${tripId}/places/import/map`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+    return postMultipart(`/trips/${tripId}/places/import/map`, fd)
   },
   importGoogleList: (tripId: number | string, url: string, enrich?: boolean) =>
       apiClient.post(`/trips/${tripId}/places/import/google-list`, { url, enrich } satisfies PlaceImportListRequest).then(r => r.data),
@@ -470,7 +504,7 @@ export const adminApi = {
   pluginUpdate: (id: string) => apiClient.post(`/admin/plugins/${id}/update`).then(r => r.data),
   pluginUninstall: (id: string, deleteData: boolean) => apiClient.post(`/admin/plugins/${id}/uninstall`, { deleteData }).then(r => r.data),
   pluginRescan: () => apiClient.post('/admin/plugins/rescan').then(r => r.data),
-  pluginUpload: (file: File) => { const fd = new FormData(); fd.append('file', file); return apiClient.post('/admin/plugins/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data) },
+  pluginUpload: (file: File) => { const fd = new FormData(); fd.append('file', file); return postMultipart('/admin/plugins/upload', fd) },
   // Dev-link (dev-only): register a plugin from a local built dir + hot-reload it.
   pluginLink: (path: string) => apiClient.post('/admin/plugins/link', { path }).then(r => r.data),
   pluginReload: (id: string) => apiClient.post(`/admin/plugins/${id}/reload`).then(r => r.data),
@@ -710,27 +744,12 @@ export const journeyApi = {
   reorderEntries: (journeyId: number, orderedIds: number[]) => apiClient.put(`/journeys/${journeyId}/entries/reorder`, { orderedIds } satisfies JourneyReorderEntriesRequest).then(r => r.data),
 
   // Photos
-  uploadPhotos: (entryId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>
-    apiClient.post(`/journeys/entries/${entryId}/photos`, formData, {
-      headers: { 'Content-Type': undefined as any, ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}) },
-      timeout: 0,
-      onUploadProgress: opts?.onUploadProgress,
-      signal: opts?.signal,
-    }).then(r => r.data),
-  uploadGalleryPhotos: (journeyId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>
-    apiClient.post(`/journeys/${journeyId}/gallery/photos`, formData, {
-      headers: { 'Content-Type': undefined as any, ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}) },
-      timeout: 0,
-      onUploadProgress: opts?.onUploadProgress,
-      signal: opts?.signal,
-    }).then(r => r.data),
-  uploadGalleryVideo: (journeyId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>
-    apiClient.post(`/journeys/${journeyId}/gallery/video`, formData, {
-      headers: { 'Content-Type': undefined as any, ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}) },
-      timeout: 0,
-      onUploadProgress: opts?.onUploadProgress,
-      signal: opts?.signal,
-    }).then(r => r.data),
+  uploadPhotos: (entryId: number, formData: FormData, opts?: UploadOptions) =>
+    postMultipart(`/journeys/entries/${entryId}/photos`, formData, opts),
+  uploadGalleryPhotos: (journeyId: number, formData: FormData, opts?: UploadOptions) =>
+    postMultipart(`/journeys/${journeyId}/gallery/photos`, formData, opts),
+  uploadGalleryVideo: (journeyId: number, formData: FormData, opts?: UploadOptions) =>
+    postMultipart(`/journeys/${journeyId}/gallery/video`, formData, opts),
   addProviderPhotosToGallery: (journeyId: number, provider: string, assetIds: string[], passphrase?: string, mediaTypes?: string[]) => apiClient.post(`/journeys/${journeyId}/gallery/provider-photos`, { provider, asset_ids: assetIds, ...(passphrase ? { passphrase } : {}), ...(mediaTypes ? { media_types: mediaTypes } : {}) } satisfies JourneyProviderPhotosRequest).then(r => r.data),
   addProviderPhoto: (entryId: number, provider: string, assetId: string, caption?: string, passphrase?: string) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_id: assetId, caption, ...(passphrase ? { passphrase } : {}) }).then(r => r.data),
   addProviderPhotos: (entryId: number, provider: string, assetIds: string[], caption?: string, passphrase?: string, mediaTypes?: string[]) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_ids: assetIds, caption, ...(passphrase ? { passphrase } : {}), ...(mediaTypes ? { media_types: mediaTypes } : {}) }).then(r => r.data),
@@ -741,7 +760,7 @@ export const journeyApi = {
   deletePhoto: (photoId: number) => apiClient.delete(`/journeys/photos/${photoId}`).then(r => r.data),
 
   // Cover
-  uploadCover: (id: number, formData: FormData) => apiClient.post(`/journeys/${id}/cover`, formData, { headers: { 'Content-Type': undefined as any }, timeout: 0 }).then(r => r.data),
+  uploadCover: (id: number, formData: FormData) => postMultipart(`/journeys/${id}/cover`, formData),
 
   // Contributors
   addContributor: (id: number, userId: number, role: string) => apiClient.post(`/journeys/${id}/contributors`, { user_id: userId, role }).then(r => r.data),
@@ -797,9 +816,7 @@ export const budgetApi = {
 
 export const filesApi = {
   list: (tripId: number | string, trash?: boolean) => apiClient.get(`/trips/${tripId}/files`, { params: trash ? { trash: 'true' } : {} }).then(r => r.data),
-  upload: (tripId: number | string, formData: FormData) => apiClient.post(`/trips/${tripId}/files`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }).then(r => r.data),
+  upload: (tripId: number | string, formData: FormData, opts?: UploadOptions) => postMultipart(`/trips/${tripId}/files`, formData, opts),
   update: (tripId: number | string, id: number, data: FileUpdateRequest) => apiClient.put(`/trips/${tripId}/files/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/files/${id}`).then(r => r.data),
   toggleStar: (tripId: number | string, id: number) => apiClient.patch(`/trips/${tripId}/files/${id}/star`).then(r => r.data),
@@ -824,7 +841,7 @@ export const reservationsApi = {
     fd.append('mode', mode)
     // No client-side timeout: kitinerary + LLM extraction routinely exceeds the
     // global 8s default (a cold local model alone can take ~45s).
-    return apiClient.post(`/trips/${tripId}/reservations/import/booking`, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0 }).then(r => r.data)
+    return postMultipart(`/trips/${tripId}/reservations/import/booking`, fd)
   },
   importBookingConfirm: (tripId: number | string, items: BookingImportPreviewItem[]): Promise<BookingImportConfirmResponse> =>
     apiClient.post(`/trips/${tripId}/reservations/import/booking/confirm`, { items }).then(r => r.data),
@@ -834,7 +851,7 @@ export const reservationsApi = {
     const fd = new FormData()
     for (const f of files) fd.append('files', f)
     fd.append('mode', mode)
-    return apiClient.post(`/trips/${tripId}/reservations/import/booking/async`, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0 }).then(r => r.data)
+    return postMultipart(`/trips/${tripId}/reservations/import/booking/async`, fd)
   },
   // Poll a background job — recovery path when a WebSocket push was missed.
   importJobStatus: (tripId: number | string, jobId: string): Promise<{ status: 'running' | 'done' | 'error'; done: number; total: number; result?: BookingImportPreviewResponse; error?: string }> =>
@@ -897,7 +914,7 @@ export const collabApi = {
   createNote: (tripId: number | string, data: CollabNoteCreateRequest) => apiClient.post(`/trips/${tripId}/collab/notes`, data).then(r => r.data),
   updateNote: (tripId: number | string, id: number, data: CollabNoteUpdateRequest) => apiClient.put(`/trips/${tripId}/collab/notes/${id}`, data).then(r => r.data),
   deleteNote: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/collab/notes/${id}`).then(r => r.data),
-  uploadNoteFile: (tripId: number | string, noteId: number, formData: FormData) => apiClient.post(`/trips/${tripId}/collab/notes/${noteId}/files`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data),
+  uploadNoteFile: (tripId: number | string, noteId: number, formData: FormData) => postMultipart(`/trips/${tripId}/collab/notes/${noteId}/files`, formData),
   deleteNoteFile: (tripId: number | string, noteId: number, fileId: number) => apiClient.delete(`/trips/${tripId}/collab/notes/${noteId}/files/${fileId}`).then(r => r.data),
   getPolls: (tripId: number | string) => apiClient.get(`/trips/${tripId}/collab/polls`).then(r => r.data),
   createPoll: (tripId: number | string, data: CollabPollCreateRequest) => apiClient.post(`/trips/${tripId}/collab/polls`, data).then(r => r.data),
@@ -932,7 +949,7 @@ export const backupApi = {
   uploadRestore: (file: File) => {
     const form = new FormData()
     form.append('backup', file)
-    return apiClient.post('/backup/upload-restore', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+    return postMultipart('/backup/upload-restore', form)
   },
   getAutoSettings: () => apiClient.get('/backup/auto-settings').then(r => r.data),
   setAutoSettings: (settings: Record<string, unknown>) => apiClient.put('/backup/auto-settings', settings).then(r => r.data),
