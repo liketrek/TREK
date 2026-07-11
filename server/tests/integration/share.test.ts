@@ -198,6 +198,23 @@ describe('Shared trip access', () => {
     expect(res.body.budget).toHaveLength(0);
   });
 
+  // Regression: a co-member's private packing item (#858) must never reach a public share.
+  it('SHARE-026 — hides private packing items from the public payload', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare("INSERT INTO packing_items (trip_id, name, category, checked, is_private, owner_id) VALUES (?, 'Private thing', 'Misc', 0, 1, ?)").run(trip.id, user.id);
+    testDb.prepare("INSERT INTO packing_items (trip_id, name, category, checked, is_private, owner_id) VALUES (?, 'Common thing', 'Misc', 0, 0, ?)").run(trip.id, user.id);
+    const create = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_packing: true });
+    const res = await request(app).get(`/api/shared/${create.body.token}`);
+    expect(res.status).toBe(200);
+    const names = (res.body.packing || []).map((p: any) => p.name);
+    expect(names).toContain('Common thing');
+    expect(names).not.toContain('Private thing');
+  });
+
   // Regression — GHSA-9hc8-p7gm-p7mx: share_map must be enforced server-side, not
   // just hidden in the client. When the owner disables the map, the itinerary and
   // every place (with coordinates) must be withheld from the public payload.

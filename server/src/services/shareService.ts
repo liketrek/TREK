@@ -198,8 +198,9 @@ export function getSharedTripData(token: string): Record<string, any> | null {
     WHERE a.trip_id = ?
   `).all(tripId);
 
-  // Packing
-  const packing = db.prepare('SELECT * FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC').all(tripId);
+  // Packing — a public viewer is neither owner nor recipient, so only Common items
+  // may surface; never a co-member's private/personal packing items (#858).
+  const packing = db.prepare('SELECT * FROM packing_items WHERE trip_id = ? AND is_private = 0 ORDER BY sort_order ASC').all(tripId);
 
   // Budget
   const budget = db.prepare('SELECT * FROM budget_items WHERE trip_id = ? ORDER BY category ASC').all(tripId);

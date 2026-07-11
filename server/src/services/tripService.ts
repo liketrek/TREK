@@ -598,6 +598,9 @@ function isValidTimeZone(zone: string): boolean {
   } catch {
     // Unknown/invalid zone → ok stays false.
   }
+  // Bound the cache — the key is a free-form (plugin/importer-written) zone string,
+  // so cap distinct entries rather than growing for the process lifetime.
+  if (_tzValidCache.size >= 1000) _tzValidCache.clear();
   _tzValidCache.set(zone, ok);
   return ok;
 }
@@ -1050,7 +1053,7 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
 
 // ── Trip summary (used by MCP get_trip_summary tool) ──────────────────────
 
-export function getTripSummary(tripId: number) {
+export function getTripSummary(tripId: number, viewerUserId?: number) {
   const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Record<string, unknown> | undefined;
   if (!trip) return null;
 
@@ -1071,7 +1074,9 @@ export function getTripSummary(tripId: number) {
     currency: trip.currency,
   };
 
-  const packingItems = listPackingItems(tripId);
+  // Thread the viewer so another member's private/personal packing items (#858)
+  // stay hidden — without it listItems returns the UNFILTERED list.
+  const packingItems = listPackingItems(tripId, viewerUserId);
   const packing = {
     items: packingItems,
     total: packingItems.length,

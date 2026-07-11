@@ -484,4 +484,22 @@ describe('Tool: get_trip_summary', () => {
       await h.cleanup();
     }
   });
+
+  // Regression: get_trip_summary must hide another member's private packing items (#858).
+  it('hides another member\'s private packing item from the summary', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Shared Trip' });
+    addTripMember(testDb, trip.id, member.id);
+    testDb.prepare("INSERT INTO packing_items (trip_id, name, category, checked, is_private, owner_id) VALUES (?, 'Secret gift', 'Misc', 0, 1, ?)").run(trip.id, owner.id);
+    testDb.prepare("INSERT INTO packing_items (trip_id, name, category, checked, is_private, owner_id) VALUES (?, 'Sunscreen', 'Misc', 0, 0, ?)").run(trip.id, owner.id);
+
+    await withHarness(member.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
+      const data = parseToolResult(result) as any;
+      const names = (data.packing?.items || []).map((i: any) => i.name);
+      expect(names).toContain('Sunscreen');       // common item visible
+      expect(names).not.toContain('Secret gift');  // owner's private item hidden from the member
+    });
+  });
 });
