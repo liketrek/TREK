@@ -11,6 +11,7 @@ import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { normalizeImageFile } from '../../utils/convertHeic'
 import { getApiErrorMessage, type Trip } from '../../types'
 import type { TripCreateRequest } from '@trek/shared'
+import { NumericInput } from '../shared/NumericInput'
 
 interface TripFormModalProps {
   isOpen: boolean
@@ -436,9 +437,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               {t('dashboard.dayCount')}
             </label>
-            <input type="number" min={1} max={365} value={formData.day_count}
-              onChange={e => {
-                const raw = e.target.value
+            <NumericInput min={1} max={365} value={formData.day_count}
+              onValueChange={raw => {
                 if (raw === '') { update('day_count', ''); return }
                 const n = Math.floor(Number(raw))
                 if (Number.isFinite(n)) update('day_count', Math.min(365, Math.max(1, n)))
@@ -489,9 +489,9 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               </div>
               {customReminder && (
                 <div className="flex items-center gap-2 mt-2">
-                  <input type="number" min={1} max={30}
+                  <NumericInput min={1} max={30}
                     value={formData.reminder_days}
-                    onChange={e => update('reminder_days', Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
+                    onValueChange={raw => update('reminder_days', Math.max(1, Math.min(30, Number(raw) || 1)))}
                     className="w-20 px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300" />
                   <span className="text-xs text-slate-500">{t('trips.reminderDaysBefore')}</span>
                 </div>

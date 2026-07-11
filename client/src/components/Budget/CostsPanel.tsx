@@ -19,6 +19,7 @@ import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 import GuestBadge from '../shared/GuestBadge'
+import { NumericInput } from '../shared/NumericInput'
 
 export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
   const n = members.length
@@ -1196,8 +1197,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px', opacity: isTicketMode ? 0.6 : 1 }}>
             <span className="text-content-faint" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))' }}>{sym(currency)}</span>
-            <input type="text" inputMode="decimal" placeholder="0.00" value={isTicketMode ? ticketInfo.total.toFixed(2) : total}
-              onChange={e => onTotalChange(e.target.value)}
+            <NumericInput mode="decimal" placeholder="0.00" value={isTicketMode ? ticketInfo.total.toFixed(2) : total}
+              onValueChange={onTotalChange}
               disabled={isTicketMode}
               className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, paddingLeft: 6, width: '100%' }} />
           </div>
@@ -1289,12 +1290,11 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                       />
                       <div className="bg-surface-input border border-edge" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 8 }}>
                         <span className="text-content-faint" style={{ fontSize: 12 }}>{sym(currency)}</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
+                        <NumericInput
+                          mode="decimal"
                           placeholder="0.00"
                           value={item.price}
-                          onChange={e => handleUpdateItemPrice(item.id, e.target.value)}
+                          onValueChange={v => handleUpdateItemPrice(item.id, v)}
                           className="text-content"
                           style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 13, fontWeight: 600, textAlign: 'right', padding: '6px 0' }}
                         />

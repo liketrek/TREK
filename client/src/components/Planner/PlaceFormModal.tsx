@@ -14,6 +14,7 @@ import CustomTimePicker from '../shared/CustomTimePicker'
 import { DEFAULT_FORM, isGoogleMapsUrl, type PlaceFormData } from './PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../utils/apiError'
 import type { Place, Category, Assignment } from '../../types'
+import { NumericInput } from '../shared/NumericInput'
 
 // The submit payload mirrors the form, but lat/lng are parsed to numbers and
 // category_id is normalised, plus any files chosen before the place existed.
@@ -698,11 +699,10 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             className="form-input"
           />
           <div className="grid grid-cols-2 gap-2 mt-2">
-            <input
-              type="number"
-              step="any"
+            <NumericInput
+              mode="signed"
               value={form.lat}
-              onChange={e => handleChange('lat', e.target.value)}
+              onValueChange={v => handleChange('lat', v)}
               onPaste={e => {
                 const text = e.clipboardData.getData('text').trim()
                 const match = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/)
@@ -715,11 +715,10 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
               placeholder={t('places.formLat')}
               className="form-input"
             />
-            <input
-              type="number"
-              step="any"
+            <NumericInput
+              mode="signed"
               value={form.lng}
-              onChange={e => handleChange('lng', e.target.value)}
+              onValueChange={v => handleChange('lng', v)}
               placeholder={t('places.formLng')}
               className="form-input"
             />

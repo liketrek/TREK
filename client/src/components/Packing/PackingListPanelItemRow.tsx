@@ -11,6 +11,7 @@ import { PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants'
 import { QuantityInput } from './PackingListPanelQuantityInput'
 import PackingShareControl from './PackingShareControl'
 import type { TripMember } from './usePackingListPanel'
+import { NumericInput } from '../shared/NumericInput'
 
 interface ArtikelZeileProps {
   item: PackingItem
@@ -186,13 +187,11 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
       {bagTrackingEnabled && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent' }}>
-            <input
-              type="text" inputMode="numeric"
+            <NumericInput
               value={item.weight_grams ?? ''}
               readOnly={!canEdit}
-              onChange={async e => {
+              onValueChange={async raw => {
                 if (!canEdit) return
-                const raw = e.target.value.replace(/[^0-9]/g, '')
                 const v = raw === '' ? null : parseInt(raw)
                 try { await updatePackingItem(tripId, item.id, { weight_grams: v }) } catch { toast.error(t('packing.toast.saveError')) }
               }}

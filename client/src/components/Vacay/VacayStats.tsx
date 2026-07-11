@@ -4,6 +4,7 @@ import { useVacayStore } from '../../store/vacayStore'
 import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
 import type { VacayStat, TranslationFn } from '../../types'
+import { NumericInput } from '../shared/NumericInput'
 
 
 export default function VacayStats() {
@@ -101,10 +102,9 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, onSave, t }: StatCardP
             {t('vacay.entitlementDays')} {canEdit && !editing && <Pencil size={9} className="inline opacity-0 group-hover/days:opacity-100 transition-opacity text-content-faint" style={{ verticalAlign: 'middle' }} />}
           </div>
           {editing ? (
-            <input
-              type="number"
+            <NumericInput
               value={localDays}
-              onChange={e => setLocalDays(e.target.value)}
+              onValueChange={setLocalDays}
               onBlur={handleSave}
               onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setEditing(false); setLocalDays(s.vacation_days) } }}
               autoFocus
