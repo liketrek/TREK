@@ -268,9 +268,12 @@ interface TripMembersModalProps {
   onClose: () => void
   tripId: number
   tripTitle: string
+  /** Called after the roster changes (guest/member added, renamed or removed) so the
+   *  planner can refresh its members for Costs participants, Collab, etc. */
+  onMembersChanged?: () => void
 }
 
-export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }: TripMembersModalProps) {
+export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, onMembersChanged }: TripMembersModalProps) {
   const [data, setData] = useState(null)
   const [allUsers, setAllUsers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -302,6 +305,9 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
     try {
       const d = await tripsApi.getMembers(tripId)
       setData(d)
+      // loadMembers runs after every roster mutation (guest/member add, rename,
+      // remove) — let the planner re-sync so Costs participants etc. see it live.
+      onMembersChanged?.()
     } catch {
       toast.error(t('members.loadError'))
     } finally {
