@@ -57,6 +57,15 @@ describe('validateManifest', () => {
     expect(validateManifest({ ...base, permissions: ['http:outbound'] }).ok).toBe(false);
     expect(validateManifest({ ...base, permissions: ['http:outbound'], egress: ['api.x.com'] }).ok).toBe(true);
   });
+  it('waives the egress requirement for an operatorEgress plugin', () => {
+    // A self-hosted target (Gotify, ntfy) has no host the author can name at publish
+    // time — the admin supplies it after install, and TREK blocks all outbound until then.
+    expect(validateManifest({ ...base, permissions: ['http:outbound'], operatorEgress: true }).ok).toBe(true);
+    // The waiver is tied to the flag: no flag, still an error.
+    expect(validateManifest({ ...base, permissions: ['http:outbound'], operatorEgress: false }).ok).toBe(false);
+    // …and the flag alone never grants reach: it still needs an http:outbound permission.
+    expect(validateManifest({ ...base, permissions: ['db:own'], operatorEgress: true }).ok).toBe(false);
+  });
   it('rejects native modules and non-objects', () => {
     expect(validateManifest({ ...base, nativeModules: true }).ok).toBe(false);
     expect(validateManifest('nope').ok).toBe(false);

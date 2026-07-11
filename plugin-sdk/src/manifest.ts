@@ -120,7 +120,11 @@ export function validateManifest(raw: unknown): ValidationResult {
 
   const egress = Array.isArray(m.egress) ? m.egress.map(String) : [];
   const wantsOutbound = permissions.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:'));
-  if (wantsOutbound && egress.length === 0) errors.push('http:outbound declared but egress[] is empty');
+  // Empty egress[] is legal only with operatorEgress: the hosts are admin-supplied
+  // post-install. Until an admin adds one the child blocks ALL outbound — not allow-all.
+  if (wantsOutbound && egress.length === 0 && m.operatorEgress !== true) {
+    errors.push('http:outbound declared but egress[] is empty (set operatorEgress: true if the hosts are admin-supplied)');
+  }
   if (egress.includes('*')) errors.push('egress[] must not contain a bare "*"');
   for (const h of egress) if (!HOST_RE.test(h)) errors.push(`invalid egress host "${h}"`);
 

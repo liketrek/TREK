@@ -19,11 +19,15 @@ describe('scaffold egress (http:outbound)', () => {
     expect(validateManifest(m).ok).toBe(true);
   });
 
-  it('without egress the same manifest is invalid — which the wizard now prevents', () => {
+  it('without egress it scaffolds an operatorEgress plugin (the admin names the hosts)', () => {
+    // The author of a plugin for an always-self-hosted service has no host to write down.
+    // The scaffold must NOT invent a placeholder — it declares operatorEgress instead, which
+    // is the one way an empty egress[] is a valid manifest.
     scaffold('net-plug', 'integration', tmp, { permissions: ['http:outbound'] });
     const m = JSON.parse(fs.readFileSync(path.join(tmp, 'net-plug', 'trek-plugin.json'), 'utf8'));
     expect(m.egress).toBeUndefined();
-    expect(validateManifest(m).ok).toBe(false); // http:outbound requires an egress allow-list
+    expect(m.operatorEgress).toBe(true);
+    expect(validateManifest(m).ok).toBe(true);
   });
 
   it('omits egress entirely when none is given (no empty array noise)', () => {
@@ -138,6 +142,19 @@ describe('notification-channel template', () => {
     expect(m.permissions).toContain('http:outbound:gotify.example.com');
     expect(m.egress).toEqual(['gotify.example.com']);
     expect(m.capabilities.notificationChannel.title).toBe('My Gotify');
+    expect(validateManifest(m).ok).toBe(true);
+  });
+
+  it('names no host when the author names none — bare http:outbound + operatorEgress', () => {
+    // The common case: a Gotify/ntfy channel targets the USER's own server. Inventing a
+    // `gotify.example.com` placeholder would ship a host nobody actually calls in the
+    // published manifest, and grant an outbound host the plugin never needs.
+    const m = make();
+    expect(m.permissions).toContain('hook:notification-channel');
+    expect(m.permissions).toContain('http:outbound');
+    expect(m.permissions.some((p: string) => p.startsWith('http:outbound:'))).toBe(false);
+    expect('egress' in m).toBe(false);
+    expect(m.operatorEgress).toBe(true);
     expect(validateManifest(m).ok).toBe(true);
   });
 

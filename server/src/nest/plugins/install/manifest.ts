@@ -167,8 +167,16 @@ export function parseManifest(raw: unknown): PluginManifest {
   if (m.operatorEgress === true && !permissions.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:'))) {
     throw new ManifestError('operatorEgress requires an http:outbound permission');
   }
-  if (permissions.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:')) && egress.length === 0) {
-    throw new ManifestError('http:outbound declared but egress[] is empty');
+  // An empty egress[] is only legal for an operatorEgress plugin: its hosts are
+  // admin-supplied post-install, so the manifest has nothing to declare. It is NOT
+  // an allow-all — the child's guard is built from the (still empty) union, so every
+  // outbound call is refused until an admin adds a host.
+  if (
+    permissions.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:')) &&
+    egress.length === 0 &&
+    m.operatorEgress !== true
+  ) {
+    throw new ManifestError('http:outbound declared but egress[] is empty (set operatorEgress: true if the hosts are admin-supplied)');
   }
   if (egress.includes('*')) throw new ManifestError('egress[] must not contain a bare "*"');
   const badEgress = egress.find((h) => !HOST_RE.test(h));

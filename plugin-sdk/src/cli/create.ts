@@ -10,7 +10,7 @@ import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import {
-  intro, outro, note, logSuccess, logWarn, spinner,
+  intro, outro, note, logInfo, logSuccess, logWarn, spinner,
   promptText, promptSelect, promptMultiselect, promptConfirm,
   PERMISSION_CATALOG,
 } from './ui.js';
@@ -30,8 +30,14 @@ export interface ScaffoldOptions {
   author?: string;
   description?: string;
   permissions?: string[];
-  /** External hosts the plugin may call — required by the manifest when `http:outbound` is granted. */
+  /**
+   * External hosts the plugin may call — required by the manifest when `http:outbound` is
+   * granted, UNLESS the plugin is an operatorEgress one (below), whose hosts an admin adds
+   * after install because the author cannot know them (a self-hosted Gotify, an ntfy).
+   */
   egress?: string[];
+  /** The admin supplies the hosts post-install. Defaults on for a channel, and whenever `http:outbound` is wanted with no `egress`. */
+  operatorEgress?: boolean;
   /** Addon ids that must be enabled for this plugin to activate. */
   requiredAddons?: string[];
   /** Other plugins this one depends on, each pinned by a semver range. */
@@ -62,14 +68,20 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
 
   const displayName = name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   let perms = opts.permissions?.length ? opts.permissions : ['db:own'];
-  let egress = opts.egress ?? [];
+  const egress = opts.egress ?? [];
   if (isChannel) {
-    // The two grants a channel cannot work without, plus a placeholder host the
-    // author swaps for their own — the manifest rejects http:outbound with no egress.
-    if (!egress.length) egress = ['gotify.example.com'];
-    const required = ['hook:notification-channel', ...egress.map((h) => `http:outbound:${h}`)];
+    // The grants a channel cannot work without. With known hosts it gets a per-host grant
+    // each; with none — the usual case for a self-hosted target — it gets the bare
+    // `http:outbound` and relies on operatorEgress below, rather than a fake placeholder
+    // host that would otherwise ship in the published manifest.
+    const outbound = egress.length ? egress.map((h) => `http:outbound:${h}`) : ['http:outbound'];
+    const required = ['hook:notification-channel', ...outbound];
     perms = [...new Set([...perms.filter((p) => p !== 'db:own'), ...required])];
   }
+  // A plugin that wants outbound but names no host is only valid as an operatorEgress
+  // plugin — the admin supplies the hosts after install.
+  const wantsOutbound = perms.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:'));
+  const operatorEgress = opts.operatorEgress ?? (isChannel || (wantsOutbound && egress.length === 0));
 
   const manifest: Record<string, unknown> = {
     id: name,
@@ -79,7 +91,7 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     author: opts.author || 'Your Name',
     description: opts.description || (isChannel ? `Deliver TREK notifications over ${displayName}.` : 'Describe what your plugin does.'),
     type,
-    trek: '>=3.2.1 <4.0.0',
+    trek: '>=3.3.0 <4.0.0',
     nativeModules: false,
     permissions: perms,
     // Dependency declarations (empty by default). `requiredAddons` lists addon ids
@@ -92,7 +104,7 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
   // A notification channel usually targets a SELF-HOSTED service, whose hostname the
   // author cannot know at publish time. Declaring operatorEgress lets the admin add the
   // real host after install; without it the plugin only ever reaches the hosts above.
-  if (isChannel) manifest.operatorEgress = true;
+  if (operatorEgress) manifest.operatorEgress = true;
   // A settings-page button so the user can verify their credentials without waiting for
   // a real notification. Actions are USER-INITIATED, so ctx.settings.get() works inside.
   if (isChannel) manifest.actions = [{ key: 'testConnection', label: 'Test connection' }];
@@ -111,7 +123,9 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
         label: 'Server URL',
         input_type: 'text',
         placeholder: 'https://gotify.example.com',
-        hint: 'Your Gotify server. Must match an entry in the manifest `egress` list.',
+        hint: egress.length
+          ? 'Your Gotify server. Must match an entry in the manifest `egress` list.'
+          : 'Your Gotify server. Its host must be allowed by an admin (Admin → Plugins → Allowed hosts).',
         required: true,
         scope: 'user',
       },
@@ -398,17 +412,20 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
   });
 
   let egress: string[] | undefined;
-  // A channel has to reach its service, so it always needs an egress host — the
-  // scaffold turns each one into a matching http:outbound:<host> grant.
+  // The scaffold turns each host into a matching http:outbound:<host> grant. Leaving it
+  // blank is legitimate — a plugin for a service that is only ever SELF-HOSTED has no host
+  // to name, so it ships as an operatorEgress plugin and the admin adds the real host.
   if (permissions.includes('http:outbound') || template === 'notification-channel') {
     const raw = await promptText({
       message: template === 'notification-channel'
-        ? 'Which host does your notification service live on?'
-        : 'External hosts it may call (comma-separated)',
+        ? 'Which host does your notification service live on? (blank if it is always self-hosted)'
+        : 'External hosts it may call (comma-separated; blank if only the admin can know them)',
       placeholder: template === 'notification-channel' ? 'gotify.example.com' : 'api.example.com, api.other.com',
-      validate: (v) => ((v ?? '').split(',').map((s) => s.trim()).filter(Boolean).length ? undefined : 'list at least one host'),
     });
     egress = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    if (!egress.length) {
+      logInfo('No hosts named — the plugin will declare operatorEgress, and the TREK admin adds the real hosts after installing it.');
+    }
   }
 
   const requiredAddons = await promptMultiselect<string>({
@@ -426,7 +443,8 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
       `location     ${dest}`,
       `author       ${author}`,
       `permissions  ${permissions.join(', ') || '(none)'}`,
-      egress ? `egress       ${egress.join(', ')}` : undefined,
+      egress?.length ? `egress       ${egress.join(', ')}` : undefined,
+      egress && !egress.length ? 'egress       (admin-supplied — operatorEgress)' : undefined,
       requiredAddons.length ? `addons       ${requiredAddons.join(', ')}` : undefined,
     ].filter(Boolean).join('\n'),
     'Review',

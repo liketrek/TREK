@@ -748,6 +748,24 @@ Declare `operatorEgress` and the **admin** supplies the real hosts after install
 }
 ```
 
+If there is **no** host you can name — a plugin for a service that is *only* ever self-hosted —
+`operatorEgress` is what lets you declare outbound with an **empty `egress[]`** (omit the key).
+It is the one case where that is legal; without the flag, `http:outbound` with no egress is a
+manifest error:
+
+```json
+{
+  "permissions": ["hook:notification-channel", "http:outbound"],
+  "operatorEgress": true            // every host comes from the admin
+}
+```
+
+Such a plugin still **installs and activates normally** — it may have useful non-network
+features — but until an admin adds a host it reaches *nothing*: the child's allow-list is the
+union of your `http:outbound:<host>` grants and the admin's hosts, and both are empty, so every
+outbound call fails with `egress: <host> is not in the plugin's declared hosts`. An empty
+`egress[]` is never an allow-all.
+
 The admin then opens **Admin → Plugins → ⋯ → Allowed hosts** and adds `gotify.alice.net`. The
 runtime unions that into the child's allow-list and **re-spawns the plugin** — the egress guard
 is installed once at child start and a second `init` is deliberately refused, so a live child's
@@ -998,11 +1016,11 @@ so a test catches a missing `scheduled`/`deleteUserData`/job before release.
 | `license` | string | shown in the store detail (read from the manifest, not enforced). |
 | `nativeModules` | boolean | must be `false`/absent — `true` is rejected. |
 | `permissions` | string[] | see below. |
-| `egress` | string[] | allowed outbound hosts; required (non-empty, no bare `*`) when any `http:outbound` permission is present. |
+| `egress` | string[] | allowed outbound hosts; required (non-empty, no bare `*`) when any `http:outbound` permission is present — **unless** `operatorEgress` is `true`, in which case it may be empty/omitted and the admin supplies the hosts. |
 | `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, `place-detail`, `day-detail`, or `reservation-detail`. |
 | `capabilities.tripPage` | object | `{ replaces?, position? }` for `trip-page` plugins — `replaces` names core planner tabs to hide while active (`transports`, `buchungen`, `listen`, `finanzplan`, `dateien`, `collab`; never `plan`), `position` is the tab's 0-based index in the bar (0–50; omitted = appended). |
 | `actions` | array | Buttons on the plugin's own settings page — `{ key, label, hint?, danger? }` (max 8). Implement each as `actions[key](ctx)` on the definition. **User-initiated**, so `ctx.settings.get()` returns the clicking user's value. See [Settings-page actions](#settings-page-actions). |
-| `operatorEgress` | boolean | The plugin talks to a **self-hosted** service whose hostname only the operator knows. The admin adds the real hosts after install (Admin → Plugins → Allowed hosts) and the runtime unions them into the egress allow-list. Requires an `http:outbound` permission. See [Operator-supplied egress hosts](#operator-supplied-egress-hosts-operatoregress). |
+| `operatorEgress` | boolean | The plugin talks to a **self-hosted** service whose hostname only the operator knows. The admin adds the real hosts after install (Admin → Plugins → Allowed hosts) and the runtime unions them into the egress allow-list. Requires an `http:outbound` permission, and is the only way to declare one with an empty `egress[]`. See [Operator-supplied egress hosts](#operator-supplied-egress-hosts-operatoregress). |
 | `capabilities.notificationChannel` | object | `{ title?, events? }` for a plugin implementing the `notificationChannel` hook — `title` names the column in the notification preferences matrix (default: the plugin's `name`), `events` **narrows** which events the channel carries (default: every non-admin event; admin-scoped events are never deliverable). Requires the `hook:notification-channel` permission. See [Notification channels](#notification-channels). |
 | `capabilities.provides` | string[] | function names this plugin exposes to its dependents via `ctx.plugins.call` (see [Talking to other plugins](#talking-to-other-plugins)). |
 | `capabilities.emits` | string[] | event names this plugin publishes to its dependents via `ctx.events.emit`. |

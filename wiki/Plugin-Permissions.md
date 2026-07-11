@@ -67,7 +67,7 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `hook:trip-card-provider` | Add small **badges** to the dashboard trip cards via the `hooks.tripCardProvider` provider hook | Implement `TripCardProvider` in `hooks` — `getCards(tripIds, ctx)` is called ONCE with all the trip cards currently on the user's dashboard (each already access-checked for the acting user), returns `{tripId, id, label, value?, icon?, tone?, url?}[]`. **Declarative only** — plugin JS never runs on the dashboard. The host String-coerces + length-caps every field, enum-whitelists the tone, allowlists the url (http/https/mailto), caps the count (≤40/plugin) and drops any badge whose `tripId` the dashboard didn't ask about; a failing provider is skipped. Exposed at `GET /api/trip-card-contributions?tripIds=…`. |
 | `hook:notification-channel` | Register a new **notification channel** (Gotify, Pushover, …) via the `hooks.notificationChannel` provider hook | Implement `NotificationChannel` in `hooks` — `send(msg, config, ctx)` receives a notification TREK has **already rendered** into the recipient's language (`{event, title, body, url?, tripName?}`) plus that recipient's own decrypted `scope:'user'` settings as `config`. Unlike every other hook this one is **host-initiated for an arbitrary recipient**, so it runs **userless**: `ctx.settings.get()` returns `undefined` and trip reads are refused — the recipient's credentials arrive as `config` precisely so the plugin never gains the right to read anything *as* them. Optional `test(config, ctx)` backs the "Send test" button. Declare the channel with `capabilities.notificationChannel: { title?, events? }`; `title` names the column in the preferences matrix (default: the plugin's name) and `events` may **narrow** which events it carries (default: every non-admin event — admin-scoped events are never deliverable to a plugin). Throw on failure: the host logs it and isolates it, so a dead channel can't stop the others. |
 | `hook:user-data` | Honour GDPR **data-subject rights** — erase and export the data the plugin stores about a user — via the `deleteUserData` / `exportUserData` handlers | Implement `deleteUserData({userId}, ctx)` and/or `exportUserData({userId}, ctx)` on the plugin definition (not on `ctx`). Both are **userless** (no acting user; the plugin only learns the `userId` and touches its OWN db). When a TREK account is deleted, the host queues an erasure for every plugin holding this grant and retries it **durably** until the plugin ACKs — even across restarts — so implement `deleteUserData` idempotently. `exportUserData` returns a JSON-serialisable value the host aggregates for an admin at `GET /api/admin/plugins/user-data/:userId/export`. |
-| `http:outbound` / `http:outbound:<host>` | Make outbound network requests | **Requires** a non-empty `egress[]`. Only a **per-host** `http:outbound:<host>` actually opens a host at runtime — see below. |
+| `http:outbound` / `http:outbound:<host>` | Make outbound network requests | **Requires** a non-empty `egress[]` — unless the manifest sets `operatorEgress: true`. Only a **per-host** `http:outbound:<host>` actually opens a host at runtime — see below. |
 
 ## Outbound network — `http:outbound` vs `http:outbound:<host>`
 
@@ -86,7 +86,8 @@ Two independent guards restrict a plugin's network, and **both are built from th
 
 - Only the permissions above are accepted; an unknown string fails validation.
 - If **any** `http:outbound` permission (bare or per-host) is declared, `egress[]`
-  must be **non-empty**.
+  must be **non-empty** — *unless* the manifest sets `operatorEgress: true`, whose
+  hosts arrive from the admin after install (see below).
 - `egress[]` may not contain a bare `*`.
 
 ### `operatorEgress` — hosts only the operator knows
@@ -105,6 +106,9 @@ It is not an escape hatch:
 - Added hosts are validated exactly like manifest egress (no bare `*`, no whole-TLD
   wildcard, no scheme), and are dropped when the plugin is uninstalled.
 - It requires an `http:outbound` permission — the manifest rejects it otherwise.
+- It is the **only** way to declare outbound with an empty `egress[]` (a plugin whose target
+  is *always* self-hosted). Such a plugin activates, but reaches nothing until an admin adds
+  a host — an empty allow-list blocks everything, it never means "any host".
 
 A LAN/loopback host additionally needs `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS=on`, which relaxes
 private-address egress for **every** installed plugin.

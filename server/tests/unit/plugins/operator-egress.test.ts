@@ -26,6 +26,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
+import { makeHostAllow } from '../../../src/nest/plugins/runtime/egress-policy';
 
 function install(id: string, operatorEgress: boolean, perms: string[] = ['http:outbound:gotify.net']) {
   testDb.prepare(
@@ -91,6 +92,25 @@ describe('operator-supplied egress hosts', () => {
     // …and accepts the real thing.
     const m = parseManifest({ ...base, permissions: ['http:outbound:gotify.net'], egress: ['gotify.net'], operatorEgress: true });
     expect(m.operatorEgress).toBe(true);
+  });
+
+  it('OEG-009 — an operatorEgress plugin may ship an EMPTY egress[]; anyone else may not', () => {
+    const base = { id: 'chan', name: 'Chan', version: '1.0.0', apiVersion: 1, type: 'integration', nativeModules: false };
+    // A self-hosted target (Gotify, ntfy) has no host the author can name at publish time.
+    const m = parseManifest({ ...base, permissions: ['http:outbound'], operatorEgress: true });
+    expect(m.egress).toEqual([]);
+    expect(m.operatorEgress).toBe(true);
+    // Without the flag an empty egress[] is still refused — this is what stops a plugin
+    // from asking for outbound while declaring no reach at all.
+    expect(() => parseManifest({ ...base, permissions: ['http:outbound'] })).toThrow(/egress\[\] is empty/);
+  });
+
+  it('OEG-010 — an operatorEgress plugin with no configured hosts still reaches nothing', async () => {
+    // It ACTIVATES (it may have useful offline features), but the child's allow-list is the
+    // union of its http:outbound:<host> grants and the admin's hosts — both empty here.
+    install('gotify', true, ['http:outbound']);
+    expect(rt.operatorEgressHosts('gotify')).toEqual([]);
+    expect(makeHostAllow([])('gotify.mydomain.com')).toBe(false);
   });
 
   it('OEG-007 — uninstalling drops the admin’s host consent with the plugin', async () => {

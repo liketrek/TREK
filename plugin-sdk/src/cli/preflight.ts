@@ -90,7 +90,10 @@ export async function preflight(entry: Entry, opts: { all?: boolean } = {}): Pro
         manifestPerms = Array.isArray(m.permissions) ? (m.permissions as string[]) : [];
         if (manifestPerms.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:'))) {
           const egress = Array.isArray(m.egress) ? (m.egress as string[]) : [];
-          if (!egress.length) fail(`${tag}: http:outbound declared but egress[] is empty`);
+          // Empty egress[] is legal only with operatorEgress (hosts are admin-supplied).
+          if (!egress.length && !mOperatorEgress) {
+            fail(`${tag}: http:outbound declared but egress[] is empty (set operatorEgress: true if the hosts are admin-supplied)`);
+          }
           if (egress.includes('*')) fail(`${tag}: egress[] must not contain a bare "*"`);
         }
         if (!failures.some((f) => f.startsWith(`${tag}: manifest`))) ok(`${tag}: manifest at commit matches the entry`);
