@@ -3583,6 +3583,49 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_countries_user ON hidden_countries (user_id);');
     },
+
+    // Operator-supplied egress hosts for a plugin (#plugins).
+    // A plugin's egress allow-list is fixed in its manifest at publish time, but a plugin
+    // that talks to a SELF-HOSTED service (Gotify, ntfy, …) cannot know the operator's
+    // hostname — so a community plugin could serve nobody. These rows let the ADMIN add
+    // hosts post-install; the runtime unions them into the child's allow-list at spawn.
+    // Consent stays with the admin (never the end user), exactly as for manifest egress.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_egress_hosts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          plugin_id TEXT NOT NULL,
+          host TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE (plugin_id, host)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_egress_hosts_plugin ON plugin_egress_hosts (plugin_id);');
+      // Whether the plugin DECLARED that it needs operator-supplied hosts. Only such a
+      // plugin may have hosts added — an admin can never widen egress for a plugin that
+      // never asked for it, so the install-time consent still bounds what's possible.
+      const columns = db.prepare("PRAGMA table_info('plugins')").all() as Array<{ name: string }>;
+      if (!columns.some((c) => c.name === 'operator_egress')) {
+        db.exec('ALTER TABLE plugins ADD COLUMN operator_egress INTEGER NOT NULL DEFAULT 0;');
+      }
+    },
+
+    // Settings-page action buttons a plugin contributes ("Test connection", "Sync now").
+    // Descriptors only — the handler lives in the plugin's code and is invoked host-side
+    // with the CLICKING user bound, so it can read that user's own settings.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_actions (
+          plugin_id TEXT NOT NULL,
+          action_key TEXT NOT NULL,
+          label TEXT NOT NULL,
+          hint TEXT,
+          danger INTEGER NOT NULL DEFAULT 0,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (plugin_id, action_key)
+        );
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

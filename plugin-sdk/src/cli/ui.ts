@@ -93,6 +93,7 @@ export const PERMISSION_CATALOG: { value: string; label: string; hint: string }[
   { value: 'ws:broadcast:user', label: 'ws:broadcast:user', hint: 'Push realtime events to a single user' },
   { value: 'hook:photo-provider', label: 'hook:photo-provider', hint: 'Supply place photos to TREK' },
   { value: 'hook:calendar-source', label: 'hook:calendar-source', hint: 'Supply calendar events to TREK' },
+  { value: 'hook:notification-channel', label: 'hook:notification-channel', hint: 'Deliver TREK notifications over your own channel' },
   { value: 'hook:place-detail-provider', label: 'hook:place-detail-provider', hint: 'Contribute extra details (reviews, ratings, links) to a place' },
   { value: 'hook:trip-warning-provider', label: 'hook:trip-warning-provider', hint: 'Raise validation warnings on a trip (shown in the planner)' },
   { value: 'http:outbound', label: 'http:outbound', hint: 'Call external HTTP hosts (needs an egress allow-list)' },

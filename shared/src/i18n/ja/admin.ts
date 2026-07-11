@@ -200,7 +200,8 @@ const admin: TranslationStrings = {
   'admin.plugins.uploaded': 'プラグイン「{name}」をアップロードしました — 実行するには有効化してください',
   'admin.plugins.sideloaded': '手動読み込み',
   'admin.plugins.devLinkBadge': 'Dev-Link',
-  'admin.plugins.devLinkHint': 'ローカルのビルドディレクトリから読み込まれ、実データでホットリロードされます（開発専用）',
+  'admin.plugins.devLinkHint':
+    'ローカルのビルドディレクトリから読み込まれ、実データでホットリロードされます（開発専用）',
   'admin.plugins.devLinkTitle': 'ローカルプラグインをリンク',
   'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
   'admin.plugins.devLinkButton': 'リンク',
@@ -217,6 +218,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'プラグインを無効化しました',
   'admin.plugins.viewErrors': 'エラーログを表示',
   'admin.plugins.errorLog': 'エラーログ',
+  'admin.plugins.allowedHosts': '許可するホスト',
+  'admin.plugins.allowedHosts.hint': 'このプラグインは、あなたしか指定できないサービス（セルフホストのサーバー）と通信します。到達を許可するホストを追加してください。それ以外には到達できません。',
+  'admin.plugins.allowedHosts.none': 'ホストはまだ追加されていません。',
+  'admin.plugins.allowedHosts.unsupported': 'このプラグインは運用者指定のホストを使いません。許可ホストはマニフェストで固定されています。',
+  'admin.plugins.allowedHosts.restartNote': '保存するとプラグインが再起動し、新しい一覧が反映されます。',
+  'admin.plugins.allowedHosts.add': '許可ホストを追加',
+  'admin.plugins.allowedHosts.count': '許可ホスト {n} 件',
+  'admin.plugins.operatorEgressPill': '+ 追加するホスト',
+  'admin.plugins.operatorEgressHint': 'このプラグインは、あなたしか指定できないサービス（セルフホストのサーバー）と通信します。インストール後、⋯ → 許可するホスト から追加してください。それ以外には到達できません。',
   'admin.plugins.noErrors': '記録されたエラーはありません。',
   'admin.plugins.uninstalled': 'プラグインをアンインストールしました',
   'admin.plugins.uninstallTitle': 'プラグインをアンインストールしますか？',
@@ -274,16 +284,26 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:tags': '操作中のユーザーのタグの作成・編集・削除',
   'admin.plugins.perm.db:read:todos': '操作中のユーザーがアクセスできる旅行のToDoを読み取る',
   'admin.plugins.perm.db:write:todos': '操作中のユーザーが編集できる旅行のToDoの作成・編集・削除',
-  'admin.plugins.perm.db:write:atlas': '操作中のユーザーの訪問済みの国と地域をマークし、バケットリストを管理（Atlas アドオンが必要）',
-  'admin.plugins.perm.db:write:vacay': '操作中のユーザーのアクティブなプランで休暇日と会社休日を切り替え（Vacay アドオンが必要）',
-  'admin.plugins.perm.db:write:journal': '操作中のユーザーが編集できる日記のエントリの作成・編集・削除（Journey アドオンが必要）',
-  'admin.plugins.perm.db:write:collections': 'コレクションの作成・編集と場所の保存（操作中のユーザーのコレクションロールで実行、Collections アドオンが必要）',
-  'admin.plugins.perm.db:write:files': '操作中のユーザーが編集できる旅行にファイルを添付（10MB上限、ブロック対象の拡張子は拒否）し、そのリンクを管理',
-  'admin.plugins.perm.db:write:collab': '操作中のユーザーが編集できる旅行にメモ・アンケート・チャットメッセージを投稿（Collab アドオンが必要）',
-  'admin.plugins.perm.db:write:members': '旅行にユーザーを追加 — 旅行へのアクセスを付与。操作中のユーザーのメンバー管理権限で保護',
-  'admin.plugins.perm.notify:send': '操作中のユーザー、またはそのユーザーが所属する旅行に通知（ベル受信箱＋メール/ntfy）を送信 — 任意の受信者には送らない',
-  'admin.plugins.perm.ai:invoke': '管理者が構成した AI プロバイダー（テキスト補完＋ドキュメント抽出）を操作中のユーザーの代わりに実行 — プラグインはキーを保持しない',
-  'admin.plugins.perm.oauth:client': 'ホスト仲介の OAuth であなたに代わってサードパーティサービスに接続（トークンはホストが保持し、プラグインは決して見ない）',
+  'admin.plugins.perm.db:write:atlas':
+    '操作中のユーザーの訪問済みの国と地域をマークし、バケットリストを管理（Atlas アドオンが必要）',
+  'admin.plugins.perm.db:write:vacay':
+    '操作中のユーザーのアクティブなプランで休暇日と会社休日を切り替え（Vacay アドオンが必要）',
+  'admin.plugins.perm.db:write:journal':
+    '操作中のユーザーが編集できる日記のエントリの作成・編集・削除（Journey アドオンが必要）',
+  'admin.plugins.perm.db:write:collections':
+    'コレクションの作成・編集と場所の保存（操作中のユーザーのコレクションロールで実行、Collections アドオンが必要）',
+  'admin.plugins.perm.db:write:files':
+    '操作中のユーザーが編集できる旅行にファイルを添付（10MB上限、ブロック対象の拡張子は拒否）し、そのリンクを管理',
+  'admin.plugins.perm.db:write:collab':
+    '操作中のユーザーが編集できる旅行にメモ・アンケート・チャットメッセージを投稿（Collab アドオンが必要）',
+  'admin.plugins.perm.db:write:members':
+    '旅行にユーザーを追加 — 旅行へのアクセスを付与。操作中のユーザーのメンバー管理権限で保護',
+  'admin.plugins.perm.notify:send':
+    '操作中のユーザー、またはそのユーザーが所属する旅行に通知（ベル受信箱＋メール/ntfy）を送信 — 任意の受信者には送らない',
+  'admin.plugins.perm.ai:invoke':
+    '管理者が構成した AI プロバイダー（テキスト補完＋ドキュメント抽出）を操作中のユーザーの代わりに実行 — プラグインはキーを保持しない',
+  'admin.plugins.perm.oauth:client':
+    'ホスト仲介の OAuth であなたに代わってサードパーティサービスに接続（トークンはホストが保持し、プラグインは決して見ない）',
   'admin.plugins.perm.db:read:files': '操作中のユーザーがアクセスできる旅行のファイルの読み取り',
   'admin.plugins.perm.db:write:reservations': '操作中のユーザーが編集できる旅行の予約の作成・編集・削除',
   'admin.plugins.perm.db:write:accommodations': '操作中のユーザーが編集できる旅行の宿泊の作成・編集・削除',
@@ -291,9 +311,11 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:atlas': '操作中のユーザーが訪問した国と地域の読み取り（Atlas アドオンが必要）',
   'admin.plugins.perm.db:read:vacay': '操作中のユーザーの休暇プランの読み取り（Vacay アドオンが必要）',
   'admin.plugins.perm.db:read:daynotes': '操作中のユーザーがアクセスできる旅行の日別メモの読み取り',
-  'admin.plugins.perm.db:read:collections': '操作中のユーザーの保存した場所のコレクションの読み取り（Collections アドオンが必要）',
+  'admin.plugins.perm.db:read:collections':
+    '操作中のユーザーの保存した場所のコレクションの読み取り（Collections アドオンが必要）',
   'admin.plugins.perm.db:write:daynotes': '操作中のユーザーが編集できる旅行の日別メモの作成・編集・削除',
-  'admin.plugins.perm.jobs:run': '宣言されたバックグラウンドジョブをスケジュールに従って実行（ユーザーコンテキストなし — ユーザーデータは読み取れません）',
+  'admin.plugins.perm.jobs:run':
+    '宣言されたバックグラウンドジョブをスケジュールに従って実行（ユーザーコンテキストなし — ユーザーデータは読み取れません）',
   'admin.plugins.perm.db:write:costs': '操作中のユーザーが編集できる旅行への支出（予算項目）の作成',
   'admin.plugins.perm.db:write:places': '操作中のユーザーが編集できる旅行の場所の追加・編集・削除',
   'admin.plugins.perm.db:write:days': '操作中のユーザーが編集できる旅行の日程の追加・編集・削除',
@@ -312,12 +334,15 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:pdf-section-provider': '旅行の PDF エクスポートにテキストセクションを追加',
   'admin.plugins.perm.hook:atlas-layer-provider': 'Atlas の世界地図で国をハイライト（例: ウィッシュリストや渡航情報）',
   'admin.plugins.perm.hook:journal-entry-provider': '日記のエントリーに追加の行（リンク、統計）を提供',
-  'admin.plugins.perm.hook:user-data': 'ユーザーについて保存したデータの消去またはエクスポート（GDPR：アカウント削除・データ開示請求）',
+  'admin.plugins.perm.hook:user-data':
+    'ユーザーについて保存したデータの消去またはエクスポート（GDPR：アカウント削除・データ開示請求）',
   'admin.plugins.perm.hook:trip-card-provider': 'ダッシュボードの旅行カードに小さなバッジ（状態・カウント）を追加',
+  'admin.plugins.perm.hook:notification-channel': '追加のチャンネルで通知を配信する',
   'admin.plugins.perm.events:subscribe':
     'コアのアクティビティイベントに反応（イベント名と旅程のみで、内容には一切アクセスしません）',
   'admin.plugins.perm.http:outbound': '宣言済みホストへの外部リクエストの送信',
-  'admin.plugins.perm.db:read:collab': '操作中のユーザーがアクセスできる旅行のメモ・アンケート・チャットメッセージの読み取り（Collab アドオンが必要）',
+  'admin.plugins.perm.db:read:collab':
+    '操作中のユーザーがアクセスできる旅行のメモ・アンケート・チャットメッセージの読み取り（Collab アドオンが必要）',
   'admin.plugins.perm.db:read:files:content': '操作中のユーザーがアクセスできる旅行のファイル内容（バイト）の読み取り',
   'admin.plugins.perm.db:create:trips': '操作中のユーザーが所有する新しい旅行の作成',
   'admin.plugins.perm.rates:read': 'ホストのキャッシュされた為替レートを読み取る',
@@ -388,6 +413,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.reservationSlot': '予約詳細',
   'admin.plugins.cap.replacesTabs': 'プランナーのタブを置き換え',
   'admin.plugins.cap.realtime': 'リアルタイム更新',
+  'admin.plugins.cap.notificationChannel': '通知チャンネル',
   'admin.plugins.cap.photos': '写真を提供',
   'admin.plugins.cap.calendar': 'カレンダー予定を提供',
   'admin.plugins.cap.placeDetails': '場所を充実',

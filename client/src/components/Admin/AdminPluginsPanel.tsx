@@ -42,6 +42,10 @@ interface PluginRow {
   source_repo: string | null
   permissions: string
   capabilities: string
+  /** The plugin needs OPERATOR-supplied egress hosts (a self-hosted target). */
+  operatorEgress?: boolean
+  /** How many hosts the admin has added — 0 means the plugin can't reach anything yet. */
+  egressHostCount?: number
   dependencies?: PluginDependencies
   dependencyStatus?: DependencyStatus
   dependencyIssues?: DependencyIssues
@@ -68,6 +72,8 @@ interface RegistryDetail extends RegistryItem {
   manifest: {
     permissions: string[]
     egress: string[]
+    /** The plugin needs OPERATOR-supplied hosts — its egress list is not the whole story. */
+    operatorEgress?: boolean
     settings: Array<{ key: string; label: string; inputType: string; scope: string; required: boolean }>
     license: string | null
     icon: string | null
@@ -118,7 +124,7 @@ const PERM_KEYS = [
   'events:subscribe', 'jobs:run',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'hook:map-marker-provider',
-  'hook:pdf-section-provider', 'hook:atlas-layer-provider', 'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:user-data', 'http:outbound',
+  'hook:pdf-section-provider', 'hook:atlas-layer-provider', 'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data', 'http:outbound',
 ]
 
 const KNOWN_TYPES = ['widget', 'page', 'integration', 'trip-page']
@@ -169,6 +175,7 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
   if (perms.includes('hook:calendar-source')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.calendar') })
   if (perms.includes('hook:place-detail-provider')) out.push({ icon: MapPin, label: t('admin.plugins.cap.placeDetails') })
   if (perms.includes('hook:trip-warning-provider')) out.push({ icon: AlertTriangle, label: t('admin.plugins.cap.warnings') })
+  if (perms.includes('hook:notification-channel')) out.push({ icon: Bell, label: t('admin.plugins.cap.notificationChannel') })
   if (perms.includes('events:subscribe')) out.push({ icon: Radio, label: t('admin.plugins.cap.events') })
   for (const h of perms.filter(p => p.startsWith('http:outbound:')).map(p => p.slice('http:outbound:'.length)).filter(Boolean)) {
     out.push({ icon: ArrowRight, label: h, net: true })
@@ -250,6 +257,10 @@ export default function AdminPluginsPanel() {
   const [latest, setLatest] = useState<Record<string, string>>({})
   const [detailFor, setDetailFor] = useState<RegistryItem | null>(null)
   const [errorsFor, setErrorsFor] = useState<{ id: string; rows: Array<{ ts: string; level: string; message: string }> } | null>(null)
+  const [egressFor, setEgressFor] = useState<{ id: string; supported: boolean; hosts: string[] } | null>(null)
+  const [egressDraft, setEgressDraft] = useState('')
+  const [egressSaving, setEgressSaving] = useState(false)
+  const [egressError, setEgressError] = useState('')
   const [confirmUninstall, setConfirmUninstall] = useState<PluginRow | null>(null)
   // A QUEUE, not one slot: "Update All" can produce several re-consent prompts —
   // each must be shown, not silently overwritten by the last one.
@@ -349,6 +360,31 @@ export default function AdminPluginsPanel() {
     const f = e.dataTransfer.files?.[0]
     if (f) void uploadPlugin(f)
   }
+  const openEgress = (id: string) => {
+    setMenu(null)
+    setEgressDraft(''); setEgressError('')
+    adminApi.pluginEgressHosts(id)
+      .then(d => setEgressFor({ id, supported: d.supported, hosts: d.hosts }))
+      .catch(() => setEgressFor({ id, supported: false, hosts: [] }))
+  }
+
+  // Saving RE-SPAWNS the plugin: the child's egress guard is installed once at init and
+  // a second init is refused, so a live child's allow-list can never be widened in place.
+  const saveEgress = async (hosts: string[]) => {
+    if (!egressFor) return
+    setEgressSaving(true); setEgressError('')
+    try {
+      const d = await adminApi.pluginSetEgressHosts(egressFor.id, hosts)
+      setEgressFor({ ...egressFor, hosts: d.hosts })
+      setEgressDraft('')
+    } catch (e) {
+      const err = e as { response?: { data?: { error?: string } } }
+      setEgressError(err.response?.data?.error || t('common.error'))
+    } finally {
+      setEgressSaving(false)
+    }
+  }
+
   const openErrors = (id: string) => {
     setMenu(null)
     adminApi.pluginErrors(id)
@@ -657,7 +693,8 @@ export default function AdminPluginsPanel() {
                 hasUpdate={updateAvailable(p)} latestVer={latest[p.id]}
                 onToggle={() => toggle(p)}
                 onUpdate={() => runUpdate(p)} onRestart={() => restart(p.id)}
-                onErrors={() => openErrors(p.id)} onUninstall={() => { setMenu(null); setConfirmUninstall(p) }} />
+                onErrors={() => openErrors(p.id)} onEgress={() => openEgress(p.id)}
+                onUninstall={() => { setMenu(null); setConfirmUninstall(p) }} />
             ))}
           </div>
         )}
@@ -688,6 +725,56 @@ export default function AdminPluginsPanel() {
                     <span className="text-content-muted break-all">{r.message}</span>
                   </div>
                 ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Operator-supplied egress hosts */}
+      {egressFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEgressFor(null)}>
+          <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-lg shadow-modal" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
+              <span className="text-sm font-semibold text-content flex items-center gap-2"><Globe size={15} /> {egressFor.id} — {t('admin.plugins.allowedHosts')}</span>
+              <button onClick={() => setEgressFor(null)} className="text-content-faint hover:text-content"><X size={16} /></button>
+            </div>
+            <div className="p-5 space-y-3">
+              {!egressFor.supported ? (
+                <p className="text-sm text-content-faint">{t('admin.plugins.allowedHosts.unsupported')}</p>
+              ) : (
+                <>
+                  <p className="text-xs text-content-faint">{t('admin.plugins.allowedHosts.hint')}</p>
+                  {egressFor.hosts.length === 0 && (
+                    <p className="text-sm text-content-faint italic">{t('admin.plugins.allowedHosts.none')}</p>
+                  )}
+                  {egressFor.hosts.map(h => (
+                    <div key={h} className="flex items-center justify-between gap-2 rounded-lg border border-edge-secondary px-3 py-2">
+                      <span className="text-sm font-mono text-content break-all">{h}</span>
+                      <button
+                        disabled={egressSaving}
+                        onClick={() => saveEgress(egressFor.hosts.filter(x => x !== h))}
+                        className="text-content-faint hover:text-danger disabled:opacity-50"
+                        aria-label={t('common.delete')}
+                      ><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <input
+                      value={egressDraft}
+                      onChange={e => setEgressDraft(e.target.value)}
+                      placeholder="gotify.example.com"
+                      className="flex-1 rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-content"
+                    />
+                    <button
+                      disabled={egressSaving || !egressDraft.trim()}
+                      onClick={() => saveEgress([...egressFor.hosts, egressDraft.trim()])}
+                      className="rounded-lg bg-content px-3 py-2 text-sm text-surface disabled:opacity-50"
+                    >{t('common.add')}</button>
+                  </div>
+                  {egressError && <p className="text-xs text-danger">{egressError}</p>}
+                  <p className="text-xs text-content-faint">{t('admin.plugins.allowedHosts.restartNote')}</p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -799,10 +886,10 @@ function EmptyState({ t, onDiscover }: { t: T; onDiscover: () => void }) {
   )
 }
 
-function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggle, onUpdate, onRestart, onErrors, onUninstall }: {
+function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggle, onUpdate, onRestart, onErrors, onEgress, onUninstall }: {
   p: PluginRow; t: T; busy: string | null; menu: string | null; setMenu: (v: string | null) => void
   hasUpdate: boolean; latestVer?: string
-  onToggle: () => void; onUpdate: () => void; onRestart: () => void; onErrors: () => void; onUninstall: () => void
+  onToggle: () => void; onUpdate: () => void; onRestart: () => void; onErrors: () => void; onEgress: () => void; onUninstall: () => void
 }) {
   const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
   const deps = deriveDeps(p, t)
@@ -830,7 +917,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
           <div className="flex items-center gap-1.5 mt-1.5 text-[11.5px] text-danger">
             <AlertTriangle size={13} className="shrink-0" /><span className="truncate">{p.last_error}</span>
           </div>
-        ) : caps.length > 0 && (
+        ) : (caps.length > 0 || p.operatorEgress) && (
           <div className="hidden sm:flex items-center gap-1.5 flex-wrap mt-2">
             {caps.map((c, i) => (
               <span key={i} className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-[3px] rounded-md border ${
@@ -838,6 +925,25 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
                 <c.icon size={12} className={c.net ? 'text-info' : 'text-content-muted'} />{c.label}
               </span>
             ))}
+            {/* This plugin talks to a service only the OPERATOR can name (a self-hosted
+                Gotify/ntfy), so its manifest can't list the host — the admin adds it.
+                Actionable, and warning-toned until at least one host exists, because
+                until then the plugin cannot reach anything and looks silently broken. */}
+            {p.operatorEgress && (
+              <button
+                onClick={onEgress}
+                title={t('admin.plugins.allowedHosts.hint')}
+                className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-[3px] rounded-md border transition-colors ${
+                  p.egressHostCount > 0
+                    ? 'text-info border-info/25 bg-info-soft hover:border-info/50'
+                    : 'text-warning border-warning/30 bg-warning-soft hover:border-warning/60'}`}
+              >
+                <Globe size={12} className={p.egressHostCount > 0 ? 'text-info' : 'text-warning'} />
+                {p.egressHostCount > 0
+                  ? t('admin.plugins.allowedHosts.count').replace('{n}', String(p.egressHostCount))
+                  : t('admin.plugins.allowedHosts.add')}
+              </button>
+            )}
           </div>
         )}
         {deps.length > 0 && (
@@ -874,6 +980,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
                 <MenuItem icon={<RotateCw size={14} />} label={t('admin.plugins.restart')} onClick={onRestart} />
               )}
               <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />
+              <MenuItem icon={<Globe size={14} />} label={t('admin.plugins.allowedHosts')} onClick={onEgress} />
               {p.source_repo && p.source_repo !== 'local:upload' && p.source_repo !== 'local:link' && (
                 <>
                   <a href={`https://github.com/${p.source_repo}`} target="_blank" rel="noreferrer" onClick={() => setMenu(null)}
@@ -1070,14 +1177,26 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             </div>
           )}
 
-          {manifest && manifest.egress.length > 0 && (
+          {manifest && (manifest.egress.length > 0 || manifest.operatorEgress) && (
             <div className="mt-5">
               <h4 className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{t('admin.plugins.connectsTitle')}</h4>
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
                 {manifest.egress.map(h => (
                   <code key={h} className="text-[12px] font-mono text-info bg-info-soft rounded-md px-2 py-1">{h}</code>
                 ))}
+                {/* The hosts above are NOT the whole story for this plugin: it talks to a
+                    service only the operator can name, so its reach is whatever an admin
+                    adds after install. Say so HERE — this is the pre-install review, and a
+                    reviewer who reads only the host list would otherwise be misled. */}
+                {manifest.operatorEgress && (
+                  <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-warning bg-warning-soft border border-warning/30 rounded-md px-2 py-1">
+                    <Globe size={12} />{t('admin.plugins.operatorEgressPill')}
+                  </span>
+                )}
               </div>
+              {manifest.operatorEgress && (
+                <p className="text-[11.5px] text-content-faint mt-2">{t('admin.plugins.operatorEgressHint')}</p>
+              )}
             </div>
           )}
 

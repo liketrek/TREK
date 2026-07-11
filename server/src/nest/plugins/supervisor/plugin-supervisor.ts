@@ -105,6 +105,7 @@ const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   atlasLayerProvider: 'hook:atlas-layer-provider',
   journalEntryProvider: 'hook:journal-entry-provider',
   tripCardProvider: 'hook:trip-card-provider',
+  notificationChannel: 'hook:notification-channel',
 };
 
 export class PluginSupervisor {

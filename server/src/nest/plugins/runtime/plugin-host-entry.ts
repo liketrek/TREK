@@ -177,6 +177,16 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       if (!impl || typeof impl[fnName] !== 'function') throw new Error(`no hook ${hookName}.${fnName}`);
       const result = await impl[fnName](...args, invCtx);
       respond(true, result);
+    } else if (req.method === 'invoke.action') {
+      // A settings-page button the user clicked. USER-INITIATED: invCtx carries the
+      // clicking user, so ctx.settings.get() returns THEIR value and trip reads are
+      // membership-checked against them (unlike a job or the notificationChannel hook).
+      const key = req.params.key as string;
+      const actions = def.actions as Record<string, ((c: PluginContext) => unknown) | undefined> | undefined;
+      const fn = actions?.[key];
+      if (typeof fn !== 'function') throw new Error(`no action ${key}`);
+      const result = await fn(invCtx);
+      respond(true, result ?? { ok: true });
     } else if (req.method === 'invoke.event') {
       // A core event fired for a trip. Run every matching subscription. invCtx carries
       // NO user (delivered like a job), so trip reads are refused — the handler reacts

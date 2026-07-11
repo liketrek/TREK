@@ -67,16 +67,23 @@ function upsert(db: BetterSqlite3.Database, m: PluginManifest): void {
   if (existing) {
     db.prepare(
       `UPDATE plugins SET name = ?, description = ?, type = ?, icon = ?, version = ?, api_version = ?,
-         min_trek_version = ?, permissions = ?, capabilities = ?, dependencies = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies, m.id);
+         min_trek_version = ?, permissions = ?, capabilities = ?, dependencies = ?, operator_egress = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies, m.operatorEgress ? 1 : 0, m.id);
   } else {
     db.prepare(
       // granted_permissions '' (empty, not '[]') marks "never consented" so the
       // first activation is distinguishable from a plugin consented to zero perms.
-      `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, permissions, capabilities, dependencies, granted_permissions, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'inactive')`,
-    ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies);
+      `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, permissions, capabilities, dependencies, operator_egress, granted_permissions, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'inactive')`,
+    ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies, m.operatorEgress ? 1 : 0);
   }
+
+  // Refresh the settings-page action descriptors from the manifest.
+  db.prepare('DELETE FROM plugin_actions WHERE plugin_id = ?').run(m.id);
+  const insertAction = db.prepare(
+    'INSERT INTO plugin_actions (plugin_id, action_key, label, hint, danger, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+  );
+  m.actions.forEach((a, i) => insertAction.run(m.id, a.key, a.label, a.hint ?? null, a.danger ? 1 : 0, i));
 
   // Refresh the settings-field descriptors from the manifest.
   db.prepare('DELETE FROM plugin_settings_fields WHERE plugin_id = ?').run(m.id);

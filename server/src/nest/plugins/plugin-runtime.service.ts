@@ -4,6 +4,10 @@ import { db } from '../../db/database';
 import { pluginsEnabled } from './kill-switch';
 import { setPluginEventSink } from '../../plugin-event-sink';
 import { setUserDeletedSink } from '../../plugin-user-lifecycle';
+import { setPluginChannelSource, pluginChannelId, type ChannelMessage, type ExternalChannel } from '../../services/notifications/channelRegistry';
+import { readUserSettingsDecrypted, hasRequiredUserSettings } from './plugins.service';
+import { PLUGIN_CHANNEL_EVENTS } from './install/manifest';
+import { stripEmoji } from './text-sanitize';
 import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
 import { decrypt_api_key } from '../../services/apiKeyCrypto';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
@@ -25,6 +29,21 @@ import type { VersionMismatch, PluginDepRow } from './dependencies';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
 
 const HTTP_OUTBOUND = 'http:outbound:';
+
+// Mirrors HOST_RE in install/manifest.ts: an exact hostname or a `*.`-prefixed wildcard
+// with a real multi-label suffix. Rejects a bare `*`, a whole-TLD wildcard, a scheme and
+// any embedded space — the string is interpolated into the egress guard and the CSP.
+const EGRESS_HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
+
+/** Hosts an admin added post-install for a plugin that declared `operatorEgress`. */
+function operatorEgressHosts(id: string): string[] {
+  try {
+    return (db.prepare('SELECT host FROM plugin_egress_hosts WHERE plugin_id = ? ORDER BY host').all(id) as Array<{ host: string }>)
+      .map((r) => r.host);
+  } catch {
+    return []; // table absent (a slimmed test app) — never block activation
+  }
+}
 
 /**
  * Remove `<plugins>/<id>` whether it is a real directory, a POSIX symlink or a
@@ -151,6 +170,10 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // Forward core trip events to plugins that subscribed (events:subscribe). The
     // sink is name-only + fire-and-forget, so it can never block a core broadcast.
     setPluginEventSink((tripId, event, meta) => this.supervisor.deliverEvent(tripId, event, meta));
+    // Expose plugin notification channels to the (plain, non-Nest) notification
+    // service. Pull-based: it calls this on every dispatch, so enabling or removing
+    // a plugin takes effect immediately with nothing to invalidate.
+    setPluginChannelSource(() => this.notificationChannels());
     // Fan a deleted account out to plugins so they can erase their own per-user data.
     // Enqueued durably (survives restart), so nothing is lost if a plugin is offline.
     setUserDeletedSink((userId) => this.enqueueUserErasure(userId));
@@ -461,8 +484,58 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // Mark it enabled (admin intent) so it reboots after restarts/crashes.
     db.prepare('UPDATE plugins SET granted_permissions = ?, enabled = 1 WHERE id = ?').run(JSON.stringify(declared), id);
     const config = decryptConfig(parseObject(row.config));
-    const egress = declared.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length));
+    const manifestHosts = declared.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length));
+    // Union in the hosts the ADMIN added post-install. A plugin that talks to a
+    // self-hosted service can't name the operator's hostname in its manifest, so without
+    // this a community plugin (a Gotify channel, an ntfy channel) serves nobody. Only a
+    // plugin that DECLARED operatorEgress can have hosts, so the install-time consent
+    // still bounds what is possible — and it is always the admin, never an end user,
+    // who widens it. The egress list is spawn-time only, which is why changing it
+    // re-spawns the plugin (see setOperatorEgressHosts).
+    const egress = [...new Set([...manifestHosts, ...operatorEgressHosts(id)])];
     await this.supervisor.activate(id, new Set(declared), config, egress);
+  }
+
+  /** Hosts an admin added for this plugin (empty unless it declared `operatorEgress`). */
+  operatorEgressHosts(id: string): string[] {
+    return operatorEgressHosts(id);
+  }
+
+  /** Does this plugin's manifest declare that it needs operator-supplied hosts? */
+  wantsOperatorEgress(id: string): boolean {
+    const row = db.prepare('SELECT operator_egress FROM plugins WHERE id = ?').get(id) as { operator_egress: number } | undefined;
+    return row?.operator_egress === 1;
+  }
+
+  /**
+   * Replace the admin-supplied egress hosts for a plugin, then RE-SPAWN it so the child's
+   * guard picks the new list up — `installEgressGuard` runs once at init and a second
+   * `init` is deliberately refused, so there is no way to widen a live child's allow-list.
+   */
+  async setOperatorEgressHosts(id: string, hosts: string[]): Promise<string[]> {
+    if (!this.wantsOperatorEgress(id)) {
+      throw new ForbiddenResource(`plugin ${id} did not declare operatorEgress`);
+    }
+    const clean: string[] = [];
+    for (const raw of hosts) {
+      const host = String(raw ?? '').trim().toLowerCase().replace(/\.$/, '');
+      if (!host) continue;
+      // Same shape the manifest enforces — this string is interpolated into the egress
+      // guard AND the iframe CSP connect-src, so a bare `*` or a scheme must never land.
+      if (host === '*' || !EGRESS_HOST_RE.test(host)) throw new ForbiddenResource(`invalid host "${raw}"`);
+      if (!clean.includes(host)) clean.push(host);
+    }
+    db.transaction(() => {
+      db.prepare('DELETE FROM plugin_egress_hosts WHERE plugin_id = ?').run(id);
+      const ins = db.prepare('INSERT OR IGNORE INTO plugin_egress_hosts (plugin_id, host) VALUES (?, ?)');
+      for (const h of clean) ins.run(id, h);
+    })();
+    // Re-spawn so a live child actually gets the new allow-list.
+    if (this.isActive(id)) {
+      await this.supervisor.disable(id);
+      await this.activate(id);
+    }
+    return clean;
   }
 
   async deactivate(id: string): Promise<void> {
@@ -653,9 +726,19 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     removePluginCodeEntry(pluginCodeDir(id));
     db.prepare('DELETE FROM plugins WHERE id = ?').run(id);
     db.prepare('DELETE FROM plugin_settings_fields WHERE plugin_id = ?').run(id);
+    try { db.prepare('DELETE FROM plugin_actions WHERE plugin_id = ?').run(id); } catch { /* table absent */ }
+    // The admin's egress consent dies with the plugin. Unconditional: leaving it would
+    // silently grant a LATER plugin that reuses this id the hosts the admin approved for
+    // a different one.
+    try { db.prepare('DELETE FROM plugin_egress_hosts WHERE plugin_id = ?').run(id); } catch { /* table absent */ }
     // Scheduled tasks are operational (not user data), so they go unconditionally —
     // a scheduled callback for a plugin that no longer exists must never fire.
     db.prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ?').run(id);
+    // If it was a notification channel, retire the channel too. Unconditional, for the
+    // same reason as the settings fields: these are TREK's config ABOUT the plugin, and
+    // leaving them means a later plugin that reuses this id silently inherits every
+    // user's opt-outs and the admin's enablement.
+    this.retireNotificationChannel(id);
     if (deleteData) {
       removePluginData(id);
       db.prepare('DELETE FROM plugin_error_log WHERE plugin_id = ?').run(id);
@@ -768,6 +851,121 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     const dep = parseDependencies(caller.dependencies).pluginDependencies.find((d) => d.id === targetId);
     if (!dep) return false;
     return semver.satisfies(target.version ?? '0.0.0', dep.version, { includePrerelease: true });
+  }
+
+  /**
+   * Drop every trace of a plugin's notification channel: the per-user event opt-outs
+   * and the id in the admin's `notification_channels` list.
+   */
+  private retireNotificationChannel(id: string): void {
+    // Drop the users' per-event opt-outs for this channel. A plugin channel is never
+    // listed in the admin's `notification_channels` CSV (it is active by virtue of the
+    // plugin being enabled), so there is nothing to scrub there.
+    //
+    // Defensive, like the boot path above: an uninstall must still complete in a context
+    // without the notification tables (a slimmed test app that imports only the plugin
+    // module).
+    try {
+      db.prepare('DELETE FROM notification_channel_preferences WHERE channel = ?').run(pluginChannelId(id));
+    } catch { /* no notifications schema here — nothing to retire */ }
+  }
+
+  /**
+   * Every active, granted `notificationChannel` provider, as an ExternalChannel the
+   * notification service can dispatch to. Rebuilt on every read (the registry pulls
+   * through setPluginChannelSource), so a plugin that is disabled or uninstalled
+   * simply stops being a channel — no cache to invalidate.
+   *
+   * The label, the event set and the configured-check are all answered from the
+   * manifest and the DB, with no IPC: the child is only ever woken to actually send.
+   */
+  notificationChannels(): ExternalChannel[] {
+    if (!pluginsEnabled()) return [];
+    return this.supervisor.providersOf('notificationChannel').map((id) => {
+      const row = db.prepare('SELECT name, capabilities FROM plugins WHERE id = ?').get(id) as
+        | { name: string; capabilities: string }
+        | undefined;
+      let cap: { title?: string; events?: string[] } = {};
+      try {
+        cap = ((JSON.parse(row?.capabilities || '{}') as Record<string, unknown>).notificationChannel ?? {}) as typeof cap;
+      } catch { /* a malformed capabilities blob just means "no overrides" */ }
+
+      const allowed = new Set(cap.events?.length ? cap.events : PLUGIN_CHANNEL_EVENTS);
+
+      return {
+        id: pluginChannelId(id),
+        source: 'plugin' as const,
+        // A plugin-supplied display string, bounded and emoji-stripped like every other
+        // one the host renders (cf. the calendar/photo controllers) — it becomes a column
+        // header in the notification preferences matrix.
+        label: stripEmoji(String(cap.title || row?.name || id)).slice(0, 40) || id,
+        // Where the user actually configures this channel. Settings is ONE page with a
+        // tab, not a route per plugin — a `/settings/plugins/<id>` path would 404.
+        settingsPath: '/settings?tab=plugins',
+        // Admin-scoped events never reach a plugin channel — PLUGIN_CHANNEL_EVENTS
+        // excludes them, and a manifest can only narrow that set, never widen it.
+        supportsEvent: (event: string) => allowed.has(event),
+        isConfiguredFor: (userId: number) => hasRequiredUserSettings(id, userId),
+        sendToUser: (userId: number, msg: ChannelMessage) =>
+          this.invokeHook(
+            id,
+            'notificationChannel',
+            'send',
+            [{ event: msg.event, title: msg.title, body: msg.body, url: msg.url, tripName: msg.tripName }, readUserSettingsDecrypted(id, userId)],
+            // No acting user: a notification is host-initiated for an arbitrary
+            // recipient, so the hook gets the recipient's config as an argument
+            // rather than the right to read anything AS them.
+            undefined,
+            8000,
+          ),
+        test: async (userId: number) => {
+          try {
+            await this.invokeHook(id, 'notificationChannel', 'test', [readUserSettingsDecrypted(id, userId)], undefined, 8000);
+            return { success: true };
+          } catch (e) {
+            return { success: false, error: e instanceof Error ? e.message : String(e) };
+          }
+        },
+      };
+    });
+  }
+
+  /** The settings-page action buttons a plugin declared (descriptors, from the DB). */
+  actionsOf(id: string): Array<{ key: string; label: string; hint?: string; danger: boolean }> {
+    try {
+      return (
+        db.prepare('SELECT action_key, label, hint, danger FROM plugin_actions WHERE plugin_id = ? ORDER BY sort_order').all(id) as Array<{
+          action_key: string; label: string; hint: string | null; danger: number;
+        }>
+      ).map((r) => ({ key: r.action_key, label: r.label, hint: r.hint ?? undefined, danger: r.danger === 1 }));
+    } catch {
+      return []; // table absent (a slimmed test app)
+    }
+  }
+
+  /**
+   * Run a settings-page action for the user who clicked it. The acting user is bound
+   * host-side (never named by the plugin), so the action reads THAT user's settings and
+   * any trip read it makes is membership-checked against them.
+   */
+  async invokeAction(id: string, key: string, actingUserId: number): Promise<{ ok: boolean; message?: string }> {
+    if (!this.actionsOf(id).some((a) => a.key === key)) {
+      throw new ForbiddenResource(`plugin ${id} did not declare action "${key}"`);
+    }
+    const cap = (v: unknown) => stripEmoji(String(v)).slice(0, 200);
+    try {
+      const raw = (await this.supervisor.invoke(id, 'invoke.action', { key }, { actingUserId, timeoutMs: 15_000 })) as
+        | { ok?: unknown; message?: unknown }
+        | undefined;
+      // The message is plugin-supplied and rendered to the user — bound it like every
+      // other plugin string the host displays.
+      return { ok: raw?.ok !== false, message: raw?.message === undefined ? undefined : cap(raw.message) };
+    } catch (e) {
+      // A plugin that throws is reporting a FAILED action, not a server fault — that is
+      // the documented contract ("throwing == { ok: false }"), and it is the normal path
+      // for "your credentials don't work". Surface the reason to the user.
+      return { ok: false, message: cap(e instanceof Error ? e.message : 'Action failed') };
+    }
   }
 
   /** A plugin's declared `capabilities.provides`/`capabilities.emits` (from the DB). */

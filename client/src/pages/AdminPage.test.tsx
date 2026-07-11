@@ -1,11 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent, within } from '../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { buildAdmin } from '../../tests/helpers/factories';
 import { server } from '../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor, within } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildAdmin } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
-import { useAddonStore } from '../store/addonStore';
 import AdminPage from './AdminPage';
 
 // Mock heavy sub-panels to focus on page-level concerns
@@ -145,7 +144,7 @@ describe('AdminPage', () => {
         }),
         http.get('/api/admin/stats', () => {
           return HttpResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }),
+        })
       );
 
       seedStore(useAuthStore, {
@@ -237,7 +236,7 @@ describe('AdminPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('42')).toBeInTheDocument(); // totalPlaces — unique on page
-        expect(screen.getByText('8')).toBeInTheDocument();  // totalFiles — unique on page
+        expect(screen.getByText('8')).toBeInTheDocument(); // totalFiles — unique on page
       });
     });
   });
@@ -302,7 +301,7 @@ describe('AdminPage', () => {
       server.use(
         http.get('/api/admin/version-check', () => {
           return HttpResponse.json({ update_available: true, latest: '9.9.9', current: '1.0.0' });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -330,7 +329,7 @@ describe('AdminPage', () => {
           return HttpResponse.json({
             addons: [{ id: 'mcp', name: 'MCP Tokens', type: 'mcp', icon: '', enabled: true }],
           });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -347,9 +346,9 @@ describe('AdminPage', () => {
       let capturedBody: Record<string, unknown> | null = null;
       server.use(
         http.put('/api/auth/app-settings', async ({ request }) => {
-          capturedBody = await request.json() as Record<string, unknown>;
+          capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({});
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -462,9 +461,9 @@ describe('AdminPage', () => {
       let capturedBody: Record<string, unknown> | null = null;
       server.use(
         http.put('/api/auth/app-settings', async ({ request }) => {
-          capturedBody = await request.json() as Record<string, unknown>;
+          capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({});
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -543,9 +542,18 @@ describe('AdminPage', () => {
       server.use(
         http.get('/api/admin/invites', () => {
           return HttpResponse.json({
-            invites: [{ id: 1, token: 'abcdef123456789', max_uses: 5, used_count: 0, expires_at: null, created_by_name: 'admin' }],
+            invites: [
+              {
+                id: 1,
+                token: 'abcdef123456789',
+                max_uses: 5,
+                used_count: 0,
+                expires_at: null,
+                created_by_name: 'admin',
+              },
+            ],
           });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -573,9 +581,18 @@ describe('AdminPage', () => {
       server.use(
         http.get('/api/admin/invites', () => {
           return HttpResponse.json({
-            invites: [{ id: 1, token: 'abcdef123456789', max_uses: 5, used_count: 0, expires_at: null, created_by_name: 'admin' }],
+            invites: [
+              {
+                id: 1,
+                token: 'abcdef123456789',
+                max_uses: 5,
+                used_count: 0,
+                expires_at: null,
+                created_by_name: 'admin',
+              },
+            ],
           });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -612,11 +629,26 @@ describe('AdminPage', () => {
         http.get('/api/admin/notification-preferences', () => {
           return HttpResponse.json({
             event_types: ['version_available'],
-            available_channels: { inapp: true, email: true },
+            channels: [
+              {
+                id: 'inapp',
+                source: 'builtin',
+                labelKey: 'settings.notificationPreferences.inapp',
+                active: true,
+                configured: true,
+              },
+              {
+                id: 'email',
+                source: 'builtin',
+                labelKey: 'settings.notificationPreferences.email',
+                active: true,
+                configured: true,
+              },
+            ],
             implemented_combos: { version_available: ['inapp', 'email'] },
             preferences: { version_available: { inapp: true, email: true } },
           });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -640,7 +672,7 @@ describe('AdminPage', () => {
           return HttpResponse.json({
             addons: [{ id: 'mcp', name: 'MCP Tokens', type: 'mcp', icon: '', enabled: true }],
           });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -659,7 +691,7 @@ describe('AdminPage', () => {
       server.use(
         http.get('/api/admin/version-check', () => {
           return HttpResponse.json({ update_available: true, latest: '9.9.9', current: '1.0.0' });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -723,9 +755,9 @@ describe('AdminPage', () => {
       let capturedBody: Record<string, unknown> | null = null;
       server.use(
         http.put('/api/auth/app-settings', async ({ request }) => {
-          capturedBody = await request.json() as Record<string, unknown>;
+          capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({});
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -755,7 +787,7 @@ describe('AdminPage', () => {
       server.use(
         http.put('/api/admin/oidc', async ({ request }) => {
           return HttpResponse.json(await request.json());
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -788,9 +820,9 @@ describe('AdminPage', () => {
       let capturedBody: Record<string, unknown> | null = null;
       server.use(
         http.put('/api/auth/app-settings', async ({ request }) => {
-          capturedBody = await request.json() as Record<string, unknown>;
+          capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({});
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -816,16 +848,16 @@ describe('AdminPage', () => {
       let capturedBody: Record<string, unknown> | null = null;
       server.use(
         http.put('/api/auth/app-settings', async ({ request }) => {
-          capturedBody = await request.json() as Record<string, unknown>;
+          capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({});
-        }),
+        })
       );
 
       // Start with email enabled by seeding smtpValues
       server.use(
         http.get('/api/auth/app-settings', () => {
           return HttpResponse.json({ notification_channels: 'email', smtp_host: 'mail.example.com' });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -882,7 +914,7 @@ describe('AdminPage', () => {
       server.use(
         http.get('/api/admin/version-check', () => {
           return HttpResponse.json({ update_available: true, latest: '9.9.9', current: '1.0.0' });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -942,8 +974,9 @@ describe('AdminPage', () => {
         target: { value: 'alice-new@example.com' },
       });
 
-      expect((screen.getByDisplayValue('alice-new@example.com') as HTMLInputElement).value)
-        .toBe('alice-new@example.com');
+      expect((screen.getByDisplayValue('alice-new@example.com') as HTMLInputElement).value).toBe(
+        'alice-new@example.com'
+      );
     });
   });
 
@@ -954,7 +987,7 @@ describe('AdminPage', () => {
         http.put('/api/auth/me/api-keys', async ({ request }) => {
           capturedBody = await request.json();
           return HttpResponse.json({ success: true });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -986,7 +1019,7 @@ describe('AdminPage', () => {
         http.put('/api/auth/me/api-keys', async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({ success: true });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1018,7 +1051,7 @@ describe('AdminPage', () => {
         }),
         http.get('/api/auth/validate-keys', () => {
           return HttpResponse.json({ maps: true, weather: false });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1079,7 +1112,7 @@ describe('AdminPage', () => {
         http.delete('/api/admin/users/:id', ({ params }) => {
           deletedId = params.id as string;
           return HttpResponse.json({ success: true });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1109,7 +1142,7 @@ describe('AdminPage', () => {
         http.post('/api/admin/rotate-jwt-secret', () => {
           rotateCalled = true;
           return HttpResponse.json({ success: true });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1142,7 +1175,7 @@ describe('AdminPage', () => {
             smtp_host: 'mail.example.com',
             smtp_skip_tls_verify: 'false',
           });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1186,7 +1219,7 @@ describe('AdminPage', () => {
         http.post('/api/notifications/test-smtp', () => {
           testSmtpCalled = true;
           return HttpResponse.json({ success: true });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1223,7 +1256,7 @@ describe('AdminPage', () => {
         http.put('/api/auth/app-settings', async () => {
           appSettingsCalled = true;
           return HttpResponse.json({});
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1260,7 +1293,7 @@ describe('AdminPage', () => {
         http.put('/api/auth/app-settings', async ({ request }) => {
           savedPayload = await request.json();
           return HttpResponse.json({});
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1292,7 +1325,15 @@ describe('AdminPage', () => {
         http.get('/api/admin/notification-preferences', () => {
           return HttpResponse.json({
             event_types: ['trip.created'],
-            available_channels: { email: true },
+            channels: [
+              {
+                id: 'email',
+                source: 'builtin',
+                labelKey: 'settings.notificationPreferences.email',
+                active: true,
+                configured: true,
+              },
+            ],
             implemented_combos: { 'trip.created': ['email'] },
             preferences: { 'trip.created': { email: true } },
           });
@@ -1300,7 +1341,7 @@ describe('AdminPage', () => {
         http.put('/api/admin/notification-preferences', async () => {
           prefUpdateCalled = true;
           return HttpResponse.json({ success: true });
-        }),
+        })
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1346,7 +1387,9 @@ describe('AdminPage', () => {
 
       // Discovery URL field
       const discoveryInput = within(oidcCard!).getByPlaceholderText(/openid-configuration/i);
-      fireEvent.change(discoveryInput, { target: { value: 'https://auth.example.com/.well-known/openid-configuration' } });
+      fireEvent.change(discoveryInput, {
+        target: { value: 'https://auth.example.com/.well-known/openid-configuration' },
+      });
 
       // Client ID field
       const clientIdLabel = within(oidcCard!).getByText('Client ID');

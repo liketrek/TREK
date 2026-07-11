@@ -36,24 +36,48 @@ export interface ScaffoldOptions {
   requiredAddons?: string[];
   /** Other plugins this one depends on, each pinned by a semver range. */
   pluginDependencies?: Array<{ id: string; version: string }>;
+  /**
+   * Which starter to generate. This is NOT the manifest `type` — a notification
+   * channel is a plain `integration` that implements the `notificationChannel` hook.
+   */
+  template?: 'blank' | 'notification-channel';
 }
+
+export const TEMPLATES = ['blank', 'notification-channel'] as const;
 
 export function scaffold(name: string, type: string, targetDir: string, opts: ScaffoldOptions = {}): void {
   if (!/^[a-z][a-z0-9-]{2,39}$/.test(name)) throw new Error(`invalid plugin id "${name}" (lowercase slug, 3–40 chars)`);
   if (!['integration', 'page', 'widget', 'trip-page'].includes(type)) throw new Error(`invalid type "${type}"`);
 
+  const template = opts.template ?? 'blank';
+  if (!TEMPLATES.includes(template)) throw new Error(`invalid template "${template}"`);
+  const isChannel = template === 'notification-channel';
+  // A notification channel is server-only by construction: it takes a rendered
+  // message and pushes it somewhere. Nothing else makes sense.
+  if (isChannel && type !== 'integration') throw new Error('the notification-channel template requires type "integration"');
+
   const root = path.join(targetDir, name);
   if (fs.existsSync(root)) throw new Error(`${root} already exists`);
   fs.mkdirSync(path.join(root, 'server'), { recursive: true });
 
-  const perms = opts.permissions?.length ? opts.permissions : ['db:own'];
+  const displayName = name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  let perms = opts.permissions?.length ? opts.permissions : ['db:own'];
+  let egress = opts.egress ?? [];
+  if (isChannel) {
+    // The two grants a channel cannot work without, plus a placeholder host the
+    // author swaps for their own — the manifest rejects http:outbound with no egress.
+    if (!egress.length) egress = ['gotify.example.com'];
+    const required = ['hook:notification-channel', ...egress.map((h) => `http:outbound:${h}`)];
+    perms = [...new Set([...perms.filter((p) => p !== 'db:own'), ...required])];
+  }
+
   const manifest: Record<string, unknown> = {
     id: name,
-    name: name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    name: displayName,
     version: '1.0.0',
     apiVersion: 1,
     author: opts.author || 'Your Name',
-    description: opts.description || 'Describe what your plugin does.',
+    description: opts.description || (isChannel ? `Deliver TREK notifications over ${displayName}.` : 'Describe what your plugin does.'),
     type,
     trek: '>=3.2.1 <4.0.0',
     nativeModules: false,
@@ -64,16 +88,48 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     requiredAddons: opts.requiredAddons ?? [],
     pluginDependencies: opts.pluginDependencies ?? [],
   };
-  if (opts.egress?.length) manifest.egress = opts.egress;
+  if (egress.length) manifest.egress = egress;
+  // A notification channel usually targets a SELF-HOSTED service, whose hostname the
+  // author cannot know at publish time. Declaring operatorEgress lets the admin add the
+  // real host after install; without it the plugin only ever reaches the hosts above.
+  if (isChannel) manifest.operatorEgress = true;
+  // A settings-page button so the user can verify their credentials without waiting for
+  // a real notification. Actions are USER-INITIATED, so ctx.settings.get() works inside.
+  if (isChannel) manifest.actions = [{ key: 'testConnection', label: 'Test connection' }];
   // Routes are declared in server/index.js (definePlugin), NOT the manifest — the
   // host ignores a manifest `routes`. A `page` plugin gets its nav entry
   // automatically, so there's no `capabilities.nav` either; only `widget` carries a
   // capability worth scaffolding.
-  if (type === 'widget') manifest.capabilities = { widget: { title: manifest.name, defaultSize: 'medium' } };
+  if (type === 'widget') manifest.capabilities = { widget: { title: displayName, defaultSize: 'medium' } };
+  if (isChannel) {
+    manifest.capabilities = { notificationChannel: { title: displayName } };
+    // The recipient's own credential. `scope: 'user'` is what makes it per-user, and
+    // the host hands the decrypted value to your hook as `config` at send time.
+    manifest.settings = [
+      {
+        key: 'serverUrl',
+        label: 'Server URL',
+        input_type: 'text',
+        placeholder: 'https://gotify.example.com',
+        hint: 'Your Gotify server. Must match an entry in the manifest `egress` list.',
+        required: true,
+        scope: 'user',
+      },
+      {
+        key: 'appToken',
+        label: 'App token',
+        input_type: 'text',
+        hint: 'Create an application in Gotify and paste its token here.',
+        required: true,
+        secret: true,
+        scope: 'user',
+      },
+    ];
+  }
 
   fs.writeFileSync(path.join(root, 'trek-plugin.json'), JSON.stringify(manifest, null, 2) + '\n');
-  fs.writeFileSync(path.join(root, 'server', 'index.js'), SERVER_JS(perms.includes('db:own')));
-  fs.writeFileSync(path.join(root, 'README.md'), readme(name, opts.description ?? '> One sentence: what this plugin does.', perms));
+  fs.writeFileSync(path.join(root, 'server', 'index.js'), isChannel ? CHANNEL_JS : SERVER_JS(perms.includes('db:own')));
+  fs.writeFileSync(path.join(root, 'README.md'), readme(name, opts.description ?? (isChannel ? `> Deliver your TREK notifications to ${displayName}.` : '> One sentence: what this plugin does.'), perms));
   // `type: commonjs` pins how the entry is parsed everywhere (dev, tests, TREK);
   // the SDK is a devDependency ONLY (types + mock host) — at runtime both the
   // dev server and TREK inject it, so it is never vendored into the artifact.
@@ -90,6 +146,69 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     fs.writeFileSync(path.join(root, 'client', 'index.html'), CLIENT_HTML);
   }
 }
+
+const CHANNEL_JS = `// A TREK notification channel — runs in an isolated child process.
+//
+// TREK renders every notification into the recipient's language and hands it to you
+// ready to send. You never touch i18n, and you never pick a recipient: the host does
+// that, then calls you once per recipient who has this channel switched on.
+//
+// This hook is HOST-initiated, so there is NO acting user while it runs:
+//   - ctx.settings.get() returns undefined here (it resolves against the acting user)
+//   - trip reads are refused
+// The recipient's own settings — the fields you declared with scope: 'user' in
+// trek-plugin.json — arrive DECRYPTED as the \`config\` argument. That is the only way
+// to reach them, and it is why a channel plugin cannot enumerate anyone's trips.
+const { definePlugin } = require('trek-plugin-sdk');
+
+async function push(config, title, message) {
+  // Every host you call must be listed in the manifest's \`egress\` array AND granted
+  // via http:outbound:<host>, or the child's network guard blocks the request.
+  const res = await fetch(String(config.serverUrl).replace(/\\/+$/, '') + '/message', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'X-Gotify-Key': String(config.appToken),
+    },
+    body: JSON.stringify({ title, message, priority: 5 }),
+  });
+  // Throw on failure: the host logs it and isolates it, so one dead channel can never
+  // stop the others (or the in-app notification) from being delivered.
+  if (!res.ok) throw new Error('Gotify responded ' + res.status + ' ' + (await res.text().catch(() => '')));
+}
+
+module.exports = definePlugin({
+  // A button on your settings page. USER-INITIATED, so unlike the channel hook there IS
+  // an acting user (whoever clicked) — ctx.settings.get() returns THEIR values, which is
+  // what makes "test my credentials" possible.
+  actions: {
+    async testConnection(ctx) {
+      const config = {
+        serverUrl: await ctx.settings.get('serverUrl'),
+        appToken: await ctx.settings.get('appToken'),
+      };
+      await push(config, 'TREK', 'Test notification. If you can read this, your channel works.');
+      return { ok: true, message: 'Connected.' };
+    },
+  },
+
+  hooks: {
+    notificationChannel: {
+      async send(msg, config, ctx) {
+        // msg = { event, title, body, url?, tripName? } — already localized.
+        const body = msg.url ? msg.body + '\\n\\n' + msg.url : msg.body;
+        await push(config, msg.title, body);
+        ctx.log.info('delivered ' + msg.event);
+      },
+
+      // Optional — backs the "Send test" button in the user's notification settings.
+      async test(config) {
+        await push(config, 'TREK', 'Test notification. If you can read this, your channel works.');
+      },
+    },
+  },
+});
+`;
 
 const SERVER_JS = (has_db: boolean) => `// Built plugin entry — runs in an isolated child process.
 const { definePlugin } = require('trek-plugin-sdk');
@@ -250,6 +369,20 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
     ],
   });
 
+  // A starter, not a manifest type — a notification channel is a plain `integration`
+  // that implements the notificationChannel hook, so it only makes sense to offer here.
+  let template: 'blank' | 'notification-channel' = 'blank';
+  if (type === 'integration') {
+    template = await promptSelect<'blank' | 'notification-channel'>({
+      message: 'Start from a template?',
+      initialValue: 'blank',
+      options: [
+        { value: 'blank', label: 'blank', hint: 'an empty plugin with one example route' },
+        { value: 'notification-channel', label: 'notification channel', hint: 'deliver TREK notifications to Gotify/Pushover/…' },
+      ],
+    });
+  }
+
   const author = await promptText({ message: 'Author', placeholder: 'Your Name', defaultValue: 'Your Name' });
   const description = await promptText({
     message: 'One-line description',
@@ -265,10 +398,14 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
   });
 
   let egress: string[] | undefined;
-  if (permissions.includes('http:outbound')) {
+  // A channel has to reach its service, so it always needs an egress host — the
+  // scaffold turns each one into a matching http:outbound:<host> grant.
+  if (permissions.includes('http:outbound') || template === 'notification-channel') {
     const raw = await promptText({
-      message: 'External hosts it may call (comma-separated)',
-      placeholder: 'api.example.com, api.other.com',
+      message: template === 'notification-channel'
+        ? 'Which host does your notification service live on?'
+        : 'External hosts it may call (comma-separated)',
+      placeholder: template === 'notification-channel' ? 'gotify.example.com' : 'api.example.com, api.other.com',
       validate: (v) => ((v ?? '').split(',').map((s) => s.trim()).filter(Boolean).length ? undefined : 'list at least one host'),
     });
     egress = raw.split(',').map((s) => s.trim()).filter(Boolean);
@@ -285,6 +422,7 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
     [
       `id           ${id}`,
       `type         ${type}`,
+      template !== 'blank' ? `template     ${template}` : undefined,
       `location     ${dest}`,
       `author       ${author}`,
       `permissions  ${permissions.join(', ') || '(none)'}`,
@@ -300,7 +438,7 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
     process.exit(0);
   }
 
-  scaffold(id, type, parentDir, { author, description, permissions, egress, requiredAddons });
+  scaffold(id, type, parentDir, { author, description, permissions, egress, requiredAddons, template });
   logSuccess(`Created ${dest}`);
 
   if (!insideGitRepo(parentDir)) {
@@ -339,12 +477,14 @@ if (process.argv[1] && process.argv[1].endsWith('create.js')) {
   const name = args.find((a: string) => !a.startsWith('-'));
   const typeIdx = args.indexOf('--type');
   const type = typeIdx >= 0 ? args[typeIdx + 1] : 'integration';
+  const tplIdx = args.indexOf('--template');
+  const template = (tplIdx >= 0 ? args[tplIdx + 1] : 'blank') as ScaffoldOptions['template'];
   if (!name) {
-    console.error('usage: create-trek-plugin <name> [--type integration|page|widget|trip-page]');
+    console.error('usage: create-trek-plugin <name> [--type integration|page|widget|trip-page] [--template blank|notification-channel]');
     process.exit(2);
   }
   try {
-    scaffold(name, type, process.cwd());
+    scaffold(name, type, process.cwd(), { template });
     console.log(`Created ${name}/ — fill in the README, build server/index.js, then \`npx trek-plugin-sdk validate ${name}\`.`);
   } catch (e) {
     console.error(e instanceof Error ? e.message : e);

@@ -13,6 +13,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: getMock }) } }));
 
 import { PluginUserSettingsController } from '../../../src/nest/plugins/plugin-user-settings.controller';
+import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 import type { PluginsService } from '../../../src/nest/plugins/plugins.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,7 +24,9 @@ function ctrl() {
     getUserConfig: vi.fn(() => ({ apiKey: '••••••••' })),
     updateUserConfig: vi.fn((_id: string, _uid: number, patch: Record<string, unknown>) => ({ ...patch, apiKey: '••••••••' })),
   } as unknown as PluginsService;
-  return { c: new PluginUserSettingsController(svc), svc };
+  // The controller now also takes the runtime (for settings-page actions).
+  const runtime = { actionsOf: () => [], invokeAction: vi.fn() } as unknown as PluginRuntimeService;
+  return { c: new PluginUserSettingsController(svc, runtime), svc, runtime };
 }
 
 describe('PluginUserSettingsController', () => {
@@ -31,13 +34,13 @@ describe('PluginUserSettingsController', () => {
 
   it('GET returns fields + masked config for a bound user; empty when gated', () => {
     const { c } = ctrl();
-    expect(c.get('p', req(5))).toEqual({ fields: [{ key: 'apiKey', secret: true }], config: { apiKey: '••••••••' } });
+    expect(c.get('p', req(5))).toEqual({ fields: [{ key: 'apiKey', secret: true }], config: { apiKey: '••••••••' }, actions: [] });
     pluginsEnabled.mockReturnValue(false);
-    expect(c.get('p', req(5))).toEqual({ fields: [], config: {} });
+    expect(c.get('p', req(5))).toEqual({ fields: [], config: {}, actions: [] });
     pluginsEnabled.mockReturnValue(true);
-    expect(c.get('p', req(undefined))).toEqual({ fields: [], config: {} });
+    expect(c.get('p', req(undefined))).toEqual({ fields: [], config: {}, actions: [] });
     getMock.mockReturnValue(undefined as never);
-    expect(c.get('p', req(5))).toEqual({ fields: [], config: {} });
+    expect(c.get('p', req(5))).toEqual({ fields: [], config: {}, actions: [] });
   });
 
   it('POST delegates the patch for a bound user; empty when gated', () => {

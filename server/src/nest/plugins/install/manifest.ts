@@ -1,5 +1,6 @@
 import semver from 'semver';
 import { isKnownPermission } from '../protocol/envelope';
+import type { NotifEventType } from '../../../services/notificationPreferencesService';
 
 /**
  * Parse + validate a plugin's trek-plugin.json (#plugins, M4). Kept deliberately
@@ -38,9 +39,32 @@ export interface TripPageCapability {
   position?: number;
 }
 
+/** Config for a plugin that implements the `notificationChannel` hook. */
+export interface NotificationChannelCapability {
+  /** Column name in the notification preferences matrix. Defaults to the plugin's name. */
+  title?: string;
+  /** Narrow which events this channel carries. Defaults to every non-admin event. */
+  events?: string[];
+}
+
+/**
+ * A button the plugin contributes to its own settings page ("Test connection",
+ * "Sync now"). Unlike the notification-channel hook, an action is USER-INITIATED — the
+ * acting user is whoever clicked — so `ctx.settings.get()` and trip reads work normally
+ * inside it, which is exactly what a "test my credentials" button needs.
+ */
+export interface ManifestAction {
+  key: string;
+  label: string;
+  hint?: string;
+  /** Render as destructive and ask for confirmation before running. */
+  danger?: boolean;
+}
+
 export interface PluginCapabilities {
   widget?: WidgetCapability;
   tripPage?: TripPageCapability;
+  notificationChannel?: NotificationChannelCapability;
   /** Function names this plugin exposes to its dependents via ctx.plugins.call. */
   provides?: string[];
   /** Event names this plugin publishes to its dependents via ctx.events.emit. */
@@ -68,7 +92,15 @@ export interface PluginManifest {
   nativeModules: boolean;
   permissions: string[];
   egress: string[];
+  /**
+   * The plugin talks to a service whose hostname only the OPERATOR knows (a self-hosted
+   * Gotify, ntfy, Uptime Kuma…). Its manifest `egress` can never cover that, so an admin
+   * may add hosts post-install and the runtime unions them into the child's allow-list.
+   * Consent stays with the admin — an end user can never widen egress.
+   */
+  operatorEgress: boolean;
   settings: ManifestSettingField[];
+  actions: ManifestAction[];
   capabilities: PluginCapabilities;
   /** Addon ids that must be enabled for this plugin to activate (format-only here). */
   requiredAddons: string[];
@@ -129,6 +161,12 @@ export function parseManifest(raw: unknown): PluginManifest {
   if (badOutbound !== undefined) throw new ManifestError(`invalid http:outbound host "${badOutbound}"`);
 
   const egress = arr(m.egress).map(String);
+  if (m.operatorEgress !== undefined && typeof m.operatorEgress !== 'boolean') {
+    throw new ManifestError('operatorEgress must be a boolean');
+  }
+  if (m.operatorEgress === true && !permissions.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:'))) {
+    throw new ManifestError('operatorEgress requires an http:outbound permission');
+  }
   if (permissions.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:')) && egress.length === 0) {
     throw new ManifestError('http:outbound declared but egress[] is empty');
   }
@@ -152,7 +190,9 @@ export function parseManifest(raw: unknown): PluginManifest {
     nativeModules: false,
     permissions,
     egress,
+    operatorEgress: m.operatorEgress === true,
     settings: parseSettings(m.settings),
+    actions: parseActions(m.actions),
     capabilities: parseCapabilities(m.capabilities),
     requiredAddons: parseRequiredAddons(m.requiredAddons),
     pluginDependencies: parsePluginDependencies(m.pluginDependencies, id),
@@ -231,12 +271,61 @@ function parseCapabilities(raw: unknown): PluginCapabilities {
     }
     if (Object.keys(page).length) out.tripPage = page;
   }
+  if (c.notificationChannel && typeof c.notificationChannel === 'object') {
+    const nc = c.notificationChannel as Record<string, unknown>;
+    const channel: NotificationChannelCapability = {};
+    const title = optStr(nc.title);
+    if (title) channel.title = title;
+    if (nc.events !== undefined) {
+      if (!Array.isArray(nc.events)) throw new ManifestError('capabilities.notificationChannel.events must be an array');
+      const events: string[] = [];
+      for (const v of nc.events) {
+        if (typeof v !== 'string' || !(PLUGIN_CHANNEL_EVENTS as readonly string[]).includes(v)) {
+          throw new ManifestError(
+            `capabilities.notificationChannel.events: "${String(v)}" is not a plugin-deliverable event (${PLUGIN_CHANNEL_EVENTS.join(', ')})`,
+          );
+        }
+        if (!events.includes(v)) events.push(v);
+      }
+      if (events.length) channel.events = events;
+    }
+    out.notificationChannel = channel;
+  }
   const provides = parseCapabilityNames(c.provides, 'provides');
   if (provides.length) out.provides = provides;
   const emits = parseCapabilityNames(c.emits, 'emits');
   if (emits.length) out.emits = emits;
   return out;
 }
+
+/**
+ * Events a plugin notification channel may carry. Two exclusions, both deliberate:
+ * `version_available` is admin-scoped (it goes out over the admin's own global
+ * credentials, and a community plugin is never a recipient of one), and
+ * `synology_session_cleared` is in-app only.
+ *
+ * Spelled out rather than derived from the notification service, so the plugin
+ * installer carries no runtime dependency on it. The guard below is what keeps the
+ * two in step — same trick as `_eventKeyDriftGuard` in services/notifications.ts.
+ */
+export const PLUGIN_CHANNEL_EVENTS = [
+  'trip_invite',
+  'booking_change',
+  'trip_reminder',
+  'todo_due',
+  'vacay_invite',
+  'collection_invite',
+  'photos_shared',
+  'collab_message',
+  'packing_tagged',
+  'plugin_notification',
+] as const;
+
+// Compile-time guard: every id above must still be a real notification event.
+// If one is renamed or dropped, this stops compiling.
+type _ChannelEventsAreReal = (typeof PLUGIN_CHANNEL_EVENTS)[number] extends NotifEventType ? true : never;
+const _channelEventDriftGuard: _ChannelEventsAreReal = true;
+void _channelEventDriftGuard;
 
 // Core planner tabs a trip-page plugin may replace while it is active. 'plan' is
 // deliberately NOT in this list — a trip always keeps its planner view, so a
@@ -255,12 +344,24 @@ function parseCapabilityNames(raw: unknown, field: string): string[] {
   return out;
 }
 
+/**
+ * A settings field key. Constrained because the key is used as a JSON object key in
+ * the plugin's stored config: an unconstrained one (`__proto__`, `constructor`) resolves
+ * off Object.prototype on read, so a *required* field with such a name would look
+ * "configured" for every user who had configured nothing — enough, for a notification
+ * channel, to be dispatched to everyone without anyone entering credentials.
+ * (safeParse in plugins.service.ts now uses a null-prototype object too; this is the
+ * front door, that is the backstop.)
+ */
+const SETTING_KEY_RE = /^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$/;
+const RESERVED_SETTING_KEYS = new Set(['constructor', 'prototype', '__proto__']);
+
 function parseSettings(raw: unknown): ManifestSettingField[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
     .map((s): ManifestSettingField => ({
-      key: String(s.key ?? ''),
+      key: assertSettingKey(String(s.key ?? '')),
       label: optStr(s.label),
       input_type: optStr(s.input_type) ?? 'text',
       placeholder: optStr(s.placeholder),
@@ -268,10 +369,65 @@ function parseSettings(raw: unknown): ManifestSettingField[] {
       required: !!s.required,
       secret: !!s.secret,
       scope: s.scope === 'user' ? 'user' : 'instance',
-      options: Array.isArray(s.options) ? (s.options as Array<{ value: string; label: string }>) : undefined,
+      options: parseSettingOptions(s.options),
       oauth: s.oauth && typeof s.oauth === 'object' ? (s.oauth as { initPath?: string; callbackPath?: string }) : undefined,
     }))
     .filter((s) => s.key);
+}
+
+/**
+ * A `select` field's options. The client renders `{value, label}`, so a bare string list —
+ * the obvious thing to write, and what a manifest was silently allowed to carry — rendered
+ * every option BLANK (value/label both undefined). Coerce the string form instead of
+ * failing on it, and reject anything that is neither.
+ */
+function parseSettingOptions(raw: unknown): Array<{ value: string; label: string }> | undefined {
+  if (raw === undefined) return undefined;
+  if (!Array.isArray(raw)) throw new ManifestError('settings option list must be an array');
+  return raw.map((o) => {
+    if (typeof o === 'string' || typeof o === 'number') return { value: String(o), label: String(o) };
+    if (o && typeof o === 'object') {
+      const { value, label } = o as { value?: unknown; label?: unknown };
+      if (value === undefined || value === null || String(value) === '') {
+        throw new ManifestError('settings option must have a non-empty "value"');
+      }
+      return { value: String(value), label: String(label ?? value) };
+    }
+    throw new ManifestError(`invalid settings option ${JSON.stringify(o)} (expected a string or { value, label })`);
+  });
+}
+
+/** Settings-page action buttons. Bounded: the host renders the label itself. */
+function parseActions(raw: unknown): ManifestAction[] {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) throw new ManifestError('actions must be an array');
+  if (raw.length > 8) throw new ManifestError('at most 8 actions');
+  const out: ManifestAction[] = [];
+  for (const a of raw) {
+    if (!a || typeof a !== 'object') throw new ManifestError('each action must be an object');
+    const { key, label, hint, danger } = a as Record<string, unknown>;
+    const k = assertSettingKey(String(key ?? ''));
+    if (!k) throw new ManifestError('action must have a "key"');
+    if (out.some((x) => x.key === k)) throw new ManifestError(`duplicate action "${k}"`);
+    out.push({
+      key: k,
+      label: String(label ?? k).slice(0, 60),
+      hint: hint === undefined ? undefined : String(hint).slice(0, 200),
+      danger: danger === true,
+    });
+  }
+  return out;
+}
+
+function assertSettingKey(key: string): string {
+  // An empty key is dropped by the .filter below (a manifest may legitimately omit a
+  // field), but a PRESENT key that is malformed is a hard reject — silently ignoring it
+  // would leave the plugin expecting a setting the host will never store.
+  if (!key) return key;
+  if (!SETTING_KEY_RE.test(key) || RESERVED_SETTING_KEYS.has(key)) {
+    throw new ManifestError(`invalid settings key "${key}" (letters, digits, . _ - ; must start with a letter; 1–64 chars)`);
+  }
+  return key;
 }
 
 function str(v: unknown, name: string): string {

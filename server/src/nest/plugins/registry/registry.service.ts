@@ -74,6 +74,13 @@ interface Registry {
 export interface ManifestPreview {
   permissions: string[];
   egress: string[];
+  /**
+   * The plugin talks to a service only the OPERATOR can name (a self-hosted Gotify/ntfy),
+   * so its `egress` can't be the whole story — an admin adds the real hosts after install.
+   * Surfaced pre-install so the reviewer knows the network reach is not fully described by
+   * the hosts listed above.
+   */
+  operatorEgress: boolean;
   settings: Array<{ key: string; label: string; inputType: string; scope: string; required: boolean }>;
   license: string | null;
   icon: string | null;
@@ -390,6 +397,7 @@ function hostCompatible(v: RegistryVersion, host: string): boolean {
  */
 function previewManifest(raw: unknown): ManifestPreview {
   const m = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const operatorEgress = m.operatorEgress === true;
   const strings = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
   const settings = Array.isArray(m.settings)
@@ -413,6 +421,7 @@ function previewManifest(raw: unknown): ManifestPreview {
   return {
     permissions: strings(m.permissions),
     egress: strings(m.egress),
+    operatorEgress,
     settings,
     license: typeof m.license === 'string' ? m.license : null,
     icon: typeof m.icon === 'string' ? m.icon : null,

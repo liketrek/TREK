@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Blocks, Save, Loader2, Link2, Unlink, CheckCircle } from 'lucide-react'
-import { pluginsApi, type PluginUserSettingField } from '../../api/client'
+import { pluginsApi, type PluginUserSettingField, type PluginAction } from '../../api/client'
 import { usePluginStore } from '../../store/pluginStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
@@ -64,6 +64,9 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
   const [values, setValues] = useState<Record<string, string | boolean>>({})
   const [saving, setSaving] = useState(false)
   const [oauth, setOauth] = useState<{ configured: boolean; connected: boolean } | null>(null)
+  const [actions, setActions] = useState<PluginAction[]>([])
+  const [running, setRunning] = useState<string | null>(null)
+  const [actionResult, setActionResult] = useState<Record<string, { ok: boolean; message?: string }>>({})
 
   useEffect(() => {
     let alive = true
@@ -71,6 +74,7 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
       .then(r => {
         if (!alive) return
         setFields(r.fields)
+        setActions(r.actions ?? [])
         const init: Record<string, string | boolean> = {}
         for (const f of r.fields) {
           const v = r.config[f.key]
@@ -84,8 +88,23 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
   }, [id])
 
   const hasFields = (fields?.length ?? 0) > 0
-  // Show the card if the plugin has user fields OR an OAuth connection to offer.
-  if (fields === null || (!hasFields && !oauth?.configured)) return null
+  // Show the card if the plugin has user fields, actions, OR an OAuth connection to offer.
+  if (fields === null || (!hasFields && actions.length === 0 && !oauth?.configured)) return null
+
+  // An action runs AS the caller, so it sees the values they just saved — run the save
+  // first if the form is dirty would be nicer, but keeping it explicit is less surprising.
+  const runAction = async (a: PluginAction) => {
+    if (a.danger && !window.confirm(t('settings.plugins.actions.confirm'))) return
+    setRunning(a.key)
+    try {
+      const res = await pluginsApi.runAction(id, a.key)
+      setActionResult(prev => ({ ...prev, [a.key]: res }))
+    } catch {
+      setActionResult(prev => ({ ...prev, [a.key]: { ok: false, message: t('common.error') } }))
+    } finally {
+      setRunning(null)
+    }
+  }
 
   const save = async () => {
     setSaving(true)
@@ -163,6 +182,38 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </button>
+      )}
+      {actions.length > 0 && (
+        <div className="mt-4 border-t border-border pt-4">
+          <span className="block text-xs font-semibold uppercase tracking-wide text-content-muted mb-2">
+            {t('settings.plugins.actions')}
+          </span>
+          <div className="flex flex-col gap-2">
+            {actions.map(a => {
+              const res = actionResult[a.key]
+              return (
+                <div key={a.key} className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => runAction(a)}
+                    disabled={running !== null}
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold disabled:opacity-60 ${
+                      a.danger ? 'border-danger text-danger' : 'border-border text-content'
+                    }`}
+                  >
+                    {running === a.key && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {a.label}
+                  </button>
+                  {a.hint && <span className="text-xs text-content-muted">{a.hint}</span>}
+                  {res && (
+                    <span className={`text-xs font-medium ${res.ok ? 'text-success' : 'text-danger'}`}>
+                      {res.message || (res.ok ? t('common.success') : t('common.error'))}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
       <PluginOAuthSection id={id} state={oauth} setState={setOauth} />
     </div>

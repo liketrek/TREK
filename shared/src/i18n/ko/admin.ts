@@ -223,6 +223,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': '플러그인이 비활성화되었습니다',
   'admin.plugins.viewErrors': '오류 로그 보기',
   'admin.plugins.errorLog': '오류 로그',
+  'admin.plugins.allowedHosts': '허용된 호스트',
+  'admin.plugins.allowedHosts.hint': '이 플러그인은 관리자만 알 수 있는 서비스(자체 호스팅 서버)와 통신합니다. 접근을 허용할 호스트를 추가하세요 — 그 외에는 접근할 수 없습니다.',
+  'admin.plugins.allowedHosts.none': '아직 추가된 호스트가 없습니다.',
+  'admin.plugins.allowedHosts.unsupported': '이 플러그인은 운영자가 지정하는 호스트를 사용하지 않습니다. 허용 호스트는 매니페스트에 고정되어 있습니다.',
+  'admin.plugins.allowedHosts.restartNote': '저장하면 플러그인이 재시작되어 새 목록을 적용합니다.',
+  'admin.plugins.allowedHosts.add': '허용 호스트 추가',
+  'admin.plugins.allowedHosts.count': '허용 호스트 {n}개',
+  'admin.plugins.operatorEgressPill': '+ 직접 추가하는 호스트',
+  'admin.plugins.operatorEgressHint': '이 플러그인은 관리자만 알 수 있는 서비스(자체 호스팅 서버)와 통신합니다. 설치 후 ⋯ → 허용된 호스트에서 추가하세요. 그 외에는 접근할 수 없습니다.',
   'admin.plugins.noErrors': '기록된 오류가 없습니다.',
   'admin.plugins.uninstalled': '플러그인이 제거되었습니다',
   'admin.plugins.uninstallTitle': '플러그인을 제거할까요?',
@@ -280,16 +289,25 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:tags': '현재 사용자의 태그 만들기, 편집 및 삭제',
   'admin.plugins.perm.db:read:todos': '현재 사용자가 접근할 수 있는 여행의 할 일 읽기',
   'admin.plugins.perm.db:write:todos': '현재 사용자가 편집할 수 있는 여행에서 할 일 만들기, 편집 및 삭제',
-  'admin.plugins.perm.db:write:atlas': '현재 사용자의 방문한 국가와 지역을 표시하고 버킷 리스트 관리(Atlas 애드온 필요)',
+  'admin.plugins.perm.db:write:atlas':
+    '현재 사용자의 방문한 국가와 지역을 표시하고 버킷 리스트 관리(Atlas 애드온 필요)',
   'admin.plugins.perm.db:write:vacay': '현재 사용자의 활성 계획에서 휴가일과 회사 휴일 전환(Vacay 애드온 필요)',
-  'admin.plugins.perm.db:write:journal': '현재 사용자가 편집할 수 있는 일지에서 항목 만들기, 편집 및 삭제(Journey 애드온 필요)',
-  'admin.plugins.perm.db:write:collections': '컬렉션을 만들고 편집하며 장소 저장(현재 사용자의 컬렉션 역할 기준, Collections 애드온 필요)',
-  'admin.plugins.perm.db:write:files': '현재 사용자가 편집할 수 있는 여행에 파일 첨부(10MB 제한, 차단된 확장자 거부) 및 링크 관리',
-  'admin.plugins.perm.db:write:collab': '현재 사용자가 편집할 수 있는 여행에 메모, 투표 및 채팅 메시지 게시(Collab 애드온 필요)',
-  'admin.plugins.perm.db:write:members': '여행에 사용자 추가 — 여행 접근 권한 부여; 현재 사용자의 멤버 관리 권한으로 보호',
-  'admin.plugins.perm.notify:send': '현재 사용자 또는 그가 속한 여행에 알림(벨 받은함 + 이메일/ntfy) 전송 — 임의의 수신자에게는 보내지 않음',
-  'admin.plugins.perm.ai:invoke': '관리자가 구성한 AI 공급자(텍스트 완성 + 문서 추출)를 현재 사용자를 대신하여 실행 — 플러그인은 키를 보유하지 않음',
-  'admin.plugins.perm.oauth:client': '호스트가 중개하는 OAuth로 사용자를 대신해 타사 서비스에 연결(토큰은 호스트가 보유하며 플러그인은 볼 수 없음)',
+  'admin.plugins.perm.db:write:journal':
+    '현재 사용자가 편집할 수 있는 일지에서 항목 만들기, 편집 및 삭제(Journey 애드온 필요)',
+  'admin.plugins.perm.db:write:collections':
+    '컬렉션을 만들고 편집하며 장소 저장(현재 사용자의 컬렉션 역할 기준, Collections 애드온 필요)',
+  'admin.plugins.perm.db:write:files':
+    '현재 사용자가 편집할 수 있는 여행에 파일 첨부(10MB 제한, 차단된 확장자 거부) 및 링크 관리',
+  'admin.plugins.perm.db:write:collab':
+    '현재 사용자가 편집할 수 있는 여행에 메모, 투표 및 채팅 메시지 게시(Collab 애드온 필요)',
+  'admin.plugins.perm.db:write:members':
+    '여행에 사용자 추가 — 여행 접근 권한 부여; 현재 사용자의 멤버 관리 권한으로 보호',
+  'admin.plugins.perm.notify:send':
+    '현재 사용자 또는 그가 속한 여행에 알림(벨 받은함 + 이메일/ntfy) 전송 — 임의의 수신자에게는 보내지 않음',
+  'admin.plugins.perm.ai:invoke':
+    '관리자가 구성한 AI 공급자(텍스트 완성 + 문서 추출)를 현재 사용자를 대신하여 실행 — 플러그인은 키를 보유하지 않음',
+  'admin.plugins.perm.oauth:client':
+    '호스트가 중개하는 OAuth로 사용자를 대신해 타사 서비스에 연결(토큰은 호스트가 보유하며 플러그인은 볼 수 없음)',
   'admin.plugins.perm.db:read:files': '현재 사용자가 접근할 수 있는 여행의 파일 읽기',
   'admin.plugins.perm.db:write:reservations': '현재 사용자가 편집할 수 있는 여행에서 예약 만들기, 편집 및 삭제',
   'admin.plugins.perm.db:write:accommodations': '현재 사용자가 편집할 수 있는 여행에서 숙소 만들기, 편집 및 삭제',
@@ -299,7 +317,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:daynotes': '현재 사용자가 접근할 수 있는 여행의 일자 메모 읽기',
   'admin.plugins.perm.db:read:collections': '현재 사용자의 저장한 장소 컬렉션 읽기(Collections 애드온 필요)',
   'admin.plugins.perm.db:write:daynotes': '현재 사용자가 편집할 수 있는 여행에서 일자 메모 만들기, 편집 및 삭제',
-  'admin.plugins.perm.jobs:run': '선언된 백그라운드 작업을 예약에 따라 실행(사용자 컨텍스트 없음 — 사용자 데이터를 읽을 수 없음)',
+  'admin.plugins.perm.jobs:run':
+    '선언된 백그라운드 작업을 예약에 따라 실행(사용자 컨텍스트 없음 — 사용자 데이터를 읽을 수 없음)',
   'admin.plugins.perm.db:write:costs': '현재 사용자가 편집할 수 있는 여행에 지출(예산 항목) 만들기',
   'admin.plugins.perm.db:write:places': '현재 사용자가 편집할 수 있는 여행에서 장소 추가, 편집 및 삭제',
   'admin.plugins.perm.db:write:days': '현재 사용자가 편집할 수 있는 여행에서 날짜 추가, 편집 및 삭제',
@@ -317,11 +336,14 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:pdf-section-provider': '여행 PDF 내보내기에 텍스트 섹션 추가',
   'admin.plugins.perm.hook:atlas-layer-provider': 'Atlas 세계 지도에서 국가 강조 표시(예: 위시리스트 또는 여행 경보)',
   'admin.plugins.perm.hook:journal-entry-provider': '저널 항목에 추가 행(링크, 통계) 제공',
-  'admin.plugins.perm.hook:user-data': '사용자에 대해 저장한 데이터를 삭제하거나 내보내기 (GDPR: 계정 삭제 및 데이터 요청)',
+  'admin.plugins.perm.hook:user-data':
+    '사용자에 대해 저장한 데이터를 삭제하거나 내보내기 (GDPR: 계정 삭제 및 데이터 요청)',
   'admin.plugins.perm.hook:trip-card-provider': '대시보드 여행 카드에 작은 배지(상태, 개수) 추가',
+  'admin.plugins.perm.hook:notification-channel': '추가 채널을 통해 알림을 전달합니다',
   'admin.plugins.perm.events:subscribe': '핵심 활동 이벤트에 반응 (이벤트 이름과 여행만, 내용은 절대 표시 안 함)',
   'admin.plugins.perm.http:outbound': '선언된 호스트로 아웃바운드 요청 전송',
-  'admin.plugins.perm.db:read:collab': '현재 사용자가 접근할 수 있는 여행의 메모, 투표 및 채팅 메시지 읽기(Collab 애드온 필요)',
+  'admin.plugins.perm.db:read:collab':
+    '현재 사용자가 접근할 수 있는 여행의 메모, 투표 및 채팅 메시지 읽기(Collab 애드온 필요)',
   'admin.plugins.perm.db:read:files:content': '현재 사용자가 접근할 수 있는 여행의 파일 내용(바이트) 읽기',
   'admin.plugins.perm.db:create:trips': '현재 사용자 소유의 새 여행 만들기',
   'admin.plugins.perm.rates:read': '호스트의 캐시된 환율 읽기',
@@ -392,6 +414,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.reservationSlot': '예약 상세',
   'admin.plugins.cap.replacesTabs': '플래너 탭 대체',
   'admin.plugins.cap.realtime': '실시간 업데이트',
+  'admin.plugins.cap.notificationChannel': '알림 채널',
   'admin.plugins.cap.photos': '사진 제공',
   'admin.plugins.cap.calendar': '캘린더 일정 제공',
   'admin.plugins.cap.placeDetails': '장소 정보 강화',

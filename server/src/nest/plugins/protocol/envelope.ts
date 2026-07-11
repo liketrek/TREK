@@ -328,6 +328,7 @@ export const KNOWN_PERMISSIONS = [
   'hook:atlas-layer-provider',
   'hook:journal-entry-provider',
   'hook:trip-card-provider',
+  'hook:notification-channel',
   // Data-subject-rights hook: the host calls the plugin's deleteUserData /
   // exportUserData when a TREK account is erased or its data is exported. Userless
   // (the plugin only receives a userId and acts on its OWN db), so it grants no

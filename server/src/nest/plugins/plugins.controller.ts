@@ -103,6 +103,28 @@ export class PluginsController {
     return { config: this.plugins.updateInstanceConfig(id, body || {}) };
   }
 
+  /**
+   * Operator-supplied egress hosts. A plugin that talks to a SELF-HOSTED service can't
+   * name the operator's hostname in its manifest, so an admin adds it here — and the
+   * runtime re-spawns the plugin with the widened allow-list. Admin-only (this controller
+   * is admin-guarded): an end user can never widen a plugin's egress.
+   */
+  @Get(':id/egress-hosts')
+  egressHosts(@Param('id') id: string) {
+    return { supported: this.runtime.wantsOperatorEgress(id), hosts: this.runtime.operatorEgressHosts(id) };
+  }
+
+  @Put(':id/egress-hosts')
+  async setEgressHosts(@Param('id') id: string, @Body() body: { hosts?: unknown } = {}) {
+    if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
+    const hosts = Array.isArray(body.hosts) ? body.hosts.map(String) : [];
+    try {
+      return { hosts: await this.runtime.setOperatorEgressHosts(id, hosts) };
+    } catch (e) {
+      throw new HttpException({ error: e instanceof Error ? e.message : 'Invalid hosts' }, 400);
+    }
+  }
+
   @Post(':id/activate')
   @HttpCode(200)
   async activate(@Param('id') id: string, @Body() body: { consent?: boolean } = {}) {

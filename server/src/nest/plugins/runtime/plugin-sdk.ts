@@ -347,6 +347,46 @@ export interface PhotoProvider {
   search(query: string, opts: { page: number; limit: number }, ctx: PluginContext): Promise<{ photos: Photo[]; total: number; hasMore: boolean }>;
   getById(id: string, ctx: PluginContext): Promise<Photo | null>;
 }
+/**
+ * A notification, already rendered by the host into the recipient's language.
+ * A channel plugin never touches i18n — it only delivers.
+ */
+export interface NotificationMessage {
+  /** The TREK event that produced this, e.g. `trip_invite`. */
+  event: string;
+  title: string;
+  body: string;
+  /** Absolute deep link back into TREK, when the event has one. */
+  url?: string;
+  tripName?: string;
+}
+
+/**
+ * Deliver TREK notifications over a channel TREK doesn't ship (Gotify, Pushover, …).
+ * Needs `hook:notification-channel`.
+ *
+ * Unlike every other hook, this one is HOST-initiated for an arbitrary recipient, so
+ * it runs WITHOUT an acting user: `ctx.settings.get()` returns undefined here and trip
+ * reads are refused. The recipient's own `scope:'user'` settings are decrypted by the
+ * host and handed to you as `config` instead — that is the only way to reach them, and
+ * it is why a channel plugin cannot enumerate the recipient's trips.
+ */
+export interface NotificationChannel {
+  send(msg: NotificationMessage, config: Record<string, unknown>, ctx: PluginContext): Promise<void>;
+  /** Backs the "Send test" button in the user's notification settings. */
+  test?(config: Record<string, unknown>, ctx: PluginContext): Promise<void>;
+}
+
+/**
+ * Result of a settings-page action. `message` is shown to the user beside the button
+ * (bounded + emoji-stripped host-side); throwing is equivalent to `{ ok: false }` with
+ * the error message.
+ */
+export interface PluginActionResult {
+  ok?: boolean;
+  message?: string;
+}
+
 export interface CalendarEvent { id: string; title: string; start: string; end: string; allDay: boolean; }
 export interface CalendarSource {
   getName(ctx: PluginContext): string;
@@ -504,6 +544,16 @@ export interface PluginDefinition {
   /** GDPR portability: return the data you hold about a user (own db only), as a
    * JSON-serialisable value the host aggregates. Userless. Needs `hook:user-data`. */
   exportUserData?(input: { userId: number }, ctx: PluginContext): Promise<unknown> | unknown;
+  /**
+   * Buttons on the plugin's own settings page ("Test connection", "Sync now"). The key
+   * must match an entry in the manifest's `actions`.
+   *
+   * USER-INITIATED, so unlike the notificationChannel hook there IS an acting user — the
+   * person who clicked. `ctx.settings.get()` returns THEIR value and trip reads are
+   * membership-checked against them, which is what makes a "test my credentials" button
+   * possible at all.
+   */
+  actions?: Record<string, (ctx: PluginContext) => Promise<PluginActionResult | void> | PluginActionResult | void>;
   events?: PluginEventSubscription[];
   hooks?: {
     photoProvider?: PhotoProvider;
@@ -516,6 +566,7 @@ export interface PluginDefinition {
     atlasLayerProvider?: AtlasLayerProvider;
     journalEntryProvider?: JournalEntryProvider;
     tripCardProvider?: TripCardProvider;
+    notificationChannel?: NotificationChannel;
   };
   /** Functions exposed to dependents (names must match manifest capabilities.provides). */
   exports?: Record<string, PluginExport>;

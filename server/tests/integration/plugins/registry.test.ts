@@ -21,7 +21,7 @@ const { testDb } = vi.hoisted(() => {
   const db = new Database(':memory:');
   db.exec(`
     CREATE TABLE plugins (id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
-      api_version INTEGER, min_trek_version TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', granted_permissions TEXT, status TEXT, enabled INTEGER DEFAULT 0, config TEXT,
+      api_version INTEGER, min_trek_version TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT, status TEXT, enabled INTEGER DEFAULT 0, config TEXT,
       source_repo TEXT, source_commit TEXT, sha256 TEXT, reviewed_at TEXT, author_pubkey TEXT, updated_at TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, sort_order INTEGER);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);`);
@@ -163,6 +163,24 @@ describe('PluginRegistryService', () => {
     });
     const d = (await svc.detail('flight-tracker')) as { manifest: { permissions: string[]; egress: string[]; settings: unknown[] } };
     expect(d.manifest).toMatchObject({ permissions: [], egress: ['ok.host'], settings: [] });
+  });
+
+  it('detail surfaces operatorEgress, so the pre-install review can say the host list is not the whole story', async () => {
+    safeDownload.mockResolvedValue({
+      bytes: Buffer.from(JSON.stringify({ permissions: ['http:outbound:gotify.net'], egress: ['gotify.net'], operatorEgress: true })),
+      sha256: 'unused',
+    });
+    const d = (await svc.detail('flight-tracker')) as { manifest: { operatorEgress: boolean; egress: string[] } };
+    expect(d.manifest).toMatchObject({ egress: ['gotify.net'], operatorEgress: true });
+  });
+
+  it('detail defaults operatorEgress to false (an ordinary plugin must not claim it)', async () => {
+    safeDownload.mockResolvedValue({
+      bytes: Buffer.from(JSON.stringify({ permissions: [], egress: ['api.example.com'] })),
+      sha256: 'unused',
+    });
+    const d = (await svc.detail('flight-tracker')) as { manifest: { operatorEgress: boolean } };
+    expect(d.manifest.operatorEgress).toBe(false);
   });
 
   it('detail is cached per plugin (one manifest fetch across calls)', async () => {

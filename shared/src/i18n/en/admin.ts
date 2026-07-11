@@ -238,6 +238,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Plugin deactivated',
   'admin.plugins.viewErrors': 'View error log',
   'admin.plugins.errorLog': 'Error log',
+  'admin.plugins.allowedHosts': 'Allowed hosts',
+  'admin.plugins.allowedHosts.hint': 'This plugin talks to a service only you can name (a self-hosted server). Add the hosts it may reach — it can reach no others.',
+  'admin.plugins.allowedHosts.none': 'No hosts added yet.',
+  'admin.plugins.allowedHosts.unsupported': 'This plugin does not use operator-supplied hosts. Its allowed hosts are fixed in its manifest.',
+  'admin.plugins.allowedHosts.restartNote': 'Saving restarts the plugin so it picks up the new list.',
+  'admin.plugins.allowedHosts.add': 'Add allowed host',
+  'admin.plugins.allowedHosts.count': '{n} allowed host(s)',
+  'admin.plugins.operatorEgressPill': '+ hosts you add',
+  'admin.plugins.operatorEgressHint': 'This plugin talks to a service only you can name (a self-hosted server). After installing, add the hosts it may reach under ⋯ → Allowed hosts. It can reach no others.',
   'admin.plugins.noErrors': 'No errors logged.',
   'admin.plugins.uninstalled': 'Plugin uninstalled',
   'admin.plugins.uninstallTitle': 'Uninstall plugin?',
@@ -295,29 +304,43 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:tags': "Create, edit and delete the acting user's own tags",
   'admin.plugins.perm.db:read:todos': 'Read the to-dos of trips the acting user can access',
   'admin.plugins.perm.db:write:todos': 'Create, edit and delete to-dos on trips the acting user can edit',
-  'admin.plugins.perm.db:write:atlas': 'Mark countries and regions visited and manage the bucket list of the acting user (needs the Atlas addon)',
-  'admin.plugins.perm.db:write:vacay': "Toggle vacation days and company holidays on the acting user's active plan (needs the Vacay addon)",
-  'admin.plugins.perm.db:write:journal': 'Create, edit and delete journal entries on journeys the acting user can edit (needs the Journey addon)',
-  'admin.plugins.perm.db:write:collections': "Create and edit collections and save places to them, with the acting user's collection role (needs the Collections addon)",
-  'admin.plugins.perm.db:write:files': 'Attach files to trips the acting user can edit (10MB cap, blocked extensions refused) and manage their links',
-  'admin.plugins.perm.db:write:collab': 'Post notes, polls and chat messages on trips the acting user can edit (needs the Collab addon)',
-  'admin.plugins.perm.db:write:members': "Add users to trips — grants trip access; gated by the acting user's member-manage right",
-  'admin.plugins.perm.notify:send': 'Send a notification (bell inbox + email/ntfy) to the acting user or a trip they belong to — never an arbitrary recipient',
-  'admin.plugins.perm.ai:invoke': "Run the admin-configured AI provider (text completion + document extraction) on the acting user's behalf — the plugin never holds a key",
-  'admin.plugins.perm.oauth:client': 'Connect to a third-party service on your behalf via host-brokered OAuth (the host holds the tokens, the plugin never sees them)',
+  'admin.plugins.perm.db:write:atlas':
+    'Mark countries and regions visited and manage the bucket list of the acting user (needs the Atlas addon)',
+  'admin.plugins.perm.db:write:vacay':
+    "Toggle vacation days and company holidays on the acting user's active plan (needs the Vacay addon)",
+  'admin.plugins.perm.db:write:journal':
+    'Create, edit and delete journal entries on journeys the acting user can edit (needs the Journey addon)',
+  'admin.plugins.perm.db:write:collections':
+    "Create and edit collections and save places to them, with the acting user's collection role (needs the Collections addon)",
+  'admin.plugins.perm.db:write:files':
+    'Attach files to trips the acting user can edit (10MB cap, blocked extensions refused) and manage their links',
+  'admin.plugins.perm.db:write:collab':
+    'Post notes, polls and chat messages on trips the acting user can edit (needs the Collab addon)',
+  'admin.plugins.perm.db:write:members':
+    "Add users to trips — grants trip access; gated by the acting user's member-manage right",
+  'admin.plugins.perm.notify:send':
+    'Send a notification (bell inbox + email/ntfy) to the acting user or a trip they belong to — never an arbitrary recipient',
+  'admin.plugins.perm.ai:invoke':
+    "Run the admin-configured AI provider (text completion + document extraction) on the acting user's behalf — the plugin never holds a key",
+  'admin.plugins.perm.oauth:client':
+    'Connect to a third-party service on your behalf via host-brokered OAuth (the host holds the tokens, the plugin never sees them)',
   'admin.plugins.perm.db:read:files': 'Read files of trips the acting user can access',
   'admin.plugins.perm.db:read:journal': 'Read the travel journals of the acting user (needs the Journey addon)',
-  'admin.plugins.perm.db:read:atlas': 'Read the visited countries and regions of the acting user (needs the Atlas addon)',
+  'admin.plugins.perm.db:read:atlas':
+    'Read the visited countries and regions of the acting user (needs the Atlas addon)',
   'admin.plugins.perm.db:read:vacay': 'Read the vacation plan of the acting user (needs the Vacay addon)',
   'admin.plugins.perm.db:read:daynotes': 'Read the day notes of trips the acting user can access',
-  'admin.plugins.perm.db:read:collections': 'Read the saved-place collections of the acting user (needs the Collections addon)',
+  'admin.plugins.perm.db:read:collections':
+    'Read the saved-place collections of the acting user (needs the Collections addon)',
   'admin.plugins.perm.db:write:costs': 'Create costs (budget items) on trips the acting user can edit',
   'admin.plugins.perm.db:write:places': 'Add, edit and remove places on trips the acting user can edit',
   'admin.plugins.perm.db:write:days': 'Add, edit and remove days on trips the acting user can edit',
   'admin.plugins.perm.db:write:itinerary': 'Assign and remove places on days of trips the acting user can edit',
   'admin.plugins.perm.db:write:trips': 'Edit trip details (title, dates, currency…) on trips the acting user can edit',
-  'admin.plugins.perm.db:write:reservations': 'Create, edit and delete bookings (reservations) on trips the acting user can edit',
-  'admin.plugins.perm.db:write:accommodations': 'Create, edit and delete accommodations (lodging blocks) on trips the acting user can edit',
+  'admin.plugins.perm.db:write:reservations':
+    'Create, edit and delete bookings (reservations) on trips the acting user can edit',
+  'admin.plugins.perm.db:write:accommodations':
+    'Create, edit and delete accommodations (lodging blocks) on trips the acting user can edit',
   'admin.plugins.perm.db:write:daynotes': 'Create, edit and delete day notes on trips the acting user can edit',
   'admin.plugins.perm.db:meta': 'Attach its own private data to trips, places and days the acting user can access',
   'admin.plugins.perm.ws:broadcast:trip': 'Send real-time updates to trip members',
@@ -333,11 +356,15 @@ const admin: TranslationStrings = {
     'Highlight countries on the Atlas world map (e.g. wishlists or travel advisories)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Contribute extra rows (links, stats) to journal entries',
   'admin.plugins.perm.hook:trip-card-provider': 'Add small badges (status, counts) to your dashboard trip cards',
-  'admin.plugins.perm.hook:user-data': 'Erase or export the data it stores about a user (GDPR account deletion & data requests)',
+  'admin.plugins.perm.hook:notification-channel': 'Deliver your notifications over an additional channel',
+  'admin.plugins.perm.hook:user-data':
+    'Erase or export the data it stores about a user (GDPR account deletion & data requests)',
   'admin.plugins.perm.events:subscribe': 'React to core activity events (event name + trip only, never the content)',
-  'admin.plugins.perm.jobs:run': 'Run its declared background jobs on a schedule (no user context — cannot read user data)',
+  'admin.plugins.perm.jobs:run':
+    'Run its declared background jobs on a schedule (no user context — cannot read user data)',
   'admin.plugins.perm.http:outbound': 'Make outbound requests to its declared hosts',
-  'admin.plugins.perm.db:read:collab': 'Read notes, polls and chat messages of trips the acting user can access (needs the Collab addon)',
+  'admin.plugins.perm.db:read:collab':
+    'Read notes, polls and chat messages of trips the acting user can access (needs the Collab addon)',
   'admin.plugins.perm.db:read:files:content': 'Read the byte content of files on trips the acting user can access',
   'admin.plugins.perm.db:create:trips': 'Create new trips owned by the acting user',
   'admin.plugins.perm.rates:read': "Read the host's cached currency exchange rates",
@@ -408,6 +435,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.reservationSlot': 'Reservation detail',
   'admin.plugins.cap.replacesTabs': 'Replaces planner tabs',
   'admin.plugins.cap.realtime': 'Real-time updates',
+  'admin.plugins.cap.notificationChannel': 'Notification channel',
   'admin.plugins.cap.photos': 'Provides photos',
   'admin.plugins.cap.calendar': 'Provides calendar events',
   'admin.plugins.cap.placeDetails': 'Enriches places',

@@ -508,6 +508,13 @@ export const adminApi = {
   // Dev-link (dev-only): register a plugin from a local built dir + hot-reload it.
   pluginLink: (path: string) => apiClient.post('/admin/plugins/link', { path }).then(r => r.data),
   pluginReload: (id: string) => apiClient.post(`/admin/plugins/${id}/reload`).then(r => r.data),
+  // Operator-supplied egress hosts: a plugin talking to a SELF-HOSTED service can't name
+  // the operator's hostname in its manifest, so the admin adds it here. Saving re-spawns
+  // the plugin with the widened allow-list.
+  pluginEgressHosts: (id: string): Promise<{ supported: boolean; hosts: string[] }> =>
+    apiClient.get(`/admin/plugins/${id}/egress-hosts`).then(r => r.data),
+  pluginSetEgressHosts: (id: string, hosts: string[]): Promise<{ hosts: string[] }> =>
+    apiClient.put(`/admin/plugins/${id}/egress-hosts`, { hosts }).then(r => r.data),
   pluginErrors: (id: string) => apiClient.get(`/admin/plugins/${id}/errors`).then(r => r.data),
   pluginAudit: (id: string) => apiClient.get(`/admin/plugins/${id}/audit`).then(r => r.data),
   // Local LLM (Ollama) management for the AI-parsing addon.
@@ -632,6 +639,11 @@ export interface PluginUserSettingField {
   options?: Array<{ value: string; label: string }>
 }
 
+/** A button a plugin contributes to its own settings page ("Test connection"). */
+export interface PluginAction {
+  key: string; label: string; hint?: string; danger: boolean
+}
+
 export const pluginsApi = {
   // Active plugins the client renders (page nav entries, dashboard widgets).
   active: () => apiClient.get('/plugins').then(r => r.data),
@@ -675,7 +687,16 @@ export const pluginsApi = {
   // A user's OWN scope:'user' settings for a plugin (API key, prefs). Secrets are
   // masked; the write only accepts declared user-scope keys.
   userSettings: (id: string) =>
-    apiClient.get(`/plugin-settings/${id}`).then(r => r.data as { fields: PluginUserSettingField[]; config: Record<string, unknown> }),
+    apiClient.get(`/plugin-settings/${id}`).then(r => r.data as {
+      fields: PluginUserSettingField[]
+      config: Record<string, unknown>
+      actions: PluginAction[]
+    }),
+  // Run a settings-page action the plugin declared ("Test connection"). It runs AS the
+  // caller, so it reads the caller's own settings.
+  runAction: (id: string, key: string) =>
+    apiClient.post(`/plugin-settings/${id}/actions/${encodeURIComponent(key)}`)
+      .then(r => r.data as { ok: boolean; message?: string }),
   saveUserSettings: (id: string, config: Record<string, unknown>) =>
     apiClient.post(`/plugin-settings/${id}`, { config }).then(r => r.data as { config: Record<string, unknown> }),
   // Host-brokered outbound OAuth (the host owns the tokens; the plugin only triggers).
@@ -986,6 +1007,10 @@ export const notificationsApi = {
   testSmtp: (email?: string) => apiClient.post('/notifications/test-smtp', { email }).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testSmtp')),
   testWebhook: (url?: string) => apiClient.post('/notifications/test-webhook', { url }).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testWebhook')),
   testNtfy: (payload: { topic?: string; server?: string | null; token?: string | null }) => apiClient.post('/notifications/test-ntfy', payload).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testNtfy')),
+  // Generic channel test — this is how a PLUGIN channel's "Send test" button works.
+  testChannel: (channelId: string) =>
+    apiClient.post(`/notifications/test/${encodeURIComponent(channelId)}`)
+      .then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testChannel')),
 }
 
 export const inAppNotificationsApi = {

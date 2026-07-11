@@ -224,7 +224,8 @@ const admin: TranslationStrings = {
   'admin.plugins.uploaded': 'Đã tải lên plugin “{name}” — kích hoạt để chạy',
   'admin.plugins.sideloaded': 'Tải thủ công',
   'admin.plugins.devLinkBadge': 'Dev-Link',
-  'admin.plugins.devLinkHint': 'Được tải từ thư mục build cục bộ và tải lại nóng với dữ liệu thật — chỉ dành cho phát triển',
+  'admin.plugins.devLinkHint':
+    'Được tải từ thư mục build cục bộ và tải lại nóng với dữ liệu thật — chỉ dành cho phát triển',
   'admin.plugins.devLinkTitle': 'Liên kết plugin cục bộ',
   'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
   'admin.plugins.devLinkButton': 'Liên kết',
@@ -241,6 +242,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Đã hủy kích hoạt plugin',
   'admin.plugins.viewErrors': 'Xem nhật ký lỗi',
   'admin.plugins.errorLog': 'Nhật ký lỗi',
+  'admin.plugins.allowedHosts': 'Máy chủ được phép',
+  'admin.plugins.allowedHosts.hint': 'Plugin này kết nối tới một dịch vụ mà chỉ bạn mới biết tên (máy chủ tự lưu trữ). Hãy thêm các máy chủ mà nó được phép truy cập — ngoài ra không có gì khác.',
+  'admin.plugins.allowedHosts.none': 'Chưa thêm máy chủ nào.',
+  'admin.plugins.allowedHosts.unsupported': 'Plugin này không dùng máy chủ do người vận hành cung cấp. Danh sách được cố định trong manifest.',
+  'admin.plugins.allowedHosts.restartNote': 'Lưu sẽ khởi động lại plugin để nó dùng danh sách mới.',
+  'admin.plugins.allowedHosts.add': 'Thêm máy chủ được phép',
+  'admin.plugins.allowedHosts.count': '{n} máy chủ được phép',
+  'admin.plugins.operatorEgressPill': '+ máy chủ bạn thêm',
+  'admin.plugins.operatorEgressHint': 'Plugin này kết nối tới một dịch vụ mà chỉ bạn mới biết tên (máy chủ tự lưu trữ). Sau khi cài, hãy thêm máy chủ tại ⋯ → Máy chủ được phép. Ngoài ra không có gì khác.',
   'admin.plugins.noErrors': 'Chưa ghi nhận lỗi nào.',
   'admin.plugins.uninstalled': 'Đã gỡ cài đặt plugin',
   'admin.plugins.uninstallTitle': 'Gỡ cài đặt plugin?',
@@ -288,7 +298,8 @@ const admin: TranslationStrings = {
   'admin.plugins.reviewedOn': 'Đã kiểm duyệt {date}',
   'admin.plugins.perm.db:own': 'Lưu trữ dữ liệu riêng trong một cơ sở dữ liệu cách ly',
   'admin.plugins.perm.db:read:trips': 'Đọc các chuyến đi mà người dùng hiện tại có quyền truy cập',
-  'admin.plugins.perm.db:read:users': 'Đọc thông tin hồ sơ cơ bản (tên, ảnh đại diện — không bao giờ là thông tin đăng nhập)',
+  'admin.plugins.perm.db:read:users':
+    'Đọc thông tin hồ sơ cơ bản (tên, ảnh đại diện — không bao giờ là thông tin đăng nhập)',
   'admin.plugins.perm.ws:broadcast:trip': 'Gửi cập nhật thời gian thực đến các thành viên',
   'admin.plugins.perm.ws:broadcast:user': 'Gửi cập nhật thời gian thực đến từng người dùng',
   'admin.plugins.perm.hook:photo-provider': 'Cung cấp ảnh cho tính năng Ảnh',
@@ -297,19 +308,26 @@ const admin: TranslationStrings = {
     'Đóng góp thêm thông tin chi tiết (đánh giá, xếp hạng, liên kết) cho một địa điểm',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Đưa ra cảnh báo xác thực trên một chuyến đi (hiển thị trong trình lập kế hoạch)',
-  'admin.plugins.perm.hook:table-contributor': 'Thêm cột và hành động vào các chế độ xem chuyến đi (đặt chỗ, địa điểm, ngày)',
-  'admin.plugins.perm.hook:map-marker-provider': 'Thêm điểm đánh dấu vào bản đồ chuyến đi (vd. hiển thị đặt chỗ hoặc POI)',
+  'admin.plugins.perm.hook:table-contributor':
+    'Thêm cột và hành động vào các chế độ xem chuyến đi (đặt chỗ, địa điểm, ngày)',
+  'admin.plugins.perm.hook:map-marker-provider':
+    'Thêm điểm đánh dấu vào bản đồ chuyến đi (vd. hiển thị đặt chỗ hoặc POI)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Thêm các phần văn bản vào bản xuất PDF của chuyến đi',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Làm nổi bật các quốc gia trên bản đồ thế giới Atlas (vd. danh sách mong muốn hoặc cảnh báo du lịch)',
   'admin.plugins.perm.hook:journal-entry-provider': 'Thêm các dòng bổ sung (liên kết, thống kê) vào các mục nhật ký',
-  'admin.plugins.perm.hook:user-data': 'Xóa hoặc xuất dữ liệu mà nó lưu về một người dùng (GDPR: xóa tài khoản và yêu cầu dữ liệu)',
-  'admin.plugins.perm.hook:trip-card-provider': 'Thêm huy hiệu nhỏ (trạng thái, số đếm) vào thẻ chuyến đi trên bảng điều khiển',
+  'admin.plugins.perm.hook:user-data':
+    'Xóa hoặc xuất dữ liệu mà nó lưu về một người dùng (GDPR: xóa tài khoản và yêu cầu dữ liệu)',
+  'admin.plugins.perm.hook:trip-card-provider':
+    'Thêm huy hiệu nhỏ (trạng thái, số đếm) vào thẻ chuyến đi trên bảng điều khiển',
+  'admin.plugins.perm.hook:notification-channel': 'Gửi thông báo của bạn qua một kênh bổ sung',
   'admin.plugins.perm.events:subscribe':
     'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',
-  'admin.plugins.perm.db:read:collab': 'Đọc ghi chú, bình chọn và tin nhắn trò chuyện của các chuyến đi mà người dùng hiện tại có quyền truy cập (cần add-on Collab)',
-  'admin.plugins.perm.db:read:files:content': 'Đọc nội dung (byte) tệp của các chuyến đi mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:read:collab':
+    'Đọc ghi chú, bình chọn và tin nhắn trò chuyện của các chuyến đi mà người dùng hiện tại có quyền truy cập (cần add-on Collab)',
+  'admin.plugins.perm.db:read:files:content':
+    'Đọc nội dung (byte) tệp của các chuyến đi mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.db:create:trips': 'Tạo chuyến đi mới thuộc sở hữu của người dùng hiện tại',
   'admin.plugins.perm.rates:read': 'Đọc tỷ giá hối đoái đã lưu cache của máy chủ',
   'admin.plugins.updateConsentTitle': 'Bản cập nhật này cần các quyền mới',
@@ -379,6 +397,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.reservationSlot': 'Chi tiết đặt chỗ',
   'admin.plugins.cap.replacesTabs': 'Thay thế các tab trình lập kế hoạch',
   'admin.plugins.cap.realtime': 'Cập nhật thời gian thực',
+  'admin.plugins.cap.notificationChannel': 'Kênh thông báo',
   'admin.plugins.cap.photos': 'Cung cấp ảnh',
   'admin.plugins.cap.calendar': 'Cung cấp sự kiện lịch',
   'admin.plugins.cap.placeDetails': 'Làm phong phú địa điểm',
