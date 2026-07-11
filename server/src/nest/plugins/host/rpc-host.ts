@@ -1069,9 +1069,17 @@ export class PluginRpcHost {
         if (scope === 'trip' && !deps.canAccessTripForNotify(targetId, actor)) throw new ForbiddenResource('the acting user is not a member of that trip');
         let link: string | undefined;
         if (typeof input.link === 'string' && input.link !== '') {
-          // Same open-redirect-safe relative-link rule the proxy uses: an in-app path only.
-          if (!input.link.startsWith('/') || input.link.startsWith('//')) throw new BadParams('link must be an in-app path starting with /');
-          link = input.link.slice(0, 512);
+          // In-app path only. A bare startsWith check misses `/\evil.com`, `/<tab>/…`
+          // etc. that browsers normalize to protocol-relative, so resolve against a
+          // throwaway origin and require the result to stay on it (same rule as the
+          // proxy's toRelativeLocation).
+          let safe: string | null = null;
+          try {
+            const u = new URL(input.link, 'http://x.invalid');
+            if (u.origin === 'http://x.invalid') safe = (u.pathname + u.search + u.hash);
+          } catch { /* invalid → rejected below */ }
+          if (!safe) throw new BadParams('link must be an in-app path starting with /');
+          link = safe.slice(0, 512);
         }
         return deps.sendPluginNotification(this.pluginId, { title, body, link, scope, targetId });
       });

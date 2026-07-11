@@ -26,11 +26,20 @@ export function discoverPlugins(db: BetterSqlite3.Database): { discovered: strin
     // pointing at the author's build dir — follow it so it discovers like a real dir.
     // stat() resolves the link; a dangling/broken link throws and is skipped.
     let isDir = entry.isDirectory();
+    const full = path.join(root, entry.name);
     if (!isDir && entry.isSymbolicLink()) {
       // A dev-link symlink only loads in dev-link mode; a stale link left on the
       // volume must not be discovered/registered on a normal (non-dev) boot.
       if (!devLinkEnabled()) continue;
-      try { isDir = fs.statSync(path.join(root, entry.name)).isDirectory(); } catch { isDir = false; }
+      try { isDir = fs.statSync(full).isDirectory(); } catch { isDir = false; }
+    } else if (isDir && !devLinkEnabled()) {
+      // On Windows a dev-link is a junction, which Dirent reports as a plain
+      // directory (isSymbolicLink() is false). Detect it the same way: if the
+      // entry resolves outside the plugins volume it is a link, so skip it
+      // unless dev-link mode is on. A normal dir realpaths back to itself.
+      try {
+        if (fs.realpathSync(full) !== path.join(fs.realpathSync(root), entry.name)) continue;
+      } catch { /* unreadable target — leave as a normal dir and let discovery fail loudly */ }
     }
     if (!isDir) continue;
     const dir = pluginCodeDir(entry.name);

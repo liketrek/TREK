@@ -258,6 +258,10 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   private async runDrainOnce(): Promise<void> {
     if (!pluginsEnabled()) return;
     try {
+      // Reap rows whose plugin no longer exists (uninstalled): its data dir was removed
+      // with it, so the erasure is already satisfied, and the plugin will never reactivate
+      // to ACK the row — left alone it would linger in the queue forever.
+      db.prepare('DELETE FROM plugin_user_erasure_queue WHERE plugin_id NOT IN (SELECT id FROM plugins)').run();
       // Only ACTIVE plugins can be delivered to; scope the window to them so a backlog
       // of erasures for permanently-inactive plugins can't starve deliverable ones.
       const active = this.supervisor.activeIds();
@@ -279,8 +283,8 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   /** GDPR portability: aggregate what every granted plugin holds about a user. An active
    * plugin whose export ERRORED and an inactive granted plugin are both flagged `pending`
    * (rather than silently omitted), so the export never reads as complete while missing data. */
-  async exportUserData(userId: number): Promise<Array<{ pluginId: string; data?: unknown; pending?: boolean }>> {
-    const out: Array<{ pluginId: string; data?: unknown; pending?: boolean }> = [];
+  async exportUserData(userId: number): Promise<Array<{ pluginId: string; data?: unknown; pending?: boolean; settings?: Record<string, unknown>; oauthConnected?: boolean }>> {
+    const out: Array<{ pluginId: string; data?: unknown; pending?: boolean; settings?: Record<string, unknown>; oauthConnected?: boolean }> = [];
     if (!pluginsEnabled()) return out;
     const rows = db.prepare('SELECT id, permissions FROM plugins').all() as Array<{ id: string; permissions: string | null }>;
     for (const r of rows) {
@@ -297,6 +301,39 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
         try { perms = JSON.parse(r.permissions ?? '[]'); } catch { perms = []; }
         if (Array.isArray(perms) && perms.includes('hook:user-data')) out.push({ pluginId: r.id, pending: true });
       }
+    }
+
+    // Fold in the host-side per-user data TREK stores itself (what erasePluginUserData
+    // deletes) so an access request isn't asymmetric with erasure: the user's plugin
+    // settings (secret fields masked) and which plugins they OAuth-linked. Raw tokens
+    // are never exported. This is supplementary to each plugin's own-db export above, so
+    // an unexpected failure here must not drop that primary data — it's best-effort.
+    try {
+      const byId = new Map(out.map((o) => [o.pluginId, o]));
+      const entryFor = (pluginId: string) => {
+        let e = byId.get(pluginId);
+        if (!e) { e = { pluginId }; out.push(e); byId.set(pluginId, e); }
+        return e;
+      };
+      const secretKeys = new Map<string, Set<string>>();
+      for (const f of db.prepare("SELECT plugin_id, field_key FROM plugin_settings_fields WHERE scope = 'user' AND secret = 1").all() as Array<{ plugin_id: string; field_key: string }>) {
+        let s = secretKeys.get(f.plugin_id);
+        if (!s) { s = new Set(); secretKeys.set(f.plugin_id, s); }
+        s.add(f.field_key);
+      }
+      for (const c of db.prepare('SELECT plugin_id, config FROM plugin_user_config WHERE user_id = ?').all(userId) as Array<{ plugin_id: string; config: string }>) {
+        let cfg: Record<string, unknown> = {};
+        try { cfg = JSON.parse(c.config || '{}'); } catch { /* ignore */ }
+        const secrets = secretKeys.get(c.plugin_id) ?? new Set<string>();
+        const masked: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(cfg)) masked[k] = secrets.has(k) ? '***' : v;
+        entryFor(c.plugin_id).settings = masked;
+      }
+      for (const t of db.prepare('SELECT DISTINCT plugin_id FROM plugin_oauth_tokens WHERE user_id = ?').all(userId) as Array<{ plugin_id: string }>) {
+        entryFor(t.plugin_id).oauthConnected = true;
+      }
+    } catch (err) {
+      console.warn('[plugins] GDPR export: host-side settings/oauth fold failed', err);
     }
     return out;
   }
