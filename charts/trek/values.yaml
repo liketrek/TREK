@@ -4,6 +4,11 @@ image:
   # tag: latest
   pullPolicy: IfNotPresent
 
+# Deployment update strategy. Recreate is the safe default for the single-writer SQLite
+# DB on a ReadWriteOnce volume (the old pod is torn down before the new one starts).
+# Set to RollingUpdate only if you back the data volume with ReadWriteMany storage.
+updateStrategy: Recreate
+
 # Optional image pull secrets for private registries
 imagePullSecrets: []
   # - name: my-registry-secret

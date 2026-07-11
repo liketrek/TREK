@@ -6,6 +6,12 @@ metadata:
     app: {{ include "trek.name" . }}
 spec:
   replicas: 1
+  # TREK is a single-writer SQLite app on a ReadWriteOnce PVC, so the default
+  # RollingUpdate would start a second pod holding the same volume before the old one
+  # exits — a Multi-Attach deadlock, or two processes on one travel.db. Recreate tears
+  # the old pod down first. Override to RollingUpdate only with a ReadWriteMany volume.
+  strategy:
+    type: {{ .Values.updateStrategy | default "Recreate" }}
   selector:
     matchLabels:
       app: {{ include "trek.name" . }}
