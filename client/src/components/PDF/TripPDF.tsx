@@ -5,7 +5,7 @@ import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship
 import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
-import { splitReservationDateTime } from '../../utils/formatters'
+import { formatMoney, splitReservationDateTime } from '../../utils/formatters'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 
 function renderLucideIcon(icon:LucideIcon, props = {}) {
@@ -92,9 +92,9 @@ function longDateRange(days, locale) {
   return `${f.toLocaleDateString(locale, { day: 'numeric', month: 'long', timeZone: 'UTC' })} – ${l.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}`
 }
 
-function dayCost(assignments, dayId, locale) {
+function dayCost(assignments, dayId, locale, currency) {
   const total = (assignments[String(dayId)] || []).reduce((s, a) => s + (parseFloat(a.place?.price) || 0), 0)
-  return total > 0 ? `${total.toLocaleString(locale)} EUR` : null
+  return total > 0 ? formatMoney(total, currency, locale) : null
 }
 
 // Pre-fetch place photos for all assigned places.
@@ -204,7 +204,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   const daysHtml = sorted.map((day, di) => {
     const assigned = assignments[String(day.id)] || []
     const notes = (dayNotes || []).filter(n => n.day_id === day.id)
-    const cost = dayCost(assignments, day.id, loc)
+    const cost = dayCost(assignments, day.id, loc, trip.currency)
 
     // Reservations for this day (hotel rendered via accommodations block; car middle-phase rendered in sidebar header only)
     const dayReservations = pdfGetTransportForDay(day.id)
@@ -320,7 +320,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
 
           const chips = [
             place.place_time ? `<span class="chip">${svgClock}${escHtml(place.place_time)}</span>` : '',
-            place.price && parseFloat(place.price) > 0 ? `<span class="chip chip-green">${svgEuro}${Number(place.price).toLocaleString(loc)} EUR</span>` : '',
+            place.price && parseFloat(place.price) > 0 ? `<span class="chip chip-green">${svgEuro}${formatMoney(Number(place.price), place.currency || trip.currency, loc)}</span>` : '',
           ].filter(Boolean).join('')
 
           return `
@@ -625,7 +625,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
         <div class="cover-stat-lbl">${escHtml(tr('pdf.planned'))}</div>
       </div>
       ${totalCost > 0 ? `<div>
-        <div class="cover-stat-num">${totalCost.toLocaleString(loc)}</div>
+        <div class="cover-stat-num">${formatMoney(totalCost, trip.currency, loc)}</div>
         <div class="cover-stat-lbl">${escHtml(tr('pdf.costLabel'))}</div>
       </div>` : ''}
     </div>
