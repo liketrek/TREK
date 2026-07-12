@@ -403,6 +403,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': '„İncelendi" ne anlama gelir',
   'admin.plugins.security.reviewedBody':
     'İncelenmiş bir eklenti, her sürümde bir TREK sorumlusu tarafından kötü amaçlı yazılıma karşı elle taranmıştır — düşmanca koda karşı kontrol edilmiştir, iyi çalışıp çalışmadığına göre değil. Bu, eklentinin zararsız olduğunun bir garantisi değildir.',
+  'admin.plugins.security.signedTitle': '„İmzalı" ne anlama gelir',
+  'admin.plugins.security.signedBody':
+    "TREK'in her kurulumda doğruladığı sağlama toplamı, dosyaların tam olarak dizinin kefil olduğu dosyalar olduğunu kanıtlar. Bir imza ise başka bir şeyi kanıtlar: dosyaların yazardan geldiğini ve yalnızca onun elindeki bir anahtarla imzalandığını. İmzalı bir eklentide her ikisi de vardır. İmzasız olan güvensiz değildir — yalnızca bir güvence eksiği taşır ve bugün dizindeki eklentilerin çoğu imzasızdır.",
+  'admin.plugins.signed': 'İmzalı',
+  'admin.plugins.signedHint': 'Kurulduğunda yazarın imzalama anahtarıyla doğrulandı',
+  'admin.plugins.unsigned': 'İmzasız',
+  'admin.plugins.unsignedHint':
+    'Dosyalar dizinin kefil olduğu dosyalarla eşleşiyor, ancak hiçbir şey onları yazara bağlamıyor. Bir güvence eksik — güvensiz değil.',
+  'admin.plugins.updateBlocked': 'Güncelleme engellendi — {reason}',
+  'admin.plugins.reviewBlock': 'İncele',
+  'admin.plugins.retrusted': 'Yeni imzalama anahtarına güvenildi — eklenti güncellendi',
+  'admin.plugins.sig.title': '{name} eklentisinin imzası doğrulanamadı',
+  'admin.plugins.sig.keyChangedBody':
+    'Yazarın imzalama anahtarı, bu eklentinin kurulduğu anahtar değil. Yazarlar anahtarlarını gerçekten değiştirir — ama eklentiyi ele geçiren bir saldırgan da tam olarak böyle görünürdü.',
+  'admin.plugins.sig.invalidBody':
+    'Dosyalar yazarın imzasıyla eşleşmiyor. Yazarın imzaladığı dosyalar bunlar değil — ya bozulmuşlar ya da kurcalanmışlar. Bu durum geçersiz kılınamaz.',
+  'admin.plugins.sig.missingBody':
+    'Bu eklenti siz kurduğunuzda imzalıydı, ancak yeni sürüm hiçbir imza içermiyor. TREK bu geriye gidişi sessizce kabul etmez. Bu durum geçersiz kılınamaz.',
+  'admin.plugins.sig.incompleteBody':
+    'Dizin kaydı yarım imzalı: bir yazar anahtarı bildiriyor ama sürüm imza taşımıyor (ya da tersi). Bu, eklenti tarafındaki bir hatadır. Bu durum geçersiz kılınamaz.',
+  'admin.plugins.sig.pinnedKey': 'Kurulduğu anahtar',
+  'admin.plugins.sig.newKey': 'Şimdi sunduğu anahtar',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK, meşru bir anahtar değişimini bir ele geçirmeden ayırt edemez — buradan bakıldığında ikisi birebir aynı görünür. Kabul etmeden önce yeni anahtarı, zaten güvendiğiniz bir kanaldan yazara doğrulatın. Doğruladığınızda eklenti güncellenir ve yeni anahtar hatırlanır.',
+  'admin.plugins.sig.retrustConfirm': 'Yeni anahtara güven ve güncelle',
+  'admin.plugins.sig.cancel': 'Güvenme',
+  'admin.plugins.sig.consentUnsigned':
+    'Bu sürümü yazarına bağlayan hiçbir şey yok — dosyalar dizinle eşleşiyor, ama yazar imzası taşımıyorlar.',
   'admin.plugins.security.trustTitle': 'Özetle',
   'admin.plugins.security.trustBody':
     'Bir eklenti yüklemek, herhangi bir üçüncü taraf uygulamasını yüklemek gibidir: yalnızca güvendiğiniz geliştiricilerin kodunu ekleyin ve şüpheye düştüğünüzde önce kendiniz inceleyin. TREK, üçüncü taraf eklentiler için hiçbir sorumluluk kabul etmez.',

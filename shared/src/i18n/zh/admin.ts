@@ -318,6 +318,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': '“已审核”的含义',
   'admin.plugins.security.reviewedBody':
     '已审核的插件，其每个版本都经过 TREK 维护者的人工恶意软件扫描 —— 检查的是有无恶意代码，而非它是否运行良好。这并不保证插件无害。',
+  'admin.plugins.security.signedTitle': '“已签名”的含义',
+  'admin.plugins.security.signedBody':
+    'TREK 在每次安装时校验的校验和，证明这些文件正是插件库所担保的那些文件。签名证明的则是另一回事：它们出自作者本人，并以只有作者持有的密钥签署。已签名的插件两者兼备。未签名并不意味着不安全 —— 它只是少了一重保证，而目前插件库中的大多数插件都未签名。',
+  'admin.plugins.signed': '已签名',
+  'admin.plugins.signedHint': '安装时已用作者的签名密钥验证过',
+  'admin.plugins.unsigned': '未签名',
+  'admin.plugins.unsignedHint':
+    '文件与插件库所担保的内容一致，但没有任何东西能把它们与作者关联起来。少了一重保证 —— 但并非不安全。',
+  'admin.plugins.updateBlocked': '更新已阻止 —— {reason}',
+  'admin.plugins.reviewBlock': '查看',
+  'admin.plugins.retrusted': '已信任新的签名密钥 —— 插件已更新',
+  'admin.plugins.sig.title': '无法验证“{name}”的签名',
+  'admin.plugins.sig.keyChangedBody':
+    '作者的签名密钥不是安装此插件时所用的那把。作者确实会轮换密钥 —— 但接管了该插件的攻击者，看上去也会与此一模一样。',
+  'admin.plugins.sig.invalidBody':
+    '这些文件与作者的签名不符。它们不是作者签署的内容 —— 要么已损坏，要么被篡改。此项无法忽略。',
+  'admin.plugins.sig.missingBody':
+    '你安装此插件时它是有签名的，但新版本未附带任何签名。TREK 不会悄然接受这种降级。此项无法忽略。',
+  'admin.plugins.sig.incompleteBody':
+    '插件库中的条目只签了一半：它声明了作者密钥，但该版本没有签名（或反之）。这是插件一方的疏漏。此项无法忽略。',
+  'admin.plugins.sig.pinnedKey': '安装时使用的密钥',
+  'admin.plugins.sig.newKey': '它现在提供的密钥',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK 无法区分正当的密钥轮换与一次接管 —— 从这里看，两者别无二致。在接受之前，请通过你原本就信任的渠道向作者核实这把新密钥。核实并接受后，插件将被更新，新密钥也会被记住。',
+  'admin.plugins.sig.retrustConfirm': '信任新密钥并更新',
+  'admin.plugins.sig.cancel': '不信任',
+  'admin.plugins.sig.consentUnsigned':
+    '没有任何东西能把这个版本与它的作者关联起来 —— 文件与插件库一致，但不带作者签名。',
   'admin.plugins.security.trustTitle': '归根结底',
   'admin.plugins.security.trustBody':
     '安装插件就如同安装任何第三方应用：只添加来自你信任的作者的代码，如有疑虑，请先自行检查。TREK 对第三方插件不承担任何责任。',

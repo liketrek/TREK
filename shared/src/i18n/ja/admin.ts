@@ -372,6 +372,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': '「レビュー済み」の意味',
   'admin.plugins.security.reviewedBody':
     'レビュー済みのプラグインは、TREKのメンテナーが各バージョンで手動でマルウェアの有無を確認したものです — 悪意のあるコードの有無を確認したものであり、正しく動作するかどうかを確認したものではありません。プラグインが無害であることを約束するものではありません。',
+  'admin.plugins.security.signedTitle': '「署名済み」の意味',
+  'admin.plugins.security.signedBody':
+    'TREKがインストールのたびに検証するチェックサムは、ファイルがレジストリの保証するものとまったく同一であることを証明します。署名が証明するのは別のことです。そのファイルが作者本人から届いたこと、そして作者だけが持つ鍵で署名されていることです。署名済みのプラグインはその両方を備えています。署名がないプラグインが危険というわけではありません — 保証がひとつ少ないだけであり、現時点ではレジストリのプラグインの多くは署名されていません。',
+  'admin.plugins.signed': '署名済み',
+  'admin.plugins.signedHint': 'インストール時に作者の署名鍵で検証済み',
+  'admin.plugins.unsigned': '署名なし',
+  'admin.plugins.unsignedHint':
+    'ファイルはレジストリが保証するものと一致しますが、作者と結びつけるものはありません。保証がひとつ少ないだけで、危険というわけではありません。',
+  'admin.plugins.updateBlocked': 'アップデートをブロックしました — {reason}',
+  'admin.plugins.reviewBlock': '確認する',
+  'admin.plugins.retrusted': '新しい署名鍵を信頼しました — プラグインを更新しました',
+  'admin.plugins.sig.title': '{name}の署名を検証できませんでした',
+  'admin.plugins.sig.keyChangedBody':
+    '作者の署名鍵が、このプラグインをインストールしたときの鍵と異なります。作者が鍵を更新することは実際にあります — ただし、プラグインを乗っ取った攻撃者も、ここからはまったく同じように見えます。',
+  'admin.plugins.sig.invalidBody':
+    'ファイルが作者の署名と一致しません。作者が署名したものではなく、破損したか、改ざんされたかのどちらかです。これを上書きすることはできません。',
+  'admin.plugins.sig.missingBody':
+    'このプラグインはインストール時には署名されていましたが、新しいバージョンには署名がありません。TREKはこの後退を黙って受け入れることはしません。これを上書きすることはできません。',
+  'admin.plugins.sig.incompleteBody':
+    'レジストリの登録内容が中途半端です。作者の鍵は宣言されているのに、このバージョンには署名がありません（またはその逆です）。これはプラグイン側の不備です。これを上書きすることはできません。',
+  'admin.plugins.sig.pinnedKey': 'インストール時の鍵',
+  'admin.plugins.sig.newKey': '現在提示されている鍵',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREKには、正当な鍵の更新と乗っ取りを見分けることはできません — ここからは両者はまったく同じに見えます。受け入れる前に、すでに信頼している経路で作者に新しい鍵を確認してください。受け入れると、プラグインが更新され、新しい鍵が記憶されます。',
+  'admin.plugins.sig.retrustConfirm': '新しい鍵を信頼して更新',
+  'admin.plugins.sig.cancel': '信頼しない',
+  'admin.plugins.sig.consentUnsigned':
+    'このバージョンと作者を結びつけるものはありません — ファイルはレジストリと一致しますが、作者の署名は付いていません。',
   'admin.plugins.security.trustTitle': '結論',
   'admin.plugins.security.trustBody':
     'プラグインのインストールは、サードパーティ製アプリのインストールと同じです。信頼できる作者のコードのみを追加し、少しでも疑わしい場合は、まずご自身で内容を確認してください。TREKはサードパーティ製プラグインについて一切の責任を負いません。',

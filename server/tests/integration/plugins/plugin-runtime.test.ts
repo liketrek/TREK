@@ -13,7 +13,8 @@ const { testDb } = vi.hoisted(() => {
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE plugins (
     id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, version TEXT, permissions TEXT DEFAULT '[]', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT DEFAULT '',
-    config TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', capabilities TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT);
+    config TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', capabilities TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT,
+    source_repo TEXT, author_pubkey TEXT, update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
     CREATE TABLE settings (user_id INTEGER, key TEXT, value TEXT);
@@ -25,7 +26,15 @@ const { testDb } = vi.hoisted(() => {
     CREATE TABLE plugin_capability_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, acting_user_id INTEGER, method TEXT, resource TEXT, code TEXT, ts TEXT, prev_hash TEXT, hash TEXT);
     CREATE TABLE plugin_scheduled_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT NOT NULL, name TEXT NOT NULL, due_at INTEGER NOT NULL, payload TEXT NOT NULL DEFAULT 'null', every_ms INTEGER, created_at TEXT DEFAULT (datetime('now')), UNIQUE(plugin_id, name));
     CREATE TABLE plugin_user_erasure_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT NOT NULL, user_id INTEGER NOT NULL, created_at TEXT DEFAULT (datetime('now')), UNIQUE(plugin_id, user_id));
-    CREATE TABLE addons (id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0);`);
+    CREATE TABLE addons (id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0);
+    -- The ADMIN audit log. Re-trusting a signing key is precisely the event that has to be
+    -- reconstructible after an incident, so the write is asserted rather than assumed —
+    -- writeAudit swallows its own failures, so without this table the audit silently did
+    -- nothing and every test still passed. No users FK: this slim db has no users table
+    -- (writeAudit's resolveUserEmail already degrades to "uid:N" on its own).
+    CREATE TABLE audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      user_id INTEGER, action TEXT NOT NULL, resource TEXT, details TEXT, ip TEXT);`);
   return { testDb: db };
 });
 vi.mock('../../../src/db/database', () => ({ db: testDb, canAccessTrip: () => undefined }));
@@ -498,5 +507,127 @@ describe('PluginRuntimeService inter-plugin (exports + events)', () => {
   it('emitPluginEvent validates the declared event and fans out without throwing', () => {
     expect(() => runtime.emitPluginEvent('lib', 'ping', { x: 1 })).not.toThrow();
     expect(() => runtime.emitPluginEvent('lib', 'not-declared', {})).toThrow(/does not declare event/);
+  });
+});
+
+/**
+ * Re-trust: re-pinning a ROTATED author signing key and updating, in one call.
+ *
+ * The one-call shape is the safety property. A re-pin that returned and left the client
+ * to then call /update would leave a window where author_pubkey is pinned to a key no
+ * install has ever verified against — and if that second call never arrives (the admin
+ * closes the tab), the plugin just sits there, pinned to an unverified key.
+ */
+describe('PluginRuntimeService.retrust', () => {
+  const seed = (id: string, pinned: string) => {
+    fs.mkdirSync(path.join(codeRoot, id, 'server'), { recursive: true });
+    fs.writeFileSync(path.join(codeRoot, id, 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
+    testDb
+      .prepare(
+        `INSERT INTO plugins (id, status, enabled, version, permissions, granted_permissions, config, source_repo, author_pubkey,
+                              update_block_code, update_block_detail, update_block_version)
+         VALUES (?,'active',1,'1.0.0','["db:own"]','["db:own"]','{}','acme/x',?,'SIGNATURE_KEY_CHANGED','key changed','2.0.0')`,
+      )
+      .run(id, pinned);
+  };
+
+  /** A registry whose install() re-pins to the new key, as the real one does. */
+  const registryFor = (id: string) =>
+    ({
+      assertRetrustable: vi.fn(async (_id: string, key: string) => ({ authorPublicKey: key })),
+      install: vi.fn(async (_id: string, opts?: { retrustKey?: string }) => {
+        testDb
+          .prepare("UPDATE plugins SET author_pubkey = ?, version = '2.0.0', update_block_code = NULL, update_block_version = NULL WHERE id = ?")
+          .run(opts?.retrustKey, id);
+        return { id, version: '2.0.0' };
+      }),
+    }) as unknown as import('../../../src/nest/plugins/registry/registry.service').PluginRegistryService;
+
+  it('re-pins AND installs in one call: the new key is pinned, the version moved, the block gone', async () => {
+    seed('rt-ok', 'OLDKEY');
+    const registry = registryFor('rt-ok');
+    const rt = new PluginRuntimeService(registry);
+    await rt.activate('rt-ok');
+
+    await rt.retrust('rt-ok', '2.0.0', 'NEWKEY', { userId: 1, ip: '10.0.0.1' });
+
+    // The condition is re-derived SERVER-side before anything moves — the UI hiding the
+    // button is a convenience, not the control.
+    expect(registry.assertRetrustable).toHaveBeenCalledWith('rt-ok', 'NEWKEY');
+    const row = testDb.prepare("SELECT author_pubkey, version, update_block_code FROM plugins WHERE id='rt-ok'").get() as {
+      author_pubkey: string | null;
+      version: string;
+      update_block_code: string | null;
+    };
+    expect(row.author_pubkey).toBe('NEWKEY');
+    expect(row.author_pubkey).not.toBeNull(); // never NULL: that would re-open the unsigned path
+    expect(row.version).toBe('2.0.0');
+    expect(row.update_block_code).toBeNull(); // no half-state left for the admin to trip over
+
+    // Audited. Both fingerprints are the point: after an incident, "which key did we move
+    // FROM, and to what?" is the question, and an entry that records only the new key
+    // cannot answer it. This goes to the ADMIN log — a lifecycle act by an admin does not
+    // belong in the plugin capability log, which answers "what have plugins done in my name?"
+    const audit = testDb.prepare("SELECT * FROM audit_log WHERE action = 'admin.plugin_retrust'").get() as {
+      user_id: number;
+      resource: string;
+      details: string;
+      ip: string;
+    };
+    expect(audit).toBeDefined();
+    expect(audit.resource).toBe('rt-ok');
+    expect(audit.user_id).toBe(1);
+    expect(audit.ip).toBe('10.0.0.1');
+    expect(JSON.parse(audit.details)).toEqual({
+      plugin: 'rt-ok',
+      version: '2.0.0',
+      oldKeyFingerprint: 'OLDKEY',
+      newKeyFingerprint: 'NEWKEY',
+    });
+    await rt.deactivate('rt-ok');
+  });
+
+  it('changes nothing when the pre-check refuses (an invalid signature is not re-trustable)', async () => {
+    seed('rt-no', 'OLDKEY');
+    const registry = registryFor('rt-no');
+    vi.mocked(registry.assertRetrustable).mockRejectedValue(new Error('nothing to re-trust'));
+    const rt = new PluginRuntimeService(registry);
+
+    await expect(rt.retrust('rt-no', '2.0.0', 'NEWKEY', { userId: 1 })).rejects.toThrow(/nothing to re-trust/);
+
+    expect(registry.install).not.toHaveBeenCalled();
+    const row = testDb.prepare("SELECT author_pubkey, update_block_code FROM plugins WHERE id='rt-no'").get() as {
+      author_pubkey: string;
+      update_block_code: string;
+    };
+    expect(row.author_pubkey).toBe('OLDKEY');
+    expect(row.update_block_code).toBe('SIGNATURE_KEY_CHANGED'); // the block stands
+
+    // …and nothing is audited. A refused re-trust must not leave a trace that reads like
+    // one that happened — an audit log that logs attempts as if they were acts is worse
+    // than no audit log, because it is believed.
+    const audited = testDb
+      .prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.plugin_retrust' AND resource = 'rt-no'")
+      .get() as { n: number };
+    expect(audited.n).toBe(0);
+  });
+
+  // Activating the plugin at its OLD version resolves nothing. If an off/on toggle wiped
+  // the block, the admin would silently lose the warning while it still applied — which is
+  // exactly the "quietly stops updating" failure the block exists to prevent.
+  it('activate does NOT clear a recorded update block', async () => {
+    seed('rt-act', 'OLDKEY');
+    const rt = new PluginRuntimeService(registryFor('rt-act'));
+
+    await rt.deactivate('rt-act');
+    await rt.activate('rt-act');
+
+    const row = testDb.prepare("SELECT update_block_code, update_block_version FROM plugins WHERE id='rt-act'").get() as {
+      update_block_code: string;
+      update_block_version: string;
+    };
+    expect(row.update_block_code).toBe('SIGNATURE_KEY_CHANGED');
+    expect(row.update_block_version).toBe('2.0.0');
+    await rt.deactivate('rt-act');
   });
 });

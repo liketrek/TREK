@@ -23,6 +23,8 @@ import { scanForNativeBinaries } from './install/native-scan';
 import { devLinkEnabled, DEV_LINK_SOURCE } from './dev-link';
 import { pluginCodeDir, pluginDataDir } from './paths';
 import { PluginRegistryService } from './registry/registry.service';
+import { keyFingerprint } from './signature-status';
+import { writeAudit } from '../../services/auditLog';
 import { isAddonEnabled } from '../../services/adminService';
 import type { PluginDependency } from './install/manifest';
 import type { VersionMismatch, PluginDepRow } from './dependencies';
@@ -586,7 +588,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
    * Install runs first so a failed download/signature/integrity check leaves the
    * currently-running child untouched (it keeps serving the old code from memory).
    */
-  async update(id: string): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
+  async update(id: string, opts?: { version?: string; retrustKey?: string }): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
     const before = db.prepare('SELECT enabled, granted_permissions FROM plugins WHERE id = ?').get(id) as
       | { enabled: number; granted_permissions: string }
       | undefined;
@@ -595,7 +597,8 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     const wasEnabled = before.enabled === 1;
     const granted = new Set(parseArray(before.granted_permissions));
 
-    const res = await this.registry.install(id); // swaps code + refreshes declared permissions; keeps granted
+    // swaps code + refreshes declared permissions; keeps granted
+    const res = await this.registry.install(id, { version: opts?.version, retrustKey: opts?.retrustKey });
 
     const declared = parseArray(
       (db.prepare('SELECT permissions FROM plugins WHERE id = ?').get(id) as { permissions: string }).permissions,
@@ -612,6 +615,54 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // New rights requested (or it was already disabled): leave it inactive until
     // an admin explicitly consents by activating it.
     return { version: res.version, activated: false, newPermissions, newEgress };
+  }
+
+  /**
+   * Re-trust a plugin whose author signing key ROTATED, and update it — in ONE call.
+   *
+   * The single call is the point. A re-pin that returns and waits for the client to
+   * then call /update leaves a window where `author_pubkey` is pinned to a key no
+   * install has ever been verified against; if that second call never arrives (the
+   * admin closes the tab), the plugin sits pinned to an unverified key. So: either the
+   * new key verifies the artifact and the plugin lands on the new version with the new
+   * key pinned, or nothing changes at all.
+   *
+   * The safety properties live below this call, not here:
+   *  - assertRetrustable re-derives the condition server-side, so this refuses anything
+   *    other than a genuinely changed key (an invalid signature is NOT overridable),
+   *    and refuses a key that changed again since the admin was shown it.
+   *  - install() still verifies the artifact under the new key before pinning it, and
+   *    only ever pins a key — never clears one to NULL.
+   */
+  async retrust(
+    id: string,
+    version: string,
+    publicKey: string,
+    actor: { userId: number | null; ip?: string | null },
+  ): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
+    if (!this.registry) throw new Error('registry service unavailable');
+    const before = db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string | null } | undefined;
+    const entry = await this.registry.assertRetrustable(id, publicKey); // throws unless SIGNATURE_KEY_CHANGED
+
+    const res = await this.update(id, { version, retrustKey: publicKey });
+
+    // Audited because re-trusting a signing key is precisely the event that has to be
+    // reconstructible after an incident. This goes to the ADMIN audit log, not the
+    // plugin capability log — that one answers "what have plugins done in my name?"
+    // and is shown to end users; a lifecycle action by an admin does not belong there.
+    writeAudit({
+      userId: actor.userId,
+      action: 'admin.plugin_retrust',
+      resource: id,
+      details: {
+        plugin: id,
+        version: res.version,
+        oldKeyFingerprint: keyFingerprint(before?.author_pubkey),
+        newKeyFingerprint: keyFingerprint(entry.authorPublicKey),
+      },
+      ip: actor.ip ?? null,
+    });
+    return res;
   }
 
   /**
@@ -675,8 +726,13 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.symlinkSync(sourceDir, dest, 'junction'); // Windows junction (no elevation); POSIX ignores the type -> dir symlink
     discoverPlugins(db); // registers/updates the row from the linked manifest, INACTIVE
+    // Same as a sideload: the plugin has left the registry trust model, so a block that
+    // described a refused REGISTRY update no longer describes the code that will run.
     db.prepare(
-      `UPDATE plugins SET source_repo = ?, source_commit = NULL, sha256 = NULL, author_pubkey = NULL, status = 'inactive', enabled = 0 WHERE id = ?`,
+      `UPDATE plugins SET source_repo = ?, source_commit = NULL, sha256 = NULL, author_pubkey = NULL,
+                          update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL,
+                          status = 'inactive', enabled = 0
+       WHERE id = ?`,
     ).run(DEV_LINK_SOURCE, id);
     this.watchLinked(id, sourceDir);
     return { id, version: manifest.version, replaced };

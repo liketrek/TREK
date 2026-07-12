@@ -364,6 +364,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Mit jelent az „Ellenőrizve"',
   'admin.plugins.security.reviewedBody':
     'Egy ellenőrzött plugint egy TREK karbantartó minden verziónál kézzel átvizsgált kártevők után — ellenséges kód szempontjából ellenőrizte, nem pedig azt, hogy jól működik-e. Ez nem ígéret arra, hogy a plugin ártalmatlan.',
+  'admin.plugins.security.signedTitle': 'Mit jelent az „Aláírva"',
+  'admin.plugins.security.signedBody':
+    'Az ellenőrzőösszeg, amelyet a TREK minden telepítéskor ellenőriz, azt bizonyítja, hogy a fájlok pontosan azok, amelyekért a jegyzék jótáll. Az aláírás mást bizonyít: azt, hogy a szerzőtől származnak, olyan kulccsal aláírva, amelyet csak ő birtokol. Egy aláírt plugin mindkettővel rendelkezik. Az aláírás nélküli nem veszélyes — egyszerűen eggyel kevesebb garanciát hordoz, és a jegyzékben ma a legtöbb plugin aláírás nélküli.',
+  'admin.plugins.signed': 'Aláírva',
+  'admin.plugins.signedHint': 'Telepítéskor ellenőrizve a szerző aláírókulcsával',
+  'admin.plugins.unsigned': 'Aláírás nélkül',
+  'admin.plugins.unsignedHint':
+    'A fájlok megegyeznek azzal, amiért a jegyzék jótáll, de semmi sem köti őket a szerzőhöz. Eggyel kevesebb garancia — nem veszélyes.',
+  'admin.plugins.updateBlocked': 'Frissítés blokkolva — {reason}',
+  'admin.plugins.reviewBlock': 'Áttekintés',
+  'admin.plugins.retrusted': 'Az új aláírókulcs elfogadva — a plugin frissült',
+  'admin.plugins.sig.title': 'A(z) {name} aláírását nem sikerült ellenőrizni',
+  'admin.plugins.sig.keyChangedBody':
+    'A szerző aláírókulcsa nem az, amellyel ezt a plugint telepítetted. A szerzők valóban cserélnek kulcsot — de egy támadó, aki átvette a plugint, pontosan így nézne ki.',
+  'admin.plugins.sig.invalidBody':
+    'A fájlok nem egyeznek a szerző aláírásával. Nem azok, amiket a szerző aláírt — vagy megsérültek, vagy módosították őket. Ez nem hagyható figyelmen kívül.',
+  'admin.plugins.sig.missingBody':
+    'Ez a plugin alá volt írva, amikor telepítetted, de az új verzió nem tartalmaz aláírást. A TREK nem fogadja el csendben ezt a visszalépést. Ez nem hagyható figyelmen kívül.',
+  'admin.plugins.sig.incompleteBody':
+    'A jegyzékbeli bejegyzés félig aláírt: szerzői kulcsot deklarál, de a verzió nem hordoz aláírást (vagy fordítva). Ez a plugin oldalán elkövetett hiba. Ez nem hagyható figyelmen kívül.',
+  'admin.plugins.sig.pinnedKey': 'A telepítéskor használt kulcs',
+  'admin.plugins.sig.newKey': 'A most kínált kulcs',
+  'admin.plugins.sig.confirmOutOfBand':
+    'A TREK nem tudja megkülönböztetni a jogos kulcscserét az átvételtől — innen nézve a kettő azonos. Erősítsd meg az új kulcsot a szerzőnél egy olyan csatornán, amelyben már megbízol, mielőtt elfogadod. Amint ezt megteszed, a plugin frissül, és a TREK megjegyzi az új kulcsot.',
+  'admin.plugins.sig.retrustConfirm': 'Új kulcs megbízhatónak jelölése és frissítés',
+  'admin.plugins.sig.cancel': 'Ne bízz meg benne',
+  'admin.plugins.sig.consentUnsigned':
+    'Semmi sem köti ezt a verziót a szerzőjéhez — a fájlok megegyeznek a jegyzékkel, de nem hordoznak szerzői aláírást.',
   'admin.plugins.security.trustTitle': 'A lényeg',
   'admin.plugins.security.trustBody':
     'Egy plugin telepítése olyan, mint bármely harmadik féltől származó alkalmazás telepítése: csak megbízható szerzőktől adj hozzá kódot, és kétség esetén előbb magad vizsgáld meg. A TREK semmilyen felelősséget nem vállal a harmadik féltől származó pluginokért.',

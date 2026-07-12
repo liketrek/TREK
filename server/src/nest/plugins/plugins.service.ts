@@ -4,6 +4,7 @@ import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
 import { readAudit } from './host/plugin-audit';
+import { keyFingerprint } from './signature-status';
 import { pluginBudgetUsage } from './host/create-rpc-host';
 import { isAddonEnabled } from '../../services/adminService';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
@@ -35,6 +36,10 @@ interface PluginRawRow {
   permissions: string;
   capabilities: string;
   dependencies: string | null;
+  author_pubkey: string | null;
+  update_block_code: string | null;
+  update_block_detail: string | null;
+  update_block_version: string | null;
 }
 
 /** Hosts an admin has added for a plugin (0 unless it declared operatorEgress). */
@@ -72,6 +77,18 @@ export interface PluginListItem {
   dependencyStatus: PluginDependencyStatus;
   /** The concrete blockers, so the UI can render chips + the resolve dialog. */
   dependencyIssues: { disabledAddons: string[]; missing: PluginDependency[]; versionMismatch: VersionMismatch[] };
+  /**
+   * The author's signature was verified and their key TOFU-pinned at install.
+   * False means the bytes matched the registry's sha256 pin and nothing more — one
+   * fewer guarantee, not "insecure". Meaningless for a sideloaded/dev-linked plugin,
+   * which sits outside the registry trust model entirely; the UI badges those instead.
+   */
+  signed: boolean;
+  /** Short, human-comparable form of the pinned key — for reading out to the author. */
+  keyFingerprint: string | null;
+  /** Why an update was refused, if one was. `version` is the registry version that was
+   * refused, so a caller can treat the block as stale once a newer one is on offer. */
+  updateBlock: { code: string; detail: string | null; version: string | null } | null;
 }
 
 @Injectable()
@@ -80,7 +97,8 @@ export class PluginsService {
     const rows = db
       .prepare(
         `SELECT id, name, description, type, icon, version, status, enabled, last_error, reviewed_at, source_repo,
-                permissions, capabilities, dependencies, operator_egress
+                permissions, capabilities, dependencies, operator_egress,
+                author_pubkey, update_block_code, update_block_detail, update_block_version
          FROM plugins
          ORDER BY sort_order, name`,
       )
@@ -97,7 +115,15 @@ export class PluginsService {
         : state.missing.length || state.versionMismatch.length
           ? 'missingPlugin'
           : 'ok';
-      const { dependencies: _raw, operator_egress: _oe, ...rest } = r as PluginRawRow & { operator_egress?: number };
+      const {
+        dependencies: _raw,
+        operator_egress: _oe,
+        author_pubkey,
+        update_block_code,
+        update_block_detail,
+        update_block_version,
+        ...rest
+      } = r as PluginRawRow & { operator_egress?: number };
       return {
         ...rest,
         operatorEgress: _oe === 1,
@@ -105,6 +131,11 @@ export class PluginsService {
         dependencies: deps,
         dependencyStatus,
         dependencyIssues: { disabledAddons, missing: state.missing, versionMismatch: state.versionMismatch },
+        signed: !!author_pubkey,
+        keyFingerprint: keyFingerprint(author_pubkey),
+        updateBlock: update_block_code
+          ? { code: update_block_code, detail: update_block_detail, version: update_block_version }
+          : null,
       };
     });
     return { enabled: pluginsEnabled(), devLink: devLinkEnabled(), plugins };

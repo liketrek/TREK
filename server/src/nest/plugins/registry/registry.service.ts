@@ -6,7 +6,8 @@ import { db } from '../../../db/database';
 import type { PluginDependency } from '../install/manifest';
 import { pluginCodeDir, pluginsCodeRoot, pluginsDataRoot } from '../paths';
 import { safeDownload, sha256Matches } from '../install/safe-fetch';
-import { verifyAuthorSignature } from '../install/verify-signature';
+import { verifyAuthorSignature, SignatureError } from '../install/verify-signature';
+import { clearUpdateBlock, isSignatureCode, setUpdateBlock, RETRUSTABLE_CODE } from '../signature-status';
 import { extractArchive } from '../install/safe-extract';
 import { scanForNativeBinaries } from '../install/native-scan';
 import { parseJsonText, parseManifest } from '../install/manifest';
@@ -97,7 +98,21 @@ export function __clearRegistryCacheForTests(): void {
   _detailCache.clear();
 }
 
-export class RegistryError extends Error {}
+/**
+ * A registry/install failure. `code` is machine-readable and MUST survive out to
+ * the client: the admin UI decides whether to offer a re-trust override from the
+ * code, never by string-matching the message. A client that matches on prose will
+ * eventually offer the override on the wrong condition — which is the single worst
+ * outcome this surface could produce.
+ */
+export class RegistryError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+  ) {
+    super(message);
+  }
+}
 
 @Injectable()
 export class PluginRegistryService {
@@ -125,8 +140,16 @@ export class PluginRegistryService {
     }
   }
 
-  /** The browse list the admin UI renders (metadata only, no code). */
-  async browse(force = false): Promise<Array<Omit<RegistryEntry, 'versions'> & { latest: string | null; minTrekVersion: string | null; requiredAddons: string[]; pluginDependencies: PluginDependency[]; screenshotUrl: string | null }>> {
+  /**
+   * The browse list the admin UI renders (metadata only, no code).
+   *
+   * `signed` describes the LATEST version (browse already treats versions[0] as
+   * latest), so on a version-constrained install the badge can describe a version
+   * other than the artifact actually fetched. Accepted for a Discover card.
+   * `authorPublicKey` is exposed in full — it is a public key, and the re-trust
+   * round-trip compares it exactly (a truncated fingerprint would be a weak check).
+   */
+  async browse(force = false): Promise<Array<Omit<RegistryEntry, 'versions'> & { latest: string | null; minTrekVersion: string | null; requiredAddons: string[]; pluginDependencies: PluginDependency[]; screenshotUrl: string | null; signed: boolean; authorPublicKey: string | null }>> {
     const reg = await this.fetchRegistry(force);
     return reg.plugins.map((p) => {
       const latest = p.versions[0] ?? null;
@@ -137,6 +160,8 @@ export class PluginRegistryService {
         latest: latest?.version ?? null, minTrekVersion: latest?.minTrekVersion ?? null,
         requiredAddons: latest?.requiredAddons ?? [], pluginDependencies: latest?.pluginDependencies ?? [],
         screenshotUrl: latest ? rawFileUrl(p.repo, latest.commitSha, 'docs/screenshot.png') : null,
+        signed: !!p.authorPublicKey && !!latest?.signature,
+        authorPublicKey: p.authorPublicKey ?? null,
       };
     });
   }
@@ -176,6 +201,8 @@ export class PluginRegistryService {
       size: latest?.size ?? null, publishedAt: latest?.publishedAt ?? null,
       requiredAddons: latest?.requiredAddons ?? [], pluginDependencies: latest?.pluginDependencies ?? [],
       screenshotUrl: latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null,
+      signed: !!entry.authorPublicKey && !!latest?.signature,
+      authorPublicKey: entry.authorPublicKey ?? null,
       manifest,
     };
     // Don't negative-cache a transiently failed manifest fetch — the next
@@ -209,8 +236,16 @@ export class PluginRegistryService {
     return [...candidates].sort((a, b) => semver.rcompare(a.version, b.version))[0];
   }
 
-  /** Install a version from the registry. Returns the installed plugin id + version. */
-  async install(id: string, opts?: { version?: string; constraint?: string }): Promise<{ id: string; version: string }> {
+  /**
+   * Install a version from the registry. Returns the installed plugin id + version.
+   *
+   * `retrustKey` is the admin's explicit "I have confirmed this new signing key with
+   * the author out-of-band" override, and it only lifts the TOFU key-change stop —
+   * the artifact must STILL verify under that key (see verifySignatureAndTofu), so a
+   * blessed key that doesn't actually sign the code is refused like any other bad
+   * signature. It is never a way to install something unverified.
+   */
+  async install(id: string, opts?: { version?: string; constraint?: string; retrustKey?: string }): Promise<{ id: string; version: string }> {
     const reg = await this.fetchRegistry();
     const entry = reg.plugins.find((p) => p.id === id);
     if (!entry) throw new RegistryError(`plugin ${id} not in registry`);
@@ -228,7 +263,14 @@ export class PluginRegistryService {
     // 2b. author signature (opt-in) + TOFU key pin. Unsigned plugins skip this
     // and install on sha256 alone (unchanged behaviour); a signed plugin must
     // verify, and its author key must match the one pinned on first install.
-    this.verifySignatureAndTofu(id, bytes, entry, ver);
+    // A refusal is REMEMBERED (the plugin keeps running on its old code, so the
+    // reason must outlive the toast) and re-thrown untouched.
+    try {
+      this.verifySignatureAndTofu(id, bytes, entry, ver, opts?.retrustKey);
+    } catch (e) {
+      if (e instanceof RegistryError && isSignatureCode(e.code)) setUpdateBlock(id, e.code, e.message, ver.version);
+      throw e;
+    }
 
     // 3. zip/tar-slip-safe extract to staging
     const staging = path.join(pluginsDataRoot(), '.staging', `${id}-${ver.version}-${Date.now()}`);
@@ -253,10 +295,16 @@ export class PluginRegistryService {
       db.prepare('UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ? WHERE id = ?').run(
         entry.repo, ver.commitSha, ver.sha256, entry.reviewedAt ?? null, id,
       );
-      // Pin the author key on first successful install of a signed plugin (TOFU).
+      // Pin the author key on first successful install of a signed plugin (TOFU) —
+      // and, after a re-trust, re-pin to the new key the admin blessed. Only ever set
+      // to a key the artifact just verified under; NEVER cleared to NULL, because a
+      // NULL pin re-opens the "was never signed" path that accepts an unsigned update.
       if (entry.authorPublicKey) {
         db.prepare('UPDATE plugins SET author_pubkey = ? WHERE id = ?').run(entry.authorPublicKey, id);
       }
+      // The plugin is now on new code that passed every check — whatever refusal was
+      // recorded before no longer describes reality.
+      clearUpdateBlock(id);
       return { id, version: ver.version };
     } finally {
       fs.rmSync(staging, { recursive: true, force: true });
@@ -334,9 +382,17 @@ export class PluginRegistryService {
       // an existing row's status, so replacing a plugin that was active must not
       // leave the new code marked active — the admin re-activates (and re-consents
       // to permissions) explicitly.
-      db.prepare("UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ?, author_pubkey = NULL, status = 'inactive', enabled = 0 WHERE id = ?").run(
-        'local:upload', null, null, null, staged.id,
-      );
+      //
+      // The update-block goes too. It described a REGISTRY update being refused, and this
+      // plugin has just left the registry trust model entirely — the code is now whatever
+      // the admin uploaded. Leaving the block would have the row insist an update was
+      // blocked over a signing key that no longer applies to the code that is running.
+      db.prepare(
+        `UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ?, author_pubkey = NULL,
+                            update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL,
+                            status = 'inactive', enabled = 0
+         WHERE id = ?`,
+      ).run('local:upload', null, null, null, staged.id);
     } finally {
       fs.rmSync(staged.stagingDir, { recursive: true, force: true });
     }
@@ -349,26 +405,88 @@ export class PluginRegistryService {
    * - Neither key nor signature → unsigned plugin, skip (opt-in).
    * - Key present but no signature (or vice versa) → hard stop; a half-signed
    *   entry is a misconfiguration we refuse rather than silently downgrade.
-   * - Signature invalid → hard stop.
+   * - Signature invalid (or malformed) → hard stop.
    * - Registry key differs from the key pinned on a prior install → hard stop
    *   (author change / rotation / attack; needs an explicit admin re-trust).
+   *
+   * Each stop carries a machine-readable code, because only ONE of them
+   * (SIGNATURE_KEY_CHANGED) may ever be overridden and the UI must be able to tell
+   * them apart without reading prose.
+   *
+   * `retrustKey` lifts the key-change stop for exactly the key the admin confirmed.
+   * Note what it does NOT do: the signature check below still runs, against the NEW
+   * key, over the artifact bytes. A key an admin blesses must still sign the code it
+   * ships — a re-trust moves the pin from one VERIFIED key to another verified key.
    */
-  private verifySignatureAndTofu(id: string, bytes: Buffer, entry: RegistryEntry, ver: RegistryVersion): void {
+  private verifySignatureAndTofu(id: string, bytes: Buffer, entry: RegistryEntry, ver: RegistryVersion, retrustKey?: string): void {
     const pinned = (db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string } | undefined)?.author_pubkey ?? null;
 
     if (!entry.authorPublicKey && !ver.signature) {
-      if (pinned) throw new RegistryError('this plugin was signed before but the update is unsigned — refusing');
+      if (pinned) {
+        throw new RegistryError('this plugin was signed before but the update is unsigned — refusing', 'SIGNATURE_MISSING');
+      }
       return; // unsigned throughout: sha256 is the only pin
     }
     if (!entry.authorPublicKey || !ver.signature) {
-      throw new RegistryError('incomplete signature: an author key and a version signature must both be present');
+      throw new RegistryError('incomplete signature: an author key and a version signature must both be present', 'SIGNATURE_INCOMPLETE');
     }
-    if (pinned && pinned !== entry.authorPublicKey) {
-      throw new RegistryError("the plugin's author signing key changed since it was installed — re-trust it explicitly to continue");
+    if (pinned && pinned !== entry.authorPublicKey && retrustKey !== entry.authorPublicKey) {
+      throw new RegistryError(
+        "the plugin's author signing key changed since it was installed — re-trust it explicitly to continue",
+        RETRUSTABLE_CODE,
+      );
     }
-    if (!verifyAuthorSignature(bytes, ver.signature, entry.authorPublicKey)) {
-      throw new RegistryError('author signature verification failed');
+    // verifyAuthorSignature returns false on a well-formed non-matching signature but
+    // THROWS SignatureError on a malformed key/signature. Both mean the same thing to
+    // an admin — the bytes aren't what the author signed — and both are non-overridable.
+    let ok: boolean;
+    try {
+      ok = verifyAuthorSignature(bytes, ver.signature, entry.authorPublicKey);
+    } catch (e) {
+      if (e instanceof SignatureError) {
+        throw new RegistryError(`author signature verification failed: ${e.message}`, 'SIGNATURE_INVALID');
+      }
+      throw e;
     }
+    if (!ok) throw new RegistryError('author signature verification failed', 'SIGNATURE_INVALID');
+  }
+
+  /**
+   * Re-derive, SERVER-SIDE, that `id` is genuinely in the one overridable condition
+   * (its pinned key no longer matches the registry's) and that `publicKey` is the key
+   * the registry offers RIGHT NOW.
+   *
+   * Both halves matter. The first is the real enforcement of "re-trust is offered only
+   * for a changed key" — the UI hiding the button is a convenience, not the control, so
+   * an admin cannot re-trust their way past an invalid signature by calling the endpoint
+   * directly. The second closes the TOCTOU window: the client sends back the key it
+   * SHOWED the admin, and if the entry has been re-keyed again since the dialog
+   * rendered, the admin would be blessing a key they never saw.
+   */
+  async assertRetrustable(id: string, publicKey: string): Promise<RegistryEntry> {
+    const row = db.prepare('SELECT source_repo, author_pubkey FROM plugins WHERE id = ?').get(id) as
+      | { source_repo?: string | null; author_pubkey?: string | null }
+      | undefined;
+    if (!row) throw new RegistryError(`plugin ${id} not found`, 'NOT_FOUND');
+    if (!row.source_repo || row.source_repo === 'local:upload' || row.source_repo === 'local:link') {
+      throw new RegistryError('only a registry-installed plugin can be re-trusted', 'RETRUST_NOT_APPLICABLE');
+    }
+
+    const reg = await this.fetchRegistry();
+    const entry = reg.plugins.find((p) => p.id === id);
+    if (!entry) throw new RegistryError(`plugin ${id} not in registry`, 'NOT_FOUND');
+
+    const pinned = row.author_pubkey ?? null;
+    if (!pinned || !entry.authorPublicKey || pinned === entry.authorPublicKey) {
+      throw new RegistryError("this plugin's signing key has not changed — there is nothing to re-trust", 'RETRUST_NOT_APPLICABLE');
+    }
+    if (entry.authorPublicKey !== publicKey) {
+      throw new RegistryError(
+        'the signing key changed again since you were shown it — review the new key before re-trusting',
+        'RETRUST_KEY_MISMATCH',
+      );
+    }
+    return entry;
   }
 }
 
