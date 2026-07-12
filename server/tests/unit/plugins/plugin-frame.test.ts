@@ -42,8 +42,12 @@ function fakeRes() {
 }
 const req = (p: string, host?: string) => ({ params: { path: p }, get: (h: string) => (h.toLowerCase() === 'host' ? host : undefined) }) as never;
 
-function runtime(active = true, hosts: string[] = []): PluginRuntimeService {
-  return { isActive: vi.fn(() => active), outboundHostsOf: vi.fn(() => hosts) } as unknown as PluginRuntimeService;
+function runtime(active = true, hosts: string[] = [], operatorHosts: string[] = []): PluginRuntimeService {
+  return {
+    isActive: vi.fn(() => active),
+    outboundHostsOf: vi.fn(() => hosts),
+    operatorEgressHosts: vi.fn(() => operatorHosts),
+  } as unknown as PluginRuntimeService;
 }
 
 describe('PluginFrameController', () => {
@@ -58,6 +62,35 @@ describe('PluginFrameController', () => {
     expect(csp).not.toContain('allow-same-origin');
     expect(csp).toContain('connect-src \'self\' https://api.weather.com');
     expect(res.headers['X-Content-Type-Options']).toBe('nosniff');
+  });
+
+  // An operatorEgress plugin's hosts are supplied by the ADMIN after install, so they are not
+  // in the manifest grants. activate() unions them into the child's egress guard; the frame
+  // must match, or a plugin with a UI can call the host from its server but not its iframe.
+  it('includes admin-supplied operatorEgress hosts in connect-src', () => {
+    const res = fakeRes();
+    new PluginFrameController(runtime(true, ['api.weather.com'], ['gotify.home.lan'])).serve('widget', req(''), res as never);
+    const csp = res.headers['Content-Security-Policy'];
+    expect(csp).toContain('https://api.weather.com');
+    expect(csp).toContain('https://gotify.home.lan');
+  });
+
+  it('does not duplicate a host granted in the manifest AND added by the admin', () => {
+    const res = fakeRes();
+    new PluginFrameController(runtime(true, ['ntfy.sh'], ['ntfy.sh'])).serve('widget', req(''), res as never);
+    const csp = res.headers['Content-Security-Policy'];
+    expect(csp.match(/https:\/\/ntfy\.sh/g)).toHaveLength(1);
+  });
+
+  it('refuses to interpolate a malformed operator host into the CSP', () => {
+    const res = fakeRes();
+    // The admin writer validates hosts, but connect-src is the last line of defence: a token
+    // with a space or a bare * would widen the whole policy.
+    new PluginFrameController(runtime(true, [], ['evil.com https://*', '*'])).serve('widget', req(''), res as never);
+    const csp = res.headers['Content-Security-Policy'];
+    expect(csp).toContain("connect-src 'self'");
+    expect(csp).not.toContain('evil.com');
+    expect(csp).not.toContain('*');
   });
 
   it('allows the plugin its own static assets when the Host header is clean', () => {
