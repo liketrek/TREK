@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2,
@@ -894,6 +895,24 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
   const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
   const deps = deriveDeps(p, t)
   const menuOpen = menu === `row:${p.id}`
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+
+  // The menu is portaled to <body> and positioned `fixed` against the ⋯ button,
+  // because the row's ancestor (PageSidebar) is `overflow-hidden` and would clip
+  // an in-flow `absolute` menu — losing Delete on the lower rows of a long list.
+  // Re-anchor while the page moves under it.
+  const [, reanchor] = useState(0)
+  useEffect(() => {
+    if (!menuOpen) return
+    const onMove = () => reanchor(n => n + 1)
+    window.addEventListener('scroll', onMove, true)
+    window.addEventListener('resize', onMove)
+    return () => {
+      window.removeEventListener('scroll', onMove, true)
+      window.removeEventListener('resize', onMove)
+    }
+  }, [menuOpen])
+
   return (
     <div className="group relative flex items-center gap-3 sm:gap-4 px-2.5 sm:px-3 py-3.5 rounded-2xl hover:bg-surface-secondary transition-colors">
       <div className="relative shrink-0">
@@ -970,12 +989,13 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
         </span>
         <ToggleSwitch on={p.enabled === 1} label={t('admin.plugins.enabledToggle')} onToggle={onToggle} />
         <div className="relative">
-          <button onClick={() => setMenu(menuOpen ? null : `row:${p.id}`)}
+          <button ref={menuBtnRef} data-testid={`plugin-row-menu-btn-${p.id}`} onClick={() => setMenu(menuOpen ? null : `row:${p.id}`)}
             className="w-[34px] h-[34px] grid place-items-center rounded-lg text-content-faint hover:text-content hover:bg-surface-tertiary transition-colors">
             <MoreHorizontal size={17} />
           </button>
-          {menuOpen && (
-            <div className="absolute top-10 right-0 z-30 min-w-[180px] p-1.5 rounded-xl border border-edge bg-surface-card shadow-elevated">
+          {menuOpen && createPortal(
+            <div data-testid={`plugin-row-menu-${p.id}`} style={anchorMenu(menuBtnRef.current)}
+              className="min-w-[180px] p-1.5 rounded-xl border border-edge bg-surface-card shadow-elevated">
               {p.enabled === 1 && (
                 <MenuItem icon={<RotateCw size={14} />} label={t('admin.plugins.restart')} onClick={onRestart} />
               )}
@@ -995,12 +1015,30 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
               )}
               <div className="my-1 border-t border-edge-secondary" />
               <MenuItem icon={<Trash2 size={14} />} label={t('common.delete')} danger onClick={onUninstall} />
-            </div>
+            </div>,
+            document.body,
           )}
         </div>
       </div>
     </div>
   )
+}
+
+/** Tallest the ⋯ menu gets (6 items + divider + padding). Drives the flip. */
+const ROW_MENU_MAX_H = 260
+
+/** Pin a portaled menu to the right edge of its trigger, flipping up when the bottom is tight. */
+function anchorMenu(trigger: HTMLElement | null): CSSProperties {
+  const r = trigger?.getBoundingClientRect()
+  if (!r) return { position: 'fixed', top: 0, right: 0, zIndex: 100 }
+  const spaceBelow = window.innerHeight - r.bottom
+  const openUp = spaceBelow < ROW_MENU_MAX_H && r.top > spaceBelow
+  return {
+    position: 'fixed',
+    right: Math.max(8, window.innerWidth - r.right),
+    ...(openUp ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
+    zIndex: 100,
+  }
 }
 
 function MenuItem({ icon, label, onClick, danger }: { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean }) {
