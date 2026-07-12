@@ -3,7 +3,7 @@
  * HTTP route works through the host→child invoke path, using its own isolated
  * db. Proves the full activate → route → deactivate loop.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,6 +14,11 @@ const { testDb } = vi.hoisted(() => {
   db.exec(`CREATE TABLE plugins (
     id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, version TEXT, permissions TEXT DEFAULT '[]', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT DEFAULT '',
     config TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', capabilities TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT,
+    -- Activation refuses a plugin that declares no TREK range, so the fixtures default to a
+    -- satisfied one: these tests are about permissions/dependencies, and every row would
+    -- otherwise fail on the version gate before reaching the behaviour under test. The gate
+    -- itself is exercised in "TREK host-version gating" below, with explicit ranges.
+    trek_range TEXT DEFAULT '>=3.0.0',
     source_repo TEXT, author_pubkey TEXT, update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
@@ -330,8 +335,13 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
 });
 
 describe('PluginRuntimeService.update (re-consent gate)', () => {
-  const fakeRegistry = (impl: () => void) =>
-    ({ install: vi.fn(async () => { impl(); return { id: 'x', version: '2.0.0' }; }) }) as unknown as import('../../../src/nest/plugins/registry/registry.service').PluginRegistryService;
+  // update() now asks the registry which version this TREK can actually run before it
+  // installs anything, so the fake has to answer resolveVersion as well as install.
+  const fakeRegistry = (impl: () => void, latest = '2.0.0') =>
+    ({
+      resolveVersion: vi.fn(async () => ({ version: latest })),
+      install: vi.fn(async () => { impl(); return { id: 'x', version: latest }; }),
+    }) as unknown as import('../../../src/nest/plugins/registry/registry.service').PluginRegistryService;
 
   const seed = (id: string, enabled: number, permissions: string[], granted: string[]) => {
     fs.mkdirSync(path.join(codeRoot, id, 'server'), { recursive: true });
@@ -629,5 +639,82 @@ describe('PluginRuntimeService.retrust', () => {
     expect(row.update_block_code).toBe('SIGNATURE_KEY_CHANGED');
     expect(row.update_block_version).toBe('2.0.0');
     await rt.deactivate('rt-act');
+  });
+});
+
+/**
+ * The activation gate is where an incompatible plugin is actually STOPPED.
+ *
+ * Install alone can't be the whole answer: a plugin installed legitimately on TREK 3.3
+ * still sits on disk after the operator upgrades to 4.0, and its code — written against a
+ * host it declared it doesn't support — would otherwise be spawned on the next boot.
+ */
+describe('TREK host-version gating', () => {
+  const seedRanged = (id: string, trekRange: string | null, enabled = 0) => {
+    fs.mkdirSync(path.join(codeRoot, id, 'server'), { recursive: true });
+    fs.writeFileSync(path.join(codeRoot, id, 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
+    testDb.prepare("INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config, trek_range) VALUES (?, ?, ?, '[]', '[]', '{}', ?)")
+      .run(id, enabled ? 'active' : 'inactive', enabled, trekRange);
+  };
+  const cleanup = (...ids: string[]) => { for (const id of ids) testDb.prepare('DELETE FROM plugins WHERE id = ?').run(id); };
+
+  afterEach(() => { delete process.env.APP_VERSION; });
+
+  it('refuses to activate a plugin this TREK has outgrown, and says so with a code', async () => {
+    process.env.APP_VERSION = '4.0.0';
+    seedRanged('outgrown', '>=3.2.0 <4.0.0');
+    const err = await new PluginRuntimeService().activate('outgrown').catch((e) => e);
+    expect(err).toBeInstanceOf(PluginDependencyError);
+    expect(err).toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
+    expect(err.detail).toMatchObject({ trekRange: '>=3.2.0 <4.0.0', hostVersion: '4.0.0' });
+    // It stays INSTALLED and visible — the admin needs to see it to act on it.
+    expect(testDb.prepare("SELECT id FROM plugins WHERE id='outgrown'").get()).toBeTruthy();
+    cleanup('outgrown');
+  });
+
+  it('refuses a plugin that never declared a range at all', async () => {
+    process.env.APP_VERSION = '3.3.0';
+    seedRanged('undeclared', null);
+    await expect(new PluginRuntimeService().activate('undeclared')).rejects.toMatchObject({ code: 'TREK_VERSION_UNKNOWN' });
+    cleanup('undeclared');
+  });
+
+  it('activates normally when the range admits the host', async () => {
+    process.env.APP_VERSION = '3.3.0';
+    seedRanged('fits', '>=3.2.0 <4.0.0');
+    const rt = new PluginRuntimeService();
+    await rt.activate('fits');
+    expect(rt.isActive('fits')).toBe(true);
+    await rt.deactivate('fits');
+    cleanup('fits');
+  });
+
+  it('boots cleanly with an enabled-but-incompatible plugin, reconciling it to disabled', async () => {
+    // The regression this guards: a bespoke error class here would miss the boot loop's
+    // reconciliation (it only catches PluginDependencyError / DependencyCycleError), so the
+    // row would keep enabled=1 + status='active' while no child was ever spawned — the admin
+    // panel showing a green, running plugin that does not exist.
+    process.env.APP_VERSION = '4.0.0';
+    seedRanged('boot-broken', '>=3.2.0 <4.0.0', 1);
+    const rt = new PluginRuntimeService();
+    expect(() => rt.onModuleInit()).not.toThrow();
+    for (let i = 0; i < 40; i++) {
+      const row = testDb.prepare("SELECT enabled FROM plugins WHERE id='boot-broken'").get() as { enabled: number };
+      if (row.enabled === 0) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    expect(testDb.prepare("SELECT enabled FROM plugins WHERE id='boot-broken'").get()).toMatchObject({ enabled: 0 });
+    expect(rt.isActive('boot-broken')).toBe(false);
+    cleanup('boot-broken');
+  });
+
+  it('checks the version BEFORE permissions — an unrunnable plugin gets no consent dialog', async () => {
+    // Consenting to permissions would not make it start, so offering the dialog is a lie.
+    process.env.APP_VERSION = '4.0.0';
+    fs.mkdirSync(path.join(codeRoot, 'both-wrong', 'server'), { recursive: true });
+    fs.writeFileSync(path.join(codeRoot, 'both-wrong', 'server', 'index.js'), 'module.exports = {};');
+    testDb.prepare("INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config, trek_range) VALUES ('both-wrong','inactive',0,'[\"db:own\"]','[]','{}','>=3.2.0 <4.0.0')").run();
+    await expect(new PluginRuntimeService().activate('both-wrong')).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
+    cleanup('both-wrong');
   });
 });

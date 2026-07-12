@@ -25,7 +25,7 @@ import ToggleSwitch from '../Settings/ToggleSwitch'
 
 interface PluginDep { id: string; version: string }
 interface VersionMismatch { id: string; wanted: string; installed: string }
-type DependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin'
+type DependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin' | 'hostIncompatible'
 interface PluginDependencies { requiredAddons: string[]; pluginDependencies: PluginDep[] }
 interface DependencyIssues { disabledAddons: string[]; missing: PluginDep[]; versionMismatch: VersionMismatch[] }
 
@@ -50,6 +50,10 @@ interface PluginRow {
   dependencies?: PluginDependencies
   dependencyStatus?: DependencyStatus
   dependencyIssues?: DependencyIssues
+  /** The TREK versions the plugin says it supports; null if it never declared any. */
+  trekRange?: string | null
+  /** The TREK this server is running — the server does the semver, the client just shows it. */
+  hostVersion?: string
   /** The author's signature was verified and their key pinned at install. False means the
    * bytes matched the registry's sha256 and nothing more — one fewer guarantee. */
   signed?: boolean
@@ -68,6 +72,13 @@ interface RegistryItem {
   type: string
   latest: string | null
   minTrekVersion: string | null
+  /** The latest version's declared TREK range; null on a legacy registry entry. */
+  trek?: string | null
+  hostVersion?: string
+  /** Whether the LATEST version can be installed on this TREK. Computed server-side. */
+  compatible?: boolean
+  /** Newest installable version — the latest, an older fallback, or null if none fits. */
+  latestCompatible?: string | null
   reviewedAt: string | null
   downloadCount?: number | null
   screenshotUrl: string | null
@@ -241,10 +252,21 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
 interface DepChip { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; blocked: boolean }
 
 // A plugin's declared dependencies as chips — a required addon (amber when that
-// addon is disabled) or a plugin dependency (amber when missing / version-mismatched).
+// addon is disabled), a plugin dependency (amber when missing / version-mismatched),
+// or the TREK version itself (amber when this server has outgrown the plugin's range,
+// which is the one blocker the admin cannot fix by flipping something else on).
 function deriveDeps(p: PluginRow, t: T): DepChip[] {
   const out: DepChip[] = []
   const issues = p.dependencyIssues
+  if (p.dependencyStatus === 'hostIncompatible') {
+    out.push({
+      icon: AlertTriangle,
+      label: p.trekRange
+        ? t('admin.plugins.dep.trekIncompatible', { range: p.trekRange, host: p.hostVersion ?? '?' })
+        : t('admin.plugins.dep.trekUnknown'),
+      blocked: true,
+    })
+  }
   for (const a of p.dependencies?.requiredAddons ?? []) {
     out.push({ icon: Blocks, label: t('admin.plugins.cap.requiresAddon', { addon: a }), blocked: !!issues?.disabledAddons.includes(a) })
   }
@@ -253,6 +275,26 @@ function deriveDeps(p: PluginRow, t: T): DepChip[] {
     out.push({ icon: Puzzle, label: t('admin.plugins.cap.dependsOn', { id: d.id, version: d.version }), blocked })
   }
   return out
+}
+
+/**
+ * What the Install button may do for a registry item.
+ *
+ * The server already decided compatibility — it owns the semver, and a second
+ * implementation here would eventually disagree with the install gate and offer a button
+ * that 400s. This only picks the wording. Note the middle case: when the newest release
+ * has outrun this TREK but an older one still fits, offer THAT version rather than a dead
+ * grey button. The plugin is perfectly usable, just not at its newest.
+ */
+function installOffer(item: RegistryItem, t: T): { blocked: boolean; version?: string; label: string; title?: string } {
+  if (item.compatible !== false) return { blocked: false, label: t('admin.plugins.install') }
+  const title = item.trek
+    ? t('admin.plugins.dep.trekIncompatible', { range: item.trek, host: item.hostVersion ?? '?' })
+    : t('admin.plugins.dep.trekUnknown')
+  if (item.latestCompatible) {
+    return { blocked: false, version: item.latestCompatible, label: t('admin.plugins.installCompatible', { version: item.latestCompatible }), title }
+  }
+  return { blocked: true, label: t('admin.plugins.incompatible'), title }
 }
 
 function PluginIcon({ name, size = 20, className }: { name: string | null; size?: number; className?: string }) {
@@ -524,7 +566,7 @@ export default function AdminPluginsPanel() {
   }
 
   const updateAvailable = (p: PluginRow) => !!(p.version && latest[p.id] && isNewer(latest[p.id], p.version))
-  const install = (id: string) => act(id, () => adminApi.pluginInstall(id), t('admin.plugins.installed'))
+  const install = (id: string, version?: string) => act(id, () => adminApi.pluginInstall(id, version ? { version } : undefined), t('admin.plugins.installed'))
   const restart = (id: string) => act(id, async () => { await adminApi.pluginDeactivate(id); await adminApi.pluginActivate(id) }, t('admin.plugins.restarted'))
   // Dev-link: register a plugin from a local built directory (dev only). Reuses the
   // same busy/toast/refresh loop as uploadPlugin; the server gates it.
@@ -1266,7 +1308,7 @@ function Screenshot({ url, className, iconSize = 28 }: { url: string | null; cla
 
 function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, filtered }: {
   items: RegistryItem[] | null
-  onInstall: (id: string) => void
+  onInstall: (id: string, version?: string) => void
   onOpenDetail: (item: RegistryItem) => void
   busy: string | null
   t: T
@@ -1284,6 +1326,7 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 px-4 sm:px-6 pb-5 pt-1">
       {items.map(item => {
         const installed = installedIds.has(item.id)
+        const offer = installOffer(item, t)
         return (
           <div key={item.id} role="button" tabIndex={0} onClick={() => onOpenDetail(item)}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetail(item) } }}
@@ -1314,9 +1357,11 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
                     <Download size={11} /> {formatCompactCount(item.downloadCount)}
                   </span>
                 )}
-                <button onClick={e => { e.stopPropagation(); onInstall(item.id) }} disabled={busy === item.id || installed}
+                <button onClick={e => { e.stopPropagation(); onInstall(item.id, offer.version) }}
+                  disabled={busy === item.id || installed || offer.blocked}
+                  title={installed ? undefined : offer.title}
                   className="ml-auto text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors">
-                  {installed ? t('admin.plugins.installed') : t('admin.plugins.install')}
+                  {installed ? t('admin.plugins.installed') : offer.label}
                 </button>
               </div>
             </div>
@@ -1344,7 +1389,7 @@ function PermLabel({ perm, t }: { perm: string; t: T }) {
 
 function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, locale }: {
   item: RegistryItem; installed: boolean; busy: string | null
-  onInstall: (id: string) => void; onClose: () => void; t: T; locale: string
+  onInstall: (id: string, version?: string) => void; onClose: () => void; t: T; locale: string
 }) {
   const [detail, setDetail] = useState<RegistryDetail | null>(null)
   const [failed, setFailed] = useState(false)
@@ -1362,6 +1407,9 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
   const repoUrl = `https://github.com/${item.repo}`
   const homepage = item.homepage && /^https?:\/\//i.test(item.homepage) && item.homepage !== repoUrl ? item.homepage : null
   const sizeKb = detail?.size ? Math.max(1, Math.round(detail.size / 1024)) : null
+  // The detail fetch carries the same compat verdict as the browse list; prefer it once
+  // it lands (it is keyed to the same entry) and fall back to the grid item until then.
+  const offer = installOffer(detail ?? item, t)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
@@ -1383,15 +1431,24 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             </div>
             <p className="text-[12.5px] text-content-faint mt-0.5">{item.author}{item.latest ? ` · v${item.latest}` : ''}</p>
           </div>
-          <button onClick={() => onInstall(item.id)} disabled={busy === item.id || installed}
+          <button onClick={() => onInstall(item.id, offer.version)}
+            disabled={busy === item.id || installed || offer.blocked}
+            title={installed ? undefined : offer.title}
             className="self-end text-[13px] font-semibold px-3 sm:px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors shrink-0">
-            {installed ? t('admin.plugins.installed') : t('admin.plugins.install')}
+            {installed ? t('admin.plugins.installed') : offer.label}
           </button>
         </div>
 
         <div className="px-4 sm:px-5 pt-4 pb-5">
           <p className="text-[13.5px] text-content-secondary leading-relaxed">{item.description}</p>
           {failed && <p className="text-xs text-danger mt-3">{t('admin.plugins.detailError')}</p>}
+          {/* The reason the button is blocked (or offering an older version) — a tooltip
+              alone would leave a touch user with a dead button and no explanation. */}
+          {offer.title && !installed && (
+            <p className="flex items-start gap-1.5 text-xs text-warning bg-warning-soft border border-warning/25 rounded-lg px-2.5 py-2 mt-3">
+              <AlertTriangle size={13} className="shrink-0 mt-[1px]" /> {offer.title}
+            </p>
+          )}
 
           {manifest && (
             <div className="mt-5">
@@ -1458,7 +1515,11 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-2.5">
               {item.latest && <Meta k={t('admin.plugins.metaVersion')} v={`v${item.latest}`} />}
               {sizeKb && <Meta k={t('admin.plugins.metaSize')} v={`${sizeKb} KB`} />}
-              {item.minTrekVersion && <Meta k={t('admin.plugins.metaRequires')} v={`TREK ${item.minTrekVersion}+`} />}
+              {/* The range, not just its lower bound: "TREK 3.2.0+" reads as "and anything
+                  newer", which is exactly the claim a `<4.0.0` upper bound denies. */}
+              {(item.trek || item.minTrekVersion) && (
+                <Meta k={t('admin.plugins.metaRequires')} v={item.trek ? `TREK ${item.trek}` : `TREK ${item.minTrekVersion}+`} />
+              )}
               {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={new Date(item.reviewedAt).toLocaleDateString(locale)} />}
               {typeof item.downloadCount === 'number' && item.downloadCount > 0 && (
                 <Meta k={t('admin.plugins.downloads')} v={item.downloadCount.toLocaleString(locale)} />

@@ -441,3 +441,44 @@ describe('AdminPluginsPanel — a block never outlives the registry relationship
     expect(screen.queryByText(/update blocked/i)).not.toBeInTheDocument()
   })
 })
+
+/**
+ * TREK-version compatibility. The SERVER owns the semver — a second implementation in the
+ * browser would eventually disagree with the install gate and offer a button that 400s —
+ * so the panel only renders the verdict the API hands it (`compatible`, `latestCompatible`).
+ */
+describe('AdminPluginsPanel — TREK-version compatibility', () => {
+  /** Discover cards for a plugin that is NOT installed — an installed one just reads "Installed". */
+  async function openDiscover(entry: Record<string, unknown>) {
+    mockPanel(plugin({ id: 'something-else' }), registryEntry(entry))
+    render(<AdminPluginsPanel />)
+    fireEvent.click(await screen.findByText('Discover'))
+  }
+
+  it('blocks Install when no published version runs on this TREK, and says why', async () => {
+    await openDiscover({ trek: '>=4.0.0', hostVersion: '3.3.0', compatible: false, latestCompatible: null })
+    const btn = await screen.findByRole('button', { name: /^incompatible$/i })
+    expect(btn).toBeDisabled()
+  })
+
+  it('offers the newest version that DOES run here rather than a dead button', async () => {
+    await openDiscover({ latest: '2.0.0', trek: '>=3.4.0', hostVersion: '3.3.0', compatible: false, latestCompatible: '1.5.0' })
+    const btn = await screen.findByRole('button', { name: /^install 1\.5\.0$/i })
+    expect(btn).toBeEnabled()
+  })
+
+  it('installs normally when the latest version fits', async () => {
+    await openDiscover({ trek: '>=3.2.0 <4.0.0', hostVersion: '3.3.0', compatible: true, latestCompatible: '2.0.0' })
+    expect(await screen.findByRole('button', { name: /^install$/i })).toBeEnabled()
+  })
+
+  it('an installed plugin the server has outgrown shows the blocker on its card', async () => {
+    // Same amber chip machinery as a disabled addon / missing dependency — the admin sees
+    // one "here is why this cannot turn on" surface, not a new concept per blocker.
+    mockPanel(plugin({
+      dependencyStatus: 'hostIncompatible', trekRange: '>=3.2.0 <4.0.0', hostVersion: '4.0.0', enabled: 0, status: 'inactive',
+    }))
+    render(<AdminPluginsPanel />)
+    expect(await screen.findByText(/needs trek >=3\.2\.0 <4\.0\.0/i)).toBeInTheDocument()
+  })
+})

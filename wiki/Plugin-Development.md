@@ -1038,7 +1038,7 @@ what your manifest declares.
 | `version` | string, **required** | semver (`1.2.3`, optional pre-release). |
 | `apiVersion` | number | plugin API version (currently `1`; `PLUGIN_API_VERSION`). Defaults to `1`. |
 | `type` | string, **required** | `integration` \| `page` \| `widget` \| `trip-page`. |
-| `trek` | string | supported TREK range, e.g. `">=3.2.0 <4.0.0"`. Its lower bound becomes `minTrekVersion` in the registry entry. |
+| `trek` | string, **required** | the TREK versions this plugin supports, as a semver **range**: `">=3.2.0 <4.0.0"`. Must be *satisfiable* (`">=4.0.0 <3.0.0"` parses but nothing can satisfy it — rejected). **Enforced at install and at activation** (see below); its lower bound is derived into `minTrekVersion` on the registry entry. |
 | `author` | string | shown in the store. |
 | `description` | string | one-line summary for the store. |
 | `icon` | string | lucide-react icon name (default `Blocks`); used for the page nav entry. |
@@ -1057,6 +1057,33 @@ what your manifest declares.
 | `requiredAddons` | string[] | addon ids that must be **enabled** for the plugin to activate (see [Dependencies](#dependencies)). |
 | `pluginDependencies` | `{ id, version }[]` | other plugins (semver range) that must be installed + version-satisfied to activate. |
 | `settings` | array | setting fields (below). |
+
+#### TREK version compatibility (`trek`)
+
+The `trek` range is a **hard contract**, enforced in both directions:
+
+- **Install** is refused when the running TREK falls outside it — on every path:
+  registry install, an explicitly pinned version, an update, a sideloaded archive,
+  and a dev-link. A manifest with no range (or an unsatisfiable one) cannot be
+  installed at all.
+- **Activation** re-checks it, which is the half install cannot cover: a plugin
+  legitimately installed on 3.3 is still on disk after an upgrade to 4.0, and if it
+  declared `<4.0.0` it now refuses to start. It stays installed and listed,
+  switched off, with the reason shown (`TREK_VERSION_INCOMPATIBLE`; a plugin that
+  declares no range at all reports `TREK_VERSION_UNKNOWN`).
+- **No admin override.** The range is the author's own statement that the plugin
+  does not work there — unlike a rotated signing key, there is nothing an operator
+  could verify out-of-band and wave through.
+
+Two behaviours follow. "Install latest" resolves to the newest version *this* TREK
+can run rather than the newest published, so shipping a 2.0.0 that needs TREK 4
+doesn't strand 3.x users. And an **update** that would move a working plugin out of
+compatibility is refused rather than performed.
+
+One gap, by design: a host whose `APP_VERSION` is not a semver version — the Docker
+build arg defaults to the literal `dev` — has nothing to compare a range against, so
+the check is skipped and an unversioned build installs anything. Plugins should still
+guard optional `ctx.*` namespaces.
 
 **Permissions** — the commonly-used core subset below; the **full list of ~50**
 (all read/write scopes, the notify/ai/oauth brokers, every provider hook) lives in

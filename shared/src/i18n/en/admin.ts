@@ -239,14 +239,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'View error log',
   'admin.plugins.errorLog': 'Error log',
   'admin.plugins.allowedHosts': 'Allowed hosts',
-  'admin.plugins.allowedHosts.hint': 'This plugin talks to a service only you can name (a self-hosted server). Add the hosts it may reach — it can reach no others.',
+  'admin.plugins.allowedHosts.hint':
+    'This plugin talks to a service only you can name (a self-hosted server). Add the hosts it may reach — it can reach no others.',
   'admin.plugins.allowedHosts.none': 'No hosts added yet.',
-  'admin.plugins.allowedHosts.unsupported': 'This plugin does not use operator-supplied hosts. Its allowed hosts are fixed in its manifest.',
+  'admin.plugins.allowedHosts.unsupported':
+    'This plugin does not use operator-supplied hosts. Its allowed hosts are fixed in its manifest.',
   'admin.plugins.allowedHosts.restartNote': 'Saving restarts the plugin so it picks up the new list.',
   'admin.plugins.allowedHosts.add': 'Add allowed host',
   'admin.plugins.allowedHosts.count': '{n} allowed host(s)',
   'admin.plugins.operatorEgressPill': '+ hosts you add',
-  'admin.plugins.operatorEgressHint': 'This plugin talks to a service only you can name (a self-hosted server). After installing, add the hosts it may reach under ⋯ → Allowed hosts. It can reach no others.',
+  'admin.plugins.operatorEgressHint':
+    'This plugin talks to a service only you can name (a self-hosted server). After installing, add the hosts it may reach under ⋯ → Allowed hosts. It can reach no others.',
   'admin.plugins.noErrors': 'No errors logged.',
   'admin.plugins.uninstalled': 'Plugin uninstalled',
   'admin.plugins.uninstallTitle': 'Uninstall plugin?',
@@ -417,7 +420,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.pinnedKey': 'Key it was installed with',
   'admin.plugins.sig.newKey': 'Key it is offering now',
   'admin.plugins.sig.confirmOutOfBand':
-    "TREK cannot tell a legitimate key rotation apart from a takeover — both look identical from here. Confirm the new key with the author through a channel you already trust before you accept it. Once you do, the plugin is updated and the new key is remembered.",
+    'TREK cannot tell a legitimate key rotation apart from a takeover — both look identical from here. Confirm the new key with the author through a channel you already trust before you accept it. Once you do, the plugin is updated and the new key is remembered.',
   'admin.plugins.sig.retrustConfirm': 'Trust the new key & update',
   'admin.plugins.sig.cancel': 'Do not trust it',
   'admin.plugins.sig.consentUnsigned':
@@ -481,6 +484,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Download',
   'admin.plugins.dep.update': 'Update',
   'admin.plugins.dep.resolveHint': 'Downloads the latest compatible version, including its own dependencies.',
+  'admin.plugins.dep.trekIncompatible': 'Needs TREK {range} — this server runs {host}',
+  'admin.plugins.dep.trekUnknown': 'Does not say which TREK versions it supports',
+  'admin.plugins.installCompatible': 'Install {version}',
+  'admin.plugins.incompatible': 'Incompatible',
   'admin.plugins.accessTitle': 'What it can access',
   'admin.plugins.connectsTitle': 'Connects to',
   'admin.plugins.detailsTitle': 'Details',

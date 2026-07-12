@@ -103,7 +103,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Cấu hình',
   'settings.notificationPreferences.testSuccess': 'Đã gửi thông báo thử.',
   'settings.notificationPreferences.testFailed': 'Thử nghiệm thất bại.',
-  'settings.notificationPreferences.pluginConfigured': 'Đã cấu hình. Quản lý thông tin đăng nhập ở trang cài đặt của plugin.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Đã cấu hình. Quản lý thông tin đăng nhập ở trang cài đặt của plugin.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.notificationPreferences.noChannels':
     'Không có kênh thông báo nào được cấu hình. Yêu cầu quản trị viên thiết lập thông báo qua email hoặc webhook.',

@@ -108,8 +108,13 @@ npx trek-plugin-sdk entry \
 
 `entry` reads your manifest and `plugin.zip` and emits the complete entry —
 deriving `commitSha` (from `git rev-parse <tag>^{commit}`), `downloadUrl`,
-`sha256`, `size`, `apiVersion`, and `minTrekVersion` (the lower bound of the
-manifest's `trek` range, e.g. `">=3.2.0 <4.0.0"` → `3.2.0`). Flags: `--zip`
+`sha256`, `size`, `apiVersion`, and **`trek`** — your manifest's range, verbatim.
+That range is the entry's only compatibility field: it is what TREK gates installs
+and activation on. (The older `minTrekVersion`/`maxTrekVersion` are **deprecated**
+and no longer emitted — the first merely restated the range's lower bound, and the
+second is *inclusive*, so it cannot express `<4.0.0` at all. Entries published
+before `trek` existed may still carry them.) `entry` refuses to build an entry for a
+manifest with no usable `trek` range, because TREK would refuse to install it. Flags: `--zip`
 (default `plugin.zip`), `--commit <sha>` to override commit resolution, `--asset`
 to name a differently-named release asset, `--merge` for updates (below), and
 `--out` to write a file.
@@ -161,9 +166,11 @@ file — `dist/` is generated on merge, and CI rejects manual edits to it.
 The entry follows [`schema/plugin-entry.schema.json`](https://github.com/mauriceboe/TREK-Plugins/blob/main/schema/plugin-entry.schema.json);
 [`schema/example-entry.json`](https://github.com/mauriceboe/TREK-Plugins/blob/main/schema/example-entry.json)
 is the canonical shape. `size` is **required** (a common omission), as are
-`commitSha`, `downloadUrl`, `sha256`, `minTrekVersion`, `apiVersion`, and
+`commitSha`, `downloadUrl`, `sha256`, `trek`, `apiVersion`, and
 `nativeModules: false` on every version — all of which `trek-plugin entry` fills
-in for you.
+in for you. CI rejects an entry whose `trek` disagrees with the manifest at
+`commitSha` (and, on a legacy entry that still carries a `minTrekVersion`, one
+whose floor disagrees with that range).
 
 ## What CI enforces
 

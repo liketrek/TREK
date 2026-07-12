@@ -8,11 +8,12 @@ import { keyFingerprint } from './signature-status';
 import { pluginBudgetUsage } from './host/create-rpc-host';
 import { isAddonEnabled } from '../../services/adminService';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
+import { hostSatisfies, hostVersion } from './install/host-compat';
 import type { PluginDependency } from './install/manifest';
 
 const SECRET_MASK = '••••••••';
 
-export type PluginDependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin';
+export type PluginDependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin' | 'hostIncompatible';
 
 /**
  * Read side of the plugin system (#plugins), M0 scaffold. Lists installed
@@ -36,6 +37,7 @@ interface PluginRawRow {
   permissions: string;
   capabilities: string;
   dependencies: string | null;
+  trek_range: string | null;
   author_pubkey: string | null;
   update_block_code: string | null;
   update_block_detail: string | null;
@@ -75,6 +77,10 @@ export interface PluginListItem {
   dependencies: PluginDependencies;
   /** Whether this plugin can currently activate, and why not if it can't. */
   dependencyStatus: PluginDependencyStatus;
+  /** The TREK range the plugin declares it supports; null if it declared none. */
+  trekRange: string | null;
+  /** The running TREK, so the UI can say "needs X, you have Y" without doing semver. */
+  hostVersion: string;
   /** The concrete blockers, so the UI can render chips + the resolve dialog. */
   dependencyIssues: { disabledAddons: string[]; missing: PluginDependency[]; versionMismatch: VersionMismatch[] };
   /**
@@ -97,7 +103,7 @@ export class PluginsService {
     const rows = db
       .prepare(
         `SELECT id, name, description, type, icon, version, status, enabled, last_error, reviewed_at, source_repo,
-                permissions, capabilities, dependencies, operator_egress,
+                permissions, capabilities, dependencies, operator_egress, trek_range,
                 author_pubkey, update_block_code, update_block_detail, update_block_version
          FROM plugins
          ORDER BY sort_order, name`,
@@ -110,14 +116,19 @@ export class PluginsService {
       const deps = parseDependencies(r.dependencies);
       const disabledAddons = disabledRequiredAddons(deps, isAddonEnabled);
       const state = resolveDependencyState(deps, installed);
-      const dependencyStatus: PluginDependencyStatus = disabledAddons.length
-        ? 'addonDisabled'
-        : state.missing.length || state.versionMismatch.length
-          ? 'missingPlugin'
-          : 'ok';
+      // Mirrors the order of assertActivatable's gate, so the card explains the same
+      // blocker the activate call would hit rather than a second, lesser one.
+      const dependencyStatus: PluginDependencyStatus = !hostSatisfies(r.trek_range)
+        ? 'hostIncompatible'
+        : disabledAddons.length
+          ? 'addonDisabled'
+          : state.missing.length || state.versionMismatch.length
+            ? 'missingPlugin'
+            : 'ok';
       const {
         dependencies: _raw,
         operator_egress: _oe,
+        trek_range,
         author_pubkey,
         update_block_code,
         update_block_detail,
@@ -130,6 +141,8 @@ export class PluginsService {
         egressHostCount: egressHostCount(r.id),
         dependencies: deps,
         dependencyStatus,
+        trekRange: trek_range,
+        hostVersion: hostVersion(),
         dependencyIssues: { disabledAddons, missing: state.missing, versionMismatch: state.versionMismatch },
         signed: !!author_pubkey,
         keyFingerprint: keyFingerprint(author_pubkey),

@@ -189,14 +189,18 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': "Voir le journal d'erreurs",
   'admin.plugins.errorLog': "Journal d'erreurs",
   'admin.plugins.allowedHosts': 'Hôtes autorisés',
-  'admin.plugins.allowedHosts.hint': 'Ce plugin communique avec un service que vous seul pouvez nommer (un serveur auto-hébergé). Ajoutez les hôtes qu’il peut joindre — il ne joindra aucun autre.',
+  'admin.plugins.allowedHosts.hint':
+    'Ce plugin communique avec un service que vous seul pouvez nommer (un serveur auto-hébergé). Ajoutez les hôtes qu’il peut joindre — il ne joindra aucun autre.',
   'admin.plugins.allowedHosts.none': 'Aucun hôte ajouté pour l’instant.',
-  'admin.plugins.allowedHosts.unsupported': 'Ce plugin n’utilise pas d’hôtes fournis par l’opérateur. Ses hôtes autorisés sont fixés dans son manifeste.',
-  'admin.plugins.allowedHosts.restartNote': 'L’enregistrement redémarre le plugin pour qu’il prenne en compte la nouvelle liste.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Ce plugin n’utilise pas d’hôtes fournis par l’opérateur. Ses hôtes autorisés sont fixés dans son manifeste.',
+  'admin.plugins.allowedHosts.restartNote':
+    'L’enregistrement redémarre le plugin pour qu’il prenne en compte la nouvelle liste.',
   'admin.plugins.allowedHosts.add': 'Ajouter un hôte autorisé',
   'admin.plugins.allowedHosts.count': '{n} hôte(s) autorisé(s)',
   'admin.plugins.operatorEgressPill': '+ hôtes que vous ajoutez',
-  'admin.plugins.operatorEgressHint': 'Ce plugin communique avec un service que vous seul pouvez nommer (un serveur auto-hébergé). Après installation, ajoutez les hôtes qu’il peut joindre via ⋯ → Hôtes autorisés. Il ne joindra aucun autre.',
+  'admin.plugins.operatorEgressHint':
+    'Ce plugin communique avec un service que vous seul pouvez nommer (un serveur auto-hébergé). Après installation, ajoutez les hôtes qu’il peut joindre via ⋯ → Hôtes autorisés. Il ne joindra aucun autre.',
   'admin.plugins.noErrors': 'Aucune erreur enregistrée.',
   'admin.plugins.uninstalled': 'Plugin désinstallé',
   'admin.plugins.uninstallTitle': 'Désinstaller le plugin ?',
@@ -449,6 +453,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Télécharger',
   'admin.plugins.dep.update': 'Mettre à jour',
   'admin.plugins.dep.resolveHint': 'Télécharge la dernière version compatible, y compris ses propres dépendances.',
+  'admin.plugins.dep.trekIncompatible': 'Nécessite TREK {range} — ce serveur exécute {host}',
+  'admin.plugins.dep.trekUnknown': 'N’indique pas quelles versions de TREK sont prises en charge',
+  'admin.plugins.installCompatible': 'Installer {version}',
+  'admin.plugins.incompatible': 'Incompatible',
   'admin.plugins.accessTitle': 'Ce à quoi il peut accéder',
   'admin.plugins.connectsTitle': 'Se connecte à',
   'admin.plugins.detailsTitle': 'Détails',

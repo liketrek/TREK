@@ -94,7 +94,7 @@ export class PluginsController {
     try {
       return await this.runtime.sideload(file.buffer);
     } catch (e) {
-      throw new HttpException({ error: e instanceof Error ? e.message : 'upload failed' }, 400);
+      throw registryFailure(e, 'upload failed'); // carries TREK_VERSION_INCOMPATIBLE
     }
   }
 
@@ -112,7 +112,7 @@ export class PluginsController {
     try {
       return await this.runtime.link(dir);
     } catch (e) {
-      throw new HttpException({ error: e instanceof Error ? e.message : 'link failed' }, 400);
+      throw registryFailure(e, 'link failed'); // carries TREK_VERSION_INCOMPATIBLE
     }
   }
 

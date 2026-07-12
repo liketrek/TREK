@@ -4,7 +4,7 @@
  * result (no throw) so the CLI can print every problem at once.
  */
 
-import { validRange } from 'semver';
+import { minVersion, validRange } from 'semver';
 
 export interface PluginDependency {
   id: string;
@@ -15,6 +15,8 @@ export interface PluginManifest {
   name: string;
   version: string;
   apiVersion: number;
+  /** The semver RANGE of TREK versions this plugin supports (">=3.2.0 <4.0.0"). */
+  trek: string;
   type: 'integration' | 'page' | 'widget' | 'trip-page';
   permissions: string[];
   egress: string[];
@@ -93,6 +95,28 @@ function isKnownPermission(p: string): boolean {
   return KNOWN_PERMISSIONS.includes(p) || p.startsWith('http:outbound:');
 }
 
+/**
+ * A semver range a plugin may declare in `trek`. Mirrors the server's isValidTrekRange.
+ *
+ * validRange() alone is not enough: ">=4.0.0 <3.0.0" is a valid range no version can ever
+ * satisfy, so a plugin declaring it would be uninstallable everywhere with nothing to
+ * explain why. minVersion() is null for exactly that, and throws on junk like "latest".
+ */
+export function isSatisfiableRange(r: unknown): r is string {
+  if (typeof r !== 'string' || !r.trim()) return false;
+  if (validRange(r) === null) return false;
+  try {
+    return minVersion(r) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** A range that admits literally every TREK version, past and future ("*", "x", ">=0"). */
+export function isUnboundedRange(r: string): boolean {
+  return isSatisfiableRange(r) && validRange(r) === '*';
+}
+
 export function validateManifest(raw: unknown): ValidationResult {
   const errors: string[] = [];
   const m = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
@@ -107,6 +131,15 @@ export function validateManifest(raw: unknown): ValidationResult {
   if (typeof m.id === 'string' && RESERVED_IDS.has(m.id)) errors.push(`id "${m.id}" is reserved`);
   if (typeof m.version === 'string' && !SEMVER_RE.test(m.version)) errors.push(`version "${m.version}" is not semver`);
   if (typeof m.type === 'string' && !TYPES.includes(m.type)) errors.push(`type must be one of ${TYPES.join('/')}`);
+  // TREK refuses to install a plugin that doesn't say which TREK versions it runs on, so
+  // an author must find that out here rather than from a rejected install.
+  if (!isSatisfiableRange(m.trek)) {
+    errors.push(
+      typeof m.trek === 'string' && m.trek
+        ? `"trek" is not a satisfiable semver range: "${m.trek}" (e.g. ">=3.2.0 <4.0.0")`
+        : 'missing "trek" — declare the TREK versions this plugin supports, e.g. ">=3.2.0 <4.0.0"',
+    );
+  }
   if (m.apiVersion !== undefined && typeof m.apiVersion !== 'number') errors.push('apiVersion must be a number');
   if (m.nativeModules === true) errors.push('native modules are not allowed (v1)');
 
@@ -230,6 +263,7 @@ export function validateManifest(raw: unknown): ValidationResult {
       name: m.name as string,
       version: m.version as string,
       apiVersion: typeof m.apiVersion === 'number' ? m.apiVersion : 1,
+      trek: m.trek as string,
       type: m.type as PluginManifest['type'],
       permissions,
       egress,
