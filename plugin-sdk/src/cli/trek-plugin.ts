@@ -3,6 +3,8 @@
  * `trek-plugin <command>` — the plugin author CLI (#plugins).
  *
  *   create [name] [--type t] [--interactive]   scaffold a plugin (wizard if no name)
+ *         [--template blank|notification-channel]  type: integration|page|widget|trip-page
+ *         [--egress host,host] [--required-addons a,b]
  *   dev [dir] [--port 4317]                     run locally with hot reload
  *   validate [dir]                              check the manifest + layout
  *   pack [dir] [--out plugin.zip] [--json]      build plugin.zip, print sha256 + size
@@ -64,6 +66,43 @@ const { flags, pos } = parse(args);
 
 type Flags = Record<string, string>;
 
+/**
+ * Every flag each command reads. `parse()` accepts any `--x`, so a flag a command
+ * does NOT read used to be silently dropped — `create --template notification-channel`
+ * cheerfully scaffolded a blank plugin. Silently ignoring an author's explicit
+ * instruction is worse than refusing it, so unknown flags are now an error.
+ */
+const COMMAND_FLAGS: Record<string, readonly string[]> = {
+  create: ['type', 'interactive', 'author', 'description', 'permissions', 'template', 'egress', 'required-addons'],
+  dev: ['port'],
+  validate: [],
+  pack: ['out', 'json'],
+  keygen: ['key'],
+  sign: ['key'],
+  entry: ['repo', 'tag', 'dir', 'zip', 'commit', 'asset', 'merge', 'sign', 'key', 'out'],
+  preflight: ['repo', 'tag', 'entry', 'zip', 'commit', 'sign', 'key', 'all'],
+  submit: ['repo', 'tag', 'zip', 'commit', 'sign', 'key', 'registry', 'branch', 'draft', 'keep'],
+  release: ['repo', 'tag', 'out', 'notes', 'commit', 'merge', 'sign', 'key'],
+  publish: ['repo', 'tag', 'sign', 'key', 'registry', 'draft', 'notes', 'no-preflight', 'force'],
+};
+
+function assertKnownFlags(command: string, f: Flags): void {
+  const known = COMMAND_FLAGS[command];
+  if (!known) return;
+  const unknown = Object.keys(f).filter((k) => !known.includes(k));
+  if (unknown.length) {
+    const list = unknown.map((u) => `--${u}`).join(', ');
+    fail(`unknown flag${unknown.length > 1 ? 's' : ''} for \`${command}\`: ${list}\n       ${command} accepts: ${known.map((k) => '--' + k).join(', ') || '(none)'}`);
+  }
+}
+
+/** `--egress a,b` / `--permissions "a b"` → a string[]. */
+function listFlag(v: string | undefined): string[] | undefined {
+  if (!v || v === 'true') return undefined;
+  const parts = v.split(/[\s,]+/).filter(Boolean);
+  return parts.length ? parts : undefined;
+}
+
 /** --sign, --sign <keyfile>, or absent → the key path to sign with (or undefined). */
 function signKey(f: Flags): string | undefined {
   if (!f.sign) return undefined;
@@ -91,7 +130,41 @@ async function ensureRepoTag(f: Flags, failMsg: string): Promise<{ repo: string;
 
 const USAGE = 'usage: trek-plugin <create|dev|validate|pack|keygen|sign|entry|preflight|submit|release|publish> [...]';
 
+const HELP = `${USAGE}
+
+  create [name] [--type integration|page|widget|trip-page]   scaffold a plugin (wizard if no name)
+         [--template blank|notification-channel] [--interactive]
+         [--author a] [--description d] [--permissions "a b"]
+         [--egress host,host] [--required-addons a,b]
+  dev [dir] [--port 4317]                     run locally with hot reload
+  validate [dir]                              check the manifest + layout
+  pack [dir] [--out plugin.zip] [--json]      build plugin.zip, print sha256 + size
+  keygen [--key file]                         create an Ed25519 signing key
+  sign [zip] [--key file]                     print a signature + public key for an artifact
+  entry --repo o/n --tag vX [--zip z]         print the ready-to-PR registry entry
+        [--dir d] [--commit c] [--asset a] [--merge entry.json] [--sign [key]] [--out f]
+  preflight [dir] --repo o/n --tag vX         run the registry CI checks locally
+        [--entry e] [--zip z] [--commit c] [--sign [key]] [--all]
+  submit [dir] --repo o/n --tag vX            open the registry PR for you
+        [--sign [key]] [--registry o/n] [--branch b] [--draft] [--keep]
+  release [dir] --repo o/n --tag vX           pack -> gh release -> print entry
+        [--out f] [--notes n] [--sign [key]] [--merge entry.json]
+  publish [dir] --repo o/n --tag vX           the lot: pack -> tag+release ->
+        [--sign [key]] [--no-preflight]        preflight -> open the registry PR
+        [--registry o/n] [--notes n] [--draft]
+        [--force]                             overwrite an existing release's artifact
+                                              (breaks the sha256 pin if it was ever merged)
+
+The goal: create -> dev -> publish, and never hand-compute sha256/size/commitSha
+or hand-write the registry JSON.`;
+
 async function main(): Promise<void> {
+  // Before dispatch, so assertKnownFlags never sees `--help` and rejects it as unknown.
+  // Help is not an error: it goes to stdout and exits 0.
+  if (cmd === 'help' || cmd === '--help' || cmd === '-h' || flags.help) {
+    console.log(HELP);
+    return;
+  }
   if (!cmd) {
     // Bare invocation: a menu in a terminal, the usage line for scripts.
     if (!isInteractive()) { console.error(USAGE); process.exit(2); }
@@ -104,16 +177,20 @@ async function main(): Promise<void> {
 
 async function dispatch(command: string, f: Flags, positional: string[]): Promise<void> {
   const tui = isInteractive();
+  assertKnownFlags(command, f);
   if (command === 'create') {
     const name = positional[0];
     if (!name || f.interactive) {
-      if (!tui) fail('create needs a plugin name in non-interactive mode: create <name> [--type integration|page|widget]');
+      if (!tui) fail('create needs a plugin name in non-interactive mode: create <name> [--type integration|page|widget|trip-page]');
       await interactiveScaffold(process.cwd(), name);
       return;
     }
     scaffold(name, f.type || 'integration', process.cwd(), {
       author: f.author, description: f.description,
-      permissions: f.permissions ? f.permissions.split(/[\s,]+/).filter(Boolean) : undefined,
+      permissions: listFlag(f.permissions),
+      egress: listFlag(f.egress),
+      requiredAddons: listFlag(f['required-addons']),
+      template: f.template as 'blank' | 'notification-channel' | undefined,
     });
     console.log(`Created ${name}/ — build server/index.js, add docs/screenshot.png, then \`npx trek-plugin-sdk dev ${name}\`.`);
   } else if (command === 'dev') {
@@ -216,7 +293,8 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
     const { prUrl } = await publishPlugin({
       dir: positional[0] || '.', repo, tag,
       signKeyPath: signKey(f), registry: f.registry, draft: !!f.draft,
-      notes: f.notes, skipPreflight: !!f['no-preflight'], now: new Date().toISOString(),
+      notes: f.notes, skipPreflight: !!f['no-preflight'], force: !!f.force,
+      now: new Date().toISOString(),
       log: tui ? clackLogSink : undefined,
     });
     if (tui) logSuccess('Published — registry PR:'); else console.error('\n✓ published — registry PR:');
