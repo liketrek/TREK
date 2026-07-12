@@ -331,6 +331,8 @@ The script creates a timestamped DB backup before making changes and prompts for
 
 For production, put TREK behind a TLS-terminating reverse proxy. TREK uses WebSockets for real-time sync, so the proxy **must** support WebSocket upgrades on `/ws`.
 
+If you use the MCP addon, the proxy must also pass the `Mcp-Session-Id` header through in both directions on `/mcp` — Nginx and Caddy do this by default, but a proxy that strips it makes every tool call open a new session instead of reusing one. See the [Reverse Proxy wiki page](https://github.com/mauriceboe/TREK/wiki/Reverse-Proxy) for details.
+
 <details>
 <summary>Nginx</summary>
 
@@ -367,6 +369,19 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_read_timeout 86400;
+    }
+
+    # Only needed if you use the MCP addon. Responses are Server-Sent Events,
+    # so buffering must be off or tool results arrive late.
+    location /mcp {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
     }
 }
 ```
@@ -430,7 +445,7 @@ Caddy handles TLS and WebSockets automatically.
 | `DEMO_MODE` | Enable demo mode (hourly data resets) | `false` |
 | `UNSPLASH_ACCESS_KEY` | Optional Unsplash Access Key for trip-cover and place-image search. Without one, TREK uses Unsplash's unauthenticated endpoint, which some datacenter/VPS IPs are blocked from. Get a free key at [unsplash.com/developers](https://unsplash.com/developers). Overrides any per-admin key set in Admin > Settings (where it can also be configured instead). | — |
 | `MCP_RATE_LIMIT` | Max MCP API requests per user per minute | `300` |
-| `MCP_MAX_SESSION_PER_USER` | Max concurrent MCP sessions per user | `20` |
+| `MCP_MAX_SESSION_PER_USER` | Max concurrent MCP sessions per user. At the cap, the least-recently-active session is closed to make room | `20` |
 
 </details>
 

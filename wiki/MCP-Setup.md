@@ -154,3 +154,5 @@ Each user can create up to **10 static tokens**.
 - [MCP-Scopes](MCP-Scopes)
 - [Admin-MCP-Tokens](Admin-MCP-Tokens)
 - [Environment-Variables](Environment-Variables)
+- [Reverse-Proxy](Reverse-Proxy) — the proxy must pass `Mcp-Session-Id` through, or every tool call opens a new session
+- [Troubleshooting](Troubleshooting) — OAuth flow not starting, sessions piling up, Cloudflare WAF blocks
