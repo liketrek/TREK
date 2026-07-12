@@ -202,9 +202,16 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                   name="ldap_default_method"
                   value={method}
                   checked={ldapDefaultMethod === method}
-                  onChange={() => {
+                  onChange={async () => {
                     setLdapDefaultMethod(method)
-                    handleToggleAuthSetting('ldap_default_method', method, () => {})
+                    try {
+                      await fetch('/api/admin/settings', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ ldap_default_method: method }),
+                      })
+                    } catch { /* ignore */ }
                   }}
                   className="accent-slate-900"
                 />

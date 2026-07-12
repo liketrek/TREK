@@ -92,13 +92,13 @@ describe('AuthPublicController', () => {
 
   it('login: mfa branch, success cookie, error mapping', async () => {
     const setAuthCookie = vi.fn();
-    const mfa = new AuthPublicController(asvc({ loginUser: vi.fn().mockReturnValue({ mfa_required: true, mfa_token: 'mt' }) } as Partial<AuthService>), rl());
+    const mfa = new AuthPublicController(asvc({ ldapLoginUser: vi.fn().mockResolvedValue({ mfa_required: true, mfa_token: 'mt' }) } as Partial<AuthService>), rl());
     expect(await mfa.login({}, req, res)).toEqual({ mfa_required: true, mfa_token: 'mt' });
-    const ok = new AuthPublicController(asvc({ loginUser: vi.fn().mockReturnValue({ token: 'tk', user, remember: true }), setAuthCookie } as Partial<AuthService>), rl());
+    const ok = new AuthPublicController(asvc({ ldapLoginUser: vi.fn().mockResolvedValue({ token: 'tk', user, remember: true }), setAuthCookie } as Partial<AuthService>), rl());
     expect(await ok.login({}, req, res)).toEqual({ token: 'tk', user });
     // The "remember me" flag from the service rides through to the cookie service.
     expect(setAuthCookie).toHaveBeenCalledWith(res, 'tk', req, true);
-    const bad = new AuthPublicController(asvc({ loginUser: vi.fn().mockReturnValue({ error: 'Bad creds', status: 401, auditAction: 'user.login_fail' }) } as Partial<AuthService>), rl());
+    const bad = new AuthPublicController(asvc({ ldapLoginUser: vi.fn().mockResolvedValue({ error: 'Bad creds', status: 401, auditAction: 'user.login_fail' }) } as Partial<AuthService>), rl());
     expect(await thrownAsync(() => bad.login({}, req, res))).toEqual({ status: 401, body: { error: 'Bad creds' } });
   }, 10000);
 
@@ -132,7 +132,7 @@ describe('AuthPublicController', () => {
 
   it('login takes the mfa-required branch and never sets a cookie', async () => {
     const setAuthCookie = vi.fn();
-    const c = new AuthPublicController(asvc({ loginUser: vi.fn().mockReturnValue({ mfa_required: true, mfa_token: 'mt', auditAction: 'user.login_mfa' }), setAuthCookie } as Partial<AuthService>), rl());
+    const c = new AuthPublicController(asvc({ ldapLoginUser: vi.fn().mockResolvedValue({ mfa_required: true, mfa_token: 'mt', auditAction: 'user.login_mfa' }), setAuthCookie } as Partial<AuthService>), rl());
     expect(await c.login({}, req, res)).toEqual({ mfa_required: true, mfa_token: 'mt' });
     expect(setAuthCookie).not.toHaveBeenCalled();
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.login_mfa' }));
