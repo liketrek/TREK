@@ -7,7 +7,6 @@
  *
  * Requires `git` + `gh` (authenticated), same as `release`/`submit`.
  */
-import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { packPluginDir } from './pack.js';
@@ -22,10 +21,15 @@ function git(dir: string, args: string[], quiet = true): string {
 function tagExists(dir: string, tag: string): boolean {
   try { git(dir, ['rev-parse', `${tag}^{commit}`]); return true; } catch { return false; }
 }
+function releaseExists(repo: string, tag: string): boolean {
+  try { execFileSync('gh', ['release', 'view', tag, '--repo', repo], { stdio: 'pipe' }); return true; } catch { return false; }
+}
 
 export async function publishPlugin(opts: {
   dir: string; repo: string; tag: string; now: string;
   signKeyPath?: string; registry?: string; draft?: boolean; notes?: string; skipPreflight?: boolean;
+  /** Overwrite the artifact on an existing release. Only safe if it was never merged. */
+  force?: boolean;
   /** Progress sink. Defaults to the plain console.error lines (CI parity). */
   log?: LogSink;
 }): Promise<{ prUrl: string }> {
@@ -45,11 +49,23 @@ export async function publishPlugin(opts: {
   try { git(dir, ['push', 'origin', opts.tag]); } catch {
     throw new Error(`could not push tag ${opts.tag} — is "origin" your plugin's GitHub repo and are you authenticated? (git push origin ${opts.tag})`);
   }
-  try {
-    execFileSync('gh', ['release', 'create', opts.tag, packed.artifact, '--repo', opts.repo, '--title', opts.tag, '--notes', opts.notes || `Release ${opts.tag}`], { stdio: 'pipe' });
-  } catch {
-    // Release already exists — (re)upload the packed artifact so its bytes match the pin.
+  // A released artifact is IMMUTABLE: the registry pins its sha256, so overwriting the
+  // bytes of a release that is already in the registry breaks the checksum for everyone
+  // who has that version — they can no longer install or update it. Refuse by default.
+  // (The old code blanket-caught every `gh release create` failure — auth, network, a bad
+  // repo — and turned it into a --clobber upload.)
+  if (releaseExists(opts.repo, opts.tag)) {
+    if (!opts.force) {
+      throw new Error(
+        `release ${opts.tag} already exists on ${opts.repo}.\n` +
+        `Overwriting a released artifact breaks the sha256 pin for everyone who already installed it.\n` +
+        `Cut a new version, or pass --force if this release was never merged into the registry.`,
+      );
+    }
+    log(`      ! release ${opts.tag} exists — overwriting the artifact (--force)`);
     execFileSync('gh', ['release', 'upload', opts.tag, packed.artifact, '--repo', opts.repo, '--clobber'], { stdio: 'pipe' });
+  } else {
+    execFileSync('gh', ['release', 'create', opts.tag, packed.artifact, '--repo', opts.repo, '--title', opts.tag, '--notes', opts.notes || `Release ${opts.tag}`], { stdio: 'pipe' });
   }
   log(`      ✓ release ${opts.tag} on ${opts.repo}`);
 
@@ -69,6 +85,9 @@ export async function publishPlugin(opts: {
   step(4, 'Opening the registry PR…');
   const { prUrl } = submitEntry(entry, { registry: opts.registry, draft: opts.draft });
   log('      ✓ done');
-  fs.rmSync(zip, { force: true });
+  // Keep the artifact. It is the exact bytes the release and the entry's sha256 pin were
+  // computed from — a re-pack on another machine or SDK version can differ (CRLF, walk
+  // order), so anyone re-running `entry`/`sign` afterwards must hash THIS file, not a rebuild.
+  log(`      artifact kept at ${zip}`);
   return { prUrl };
 }
