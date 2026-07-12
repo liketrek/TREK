@@ -322,6 +322,13 @@ export interface PluginRequest {
    * providers; never Cookie/Authorization/session). Empty on authenticated routes.
    * Verify a provider signature against a secret you hold in `ctx.config`/`ctx.settings`. */
   headers: Record<string, string>;
+  /**
+   * The RAW request body, base64-encoded — set only on `auth:false` routes (webhooks),
+   * `null` elsewhere. This is what you must run an HMAC over: `body` above is the PARSED
+   * value, and re-serializing it will not reproduce the exact bytes the sender signed
+   * (key order, whitespace and unicode escaping all differ), so the signature won't match.
+   */
+  rawBodyBase64?: string | null;
   user: { id: number; username: string; isAdmin: boolean } | null;
 }
 export interface PluginResponse {
