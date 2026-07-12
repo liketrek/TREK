@@ -1,24 +1,31 @@
 /**
  * trek-plugin preflight — run the registry CI checks locally, over the network,
  * BEFORE you open a PR. It mirrors TREK-Plugins' validate-entry.mjs (tag→commit,
- * manifest parity, artifact sha256/size, native-binary scan) and check-readme.mjs
- * (required sections, real prose, a resolving screenshot, permission parity), so
- * you catch what CI would reject without a round-trip through review.
+ * manifest parity incl. operatorEgress/requiredAddons/pluginDependencies, artifact
+ * sha256/size, author-signature shape + verification, native-binary scan) and
+ * check-readme.mjs (required sections, real prose, a resolving screenshot, permission
+ * parity), so you catch what CI would reject without a round-trip through review.
+ *
+ * That mirroring is the whole contract: a gate the registry has and preflight doesn't is
+ * a false green, and an author trusts a green. Keep the two in step.
  *
  * Dependency-free: global fetch + Node built-ins + our own zip reader.
  */
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { listZipNames } from '../zip.js';
+import { verifyAuthorSignature, checkSignatureShape, SignatureError } from './verify-signature.js';
 
 const REQUIRED_HEADINGS = ['what it does', 'screenshots', 'permissions', 'setup'];
 const PLACEHOLDER_RE = [/\{\{[^}]*\}\}/, /\bREPLACE_ME\b/i, /\bDescribe (what|the)\b/i, /\byour-name\/trek-plugin/i];
 const MIN_PROSE = 400;
 const NATIVE_RE = /(^|\/)[^/]+\.node$|(^|\/)binding\.gyp$|(^|\/)prebuilds?\//i;
 
+export interface PluginDependency { id: string; version: string }
 export interface EntryVersion {
   version: string; gitTag: string; commitSha: string; downloadUrl: string;
   sha256: string; size: number; apiVersion: number; nativeModules?: boolean; operatorEgress?: boolean; signature?: string;
+  requiredAddons?: string[]; pluginDependencies?: PluginDependency[];
 }
 export interface Entry {
   id: string; name: string; type: string; repo: string; authorPublicKey?: string; versions: EntryVersion[];
@@ -48,7 +55,10 @@ export async function preflight(entry: Entry, opts: { all?: boolean } = {}): Pro
   if (!/^[a-z][a-z0-9-]{2,39}$/.test(entry.id)) fail(`id "${entry.id}" is not a valid slug (^[a-z][a-z0-9-]{2,39}$)`);
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(entry.repo)) fail(`repo "${entry.repo}" is not "owner/name"`);
   if (!['integration', 'page', 'widget', 'trip-page'].includes(entry.type)) fail(`type "${entry.type}" is not integration|page|widget|trip-page`);
-  if (entry.authorPublicKey && !entry.versions[0]?.signature) fail('entry has authorPublicKey but the newest version has no signature (sign the version too)');
+  // Signature SHAPE (mirrors the registry's checkSignatureShape): a key and a signature
+  // must be both-present or both-absent, and each must parse. TREK refuses to install a
+  // half-signed entry, so one is dead on arrival — better to say so now than at review.
+  for (const p of checkSignatureShape(entry)) fail(p);
 
   const versions = opts.all ? entry.versions : entry.versions.slice(0, 1);
   for (const v of versions) {
@@ -79,7 +89,12 @@ export async function preflight(entry: Entry, opts: { all?: boolean } = {}): Pro
         if (m.id !== entry.id) fail(`${tag}: manifest id "${m.id}" != entry id "${entry.id}"`);
         if (m.version !== v.version) fail(`${tag}: manifest version "${m.version}" != entry "${v.version}"`);
         if (m.type !== entry.type) fail(`${tag}: manifest type "${m.type}" != entry "${entry.type}"`);
-        if (m.apiVersion !== v.apiVersion) fail(`${tag}: manifest apiVersion ${m.apiVersion} != entry ${v.apiVersion}`);
+        // apiVersion is OPTIONAL in the manifest: the host defaults it to 1 at install
+        // (install/manifest.ts) and `entry` defaults it to 1 when building the entry. Compare
+        // the DEFAULTED values, or a manifest that legally omits it fails here with
+        // "manifest apiVersion undefined != entry 1" while the registry's CI passes it.
+        const mApiVersion = typeof m.apiVersion === 'number' ? m.apiVersion : 1;
+        if (mApiVersion !== v.apiVersion) fail(`${tag}: manifest apiVersion ${mApiVersion} != entry ${v.apiVersion}`);
         if (m.nativeModules === true) fail(`${tag}: manifest declares nativeModules:true (forbidden)`);
         // Mirrors the registry's operatorEgress parity check (validate-entry.mjs): the entry
         // must not understate the plugin's network reach.
@@ -96,6 +111,22 @@ export async function preflight(entry: Entry, opts: { all?: boolean } = {}): Pro
           }
           if (egress.includes('*')) fail(`${tag}: egress[] must not contain a bare "*"`);
         }
+        if (mOperatorEgress && !manifestPerms.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:'))) {
+          fail(`${tag}: operatorEgress declared without an http:outbound permission`);
+        }
+        // Dependency parity (mirrors validate-entry.mjs): the enriched entry must mirror the
+        // manifest, because TREK resolves requiredAddons/pluginDependencies from the INDEX
+        // before it ever downloads the artifact. An entry that understates them resolves
+        // against a dependency set the code doesn't actually have.
+        const normAddons = (a: unknown) => (Array.isArray(a) ? [...a].map(String).sort() : []);
+        if (JSON.stringify(normAddons(m.requiredAddons)) !== JSON.stringify(normAddons(v.requiredAddons))) {
+          fail(`${tag}: manifest requiredAddons != entry requiredAddons`);
+        }
+        const normDeps = (d: unknown) =>
+          (Array.isArray(d) ? d.map((x) => `${(x as PluginDependency)?.id}@${(x as PluginDependency)?.version}`).sort() : []);
+        if (JSON.stringify(normDeps(m.pluginDependencies)) !== JSON.stringify(normDeps(v.pluginDependencies))) {
+          fail(`${tag}: manifest pluginDependencies != entry pluginDependencies`);
+        }
         if (!failures.some((f) => f.startsWith(`${tag}: manifest`))) ok(`${tag}: manifest at commit matches the entry`);
       }
     } catch (e) { fail(`${tag}: manifest parity failed: ${(e as Error).message}`); }
@@ -110,6 +141,23 @@ export async function preflight(entry: Entry, opts: { all?: boolean } = {}): Pro
         const sha = createHash('sha256').update(bytes).digest('hex');
         if (sha !== v.sha256) fail(`${tag}: sha256 mismatch — release has ${sha.slice(0, 12)}…, entry pins ${v.sha256.slice(0, 12)}… (re-pack + re-upload?)`);
         else ok(`${tag}: artifact sha256 matches the release`);
+
+        // Author signature over those same bytes. sha256 proves they are what the REGISTRY
+        // vouches for; the signature proves they came from the AUTHOR's key. The registry's
+        // CI verifies this and TREK verifies it again at install, so a signature that does
+        // not check out is an entry nobody can install — and the author would only find out
+        // at review. We already have the bytes, so it costs nothing to say so now.
+        if (v.signature && entry.authorPublicKey) {
+          try {
+            if (!verifyAuthorSignature(bytes, v.signature, entry.authorPublicKey)) {
+              fail(`${tag}: author signature does not verify against authorPublicKey — did you sign with a different key, or re-pack after signing?`);
+            } else ok(`${tag}: author signature verifies`);
+          } catch (e) {
+            if (e instanceof SignatureError) fail(`${tag}: signature/key is malformed: ${e.message}`);
+            else throw e;
+          }
+        }
+
         let names: string[] = [];
         try { names = bytes[0] === 0x50 && bytes[1] === 0x4b ? listZipNames(bytes) : []; } catch { /* not a zip */ }
         if (names.some((n) => NATIVE_RE.test(n))) fail(`${tag}: artifact contains native binaries (.node / binding.gyp / prebuilds)`);
