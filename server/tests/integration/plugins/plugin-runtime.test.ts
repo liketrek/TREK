@@ -12,12 +12,19 @@ const { testDb } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE plugins (
-    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, version TEXT, permissions TEXT DEFAULT '[]', granted_permissions TEXT DEFAULT '',
+    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, version TEXT, permissions TEXT DEFAULT '[]', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT DEFAULT '',
     config TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', capabilities TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
     CREATE TABLE settings (user_id INTEGER, key TEXT, value TEXT);
     CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT);
+    CREATE TABLE plugin_user_config (plugin_id TEXT, user_id INTEGER, field_key TEXT, value TEXT, PRIMARY KEY (plugin_id, user_id, field_key));
+    CREATE TABLE plugin_oauth_tokens (plugin_id TEXT, user_id INTEGER, access_token TEXT, refresh_token TEXT, expires_at TEXT, scope TEXT, updated_at TEXT, PRIMARY KEY (plugin_id, user_id));
+    CREATE TABLE plugin_oauth_state (state TEXT PRIMARY KEY, plugin_id TEXT, user_id INTEGER, verifier TEXT, created_at TEXT);
+    CREATE TABLE plugin_meta_migrations (plugin_id TEXT, migration_id TEXT, PRIMARY KEY (plugin_id, migration_id));
+    CREATE TABLE plugin_capability_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, acting_user_id INTEGER, method TEXT, resource TEXT, code TEXT, ts TEXT, prev_hash TEXT, hash TEXT);
+    CREATE TABLE plugin_scheduled_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT NOT NULL, name TEXT NOT NULL, due_at INTEGER NOT NULL, payload TEXT NOT NULL DEFAULT 'null', every_ms INTEGER, created_at TEXT DEFAULT (datetime('now')), UNIQUE(plugin_id, name));
+    CREATE TABLE plugin_user_erasure_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT NOT NULL, user_id INTEGER NOT NULL, created_at TEXT DEFAULT (datetime('now')), UNIQUE(plugin_id, user_id));
     CREATE TABLE addons (id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0);`);
   return { testDb: db };
 });
@@ -155,6 +162,73 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     await rt.deactivate('messy');
   });
 
+  it('erases and exports a user\'s own-db data through the GDPR hooks', async () => {
+    const gdir = path.join(codeRoot, 'gdpr', 'server');
+    fs.mkdirSync(gdir, { recursive: true });
+    fs.writeFileSync(path.join(gdir, 'index.js'), `module.exports = {
+      async onLoad(ctx) { await ctx.db.migrate('001', 'CREATE TABLE prefs (user_id INTEGER, v TEXT)'); },
+      routes: [{ method: 'POST', path: '/seed', auth: true, async handler(req, ctx) {
+        await ctx.db.exec('INSERT INTO prefs (user_id, v) VALUES (?, ?)', req.user.id, 'x');
+        return { status: 200, body: 'ok' };
+      }}],
+      async exportUserData({ userId }, ctx) { return await ctx.db.query('SELECT v FROM prefs WHERE user_id = ?', userId); },
+      async deleteUserData({ userId }, ctx) { await ctx.db.exec('DELETE FROM prefs WHERE user_id = ?', userId); },
+    };`);
+    testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('gdpr','active','[\"db:own\",\"hook:user-data\"]','{}')").run();
+    await runtime.activate('gdpr');
+    // seed a row for user 5
+    await runtime.invoke('gdpr', 'invoke.route', { routeId: 0, req: { method: 'POST', path: '/seed', query: {}, body: null, user: { id: 5, username: 'a', isAdmin: false } } });
+
+    // export sees the user's data, aggregated under the plugin id
+    expect(await runtime.exportUserData(5)).toEqual([{ pluginId: 'gdpr', data: [{ v: 'x' }] }]);
+
+    // erasure: enqueue (durable) + drain → the plugin deletes its rows and the queue clears
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (runtime as any).enqueueUserErasure(5);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (runtime as any).drainUserErasures();
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='gdpr'").get()).toMatchObject({ c: 0 });
+    // the export is now empty (rows gone), proving the handler ran end-to-end
+    expect(await runtime.exportUserData(5)).toEqual([{ pluginId: 'gdpr', data: [] }]);
+
+    await runtime.deactivate('gdpr');
+  });
+
+  it('the drain reap keeps a queued erasure while the plugin data dir survives (uninstall keep-data), reaping only once the data is gone', async () => {
+    // uninstall(deleteData=false) removes the plugins row but DELIBERATELY keeps the data
+    // dir and the queued erasure so a same-id reinstall can still honour it. The orphan
+    // reap must not delete that row while the data dir is still present.
+    const id = 'reaptest';
+    const dir = path.join(dataRoot, id);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'plugin.db'), 'x');
+    testDb.prepare('INSERT INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES (?, ?)').run(id, 9);
+    // the plugin is gone from the registry (uninstalled) but its data dir remains
+    expect(testDb.prepare('SELECT id FROM plugins WHERE id = ?').get(id)).toBeUndefined();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (runtime as any).drainUserErasures();
+    expect((testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='reaptest'").get() as { c: number }).c).toBe(1);
+
+    // now the data is truly gone (deleteData=true / manual removal) → the row is reaped
+    fs.rmSync(dir, { recursive: true, force: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (runtime as any).drainUserErasures();
+    expect((testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='reaptest'").get() as { c: number }).c).toBe(0);
+  });
+
+  it('leaves an erasure queued for a plugin that is offline, to run when it is back', async () => {
+    // granted the hook but NOT active → enqueue keeps the row, drain leaves it
+    testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('offliner','inactive','[\"db:own\",\"hook:user-data\"]','{}')").run();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (runtime as any).enqueueUserErasure(9);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (runtime as any).drainUserErasures();
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='offliner' AND user_id=9").get()).toMatchObject({ c: 1 });
+    // a plugin WITHOUT the grant is never enqueued in the first place
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='counter' AND user_id=9").get()).toMatchObject({ c: 0 });
+  });
+
   it('onModuleInit boots every ENABLED plugin — even one left in error state', async () => {
     fs.mkdirSync(path.join(codeRoot, 'booter', 'server'), { recursive: true });
     fs.writeFileSync(path.join(codeRoot, 'booter', 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
@@ -192,6 +266,16 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('gone','inactive','[]','{}')").run();
     testDb.prepare("INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES ('gone','k','instance',0)").run();
     testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (1, 'plugin:gone:units', 'metric')").run();
+    // Per-user secrets + OAuth tokens live in their OWN tables, not under settings —
+    // a "delete all data" that leaves these behind leaks encrypted keys/tokens that a
+    // same-id reinstall silently re-adopts (audit finding).
+    testDb.prepare("INSERT INTO plugin_user_config (plugin_id, user_id, field_key, value) VALUES ('gone', 1, 'apiKey', 'enc:secret')").run();
+    testDb.prepare("INSERT INTO plugin_oauth_tokens (plugin_id, user_id, access_token, refresh_token) VALUES ('gone', 1, 'at', 'rt')").run();
+    testDb.prepare("INSERT INTO plugin_oauth_state (state, plugin_id, user_id, verifier) VALUES ('s1', 'gone', 1, 'v')").run();
+    testDb.prepare("INSERT INTO plugin_meta_migrations (plugin_id, migration_id) VALUES ('gone', '001')").run();
+    testDb.prepare("INSERT INTO plugin_capability_audit (plugin_id, method, code, ts, hash) VALUES ('gone', 'trips.getById', 'OK', 't', 'h')").run();
+    testDb.prepare("INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at) VALUES ('gone', 'poll', 0)").run();
+    testDb.prepare("INSERT INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES ('gone', 7)").run();
 
     await new PluginRuntimeService().uninstall('gone', true);
 
@@ -199,6 +283,26 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     expect(testDb.prepare("SELECT COUNT(*) c FROM plugins WHERE id='gone'").get()).toMatchObject({ c: 0 });
     expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_settings_fields WHERE plugin_id='gone'").get()).toMatchObject({ c: 0 });
     expect(testDb.prepare("SELECT COUNT(*) c FROM settings WHERE key LIKE 'plugin:gone:%'").get()).toMatchObject({ c: 0 });
+    // the secret-bearing tables + the erasure queue must be purged too (data is gone)
+    for (const t of ['plugin_user_config', 'plugin_oauth_tokens', 'plugin_oauth_state', 'plugin_meta_migrations', 'plugin_capability_audit', 'plugin_scheduled_tasks', 'plugin_user_erasure_queue']) {
+      expect(testDb.prepare(`SELECT COUNT(*) c FROM ${t} WHERE plugin_id='gone'`).get()).toMatchObject({ c: 0 });
+    }
+  });
+
+  it('uninstall WITHOUT deleteData keeps pending GDPR erasures (the data survives, so must the obligation)', async () => {
+    fs.mkdirSync(path.join(codeRoot, 'keepdata', 'server'), { recursive: true });
+    fs.writeFileSync(path.join(codeRoot, 'keepdata', 'server', 'index.js'), 'module.exports={}');
+    testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('keepdata','inactive','[]','{}')").run();
+    // a deleted user's erasure is still pending for this plugin
+    testDb.prepare("INSERT INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES ('keepdata', 42)").run();
+
+    await new PluginRuntimeService().uninstall('keepdata', false); // keep the plugin's data
+
+    // the plugin row is gone, but the erasure obligation is retained — a reinstall of the
+    // same id will drain it and finally honour the deletion, instead of silently keeping
+    // the user's data forever.
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugins WHERE id='keepdata'").get()).toMatchObject({ c: 0 });
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='keepdata' AND user_id=42").get()).toMatchObject({ c: 1 });
   });
 
   it('the egress guard blocks a fetch to an undeclared host', async () => {

@@ -52,6 +52,7 @@ const zhTW: NotificationLocale = {
       title: 'Synology 工作階段已清除',
       body: '您的 Synology 帳戶或 URL 已變更，您已登出 Synology Photos。',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: '重設您的密碼',

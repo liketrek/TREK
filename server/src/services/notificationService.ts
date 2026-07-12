@@ -4,25 +4,12 @@ import {
   getActiveChannels,
   isEnabledForEvent,
   getAdminGlobalPref,
-  isSmtpConfigured,
+  isAdminGlobalChannel,
   ADMIN_SCOPED_EVENTS,
   type NotifEventType,
-  type NotifChannel,
 } from './notificationPreferencesService';
-import {
-  getEventText,
-  sendEmail,
-  sendWebhook,
-  sendNtfy,
-  getUserEmail,
-  getUserLanguage,
-  getUserWebhookUrl,
-  getAdminWebhookUrl,
-  getUserNtfyConfig,
-  getAdminNtfyConfig,
-  resolveNtfyUrl,
-  getAppUrl,
-} from './notifications';
+import { getEventText, getUserLanguage, getAppUrl } from './notifications';
+import { listChannels, type ChannelMessage, type ExternalChannel } from './notifications/channelRegistry';
 import {
   resolveRecipients,
   createNotificationForRecipient,
@@ -59,6 +46,16 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     textKey: 'notif.test.navigate.text',
     navigateTextKey: 'notif.action.view',
     navigateTarget: () => '/dashboard',
+  },
+  // ── Plugin-mediated notification (#plugins) — raw title/body carried as params,
+  // rendered by the passthrough keys. The plugin never picks a recipient directly;
+  // the host forces scope/target to the acting user or a trip they belong to. ──────
+  plugin_notification: {
+    inAppType: 'navigate',
+    titleKey: 'notif.plugin.title',
+    textKey: 'notif.plugin.text',
+    navigateTextKey: 'notif.action.view',
+    navigateTarget: p => p.link || null,
   },
   // ── Production events ─────────────────────────────────────────────────────
   trip_invite: {
@@ -167,6 +164,40 @@ export interface NotificationPayload {
   };
 }
 
+/**
+ * Should this channel deliver this event to this recipient?
+ *
+ * Encodes, unchanged, the gating the four hand-written dispatch blocks used to do:
+ *  - admin-scoped events (version_available) reach recipients only over a channel
+ *    that bypasses the `notification_channels` toggle (email), gated by the admin
+ *    global pref rather than the per-user opt-out. Their webhook/ntfy copies go out
+ *    once, globally, via sendGlobal() below — not per recipient.
+ *  - everything else: the admin enabled the channel, the user didn't opt out of this
+ *    event on it, and the user has credentials for it.
+ */
+function shouldSendToUser(
+  channel: ExternalChannel,
+  event: NotifEventType,
+  recipientId: number,
+  activeChannels: string[],
+): boolean {
+  if (!channel.supportsEvent(event)) return false;
+  if (channel.isInstanceConfigured && !channel.isInstanceConfigured()) return false;
+
+  if (ADMIN_SCOPED_EVENTS.has(event)) {
+    if (!channel.bypassesActiveToggleForAdminEvents) return false;
+    if (!isAdminGlobalChannel(channel.id)) return false;
+    if (!getAdminGlobalPref(event, channel.id)) return false;
+  } else {
+    // A built-in needs the admin's explicit switch; a plugin channel is on because the
+    // admin enabled the plugin — that IS the opt-in (see getActiveChannels).
+    if (channel.source === 'builtin' && !activeChannels.includes(channel.id)) return false;
+    if (!isEnabledForEvent(recipientId, event, channel.id)) return false;
+  }
+
+  return channel.isConfiguredFor(recipientId);
+}
+
 export async function send(payload: NotificationPayload): Promise<void> {
   const { event, actorId, params, scope, targetId, inApp } = payload;
 
@@ -192,6 +223,7 @@ export async function send(payload: NotificationPayload): Promise<void> {
   }
   const config = configEntry ?? FALLBACK_EVENT_CONFIG;
   const activeChannels = getActiveChannels();
+  const channels = listChannels();
   const appUrl = getAppUrl();
 
   // Build navigate target (used by email/webhook CTA and in-app navigate)
@@ -263,43 +295,23 @@ export async function send(payload: NotificationPayload): Promise<void> {
       );
     }
 
-    // ── Email ────────────────────────────────────────────────────────────
-    // Admin-scoped events: use global pref + SMTP check (bypass notification_channels toggle)
-    // Regular events: use active channels + per-user pref
-    const emailEnabled = ADMIN_SCOPED_EVENTS.has(event)
-      ? isSmtpConfigured() && getAdminGlobalPref(event, 'email')
-      : activeChannels.includes('email') && isEnabledForEvent(recipientId, event, 'email');
-
-    if (emailEnabled) {
-      const email = getUserEmail(recipientId);
-      if (email) {
-        const lang = getUserLanguage(recipientId);
-        const { title, body } = getEventText(lang, event, params);
-        promises.push(sendEmail(email, title, body, recipientId, navigateTarget ?? undefined));
-      }
-    }
-
-    // ── Webhook (per-user) — skip for admin-scoped events (handled globally below) ──
-    if (!ADMIN_SCOPED_EVENTS.has(event) && activeChannels.includes('webhook') && isEnabledForEvent(recipientId, event, 'webhook')) {
-      const webhookUrl = getUserWebhookUrl(recipientId);
-      if (webhookUrl) {
-        const lang = getUserLanguage(recipientId);
-        const { title, body } = getEventText(lang, event, params);
-        promises.push(sendWebhook(webhookUrl, { event, title, body, tripName: params.trip, link: fullLink }));
-      }
-    }
-
-    // ── Ntfy (per-user) — skip for admin-scoped events (handled globally below) ──
-    if (!ADMIN_SCOPED_EVENTS.has(event) && activeChannels.includes('ntfy') && isEnabledForEvent(recipientId, event, 'ntfy' as NotifChannel)) {
-      const userNtfyCfg = getUserNtfyConfig(recipientId);
-      const adminNtfyCfg = getAdminNtfyConfig();
-      const ntfyUrl = resolveNtfyUrl(adminNtfyCfg, userNtfyCfg);
-      if (ntfyUrl) {
-        const lang = getUserLanguage(recipientId);
-        const { title, body } = getEventText(lang, event, params);
-        const token = userNtfyCfg?.token ?? adminNtfyCfg.token;
-        promises.push(sendNtfy(ntfyUrl, token, { event, title, body, link: fullLink }));
-      }
+    // ── External channels (email, webhook, ntfy, plugin:*) ───────────────
+    // One loop over the registry. The message is rendered once per recipient, in
+    // their language, and handed to every channel that wants it — so a plugin
+    // channel never touches i18n.
+    const deliverable = channels.filter(ch => shouldSendToUser(ch, event, recipientId, activeChannels));
+    if (deliverable.length > 0) {
+      const lang = getUserLanguage(recipientId);
+      const { title, body } = getEventText(lang, event, params);
+      const msg: ChannelMessage = {
+        event,
+        title,
+        body,
+        navigateTarget: navigateTarget ?? undefined,
+        url: fullLink,
+        tripName: params.trip,
+      };
+      for (const ch of deliverable) promises.push(ch.sendToUser(recipientId, msg));
     }
 
     const results = await Promise.allSettled(promises);
@@ -310,26 +322,23 @@ export async function send(payload: NotificationPayload): Promise<void> {
     }
   }));
 
-  // ── Admin webhook (scope: admin) — global, respects global pref ──────
-  if (scope === 'admin' && getAdminGlobalPref(event, 'webhook')) {
-    const adminWebhookUrl = getAdminWebhookUrl();
-    if (adminWebhookUrl) {
+  // ── Admin-global copies (scope: admin) ───────────────────────────────
+  // One send per channel, over the admin's own credentials, not per-recipient.
+  // Always rendered in English — there is no single recipient to take a language from.
+  if (scope === 'admin') {
+    const globalChannels = channels.filter(
+      ch => ch.sendGlobal && ch.supportsEvent(event) && isAdminGlobalChannel(ch.id) && getAdminGlobalPref(event, ch.id),
+    );
+    if (globalChannels.length > 0) {
       const { title, body } = getEventText('en', event, params);
-      await sendWebhook(adminWebhookUrl, { event, title, body, link: fullLink }).catch((err: unknown) => {
-        logError(`notificationService.send admin webhook failed event=${event}: ${err instanceof Error ? err.message : err}`);
-      });
-    }
-  }
-
-  // ── Admin ntfy (scope: admin) — global, respects global pref ─────────
-  if (scope === 'admin' && getAdminGlobalPref(event, 'ntfy')) {
-    const adminNtfyCfg = getAdminNtfyConfig();
-    const adminNtfyUrl = resolveNtfyUrl(adminNtfyCfg, null);
-    if (adminNtfyUrl) {
-      const { title, body } = getEventText('en', event, params);
-      await sendNtfy(adminNtfyUrl, adminNtfyCfg.token, { event, title, body, link: fullLink }).catch((err: unknown) => {
-        logError(`notificationService.send admin ntfy failed event=${event}: ${err instanceof Error ? err.message : err}`);
-      });
+      const msg: ChannelMessage = { event, title, body, navigateTarget: navigateTarget ?? undefined, url: fullLink };
+      await Promise.all(
+        globalChannels.map(ch =>
+          ch.sendGlobal!(msg).catch((err: unknown) => {
+            logError(`notificationService.send admin ${ch.id} failed event=${event}: ${err instanceof Error ? err.message : err}`);
+          }),
+        ),
+      );
     }
   }
 }

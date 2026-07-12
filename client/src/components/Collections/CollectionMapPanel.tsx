@@ -1,5 +1,5 @@
 import React from 'react'
-import { PanelLeftClose, PanelLeftOpen, Search, Plus } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react'
 import type { CollectionPlace } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 import CollectionMap from './CollectionMap'
@@ -15,9 +15,6 @@ interface CollectionMapPanelProps {
   /** 'list' = split (map can be expanded); 'map' = full (list collapsed). */
   view: 'list' | 'map'
   onToggleView: () => void
-  /** Show a "+" to add a place to the current list (real lists only). */
-  canAddPlace: boolean
-  onAddPlace: () => void
   search: string
   onSearch: (v: string) => void
   t: TranslationFn
@@ -30,7 +27,7 @@ interface CollectionMapPanelProps {
  */
 export default function CollectionMapPanel({
   places, selectedPlaceId, onSelect, onDeselect, dark, overlay, view, onToggleView,
-  canAddPlace, onAddPlace, search, onSearch, t,
+  search, onSearch, t,
 }: CollectionMapPanelProps): React.ReactElement {
   return (
     <div className="col-map-shell">
@@ -55,11 +52,6 @@ export default function CollectionMapPanel({
             </button>
           </div>
           <div className="col-map-group right">
-            {canAddPlace && (
-              <button type="button" onClick={onAddPlace} className="col-map-btn" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
-                <Plus size={17} />
-              </button>
-            )}
             <div className="col-map-search">
               <Search size={15} />
               <input value={search} onChange={e => onSearch(e.target.value)} placeholder={t('collections.search')} />

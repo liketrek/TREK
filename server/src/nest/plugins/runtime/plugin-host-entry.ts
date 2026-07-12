@@ -16,7 +16,7 @@ import dns from 'node:dns';
 import dgram from 'node:dgram';
 import { createRequire } from 'node:module';
 import { createPluginContext, definePlugin, PLUGIN_API_VERSION, type ChildTransport, type PluginContext, type PluginDefinition } from './plugin-sdk';
-import { isBlockedIp, makeHostAllow, classifyConnect, dgramSendTarget, dgramConnectTarget } from './egress-policy';
+import { isBlockedIp, makeHostAllow, classifyConnect, unwrapConnectArgs, dgramSendTarget, dgramConnectTarget } from './egress-policy';
 import type { Envelope, RpcError } from '../protocol/envelope';
 
 const pluginId = process.argv[2] || process.env.TREK_PLUGIN_ID || 'unknown';
@@ -79,6 +79,11 @@ function installSdkInjection(requirePlugin: NodeJS.Require): void {
   };
 }
 
+// True once the plugin has loaded successfully. A subsequent async throw is then a
+// runtime crash (supervisor restarts with backoff), not a load failure — so we don't
+// send 'load-error' after activation, which the supervisor treats as a terminal disable.
+let activated = false;
+
 async function boot(config: Record<string, unknown>): Promise<void> {
   try {
     // Seal the raw IPC surface BEFORE any plugin code is required — this is the
@@ -94,10 +99,11 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     def = mod && mod.default ? (mod.default as PluginDefinition) : (mod as PluginDefinition);
     ctx = createPluginContext(pluginId, config, transport);
     if (typeof def.onLoad === 'function') await def.onLoad(ctx);
-    // Report the declared routes (with their index = routeId) and job ids so the
-    // host can proxy HTTP and schedule jobs without re-parsing the manifest.
+    // Report the declared routes (with their index = routeId) and jobs (id + cron
+    // schedule) so the host can proxy HTTP and SCHEDULE the jobs without re-parsing
+    // the manifest.
     const routes = (def.routes ?? []).map((r, i) => ({ i, method: r.method, path: r.path, auth: r.auth !== false }));
-    const jobs = (def.jobs ?? []).map((j) => j.id);
+    const jobs = (def.jobs ?? []).map((j) => ({ id: j.id, schedule: j.schedule }));
     const hooks = Object.keys((def.hooks ?? {}) as Record<string, unknown>);
     const events = (def.events ?? []).map((e) => e.on);
     // Inter-plugin surface: the callable exports this plugin implements, and the
@@ -105,6 +111,7 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     const exportNames = Object.keys((def.exports ?? {}) as Record<string, unknown>);
     const subscriptions = (def.subscriptions ?? []).map((s) => ({ plugin: s.plugin, event: s.event }));
     send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, events, exports: exportNames, subscriptions } });
+    activated = true; // past load: a later async throw is a runtime CRASH, not a load failure
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });
   } catch (e) {
@@ -138,6 +145,26 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       if (!job) throw new Error(`no job ${jobId}`);
       await job.handler(invCtx);
       respond(true, { ok: true });
+    } else if (req.method === 'invoke.scheduled') {
+      // A scheduled task the plugin registered via ctx.scheduler fired. Userless like
+      // a job (no acting user, so trip reads are refused). The handler gets the task
+      // name + its payload so one `scheduled` handler can route multiple timers.
+      const name = req.params.name as string;
+      const payload = req.params.payload;
+      if (typeof def.scheduled === 'function') await def.scheduled({ name, payload }, invCtx);
+      respond(true, { ok: true });
+    } else if (req.method === 'invoke.deleteUserData') {
+      // A TREK account was erased. Userless (like a job) — the handler only learns
+      // the userId and erases its OWN per-user rows. Always ACK, even with no handler,
+      // so the host can drop the durable erasure-queue row (nothing to erase == done).
+      const userId = req.params.userId as number;
+      if (typeof def.deleteUserData === 'function') await def.deleteUserData({ userId }, invCtx);
+      respond(true, { ok: true });
+    } else if (req.method === 'invoke.exportUserData') {
+      // GDPR portability: return what this plugin holds about the user (own db only).
+      const userId = req.params.userId as number;
+      const data = typeof def.exportUserData === 'function' ? await def.exportUserData({ userId }, invCtx) : undefined;
+      respond(true, { ok: true, data });
     } else if (req.method === 'invoke.hook') {
       // Host→plugin provider call: core asks a hook the plugin implements (e.g.
       // placeDetailProvider) for data. The hook method gets its args + the per-
@@ -150,13 +177,32 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       if (!impl || typeof impl[fnName] !== 'function') throw new Error(`no hook ${hookName}.${fnName}`);
       const result = await impl[fnName](...args, invCtx);
       respond(true, result);
+    } else if (req.method === 'invoke.action') {
+      // A settings-page button the user clicked. USER-INITIATED: invCtx carries the
+      // clicking user, so ctx.settings.get() returns THEIR value and trip reads are
+      // membership-checked against them (unlike a job or the notificationChannel hook).
+      const key = req.params.key as string;
+      const actions = def.actions as Record<string, ((c: PluginContext) => unknown) | undefined> | undefined;
+      const fn = actions?.[key];
+      if (typeof fn !== 'function') throw new Error(`no action ${key}`);
+      const result = await fn(invCtx);
+      respond(true, result ?? { ok: true });
     } else if (req.method === 'invoke.event') {
       // A core event fired for a trip. Run every matching subscription. invCtx carries
       // NO user (delivered like a job), so trip reads are refused — the handler reacts
       // to the fact of the event, using the plugin's own db / outbound / broadcasts.
       const eventName = req.params.event as string;
       const tripId = req.params.tripId as number;
-      const payload = { event: eventName, tripId };
+      // entity/entityId are the host-derived hint (which entity changed); snapshot
+      // is present only when the host verified this plugin's db:read:* grant for the
+      // family. Still no user — a trip read from this handler remains refused.
+      const payload = {
+        event: eventName,
+        tripId,
+        entity: req.params.entity as string | undefined,
+        entityId: req.params.entityId as number | undefined,
+        snapshot: req.params.snapshot as Record<string, unknown> | undefined,
+      };
       for (const sub of def.events ?? []) {
         if (sub.on === '*' || sub.on === eventName) await sub.handler(payload, invCtx);
       }
@@ -398,9 +444,21 @@ function installEgressGuard(egress: string[]): void {
 
   const proto = net.Socket.prototype as unknown as { connect: (...a: unknown[]) => unknown };
   const realConnect = proto.connect;
-  proto.connect = function (this: unknown, ...args: unknown[]): unknown {
+  proto.connect = function (this: unknown, ...rawArgs: unknown[]): unknown {
+    // Node hands the pre-normalised [options, cb] array in as a single argument on the
+    // net.connect() path (undici uses it for plain HTTP). Work from the unwrapped list,
+    // or the rebuild below spreads an array into {0: options, 1: cb} and Node rejects it.
+    const args = unwrapConnectArgs(rawArgs);
     const target = classifyConnect(args, (s) => net.isIP(s) !== 0);
-    if (target.kind === 'local') return realConnect.apply(this, args); // unix socket / pipe
+    if (target.kind === 'local') {
+      // A unix-socket / named-pipe connect is a host-local pivot — a malicious plugin
+      // could reach docker.sock or a local DB socket, exactly what the private-IP block
+      // exists to stop, and Node's --permission model doesn't gate socket connects.
+      // Refuse it under the SAME policy: blocked by default, allowed only when the
+      // operator explicitly opted into private egress.
+      if (blockPrivate) throw new Error(`egress: connecting to a local socket/pipe (${target.host}) is not allowed`);
+      return realConnect.apply(this, rawArgs);
+    }
     if (!allowed(target.host)) {
       throw new Error(`egress: ${target.host} is not in the plugin's declared hosts`);
     }
@@ -408,7 +466,7 @@ function installEgressGuard(egress: string[]): void {
       if (blockPrivate && isBlockedIp(target.host)) {
         throw new Error(`egress: ${target.host} is a blocked address`);
       }
-      return realConnect.apply(this, args);
+      return realConnect.apply(this, rawArgs);
     }
     // Hostname: inject the resolving guard. Preserve an existing lookup by
     // wrapping the args' options object.
@@ -514,14 +572,15 @@ heartbeat.unref?.();
 
 // A plugin that throws asynchronously must not take the host down — it only
 // crashes THIS child, which the supervisor detects and restarts/disables.
-process.on('uncaughtException', (e) => {
-  send({ k: 'evt', topic: 'load-error', data: { message: errMsg(e), stack: errStack(e) } });
+const onFatal = (e: unknown) => {
+  // Before activation: a throw during load fails activation (terminal). After activation:
+  // it's a runtime crash — just exit and let the supervisor's onExit run crash/backoff,
+  // so one late async throw restarts the plugin instead of permanently disabling it.
+  if (!activated) send({ k: 'evt', topic: 'load-error', data: { message: errMsg(e), stack: errStack(e) } });
   process.exit(1);
-});
-process.on('unhandledRejection', (e) => {
-  send({ k: 'evt', topic: 'load-error', data: { message: errMsg(e), stack: errStack(e) } });
-  process.exit(1);
-});
+};
+process.on('uncaughtException', onFatal);
+process.on('unhandledRejection', onFatal);
 
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);

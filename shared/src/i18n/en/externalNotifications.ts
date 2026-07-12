@@ -52,6 +52,7 @@ const en: NotificationLocale = {
       title: 'Synology session cleared',
       body: 'Your Synology account or URL changed. You have been logged out of Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Reset your password',

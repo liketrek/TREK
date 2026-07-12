@@ -8,7 +8,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places, rute & pengelompokan',
   'login.features.realtime': 'Sinkronisasi Real-Time',
   'login.features.realtimeDesc': 'Rencanakan bersama via WebSocket',
-  'login.features.budget': 'Pelacak Anggaran',
+  'login.features.budget': 'Pelacak Biaya',
   'login.features.budgetDesc': 'Kategori, grafik & biaya per orang',
   'login.features.collab': 'Kolaborasi',
   'login.features.collabDesc': 'Multi-pengguna dengan perjalanan bersama',

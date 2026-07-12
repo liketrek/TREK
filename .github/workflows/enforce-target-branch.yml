@@ -6,6 +6,7 @@ on:
 
 jobs:
   check-target:
+    if: github.repository == 'mauriceboe/TREK'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write

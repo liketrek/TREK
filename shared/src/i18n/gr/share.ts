@@ -10,7 +10,7 @@ const share: TranslationStrings = {
   'share.permMap': 'Χάρτης & Σχέδιο',
   'share.permBookings': 'Κρατήσεις',
   'share.permPacking': 'Πακετάρισμα',
-  'share.permBudget': 'Προϋπολογισμός',
+  'share.permBudget': 'Κόστη',
   'share.permCollab': 'Συνομιλία',
 };
 export default share;

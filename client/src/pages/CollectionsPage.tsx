@@ -91,8 +91,6 @@ export default function CollectionsPage(): React.ReactElement {
       overlay={overlay}
       view={c.view}
       onToggleView={toggleView}
-      canAddPlace={canAddPlace}
-      onAddPlace={() => c.setShowAddPlace(true)}
       search={c.search}
       onSearch={c.setSearch}
       t={t}
@@ -202,7 +200,7 @@ export default function CollectionsPage(): React.ReactElement {
                   />
                 </div>
 
-                {!mapOverlay && (
+                {(!mapOverlay || canAddPlace) && (
                   <div className="col-toolbar">
                     <button type="button" className="col-rail-toggle" onClick={() => c.setMobileRailOpen(true)}>
                       <Bookmark size={15} /> {t('collections.title')}

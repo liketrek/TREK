@@ -298,7 +298,51 @@ describe('exportICS', () => {
     const { ics } = exportICS(trip.id);
 
     expect(ics).toContain('DTSTART;VALUE=DATE:20250601');
+    // DTEND is exclusive — the day *after* the last day, or the trip loses a day.
+    expect(ics).toContain('DTEND;VALUE=DATE:20250608');
     expect(ics).toContain('SUMMARY:Summer Holiday');
+  });
+
+  describe('#1453 all-day DTEND is timezone-independent', () => {
+    const originalTz = process.env.TZ;
+
+    afterAll(() => {
+      process.env.TZ = originalTz;
+    });
+
+    // The old code did `new Date(date + 'T00:00:00')` — no Z, so parsed as *server-local*
+    // midnight — then setDate(+1) and .toISOString(). East of Greenwich that round-trip
+    // lands a day early, and since DTEND is exclusive the trip's last day was dropped.
+    // Only invisible in CI because containers default to TZ=UTC.
+    for (const tz of ['Europe/Berlin', 'Asia/Tokyo', 'Pacific/Kiritimati', 'America/New_York', 'UTC']) {
+      it(`TRIP-SVC-002b: DTEND is the day after the last day under TZ=${tz}`, () => {
+        process.env.TZ = tz;
+        const { user } = createUser(testDb);
+        const trip = createTrip(testDb, user.id, {
+          title: 'TZ Trip',
+          start_date: '2026-03-28',
+          end_date: '2026-03-30',
+        });
+
+        const { ics } = exportICS(trip.id);
+
+        expect(ics).toContain('DTSTART;VALUE=DATE:20260328');
+        expect(ics).toContain('DTEND;VALUE=DATE:20260331');
+      });
+    }
+
+    it('TRIP-SVC-002c: a per-day all-day summary event has the same exclusive DTEND', () => {
+      process.env.TZ = 'Asia/Tokyo';
+      const { user } = createUser(testDb);
+      const trip = createTrip(testDb, user.id, { title: 'Day Note Trip' });
+      const day = createDay(testDb, trip.id, { date: '2026-03-30', day_number: 1 });
+      createDayNote(testDb, day.id, trip.id, { text: 'Pack the bags' });
+
+      const { ics } = exportICS(trip.id);
+
+      expect(ics).toContain('DTSTART;VALUE=DATE:20260330');
+      expect(ics).toContain('DTEND;VALUE=DATE:20260331');
+    });
   });
 
   it('TRIP-SVC-003: reservation with full datetime (includes T) → DTSTART without VALUE=DATE', () => {
@@ -416,9 +460,36 @@ describe('exportICS', () => {
     const { ics } = exportICS(trip.id);
 
     expect(ics).toContain('SUMMARY:CDG → JFK');
-    expect(ics).toContain('DTSTART:20250602T090000');
-    expect(ics).toContain('DTEND:20250602T120000');
+    // Departure endpoint zone drives DTSTART, arrival zone drives DTEND, so the
+    // subscriber sees TREK's zones instead of their own (#1453).
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20250602T090000');
+    expect(ics).toContain('DTEND;TZID=America/New_York:20250602T120000');
+    expect(ics).not.toContain('DTSTART:20250602T090000');
+    // Each referenced zone gets a VTIMEZONE definition.
+    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Paris');
+    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:America/New_York');
     expect(ics).toContain('Route: CDG → JFK');
+  });
+
+  it('TRIP-SVC-010b: an invalid endpoint timezone degrades to floating time instead of crashing the export', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Bad TZ Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'CDG → JFK', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    // A stored/plugin-written timezone can be any string; it must never reach Intl.
+    // The bogus zone takes precedence over the coordinates (first.timezone || resolveZone).
+    insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Not/AZone', '09:00', '2025-06-02');
+    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'garbage', '12:00', '2025-06-02');
+
+    let ics = '';
+    expect(() => { ics = exportICS(trip.id).ics; }).not.toThrow();
+    // Falls back to a floating local time (no TZID) and never emits a bogus VTIMEZONE.
+    expect(ics).toContain('DTSTART:20250602T090000');
+    expect(ics).not.toContain('TZID=Not/AZone');
+    expect(ics).not.toContain('garbage');
   });
 
   it('TRIP-SVC-011: flight endpoint with no local_date is skipped (relative Day-N trips)', () => {
@@ -436,6 +507,24 @@ describe('exportICS', () => {
     const { ics } = exportICS(trip.id);
 
     expect(ics).not.toContain('SUMMARY:Timeless Flight');
+  });
+
+  it('TRIP-SVC-012: timed assignment gets a TZID derived from the place coordinates', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip' });
+    const day = createDay(testDb, trip.id, { date: '2025-06-02' });
+    // Tokyo coordinates → Asia/Tokyo via tz-lookup.
+    const place = createPlace(testDb, trip.id, { name: 'Senso-ji', lat: 35.7148, lng: 139.7967 });
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+    testDb
+      .prepare('UPDATE day_assignments SET assignment_time=? WHERE id=?')
+      .run('09:00', assignment.id);
+
+    const { ics } = exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Asia/Tokyo:20250602T090000');
+    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Asia/Tokyo');
+    expect(ics).not.toContain('DTSTART:20250602T090000');
   });
 });
 

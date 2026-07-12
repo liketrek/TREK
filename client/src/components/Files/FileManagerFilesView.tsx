@@ -1,12 +1,15 @@
+import { Fragment } from 'react'
 import { Upload, FileText, Star } from 'lucide-react'
 import type { FileManagerState } from './useFileManager'
 import { FileRow } from './FileManagerRow'
+import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 
 export function FilesView(S: FileManagerState) {
   const {
     can, trip, getRootProps, getInputProps, isDragActive, uploading, t, allowedFileTypes,
     files, filterType, setFilterType, filteredFiles,
   } = S
+  const contribFor = usePluginViewContributions('files', S.tripId)
   return (
     <>
       {/* Upload zone */}
@@ -70,7 +73,15 @@ export function FilesView(S: FileManagerState) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {filteredFiles.map(file => <FileRow key={file.id} {...S} file={file} />)}
+            {filteredFiles.map(file => {
+              const contributions = contribFor(file.id)
+              return (
+                <Fragment key={file.id}>
+                  <FileRow {...S} file={file} />
+                  {contributions.length > 0 && <div style={{ padding: '0 4px' }}><PluginCardFooter items={contributions} tripId={S.tripId} /></div>}
+                </Fragment>
+              )
+            })}
           </div>
         )}
       </div>

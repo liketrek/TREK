@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getIntlLanguage, getLocaleForLanguage, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
-import apiClient, { mapsApi } from '../../api/client'
+import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, normalizeRegionName, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry } from '@trek/shared'
 
 function useCountryNames(language: string): (code: string) => string {
@@ -68,6 +68,8 @@ export function useAtlas() {
   const [countryDetail, setCountryDetail] = useState<CountryDetail | null>(null)
   const [geoData, setGeoData] = useState<GeoJsonFeatureCollection | null>(null)
   const [visitedRegions, setVisitedRegions] = useState<Record<string, { code: string; name: string; placeCount: number; manuallyMarked?: boolean }[]>>({})
+  const [pluginLayers, setPluginLayers] = useState<PluginAtlasLayer[]>([])
+  const pluginLayerRef = useRef<L.GeoJSON | null>(null)
   const regionLayerRef = useRef<L.GeoJSON | null>(null)
   const regionGeoCache = useRef<Record<string, GeoJsonFeatureCollection>>({})
   const [showRegions, setShowRegions] = useState(false)
@@ -163,6 +165,14 @@ export function useAtlas() {
     apiClient.get(`/addons/atlas/regions?_t=${Date.now()}`)
       .then(r => setVisitedRegions(r.data?.regions || {}))
       .catch(() => {})
+  }, [])
+
+  // Load plugin tint layers (atlasLayerProvider hook) — once on mount. Fail-safe:
+  // an error just means no plugin overlay, the core map is untouched.
+  useEffect(() => {
+    pluginsApi.atlasLayers()
+      .then(r => setPluginLayers(r.layers || []))
+      .catch(() => setPluginLayers([]))
   }, [])
 
   // Load admin-1 GeoJSON for countries visible in the current viewport
@@ -388,6 +398,49 @@ export function useAtlas() {
     mapInstance.current.setView(currentCenter, currentZoom, { animate: false })
   }, [geoData, data, dark])
 
+  // Render plugin tint layers (atlasLayerProvider hook) — a dashed wash over the
+  // countries a plugin flagged, in its own non-interactive pane above the country
+  // fills. pointer-events stay off so clicks/hovers fall through to the country
+  // layer and the mark/unmark flows are untouched.
+  useEffect(() => {
+    if (!mapInstance.current) return
+    if (pluginLayerRef.current) {
+      mapInstance.current.removeLayer(pluginLayerRef.current)
+      pluginLayerRef.current = null
+    }
+    if (!geoData || pluginLayers.length === 0) return
+
+    // Same tone palette as the plugin map markers; the last layer naming a country wins.
+    const TONE_COLORS: Record<string, string> = { default: '#4F46E5', success: '#10b981', warn: '#f59e0b', danger: '#ef4444' }
+    const toneByA3: Record<string, string> = {}
+    for (const layer of pluginLayers) {
+      for (const c of layer.countries) {
+        const a3 = A2_TO_A3[c.code]
+        if (a3) toneByA3[a3] = c.tone || 'default'
+      }
+    }
+    const featureA3 = (f: any) => f?.properties?.ADM0_A3 || f?.properties?.ISO_A3 || f?.properties?.['ISO3166-1-Alpha-3'] || f?.id
+    const features = ((geoData as any).features || []).filter((f: any) => toneByA3[featureA3(f)] !== undefined)
+    if (features.length === 0) return
+
+    if (!mapInstance.current.getPane('atlasPluginPane')) {
+      mapInstance.current.createPane('atlasPluginPane')
+      const pane = mapInstance.current.getPane('atlasPluginPane')!
+      pane.style.zIndex = '402'
+      pane.style.pointerEvents = 'none'
+    }
+    pluginLayerRef.current = L.geoJSON({ type: 'FeatureCollection', features } as any, {
+      pane: 'atlasPluginPane',
+      interactive: false,
+      style: (feature) => {
+        const color = TONE_COLORS[toneByA3[featureA3(feature)]] || TONE_COLORS.default
+        return { fillColor: color, fillOpacity: 0.18, color, weight: 1.4, dashArray: '4 3' }
+      },
+    } as L.GeoJSONOptions).addTo(mapInstance.current)
+    // `loading` is a dep because the map itself is created once loading flips —
+    // layers fetched before that would otherwise never get drawn.
+  }, [geoData, pluginLayers, dark, loading])
+
   // Render sub-national region layer (zoom >= 5)
   useEffect(() => {
     if (!mapInstance.current) return
@@ -408,22 +461,25 @@ export function useAtlas() {
       const names = new Set<string>()
       for (const r of regions) {
         visitedRegionCodes.add(r.code)
-        names.add(r.name.toLowerCase())
+        names.add(normalizeRegionName(r.name))
         regionPlaceCounts[r.code] = r.placeCount
-        regionPlaceCounts[`${countryCode}:${r.name.toLowerCase()}`] = r.placeCount
+        regionPlaceCounts[`${countryCode}:${normalizeRegionName(r.name)}`] = r.placeCount
       }
       visitedRegionNamesByCountry.set(countryCode, names)
     }
 
-    // Match feature by ISO code OR region name scoped to the feature's country
+    // Match feature by ISO code OR region name scoped to the feature's country. Names are
+    // normalized (diacritics/dash variants folded) since the geocoder's cached region_name
+    // and the bundled boundaries' name don't always agree on accenting (e.g. a cached
+    // "Ile-de-France" must still match the bundle's "Île-de-France") (#atlas-region-match).
     const isVisitedFeature = (f: any) => {
       if (visitedRegionCodes.has(f.properties?.iso_3166_2)) return true
       const countryA2 = (f.properties?.iso_a2 || '').toUpperCase()
       const countryNames = visitedRegionNamesByCountry.get(countryA2)
       if (!countryNames) return false
-      const name = (f.properties?.name || '').toLowerCase()
+      const name = normalizeRegionName(f.properties?.name || '')
       if (countryNames.has(name)) return true
-      const nameEn = (f.properties?.name_en || '').toLowerCase()
+      const nameEn = normalizeRegionName(f.properties?.name_en || '')
       if (nameEn && countryNames.has(nameEn)) return true
       return false
     }
@@ -476,11 +532,11 @@ export function useAtlas() {
         const regionCode = feature?.properties?.iso_3166_2 || ''
         const countryA2 = (feature?.properties?.iso_a2 || '').toUpperCase()
         const visited = isVisitedFeature(feature)
-        const count = regionPlaceCounts[regionCode] || regionPlaceCounts[`${countryA2}:${regionName.toLowerCase()}`] || regionPlaceCounts[`${countryA2}:${regionNameEn.toLowerCase()}`] || 0
+        const count = regionPlaceCounts[regionCode] || regionPlaceCounts[`${countryA2}:${normalizeRegionName(regionName)}`] || regionPlaceCounts[`${countryA2}:${normalizeRegionName(regionNameEn)}`] || 0
         layer.on('click', () => {
           if (!countryA2) return
           if (visited) {
-            const regionEntry = visitedRegions[countryA2]?.find(r => r.code === regionCode || r.name.toLowerCase() === regionNameEn.toLowerCase())
+            const regionEntry = visitedRegions[countryA2]?.find(r => r.code === regionCode || normalizeRegionName(r.name) === normalizeRegionName(regionNameEn))
             if (regionEntry?.manuallyMarked) {
               setConfirmActionRef.current({
                 type: 'unmark-region',

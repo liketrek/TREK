@@ -35,6 +35,8 @@ const notif: TranslationStrings = {
   'notif.action.view': 'Προβολή',
   'notif.action.accept': 'Αποδοχή',
   'notif.action.decline': 'Απόρριψη',
+  'notif.plugin.title': '{title}',
+  'notif.plugin.text': '{body}',
   'notif.generic.title': 'Ειδοποίηση',
   'notif.generic.text': 'Έχετε μια νέα ειδοποίηση',
   'notif.dev.unknown_event.title': '[DEV] Άγνωστο Συμβάν',

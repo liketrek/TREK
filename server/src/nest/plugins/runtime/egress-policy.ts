@@ -107,12 +107,28 @@ export function dgramConnectTarget(args: unknown[]): string | null {
 }
 
 /**
+ * Node's `net.connect()` pre-normalises its arguments into an `[options, callback]`
+ * array and then calls `Socket.prototype.connect` with THAT ARRAY as the single
+ * argument. undici's plain-HTTP connector takes this path; its TLS connector does
+ * not — which is why HTTPS egress worked and plain HTTP silently did not.
+ *
+ * Unwrap it before anything reads `host`/`path`, or those come back undefined off an
+ * array, every plain-HTTP request a plugin makes is misclassified as `localhost`, and
+ * it is rejected with a nonsense "localhost is not in the plugin's declared hosts".
+ */
+export function unwrapConnectArgs(args: unknown[]): unknown[] {
+  return Array.isArray(args[0]) ? (args[0] as unknown[]) : args;
+}
+
+/**
  * Classify a `net.Socket.connect(...)` argument list into what we must check:
  * a unix-socket/pipe (local, allowed), a literal IP (checked synchronously), or
  * a hostname (allowlist + a DNS-resolving guard). Mirrors Node's connect
- * overloads: connect(options[,cb]) | connect(port[,host][,cb]) | connect(path[,cb]).
+ * overloads: connect(options[,cb]) | connect(port[,host][,cb]) | connect(path[,cb]),
+ * plus the pre-normalised array form above.
  */
-export function classifyConnect(args: unknown[], isIP: (s: string) => boolean): ConnectTarget {
+export function classifyConnect(rawArgs: unknown[], isIP: (s: string) => boolean): ConnectTarget {
+  const args = unwrapConnectArgs(rawArgs);
   const first = args[0];
   if (first && typeof first === 'object') {
     const o = first as { host?: string; path?: string };

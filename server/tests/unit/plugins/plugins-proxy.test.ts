@@ -102,6 +102,49 @@ describe('PluginsProxyController', () => {
     }), undefined);
   });
 
+  it('forwards the raw request bytes to a webhook (auth:false) route, but withholds them from an authenticated route', async () => {
+    // Webhook route → the plugin gets the raw payload so it can verify an HMAC.
+    const wh = makeRuntime({ routesOf: vi.fn(() => [{ i: 1, method: 'POST', path: '/webhook', auth: false }]) } as never);
+    await new PluginsProxyController(wh).proxy('p', fakeReq('POST', '/webhook', { rawBody: Buffer.from('{"a":1}') }), fakeRes() as never);
+    // forwarded as base64 so a non-UTF-8 signed body survives
+    expect(wh.invoke).toHaveBeenCalledWith('p', 'invoke.route', expect.objectContaining({
+      req: expect.objectContaining({ rawBodyBase64: Buffer.from('{"a":1}').toString('base64') }),
+    }), undefined);
+
+    // Authenticated route → raw bytes are never handed to the plugin.
+    const auth = makeRuntime();
+    await new PluginsProxyController(auth).proxy('p', fakeReq('GET', '/status', { rawBody: Buffer.from('secret') }), fakeRes() as never);
+    const fwd = (auth.invoke as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][2] as { req: { rawBodyBase64?: unknown } };
+    expect(fwd.req.rawBodyBase64).toBeUndefined();
+  });
+
+  it('a webhook (auth:false) route gets ONLY allowlisted inbound headers — never Cookie/Authorization', async () => {
+    const runtime = makeRuntime({ routesOf: vi.fn(() => [{ i: 1, method: 'POST', path: '/webhook', auth: false }]) } as never);
+    const res = fakeRes();
+    const headers = {
+      'content-type': 'application/json',
+      'stripe-signature': 't=1,v1=abc',
+      'x-hub-signature-256': 'sha256=deadbeef',
+      cookie: 'trek_session=secret',              // must be dropped
+      authorization: 'Bearer leak',               // must be dropped
+      'x-socket-id': 'sock-1',                    // must be dropped
+    };
+    await new PluginsProxyController(runtime).proxy('p', fakeReq('POST', '/webhook', { headers }), res as never);
+    const forwarded = (runtime.invoke as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][2] as { req: { headers: Record<string, string> } };
+    expect(forwarded.req.headers).toEqual({ 'content-type': 'application/json', 'stripe-signature': 't=1,v1=abc', 'x-hub-signature-256': 'sha256=deadbeef' });
+    expect(forwarded.req.headers.cookie).toBeUndefined();
+    expect(forwarded.req.headers.authorization).toBeUndefined();
+    expect(forwarded.req.headers['x-socket-id']).toBeUndefined();
+  });
+
+  it('an authenticated route gets NO inbound headers (even safe ones)', async () => {
+    const runtime = makeRuntime(); // /status, auth:true
+    const res = fakeRes();
+    await new PluginsProxyController(runtime).proxy('p', fakeReq('GET', '/status', { headers: { 'content-type': 'application/json', 'stripe-signature': 'x' } }), res as never);
+    const forwarded = (runtime.invoke as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][2] as { req: { headers: Record<string, string> } };
+    expect(forwarded.req.headers).toEqual({});
+  });
+
   it('strips unsafe response headers from the child', async () => {
     const runtime = makeRuntime({
       invoke: vi.fn(async () => ({ status: 200, headers: { 'content-type': 'text/plain', 'set-cookie': 'evil=1' }, body: 'ok' })),

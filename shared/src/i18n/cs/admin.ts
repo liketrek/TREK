@@ -166,6 +166,13 @@ const admin: TranslationStrings = {
   'admin.plugins.dropToUpload': 'Přetáhněte sem .zip pluginu pro instalaci',
   'admin.plugins.uploaded': 'Plugin “{name}” nahrán — aktivujte jej pro spuštění',
   'admin.plugins.sideloaded': 'Načteno ručně',
+  'admin.plugins.devLinkBadge': 'Dev-Link',
+  'admin.plugins.devLinkHint':
+    'Načteno z místního adresáře sestavení a za běhu znovu načítáno s reálnými daty — jen pro vývoj',
+  'admin.plugins.devLinkTitle': 'Připojit místní plugin',
+  'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
+  'admin.plugins.devLinkButton': 'Připojit',
+  'admin.plugins.devLinkLinked': '{id} připojen — aktivujte jej pro spuštění',
   'admin.plugins.sideloadedHint': 'Nahráno ručně — není z registru, nepodepsané a nezkontrolované',
   'admin.plugins.browse': 'Procházet pluginy',
   'admin.plugins.installed': 'Nainstalováno',
@@ -178,6 +185,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Plugin deaktivován',
   'admin.plugins.viewErrors': 'Zobrazit protokol chyb',
   'admin.plugins.errorLog': 'Protokol chyb',
+  'admin.plugins.allowedHosts': 'Povolení hostitelé',
+  'admin.plugins.allowedHosts.hint': 'Tento plugin komunikuje se službou, kterou umíš pojmenovat jen ty (self-hosted server). Přidej hostitele, na které smí — na jiné se nedostane.',
+  'admin.plugins.allowedHosts.none': 'Zatím nebyli přidáni žádní hostitelé.',
+  'admin.plugins.allowedHosts.unsupported': 'Tento plugin nepoužívá hostitele zadané provozovatelem. Povolení hostitelé jsou pevně dáni v manifestu.',
+  'admin.plugins.allowedHosts.restartNote': 'Uložení restartuje plugin, aby načetl nový seznam.',
+  'admin.plugins.allowedHosts.add': 'Přidat povoleného hostitele',
+  'admin.plugins.allowedHosts.count': '{n} povolených hostitelů',
+  'admin.plugins.operatorEgressPill': '+ hostitelé, které přidáš',
+  'admin.plugins.operatorEgressHint': 'Tento plugin komunikuje se službou, kterou umíš pojmenovat jen ty (self-hosted server). Po instalaci přidej hostitele v ⋯ → Povolení hostitelé. Na jiné se nedostane.',
   'admin.plugins.noErrors': 'Žádné zaznamenané chyby.',
   'admin.plugins.uninstalled': 'Plugin odinstalován',
   'admin.plugins.uninstallTitle': 'Odinstalovat plugin?',
@@ -219,6 +235,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Pro jednotlivé uživatele',
   'admin.plugins.fieldRequired': 'Povinné',
   'admin.plugins.sourceRepo': 'Zdrojový repozitář',
+  'admin.plugins.reportIssue': 'Nahlásit problém',
   'admin.plugins.homepage': 'Domovská stránka',
   'admin.plugins.requiresTrek': 'Vyžaduje TREK {version}+',
   'admin.plugins.reviewedOn': 'Zkontrolováno {date}',
@@ -227,7 +244,50 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Číst základní údaje profilu (jméno, avatar — nikdy přihlašovací údaje)',
   'admin.plugins.perm.db:read:costs': 'Číst výdaje (položky rozpočtu), ke kterým má aktuální uživatel přístup',
   'admin.plugins.perm.db:read:packing': 'Číst seznamy věcí k zabalení u cest, ke kterým má aktuální uživatel přístup',
+  'admin.plugins.perm.db:write:packing':
+    'Vytvářet, upravovat a mazat položky seznamu balení na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.weather:read': 'Číst hostitelem uloženou předpověď počasí (podle souřadnic)',
+  'admin.plugins.perm.db:read:categories': 'Číst globální seznam kategorií míst',
+  'admin.plugins.perm.db:read:tags': 'Číst štítky aktuálního uživatele',
+  'admin.plugins.perm.db:write:tags': 'Vytvářet, upravovat a mazat štítky aktuálního uživatele',
+  'admin.plugins.perm.db:read:todos': 'Číst úkoly cest, ke kterým má aktuální uživatel přístup',
+  'admin.plugins.perm.db:write:todos':
+    'Vytvářet, upravovat a mazat úkoly na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.db:write:atlas':
+    'Označovat země a regiony jako navštívené a spravovat bucket list aktuálního uživatele (vyžaduje doplněk Atlas)',
+  'admin.plugins.perm.db:write:vacay':
+    'Přepínat dny dovolené a firemní svátky v aktivním plánu aktuálního uživatele (vyžaduje doplněk Vacay)',
+  'admin.plugins.perm.db:write:journal':
+    'Vytvářet, upravovat a mazat záznamy v denících, které může aktuální uživatel upravovat (vyžaduje doplněk Journey)',
+  'admin.plugins.perm.db:write:collections':
+    'Vytvářet a upravovat sbírky a ukládat do nich místa, s rolí aktuálního uživatele ve sbírce (vyžaduje doplněk Collections)',
+  'admin.plugins.perm.db:write:files':
+    'Přikládat soubory k cestám, které může aktuální uživatel upravovat (limit 10 MB, blokované přípony odmítnuty), a spravovat jejich propojení',
+  'admin.plugins.perm.db:write:collab':
+    'Publikovat poznámky, ankety a zprávy chatu na cestách, které může aktuální uživatel upravovat (vyžaduje doplněk Collab)',
+  'admin.plugins.perm.db:write:members':
+    'Přidávat uživatele do cest — uděluje přístup k cestě; chráněno právem správy členů aktuálního uživatele',
+  'admin.plugins.perm.notify:send':
+    'Odeslat oznámení (schránka zvonku + e-mail/ntfy) aktuálnímu uživateli nebo jeho cestě — nikdy libovolnému příjemci',
+  'admin.plugins.perm.ai:invoke':
+    'Použít poskytovatele AI nakonfigurovaného správcem (dokončení textu + extrakce z dokumentů) jménem aktuálního uživatele — doplněk nikdy nedrží klíč',
+  'admin.plugins.perm.oauth:client':
+    'Připojit se k službě třetí strany tvým jménem přes OAuth zprostředkované hostitelem (hostitel drží tokeny, doplněk je nikdy nevidí)',
   'admin.plugins.perm.db:read:files': 'Číst soubory cest, ke kterým má aktuální uživatel přístup',
+  'admin.plugins.perm.db:write:reservations':
+    'Vytvářet, upravovat a mazat rezervace na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.db:write:accommodations':
+    'Vytvářet, upravovat a mazat ubytování na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.db:read:journal': 'Číst cestovní deníky aktuálního uživatele (vyžaduje doplněk Journey)',
+  'admin.plugins.perm.db:read:atlas': 'Číst navštívené země a regiony aktuálního uživatele (vyžaduje doplněk Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Číst plán dovolené aktuálního uživatele (vyžaduje doplněk Vacay)',
+  'admin.plugins.perm.db:read:daynotes': 'Číst denní poznámky cest, ke kterým má aktuální uživatel přístup',
+  'admin.plugins.perm.db:read:collections':
+    'Číst sbírky uložených míst aktuálního uživatele (vyžaduje doplněk Collections)',
+  'admin.plugins.perm.db:write:daynotes':
+    'Vytvářet, upravovat a mazat denní poznámky na cestách, které může aktuální uživatel upravovat',
+  'admin.plugins.perm.jobs:run':
+    'Spouštět deklarované úlohy na pozadí podle plánu (bez kontextu uživatele — nemůže číst uživatelská data)',
   'admin.plugins.perm.db:write:costs':
     'Vytvářet výdaje (položky rozpočtu) na cestách, které může aktuální uživatel upravovat',
   'admin.plugins.perm.db:write:places':
@@ -246,9 +306,24 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Poskytovat události do kalendáře',
   'admin.plugins.perm.hook:place-detail-provider': 'Přidávat další podrobnosti (recenze, hodnocení, odkazy) k místu',
   'admin.plugins.perm.hook:trip-warning-provider': 'Vyvolávat ověřovací upozornění u cesty (zobrazená v plánovači)',
+  'admin.plugins.perm.hook:table-contributor': 'Přidávat sloupce a akce do zobrazení cesty (rezervace, místa, dny)',
+  'admin.plugins.perm.hook:map-marker-provider': 'Přidávat značky na mapu cesty (např. zobrazit rezervace nebo POI)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Připojovat textové sekce k PDF exportu cesty',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Zvýrazňovat země na mapě světa v Atlasu (např. seznamy přání nebo cestovní upozornění)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Přidávat další řádky (odkazy, statistiky) k záznamům deníku',
+  'admin.plugins.perm.hook:user-data':
+    'Vymazat nebo exportovat data, která o uživateli uchovává (GDPR: smazání účtu a žádosti o data)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Přidávat malé odznaky (stav, počty) na karty cest na nástěnce',
+  'admin.plugins.perm.hook:notification-channel': 'Doručovat vaše oznámení dalším kanálem',
   'admin.plugins.perm.events:subscribe':
     'Reagovat na základní události aktivity (pouze název události a cesta, nikdy obsah)',
   'admin.plugins.perm.http:outbound': 'Odesílat odchozí požadavky na deklarované hostitele',
+  'admin.plugins.perm.db:read:collab':
+    'Číst poznámky, ankety a zprávy chatu cest, ke kterým má aktuální uživatel přístup (vyžaduje doplněk Collab)',
+  'admin.plugins.perm.db:read:files:content': 'Číst obsah (bajty) souborů cest, ke kterým má aktuální uživatel přístup',
+  'admin.plugins.perm.db:create:trips': 'Vytvářet nové cesty vlastněné aktuálním uživatelem',
+  'admin.plugins.perm.rates:read': 'Číst hostitelem uložené směnné kurzy měn',
   'admin.plugins.updateConsentTitle': 'Tato aktualizace vyžaduje nová oprávnění',
   'admin.plugins.updateConsentBody':
     '{name} v{version} žádá o oprávnění, která jste zatím neudělili. Nová verze je nainstalována, ale zůstane vypnutá, dokud ji neschválíte.',
@@ -291,6 +366,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Název',
   'admin.plugins.sortRecent': 'Naposledy aktualizované',
   'admin.plugins.sortUpdates': 'Nejdřív aktualizace',
+  'admin.plugins.sortDownloads': 'Nejstahovanější',
   'admin.plugins.updatesAvailable': 'Pro vaše pluginy je k dispozici {count} aktualizací.',
   'admin.plugins.updateAll': 'Aktualizovat vše',
   'admin.plugins.noMatchInstalled': 'Žádné nainstalované pluginy neodpovídají vašemu hledání.',
@@ -311,7 +387,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Widget na nástěnce',
   'admin.plugins.cap.heroWidget': 'Widget palubní vstupenky',
   'admin.plugins.cap.placeSlot': 'Detail místa',
+  'admin.plugins.cap.daySlot': 'Detail dne',
+  'admin.plugins.cap.reservationSlot': 'Detail rezervace',
+  'admin.plugins.cap.replacesTabs': 'Nahrazuje karty plánovače',
   'admin.plugins.cap.realtime': 'Aktualizace v reálném čase',
+  'admin.plugins.cap.notificationChannel': 'Kanál oznámení',
   'admin.plugins.cap.photos': 'Poskytuje fotky',
   'admin.plugins.cap.calendar': 'Poskytuje události kalendáře',
   'admin.plugins.cap.placeDetails': 'Obohacuje místa',
@@ -337,13 +417,14 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Velikost',
   'admin.plugins.metaRequires': 'Vyžaduje',
   'admin.plugins.metaReviewed': 'Zkontrolováno',
+  'admin.plugins.downloads': 'Stažení',
   'admin.addons.title': 'Doplňky',
   'admin.addons.subtitle': 'Zapněte nebo vypněte funkce a přizpůsobte si TREK.',
   'admin.addons.catalog.memories.name': 'Fotky (Immich)',
   'admin.addons.catalog.memories.description': 'Sdílejte cestovní fotky přes vaši instanci Immich',
   'admin.addons.catalog.packing.name': 'Seznamy',
   'admin.addons.catalog.packing.description': 'Balicí seznamy a úkoly pro vaše výlety',
-  'admin.addons.catalog.budget.name': 'Rozpočet',
+  'admin.addons.catalog.budget.name': 'Náklady',
   'admin.addons.catalog.budget.description': 'Sledování výdajů a plánování rozpočtu cesty',
   'admin.addons.catalog.documents.name': 'Dokumenty',
   'admin.addons.catalog.documents.description': 'Ukládání a správa cestovních dokladů',

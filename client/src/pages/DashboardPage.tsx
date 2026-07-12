@@ -22,8 +22,11 @@ import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal'
 import CollectionsWidget from '../components/Dashboard/CollectionsWidget'
 import PluginWidgets from '../components/Plugins/PluginWidgets'
 import PluginFrame from '../components/Plugins/PluginFrame'
+import { TripCardBadges, useTripCardBadges } from '../components/Plugins/TripCardBadges'
+import type { TripCardBadge } from '../api/client'
 import { usePluginStore } from '../store/pluginStore'
 import { formatTime, splitReservationDateTime } from '../utils/formatters'
+import { CURRENCIES } from '../components/Budget/BudgetPanel.constants'
 import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAddonStore } from '../store/addonStore'
@@ -128,8 +131,15 @@ export default function DashboardPage(): React.ReactElement {
   const isAddonEnabled = useAddonStore(s => s.isEnabled)
   const showCollections = isAddonEnabled('collections') && sideWidgets.collections
   // Desktop has a master toggle for the whole right column; off → centered layout.
-  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero')
+  // Only true dashboard widgets belong here — hero mounts on the boarding pass, and
+  // place-detail/day-detail widgets live inside the planner panels, not the sidebar.
+  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero' && p.slot !== 'place-detail' && p.slot !== 'day-detail' && p.slot !== 'reservation-detail')
   const sidebarVisible = (isMobile || dashCfg.desktop.sidebar) && (showCurrency || showCollections || showTimezones || showUpcoming || widgetPlugins.length > 0)
+
+  // Plugin-contributed badges on the trip cards (tripCardProvider hook). One fetch for
+  // all visible cards; only runs when at least one plugin is active. Fail-safe.
+  const anyPluginActive = usePluginStore(s => s.plugins).length > 0
+  const badgesFor = useTripCardBadges(gridTrips.map(t => t.id), anyPluginActive)
 
   return (
     <>
@@ -212,6 +222,7 @@ export default function DashboardPage(): React.ReactElement {
                     key={trip.id}
                     trip={trip}
                     locale={locale}
+                    badges={badgesFor(trip.id)}
                     onOpen={() => navigate(`/trips/${trip.id}`)}
                     onEdit={() => { setEditingTrip(trip); setShowForm(true) }}
                     onCopy={() => setCopyTrip(trip)}
@@ -418,7 +429,9 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
                 ))}
               </div>
             )}
-            <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>{passCells}</div>
+            <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>
+              <div className="hero-pass-inner">{passCells}</div>
+            </div>
           </div>
         )}
       </div>
@@ -526,8 +539,8 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
 }
 
 // ── Trip card ────────────────────────────────────────────────────────────────
-function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }: {
-  trip: DashboardTrip; locale: string; onOpen: () => void
+function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onDelete }: {
+  trip: DashboardTrip; locale: string; badges?: TripCardBadge[]; onOpen: () => void
   onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
@@ -578,14 +591,13 @@ function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }:
           <div><span className="n mono">{trip.place_count ?? 0}</span><span className="k">{t('dashboard.places')}</span></div>
           <div><span className="n mono">{trip.shared_count ?? 0}</span><span className="k">{trip.shared_count === 1 ? t('dashboard.card.buddyOne') : t('dashboard.members')}</span></div>
         </div>
+        <TripCardBadges items={badges ?? []} />
       </div>
     </article>
   )
 }
 
 // ── Currency tool (self-contained, mirrors the design's fx widget) ───────────
-const FX_FALLBACK = ['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD', 'CNY', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF', 'TRY', 'THB', 'INR', 'BRL', 'MXN', 'ZAR']
-
 function CurrencyTool(): React.ReactElement {
   const { t } = useTranslation()
   const isLoaded = useSettingsStore(s => s.isLoaded)
@@ -629,7 +641,7 @@ function CurrencyTool(): React.ReactElement {
     }).catch(() => { /* keep localStorage; retry on next load */ })
   }, [isLoaded, updateSetting])
 
-  const currencies = rates ? Object.keys(rates).sort() : FX_FALLBACK
+  const currencies = rates ? Object.keys(rates).sort() : CURRENCIES
   const ccyOptions = currencies.map(c => ({ value: c, label: c }))
   const rate = rates?.[to] ?? null
   const converted = rate != null ? (parseFloat(amount.replace(',', '.')) || 0) * rate : null

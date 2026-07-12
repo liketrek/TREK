@@ -5,6 +5,7 @@ import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
+import AddressInput from './AddressInput'
 import { Hotel, Utensils, Ticket, FileText, Users, Paperclip, X, ExternalLink, Link2 } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
@@ -147,7 +148,9 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         hotel_place_id: editAcc?.place_id || '',
         hotel_start_day: editAcc?.start_day_id || '',
         hotel_end_day: editAcc?.end_day_id || '',
-        hotel_address: places.find(p => p.id == editAcc?.place_id)?.address || '',
+        // The linked place carries the address; reservations saved without a
+        // place (or before the accommodation existed) keep it in location.
+        hotel_address: places.find(p => p.id == editAcc?.place_id)?.address || reservation.location || '',
       })
     } else if (prefill) {
       // Review-before-save: populate from a parsed import item, stay in create mode.
@@ -202,9 +205,10 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
     if (!acc) return
     setForm(prev => {
       if (prev.hotel_place_id !== '' || prev.hotel_start_day !== '' || prev.hotel_end_day !== '') return prev
-      return { ...prev, hotel_place_id: acc.place_id, hotel_start_day: acc.start_day_id, hotel_end_day: acc.end_day_id }
+      const accPlace = places.find(p => p.id == acc.place_id)
+      return { ...prev, hotel_place_id: acc.place_id, hotel_start_day: acc.start_day_id, hotel_end_day: acc.end_day_id, hotel_address: accPlace?.address || prev.hotel_address }
     })
-  }, [accommodations, isOpen, reservation])
+  }, [accommodations, isOpen, reservation, places])
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
@@ -240,7 +244,10 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         title: form.title, type: form.type, status: form.status,
         reservation_time: form.type === 'hotel' ? null : (form.reservation_time || null),
         reservation_end_time: form.type === 'hotel' ? null : (combinedEndTime || null),
-        location: form.location, confirmation_number: form.confirmation_number,
+        // Hotels show the address field instead of location — persist it on the
+        // reservation itself so it survives even without days/place (#1496).
+        location: form.type === 'hotel' ? form.hotel_address : form.location,
+        confirmation_number: form.confirmation_number,
         notes: form.notes,
         url: form.url,
         assignment_id: (form.type === 'hotel' && !form.accommodation_id) ? null : (form.assignment_id || null),
@@ -260,6 +267,9 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
           venue: (!form.hotel_place_id && (form.hotel_address || form.title))
             ? { name: form.title, address: form.hotel_address || null }
             : null,
+          // The typed address, so the save handler can write it through to a
+          // linked place — an edited address used to be silently dropped (#1496).
+          address: form.hotel_address || null,
           // Tolerate a single resolved end of the range (a one-night stay or a date
           // that only matched one trip day) so the accommodation is still created.
           start_day_id: form.hotel_start_day || form.hotel_end_day,
@@ -504,7 +514,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         {form.type !== 'hotel' && (
           <div>
             <label className={labelClass}>{t('reservations.locationAddress')}</label>
-            <input type="text" value={form.location} onChange={e => set('location', e.target.value)}
+            <AddressInput value={form.location} onChange={v => set('location', v)}
               placeholder={t('reservations.locationPlaceholder')} className={inputClass} />
           </div>
         )}
@@ -542,11 +552,11 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                     const p = places.find(pl => pl.id === value)
                     setForm(prev => {
                       const next = { ...prev, hotel_place_id: value }
-                      if (!value) {
-                        next.location = ''
-                      } else if (p) {
+                      if (value && p) {
                         if (!prev.title) next.title = p.name
-                        if (!prev.location && p.address) next.location = p.address
+                        // Show the picked hotel's address; keep a hand-typed one
+                        // if the place has none.
+                        next.hotel_address = p.address || prev.hotel_address
                       }
                       return next
                     })
@@ -609,7 +619,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
             </div>
             <div>
               <label className={labelClass}>{t('reservations.locationAddress')}</label>
-              <input type="text" value={form.hotel_address} onChange={e => set('hotel_address', e.target.value)}
+              <AddressInput value={form.hotel_address} onChange={v => set('hotel_address', v)}
                 placeholder={t('reservations.locationPlaceholder')} className={inputClass} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

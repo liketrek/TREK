@@ -54,4 +54,26 @@ describe('TripWarningsController', () => {
     expect(res.warnings).toEqual([{ pluginId: 'p1', level: 'warning', message: 'ok', dayId: undefined, placeId: undefined }]);
     expect(runtime.invokeHook).toHaveBeenCalledWith('p1', 'warningProvider', 'getWarnings', [1], 5, 5000);
   });
+
+  it('strips emojis from the warning message (rendered natively in TREK chrome)', async () => {
+    const { c } = controller({
+      providersOf: vi.fn(() => ['p1']),
+      invokeHook: vi.fn(async () => [{ level: 'error', message: '🔥 Overbooked!' }]) as unknown as PluginRuntimeService['invokeHook'],
+    });
+    const res = await c.get('1', req(5));
+    expect(res.warnings[0].message).toBe('Overbooked!');
+  });
+
+  it('caps a flooding provider at 20 warnings and truncates an oversized message', async () => {
+    const { c } = controller({
+      providersOf: vi.fn(() => ['flood']),
+      invokeHook: vi.fn(async () => [
+        { level: 'warning', message: 'z'.repeat(1000) },
+        ...Array.from({ length: 50 }, (_v, i) => ({ level: 'info', message: `w${i}` })),
+      ]) as unknown as PluginRuntimeService['invokeHook'],
+    });
+    const res = await c.get('1', req(5));
+    expect(res.warnings).toHaveLength(20);       // per-provider count cap
+    expect(res.warnings[0].message).toHaveLength(300); // message length cap
+  });
 });

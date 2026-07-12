@@ -227,7 +227,21 @@
 .trek-dash .hero-title { font-size: 104px; font-weight: 600; line-height: 0.9; letter-spacing: -0.045em; margin: 0; text-shadow: 0 1px 12px oklch(0 0 0 / .32), 0 1px 3px oklch(0 0 0 / .4); }
 
 /* ----------------- boarding pass ----------------- */
+/* The pass is split into an outer wrapper (left notch) and an inner glass panel
+   (right notch). Each element carries a SINGLE-layer radial-gradient mask so we
+   never rely on multi-layer `mask-composite: intersect` — Safari mis-composites
+   that path and hides the whole bar (issue #1459). */
 .trek-dash .hero-pass {
+  position: relative;
+  /* Match the inner panel's radius: the mask + translateZ promotes this wrapper to
+     its own compositing layer whose bounds are otherwise square, which showed as a
+     square edge over the rounded glass panel (regression from the #1459 mask split). */
+  border-radius: 24px;
+  -webkit-mask-image: radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px);
+          mask-image: radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px);
+  transform: translateZ(0);
+}
+.trek-dash .hero-pass-inner {
   background: linear-gradient(135deg,
     oklch(0.99 0.006 75 / .75) 0%, oklch(0.985 0.008 70 / .85) 50%, oklch(0.98 0.01 65 / .8) 100%);
   backdrop-filter: blur(40px) saturate(1.8) brightness(1.1);
@@ -239,24 +253,17 @@
     0 2px 8px -2px oklch(0 0 0 / .08), 0 8px 24px -6px oklch(0 0 0 / .12),
     0 20px 60px -16px oklch(0 0 0 / .35), inset 0 1px 1px 0 oklch(1 0 0 / .5);
   color: var(--ink); position: relative; overflow: hidden;
-  mask-image:
-    radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px),
-    radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
-  mask-composite: intersect;
-  -webkit-mask-image:
-    radial-gradient(circle 8px at 0 50%, transparent 8px, black 8px),
-    radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
-  -webkit-mask-composite: source-in;
-  transform: translateZ(0);
+  -webkit-mask-image: radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
+          mask-image: radial-gradient(circle 8px at 100% 50%, transparent 8px, black 8px);
 }
-.dark .trek-dash .hero-pass {
+.dark .trek-dash .hero-pass-inner {
   background: linear-gradient(135deg, oklch(0.28 0 0 / .8) 0%, oklch(0.25 0 0 / .85) 50%, oklch(0.23 0 0 / .8) 100%);
   border: 1px solid oklch(1 0 0 / .1);
   box-shadow:
     0 2px 8px -2px oklch(0 0 0 / .3), 0 8px 24px -6px oklch(0 0 0 / .4),
     0 20px 60px -16px oklch(0 0 0 / .6), inset 0 1px 1px 0 oklch(1 0 0 / .08);
 }
-.trek-dash .hero-pass::before {
+.trek-dash .hero-pass-inner::before {
   content: ""; position: absolute; inset: 0; border-radius: 24px; padding: 1px;
   background: linear-gradient(135deg, oklch(1 0 0 / .25) 0%, oklch(1 0 0 / .08) 40%, oklch(1 0 0 / .02) 70%, oklch(1 0 0 / .15) 100%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -453,6 +460,22 @@
 .trek-dash .trip-meta div { display: flex; flex-direction: column; gap: 3px; text-align: center; }
 .trek-dash .trip-meta .n { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
 .trek-dash .trip-meta .k { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); font-weight: 500; }
+/* Plugin-contributed badges (tripCardProvider hook) — small text chips under the meta row. */
+.trek-dash .trip-plugin-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.trek-dash .trip-plugin-badge {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 500; line-height: 1.4;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); text-decoration: none;
+}
+.trek-dash a.trip-plugin-badge:hover { border-color: var(--ink-3); }
+.trek-dash .trip-plugin-badge .badge-label { color: var(--ink); font-weight: 600; }
+.trek-dash .trip-plugin-badge .badge-value { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trek-dash .trip-plugin-badge.tone-success { border-color: color-mix(in oklch, var(--success) 40%, var(--line)); }
+.trek-dash .trip-plugin-badge.tone-success .badge-label { color: var(--success); }
+.trek-dash .trip-plugin-badge.tone-warn { border-color: color-mix(in oklch, var(--warn) 45%, var(--line)); }
+.trek-dash .trip-plugin-badge.tone-warn .badge-label { color: var(--warn); }
+.trek-dash .trip-plugin-badge.tone-danger { border-color: color-mix(in oklch, oklch(0.6 0.2 25) 45%, var(--line)); }
+.trek-dash .trip-plugin-badge.tone-danger .badge-label { color: oklch(0.6 0.2 25); }
 .trek-dash .add-trip-card {
   border-radius: var(--r-xl); border: 1.5px dashed var(--line-2);
   background: var(--glass-bg); display: grid; place-items: center;

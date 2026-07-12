@@ -7,6 +7,15 @@ const settings: TranslationStrings = {
   'settings.tabs.map': 'الخريطة',
   'settings.tabs.notifications': 'الإشعارات',
   'settings.tabs.integrations': 'التكاملات',
+  'settings.plugins.oauth.connected': 'متصل',
+  'settings.plugins.oauth.notConnected': 'غير متصل',
+  'settings.plugins.oauth.connect': 'اتصال',
+  'settings.plugins.oauth.disconnect': 'قطع الاتصال',
+  'settings.tabs.plugins': 'الإضافات',
+  'settings.plugins.title': 'إعدادات الإضافات',
+  'settings.plugins.subtitle': 'إعداداتك الشخصية للإضافات التي تستخدمها (مفاتيح API، التفضيلات).',
+  'settings.plugins.empty': 'لا توجد إضافات نشطة.',
+  'settings.plugins.saved': 'تم حفظ الإعدادات',
   'settings.tabs.account': 'الحساب',
   'settings.tabs.about': 'حول',
   'settings.map': 'الخريطة',
@@ -261,6 +270,14 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.email': 'Email', // en-fallback
   'settings.notificationPreferences.webhook': 'Webhook', // en-fallback
   'settings.notificationPreferences.inapp': 'In-App', // en-fallback
+  'settings.notificationPreferences.notConfigured': 'لم يتم الإعداد بعد — قم بإعداده من إعدادات الإضافة',
+  'settings.plugins.actions': 'الإجراءات',
+  'settings.plugins.actions.confirm': 'تنفيذ هذا الإجراء؟',
+  'settings.notificationPreferences.sendTest': 'إرسال اختبار',
+  'settings.notificationPreferences.configure': 'تهيئة',
+  'settings.notificationPreferences.testSuccess': 'تم إرسال إشعار اختباري.',
+  'settings.notificationPreferences.testFailed': 'فشل الاختبار.',
+  'settings.notificationPreferences.pluginConfigured': 'تم الإعداد. أدر بيانات الاعتماد من صفحة إعدادات الإضافة.',
   'settings.notificationPreferences.ntfy': 'Ntfy', // en-fallback
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...', // en-fallback
   'settings.ntfyUrl.topicPlaceholder': 'my-trek-alerts', // en-fallback
@@ -452,6 +469,15 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'جارٍ مزامنة {count}…',
   'settings.offline.banner.failed': 'فشلت المزامنة: {count}',
   'settings.offline.banner.conflicts': 'تعارضات: {count}',
+  'settings.pluginActivity.title': 'نشاط الإضافات',
+  'settings.pluginActivity.description': 'كل إجراء نفّذته إضافة نيابةً عنك، الأحدث أولاً.',
+  'settings.pluginActivity.empty': 'لا يوجد نشاط للإضافات بعد.',
+  'settings.pluginActivity.refresh': 'تحديث',
+  'settings.pluginActivity.columns.plugin': 'الإضافة',
+  'settings.pluginActivity.columns.action': 'الإجراء',
+  'settings.pluginActivity.columns.resource': 'المورد',
+  'settings.pluginActivity.columns.when': 'الوقت',
+  'settings.pluginActivity.columns.status': 'النتيجة',
 };
 
 export default settings;

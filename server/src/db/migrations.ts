@@ -3483,6 +3483,149 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+    // Per-user plugin settings (#plugins). A plugin can declare `scope:'user'`
+    // settings fields (e.g. an API key or a personal preference); each USER stores
+    // their own values here, separate from the admin-owned instance `plugins.config`.
+    // Secrets are encrypted with the same apiKeyCrypto as instance secrets and are
+    // never echoed back to the client (masked). Runtime reads the acting user's row.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_user_config (
+          plugin_id TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          config TEXT NOT NULL DEFAULT '{}',
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (plugin_id, user_id)
+        );
+      `);
+    },
+    // Host-brokered outbound OAuth (#plugins). A plugin becomes an OAuth *client* of a
+    // third-party service; the HOST runs authorize->callback->token->refresh with
+    // PKCE+state and owns the tokens — the plugin never sees the refresh token. Tokens
+    // are per-user + encrypted at rest; the in-flight PKCE verifier/state is short-lived.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_oauth_tokens (
+          plugin_id TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          access_token TEXT,
+          refresh_token TEXT,
+          expires_at INTEGER,
+          scope TEXT,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (plugin_id, user_id)
+        );
+        CREATE TABLE IF NOT EXISTS plugin_oauth_state (
+          state TEXT PRIMARY KEY,
+          plugin_id TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          verifier TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+      `);
+    },
+    // Persistent plugin scheduler (#plugins). A plugin with the existing `jobs:run`
+    // grant can schedule a userless callback to fire at a future time (once, or
+    // recurring), surviving server restarts because the entry lives here. Same risk
+    // class as cron jobs (no user, no trip reads, own db + declared egress only) —
+    // so it rides on `jobs:run`, no new consent. UNIQUE(plugin_id, name) makes
+    // scheduler.set an upsert and cancel deterministic. Rows are purged on uninstall.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_scheduled_tasks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          plugin_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          due_at INTEGER NOT NULL,
+          payload TEXT NOT NULL DEFAULT 'null',
+          every_ms INTEGER,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE (plugin_id, name)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_sched_due ON plugin_scheduled_tasks (due_at);');
+    },
+    // Durable GDPR erasure queue (#plugins). When a TREK account is deleted, every
+    // installed plugin holding `hook:user-data` gets a pending row here so its own
+    // deleteUserData handler runs even if the plugin was offline at delete time —
+    // erasure must not be lost across a restart, so it is persisted (unlike the
+    // best-effort event buffer). The row is removed once the plugin acknowledges,
+    // and all of a plugin's rows are purged on uninstall. UNIQUE(plugin_id, user_id)
+    // makes re-enqueue idempotent.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_user_erasure_queue (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          plugin_id TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE (plugin_id, user_id)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_erasure_plugin ON plugin_user_erasure_queue (plugin_id);');
+    },
+
+    // Tombstones for Atlas countries the user has explicitly removed (#1490).
+    // Atlas derives visited countries from trip places and transport endpoints on every
+    // request, so those countries have no row to delete — "Remove" deleted from
+    // visited_countries (which never had the row), the client hid it optimistically, and
+    // the next getStats re-derived it. Recording the removal here lets getStats suppress
+    // a derived country. Re-marking a country deletes its tombstone.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS hidden_countries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          country_code TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (user_id, country_code)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_countries_user ON hidden_countries (user_id);');
+    },
+
+    // Operator-supplied egress hosts for a plugin (#plugins).
+    // A plugin's egress allow-list is fixed in its manifest at publish time, but a plugin
+    // that talks to a SELF-HOSTED service (Gotify, ntfy, …) cannot know the operator's
+    // hostname — so a community plugin could serve nobody. These rows let the ADMIN add
+    // hosts post-install; the runtime unions them into the child's allow-list at spawn.
+    // Consent stays with the admin (never the end user), exactly as for manifest egress.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_egress_hosts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          plugin_id TEXT NOT NULL,
+          host TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE (plugin_id, host)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_egress_hosts_plugin ON plugin_egress_hosts (plugin_id);');
+      // Whether the plugin DECLARED that it needs operator-supplied hosts. Only such a
+      // plugin may have hosts added — an admin can never widen egress for a plugin that
+      // never asked for it, so the install-time consent still bounds what's possible.
+      const columns = db.prepare("PRAGMA table_info('plugins')").all() as Array<{ name: string }>;
+      if (!columns.some((c) => c.name === 'operator_egress')) {
+        db.exec('ALTER TABLE plugins ADD COLUMN operator_egress INTEGER NOT NULL DEFAULT 0;');
+      }
+    },
+
+    // Settings-page action buttons a plugin contributes ("Test connection", "Sync now").
+    // Descriptors only — the handler lives in the plugin's code and is invoked host-side
+    // with the CLICKING user bound, so it can read that user's own settings.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS plugin_actions (
+          plugin_id TEXT NOT NULL,
+          action_key TEXT NOT NULL,
+          label TEXT NOT NULL,
+          hint TEXT,
+          danger INTEGER NOT NULL DEFAULT 0,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (plugin_id, action_key)
+        );
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

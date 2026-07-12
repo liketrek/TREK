@@ -101,6 +101,92 @@ export async function checkSsrf(rawUrl: string, bypassInternalIpAllowed: boolean
   return { allowed: true, isPrivate: false, resolvedIp };
 }
 
+/** Link-local / cloud-metadata addresses — never a legitimate model host. */
+function isLinkLocal(ip: string): boolean {
+  const addr = (ip.startsWith('[') ? ip.slice(1, -1) : ip).toLowerCase();
+  // IPv4 link-local — AWS, GCP, Azure and OpenStack all serve credentials from 169.254.169.254.
+  if (addr.startsWith('169.254.')) return true;
+  // IPv4-mapped (::ffff:169.254.x) and IPv4-compatible (::a9fe:xxxx = ::169.254.x) spellings.
+  if (/^::ffff:169\.254\./.test(addr) || /^::(ffff:)?a9fe:/.test(addr)) return true;
+  // IPv6 link-local fe80::/10 — the whole range (fe80: … febf:), not just the fe80: prefix.
+  if (/^fe[89ab][0-9a-f]:/.test(addr)) return true;
+  // AWS IMDSv6 sits in a fixed ULA slot; block it specifically while leaving the rest of
+  // fc00::/7 reachable (a self-hosted model server may legitimately sit on a ULA address).
+  if (addr === 'fd00:ec2::254' || addr.startsWith('fd00:ec2:')) return true;
+  // Alibaba Cloud ECS metadata (100.100.100.200, and .100) lives in CGNAT space
+  // (100.64.0.0/10), which safeFetchLlm otherwise allows for a LAN model server —
+  // so block the specific metadata IPs directly rather than the whole range.
+  if (addr === '100.100.100.200' || addr === '100.100.100.100') return true;
+  return false;
+}
+
+/**
+ * SSRF-safe fetch for a user-configurable LLM endpoint. Unlike safeFetch() this
+ * deliberately ALLOWS loopback and private/LAN targets — a local Ollama on
+ * localhost or a model server on the LAN is the normal, supported config, so
+ * blocking them would break a legitimate setup. It blocks only the link-local /
+ * cloud-metadata range (169.254.0.0/16, fe80::/10, the AWS/Alibaba metadata IPs),
+ * which is never a real LLM host but is the credential-theft SSRF target.
+ *
+ * Redirects are followed MANUALLY and re-validated on every hop. Checking only the
+ * initial URL is not enough: a validated public endpoint can 302 to
+ * `http://169.254.169.254/…`, and the DNS pin does NOT cover that hop — Node's
+ * net.connect skips the pinned `lookup` for an IP-literal host, so a redirect to a
+ * literal metadata IP would connect straight through. Following manually (like
+ * safeFetchFollow) means each hop is re-resolved, re-checked against isLinkLocal,
+ * and re-pinned. An http→https upgrade or a proxy redirect between LAN hosts still
+ * works because the check re-runs per hop rather than locking to the first IP.
+ */
+export async function safeFetchLlm(url: string, init?: RequestInit, maxRedirects = 5): Promise<Response> {
+  let currentUrl = url;
+
+  for (let hop = 0; ; hop++) {
+    let parsed: URL;
+    try {
+      parsed = new URL(currentUrl);
+    } catch {
+      throw new SsrfBlockedError('Invalid URL');
+    }
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      throw new SsrfBlockedError('Only HTTP and HTTPS URLs are allowed');
+    }
+    let resolvedIp: string;
+    try {
+      resolvedIp = (await dns.lookup(parsed.hostname)).address;
+    } catch (error_) {
+      const code = error_ instanceof Error && 'code' in error_ ? String(error_.code) : 'unknown';
+      throw new SsrfBlockedError(`Could not resolve hostname (${code})`);
+    }
+    if (isLinkLocal(resolvedIp)) {
+      throw new SsrfBlockedError('Requests to link-local / cloud-metadata addresses are not allowed');
+    }
+
+    const dispatcher = createPinnedDispatcher(resolvedIp, true);
+    const response = await fetch(currentUrl, { ...init, redirect: 'manual', dispatcher } as any);
+
+    // Only a 3xx WITH a Location header is a redirect we follow; anything else
+    // (2xx/4xx/5xx, or a 3xx with no Location) is the final response.
+    const status = typeof response.status === 'number' ? response.status : 0;
+    const location = status >= 300 && status < 400 ? (response.headers?.get('location') ?? null) : null;
+    if (!location) return response;
+
+    if (hop >= maxRedirects) {
+      throw new SsrfBlockedError('Too many redirects');
+    }
+
+    let nextUrl: string;
+    try {
+      nextUrl = new URL(location, currentUrl).toString();
+    } catch {
+      throw new SsrfBlockedError('Invalid redirect location');
+    }
+    // Drain the redirect body so the connection can be reused/closed, then loop
+    // to re-resolve + re-check + re-pin the next hop.
+    void response.body?.cancel().catch(() => {});
+    currentUrl = nextUrl;
+  }
+}
+
 /**
  * Thrown by safeFetch() when the URL is blocked by the SSRF guard.
  */

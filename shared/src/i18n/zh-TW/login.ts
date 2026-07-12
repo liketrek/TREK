@@ -8,7 +8,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places、路線和聚類',
   'login.features.realtime': '即時同步',
   'login.features.realtimeDesc': '透過 WebSocket 協同規劃',
-  'login.features.budget': '預算跟蹤',
+  'login.features.budget': '費用追蹤',
   'login.features.budgetDesc': '分類、圖表和人均費用',
   'login.features.collab': '協作',
   'login.features.collabDesc': '多使用者共享旅行',

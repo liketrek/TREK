@@ -11,6 +11,9 @@ permissions:
 
 jobs:
   scout:
+    # Docker Hub secrets are not exposed to pull requests from forks, so the
+    # Scout login can never succeed there.
+    if: github.repository == 'mauriceboe/TREK' && github.event.pull_request.head.repo.fork != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

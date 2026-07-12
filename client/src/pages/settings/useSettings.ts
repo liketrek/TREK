@@ -35,5 +35,13 @@ export function useSettings() {
     }
   }, [searchParams])
 
+  // Deep link into a tab: /settings?tab=plugins. Lets one tab point at another —
+  // e.g. an unconfigured plugin notification channel sends you to where its
+  // credentials actually live, instead of just naming the place.
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab) setActiveTab(tab)
+  }, [searchParams])
+
   return { hasIntegrations, appVersion, activeTab, setActiveTab }
 }

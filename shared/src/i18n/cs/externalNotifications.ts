@@ -52,6 +52,7 @@ const cs: NotificationLocale = {
       title: 'Relace Synology byla zrušena',
       body: 'Váš účet nebo URL Synology se změnil. Byli jste odhlášeni ze Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Obnovení hesla',

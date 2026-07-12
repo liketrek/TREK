@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -14,11 +14,12 @@ import { formatMoney, currencyDecimals, currencyLocale } from '../../utils/forma
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
-import { SYMBOLS, CURRENCIES, SPLIT_COLORS } from './BudgetPanel.constants'
+import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 import GuestBadge from '../shared/GuestBadge'
+import { NumericInput } from '../shared/NumericInput'
 
 export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
   const n = members.length
@@ -289,6 +290,39 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     try { await deleteBudgetItem(tripId, id); loadSettlement() } catch { toast.error(t('common.unknownError')) }
   }
 
+  // CSV export of all expenses — the wiki-documented export that got lost in the
+  // Costs rework (#1500). One row per expense, oldest first.
+  const handleExportCsv = () => {
+    const sep = ';'
+    const esc = (v: unknown) => { const s = String(v ?? ''); return s.includes(sep) || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s }
+    const fmtDate = (iso: string) => { if (!iso) return ''; try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }) } catch { return iso } }
+
+    const header = ['Date', 'Name', 'Category', 'Amount', 'Currency', 'Amount (' + base + ')', 'Note']
+    const rows = [header.join(sep)]
+    const items = budgetItems.slice().sort((a, b) => (a.expense_date || '').localeCompare(b.expense_date || ''))
+    for (const e of items) {
+      const cur = curOf(e)
+      // Ticket notes carry the itemized-receipt JSON, not a human note.
+      const note = e.note && !e.note.startsWith('TICKETJSON:') ? e.note : ''
+      rows.push([
+        esc(fmtDate(e.expense_date || '')), esc(e.name), esc(t(catMeta(e.category).labelKey)),
+        (e.total_price || 0).toFixed(currencyDecimals(cur)), cur,
+        baseTotal(e).toFixed(currencyDecimals(base)),
+        esc(note),
+      ].join(sep))
+    }
+
+    const bom = '﻿'
+    const blob = new Blob([bom + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const safeName = (trip?.title || 'trip').replace(/[^a-zA-Z0-9À-ɏ _-]/g, '').trim()
+    a.download = `costs-${safeName}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // ── small presentational helpers ────────────────────────────────────────
   const Avatar = ({ id, size = 24 }: { id: number; size?: number }) => {
     const url = personById(id)?.avatar_url
@@ -419,6 +453,11 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
                   </button>
                 ))}
               </div>
+              <button onClick={handleExportCsv} title={t('budget.exportCsv')} disabled={!budgetItems.length}
+                className="bg-surface-input border border-edge text-content-muted disabled:opacity-40"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                <Download size={15} />
+              </button>
             </div>
           </div>
 
@@ -618,7 +657,14 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
         {/* Expenses */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="text-content" style={{ fontSize: 'calc(19px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.02em' }}>{t('costs.expenses')}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div className="text-content" style={{ fontSize: 'calc(19px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.02em' }}>{t('costs.expenses')}</div>
+            <button onClick={handleExportCsv} title={t('budget.exportCsv')} disabled={!budgetItems.length}
+              className="bg-surface-card border border-edge text-content-muted disabled:opacity-40"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+              <Download size={15} />
+            </button>
+          </div>
           <div className="bg-surface-card border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, padding: '0 12px', height: 42 }}>
             <Search size={16} className="text-content-faint" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('costs.searchPlaceholder')} className="text-content" style={{ border: 0, background: 'none', outline: 'none', fontSize: 'calc(14px * var(--fs-scale-body, 1))', width: '100%', fontFamily: 'inherit' }} />
@@ -1151,8 +1197,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px', opacity: isTicketMode ? 0.6 : 1 }}>
             <span className="text-content-faint" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))' }}>{sym(currency)}</span>
-            <input type="text" inputMode="decimal" placeholder="0.00" value={isTicketMode ? ticketInfo.total.toFixed(2) : total}
-              onChange={e => onTotalChange(e.target.value)}
+            <NumericInput mode="decimal" placeholder="0.00" value={isTicketMode ? ticketInfo.total.toFixed(2) : total}
+              onValueChange={onTotalChange}
               disabled={isTicketMode}
               className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, paddingLeft: 6, width: '100%' }} />
           </div>
@@ -1161,7 +1207,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           <div style={{ minWidth: 0 }}>
             <label className={labelCls}>{t('costs.currency')}</label>
             <CustomSelect value={currency} onChange={v => setCurrency(String(v))} searchable
-              options={CURRENCIES.map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+              options={currenciesWith(currency).map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
               style={{ width: '100%' }} />
           </div>
           <div style={{ minWidth: 0 }}>
@@ -1244,12 +1290,11 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                       />
                       <div className="bg-surface-input border border-edge" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 8 }}>
                         <span className="text-content-faint" style={{ fontSize: 12 }}>{sym(currency)}</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
+                        <NumericInput
+                          mode="decimal"
                           placeholder="0.00"
                           value={item.price}
-                          onChange={e => handleUpdateItemPrice(item.id, e.target.value)}
+                          onValueChange={v => handleUpdateItemPrice(item.id, v)}
                           className="text-content"
                           style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 13, fontWeight: 600, textAlign: 'right', padding: '6px 0' }}
                         />

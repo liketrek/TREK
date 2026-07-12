@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { NumericInput } from '../shared/NumericInput'
 
 export function QuantityInput({ value, onSave }: { value: number; onSave: (qty: number) => void }) {
   const [local, setLocal] = useState(String(value))
@@ -12,10 +13,9 @@ export function QuantityInput({ value, onSave }: { value: number; onSave: (qty: 
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent', flexShrink: 0 }}>
-      <input
-        type="text" inputMode="numeric"
+      <NumericInput
         value={local}
-        onChange={e => setLocal(e.target.value.replace(/\D/g, ''))}
+        onValueChange={setLocal}
         onBlur={commit}
         onKeyDown={e => { if (e.key === 'Enter') { commit(); (e.target as HTMLInputElement).blur() } }}
         style={{ width: 24, border: 'none', outline: 'none', background: 'transparent', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'right', fontFamily: 'inherit', color: 'var(--text-secondary)', padding: 0 }}

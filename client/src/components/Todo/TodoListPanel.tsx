@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { Fragment, useState, useMemo, useEffect, useRef } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
 import ReactDOM from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
@@ -19,6 +19,7 @@ import type { TodoItem } from '../../types'
 import { KAT_COLORS, PRIO_CONFIG, katColor, type FilterType, type Member } from './todoListModel'
 import { useTodoList } from './useTodoList'
 import TodoRow from './TodoRow'
+import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 
 export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tripId: number; items: TodoItem[]; addItemSignal?: number }) {
   // Layout component: state/effects/derived/handlers live in useTodoList.
@@ -31,6 +32,9 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
     totalCount, doneCount, overdueCount, myCount,
     addCategory, catCount,
   } = useTodoList(tripId, items, addItemSignal)
+
+  // Plugin-contributed columns/actions for the todo view, keyed by task id (#plugins).
+  const contribFor = usePluginViewContributions('todos', tripId)
 
   // Drag-to-reorder (#969). Manual ordering only makes sense when the list isn't
   // sorted by priority; a drag within the filtered view is mapped back onto the
@@ -203,28 +207,35 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         {/* Task list */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
           {filtered.length === 0 ? null : (
-            filtered.map(item => (
-              <TodoRow
-                key={item.id}
-                item={item}
-                members={members}
-                categories={categories}
-                today={today}
-                isSelected={selectedId === item.id}
-                canEdit={canEdit}
-                formatDate={formatDate}
-                onSelect={(id) => { setSelectedId(id); setIsAddingNew(false) }}
-                onToggle={(id, checked) => toggleTodoItem(tripId, id, checked)}
-                drag={canReorder ? {
-                  isDragging: dragId === item.id,
-                  isOver: overId === item.id && dragId !== null && dragId !== item.id,
-                  onStart: (id) => { setDragId(id); setOverId(null) },
-                  onOver: (id) => setOverId(id),
-                  onEnd: () => { setDragId(null); setOverId(null) },
-                  onDrop: handleReorderDrop,
-                } : undefined}
-              />
-            ))
+            filtered.map(item => {
+              const contributions = contribFor(item.id)
+              return (
+                <Fragment key={item.id}>
+                  <TodoRow
+                    item={item}
+                    members={members}
+                    categories={categories}
+                    today={today}
+                    isSelected={selectedId === item.id}
+                    canEdit={canEdit}
+                    formatDate={formatDate}
+                    onSelect={(id) => { setSelectedId(id); setIsAddingNew(false) }}
+                    onToggle={(id, checked) => toggleTodoItem(tripId, id, checked)}
+                    drag={canReorder ? {
+                      isDragging: dragId === item.id,
+                      isOver: overId === item.id && dragId !== null && dragId !== item.id,
+                      onStart: (id) => { setDragId(id); setOverId(null) },
+                      onOver: (id) => setOverId(id),
+                      onEnd: () => { setDragId(null); setOverId(null) },
+                      onDrop: handleReorderDrop,
+                    } : undefined}
+                  />
+                  {contributions.length > 0 && (
+                    <div style={{ padding: '0 20px 8px' }}><PluginCardFooter items={contributions} tripId={tripId} /></div>
+                  )}
+                </Fragment>
+              )
+            })
           )}
         </div>
       </div>

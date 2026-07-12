@@ -77,6 +77,16 @@ export function useTripPlanner() {
   const [allowedFileTypes, setAllowedFileTypes] = useState<string | null>(null)
   const [tripMembers, setTripMembers] = useState<TripMember[]>([])
 
+  // Re-fetch the trip roster so consumers (Costs participants, Collab, …) pick up a
+  // just-added guest or member without a full page reload.
+  const refreshMembers = useCallback(() => {
+    if (!tripId || isEffectivelyOffline()) return
+    tripsApi.getMembers(tripId).then(d => {
+      const all = [d.owner, ...(d.members || [])].filter(Boolean)
+      setTripMembers(all)
+    }).catch(() => {})
+  }, [tripId])
+
   const loadAccommodations = useCallback(() => {
     if (tripId) {
       accommodationRepo.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
@@ -101,6 +111,9 @@ export function useTripPlanner() {
   const tripPagePlugins = allPlugins.filter(p => p.type === 'trip-page')
   const tripPluginIds = tripPagePlugins.map(p => p.id).join(',')
 
+  // A trip-page plugin may replace core tabs while it's active (its manifest names
+  // them; 'plan' is never replaceable) and may pick where its own tab sits.
+  const replacedTabs = new Set(tripPagePlugins.flatMap(p => p.tripPage?.replaces ?? []))
   const TRIP_TABS = [
     { id: 'plan', label: t('trip.tabs.plan'), icon: Map },
     { id: 'transports', label: t('trip.tabs.transports'), icon: Train },
@@ -109,8 +122,12 @@ export function useTripPlanner() {
     ...(enabledAddons.budget ? [{ id: 'finanzplan', label: t('trip.tabs.budget'), icon: Wallet }] : []),
     ...(enabledAddons.documents ? [{ id: 'dateien', label: t('trip.tabs.files'), icon: FolderOpen }] : []),
     ...(enabledAddons.collab ? [{ id: 'collab', label: t('admin.addons.catalog.collab.name'), icon: Users }] : []),
-    ...tripPagePlugins.map(p => ({ id: `plugin:${p.id}`, label: p.name, icon: Blocks })),
-  ]
+  ].filter(tab => tab.id === 'plan' || !replacedTabs.has(tab.id))
+  // Positioned plugin tabs splice in ascending order so two positions stay stable;
+  // the rest append, exactly as before this capability existed.
+  const positioned = tripPagePlugins.filter(p => p.tripPage?.position != null).sort((a, b) => (a.tripPage!.position! - b.tripPage!.position!))
+  for (const p of positioned) TRIP_TABS.splice(Math.min(p.tripPage!.position!, TRIP_TABS.length), 0, { id: `plugin:${p.id}`, label: p.name, icon: Blocks })
+  for (const p of tripPagePlugins.filter(p => p.tripPage?.position == null)) TRIP_TABS.push({ id: `plugin:${p.id}`, label: p.name, icon: Blocks })
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     const saved = sessionStorage.getItem(`trip-tab-${tripId}`)
@@ -127,7 +144,11 @@ export function useTripPlanner() {
     }
   }, [enabledAddons, tripPluginIds, pluginsLoaded])
 
-  const handleTabChange = (tabId: string): void => {
+  const handleTabChange = (rawTabId: string): void => {
+    // A core tab a plugin replaced is gone from the bar, but a programmatic jump
+    // (e.g. onNavigateToFiles) could still target it and render a dead panel with
+    // no active pill — fall back to the plan view like the invalid-tab guard does.
+    const tabId = replacedTabs.has(rawTabId) ? 'plan' : rawTabId
     setActiveTab(tabId)
     sessionStorage.setItem(`trip-tab-${tripId}`, tabId)
     if (tabId === 'finanzplan') tripActions.loadBudgetItems?.(tripId)
@@ -275,10 +296,7 @@ export function useTripPlanner() {
           .then(rows => setTripMembers(rows))
           .catch(() => {})
       } else {
-        tripsApi.getMembers(tripId).then(d => {
-          const all = [d.owner, ...(d.members || [])].filter(Boolean)
-          setTripMembers(all)
-        }).catch(() => {})
+        refreshMembers()
       }
     }
   }, [tripId])
@@ -652,6 +670,18 @@ export function useTripPlanner() {
         acc.place_id = (await resolveImportedPlace(acc.venue)) ?? undefined
         delete acc.venue
       }
+      // A hotel's address lives on the linked place. Write an edited address
+      // through to it, otherwise the typed value was silently dropped and the
+      // old one reappeared on the next open (#1496).
+      if (data.type === 'hotel' && acc && typeof acc.address === 'string') {
+        const address = acc.address.trim()
+        const linkedPlace = acc.place_id ? places.find(p => p.id === Number(acc.place_id)) : undefined
+        if (address && linkedPlace && (linkedPlace.address || '') !== address) {
+          try { await tripActions.updatePlace(tripId, linkedPlace.id, { address }) }
+          catch { /* keep saving the booking; the address still lands in location */ }
+        }
+        delete acc.address
+      }
       if (editingReservation) {
         // Don't force a day here. The old code pinned it to the (often empty)
         // selected day, which dropped the booking out of the Plan; preserving the
@@ -860,7 +890,7 @@ export function useTripPlanner() {
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
-    allowedFileTypes, tripMembers, setTripMembers, loadAccommodations,
+    allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed, startResizeLeft, startResizeRight,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,

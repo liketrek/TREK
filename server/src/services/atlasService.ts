@@ -82,45 +82,24 @@ setInterval(() => {
 
 // ── Bounding-box lookup tables ──────────────────────────────────────────────
 
-export const COUNTRY_BOXES: Record<string, [number, number, number, number]> = {
-  AF:[60.5,29.4,75,38.5],AL:[19,39.6,21.1,42.7],DZ:[-8.7,19,12,37.1],AD:[1.4,42.4,1.8,42.7],AO:[11.7,-18.1,24.1,-4.4],
-  AR:[-73.6,-55.1,-53.6,-21.8],AM:[43.4,38.8,46.6,41.3],AU:[112.9,-43.6,153.6,-10.7],AT:[9.5,46.4,17.2,49],AZ:[44.8,38.4,50.4,41.9],
-  BA:[15.7,42.6,19.6,45.3],BD:[88.0,20.7,92.7,26.6],BF:[-5.5,9.4,2.4,15.1],BH:[50.4,25.8,50.7,26.2],BI:[29.0,-4.5,30.8,-2.3],
-  BJ:[0.8,6.2,3.8,12.4],BN:[114.1,4.0,115.4,5.1],BO:[-69.7,-22.9,-57.5,-9.7],BR:[-73.9,-33.8,-34.8,5.3],BE:[2.5,49.5,6.4,51.5],
-  BG:[22.4,41.2,28.6,44.2],BW:[20.0,-26.9,29.4,-17.8],CA:[-141,41.7,-52.6,83.1],CD:[12.2,-13.5,31.3,5.4],CG:[11.2,-5.0,18.7,3.7],
-  CI:[-8.6,4.3,-2.5,10.7],CL:[-75.6,-55.9,-66.9,-17.5],CM:[8.4,1.7,16.2,13.1],CN:[73.6,18.2,134.8,53.6],CO:[-79.1,-4.3,-66.9,12.5],
-  CR:[-85.9,8.0,-82.5,11.2],CU:[-85.0,19.8,-74.1,23.2],CV:[-25.4,14.8,-22.7,17.2],CY:[32.3,34.5,34.1,35.7],HR:[13.5,42.4,19.5,46.6],
-  CZ:[12.1,48.6,18.9,51.1],DJ:[41.8,11.0,43.4,12.7],DK:[8,54.6,15.2,57.8],DO:[-72.0,17.5,-68.3,19.9],EC:[-81.0,-5.0,-75.2,1.5],
-  EG:[24.7,22,37,31.7],EE:[21.8,57.5,28.2,59.7],ER:[36.4,12.4,43.1,18.0],ET:[33.0,3.4,47.9,14.9],FI:[20.6,59.8,31.6,70.1],
-  FR:[-5.1,41.3,9.6,51.1],DE:[5.9,47.3,15.1,55.1],GE:[40.0,41.0,46.7,43.6],GH:[-3.3,4.7,1.2,11.2],GN:[-15.1,7.2,-7.6,12.7],
-  GR:[19.4,34.8,29.7,41.8],GT:[-92.2,13.7,-88.2,17.8],HN:[-89.4,12.9,-83.2,16.5],HT:[-74.5,18.0,-71.6,20.1],HU:[16,45.7,22.9,48.6],
-  IS:[-24.5,63.4,-13.5,66.6],IN:[68.2,6.7,97.4,35.5],ID:[95.3,-11,141,5.9],IR:[44.1,25.1,63.3,39.8],IQ:[38.8,29.1,48.6,37.4],
-  IE:[-10.5,51.4,-6,55.4],IL:[34.3,29.5,35.9,33.3],IT:[6.6,36.6,18.5,47.1],JM:[-78.4,17.7,-76.2,18.5],JO:[34.9,29.2,39.3,33.4],
-  JP:[129.4,31.1,145.5,45.5],KE:[33.9,-4.7,41.9,5.5],KG:[69.2,39.2,80.3,43.2],KH:[102.3,10.4,107.6,14.7],KR:[126,33.2,129.6,38.6],
-  KW:[46.5,28.5,48.4,30.1],KZ:[50.3,40.6,87.4,55.4],LA:[100.1,13.9,107.7,22.5],LB:[35.1,33.1,36.6,34.7],LK:[79.7,5.9,81.9,9.8],
-  LV:[21,55.7,28.2,58.1],LT:[21,53.9,26.8,56.5],LU:[5.7,49.4,6.5,50.2],LY:[9.5,19.5,25.2,33.3],MA:[-13.2,27.7,-1,35.9],
-  MD:[26.6,45.5,30.2,48.5],ME:[18.4,41.8,20.4,43.6],MG:[43.2,-25.6,50.5,-11.9],MK:[20.5,40.8,23.0,42.4],ML:[-4.8,10.1,4.3,25.0],
-  MM:[92.2,9.8,101.2,28.5],MN:[87.8,41.6,119.9,52.1],MR:[-17.1,14.7,-4.8,27.3],MT:[14.1,35.8,14.6,36.1],MU:[57.3,-20.5,57.8,-19.9],
-  MV:[72.7,-0.7,73.8,7.1],MW:[32.7,-17.1,35.9,-9.4],MY:[99.6,0.9,119.3,7.4],MX:[-118.4,14.5,-86.7,32.7],MZ:[30.2,-26.9,40.8,-10.5],
-  NA:[11.7,-28.9,25.3,-17.0],NE:[0.2,11.7,15.9,23.5],NI:[-87.7,10.7,-83.1,15.0],NL:[3.4,50.8,7.2,53.5],NP:[80.1,26.4,88.2,30.4],
-  NZ:[166.4,-47.3,178.5,-34.4],NO:[4.6,58,31.1,71.2],OM:[51.9,16.6,59.8,26.4],PA:[-83.0,7.2,-77.2,9.6],PG:[140.8,-11.7,155.7,-1.3],
-  PK:[60.9,23.7,77.1,37.1],PE:[-81.3,-18.4,-68.7,-0.1],PH:[117,5,126.6,18.5],PL:[14.1,49,24.1,54.9],PS:[34.2,29.5,35.6,32.6],
-  PT:[-9.5,36.8,-6.2,42.2],PY:[-62.6,-27.6,-54.3,-19.3],QA:[50.7,24.5,51.6,26.2],RO:[20.2,43.6,29.7,48.3],RU:[19.6,41.2,180,81.9],
-  RW:[29.0,-2.8,30.9,-1.0],SA:[34.6,16.4,55.7,32.2],SC:[55.3,-9.7,55.8,-3.7],SD:[21.8,3.4,38.6,22.2],SG:[103.6,1.2,104.1,1.5],
-  SI:[13.4,45.4,16.6,46.9],SK:[16.8,47.7,22.6,49.6],SN:[-17.5,12.3,-11.4,15.0],SO:[40.9,-1.7,51.4,11.9],RS:[18.8,42.2,23,46.2],
-  SV:[-90.1,13.2,-87.7,14.5],SY:[35.7,32.3,42.4,37.3],TG:[-0.2,6.1,1.8,11.2],TJ:[67.3,36.7,75.2,41.0],TM:[52.4,35.1,66.7,42.8],
-  TN:[7.5,30.2,11.6,37.5],TT:[-61.9,10.0,-60.5,11.3],TW:[120.1,21.9,122.0,25.3],TZ:[29.3,-11.7,40.4,-1.0],ZA:[16.5,-34.8,32.9,-22.1],
-  SE:[11.1,55.3,24.2,69.1],CH:[6,45.8,10.5,47.8],TH:[97.3,5.6,105.6,20.5],TR:[26,36,44.8,42.1],UA:[22.1,44.4,40.2,52.4],
-  UG:[29.6,-1.5,35.0,4.2],UY:[-58.4,-34.9,-53.1,-30.1],UZ:[55.9,37.2,73.1,45.6],VE:[-73.4,0.7,-59.8,12.2],
-  AE:[51.6,22.6,56.4,26.1],GB:[-8,49.9,2,60.9],US:[-125,24.5,-66.9,49.4],VN:[102.1,8.6,109.5,23.4],XK:[20.0,41.9,21.8,43.3],
-  YE:[42.5,12.1,54.0,19.0],ZM:[21.9,-18.1,33.7,-8.2],ZW:[25.2,-22.4,33.1,-15.6],
-  // Territories with their own ISO code that sit inside a larger country's box.
-  // Listed so getCountryFromCoords()'s smallest-box match picks them over the host
-  // (e.g. Hong Kong/Macau over China, San Marino/Vatican over Italy).
-  HK:[113.83,22.15,114.43,22.56],MO:[113.53,22.10,113.60,22.21],SM:[12.40,43.89,12.52,43.99],
-  VA:[12.44,41.90,12.46,41.91],MC:[7.40,43.72,7.44,43.75],LI:[9.47,47.05,9.64,47.27],
+// Territories that have their own ISO code but no admin0 polygon in the bundle.
+// Without a polygon they can't be point-in-polygon tested, so they rely purely on
+// their box and win via the smallest-box tie-break in getCountryFromCoords()
+// (e.g. Hong Kong/Macau over China, Gibraltar over Spain).
+const MICRO_TERRITORY_BOXES: Record<string, [number, number, number, number]> = {
+  HK:[113.83,22.15,114.43,22.56],MO:[113.53,22.10,113.60,22.21],
   GI:[-5.36,36.11,-5.33,36.16],PR:[-67.30,17.88,-65.22,18.53],
+  PS:[34.2,29.5,35.6,32.6],XK:[20.0,41.9,21.8,43.3],
 };
+
+// A polygon-less micro-territory box only auto-wins the smallest-box tie-break when it is
+// TIGHT around the enclave. HK(0.25°²), MO(0.008), GI(0.0015) and PR(1.35) hug their
+// territory, so a point inside them really is in that territory. PS(4.34) and XK(2.52) are
+// loose regional rectangles that sprawl across a sovereign neighbour (PS over Israel, XK
+// over North Macedonia) — a point there usually belongs to the neighbour, so those boxes
+// must NOT auto-win; they defer to the neighbour's real polygon first (see #1490-class fix
+// below). This threshold sits between PR and XK.
+const MICRO_BOX_MAX_AREA = 2.0;
 
 export const NAME_TO_CODE: Record<string, string> = {
   'germany':'DE','deutschland':'DE','france':'FR','frankreich':'FR','spain':'ES','spanien':'ES',
@@ -228,45 +207,108 @@ function pointInGeometry(lng: number, lat: number, geom: { type: string; coordin
   return false;
 }
 
-// ISO_A2 → admin0 geometry, built once. Micro-territories (HK, MO, SM, VA, …) aren't
-// in admin0, so they stay absent and keep the smallest-box behaviour below.
-let countryPolyIndex: Map<string, { type: string; coordinates: number[][][] | number[][][][] }> | null = null;
-function getCountryPolyIndex(): Map<string, { type: string; coordinates: number[][][] | number[][][][] }> {
-  if (countryPolyIndex) return countryPolyIndex;
-  const idx = new Map<string, { type: string; coordinates: number[][][] | number[][][][] }>();
+type Geometry = { type: string; coordinates: number[][][] | number[][][][] };
+type Box = [number, number, number, number]; // [minLng, minLat, maxLng, maxLat]
+
+// ISO_A2 → admin0 geometry + bounding boxes, both derived from the bundled admin0
+// borders on first use and cached.
+//
+// The boxes used to be a hand-maintained table, which drifted: 43 countries (NG, BY,
+// GL, KP, TD, SS, …) had no box at all, so their coordinates fell into a *neighbour's*
+// box instead and resolved to the wrong country — Lagos came out as Benin, Minsk as
+// Russia (#1490). Deriving them from the same polygons we already ship keeps the two
+// in lockstep and can't drift again.
+//
+// One box is stored PER GEOMETRY PART, not per country. A single box around a country
+// that straddles the antimeridian (RU, US, FJ, KI) would span nearly the whole globe;
+// per-part boxes keep Alaska and Chukotka separate and handle the ±180 wrap for free.
+let countryPolyIndex: Map<string, Geometry> | null = null;
+let countryBoxIndex: Map<string, Box[]> | null = null;
+
+function buildCountryIndexes(): void {
+  const polys = new Map<string, Geometry>();
+  const boxes = new Map<string, Box[]>();
+
   for (const f of loadGeoBundle('admin0').features ?? []) {
-    const code = f.properties?.ISO_A2;
-    if (code && code !== '-99' && f.geometry) idx.set(String(code).toUpperCase(), f.geometry);
+    const raw = f.properties?.ISO_A2;
+    if (!raw || raw === '-99' || !f.geometry) continue;
+    const code = String(raw).toUpperCase();
+    polys.set(code, f.geometry);
+
+    const parts = (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates) as number[][][][];
+    const codeBoxes = boxes.get(code) ?? [];
+    for (const part of parts) {
+      let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+      for (const [lng, lat] of part[0]) {
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+      }
+      codeBoxes.push([minLng, minLat, maxLng, maxLat]);
+    }
+    boxes.set(code, codeBoxes);
   }
-  countryPolyIndex = idx;
-  return idx;
+
+  // Micro-territories aren't in admin0 — give them their box, but no polygon.
+  for (const [code, box] of Object.entries(MICRO_TERRITORY_BOXES)) {
+    if (!boxes.has(code)) boxes.set(code, [box]);
+  }
+
+  countryPolyIndex = polys;
+  countryBoxIndex = boxes;
+}
+
+function getCountryPolyIndex(): Map<string, Geometry> {
+  if (!countryPolyIndex) buildCountryIndexes();
+  return countryPolyIndex!;
+}
+
+function getCountryBoxIndex(): Map<string, Box[]> {
+  if (!countryBoxIndex) buildCountryIndexes();
+  return countryBoxIndex!;
 }
 
 export function getCountryFromCoords(lat: number, lng: number): string | null {
-  // Cheap prefilter: every country whose bounding box contains the point.
+  // Cheap prefilter: every country with a part-box containing the point. Keep the
+  // area of the matching part so overlapping candidates can be ranked below.
   const candidates: { code: string; area: number }[] = [];
-  for (const [code, [minLng, minLat, maxLng, maxLat]] of Object.entries(COUNTRY_BOXES)) {
-    if (lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng) {
-      candidates.push({ code, area: (maxLng - minLng) * (maxLat - minLat) });
+  for (const [code, boxes] of getCountryBoxIndex()) {
+    for (const [minLng, minLat, maxLng, maxLat] of boxes) {
+      if (lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng) {
+        candidates.push({ code, area: (maxLng - minLng) * (maxLat - minLat) });
+        break;
+      }
     }
   }
   if (candidates.length === 0) return null;
-  if (candidates.length === 1) return candidates[0].code;
 
-  // Boxes overlap near borders, so a single point can sit in several — picking the
-  // smallest box then mis-assigns a point just across the border (#1331). Disambiguate
-  // with the real admin0 polygon: try candidates smallest-box-first and return the one
-  // whose polygon actually contains the point. A candidate with no admin0 polygon (a
-  // micro-territory like HK/MO/SM/VA) keeps the smallest-box win.
+  // Boxes overlap near borders, so a point can sit in several — picking the smallest
+  // box alone mis-assigns a point just across the border (#1331). Disambiguate with
+  // the real admin0 polygon: try candidates smallest-box-first and return the one whose
+  // polygon actually contains the point. A candidate with no polygon (a micro-territory
+  // like HK/MO/GI) keeps the smallest-box win — but only when its box is tight enough to
+  // trust (MICRO_BOX_MAX_AREA); a loose regional box (PS/XK) defers to a real neighbour
+  // polygon so it can't steal a point that lies inside that sovereign (Tel Aviv → IL,
+  // Skopje → MK), while a genuine PS/XK point still lands on the deferred box below.
+  //
+  // This runs even for a lone candidate. Short-circuiting a single match was what let a
+  // point resolve to a country whose polygon plainly excludes it (#1490).
   candidates.sort((a, b) => a.area - b.area);
   const polys = getCountryPolyIndex();
-  for (const { code } of candidates) {
+  let looseBoxFallback: string | null = null;
+  for (const { code, area } of candidates) {
     const poly = polys.get(code);
-    if (!poly) return code;
+    if (!poly) {
+      if (area <= MICRO_BOX_MAX_AREA) return code;
+      if (looseBoxFallback === null) looseBoxFallback = code;
+      continue;
+    }
     if (pointInGeometry(lng, lat, poly)) return code;
   }
-  // No polygon contained the point (coastal slop / data gap) — fall back to smallest box.
-  return candidates[0].code;
+  // No tight micro-box and no polygon contained the point — prefer a deferred loose box
+  // (a real PS/XK point), else fall back to the smallest box (coastal slop / data gap).
+  return looseBoxFallback ?? candidates[0].code;
 }
 
 export function getCountryFromAddress(address: string | null): string | null {
@@ -374,8 +416,11 @@ export async function getStats(userId: number) {
   const tripIds = trips.map(t => t.id);
 
   if (tripIds.length === 0) {
+    const hiddenOnly = getHiddenCountries(userId);
     const manualCountries = db.prepare('SELECT country_code FROM visited_countries WHERE user_id = ?').all(userId) as { country_code: string }[];
-    const countries = manualCountries.map(mc => ({ code: mc.country_code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }));
+    const countries = manualCountries
+      .filter(mc => !hiddenOnly.has(mc.country_code))
+      .map(mc => ({ code: mc.country_code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }));
     return { countries, trips: [], stats: { totalTrips: 0, totalPlaces: 0, totalCountries: countries.length, totalDays: 0 } };
   }
 
@@ -436,9 +481,15 @@ export async function getStats(userId: number) {
   }
   const totalCities = citySet.size;
 
+  // Countries the user explicitly removed. Only the zero-count passes below are
+  // suppressed — a country with real places isn't removable in the UI anyway, and once
+  // the user adds a place there the tombstone should stop mattering (#1490).
+  const hidden = getHiddenCountries(userId);
+
   // Merge manually marked countries
   const manualCountries = db.prepare('SELECT country_code FROM visited_countries WHERE user_id = ?').all(userId) as { country_code: string }[];
   for (const mc of manualCountries) {
+    if (hidden.has(mc.country_code)) continue;
     if (!countries.find(c => c.code === mc.country_code)) {
       countries.push({ code: mc.country_code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null });
     }
@@ -447,15 +498,17 @@ export async function getStats(userId: number) {
   // Merge countries reached only by a transport booking. Those store geocoded from/to
   // coordinates in reservation_endpoints but create no place row, so they never show up
   // via resolvePlaceCountries above and would otherwise be missed (#1366).
+  // Only 'from'/'to' legs count as actually reached — a 'stop' is an intermediate
+  // connection/layover (e.g. a plane change) the traveler never really visited.
   const endpoints = db.prepare(`
     SELECT DISTINCT e.lat, e.lng
     FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
-    WHERE r.trip_id IN (${tripIds.map(() => '?').join(',')})
+    WHERE r.trip_id IN (${tripIds.map(() => '?').join(',')}) AND e.role IN ('from', 'to')
   `).all(...tripIds) as { lat: number; lng: number }[];
   for (const e of endpoints) {
     const code = getCountryFromCoords(e.lat, e.lng);
-    if (code && !countries.find(c => c.code === code)) {
+    if (code && !hidden.has(code) && !countries.find(c => c.code === code)) {
       countries.push({ code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null });
     }
   }
@@ -552,13 +605,25 @@ export function listVisitedCountries(userId: number): { country_code: string; cr
   ).all(userId) as { country_code: string; created_at: string }[];
 }
 
+/** Countries the user explicitly removed, which getStats must not re-derive (#1490). */
+export function getHiddenCountries(userId: number): Set<string> {
+  const rows = db.prepare('SELECT country_code FROM hidden_countries WHERE user_id = ?').all(userId) as { country_code: string }[];
+  return new Set(rows.map(r => r.country_code));
+}
+
 export function markCountryVisited(userId: number, code: string): void {
   db.prepare('INSERT OR IGNORE INTO visited_countries (user_id, country_code) VALUES (?, ?)').run(userId, code);
+  // Marking it visited again lifts a previous removal.
+  db.prepare('DELETE FROM hidden_countries WHERE user_id = ? AND country_code = ?').run(userId, code);
 }
 
 export function unmarkCountryVisited(userId: number, code: string): void {
   db.prepare('DELETE FROM visited_countries WHERE user_id = ? AND country_code = ?').run(userId, code);
   db.prepare('DELETE FROM visited_regions WHERE user_id = ? AND country_code = ?').run(userId, code);
+  // A country derived from a place or a transport endpoint has no visited_countries row,
+  // so the deletes above are no-ops and getStats would re-derive it on the next request.
+  // Tombstone it so the removal actually sticks (#1490).
+  db.prepare('INSERT OR IGNORE INTO hidden_countries (user_id, country_code) VALUES (?, ?)').run(userId, code);
 }
 
 // ── Mark / unmark region ────────────────────────────────────────────────────

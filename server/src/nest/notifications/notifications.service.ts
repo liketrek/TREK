@@ -20,6 +20,7 @@ import {
   respondToBoolean,
 } from '../../services/inAppNotifications';
 import { getPreferencesMatrix, setPreferences } from '../../services/notificationPreferencesService';
+import { getChannel } from '../../services/notifications/channelRegistry';
 
 type NtfyConfig = ReturnType<typeof getAdminNtfyConfig>;
 type RespondResult = Awaited<ReturnType<typeof respondToBoolean>>;
@@ -37,6 +38,19 @@ type PreferencesMatrix = ReturnType<typeof getPreferencesMatrix>;
 export class NotificationsService {
   getPreferences(userId: number, role: string): PreferencesMatrix {
     return getPreferencesMatrix(userId, role, 'user');
+  }
+
+  /** Send a test notification over any registered channel (built-in or plugin). */
+  async testChannel(userId: number, channelId: string): Promise<ChannelTestResult> {
+    const channel = getChannel(channelId);
+    if (!channel) return { success: false, error: 'Unknown channel' };
+    if (!channel.test) return { success: false, error: 'This channel does not support test sends' };
+    if (!channel.isConfiguredFor(userId)) return { success: false, error: 'Channel is not configured for this user' };
+    try {
+      return await channel.test(userId);
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+    }
   }
 
   setPreferences(userId: number, body: Parameters<typeof setPreferences>[1]): void {

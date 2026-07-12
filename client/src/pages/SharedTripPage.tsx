@@ -143,7 +143,7 @@ export default function SharedTripPage() {
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 20, overflowX: 'auto', padding: '2px 0' }}>
           {[
-            { id: 'plan', label: t('shared.tabPlan'), Icon: Map },
+            ...(permissions?.share_map !== false ? [{ id: 'plan', label: t('shared.tabPlan'), Icon: Map }] : []),
             ...(permissions?.share_bookings ? [{ id: 'bookings', label: t('shared.tabBookings'), Icon: Ticket }] : []),
             ...(permissions?.share_packing ? [{ id: 'packing', label: t('shared.tabPacking'), Icon: Luggage }] : []),
             ...(permissions?.share_budget ? [{ id: 'budget', label: t('shared.tabBudget'), Icon: Wallet }] : []),

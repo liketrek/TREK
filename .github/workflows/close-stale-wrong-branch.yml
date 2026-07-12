@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   close-stale:
+    if: github.repository == 'mauriceboe/TREK'
     runs-on: ubuntu-latest
     steps:
       - name: Close stale wrong-base-branch PRs

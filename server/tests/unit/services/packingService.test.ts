@@ -40,6 +40,7 @@ import {
   listTemplates,
   setBagMembers,
   createBag,
+  updateBag,
   deleteBag,
   bulkImport,
   createItem,
@@ -240,6 +241,37 @@ describe('setBagMembers', () => {
     const result = setBagMembers(1, 99999, []);
 
     expect(result).toBeNull();
+  });
+
+  it('PACK-SVC-010a: setBagMembers drops a user who is not on the trip roster', () => {
+    const { user } = createUser(testDb);
+    const outsider = createUser(testDb).user;
+    const trip = createTrip(testDb, user.id);
+    const bag = createBag(trip.id, { name: 'Main Bag' }) as any;
+
+    // owner is on the roster; the outsider (not owner, not a member) must be filtered out
+    const result = setBagMembers(trip.id, bag.id, [user.id, outsider.id]) as any[];
+
+    const ids = result.map((m) => m.user_id);
+    expect(ids).toContain(user.id);
+    expect(ids).not.toContain(outsider.id);
+  });
+
+  it('PACK-SVC-010b: updateBag ignores an off-roster user_id, leaving the bag unassigned', () => {
+    const { user } = createUser(testDb);
+    const outsider = createUser(testDb).user;
+    const trip = createTrip(testDb, user.id);
+    const bag = createBag(trip.id, { name: 'Main Bag' }) as any;
+
+    // assigning to an outsider must not stick — the CASE keeps user_id null
+    updateBag(trip.id, bag.id, { user_id: outsider.id }, ['user_id']);
+    const stored = testDb.prepare('SELECT user_id FROM packing_bags WHERE id = ?').get(bag.id) as { user_id: number | null };
+    expect(stored.user_id).toBeNull();
+
+    // assigning to the owner (on the roster) does stick
+    updateBag(trip.id, bag.id, { user_id: user.id }, ['user_id']);
+    const stored2 = testDb.prepare('SELECT user_id FROM packing_bags WHERE id = ?').get(bag.id) as { user_id: number | null };
+    expect(stored2.user_id).toBe(user.id);
   });
 });
 

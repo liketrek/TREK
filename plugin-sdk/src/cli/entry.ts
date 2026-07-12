@@ -19,7 +19,7 @@ import { readJsonFile } from './json.js';
 interface Version {
   version: string; gitTag: string; commitSha: string; downloadUrl: string;
   sha256: string; minTrekVersion: string; size: number; apiVersion: number;
-  nativeModules: false; publishedAt: string; signature?: string;
+  nativeModules: false; operatorEgress?: boolean; publishedAt: string; signature?: string;
 }
 interface Entry {
   id: string; name: string; author: string; description: string; repo: string;
@@ -68,6 +68,10 @@ export function buildEntry(opts: {
     nativeModules: false,
     publishedAt: opts.now,
   };
+  // Mirror the manifest's operatorEgress onto the entry — CI parity-checks it, because the
+  // flag says the egress[] list is NOT the plugin's full network reach (an admin may add
+  // hosts after install). Only emitted when true, so ordinary entries stay unchanged.
+  if (manifest.operatorEgress === true) version.operatorEgress = true;
 
   // Optional author signature over the exact artifact bytes.
   let authorPublicKey: string | undefined;

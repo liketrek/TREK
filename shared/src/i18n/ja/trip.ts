@@ -9,7 +9,7 @@ const trip: TranslationStrings = {
   'trip.tabs.packingShort': '持ち物',
   'trip.tabs.lists': 'リスト',
   'trip.tabs.listsShort': 'リスト',
-  'trip.tabs.budget': 'Costs',
+  'trip.tabs.budget': '費用',
   'trip.tabs.files': 'ファイル',
   'trip.loading': '旅行を読み込み中...',
   'trip.loadingPhotos': '場所の写真を読み込み中...',

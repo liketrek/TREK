@@ -239,6 +239,40 @@ apiClient.interceptors.response.use(
     }
 )
 
+/**
+ * POST a FormData body — the ONLY way this client should upload a file.
+ *
+ * The shared axios instance carries `timeout: 8000`, and axios' timeout is a whole-
+ * request deadline rather than an idle one. A file upload that takes longer than 8s to
+ * push its body — a phone photo on a slow uplink, a 500 MB document — is aborted
+ * mid-stream, which the server reports as a multer "Request aborted" (#1495).
+ *
+ * Every upload therefore has to opt out with `timeout: 0`. That opt-out used to be
+ * hand-written per call site, so it was forgotten on 7 of 15 — including the two 500 MB
+ * endpoints (documents, backup restore). Centralizing makes the correct behavior the
+ * default instead of something you have to remember.
+ *
+ * The Content-Type is set for clarity only: axios unsets it for FormData in the browser
+ * so the platform can generate the multipart boundary.
+ */
+export interface UploadOptions {
+  onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void
+  idempotencyKey?: string
+  signal?: AbortSignal
+}
+
+export function postMultipart<T = any>(url: string, formData: FormData, opts?: UploadOptions): Promise<T> {
+  return apiClient.post(url, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}),
+    },
+    timeout: 0,
+    onUploadProgress: opts?.onUploadProgress,
+    signal: opts?.signal,
+  }).then(r => r.data as T)
+}
+
 export const authApi = {
   register: (data: RegisterRequest) => apiClient.post('/auth/register', data).then(r => r.data),
   validateInvite: (token: string) => apiClient.get(`/auth/invite/${token}`).then(r => r.data),
@@ -253,7 +287,7 @@ export const authApi = {
   updateSettings: (data: Record<string, unknown>) => apiClient.put('/auth/me/settings', data).then(r => r.data),
   getSettings: () => apiClient.get('/auth/me/settings').then(r => r.data),
   listUsers: () => apiClient.get('/auth/users').then(r => r.data),
-  uploadAvatar: (formData: FormData) => apiClient.post('/auth/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data),
+  uploadAvatar: (formData: FormData) => postMultipart('/auth/avatar', formData),
   deleteAvatar: () => apiClient.delete('/auth/avatar').then(r => r.data),
   getAppConfig: () => apiClient.get('/auth/app-config').then(r => r.data),
   updateAppSettings: (data: Record<string, unknown>) => apiClient.put('/auth/app-settings', data).then(r => r.data),
@@ -334,7 +368,7 @@ export const tripsApi = {
   get: (id: number | string) => apiClient.get(`/trips/${id}`).then(r => r.data),
   update: (id: number | string, data: TripUpdateRequest) => apiClient.put(`/trips/${id}`, data).then(r => r.data),
   delete: (id: number | string) => apiClient.delete(`/trips/${id}`).then(r => r.data),
-  uploadCover: (id: number | string, formData: FormData) => apiClient.post(`/trips/${id}/cover`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data),
+  uploadCover: (id: number | string, formData: FormData) => postMultipart(`/trips/${id}/cover`, formData),
   searchCoverImages: (query: string) => apiClient.get('/trips/cover-images/search', { params: { query } }).then(r => r.data),
   archive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: true }).then(r => r.data),
   unarchive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: false }).then(r => r.data),
@@ -370,14 +404,14 @@ export const placesApi = {
     if (opts?.waypoints !== undefined) fd.append('importWaypoints', String(opts.waypoints))
     if (opts?.routes !== undefined) fd.append('importRoutes', String(opts.routes))
     if (opts?.tracks !== undefined) fd.append('importTracks', String(opts.tracks))
-    return apiClient.post(`/trips/${tripId}/places/import/gpx`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+    return postMultipart(`/trips/${tripId}/places/import/gpx`, fd)
   },
   importMapFile: (tripId: number | string, file: File, opts?: { points?: boolean; paths?: boolean }) => {
     const fd = new FormData()
     fd.append('file', file)
     if (opts?.points !== undefined) fd.append('importPoints', String(opts.points))
     if (opts?.paths !== undefined) fd.append('importPaths', String(opts.paths))
-    return apiClient.post(`/trips/${tripId}/places/import/map`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+    return postMultipart(`/trips/${tripId}/places/import/map`, fd)
   },
   importGoogleList: (tripId: number | string, url: string, enrich?: boolean) =>
       apiClient.post(`/trips/${tripId}/places/import/google-list`, { url, enrich } satisfies PlaceImportListRequest).then(r => r.data),
@@ -470,7 +504,17 @@ export const adminApi = {
   pluginUpdate: (id: string) => apiClient.post(`/admin/plugins/${id}/update`).then(r => r.data),
   pluginUninstall: (id: string, deleteData: boolean) => apiClient.post(`/admin/plugins/${id}/uninstall`, { deleteData }).then(r => r.data),
   pluginRescan: () => apiClient.post('/admin/plugins/rescan').then(r => r.data),
-  pluginUpload: (file: File) => { const fd = new FormData(); fd.append('file', file); return apiClient.post('/admin/plugins/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data) },
+  pluginUpload: (file: File) => { const fd = new FormData(); fd.append('file', file); return postMultipart('/admin/plugins/upload', fd) },
+  // Dev-link (dev-only): register a plugin from a local built dir + hot-reload it.
+  pluginLink: (path: string) => apiClient.post('/admin/plugins/link', { path }).then(r => r.data),
+  pluginReload: (id: string) => apiClient.post(`/admin/plugins/${id}/reload`).then(r => r.data),
+  // Operator-supplied egress hosts: a plugin talking to a SELF-HOSTED service can't name
+  // the operator's hostname in its manifest, so the admin adds it here. Saving re-spawns
+  // the plugin with the widened allow-list.
+  pluginEgressHosts: (id: string): Promise<{ supported: boolean; hosts: string[] }> =>
+    apiClient.get(`/admin/plugins/${id}/egress-hosts`).then(r => r.data),
+  pluginSetEgressHosts: (id: string, hosts: string[]): Promise<{ hosts: string[] }> =>
+    apiClient.put(`/admin/plugins/${id}/egress-hosts`, { hosts }).then(r => r.data),
   pluginErrors: (id: string) => apiClient.get(`/admin/plugins/${id}/errors`).then(r => r.data),
   pluginAudit: (id: string) => apiClient.get(`/admin/plugins/${id}/audit`).then(r => r.data),
   // Local LLM (Ollama) management for the AI-parsing addon.
@@ -555,6 +599,51 @@ export const addonsApi = {
   enabled: () => apiClient.get('/addons').then(r => r.data),
 }
 
+/** A host-rendered column/action a plugin contributes into a native planner view
+ * (reservations/places/day) via the tableContributor hook. Every field is bounded +
+ * normalized server-side; a column url is guaranteed http/https/mailto. */
+export type ViewContribution =
+  | { kind: 'column'; pluginId: string; entityId: number; id: string; label: string; value?: string; url?: string; icon?: string; tone: 'default' | 'success' | 'warn' | 'danger' }
+  | { kind: 'action'; pluginId: string; entityId: number; id: string; label: string; icon?: string; target: { kind: 'frame'; sub: string } | { kind: 'route'; method: 'GET' | 'POST'; sub: string } }
+
+/** A badge a plugin adds to a dashboard trip card via the tripCardProvider hook.
+ * Bounded + normalized server-side; the url is guaranteed http/https/mailto. */
+export interface TripCardBadge {
+  pluginId: string; tripId: number; id: string; label: string;
+  value?: string; icon?: string; tone: 'default' | 'success' | 'warn' | 'danger'; url?: string;
+}
+
+export interface PluginMapMarker {
+  pluginId: string; id: string; lat: number; lng: number;
+  label?: string; popupText?: string; url?: string; icon?: string;
+  tone: 'default' | 'success' | 'warn' | 'danger'
+}
+
+/** A text-only section a pdfSectionProvider plugin appends to the trip PDF export.
+ * Server-normalized: counts + lengths are capped, cells are plain strings. */
+export interface PluginPdfSection {
+  pluginId: string; title: string; paragraphs: string[];
+  table?: { headers: string[]; rows: string[][] }
+}
+
+/** A country tint layer an atlasLayerProvider plugin draws over the Atlas map for
+ * the signed-in user. Codes are ISO alpha-2 (server-validated), tone enum-whitelisted. */
+export interface PluginAtlasLayer {
+  pluginId: string; id: string; name?: string;
+  countries: Array<{ code: string; tone: 'default' | 'success' | 'warn' | 'danger'; label?: string }>
+}
+
+export interface PluginUserSettingField {
+  key: string; label?: string | null; input_type?: string; placeholder?: string | null;
+  hint?: string | null; required?: boolean; secret?: boolean;
+  options?: Array<{ value: string; label: string }>
+}
+
+/** A button a plugin contributes to its own settings page ("Test connection"). */
+export interface PluginAction {
+  key: string; label: string; hint?: string; danger: boolean
+}
+
 export const pluginsApi = {
   // Active plugins the client renders (page nav entries, dashboard widgets).
   active: () => apiClient.get('/plugins').then(r => r.data),
@@ -565,6 +654,58 @@ export const pluginsApi = {
   // Validation/warning contributions from warningProvider plugins (#1429). Fail-safe.
   tripWarnings: (tripId: number) =>
     apiClient.get(`/trip-warnings/${tripId}`).then(r => r.data as { warnings: Array<{ pluginId: string; level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number }> }),
+  // Host-rendered columns/actions plugins add into a native planner view via the
+  // tableContributor hook. Fetched once per view, keyed by entityId; fail-safe.
+  viewContributions: (view: 'reservations' | 'transports' | 'places' | 'day' | 'costs' | 'packing' | 'files' | 'todos', tripId: number | string) =>
+    apiClient.get(`/view-contributions/${view}/${tripId}`).then(r => r.data as { contributions: ViewContribution[] }),
+  // Bounded markers plugins overlay on the trip map via the mapMarkerProvider hook
+  // (#587). Host-normalized + range-checked; fail-safe (skips slow/failing providers).
+  mapMarkers: (tripId: number | string) =>
+    apiClient.get(`/map-markers/${tripId}`).then(r => r.data as { markers: PluginMapMarker[] }),
+  // Text-only sections plugins append to the trip PDF export via the
+  // pdfSectionProvider hook. Host-normalized (counts + lengths capped); fail-safe.
+  pdfSections: (tripId: number | string) =>
+    apiClient.get(`/pdf-sections/${tripId}`).then(r => r.data as { sections: PluginPdfSection[] }),
+  // Country tint layers plugins draw over the Atlas map for the signed-in user via
+  // the atlasLayerProvider hook. No tripId — user-scoped server-side; fail-safe.
+  atlasLayers: () =>
+    apiClient.get('/atlas-layers').then(r => r.data as { layers: PluginAtlasLayer[] }),
+  // Extra rows plugins add under a journal entry via the journalEntryProvider hook.
+  // Same shape + hardening as placeDetails (label/value/allowlisted url); fail-safe.
+  journalEntryRows: (entryId: number) =>
+    apiClient.get(`/journal-entry-rows/${entryId}`).then(r => r.data as { providers: Array<{ pluginId: string; items: Array<{ label: string; value?: string; url?: string }> }> }),
+  // Badges plugins add to the dashboard trip cards via the tripCardProvider hook.
+  // One call for all visible cards; host access-checks each tripId + bounds every
+  // field (label/value/tone/allowlisted url); fail-safe.
+  tripCardContributions: (tripIds: Array<number | string>) =>
+    apiClient.get(`/trip-card-contributions?tripIds=${tripIds.join(',')}`).then(r => r.data as { contributions: TripCardBadge[] }),
+  // The signed-in user's OWN plugin activity log — every host-mediated action a
+  // plugin took bound to them, across all plugins, newest first. The user-facing
+  // half of the capability audit; what makes the broad read grants accountable.
+  myActivity: (limit = 200) =>
+    apiClient.get(`/plugin-activity?limit=${limit}`).then(r => r.data as { activity: Array<{ ts: string; plugin_id: string; plugin_name: string | null; method: string; resource: string | null; code: string }> }),
+  // A user's OWN scope:'user' settings for a plugin (API key, prefs). Secrets are
+  // masked; the write only accepts declared user-scope keys.
+  userSettings: (id: string) =>
+    apiClient.get(`/plugin-settings/${id}`).then(r => r.data as {
+      fields: PluginUserSettingField[]
+      config: Record<string, unknown>
+      actions: PluginAction[]
+    }),
+  // Run a settings-page action the plugin declared ("Test connection"). It runs AS the
+  // caller, so it reads the caller's own settings.
+  runAction: (id: string, key: string) =>
+    apiClient.post(`/plugin-settings/${id}/actions/${encodeURIComponent(key)}`)
+      .then(r => r.data as { ok: boolean; message?: string }),
+  saveUserSettings: (id: string, config: Record<string, unknown>) =>
+    apiClient.post(`/plugin-settings/${id}`, { config }).then(r => r.data as { config: Record<string, unknown> }),
+  // Host-brokered outbound OAuth (the host owns the tokens; the plugin only triggers).
+  oauthStatus: (id: string) =>
+    apiClient.get(`/plugin-oauth/${id}/status`).then(r => r.data as { configured: boolean; connected: boolean }),
+  oauthConnect: (id: string) =>
+    apiClient.post(`/plugin-oauth/${id}/connect`).then(r => r.data as { authorizeUrl: string }),
+  oauthDisconnect: (id: string) =>
+    apiClient.post(`/plugin-oauth/${id}/disconnect`).then(r => r.data as { connected: boolean }),
   // Call one of a plugin's own declared routes through the host proxy. `sub` is
   // supplied by untrusted plugin code (the trekBridge forwards it verbatim), so it
   // MUST stay inside the plugin's own /plugins/:id/ namespace. We resolve it with
@@ -624,27 +765,12 @@ export const journeyApi = {
   reorderEntries: (journeyId: number, orderedIds: number[]) => apiClient.put(`/journeys/${journeyId}/entries/reorder`, { orderedIds } satisfies JourneyReorderEntriesRequest).then(r => r.data),
 
   // Photos
-  uploadPhotos: (entryId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>
-    apiClient.post(`/journeys/entries/${entryId}/photos`, formData, {
-      headers: { 'Content-Type': undefined as any, ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}) },
-      timeout: 0,
-      onUploadProgress: opts?.onUploadProgress,
-      signal: opts?.signal,
-    }).then(r => r.data),
-  uploadGalleryPhotos: (journeyId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>
-    apiClient.post(`/journeys/${journeyId}/gallery/photos`, formData, {
-      headers: { 'Content-Type': undefined as any, ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}) },
-      timeout: 0,
-      onUploadProgress: opts?.onUploadProgress,
-      signal: opts?.signal,
-    }).then(r => r.data),
-  uploadGalleryVideo: (journeyId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>
-    apiClient.post(`/journeys/${journeyId}/gallery/video`, formData, {
-      headers: { 'Content-Type': undefined as any, ...(opts?.idempotencyKey ? { 'X-Idempotency-Key': opts.idempotencyKey } : {}) },
-      timeout: 0,
-      onUploadProgress: opts?.onUploadProgress,
-      signal: opts?.signal,
-    }).then(r => r.data),
+  uploadPhotos: (entryId: number, formData: FormData, opts?: UploadOptions) =>
+    postMultipart(`/journeys/entries/${entryId}/photos`, formData, opts),
+  uploadGalleryPhotos: (journeyId: number, formData: FormData, opts?: UploadOptions) =>
+    postMultipart(`/journeys/${journeyId}/gallery/photos`, formData, opts),
+  uploadGalleryVideo: (journeyId: number, formData: FormData, opts?: UploadOptions) =>
+    postMultipart(`/journeys/${journeyId}/gallery/video`, formData, opts),
   addProviderPhotosToGallery: (journeyId: number, provider: string, assetIds: string[], passphrase?: string, mediaTypes?: string[]) => apiClient.post(`/journeys/${journeyId}/gallery/provider-photos`, { provider, asset_ids: assetIds, ...(passphrase ? { passphrase } : {}), ...(mediaTypes ? { media_types: mediaTypes } : {}) } satisfies JourneyProviderPhotosRequest).then(r => r.data),
   addProviderPhoto: (entryId: number, provider: string, assetId: string, caption?: string, passphrase?: string) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_id: assetId, caption, ...(passphrase ? { passphrase } : {}) }).then(r => r.data),
   addProviderPhotos: (entryId: number, provider: string, assetIds: string[], caption?: string, passphrase?: string, mediaTypes?: string[]) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_ids: assetIds, caption, ...(passphrase ? { passphrase } : {}), ...(mediaTypes ? { media_types: mediaTypes } : {}) }).then(r => r.data),
@@ -655,7 +781,7 @@ export const journeyApi = {
   deletePhoto: (photoId: number) => apiClient.delete(`/journeys/photos/${photoId}`).then(r => r.data),
 
   // Cover
-  uploadCover: (id: number, formData: FormData) => apiClient.post(`/journeys/${id}/cover`, formData, { headers: { 'Content-Type': undefined as any } }).then(r => r.data),
+  uploadCover: (id: number, formData: FormData) => postMultipart(`/journeys/${id}/cover`, formData),
 
   // Contributors
   addContributor: (id: number, userId: number, role: string) => apiClient.post(`/journeys/${id}/contributors`, { user_id: userId, role }).then(r => r.data),
@@ -711,9 +837,7 @@ export const budgetApi = {
 
 export const filesApi = {
   list: (tripId: number | string, trash?: boolean) => apiClient.get(`/trips/${tripId}/files`, { params: trash ? { trash: 'true' } : {} }).then(r => r.data),
-  upload: (tripId: number | string, formData: FormData) => apiClient.post(`/trips/${tripId}/files`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }).then(r => r.data),
+  upload: (tripId: number | string, formData: FormData, opts?: UploadOptions) => postMultipart(`/trips/${tripId}/files`, formData, opts),
   update: (tripId: number | string, id: number, data: FileUpdateRequest) => apiClient.put(`/trips/${tripId}/files/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/files/${id}`).then(r => r.data),
   toggleStar: (tripId: number | string, id: number) => apiClient.patch(`/trips/${tripId}/files/${id}/star`).then(r => r.data),
@@ -738,7 +862,7 @@ export const reservationsApi = {
     fd.append('mode', mode)
     // No client-side timeout: kitinerary + LLM extraction routinely exceeds the
     // global 8s default (a cold local model alone can take ~45s).
-    return apiClient.post(`/trips/${tripId}/reservations/import/booking`, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0 }).then(r => r.data)
+    return postMultipart(`/trips/${tripId}/reservations/import/booking`, fd)
   },
   importBookingConfirm: (tripId: number | string, items: BookingImportPreviewItem[]): Promise<BookingImportConfirmResponse> =>
     apiClient.post(`/trips/${tripId}/reservations/import/booking/confirm`, { items }).then(r => r.data),
@@ -748,7 +872,7 @@ export const reservationsApi = {
     const fd = new FormData()
     for (const f of files) fd.append('files', f)
     fd.append('mode', mode)
-    return apiClient.post(`/trips/${tripId}/reservations/import/booking/async`, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0 }).then(r => r.data)
+    return postMultipart(`/trips/${tripId}/reservations/import/booking/async`, fd)
   },
   // Poll a background job — recovery path when a WebSocket push was missed.
   importJobStatus: (tripId: number | string, jobId: string): Promise<{ status: 'running' | 'done' | 'error'; done: number; total: number; result?: BookingImportPreviewResponse; error?: string }> =>
@@ -811,7 +935,7 @@ export const collabApi = {
   createNote: (tripId: number | string, data: CollabNoteCreateRequest) => apiClient.post(`/trips/${tripId}/collab/notes`, data).then(r => r.data),
   updateNote: (tripId: number | string, id: number, data: CollabNoteUpdateRequest) => apiClient.put(`/trips/${tripId}/collab/notes/${id}`, data).then(r => r.data),
   deleteNote: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/collab/notes/${id}`).then(r => r.data),
-  uploadNoteFile: (tripId: number | string, noteId: number, formData: FormData) => apiClient.post(`/trips/${tripId}/collab/notes/${noteId}/files`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data),
+  uploadNoteFile: (tripId: number | string, noteId: number, formData: FormData) => postMultipart(`/trips/${tripId}/collab/notes/${noteId}/files`, formData),
   deleteNoteFile: (tripId: number | string, noteId: number, fileId: number) => apiClient.delete(`/trips/${tripId}/collab/notes/${noteId}/files/${fileId}`).then(r => r.data),
   getPolls: (tripId: number | string) => apiClient.get(`/trips/${tripId}/collab/polls`).then(r => r.data),
   createPoll: (tripId: number | string, data: CollabPollCreateRequest) => apiClient.post(`/trips/${tripId}/collab/polls`, data).then(r => r.data),
@@ -846,7 +970,7 @@ export const backupApi = {
   uploadRestore: (file: File) => {
     const form = new FormData()
     form.append('backup', file)
-    return apiClient.post('/backup/upload-restore', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+    return postMultipart('/backup/upload-restore', form)
   },
   getAutoSettings: () => apiClient.get('/backup/auto-settings').then(r => r.data),
   setAutoSettings: (settings: Record<string, unknown>) => apiClient.put('/backup/auto-settings', settings).then(r => r.data),
@@ -883,6 +1007,10 @@ export const notificationsApi = {
   testSmtp: (email?: string) => apiClient.post('/notifications/test-smtp', { email }).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testSmtp')),
   testWebhook: (url?: string) => apiClient.post('/notifications/test-webhook', { url }).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testWebhook')),
   testNtfy: (payload: { topic?: string; server?: string | null; token?: string | null }) => apiClient.post('/notifications/test-ntfy', payload).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testNtfy')),
+  // Generic channel test — this is how a PLUGIN channel's "Send test" button works.
+  testChannel: (channelId: string) =>
+    apiClient.post(`/notifications/test/${encodeURIComponent(channelId)}`)
+      .then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testChannel')),
 }
 
 export const inAppNotificationsApi = {

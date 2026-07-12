@@ -27,7 +27,7 @@ export default function PluginPage(): React.ReactElement {
   return (
     <PageShell background="var(--bg-secondary)" navOffset="var(--nav-h, 56px)">
       <div style={{ height: 'calc(100vh - var(--nav-h, 56px))' }}>
-        <PluginFrame pluginId={pluginId} title={plugin?.name} className="w-full h-full" />
+        <PluginFrame pluginId={pluginId} title={plugin?.name} fill className="w-full h-full" />
       </div>
     </PageShell>
   )

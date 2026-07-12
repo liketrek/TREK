@@ -1,13 +1,12 @@
 import type { TranslationStrings } from '../types';
 
-// English fallback until 'zh' is translated.
 const help: TranslationStrings = {
-  'help.title': 'Help & Docs',
-  'help.search': 'Search docs…',
-  'help.contents': 'Contents',
-  'help.noResults': 'No matching pages.',
-  'help.errorTitle': "Couldn't load this page",
-  'help.errorBody': 'The help content is fetched from the TREK wiki. Check your connection and try again.',
+  'help.title': '帮助与文档',
+  'help.search': '搜索文档…',
+  'help.contents': '目录',
+  'help.noResults': '没有匹配的页面。',
+  'help.errorTitle': '无法加载此页面',
+  'help.errorBody': '帮助内容来自 TREK wiki，请检查连接后重试。',
 };
 
 export default help;

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Settings, SlidersHorizontal, Paintbrush, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
+import { Settings, SlidersHorizontal, Paintbrush, Map, Bell, Plug, CloudOff, User, Info, Blocks } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
@@ -11,12 +11,15 @@ import IntegrationsTab from '../components/Settings/IntegrationsTab'
 import AccountTab from '../components/Settings/AccountTab'
 import AboutTab from '../components/Settings/AboutTab'
 import OfflineTab from '../components/Settings/OfflineTab'
+import PluginSettingsTab from '../components/Settings/PluginSettingsTab'
+import { usePluginStore } from '../store/pluginStore'
 import { useSettings } from './settings/useSettings'
 
 export default function SettingsPage(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: addon/version loading + active-tab state in the hook.
   const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()
+  const hasPlugins = usePluginStore(s => s.plugins.length > 0)
 
   const tabs: PageSidebarTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
@@ -25,6 +28,9 @@ export default function SettingsPage(): React.ReactElement {
     { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell },
     ...(hasIntegrations
       ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug }]
+      : []),
+    ...(hasPlugins
+      ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Blocks }]
       : []),
     { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
     { id: 'account', label: t('settings.tabs.account'), icon: User },
@@ -60,6 +66,7 @@ export default function SettingsPage(): React.ReactElement {
             {activeTab === 'map' && <MapSettingsTab />}
             {activeTab === 'notifications' && <NotificationsTab />}
             {activeTab === 'integrations' && hasIntegrations && <IntegrationsTab />}
+            {activeTab === 'plugins' && hasPlugins && <PluginSettingsTab />}
             {activeTab === 'offline' && <OfflineTab />}
             {activeTab === 'account' && <AccountTab />}
             {activeTab === 'about' && appVersion && <AboutTab appVersion={appVersion} />}

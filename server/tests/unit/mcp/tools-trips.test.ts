@@ -432,4 +432,74 @@ describe('Tool: get_trip_summary', () => {
       expect(typeof data.messageCount).toBe('number');
     });
   });
+
+  // Regression — GHSA-qvw8-w937-vcmq: a token WITHOUT trips:read must not receive
+  // member emails, the itinerary, or accommodations. The tool stays registered for
+  // navigation but only surfaces the trip id + title.
+  it('withholds members, days and accommodations from a token without trips:read', async () => {
+    const { user } = createUser(testDb, { email: 'owner@test.example.com' });
+    const { user: member } = createUser(testDb, { email: 'member@test.example.com' });
+    const trip = createTrip(testDb, user.id, { title: 'Confidential Trip' });
+    addTripMember(testDb, trip.id, member.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Colosseum', lat: 41.89, lng: 12.49 });
+    createDayAssignment(testDb, day.id, place.id);
+    createDayAccommodation(testDb, trip.id, place.id, day.id, day.id);
+
+    const h = await createMcpHarness({ userId: user.id, withResources: false, scopes: ['weather:read'] });
+    try {
+      const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
+      const data = parseToolResult(result) as any;
+      // Navigation still works…
+      expect(data.trip.id).toBe(trip.id);
+      expect(data.trip.title).toBe('Confidential Trip');
+      // …but the confidential core bucket is withheld.
+      expect(data.members).toBeUndefined();
+      expect(data.days).toBeUndefined();
+      expect(data.accommodations).toBeUndefined();
+      // No member email must leak anywhere in the payload.
+      expect(JSON.stringify(data)).not.toContain('owner@test.example.com');
+      expect(JSON.stringify(data)).not.toContain('member@test.example.com');
+    } finally {
+      await h.cleanup();
+    }
+  });
+
+  it('returns the full core bucket for a token that has trips:read', async () => {
+    const { user } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Scoped Trip' });
+    addTripMember(testDb, trip.id, member.id);
+    createDay(testDb, trip.id);
+
+    const h = await createMcpHarness({ userId: user.id, withResources: false, scopes: ['trips:read'] });
+    try {
+      const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
+      const data = parseToolResult(result) as any;
+      expect(data.trip.title).toBe('Scoped Trip');
+      expect(data.members.owner.id).toBe(user.id);
+      expect(data.members.collaborators).toHaveLength(1);
+      expect(data.days).toHaveLength(1);
+    } finally {
+      await h.cleanup();
+    }
+  });
+
+  // Regression: get_trip_summary must hide another member's private packing items (#858).
+  it('hides another member\'s private packing item from the summary', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Shared Trip' });
+    addTripMember(testDb, trip.id, member.id);
+    testDb.prepare("INSERT INTO packing_items (trip_id, name, category, checked, is_private, owner_id) VALUES (?, 'Secret gift', 'Misc', 0, 1, ?)").run(trip.id, owner.id);
+    testDb.prepare("INSERT INTO packing_items (trip_id, name, category, checked, is_private, owner_id) VALUES (?, 'Sunscreen', 'Misc', 0, 0, ?)").run(trip.id, owner.id);
+
+    await withHarness(member.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
+      const data = parseToolResult(result) as any;
+      const names = (data.packing?.items || []).map((i: any) => i.name);
+      expect(names).toContain('Sunscreen');       // common item visible
+      expect(names).not.toContain('Secret gift');  // owner's private item hidden from the member
+    });
+  });
 });

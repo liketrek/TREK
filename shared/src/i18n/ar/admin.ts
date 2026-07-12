@@ -186,6 +186,12 @@ const admin: TranslationStrings = {
   'admin.plugins.dropToUpload': 'أفلت ملف .zip لتثبيت الإضافة',
   'admin.plugins.uploaded': 'تم رفع الإضافة “{name}” — فعّلها لتشغيلها',
   'admin.plugins.sideloaded': 'محمّلة يدويًا',
+  'admin.plugins.devLinkBadge': 'Dev-Link',
+  'admin.plugins.devLinkHint': 'يُحمّل من دليل بناء محلي ويُعاد تحميله فوريًا ببيانات حقيقية — للتطوير فقط',
+  'admin.plugins.devLinkTitle': 'ربط إضافة محلية',
+  'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
+  'admin.plugins.devLinkButton': 'ربط',
+  'admin.plugins.devLinkLinked': 'تم ربط {id} — فعّلها للتشغيل',
   'admin.plugins.sideloadedHint': 'تم رفعها يدويًا — ليست من السجل، غير موقّعة وغير مراجَعة',
   'admin.plugins.browse': 'تصفح الإضافات',
   'admin.plugins.installed': 'مثبّتة',
@@ -198,6 +204,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'تم تعطيل الإضافة',
   'admin.plugins.viewErrors': 'عرض سجل الأخطاء',
   'admin.plugins.errorLog': 'سجل الأخطاء',
+  'admin.plugins.allowedHosts': 'المضيفون المسموح بهم',
+  'admin.plugins.allowedHosts.hint': 'تتصل هذه الإضافة بخدمة لا يمكن لأحد سواك تسميتها (خادم مستضاف ذاتيًا). أضف المضيفين الذين يمكنها الوصول إليهم — ولن تصل إلى غيرهم.',
+  'admin.plugins.allowedHosts.none': 'لم تتم إضافة أي مضيف بعد.',
+  'admin.plugins.allowedHosts.unsupported': 'لا تستخدم هذه الإضافة مضيفين يحددهم المشغّل. مضيفوها المسموح بهم ثابتون في ملف التعريف.',
+  'admin.plugins.allowedHosts.restartNote': 'الحفظ يعيد تشغيل الإضافة لتأخذ القائمة الجديدة.',
+  'admin.plugins.allowedHosts.add': 'إضافة مضيف مسموح به',
+  'admin.plugins.allowedHosts.count': '{n} مضيف مسموح به',
+  'admin.plugins.operatorEgressPill': '+ مضيفون تضيفهم',
+  'admin.plugins.operatorEgressHint': 'تتصل هذه الإضافة بخدمة لا يمكن لأحد سواك تسميتها (خادم مستضاف ذاتيًا). بعد التثبيت أضف المضيفين من ⋯ ← المضيفون المسموح بهم. ولن تصل إلى غيرهم.',
   'admin.plugins.noErrors': 'لا توجد أخطاء مسجّلة.',
   'admin.plugins.uninstalled': 'تمت إزالة الإضافة',
   'admin.plugins.uninstallTitle': 'إزالة الإضافة؟',
@@ -239,6 +254,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'لكل مستخدم',
   'admin.plugins.fieldRequired': 'مطلوب',
   'admin.plugins.sourceRepo': 'مستودع المصدر',
+  'admin.plugins.reportIssue': 'الإبلاغ عن مشكلة',
   'admin.plugins.homepage': 'الصفحة الرئيسية',
   'admin.plugins.requiresTrek': 'يتطلب TREK {version}+',
   'admin.plugins.reviewedOn': 'تمت المراجعة {date}',
@@ -248,7 +264,49 @@ const admin: TranslationStrings = {
     'قراءة معلومات الملف الشخصي الأساسية (الاسم والصورة الرمزية — وليس بيانات الاعتماد أبدًا)',
   'admin.plugins.perm.db:read:costs': 'قراءة المصروفات (بنود الميزانية) التي يمكن للمستخدم الحالي الوصول إليها',
   'admin.plugins.perm.db:read:packing': 'قراءة قوائم الأمتعة للرحلات التي يمكن للمستخدم الحالي الوصول إليها',
+  'admin.plugins.perm.db:write:packing':
+    'إنشاء عناصر قائمة الأمتعة وتعديلها وحذفها في الرحلات التي يمكن للمستخدم الحالي تعديلها',
+  'admin.plugins.perm.weather:read': 'قراءة توقعات الطقس المخزنة مؤقتًا للمضيف (حسب الإحداثيات)',
+  'admin.plugins.perm.db:read:categories': 'قراءة قائمة فئات الأماكن العامة',
+  'admin.plugins.perm.db:read:tags': 'قراءة وسوم المستخدم الحالي',
+  'admin.plugins.perm.db:write:tags': 'إنشاء وسوم المستخدم الحالي وتعديلها وحذفها',
+  'admin.plugins.perm.db:read:todos': 'قراءة مهام الرحلات التي يمكن للمستخدم الحالي الوصول إليها',
+  'admin.plugins.perm.db:write:todos': 'إنشاء مهام وتعديلها وحذفها في الرحلات التي يمكن للمستخدم الحالي تعديلها',
+  'admin.plugins.perm.db:write:atlas':
+    'وضع علامة على البلدان والمناطق كمُزارة وإدارة قائمة أمنيات المستخدم الحالي (يتطلب إضافة Atlas)',
+  'admin.plugins.perm.db:write:vacay':
+    'تبديل أيام الإجازة وعطلات الشركة في الخطة النشطة للمستخدم الحالي (يتطلب إضافة Vacay)',
+  'admin.plugins.perm.db:write:journal':
+    'إنشاء إدخالات اليوميات وتعديلها وحذفها في اليوميات التي يمكن للمستخدم الحالي تعديلها (يتطلب إضافة Journey)',
+  'admin.plugins.perm.db:write:collections':
+    'إنشاء المجموعات وتعديلها وحفظ الأماكن فيها، بدور المجموعة الخاص بالمستخدم الحالي (يتطلب إضافة Collections)',
+  'admin.plugins.perm.db:write:files':
+    'إرفاق ملفات بالرحلات التي يمكن للمستخدم الحالي تعديلها (حد 10 ميغابايت، الامتدادات المحظورة مرفوضة) وإدارة روابطها',
+  'admin.plugins.perm.db:write:collab':
+    'نشر ملاحظات واستطلاعات ورسائل دردشة في الرحلات التي يمكن للمستخدم الحالي تعديلها (يتطلب إضافة Collab)',
+  'admin.plugins.perm.db:write:members':
+    'إضافة مستخدمين إلى الرحلات — يمنح الوصول إلى الرحلة؛ محمي بحق إدارة الأعضاء الخاص بالمستخدم الحالي',
+  'admin.plugins.perm.notify:send':
+    'إرسال إشعار (صندوق الجرس + بريد إلكتروني/ntfy) إلى المستخدم الحالي أو رحلة ينتمي إليها — لا إلى مستلم عشوائي أبدًا',
+  'admin.plugins.perm.ai:invoke':
+    'تشغيل مزود الذكاء الاصطناعي الذي أعده المسؤول (إكمال النص + استخراج المستندات) نيابة عن المستخدم الحالي — لا تحتفظ الإضافة بمفتاح أبدًا',
+  'admin.plugins.perm.oauth:client':
+    'الاتصال بخدمة خارجية نيابة عنك عبر OAuth يديره المضيف (يحتفظ المضيف بالرموز، ولا تراها الإضافة أبدًا)',
   'admin.plugins.perm.db:read:files': 'قراءة ملفات الرحلات التي يمكن للمستخدم الحالي الوصول إليها',
+  'admin.plugins.perm.db:write:reservations':
+    'إنشاء الحجوزات وتعديلها وحذفها في الرحلات التي يمكن للمستخدم الحالي تعديلها',
+  'admin.plugins.perm.db:write:accommodations':
+    'إنشاء أماكن الإقامة وتعديلها وحذفها في الرحلات التي يمكن للمستخدم الحالي تعديلها',
+  'admin.plugins.perm.db:read:journal': 'قراءة يوميات السفر الخاصة بالمستخدم الحالي (يتطلب إضافة Journey)',
+  'admin.plugins.perm.db:read:atlas': 'قراءة البلدان والمناطق التي زارها المستخدم الحالي (يتطلب إضافة Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'قراءة خطة الإجازة الخاصة بالمستخدم الحالي (يتطلب إضافة Vacay)',
+  'admin.plugins.perm.db:read:daynotes': 'قراءة ملاحظات اليوم للرحلات التي يمكن للمستخدم الحالي الوصول إليها',
+  'admin.plugins.perm.db:read:collections':
+    'قراءة مجموعات الأماكن المحفوظة الخاصة بالمستخدم الحالي (يتطلب إضافة Collections)',
+  'admin.plugins.perm.db:write:daynotes':
+    'إنشاء ملاحظات اليوم وتعديلها وحذفها في الرحلات التي يمكن للمستخدم الحالي تعديلها',
+  'admin.plugins.perm.jobs:run':
+    'تشغيل مهام الخلفية المُعلنة وفق جدول زمني (بدون سياق مستخدم — لا يمكنه قراءة بيانات المستخدم)',
   'admin.plugins.perm.db:write:costs': 'إنشاء مصروفات (بنود الميزانية) على الرحلات التي يمكن للمستخدم الحالي تعديلها',
   'admin.plugins.perm.db:write:places': 'إضافة الأماكن وتعديلها وحذفها في الرحلات التي يمكن للمستخدم الحالي تعديلها',
   'admin.plugins.perm.db:write:days': 'إضافة الأيام وتعديلها وحذفها في الرحلات التي يمكن للمستخدم الحالي تعديلها',
@@ -262,8 +320,24 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'توفير الأحداث للتقويم',
   'admin.plugins.perm.hook:place-detail-provider': 'المساهمة بتفاصيل إضافية (مراجعات، تقييمات، روابط) لمكان ما',
   'admin.plugins.perm.hook:trip-warning-provider': 'إظهار تحذيرات التحقق على الرحلة (تظهر في المخطط)',
+  'admin.plugins.perm.hook:table-contributor': 'إضافة أعمدة وإجراءات إلى عروض الرحلة (الحجوزات، الأماكن، الأيام)',
+  'admin.plugins.perm.hook:map-marker-provider': 'إضافة علامات إلى خريطة الرحلة (مثل عرض الحجوزات أو نقاط الاهتمام)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'إضافة أقسام نصية إلى تصدير PDF للرحلة',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'إبراز دول على خريطة أطلس العالمية (مثل قوائم الأمنيات أو تحذيرات السفر)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'إضافة صفوف إضافية (روابط، إحصاءات) إلى مدخلات اليوميات',
+  'admin.plugins.perm.hook:user-data':
+    'محو أو تصدير البيانات التي يخزّنها عن مستخدم (اللائحة العامة لحماية البيانات: حذف الحساب وطلبات البيانات)',
+  'admin.plugins.perm.hook:trip-card-provider': 'إضافة شارات صغيرة (الحالة، الأعداد) إلى بطاقات الرحلات في لوحة التحكم',
+  'admin.plugins.perm.hook:notification-channel': 'تسليم إشعاراتك عبر قناة إضافية',
   'admin.plugins.perm.events:subscribe': 'التفاعل مع أحداث النشاط الأساسية (اسم الحدث والرحلة فقط، دون المحتوى مطلقًا)',
   'admin.plugins.perm.http:outbound': 'إجراء طلبات صادرة إلى المضيفات المُعلنة الخاصة بها',
+  'admin.plugins.perm.db:read:collab':
+    'قراءة الملاحظات والاستطلاعات ورسائل الدردشة في الرحلات التي يمكن للمستخدم الحالي الوصول إليها (يتطلب إضافة Collab)',
+  'admin.plugins.perm.db:read:files:content':
+    'قراءة محتوى (بايتات) ملفات الرحلات التي يمكن للمستخدم الحالي الوصول إليها',
+  'admin.plugins.perm.db:create:trips': 'إنشاء رحلات جديدة يملكها المستخدم الحالي',
+  'admin.plugins.perm.rates:read': 'قراءة أسعار صرف العملات المخزنة مؤقتًا للمضيف',
   'admin.plugins.updateConsentTitle': 'يتطلب هذا التحديث أذونات جديدة',
   'admin.plugins.updateConsentBody':
     '{name} v{version} يطلب أذونات لم تمنحها بعد. تم تثبيت الإصدار الجديد لكنه يبقى متوقفًا حتى توافق عليه.',
@@ -306,6 +380,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'الاسم',
   'admin.plugins.sortRecent': 'المحدّثة حديثًا',
   'admin.plugins.sortUpdates': 'التحديثات أولًا',
+  'admin.plugins.sortDownloads': 'الأكثر تنزيلًا',
   'admin.plugins.updatesAvailable': '{count} تحديثات متاحة لإضافاتك.',
   'admin.plugins.updateAll': 'تحديث الكل',
   'admin.plugins.noMatchInstalled': 'لا توجد إضافات مثبّتة تطابق بحثك.',
@@ -326,7 +401,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'أداة لوحة التحكم',
   'admin.plugins.cap.heroWidget': 'أداة بطاقة الصعود',
   'admin.plugins.cap.placeSlot': 'تفاصيل المكان',
+  'admin.plugins.cap.daySlot': 'تفاصيل اليوم',
+  'admin.plugins.cap.reservationSlot': 'تفاصيل الحجز',
+  'admin.plugins.cap.replacesTabs': 'يستبدل تبويبات المخطط',
   'admin.plugins.cap.realtime': 'تحديثات فورية',
+  'admin.plugins.cap.notificationChannel': 'قناة الإشعارات',
   'admin.plugins.cap.photos': 'يوفّر الصور',
   'admin.plugins.cap.calendar': 'يوفّر أحداث التقويم',
   'admin.plugins.cap.placeDetails': 'يُثري الأماكن',
@@ -352,11 +431,12 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'الحجم',
   'admin.plugins.metaRequires': 'يتطلب',
   'admin.plugins.metaReviewed': 'تمت المراجعة',
+  'admin.plugins.downloads': 'التنزيلات',
   'admin.addons.title': 'الإضافات',
   'admin.addons.subtitle': 'فعّل أو عطّل الميزات لتخصيص تجربة TREK.',
   'admin.addons.catalog.packing.name': 'القوائم',
   'admin.addons.catalog.packing.description': 'قوائم التعبئة والمهام لرحلاتك',
-  'admin.addons.catalog.budget.name': 'الميزانية',
+  'admin.addons.catalog.budget.name': 'التكاليف',
   'admin.addons.catalog.budget.description': 'تتبع النفقات وخطط ميزانية الرحلة',
   'admin.addons.catalog.documents.name': 'المستندات',
   'admin.addons.catalog.documents.description': 'حفظ وإدارة وثائق السفر',

@@ -9,6 +9,7 @@ import GlMapPreview from './MapboxPreview'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
 import type { Place } from '../../types'
+import { NumericInput } from '../shared/NumericInput'
 import {
   MAPBOX_DEFAULT_STYLE,
   defaultStyleForProvider,
@@ -405,21 +406,19 @@ export default function MapSettingsTab(): React.ReactElement {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.latitude')}</label>
-          <input
-            type="number"
-            step="any"
+          <NumericInput
+            mode="signed"
             value={defaultLat}
-            onChange={(e) => setDefaultLat(e.target.value)}
+            onValueChange={setDefaultLat}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.longitude')}</label>
-          <input
-            type="number"
-            step="any"
+          <NumericInput
+            mode="signed"
             value={defaultLng}
-            onChange={(e) => setDefaultLng(e.target.value)}
+            onValueChange={setDefaultLng}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
           />
         </div>

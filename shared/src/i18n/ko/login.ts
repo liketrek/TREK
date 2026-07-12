@@ -8,7 +8,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places, 경로 및 클러스터링',
   'login.features.realtime': '실시간 동기화',
   'login.features.realtimeDesc': 'WebSocket으로 함께 계획',
-  'login.features.budget': '예산 추적',
+  'login.features.budget': '비용 추적',
   'login.features.budgetDesc': '카테고리, 차트 및 1인당 비용',
   'login.features.collab': '협업',
   'login.features.collabDesc': '공유 여행으로 다중 사용자 지원',

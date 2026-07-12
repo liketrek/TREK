@@ -46,12 +46,47 @@ export const KNOWN_ADDONS = [
 // no spaces (mirrors the server manifest validator).
 const HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
 const TYPES = ['integration', 'page', 'widget', 'trip-page'];
+
+/** Mirrors the server's settings-key rules (install/manifest.ts). */
+const SETTING_KEY_RE = /^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$/;
+const RESERVED_SETTING_KEYS = new Set(['constructor', 'prototype', '__proto__']);
+
+/**
+ * Events a plugin notification channel may carry (mirrors the server's
+ * PLUGIN_CHANNEL_EVENTS). Admin-scoped and in-app-only events are excluded.
+ */
+export const CHANNEL_EVENTS = [
+  'trip_invite',
+  'booking_change',
+  'trip_reminder',
+  'todo_due',
+  'vacay_invite',
+  'collection_invite',
+  'photos_shared',
+  'collab_message',
+  'packing_tagged',
+  'plugin_notification',
+];
+// Mirror of the server's KNOWN_PERMISSIONS (server envelope.ts) — the host hard-rejects
+// anything not in this list at activation, so validate must know the full set.
 const KNOWN_PERMISSIONS = [
-  'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files', 'db:write:costs',
-  'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
+  'db:own',
+  'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files',
+  'db:read:files:content', 'db:read:collab',
+  'db:read:journal', 'db:read:atlas', 'db:read:vacay', 'db:read:daynotes', 'db:read:collections',
+  'db:read:categories', 'db:read:tags', 'db:read:todos',
+  'db:write:costs', 'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
+  'db:write:reservations', 'db:write:accommodations', 'db:write:packing', 'db:write:files',
+  'db:write:collab', 'db:write:members', 'db:write:collections', 'db:write:atlas', 'db:write:vacay',
+  'db:write:journal', 'db:write:tags', 'db:write:todos', 'db:write:daynotes',
+  'db:create:trips',
   'db:meta',
   'ws:broadcast:trip', 'ws:broadcast:user',
-  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'events:subscribe', 'http:outbound',
+  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider',
+  'hook:table-contributor', 'hook:map-marker-provider', 'hook:pdf-section-provider', 'hook:atlas-layer-provider',
+  'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data',
+  'events:subscribe', 'jobs:run', 'http:outbound',
+  'weather:read', 'rates:read', 'notify:send', 'ai:invoke', 'oauth:client',
 ];
 
 function isKnownPermission(p: string): boolean {
@@ -85,14 +120,100 @@ export function validateManifest(raw: unknown): ValidationResult {
 
   const egress = Array.isArray(m.egress) ? m.egress.map(String) : [];
   const wantsOutbound = permissions.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:'));
-  if (wantsOutbound && egress.length === 0) errors.push('http:outbound declared but egress[] is empty');
+  // Empty egress[] is legal only with operatorEgress: the hosts are admin-supplied
+  // post-install. Until an admin adds one the child blocks ALL outbound — not allow-all.
+  if (wantsOutbound && egress.length === 0 && m.operatorEgress !== true) {
+    errors.push('http:outbound declared but egress[] is empty (set operatorEgress: true if the hosts are admin-supplied)');
+  }
   if (egress.includes('*')) errors.push('egress[] must not contain a bare "*"');
   for (const h of egress) if (!HOST_RE.test(h)) errors.push(`invalid egress host "${h}"`);
 
-  const capabilities = (m.capabilities ?? undefined) as { widget?: { slot?: unknown }; provides?: unknown; emits?: unknown } | undefined;
+  // A plugin whose target host only the OPERATOR knows (a self-hosted Gotify/ntfy).
+  // The admin adds the real hosts post-install; see Plugin-Development → Egress.
+  if (m.operatorEgress !== undefined && typeof m.operatorEgress !== 'boolean') {
+    errors.push('operatorEgress must be a boolean');
+  }
+  if (m.operatorEgress === true && !permissions.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:'))) {
+    errors.push('operatorEgress requires an http:outbound permission');
+  }
+
+  const capabilities = (m.capabilities ?? undefined) as {
+    widget?: { slot?: unknown };
+    tripPage?: { replaces?: unknown; position?: unknown };
+    notificationChannel?: { title?: unknown; events?: unknown };
+    provides?: unknown;
+    emits?: unknown;
+  } | undefined;
   const widget = capabilities?.widget;
-  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail') {
-    errors.push(`widget slot must be "sidebar", "hero" or "place-detail", got "${String(widget.slot)}"`);
+  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail' && widget.slot !== 'day-detail' && widget.slot !== 'reservation-detail') {
+    errors.push(`widget slot must be "sidebar", "hero", "place-detail", "day-detail" or "reservation-detail", got "${String(widget.slot)}"`);
+  }
+  // Mirrors the server's REPLACEABLE_TABS — 'plan' is never replaceable.
+  const tripPage = capabilities?.tripPage;
+  if (tripPage !== undefined) {
+    const REPLACEABLE = ['transports', 'buchungen', 'listen', 'finanzplan', 'dateien', 'collab'];
+    if (tripPage.replaces !== undefined) {
+      if (!Array.isArray(tripPage.replaces)) errors.push('capabilities.tripPage.replaces must be an array');
+      else for (const t of tripPage.replaces) {
+        if (typeof t !== 'string' || !REPLACEABLE.includes(t)) errors.push(`capabilities.tripPage.replaces: "${String(t)}" is not a replaceable tab (${REPLACEABLE.join(', ')})`);
+      }
+    }
+    if (tripPage.position !== undefined && (typeof tripPage.position !== 'number' || !Number.isInteger(tripPage.position) || tripPage.position < 0 || tripPage.position > 50)) {
+      errors.push('capabilities.tripPage.position must be an integer between 0 and 50');
+    }
+  }
+  // Mirrors the server's PLUGIN_CHANNEL_EVENTS. Admin-scoped events (version_available)
+  // and inapp-only ones are absent by design: a plugin channel never carries them.
+  const notificationChannel = capabilities?.notificationChannel;
+  if (notificationChannel !== undefined) {
+    if (!permissions.includes('hook:notification-channel')) {
+      errors.push('capabilities.notificationChannel requires the "hook:notification-channel" permission');
+    }
+    if (notificationChannel.title !== undefined && typeof notificationChannel.title !== 'string') {
+      errors.push('capabilities.notificationChannel.title must be a string');
+    }
+    if (notificationChannel.events !== undefined) {
+      if (!Array.isArray(notificationChannel.events)) errors.push('capabilities.notificationChannel.events must be an array');
+      else for (const e of notificationChannel.events) {
+        if (typeof e !== 'string' || !CHANNEL_EVENTS.includes(e)) {
+          errors.push(`capabilities.notificationChannel.events: "${String(e)}" is not a plugin-deliverable event (${CHANNEL_EVENTS.join(', ')})`);
+        }
+      }
+    }
+  }
+  // Settings keys become JSON object keys in the plugin's stored config, so they are
+  // constrained (mirrors the server's SETTING_KEY_RE). `__proto__`/`constructor` would
+  // resolve off Object.prototype on read and make a required field look configured for
+  // a user who configured nothing.
+  if (Array.isArray(m.settings)) {
+    for (const s of m.settings as Array<Record<string, unknown>>) {
+      if (!s || typeof s !== 'object' || s.key === undefined) continue;
+      const key = String(s.key);
+      if (!key) continue;
+      if (!SETTING_KEY_RE.test(key) || RESERVED_SETTING_KEYS.has(key)) {
+        errors.push(`invalid settings key "${key}" (letters, digits, . _ - ; must start with a letter; 1–64 chars)`);
+      }
+      if (s.scope !== undefined && s.scope !== 'user' && s.scope !== 'instance') {
+        errors.push(`settings["${key}"].scope must be "user" or "instance"`);
+      }
+    }
+  }
+  // Settings-page action buttons ("Test connection"). Keys share the settings-key rules.
+  if (m.actions !== undefined) {
+    if (!Array.isArray(m.actions)) errors.push('actions must be an array');
+    else {
+      if (m.actions.length > 8) errors.push('at most 8 actions');
+      const seen = new Set<string>();
+      for (const a of m.actions as Array<Record<string, unknown>>) {
+        if (!a || typeof a !== 'object') { errors.push('each action must be an object'); continue; }
+        const key = String(a.key ?? '');
+        if (!key) { errors.push('action must have a "key"'); continue; }
+        if (!SETTING_KEY_RE.test(key) || RESERVED_SETTING_KEYS.has(key)) errors.push(`invalid action key "${key}"`);
+        if (seen.has(key)) errors.push(`duplicate action "${key}"`);
+        seen.add(key);
+        if (a.label !== undefined && typeof a.label !== 'string') errors.push(`action "${key}" label must be a string`);
+      }
+    }
   }
   validateCapabilityNames(capabilities?.provides, 'provides', errors);
   validateCapabilityNames(capabilities?.emits, 'emits', errors);

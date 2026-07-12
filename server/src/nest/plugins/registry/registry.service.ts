@@ -60,6 +60,8 @@ export interface RegistryEntry {
   reviewedAt?: string | null;
   /** base64 minisign author public key — stable across versions, TOFU-pinned. */
   authorPublicKey?: string;
+  /** Release-asset downloads across all versions, aggregated by the registry's stats cron. */
+  downloadCount?: number | null;
   versions: RegistryVersion[];
 }
 interface Registry {
@@ -72,6 +74,13 @@ interface Registry {
 export interface ManifestPreview {
   permissions: string[];
   egress: string[];
+  /**
+   * The plugin talks to a service only the OPERATOR can name (a self-hosted Gotify/ntfy),
+   * so its `egress` can't be the whole story — an admin adds the real hosts after install.
+   * Surfaced pre-install so the reviewer knows the network reach is not fully described by
+   * the hosts listed above.
+   */
+  operatorEgress: boolean;
   settings: Array<{ key: string; label: string; inputType: string; scope: string; required: boolean }>;
   license: string | null;
   icon: string | null;
@@ -124,6 +133,7 @@ export class PluginRegistryService {
       return {
         id: p.id, name: p.name, author: p.author, description: p.description, repo: p.repo,
         homepage: p.homepage, tags: p.tags, type: p.type, reviewedAt: p.reviewedAt ?? null,
+        downloadCount: p.downloadCount ?? null,
         latest: latest?.version ?? null, minTrekVersion: latest?.minTrekVersion ?? null,
         requiredAddons: latest?.requiredAddons ?? [], pluginDependencies: latest?.pluginDependencies ?? [],
         screenshotUrl: latest ? rawFileUrl(p.repo, latest.commitSha, 'docs/screenshot.png') : null,
@@ -161,7 +171,7 @@ export class PluginRegistryService {
     const data = {
       id: entry.id, name: entry.name, author: entry.author, description: entry.description,
       repo: entry.repo, homepage: entry.homepage ?? null, tags: entry.tags ?? [], type: entry.type,
-      reviewedAt: entry.reviewedAt ?? null,
+      reviewedAt: entry.reviewedAt ?? null, downloadCount: entry.downloadCount ?? null,
       latest: latest?.version ?? null, minTrekVersion: latest?.minTrekVersion ?? null,
       size: latest?.size ?? null, publishedAt: latest?.publishedAt ?? null,
       requiredAddons: latest?.requiredAddons ?? [], pluginDependencies: latest?.pluginDependencies ?? [],
@@ -387,6 +397,7 @@ function hostCompatible(v: RegistryVersion, host: string): boolean {
  */
 function previewManifest(raw: unknown): ManifestPreview {
   const m = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const operatorEgress = m.operatorEgress === true;
   const strings = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
   const settings = Array.isArray(m.settings)
@@ -410,6 +421,7 @@ function previewManifest(raw: unknown): ManifestPreview {
   return {
     permissions: strings(m.permissions),
     egress: strings(m.egress),
+    operatorEgress,
     settings,
     license: typeof m.license === 'string' ? m.license : null,
     icon: typeof m.icon === 'string' ? m.icon : null,

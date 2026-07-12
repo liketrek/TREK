@@ -338,23 +338,23 @@ describe('TodoListPanel', () => {
     }
   });
 
-  it('FE-COMP-TODO-025: New category input appears when clicking "Add category" button', async () => {
+  it('FE-COMP-TODO-025: New list input appears when clicking "Add list" button', async () => {
     const user = userEvent.setup();
     render(<TodoListPanel tripId={1} items={[]} />);
-    // Find and click the "Add category" button
+    // Find and click the "Add list" button
     const addCatBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Add category') || b.getAttribute('title') === 'Add category'
+      b => b.textContent?.includes('Add list') || b.getAttribute('title') === 'Add list'
     );
     expect(addCatBtn).toBeTruthy();
     await user.click(addCatBtn!);
     // A text input for category name should appear
     await waitFor(() => {
-      const input = screen.getByPlaceholderText('Category name');
+      const input = screen.getByPlaceholderText('List name');
       expect(input).toBeInTheDocument();
     });
   });
 
-  it('FE-COMP-TODO-026: Adding a new category creates a filter button for it', async () => {
+  it('FE-COMP-TODO-026: Adding a new list creates a filter button for it', async () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/trips/1/todo', () =>
@@ -363,10 +363,10 @@ describe('TodoListPanel', () => {
     );
     render(<TodoListPanel tripId={1} items={[]} />);
     const addCatBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Add category') || b.getAttribute('title') === 'Add category'
+      b => b.textContent?.includes('Add list') || b.getAttribute('title') === 'Add list'
     );
     await user.click(addCatBtn!);
-    const categoryInput = await screen.findByPlaceholderText('Category name');
+    const categoryInput = await screen.findByPlaceholderText('List name');
     await user.type(categoryInput, 'Errands');
     await user.keyboard('{Enter}');
     // The Errands filter button should appear after the API call

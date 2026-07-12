@@ -1,4 +1,4 @@
-import apiClient from './client'
+import apiClient, { postMultipart } from './client'
 import type { AxiosResponse } from 'axios'
 import type {
   CollectionListResponse,
@@ -56,7 +56,7 @@ export const collectionsApi = {
   update: (id: number, body: CollectionUpdateRequest): Promise<{ collection: Collection }> =>
     ax.patch(`${base}/${id}`, body satisfies CollectionUpdateRequest).then((r: AxiosResponse) => r.data),
   uploadCover: (id: number, formData: FormData): Promise<Collection> =>
-    ax.post(`${base}/${id}/cover`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r: AxiosResponse) => r.data),
+    postMultipart(`${base}/${id}/cover`, formData),
   remove: (id: number): Promise<unknown> =>
     ax.delete(`${base}/${id}`).then((r: AxiosResponse) => r.data),
   reorder: (orderedIds: number[]): Promise<unknown> =>

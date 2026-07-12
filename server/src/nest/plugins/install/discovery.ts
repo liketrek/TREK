@@ -4,6 +4,7 @@ import type BetterSqlite3 from 'better-sqlite3';
 import { pluginsCodeRoot, pluginCodeDir } from '../paths';
 import { parseJsonText, parseManifest, type PluginManifest } from './manifest';
 import { scanForNativeBinaries } from './native-scan';
+import { devLinkEnabled } from '../dev-link';
 
 /**
  * Discover plugins placed on the /plugins volume (#plugins, M4, "install from
@@ -20,7 +21,27 @@ export function discoverPlugins(db: BetterSqlite3.Database): { discovered: strin
   if (!fs.existsSync(root)) return { discovered, skipped };
 
   for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+    if (entry.name.startsWith('.')) continue;
+    // A dev-linked plugin is `<root>/<id>` as a symlink (POSIX) / junction (Windows)
+    // pointing at the author's build dir — follow it so it discovers like a real dir.
+    // stat() resolves the link; a dangling/broken link throws and is skipped.
+    let isDir = entry.isDirectory();
+    const full = path.join(root, entry.name);
+    if (!isDir && entry.isSymbolicLink()) {
+      // A dev-link symlink only loads in dev-link mode; a stale link left on the
+      // volume must not be discovered/registered on a normal (non-dev) boot.
+      if (!devLinkEnabled()) continue;
+      try { isDir = fs.statSync(full).isDirectory(); } catch { isDir = false; }
+    } else if (isDir && !devLinkEnabled()) {
+      // On Windows a dev-link is a junction, which Dirent reports as a plain
+      // directory (isSymbolicLink() is false). Detect it the same way: if the
+      // entry resolves outside the plugins volume it is a link, so skip it
+      // unless dev-link mode is on. A normal dir realpaths back to itself.
+      try {
+        if (fs.realpathSync(full) !== path.join(fs.realpathSync(root), entry.name)) continue;
+      } catch { /* unreadable target — leave as a normal dir and let discovery fail loudly */ }
+    }
+    if (!isDir) continue;
     const dir = pluginCodeDir(entry.name);
     const manifestPath = path.join(dir, 'trek-plugin.json');
     if (!fs.existsSync(manifestPath)) continue;
@@ -46,16 +67,23 @@ function upsert(db: BetterSqlite3.Database, m: PluginManifest): void {
   if (existing) {
     db.prepare(
       `UPDATE plugins SET name = ?, description = ?, type = ?, icon = ?, version = ?, api_version = ?,
-         min_trek_version = ?, permissions = ?, capabilities = ?, dependencies = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies, m.id);
+         min_trek_version = ?, permissions = ?, capabilities = ?, dependencies = ?, operator_egress = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies, m.operatorEgress ? 1 : 0, m.id);
   } else {
     db.prepare(
       // granted_permissions '' (empty, not '[]') marks "never consented" so the
       // first activation is distinguishable from a plugin consented to zero perms.
-      `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, permissions, capabilities, dependencies, granted_permissions, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'inactive')`,
-    ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies);
+      `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, permissions, capabilities, dependencies, operator_egress, granted_permissions, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'inactive')`,
+    ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies, m.operatorEgress ? 1 : 0);
   }
+
+  // Refresh the settings-page action descriptors from the manifest.
+  db.prepare('DELETE FROM plugin_actions WHERE plugin_id = ?').run(m.id);
+  const insertAction = db.prepare(
+    'INSERT INTO plugin_actions (plugin_id, action_key, label, hint, danger, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+  );
+  m.actions.forEach((a, i) => insertAction.run(m.id, a.key, a.label, a.hint ?? null, a.danger ? 1 : 0, i));
 
   // Refresh the settings-field descriptors from the manifest.
   db.prepare('DELETE FROM plugin_settings_fields WHERE plugin_id = ?').run(m.id);

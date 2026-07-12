@@ -19,11 +19,15 @@ describe('scaffold egress (http:outbound)', () => {
     expect(validateManifest(m).ok).toBe(true);
   });
 
-  it('without egress the same manifest is invalid — which the wizard now prevents', () => {
+  it('without egress it scaffolds an operatorEgress plugin (the admin names the hosts)', () => {
+    // The author of a plugin for an always-self-hosted service has no host to write down.
+    // The scaffold must NOT invent a placeholder — it declares operatorEgress instead, which
+    // is the one way an empty egress[] is a valid manifest.
     scaffold('net-plug', 'integration', tmp, { permissions: ['http:outbound'] });
     const m = JSON.parse(fs.readFileSync(path.join(tmp, 'net-plug', 'trek-plugin.json'), 'utf8'));
     expect(m.egress).toBeUndefined();
-    expect(validateManifest(m).ok).toBe(false); // http:outbound requires an egress allow-list
+    expect(m.operatorEgress).toBe(true);
+    expect(validateManifest(m).ok).toBe(true);
   });
 
   it('omits egress entirely when none is given (no empty array noise)', () => {
@@ -40,7 +44,7 @@ describe('permission catalog', () => {
       'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
       'db:meta',
       'ws:broadcast:trip', 'ws:broadcast:user',
-      'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'http:outbound',
+      'hook:photo-provider', 'hook:calendar-source', 'hook:notification-channel', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'http:outbound',
     ]);
     for (const p of PERMISSION_CATALOG) expect(p.hint.length).toBeGreaterThan(0); // every option is described
   });
@@ -118,5 +122,107 @@ describe('validateManifest dependency rules', () => {
     expect(validateManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: 'nope' }] }).ok).toBe(false);
     expect(validateManifest({ ...base, pluginDependencies: [{ id: 'my-plug', version: '*' }] }).ok).toBe(false);
     expect(validateManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: '*' }, { id: 'koffi', version: '^1' }] }).ok).toBe(false);
+  });
+});
+
+describe('notification-channel template', () => {
+  let tmp: string;
+  beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'chan-')); });
+  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+
+  function make(over: Parameters<typeof scaffold>[3] = {}) {
+    scaffold('my-gotify', 'integration', tmp, { template: 'notification-channel', ...over });
+    return JSON.parse(fs.readFileSync(path.join(tmp, 'my-gotify', 'trek-plugin.json'), 'utf8'));
+  }
+
+  it('scaffolds a valid manifest with the hook grant, matching egress, and the capability', () => {
+    const m = make({ egress: ['gotify.example.com'] });
+    expect(m.type).toBe('integration'); // a channel is NOT a new plugin type
+    expect(m.permissions).toContain('hook:notification-channel');
+    expect(m.permissions).toContain('http:outbound:gotify.example.com');
+    expect(m.egress).toEqual(['gotify.example.com']);
+    expect(m.capabilities.notificationChannel.title).toBe('My Gotify');
+    expect(validateManifest(m).ok).toBe(true);
+  });
+
+  it('names no host when the author names none — bare http:outbound + operatorEgress', () => {
+    // The common case: a Gotify/ntfy channel targets the USER's own server. Inventing a
+    // `gotify.example.com` placeholder would ship a host nobody actually calls in the
+    // published manifest, and grant an outbound host the plugin never needs.
+    const m = make();
+    expect(m.permissions).toContain('hook:notification-channel');
+    expect(m.permissions).toContain('http:outbound');
+    expect(m.permissions.some((p: string) => p.startsWith('http:outbound:'))).toBe(false);
+    expect('egress' in m).toBe(false);
+    expect(m.operatorEgress).toBe(true);
+    expect(validateManifest(m).ok).toBe(true);
+  });
+
+  it('declares the per-user credential as a secret, required, user-scoped field', () => {
+    const m = make();
+    const token = m.settings.find((s: { key: string }) => s.key === 'appToken');
+    // These three flags are exactly what makes the host hand it to the hook as `config`.
+    expect(token.scope).toBe('user');
+    expect(token.secret).toBe(true);
+    expect(token.required).toBe(true);
+  });
+
+  it('generates a server entry that implements the hook', () => {
+    make();
+    const js = fs.readFileSync(path.join(tmp, 'my-gotify', 'server', 'index.js'), 'utf8');
+    expect(js).toContain('notificationChannel');
+    expect(js).toContain('async send(msg, config, ctx)');
+    expect(js).toContain('config.appToken');
+
+    // The invariant is about WHERE ctx.settings.get() may be used, not whether:
+    //  - the HOOK is userless, so it must read credentials from its `config` argument;
+    //  - an ACTION is user-initiated, so it SHOULD read them via ctx.settings.get().
+    const hookBody = js.slice(js.indexOf('notificationChannel:'));
+    expect(hookBody).not.toContain('ctx.settings.get');
+    const actionBody = js.slice(js.indexOf('actions:'), js.indexOf('hooks:'));
+    expect(actionBody).toContain('await ctx.settings.get');
+  });
+
+  it('scaffolds a Test connection action so the user can verify credentials', () => {
+    const m = make();
+    expect(m.actions).toEqual([{ key: 'testConnection', label: 'Test connection' }]);
+    expect(validateManifest(m).ok).toBe(true);
+  });
+
+  it('rejects a malformed action key', () => {
+    const m = make();
+    expect(validateManifest({ ...m, actions: [{ key: '__proto__', label: 'x' }] }).ok).toBe(false);
+    expect(validateManifest({ ...m, actions: [{ key: 'a', label: 'x' }, { key: 'a', label: 'y' }] }).ok).toBe(false);
+  });
+
+  it('is server-only: no client/ dir, and a UI type is refused', () => {
+    make();
+    expect(fs.existsSync(path.join(tmp, 'my-gotify', 'client'))).toBe(false);
+    expect(() => scaffold('my-widget', 'widget', tmp, { template: 'notification-channel' })).toThrow(/requires type "integration"/);
+  });
+});
+
+describe('capabilities.notificationChannel validation', () => {
+  const base = {
+    id: 'chan', name: 'Chan', version: '1.0.0', apiVersion: 1, type: 'integration',
+    nativeModules: false, permissions: ['hook:notification-channel'],
+  };
+
+  it('accepts a narrowed event list', () => {
+    const r = validateManifest({ ...base, capabilities: { notificationChannel: { events: ['trip_invite', 'booking_change'] } } });
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects an event a plugin channel can never carry', () => {
+    // version_available is admin-scoped — it goes out over the admin's own credentials.
+    const r = validateManifest({ ...base, capabilities: { notificationChannel: { events: ['version_available'] } } });
+    expect(r.ok).toBe(false);
+    expect(r.errors!.join(' ')).toMatch(/not a plugin-deliverable event/);
+  });
+
+  it('rejects the capability without the matching grant', () => {
+    const r = validateManifest({ ...base, permissions: ['db:own'], capabilities: { notificationChannel: { title: 'X' } } });
+    expect(r.ok).toBe(false);
+    expect(r.errors!.join(' ')).toMatch(/requires the "hook:notification-channel" permission/);
   });
 });

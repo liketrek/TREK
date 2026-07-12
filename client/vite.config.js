@@ -45,16 +45,6 @@ export default defineConfig({
             },
           },
           {
-            // Leaflet CSS/JS from unpkg CDN
-            urlPattern: /^https:\/\/unpkg\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'cdn-libs',
-              expiration: { maxEntries: 30, maxAgeSeconds: 365 * 24 * 60 * 60 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
             // Mapbox GL style, glyphs, sprites and vector tiles. Best-effort
             // offline only: opportunistically caches what the user has already
             // viewed online. Full pre-download offline maps require the Leaflet

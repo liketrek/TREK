@@ -38,6 +38,27 @@ describe('providersOf enforces the hook:* grant', () => {
     put(s, 'x', 'active', ['mysteryProvider'], ['hook:mystery', 'db:own']);
     expect(s.providersOf('mysteryProvider')).toEqual([]);
   });
+
+  it('maps the pdf-section / atlas-layer / journal-entry hooks to their grants', () => {
+    const s = makeSupervisor();
+    put(s, 'pdf', 'active', ['pdfSectionProvider'], ['hook:pdf-section-provider']);
+    put(s, 'atlas', 'active', ['atlasLayerProvider'], ['hook:atlas-layer-provider']);
+    put(s, 'journal', 'active', ['journalEntryProvider'], ['hook:journal-entry-provider']);
+    put(s, 'crossed', 'active', ['pdfSectionProvider'], ['hook:atlas-layer-provider']); // wrong grant
+    expect(s.providersOf('pdfSectionProvider')).toEqual(['pdf']);
+    expect(s.providersOf('atlasLayerProvider')).toEqual(['atlas']);
+    expect(s.providersOf('journalEntryProvider')).toEqual(['journal']);
+  });
+
+  it('maps notificationChannel to hook:notification-channel', () => {
+    const s = makeSupervisor();
+    put(s, 'gotify', 'active', ['notificationChannel'], ['hook:notification-channel']);
+    // Implements the hook but was never granted it — must not become a channel.
+    put(s, 'sneaky', 'active', ['notificationChannel'], ['notify:send', 'http:outbound']);
+    // Granted, but disabled — a channel must not survive being turned off.
+    put(s, 'off', 'stopped', ['notificationChannel'], ['hook:notification-channel']);
+    expect(s.providersOf('notificationChannel')).toEqual(['gotify']);
+  });
 });
 
 describe('runtime.invokeHook defense-in-depth', () => {

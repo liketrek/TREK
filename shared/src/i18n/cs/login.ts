@@ -8,7 +8,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Places, trasy a shlukování bodů',
   'login.features.realtime': 'Synchronizace v reálném čase',
   'login.features.realtimeDesc': 'Plánujte společně přes WebSocket',
-  'login.features.budget': 'Sledování rozpočtu',
+  'login.features.budget': 'Sledování nákladů',
   'login.features.budgetDesc': 'Kategorie, grafy a náklady na osobu',
   'login.features.collab': 'Spolupráce',
   'login.features.collabDesc': 'Více uživatelů se sdílenými cestami',

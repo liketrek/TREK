@@ -15,7 +15,9 @@ interface ActivePlugin {
   name: string;
   type: string;
   icon: string | null;
-  slot: 'sidebar' | 'hero' | 'place-detail';
+  slot: 'sidebar' | 'hero' | 'place-detail' | 'day-detail' | 'reservation-detail';
+  /** How a trip-page plugin sits in the planner tab bar (replaced core tabs + position). */
+  tripPage?: { replaces?: string[]; position?: number };
 }
 
 @Controller('api/plugins')
@@ -26,18 +28,40 @@ export class PluginsFeedController {
     if (!pluginsEnabled()) return { plugins: [] };
     const rows = db
       .prepare("SELECT id, name, type, icon, capabilities FROM plugins WHERE status = 'active' ORDER BY sort_order, name")
-      .all() as Array<Omit<ActivePlugin, 'slot'> & { capabilities: string }>;
-    const plugins = rows.map(({ capabilities, ...p }) => ({ ...p, slot: slotOf(capabilities) }));
+      .all() as Array<Omit<ActivePlugin, 'slot' | 'tripPage'> & { capabilities: string }>;
+    const plugins = rows.map(({ capabilities, ...p }) => {
+      const tripPage = p.type === 'trip-page' ? tripPageOf(capabilities) : undefined;
+      return { ...p, slot: slotOf(capabilities), ...(tripPage ? { tripPage } : {}) };
+    });
     return { plugins };
   }
 }
 
-function slotOf(capabilities: string): 'sidebar' | 'hero' | 'place-detail' {
+function slotOf(capabilities: string): ActivePlugin['slot'] {
   try {
     const c = JSON.parse(capabilities || '{}') as { widget?: { slot?: string } };
     const slot = c.widget?.slot;
-    return slot === 'hero' || slot === 'place-detail' ? slot : 'sidebar';
+    return slot === 'hero' || slot === 'place-detail' || slot === 'day-detail' || slot === 'reservation-detail' ? slot : 'sidebar';
   } catch {
     return 'sidebar';
+  }
+}
+
+// Re-validated here even though the manifest parser already gated the values —
+// the capabilities column is a JSON blob, and the tab list the client hides
+// must never be steerable by a hand-edited row ('plan' stays unhideable).
+const REPLACEABLE_TABS: ReadonlySet<string> = new Set(['transports', 'buchungen', 'listen', 'finanzplan', 'dateien', 'collab']);
+
+function tripPageOf(capabilities: string): ActivePlugin['tripPage'] {
+  try {
+    const c = JSON.parse(capabilities || '{}') as { tripPage?: { replaces?: unknown; position?: unknown } };
+    const tp = c.tripPage;
+    if (!tp || typeof tp !== 'object') return undefined;
+    const replaces = Array.isArray(tp.replaces) ? tp.replaces.filter((t): t is string => typeof t === 'string' && REPLACEABLE_TABS.has(t)) : [];
+    const position = typeof tp.position === 'number' && Number.isInteger(tp.position) && tp.position >= 0 && tp.position <= 50 ? tp.position : undefined;
+    if (!replaces.length && position === undefined) return undefined;
+    return { ...(replaces.length ? { replaces } : {}), ...(position !== undefined ? { position } : {}) };
+  } catch {
+    return undefined;
   }
 }

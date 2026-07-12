@@ -78,8 +78,35 @@ describe('parseManifest capabilities', () => {
     expect(pd.capabilities.widget?.slot).toBe('place-detail');
   });
 
+  it('accepts the day-detail widget slot (mounts in the day panel)', () => {
+    const dd = parseManifest({ ...base, capabilities: { widget: { slot: 'day-detail' } } });
+    expect(dd.capabilities.widget?.slot).toBe('day-detail');
+  });
+
+  it('accepts the reservation-detail widget slot (mounts on a booking card)', () => {
+    const rd = parseManifest({ ...base, capabilities: { widget: { slot: 'reservation-detail' } } });
+    expect(rd.capabilities.widget?.slot).toBe('reservation-detail');
+  });
+
   it('rejects an unknown widget slot', () => {
     expect(() => parseManifest({ ...base, capabilities: { widget: { slot: 'floating' } } })).toThrow(ManifestError);
+  });
+
+  it('parses tripPage replaces + position, deduplicated', () => {
+    const m = parseManifest({ ...base, capabilities: { tripPage: { replaces: ['transports', 'buchungen', 'transports'], position: 1 } } });
+    expect(m.capabilities.tripPage).toEqual({ replaces: ['transports', 'buchungen'], position: 1 });
+    // either half stands alone
+    expect(parseManifest({ ...base, capabilities: { tripPage: { position: 0 } } }).capabilities.tripPage).toEqual({ position: 0 });
+    expect(parseManifest({ ...base, capabilities: { tripPage: {} } }).capabilities.tripPage).toBeUndefined();
+  });
+
+  it("refuses to replace 'plan', unknown tabs and out-of-range positions", () => {
+    expect(() => parseManifest({ ...base, capabilities: { tripPage: { replaces: ['plan'] } } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { tripPage: { replaces: ['settings'] } } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { tripPage: { replaces: 'transports' } } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { tripPage: { position: -1 } } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { tripPage: { position: 2.5 } } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { tripPage: { position: 99 } } })).toThrow(ManifestError);
   });
 });
 
@@ -112,5 +139,101 @@ describe('parseManifest dependencies', () => {
     expect(() => parseManifest({ ...base, pluginDependencies: [{ id: base.id, version: '*' }] })).toThrow(/itself/);
     expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'registry', version: '*' }] })).toThrow(/reserved/);
     expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: '*' }, { id: 'koffi', version: '^1' }] })).toThrow(/duplicate/);
+  });
+});
+
+describe('capabilities.notificationChannel', () => {
+  const base = {
+    id: 'my-gotify',
+    name: 'My Gotify',
+    version: '1.0.0',
+    apiVersion: 1,
+    type: 'integration',
+    nativeModules: false,
+    permissions: ['hook:notification-channel', 'http:outbound:gotify.example.com'],
+    egress: ['gotify.example.com'],
+  };
+
+  it('accepts what the SDK notification-channel template scaffolds', () => {
+    const m = parseManifest({
+      ...base,
+      capabilities: { notificationChannel: { title: 'My Gotify' } },
+      settings: [{ key: 'appToken', label: 'App token', required: true, secret: true, scope: 'user' }],
+    });
+    expect(m.capabilities.notificationChannel?.title).toBe('My Gotify');
+    // scope:'user' + secret is what lets the host hand the decrypted value to the hook.
+    expect(m.settings[0].scope).toBe('user');
+    expect(m.settings[0].secret).toBe(true);
+  });
+
+  it('accepts a narrowed event list', () => {
+    const m = parseManifest({ ...base, capabilities: { notificationChannel: { events: ['trip_invite', 'booking_change'] } } });
+    expect(m.capabilities.notificationChannel?.events).toEqual(['trip_invite', 'booking_change']);
+  });
+
+  it('rejects an admin-scoped event — a plugin channel can never carry one', () => {
+    expect(() => parseManifest({ ...base, capabilities: { notificationChannel: { events: ['version_available'] } } }))
+      .toThrow(/not a plugin-deliverable event/);
+  });
+
+  it('rejects a non-array events field', () => {
+    expect(() => parseManifest({ ...base, capabilities: { notificationChannel: { events: 'trip_invite' } } }))
+      .toThrow(ManifestError);
+  });
+});
+
+describe('select field options', () => {
+  const base = { id: 'sel', name: 'Sel', version: '1.0.0', apiVersion: 1, type: 'integration', nativeModules: false, permissions: [] };
+  const opts = (options: unknown) => parseManifest({ ...base, settings: [{ key: 'priority', input_type: 'select', scope: 'user', options }] }).settings[0].options;
+
+  it('keeps a proper { value, label } list', () => {
+    expect(opts([{ value: '5', label: 'Normal' }])).toEqual([{ value: '5', label: 'Normal' }]);
+  });
+
+  it('coerces a bare string/number list instead of rendering blank options', () => {
+    // The obvious thing to write — and it used to be cast straight through, so the
+    // client read o.value/o.label as undefined and every dropdown entry was EMPTY.
+    expect(opts(['1', '5'])).toEqual([{ value: '1', label: '1' }, { value: '5', label: '5' }]);
+    expect(opts([1, 5])).toEqual([{ value: '1', label: '1' }, { value: '5', label: '5' }]);
+  });
+
+  it('defaults a missing label to the value rather than leaving it blank', () => {
+    expect(opts([{ value: '5' }])).toEqual([{ value: '5', label: '5' }]);
+  });
+
+  it('rejects an option with no value, and a non-array list', () => {
+    expect(() => opts([{ label: 'Normal' }])).toThrow(/non-empty "value"/);
+    expect(() => opts([null])).toThrow(ManifestError);
+    expect(() => opts('nope')).toThrow(/must be an array/);
+  });
+});
+
+describe('settings-page actions', () => {
+  const base = { id: 'act', name: 'Act', version: '1.0.0', apiVersion: 1, type: 'integration', nativeModules: false, permissions: [] };
+
+  it('parses actions with label/hint/danger', () => {
+    const m = parseManifest({ ...base, actions: [{ key: 'testConnection', label: 'Test connection', hint: 'Pings the API.' }, { key: 'purge', label: 'Purge', danger: true }] });
+    expect(m.actions).toEqual([
+      { key: 'testConnection', label: 'Test connection', hint: 'Pings the API.', danger: false },
+      { key: 'purge', label: 'Purge', hint: undefined, danger: true },
+    ]);
+  });
+
+  it('defaults the label to the key, and bounds label/hint', () => {
+    const m = parseManifest({ ...base, actions: [{ key: 'sync', label: 'L'.repeat(200), hint: 'H'.repeat(500) }] });
+    expect(m.actions[0].label.length).toBe(60);
+    expect(m.actions[0].hint!.length).toBe(200);
+    expect(parseManifest({ ...base, actions: [{ key: 'sync' }] }).actions[0].label).toBe('sync');
+  });
+
+  it('rejects a prototype-chain key, a duplicate, a non-array and too many', () => {
+    expect(() => parseManifest({ ...base, actions: [{ key: '__proto__' }] })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, actions: [{ key: 'a' }, { key: 'a' }] })).toThrow(/duplicate action/);
+    expect(() => parseManifest({ ...base, actions: 'nope' })).toThrow(/must be an array/);
+    expect(() => parseManifest({ ...base, actions: Array.from({ length: 9 }, (_, i) => ({ key: `a${i}` })) })).toThrow(/at most 8/);
+  });
+
+  it('defaults to no actions', () => {
+    expect(parseManifest(base).actions).toEqual([]);
   });
 });

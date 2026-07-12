@@ -35,6 +35,8 @@ const notif: TranslationStrings = {
   'notif.action.view': 'Megtekintés',
   'notif.action.accept': 'Elfogadás',
   'notif.action.decline': 'Elutasítás',
+  'notif.plugin.title': '{title}',
+  'notif.plugin.text': '{body}',
   'notif.generic.title': 'Értesítés',
   'notif.generic.text': 'Új értesítésed érkezett',
   'notif.dev.unknown_event.title': '[DEV] Ismeretlen esemény',

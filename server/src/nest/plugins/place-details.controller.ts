@@ -4,6 +4,7 @@ import { db, canAccessTrip } from '../../db/database';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { stripEmoji } from './text-sanitize';
 
 /**
  * GET /api/place-details/:placeId — extra info for a place, contributed by plugins
@@ -11,10 +12,50 @@ import { PluginRuntimeService } from './plugin-runtime.service';
  * the place must belong to a trip the caller can access, each provider is called
  * host→plugin with a short timeout, and a provider that errors or times out is
  * simply skipped — it never delays or breaks the place panel.
+ *
+ * Every row is NORMALIZED server-side (same as journal-entry-rows): strings are
+ * String()-coerced + length-capped, the row count is capped per plugin, and a
+ * row url must be http/https/mailto — a javascript:/data: url rendered as an
+ * <a href> would be click-XSS into the place panel.
  */
+interface DetailItem {
+  label: string;
+  value?: string;
+  url?: string;
+}
 interface ProviderResult {
   pluginId: string;
-  items: unknown;
+  items: DetailItem[];
+}
+
+const MAX_ITEMS = 12; // per provider — bounds the panel footprint
+const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice(0, n);
+
+function safeUrl(raw: unknown): string | undefined {
+  if (typeof raw !== 'string' || raw === '') return undefined;
+  try {
+    const u = new URL(raw);
+    return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'mailto:' ? raw.slice(0, 2048) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function normalize(raw: unknown): DetailItem[] {
+  const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
+  const out: DetailItem[] = [];
+  for (const r of list) {
+    if (out.length >= MAX_ITEMS) break;
+    if (!r || typeof r !== 'object') continue;
+    const label = cap(r.label, 60);
+    if (!label) continue; // a row without a label is meaningless — drop it
+    out.push({
+      label,
+      value: r.value != null ? cap(r.value, 200) : undefined,
+      url: safeUrl(r.url),
+    });
+  }
+  return out;
 }
 
 @Controller('api/place-details')
@@ -40,8 +81,9 @@ export class PlaceDetailsController {
     const results = await Promise.all(
       ids.map(async (id): Promise<ProviderResult | null> => {
         try {
-          const items = await this.runtime.invokeHook(id, 'placeDetailProvider', 'getDetails', [placeId], userId, 5000);
-          return { pluginId: id, items };
+          const raw = await this.runtime.invokeHook(id, 'placeDetailProvider', 'getDetails', [placeId], userId, 5000);
+          const items = normalize(raw);
+          return items.length > 0 ? { pluginId: id, items } : null;
         } catch {
           return null; // a slow / failing provider is skipped, never fatal
         }

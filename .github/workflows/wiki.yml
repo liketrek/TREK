@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.repository == 'mauriceboe/TREK'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

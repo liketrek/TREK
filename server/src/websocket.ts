@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { db, canAccessTrip } from './db/database';
 import { consumeEphemeralTokenWithMeta } from './services/ephemeralTokens';
-import { emitPluginEvent } from './plugin-event-sink';
+import { emitPluginEvent, pluginEventMeta } from './plugin-event-sink';
 import { User } from './types';
 import http from 'node:http';
 
@@ -196,7 +196,7 @@ function broadcast(tripId: number | string, eventType: string, payload: Record<s
   // Announce every CORE trip event (name only, never the payload) to subscribed
   // plugins — before the room check so it fires even with no connected viewers, and
   // skipping plugin:* re-broadcasts so a plugin's own events can't loop back.
-  if (!eventType.startsWith('plugin:')) emitPluginEvent(tripId, eventType);
+  if (!eventType.startsWith('plugin:')) emitPluginEvent(tripId, eventType, pluginEventMeta(eventType, payload));
   const room = rooms.get(tripId);
   if (!room || room.size === 0) return;
 

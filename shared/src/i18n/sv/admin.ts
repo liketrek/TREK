@@ -224,6 +224,13 @@ const admin: TranslationStrings = {
   'admin.plugins.dropToUpload': 'Släpp en plugin-.zip för att installera',
   'admin.plugins.uploaded': 'Pluginet “{name}” uppladdat — aktivera det för att köra',
   'admin.plugins.sideloaded': 'Manuellt laddad',
+  'admin.plugins.devLinkBadge': 'Dev-Link',
+  'admin.plugins.devLinkHint':
+    'Laddad från en lokal byggkatalog och hot-reload mot riktig data — endast för utveckling',
+  'admin.plugins.devLinkTitle': 'Länka ett lokalt plugin',
+  'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
+  'admin.plugins.devLinkButton': 'Länka',
+  'admin.plugins.devLinkLinked': '{id} länkat — aktivera det för att köra',
   'admin.plugins.sideloadedHint': 'Uppladdat manuellt — inte från registret, osignerat och ogranskat',
   'admin.plugins.browse': 'Bläddra bland plugins',
   'admin.plugins.installed': 'Installerat',
@@ -236,6 +243,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Pluginet har inaktiverats',
   'admin.plugins.viewErrors': 'Visa felloggen',
   'admin.plugins.errorLog': 'Fellogg',
+  'admin.plugins.allowedHosts': 'Tillåtna värdar',
+  'admin.plugins.allowedHosts.hint': 'Detta plugin pratar med en tjänst som bara du kan namnge (en självhostad server). Lägg till de värdar det får nå — inga andra.',
+  'admin.plugins.allowedHosts.none': 'Inga värdar tillagda ännu.',
+  'admin.plugins.allowedHosts.unsupported': 'Detta plugin använder inte operatörsangivna värdar. Dess tillåtna värdar är låsta i manifestet.',
+  'admin.plugins.allowedHosts.restartNote': 'Att spara startar om pluginet så att den nya listan används.',
+  'admin.plugins.allowedHosts.add': 'Lägg till tillåten värd',
+  'admin.plugins.allowedHosts.count': '{n} tillåtna värdar',
+  'admin.plugins.operatorEgressPill': '+ värdar du lägger till',
+  'admin.plugins.operatorEgressHint': 'Detta plugin pratar med en tjänst som bara du kan namnge (en självhostad server). Lägg efter installation till värdarna under ⋯ → Tillåtna värdar. Inga andra nås.',
   'admin.plugins.noErrors': 'Inga fel loggade.',
   'admin.plugins.uninstalled': 'Pluginet har avinstallerats',
   'admin.plugins.uninstallTitle': 'Avinstallera pluginet?',
@@ -277,6 +293,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Per användare',
   'admin.plugins.fieldRequired': 'Obligatoriskt',
   'admin.plugins.sourceRepo': 'Källkodsarkiv',
+  'admin.plugins.reportIssue': 'Rapportera ett problem',
   'admin.plugins.homepage': 'Webbplats',
   'admin.plugins.requiresTrek': 'Kräver TREK {version}+',
   'admin.plugins.reviewedOn': 'Granskad {date}',
@@ -286,7 +303,51 @@ const admin: TranslationStrings = {
     'Läsa grundläggande profilinformation (namn, avatar – aldrig inloggningsuppgifter)',
   'admin.plugins.perm.db:read:costs': 'Läsa kostnader (budgetposter) som den aktiva användaren har åtkomst till',
   'admin.plugins.perm.db:read:packing': 'Läsa packlistor för resor som den aktiva användaren har åtkomst till',
+  'admin.plugins.perm.db:write:packing':
+    'Skapa, redigera och ta bort packlisteposter på resor som den aktiva användaren kan redigera',
+  'admin.plugins.perm.weather:read': 'Läsa värdens cachade väderprognos (efter koordinater)',
+  'admin.plugins.perm.db:read:categories': 'Läsa den globala listan över platskategorier',
+  'admin.plugins.perm.db:read:tags': 'Läsa den aktiva användarens taggar',
+  'admin.plugins.perm.db:write:tags': 'Skapa, redigera och ta bort den aktiva användarens taggar',
+  'admin.plugins.perm.db:read:todos': 'Läsa uppgifter för resor som den aktiva användaren har åtkomst till',
+  'admin.plugins.perm.db:write:todos':
+    'Skapa, redigera och ta bort uppgifter på resor som den aktiva användaren kan redigera',
+  'admin.plugins.perm.db:write:atlas':
+    'Markera länder och regioner som besökta och hantera den aktiva användarens bucketlista (kräver tillägget Atlas)',
+  'admin.plugins.perm.db:write:vacay':
+    'Växla semesterdagar och företagshelgdagar i den aktiva användarens aktiva plan (kräver tillägget Vacay)',
+  'admin.plugins.perm.db:write:journal':
+    'Skapa, redigera och ta bort dagboksinlägg i dagböcker som den aktiva användaren kan redigera (kräver tillägget Journey)',
+  'admin.plugins.perm.db:write:collections':
+    'Skapa och redigera samlingar och spara platser i dem, med den aktiva användarens samlingsroll (kräver tillägget Collections)',
+  'admin.plugins.perm.db:write:files':
+    'Bifoga filer till resor som den aktiva användaren kan redigera (10 MB-gräns, blockerade filändelser avvisas) och hantera deras länkar',
+  'admin.plugins.perm.db:write:collab':
+    'Publicera anteckningar, omröstningar och chattmeddelanden på resor som den aktiva användaren kan redigera (kräver tillägget Collab)',
+  'admin.plugins.perm.db:write:members':
+    'Lägga till användare i resor — ger resåtkomst; skyddas av den aktiva användarens medlemshanteringsrätt',
+  'admin.plugins.perm.notify:send':
+    'Skicka en avisering (klockinkorg + e-post/ntfy) till den aktiva användaren eller en resa hen tillhör — aldrig till en godtycklig mottagare',
+  'admin.plugins.perm.ai:invoke':
+    'Använda den administratörskonfigurerade AI-leverantören (textkomplettering + dokumentextraktion) å den aktiva användarens vägnar — tillägget håller aldrig en nyckel',
+  'admin.plugins.perm.oauth:client':
+    'Ansluta till en tredjepartstjänst för din räkning via värdförmedlad OAuth (värden håller token, tillägget ser dem aldrig)',
   'admin.plugins.perm.db:read:files': 'Läsa filer för resor som den aktiva användaren har åtkomst till',
+  'admin.plugins.perm.db:write:reservations':
+    'Skapa, redigera och ta bort bokningar på resor som den aktiva användaren kan redigera',
+  'admin.plugins.perm.db:write:accommodations':
+    'Skapa, redigera och ta bort boenden på resor som den aktiva användaren kan redigera',
+  'admin.plugins.perm.db:read:journal': 'Läsa den aktiva användarens resedagböcker (kräver tillägget Journey)',
+  'admin.plugins.perm.db:read:atlas':
+    'Läsa den aktiva användarens besökta länder och regioner (kräver tillägget Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Läsa den aktiva användarens semesterplan (kräver tillägget Vacay)',
+  'admin.plugins.perm.db:read:daynotes': 'Läsa daganteckningar för resor som den aktiva användaren har åtkomst till',
+  'admin.plugins.perm.db:read:collections':
+    'Läsa den aktiva användarens samlingar med sparade platser (kräver tillägget Collections)',
+  'admin.plugins.perm.db:write:daynotes':
+    'Skapa, redigera och ta bort daganteckningar på resor som den aktiva användaren kan redigera',
+  'admin.plugins.perm.jobs:run':
+    'Köra sina deklarerade bakgrundsjobb enligt ett schema (utan användarkontext — kan inte läsa användardata)',
   'admin.plugins.perm.db:write:costs': 'Skapa kostnader (budgetposter) på resor som den aktiva användaren kan redigera',
   'admin.plugins.perm.db:write:places':
     'Lägga till, redigera och ta bort platser på resor som den aktiva användaren kan redigera',
@@ -305,9 +366,27 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Bidra med extra detaljer (recensioner, betyg, länkar) till en plats',
   'admin.plugins.perm.hook:trip-warning-provider': 'Visa valideringsvarningar på en resa (visas i planeraren)',
+  'admin.plugins.perm.hook:table-contributor':
+    'Lägga till kolumner och åtgärder i rese­vyer (bokningar, platser, dagar)',
+  'admin.plugins.perm.hook:map-marker-provider': 'Lägga till markörer på reskartan (t.ex. visa bokningar eller POI:er)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Lägga till textavsnitt i resans PDF-export',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Markera länder på Atlas-världskartan (t.ex. önskelistor eller resevarningar)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Lägga till extra rader (länkar, statistik) i dagboksinlägg',
+  'admin.plugins.perm.hook:user-data':
+    'Radera eller exportera data den lagrar om en användare (GDPR: kontoborttagning och dataförfrågningar)',
+  'admin.plugins.perm.hook:trip-card-provider':
+    'Lägga till små märken (status, antal) på resekorten på instrumentpanelen',
+  'admin.plugins.perm.hook:notification-channel': 'Leverera dina aviseringar via en ytterligare kanal',
   'admin.plugins.perm.events:subscribe':
     'Reagera på grundläggande aktivitetshändelser (endast händelsenamn + resa, aldrig innehållet)',
   'admin.plugins.perm.http:outbound': 'Göra utgående anrop till sina deklarerade värdar',
+  'admin.plugins.perm.db:read:collab':
+    'Läsa anteckningar, omröstningar och chattmeddelanden för resor som den aktiva användaren har åtkomst till (kräver tillägget Collab)',
+  'admin.plugins.perm.db:read:files:content':
+    'Läsa innehållet (byte) i filer för resor som den aktiva användaren har åtkomst till',
+  'admin.plugins.perm.db:create:trips': 'Skapa nya resor som ägs av den aktiva användaren',
+  'admin.plugins.perm.rates:read': 'Läsa värdens cachade växelkurser',
   'admin.plugins.updateConsentTitle': 'Den här uppdateringen kräver nya behörigheter',
   'admin.plugins.updateConsentBody':
     '{name} v{version} begär behörigheter som du ännu inte har beviljat. Den nya versionen är installerad men förblir avstängd tills du godkänner den.',
@@ -351,6 +430,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Namn',
   'admin.plugins.sortRecent': 'Nyligen uppdaterade',
   'admin.plugins.sortUpdates': 'Uppdateringar först',
+  'admin.plugins.sortDownloads': 'Mest nedladdade',
   'admin.plugins.updatesAvailable': '{count} uppdateringar tillgängliga för dina plugins.',
   'admin.plugins.updateAll': 'Uppdatera alla',
   'admin.plugins.noMatchInstalled': 'Inga installerade plugins matchar din sökning.',
@@ -371,7 +451,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Dashboard-widget',
   'admin.plugins.cap.heroWidget': 'Boardingkort-widget',
   'admin.plugins.cap.placeSlot': 'Platsdetalj',
+  'admin.plugins.cap.daySlot': 'Dagdetalj',
+  'admin.plugins.cap.reservationSlot': 'Bokningsdetalj',
+  'admin.plugins.cap.replacesTabs': 'Ersätter planeringsflikar',
   'admin.plugins.cap.realtime': 'Realtidsuppdateringar',
+  'admin.plugins.cap.notificationChannel': 'Aviseringskanal',
   'admin.plugins.cap.photos': 'Tillhandahåller foton',
   'admin.plugins.cap.calendar': 'Tillhandahåller kalenderhändelser',
   'admin.plugins.cap.placeDetails': 'Berikar platser',
@@ -397,11 +481,12 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Storlek',
   'admin.plugins.metaRequires': 'Kräver',
   'admin.plugins.metaReviewed': 'Granskad',
+  'admin.plugins.downloads': 'Nedladdningar',
   'admin.addons.title': 'Tillägg',
   'admin.addons.subtitle': 'Aktivera eller inaktivera funktioner för att anpassa din TREK-upplevelse.',
   'admin.addons.catalog.packing.name': 'Listor',
   'admin.addons.catalog.packing.description': 'Packlistor och saker att göra inför dina resor',
-  'admin.addons.catalog.budget.name': 'Budget',
+  'admin.addons.catalog.budget.name': 'Kostnader',
   'admin.addons.catalog.budget.description': 'Håll koll på utgifterna och planera din resebudget',
   'admin.addons.catalog.documents.name': 'Dokument',
   'admin.addons.catalog.documents.description': 'Spara och hantera resedokument',

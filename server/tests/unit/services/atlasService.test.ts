@@ -30,8 +30,21 @@ vi.mock('../../../src/db/database', () => dbMock);
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { getStats, getCached, setCache, getCountryFromCoords, getCountryFromAddress, reverseGeocodeCountry, getRegionGeo, getCountryGeo, getCountryPlaces, getVisitedRegions } from '../../../src/services/atlasService';
+import { createUser, createTrip, createReservation } from '../../helpers/factories';
+import { getStats, getCached, setCache, getCountryFromCoords, getCountryFromAddress, reverseGeocodeCountry, getRegionGeo, getCountryGeo, getCountryPlaces, getVisitedRegions, markCountryVisited, unmarkCountryVisited } from '../../../src/services/atlasService';
+
+function insertReservationEndpoint(
+  db: any,
+  reservationId: number,
+  role: 'from' | 'to' | 'stop',
+  sequence: number,
+  lat: number,
+  lng: number
+) {
+  db.prepare(
+    'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng);
+}
 
 function insertPlace(db: any, tripId: number, name: string, address: string | null = null) {
   const cat = db.prepare('SELECT id FROM categories LIMIT 1').get() as { id: number } | undefined;
@@ -120,6 +133,55 @@ describe('getStats', () => {
     expect(stats.mostVisited!.code).toBe('IT');
     expect(stats.mostVisited!.placeCount).toBe(1);
   });
+
+  it('ATLAS-UNIT-022 (#1366): a country reached only via a real flight leg (from/to) counts as visited', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Tokyo Layover Trip' });
+    const reservation = createReservation(testDb, trip.id, { type: 'flight' });
+    // Tokyo: 35.6762°N, 139.6503°E — inside the JP bounding box, no place row.
+    insertReservationEndpoint(testDb, reservation.id, 'from', 0, 35.6762, 139.6503);
+    insertReservationEndpoint(testDb, reservation.id, 'to', 1, 51.4700, -0.4543);
+
+    const stats = await getStats(user.id);
+
+    const codes = stats.countries.map((c: { code: string }) => c.code);
+    expect(codes).toContain('JP');
+    expect(codes).toContain('GB');
+  });
+
+  it('ATLAS-UNIT-023 (#1366 regression): a country only touched as a connecting-flight stop does NOT count as visited', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Tokyo Connection Trip' });
+    const reservation = createReservation(testDb, trip.id, { type: 'flight' });
+    // Departs Belgium, connects through Tokyo (role: stop — never leaves the airport),
+    // lands in Australia. Only BE/AU were actually reached.
+    insertReservationEndpoint(testDb, reservation.id, 'from', 0, 50.9014, 4.4844);
+    insertReservationEndpoint(testDb, reservation.id, 'stop', 1, 35.6762, 139.6503);
+    insertReservationEndpoint(testDb, reservation.id, 'to', 2, -33.8688, 151.2093);
+
+    const stats = await getStats(user.id);
+
+    const codes = stats.countries.map((c: { code: string }) => c.code);
+    expect(codes).toContain('BE');
+    expect(codes).toContain('AU');
+    expect(codes).not.toContain('JP');
+  });
+
+  it('ATLAS-UNIT-024 (#1490): a flight endpoint in southern Spain counts as ES, not DZ', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Malaga Trip' });
+    const reservation = createReservation(testDb, trip.id, { type: 'flight' });
+    // Brussels -> Malaga airport (36.6749, -4.4991). The destination sits inside both
+    // the ES and DZ bounding boxes; without the ES entry it geocoded to Algeria.
+    insertReservationEndpoint(testDb, reservation.id, 'from', 0, 50.9014, 4.4844);
+    insertReservationEndpoint(testDb, reservation.id, 'to', 1, 36.6749, -4.4991);
+
+    const stats = await getStats(user.id);
+
+    const codes = stats.countries.map((c: { code: string }) => c.code);
+    expect(codes).toContain('ES');
+    expect(codes).not.toContain('DZ');
+  });
 });
 
 // ── getCached / setCache ────────────────────────────────────────────────────
@@ -187,6 +249,130 @@ describe('getCountryFromCoords', () => {
     // HK is not a separate admin0 polygon (it falls inside CN there), so the smallest
     // bounding box still wins for it.
     expect(getCountryFromCoords(22.30, 114.17)).toBe('HK');
+  });
+
+  it('ATLAS-SVC-005e: #1490 a point in southern Spain resolves to ES, not the overlapping Algeria box', () => {
+    // The ES entry was dropped when the lookup tables were expanded, leaving DZ as the
+    // only box covering Malaga (36.72, -4.42) — so flights into southern Spain marked
+    // Algeria as visited, and it could not be removed because it was re-derived on
+    // every Atlas load.
+    expect(getCountryFromCoords(36.7213, -4.4215)).toBe('ES');
+  });
+
+  it('ATLAS-SVC-005f: #1490 Barcelona resolves to ES, not the overlapping FR box', () => {
+    // Barcelona sits inside the FR box too (lat > 41.3); with no ES entry it was
+    // assigned to France outright.
+    expect(getCountryFromCoords(41.3874, 2.1686)).toBe('ES');
+  });
+
+  it('ATLAS-SVC-005g: #1490 a country the hand-written box table omitted resolves correctly (Nigeria)', () => {
+    // NG had no bounding box at all, so Lagos fell into Benin's box as the only
+    // candidate and phantom-marked BJ as visited. Same class for Kano -> CM.
+    expect(getCountryFromCoords(6.5244, 3.3792)).toBe('NG');   // Lagos
+    expect(getCountryFromCoords(12.0022, 8.5920)).toBe('NG');  // Kano
+    expect(getCountryFromCoords(9.0765, 7.3986)).toBe('NG');   // Abuja
+  });
+
+  it('ATLAS-SVC-005h: #1490 other previously box-less countries resolve (BY, GL, KP, TD, SS)', () => {
+    expect(getCountryFromCoords(53.9006, 27.5590)).toBe('BY');   // Minsk (was RU)
+    expect(getCountryFromCoords(64.1836, -51.7214)).toBe('GL');  // Nuuk
+    expect(getCountryFromCoords(39.0392, 125.7625)).toBe('KP');  // Pyongyang
+    expect(getCountryFromCoords(12.1348, 15.0557)).toBe('TD');   // N'Djamena
+    expect(getCountryFromCoords(4.8594, 31.5713)).toBe('SS');    // Juba
+  });
+
+  it('ATLAS-SVC-005i: #1490 countries straddling the antimeridian resolve per-part, not to a globe-spanning box', () => {
+    // Boxes are derived one-per-geometry-part. A single box around RU/US/FJ would span
+    // nearly the whole globe and swallow unrelated points.
+    expect(getCountryFromCoords(61.2181, -149.9003)).toBe('US'); // Anchorage
+    expect(getCountryFromCoords(64.4230, -173.2260)).toBe('RU'); // Provideniya, east of 180
+    expect(getCountryFromCoords(-18.1416, 178.4419)).toBe('FJ'); // Suva
+  });
+
+  it('ATLAS-SVC-005j: a loose polygon-less box (PS) does not steal Israeli points inside the IL polygon', () => {
+    // PS has no admin0 polygon and its box sprawls across most of Israel. It must NOT win
+    // the smallest-box tie-break over IL's real polygon: Tel Aviv, Jerusalem, Eilat and
+    // Beersheba all lie in the IL polygon and must resolve to IL, not PS.
+    expect(getCountryFromCoords(32.0853, 34.7818)).toBe('IL'); // Tel Aviv
+    expect(getCountryFromCoords(31.7683, 35.2137)).toBe('IL'); // Jerusalem
+    expect(getCountryFromCoords(29.5577, 34.9519)).toBe('IL'); // Eilat
+    expect(getCountryFromCoords(31.2518, 34.7913)).toBe('IL'); // Beersheba
+  });
+
+  it('ATLAS-SVC-005k: a genuine West Bank / Gaza point still resolves to PS via the deferred box', () => {
+    // The fix only defers the loose box behind real polygons; a point that lies in NO
+    // sovereign polygon (the West Bank / Gaza are excluded from the IL polygon) still
+    // lands on the PS box.
+    expect(getCountryFromCoords(31.9038, 35.2034)).toBe('PS'); // Ramallah
+    expect(getCountryFromCoords(31.5017, 34.4668)).toBe('PS'); // Gaza City
+  });
+
+  it('ATLAS-SVC-005l: the loose XK box does not steal North Macedonian points inside the MK polygon', () => {
+    // Same mechanism as PS: XK is polygon-less and its box overlaps North Macedonia.
+    // Skopje and Tetovo lie in the MK polygon and must resolve to MK, not XK — while
+    // Pristina (in no neighbouring polygon) still resolves to XK.
+    expect(getCountryFromCoords(41.9973, 21.4280)).toBe('MK'); // Skopje
+    expect(getCountryFromCoords(42.0106, 20.9714)).toBe('MK'); // Tetovo
+    expect(getCountryFromCoords(42.6629, 21.1655)).toBe('XK'); // Pristina
+  });
+});
+
+// ── Removing a visited country sticks (#1490) ───────────────────────────────
+
+describe('unmarkCountryVisited — tombstones', () => {
+  it('ATLAS-SVC-021: #1490 a country derived from a flight endpoint stays removed across reloads', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Layover Trip' });
+    const reservation = createReservation(testDb, trip.id, { type: 'flight' });
+    // Brussels -> Tokyo. JP is derived from the endpoint; it has no visited_countries
+    // row, so the DELETE in unmarkCountryVisited used to affect nothing and getStats
+    // re-derived JP on the very next call.
+    insertReservationEndpoint(testDb, reservation.id, 'from', 0, 50.9014, 4.4844);
+    insertReservationEndpoint(testDb, reservation.id, 'to', 1, 35.6762, 139.6503);
+
+    const before = await getStats(user.id);
+    expect(before.countries.map((c: { code: string }) => c.code)).toContain('JP');
+
+    unmarkCountryVisited(user.id, 'JP');
+
+    const after = await getStats(user.id);
+    expect(after.countries.map((c: { code: string }) => c.code)).not.toContain('JP');
+    // BE is untouched — removal is scoped to the one country.
+    expect(after.countries.map((c: { code: string }) => c.code)).toContain('BE');
+  });
+
+  it('ATLAS-SVC-022: #1490 re-marking a removed country brings it back', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Layover Trip' });
+    const reservation = createReservation(testDb, trip.id, { type: 'flight' });
+    insertReservationEndpoint(testDb, reservation.id, 'from', 0, 50.9014, 4.4844);
+    insertReservationEndpoint(testDb, reservation.id, 'to', 1, 35.6762, 139.6503);
+
+    unmarkCountryVisited(user.id, 'JP');
+    expect((await getStats(user.id)).countries.map((c: { code: string }) => c.code)).not.toContain('JP');
+
+    markCountryVisited(user.id, 'JP');
+    expect((await getStats(user.id)).countries.map((c: { code: string }) => c.code)).toContain('JP');
+  });
+
+  it('ATLAS-SVC-023: #1490 a removed country reappears once it has a real place', async () => {
+    // The tombstone only suppresses zero-count derivations. Planning an actual place in
+    // the country is an unambiguous signal it was visited, so it should show again.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Japan Trip' });
+    const reservation = createReservation(testDb, trip.id, { type: 'flight' });
+    insertReservationEndpoint(testDb, reservation.id, 'from', 0, 50.9014, 4.4844);
+    insertReservationEndpoint(testDb, reservation.id, 'to', 1, 35.6762, 139.6503);
+
+    unmarkCountryVisited(user.id, 'JP');
+    expect((await getStats(user.id)).countries.map((c: { code: string }) => c.code)).not.toContain('JP');
+
+    insertPlace(testDb, trip.id, 'Senso-ji', 'Asakusa, Tokyo, Japan');
+
+    const after = await getStats(user.id);
+    const jp = after.countries.find((c: { code: string }) => c.code === 'JP');
+    expect(jp).toBeDefined();
+    expect(jp!.placeCount).toBe(1);
   });
 });
 

@@ -35,6 +35,8 @@ const notif: TranslationStrings = {
   'notif.action.view': 'Vedi',
   'notif.action.accept': 'Accetta',
   'notif.action.decline': 'Rifiuta',
+  'notif.plugin.title': '{title}',
+  'notif.plugin.text': '{body}',
   'notif.generic.title': 'Notifica',
   'notif.generic.text': 'Hai una nuova notifica',
   'notif.dev.unknown_event.title': '[DEV] Evento sconosciuto',

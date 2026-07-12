@@ -52,6 +52,7 @@ const hu: NotificationLocale = {
       title: 'Synology munkamenet törölve',
       body: 'A Synology fiókja vagy URL-je megváltozott. Kijelentkeztek a Synology Photos-ból.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Jelszó visszaállítása',

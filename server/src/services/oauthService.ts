@@ -474,12 +474,13 @@ export function refreshTokens(
 
   if (new Date(row.refresh_token_expires_at) < new Date()) return { error: 'invalid_grant', status: 400 };
 
-  // Revoke old pair immediately (rotation) and issue new pair linked to old row
+  // Revoke old pair immediately (rotation) and issue new pair linked to old row.
+  // Do NOT revoke active MCP sessions here: a legitimate refresh isn't a security
+  // event (that's handled above, in the replay-detection branch), and mcpHandler
+  // already re-validates session.userId/clientId against the new token on every
+  // request. Killing the session on every routine hourly refresh broke long-lived
+  // MCP connections (#1475).
   db.prepare('UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE id = ?').run(row.id);
-
-  // Terminate active MCP sessions for the old token's client so client must re-authenticate
-
-  revokeUserSessionsForClient(row.user_id, clientId);
 
   const tokens = issueTokens(clientId, row.user_id, JSON.parse(row.scopes), row.id, row.audience ?? null);
   writeAudit({ userId: row.user_id, action: 'oauth.token.refresh', details: { client_id: clientId }, ip });

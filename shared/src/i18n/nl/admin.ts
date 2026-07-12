@@ -168,6 +168,13 @@ const admin: TranslationStrings = {
   'admin.plugins.dropToUpload': 'Zet een plugin-.zip neer om te installeren',
   'admin.plugins.uploaded': 'Plugin “{name}” geüpload — activeer om uit te voeren',
   'admin.plugins.sideloaded': 'Handmatig geladen',
+  'admin.plugins.devLinkBadge': 'Dev-Link',
+  'admin.plugins.devLinkHint':
+    'Geladen vanuit een lokale build-map en hot-reload met echte data — alleen voor ontwikkeling',
+  'admin.plugins.devLinkTitle': 'Een lokale plugin koppelen',
+  'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
+  'admin.plugins.devLinkButton': 'Koppelen',
+  'admin.plugins.devLinkLinked': '{id} gekoppeld — activeer het om te draaien',
   'admin.plugins.sideloadedHint': 'Handmatig geüpload — niet uit het register, niet ondertekend en niet gecontroleerd',
   'admin.plugins.browse': 'Plugins verkennen',
   'admin.plugins.installed': 'Geïnstalleerd',
@@ -180,6 +187,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Plugin gedeactiveerd',
   'admin.plugins.viewErrors': 'Foutenlog bekijken',
   'admin.plugins.errorLog': 'Foutenlog',
+  'admin.plugins.allowedHosts': 'Toegestane hosts',
+  'admin.plugins.allowedHosts.hint': 'Deze plug-in praat met een dienst die alleen jij kunt benoemen (een zelf-gehoste server). Voeg de hosts toe die hij mag bereiken — andere bereikt hij niet.',
+  'admin.plugins.allowedHosts.none': 'Nog geen hosts toegevoegd.',
+  'admin.plugins.allowedHosts.unsupported': 'Deze plug-in gebruikt geen door de beheerder opgegeven hosts. De toegestane hosts staan vast in het manifest.',
+  'admin.plugins.allowedHosts.restartNote': 'Opslaan herstart de plug-in zodat de nieuwe lijst wordt opgepakt.',
+  'admin.plugins.allowedHosts.add': 'Toegestane host toevoegen',
+  'admin.plugins.allowedHosts.count': '{n} toegestane host(s)',
+  'admin.plugins.operatorEgressPill': '+ hosts die jij toevoegt',
+  'admin.plugins.operatorEgressHint': 'Deze plug-in praat met een dienst die alleen jij kunt benoemen (een zelf-gehoste server). Voeg na installatie de bereikbare hosts toe via ⋯ → Toegestane hosts. Andere bereikt hij niet.',
   'admin.plugins.noErrors': 'Geen fouten geregistreerd.',
   'admin.plugins.uninstalled': 'Plugin verwijderd',
   'admin.plugins.uninstallTitle': 'Plugin verwijderen?',
@@ -221,6 +237,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Per gebruiker',
   'admin.plugins.fieldRequired': 'Verplicht',
   'admin.plugins.sourceRepo': 'Broncoderepository',
+  'admin.plugins.reportIssue': 'Probleem melden',
   'admin.plugins.homepage': 'Homepage',
   'admin.plugins.requiresTrek': 'Vereist TREK {version}+',
   'admin.plugins.reviewedOn': 'Beoordeeld op {date}',
@@ -229,7 +246,51 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Basisprofielgegevens lezen (naam, avatar — nooit inloggegevens)',
   'admin.plugins.perm.db:read:costs': 'Uitgaven (budgetposten) lezen waartoe de actieve gebruiker toegang heeft',
   'admin.plugins.perm.db:read:packing': 'Paklijsten lezen van reizen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:write:packing':
+    'Paklijst-items aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.weather:read': 'De gecachte weersvoorspelling van de host lezen (op coördinaten)',
+  'admin.plugins.perm.db:read:categories': 'De globale lijst met plaatscategorieën lezen',
+  'admin.plugins.perm.db:read:tags': 'De tags van de actieve gebruiker lezen',
+  'admin.plugins.perm.db:write:tags': 'De tags van de actieve gebruiker aanmaken, bewerken en verwijderen',
+  'admin.plugins.perm.db:read:todos': 'De taken lezen van reizen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:write:todos':
+    'Taken aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:write:atlas':
+    "Landen en regio's als bezocht markeren en de bucketlist van de actieve gebruiker beheren (vereist de Atlas-add-on)",
+  'admin.plugins.perm.db:write:vacay':
+    'Vakantiedagen en bedrijfssluitingen op het actieve plan van de actieve gebruiker omschakelen (vereist de Vacay-add-on)',
+  'admin.plugins.perm.db:write:journal':
+    'Dagboekvermeldingen aanmaken, bewerken en verwijderen in dagboeken die de actieve gebruiker mag bewerken (vereist de Journey-add-on)',
+  'admin.plugins.perm.db:write:collections':
+    'Collecties aanmaken en bewerken en er plaatsen in opslaan, met de collectierol van de actieve gebruiker (vereist de Collections-add-on)',
+  'admin.plugins.perm.db:write:files':
+    'Bestanden toevoegen aan reizen die de actieve gebruiker mag bewerken (limiet 10 MB, geblokkeerde extensies geweigerd) en hun koppelingen beheren',
+  'admin.plugins.perm.db:write:collab':
+    'Notities, peilingen en chatberichten plaatsen op reizen die de actieve gebruiker mag bewerken (vereist de Collab-add-on)',
+  'admin.plugins.perm.db:write:members':
+    'Gebruikers aan reizen toevoegen — verleent reistoegang; beveiligd door het ledenbeheer-recht van de actieve gebruiker',
+  'admin.plugins.perm.notify:send':
+    'Een melding (belinbox + e-mail/ntfy) sturen naar de actieve gebruiker of een reis waartoe hij behoort — nooit naar een willekeurige ontvanger',
+  'admin.plugins.perm.ai:invoke':
+    'De door de beheerder geconfigureerde AI-provider (tekstaanvulling + documentextractie) namens de actieve gebruiker gebruiken — de plug-in bezit nooit een sleutel',
+  'admin.plugins.perm.oauth:client':
+    'Namens jou verbinden met een externe dienst via host-bemiddelde OAuth (de host bewaart de tokens, de plug-in ziet ze nooit)',
   'admin.plugins.perm.db:read:files': 'Bestanden lezen van reizen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:write:reservations':
+    'Boekingen (reserveringen) aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:write:accommodations':
+    'Accommodaties (verblijven) aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.db:read:journal': 'De reisdagboeken van de actieve gebruiker lezen (vereist de Journey-add-on)',
+  'admin.plugins.perm.db:read:atlas':
+    "De door de actieve gebruiker bezochte landen en regio's lezen (vereist de Atlas-add-on)",
+  'admin.plugins.perm.db:read:vacay': 'Het vakantieplan van de actieve gebruiker lezen (vereist de Vacay-add-on)',
+  'admin.plugins.perm.db:read:daynotes': 'De dagnotities lezen van reizen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:read:collections':
+    'De collecties met opgeslagen plaatsen van de actieve gebruiker lezen (vereist de Collections-add-on)',
+  'admin.plugins.perm.db:write:daynotes':
+    'Dagnotities aanmaken, bewerken en verwijderen op reizen die de actieve gebruiker mag bewerken',
+  'admin.plugins.perm.jobs:run':
+    'De gedeclareerde achtergrondtaken volgens een schema uitvoeren (zonder gebruikerscontext — kan geen gebruikersgegevens lezen)',
   'admin.plugins.perm.db:write:costs':
     'Uitgaven (budgetposten) aanmaken op reizen die de actieve gebruiker mag bewerken',
   'admin.plugins.perm.db:write:places':
@@ -250,9 +311,28 @@ const admin: TranslationStrings = {
     'Extra details (reviews, beoordelingen, links) aan een plek toevoegen',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validatiewaarschuwingen tonen bij een reis (zichtbaar in de planner)',
+  'admin.plugins.perm.hook:table-contributor':
+    'Kolommen en acties toevoegen aan reisweergaven (boekingen, plaatsen, dagen)',
+  'admin.plugins.perm.hook:map-marker-provider':
+    "Markeringen aan de reiskaart toevoegen (bijv. boekingen of POI's tonen)",
+  'admin.plugins.perm.hook:pdf-section-provider': 'Tekstsecties toevoegen aan de PDF-export van de reis',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Landen markeren op de Atlas-wereldkaart (bijv. wensenlijsten of reisadviezen)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Extra regels (links, statistieken) toevoegen aan dagboek-items',
+  'admin.plugins.perm.hook:user-data':
+    'De gegevens die het over een gebruiker opslaat wissen of exporteren (AVG: accountverwijdering en inzageverzoeken)',
+  'admin.plugins.perm.hook:trip-card-provider':
+    'Kleine badges (status, aantallen) aan je dashboard-reiskaarten toevoegen',
+  'admin.plugins.perm.hook:notification-channel': 'Je meldingen via een extra kanaal bezorgen',
   'admin.plugins.perm.events:subscribe':
     'Reageert op kernactiviteitsgebeurtenissen (alleen gebeurtenisnaam + reis, nooit de inhoud)',
   'admin.plugins.perm.http:outbound': 'Uitgaande verzoeken doen naar de opgegeven hosts',
+  'admin.plugins.perm.db:read:collab':
+    'Notities, peilingen en chatberichten lezen van reizen waartoe de actieve gebruiker toegang heeft (vereist de Collab-add-on)',
+  'admin.plugins.perm.db:read:files:content':
+    'De inhoud (bytes) van bestanden lezen van reizen waartoe de actieve gebruiker toegang heeft',
+  'admin.plugins.perm.db:create:trips': 'Nieuwe reizen aanmaken die eigendom zijn van de actieve gebruiker',
+  'admin.plugins.perm.rates:read': 'De gecachte wisselkoersen van de host lezen',
   'admin.plugins.updateConsentTitle': 'Deze update vereist nieuwe machtigingen',
   'admin.plugins.updateConsentBody':
     '{name} v{version} vraagt om rechten die je nog niet hebt verleend. De nieuwe versie is geïnstalleerd, maar blijft uit totdat je deze goedkeurt.',
@@ -295,6 +375,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Naam',
   'admin.plugins.sortRecent': 'Onlangs bijgewerkt',
   'admin.plugins.sortUpdates': 'Updates eerst',
+  'admin.plugins.sortDownloads': 'Meest gedownload',
   'admin.plugins.updatesAvailable': '{count} updates beschikbaar voor je plugins.',
   'admin.plugins.updateAll': 'Alles bijwerken',
   'admin.plugins.noMatchInstalled': 'Geen geïnstalleerde plugins komen overeen met je zoekopdracht.',
@@ -315,7 +396,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Dashboardwidget',
   'admin.plugins.cap.heroWidget': 'Instapkaartwidget',
   'admin.plugins.cap.placeSlot': 'Plaatsdetail',
+  'admin.plugins.cap.daySlot': 'Dagdetail',
+  'admin.plugins.cap.reservationSlot': 'Reserveringsdetail',
+  'admin.plugins.cap.replacesTabs': 'Vervangt planner-tabbladen',
   'admin.plugins.cap.realtime': 'Realtime updates',
+  'admin.plugins.cap.notificationChannel': 'Meldingskanaal',
   'admin.plugins.cap.photos': "Levert foto's",
   'admin.plugins.cap.calendar': 'Levert kalenderevenementen',
   'admin.plugins.cap.placeDetails': 'Verrijkt plekken',
@@ -341,6 +426,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Grootte',
   'admin.plugins.metaRequires': 'Vereist',
   'admin.plugins.metaReviewed': 'Beoordeeld op',
+  'admin.plugins.downloads': 'Downloads',
   'admin.addons.title': 'Add-ons',
   'admin.addons.subtitle': 'Schakel functies in of uit om je TREK-ervaring aan te passen.',
   'admin.addons.catalog.memories.name': "Foto's (Immich)",
@@ -349,7 +435,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.mcp.description': 'Model Context Protocol voor AI-assistent integratie',
   'admin.addons.catalog.packing.name': 'Lijsten',
   'admin.addons.catalog.packing.description': 'Paklijsten en to-dotaken voor je reizen',
-  'admin.addons.catalog.budget.name': 'Budget',
+  'admin.addons.catalog.budget.name': 'Onkosten',
   'admin.addons.catalog.budget.description': 'Houd uitgaven bij en plan je reisbudget',
   'admin.addons.catalog.documents.name': 'Documenten',
   'admin.addons.catalog.documents.description': 'Bewaar en beheer reisdocumenten',

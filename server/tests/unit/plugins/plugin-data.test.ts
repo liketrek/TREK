@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { PluginDataDb, removePluginData } from '../../../src/nest/plugins/host/plugin-data.service';
+import { PluginDataDb, removePluginData, snapshotAllPluginDataDbs } from '../../../src/nest/plugins/host/plugin-data.service';
 
 let tmp: string;
 beforeAll(() => {
@@ -59,6 +59,47 @@ describe('PluginDataDb', () => {
     db.close();
   });
 
+  it('tx runs a batch atomically — reads see earlier writes, and any error rolls the whole batch back', () => {
+    const db = new PluginDataDb('txn');
+    db.migrate('001', 'CREATE TABLE acct (id INTEGER PRIMARY KEY, bal INTEGER)');
+    db.exec('INSERT INTO acct (id, bal) VALUES (1, 100), (2, 0)');
+
+    // happy path: a transfer as one atomic batch; the SELECT sees the batch's writes
+    const out = db.tx([
+      { sql: 'UPDATE acct SET bal = bal - 40 WHERE id = ?', args: [1] },
+      { sql: 'UPDATE acct SET bal = bal + 40 WHERE id = ?', args: [2] },
+      { sql: 'SELECT id, bal FROM acct ORDER BY id' },
+    ]);
+    expect(out.results[0]).toEqual({ changes: 1 });
+    expect(out.results[2]).toEqual({ rows: [{ id: 1, bal: 60 }, { id: 2, bal: 40 }] });
+
+    // failure path: a later statement throws → the earlier write must NOT persist
+    expect(() => db.tx([
+      { sql: 'UPDATE acct SET bal = 0 WHERE id = ?', args: [1] },
+      { sql: 'INSERT INTO nonexistent (x) VALUES (1)' },
+    ])).toThrow();
+    expect(db.query('SELECT bal FROM acct WHERE id = 1')).toEqual([{ bal: 60 }]); // unchanged
+
+    // guard + caps apply inside a batch too
+    expect(() => db.tx([{ sql: "ATTACH DATABASE 'x' AS y" }])).toThrow(/not allowed/);
+    expect(() => db.tx(Array.from({ length: 101 }, () => ({ sql: 'SELECT 1' })))).toThrow(/at most/);
+    expect(db.tx([]).results).toEqual([]);
+
+    // a raw COMMIT inside the batch must be refused (else it breaks atomicity), but a
+    // CASE ... END expression (END not at statement start) stays allowed
+    expect(() => db.tx([
+      { sql: 'UPDATE acct SET bal = 0 WHERE id = ?', args: [1] },
+      { sql: 'COMMIT' },
+    ])).toThrow(/transaction-control/);
+    expect(db.tx([{ sql: "SELECT CASE WHEN bal > 0 THEN 'y' ELSE 'n' END AS s FROM acct WHERE id = 1" }]).results[0])
+      .toEqual({ rows: [{ s: 'y' }] });
+    // the row cap is now for the WHOLE batch, not per statement
+    db.exec('CREATE TABLE big (n INTEGER)');
+    db.exec('INSERT INTO big (n) VALUES ' + Array.from({ length: 400 }, (_, i) => `(${i})`).join(','));
+    expect(() => db.tx([{ sql: 'SELECT a.n FROM big a, big b' }])).toThrow(/more than/); // 160k > 100k
+    db.close();
+  });
+
   it('removePluginData deletes the whole data dir', () => {
     const db = new PluginDataDb('temp');
     db.migrate('001', 'CREATE TABLE t (id INTEGER)');
@@ -66,5 +107,26 @@ describe('PluginDataDb', () => {
     expect(fs.existsSync(path.join(tmp, 'temp'))).toBe(true);
     removePluginData('temp');
     expect(fs.existsSync(path.join(tmp, 'temp'))).toBe(false);
+  });
+
+  it('snapshots a closed plugin.db together with its -wal/-shm sidecars (no data loss after an unclean shutdown)', () => {
+    const srcDir = path.join(tmp, 'wal-plugin'); // no open PluginDataDb handle → treated as closed
+    fs.mkdirSync(srcDir, { recursive: true });
+    fs.writeFileSync(path.join(srcDir, 'plugin.db'), 'DB');
+    fs.writeFileSync(path.join(srcDir, 'plugin.db-wal'), 'WAL-committed');
+    fs.writeFileSync(path.join(srcDir, 'plugin.db-shm'), 'SHM');
+    const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'trekplug-snap-'));
+    try {
+      snapshotAllPluginDataDbs(dest);
+      const outDir = path.join(dest, 'wal-plugin');
+      expect(fs.existsSync(path.join(outDir, 'plugin.db'))).toBe(true);
+      // No writer, so the WAL is a consistent set with the .db and must be copied —
+      // otherwise committed-but-uncheckpointed rows in the WAL are lost from the backup.
+      expect(fs.readFileSync(path.join(outDir, 'plugin.db-wal'), 'utf8')).toBe('WAL-committed');
+      expect(fs.existsSync(path.join(outDir, 'plugin.db-shm'))).toBe(true);
+    } finally {
+      fs.rmSync(dest, { recursive: true, force: true });
+      fs.rmSync(srcDir, { recursive: true, force: true });
+    }
   });
 });

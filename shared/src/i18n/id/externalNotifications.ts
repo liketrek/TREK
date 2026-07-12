@@ -52,6 +52,7 @@ const id: NotificationLocale = {
       title: 'Sesi Synology dihapus',
       body: 'Akun atau URL Synology Anda berubah. Anda telah keluar dari Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Setel ulang kata sandi Anda',

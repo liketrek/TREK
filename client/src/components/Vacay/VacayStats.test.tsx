@@ -95,7 +95,7 @@ describe('VacayStats', () => {
     render(<VacayStats />)
     // The vacation_days tile shows "25" as a standalone div; click it to trigger edit
     await user.click(screen.getByText('25'))
-    expect(screen.getByRole('spinbutton')).toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 
   it('FE-COMP-VACAYSTATS-009: Pressing Enter in editor calls updateVacationDays', async () => {
@@ -104,7 +104,7 @@ describe('VacayStats', () => {
     seedStore(useVacayStore, { stats: [buildStat({ user_id: 1 })] })
     render(<VacayStats />)
     await user.click(screen.getByText('25'))
-    const input = screen.getByRole('spinbutton')
+    const input = screen.getByRole('textbox')
     await user.clear(input)
     await user.type(input, '30')
     await user.keyboard('{Enter}')
@@ -117,11 +117,11 @@ describe('VacayStats', () => {
     seedStore(useVacayStore, { stats: [buildStat({ user_id: 1 })] })
     render(<VacayStats />)
     await user.click(screen.getByText('25'))
-    const input = screen.getByRole('spinbutton')
+    const input = screen.getByRole('textbox')
     await user.clear(input)
     await user.type(input, '99')
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(mockUpdateVacationDays).not.toHaveBeenCalled()
   })
 
@@ -146,6 +146,6 @@ describe('VacayStats', () => {
     })
     render(<VacayStats />)
     await user.click(screen.getByText('25'))
-    expect(screen.getByRole('spinbutton')).toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 })

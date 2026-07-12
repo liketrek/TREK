@@ -173,7 +173,14 @@ export function deleteDay(id: string | number) {
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-function addDays(date: string, n: number): string {
+/**
+ * Add `n` days to a YYYY-MM-DD date string, staying entirely in UTC.
+ *
+ * Deliberately never builds a local-time Date: `new Date('2026-06-07T00:00:00')`
+ * parses as *server-local* midnight, so a later .toISOString() round-trips through
+ * UTC and lands on the previous day whenever the server sits east of Greenwich.
+ */
+export function addDays(date: string, n: number): string {
   const [y, m, d] = date.split('-').map(Number);
   const t = Date.UTC(y, m - 1, d) + n * MS_PER_DAY;
   const dt = new Date(t);

@@ -18,6 +18,7 @@ const fsMock = vi.hoisted(() => ({
   createReadStream: vi.fn(),
   rmSync: vi.fn(),
   copyFileSync: vi.fn(),
+  renameSync: vi.fn(),
   cpSync: vi.fn(),
   // Identity by default: when uploadsDir is a plain directory, realpathSync
   // returns it unchanged. Tests that exercise the symlink case override this.
@@ -346,6 +347,34 @@ describe('BACKUP-036 createBackup', () => {
     expect(archiverInstanceMock.finalize).toHaveBeenCalled();
   });
 
+  it('BACKUP-036p — archives the plugin data + code trees when present, skipping dev-links', async () => {
+    // Only the plugin roots exist (db/uploads absent → skipped).
+    fsMock.existsSync.mockImplementation((p: string) => String(p).includes('plugins'));
+    fsMock.mkdirSync.mockReturnValue(undefined);
+    // Two plugin code dirs: 'notes' is real, 'devlink' resolves outside the root.
+    // The plugin-data snapshot reads with { withFileTypes: true }; hand it Dirent-likes there.
+    const dirent = (name: string) => ({ name, isDirectory: () => true });
+    fsMock.readdirSync.mockImplementation((_p: string, opts?: { withFileTypes?: boolean }) =>
+      (opts?.withFileTypes ? [dirent('notes'), dirent('devlink')] : ['notes', 'devlink']) as never);
+    fsMock.realpathSync.mockImplementation((p: string) => (String(p).endsWith('devlink') ? '/somewhere/else/devlink' : p));
+    fsMock.statSync.mockReturnValue({ size: 2048, birthtime: new Date('2026-04-06T12:00:00Z'), isDirectory: () => true } as never);
+
+    const writableEvents: Record<string, Function> = {};
+    fsMock.createWriteStream.mockReturnValue({ on: vi.fn((e: string, cb: Function) => { writableEvents[e] = cb; }) } as never);
+    archiverInstanceMock.on.mockImplementation(() => {});
+    archiverInstanceMock.pipe.mockReturnValue(undefined);
+    archiverInstanceMock.finalize.mockImplementation(() => { writableEvents['close']?.(); });
+    archiverMock.mockReturnValue(archiverInstanceMock);
+
+    await createBackup();
+
+    // the consistent snapshot of the data tree is archived under plugins-data/
+    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('plugins-snap'), 'plugins-data');
+    // the real code dir is archived, the dev-link is skipped
+    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('notes'), 'plugins-code/notes');
+    expect(archiverInstanceMock.directory).not.toHaveBeenCalledWith(expect.anything(), 'plugins-code/devlink');
+  });
+
   it('BACKUP-036b — WAL checkpoint error is swallowed (non-critical)', async () => {
     // db.exec throws on WAL checkpoint
     dbMock.db.exec.mockImplementationOnce(() => { throw new Error('WAL checkpoint failed'); });
@@ -438,9 +467,10 @@ describe('BACKUP-036 createBackup', () => {
 
     await createBackup();
 
-    // archive.file should have been called with the db path
+    // the core DB is snapshotted (VACUUM INTO) and archived under the name travel.db
+    expect(dbMock.db.exec).toHaveBeenCalledWith(expect.stringContaining('VACUUM INTO'));
     expect(archiverInstanceMock.file).toHaveBeenCalledWith(
-      expect.stringContaining('travel.db'),
+      expect.any(String),
       { name: 'travel.db' }
     );
   });

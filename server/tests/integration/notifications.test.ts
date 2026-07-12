@@ -175,17 +175,22 @@ describe('In-app notifications', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('GET /api/notifications/preferences — matrix format', () => {
-  it('NROUTE-002 — returns preferences, available_channels, event_types, implemented_combos', async () => {
+  it('NROUTE-002 — returns preferences, channels, event_types, implemented_combos', async () => {
     const { user } = createUser(testDb);
     const res = await request(app)
       .get('/api/notifications/preferences')
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('preferences');
-    expect(res.body).toHaveProperty('available_channels');
+    expect(res.body).toHaveProperty('channels');
     expect(res.body).toHaveProperty('event_types');
     expect(res.body).toHaveProperty('implemented_combos');
-    expect(res.body.available_channels.inapp).toBe(true);
+    const inapp = res.body.channels.find((c: { id: string }) => c.id === 'inapp');
+    expect(inapp.active).toBe(true);
+    // The built-in external channels are always described, active or not.
+    expect(res.body.channels.map((c: { id: string }) => c.id)).toEqual(
+      expect.arrayContaining(['inapp', 'email', 'webhook', 'ntfy']),
+    );
   });
 
   it('NROUTE-003 — regular user does not see version_available in event_types', async () => {

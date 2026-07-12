@@ -18,7 +18,7 @@ const NATIVE_RE = /(^|\/)[^/]+\.node$|(^|\/)binding\.gyp$|(^|\/)prebuilds?\//i;
 
 export interface EntryVersion {
   version: string; gitTag: string; commitSha: string; downloadUrl: string;
-  sha256: string; size: number; apiVersion: number; nativeModules?: boolean; signature?: string;
+  sha256: string; size: number; apiVersion: number; nativeModules?: boolean; operatorEgress?: boolean; signature?: string;
 }
 export interface Entry {
   id: string; name: string; type: string; repo: string; authorPublicKey?: string; versions: EntryVersion[];
@@ -81,10 +81,19 @@ export async function preflight(entry: Entry, opts: { all?: boolean } = {}): Pro
         if (m.type !== entry.type) fail(`${tag}: manifest type "${m.type}" != entry "${entry.type}"`);
         if (m.apiVersion !== v.apiVersion) fail(`${tag}: manifest apiVersion ${m.apiVersion} != entry ${v.apiVersion}`);
         if (m.nativeModules === true) fail(`${tag}: manifest declares nativeModules:true (forbidden)`);
+        // Mirrors the registry's operatorEgress parity check (validate-entry.mjs): the entry
+        // must not understate the plugin's network reach.
+        const mOperatorEgress = (m as { operatorEgress?: unknown }).operatorEgress === true;
+        if (mOperatorEgress !== (v.operatorEgress === true)) {
+          fail(`${tag}: manifest operatorEgress ${mOperatorEgress} != entry ${v.operatorEgress === true}`);
+        }
         manifestPerms = Array.isArray(m.permissions) ? (m.permissions as string[]) : [];
         if (manifestPerms.some((p) => p === 'http:outbound' || p.startsWith('http:outbound:'))) {
           const egress = Array.isArray(m.egress) ? (m.egress as string[]) : [];
-          if (!egress.length) fail(`${tag}: http:outbound declared but egress[] is empty`);
+          // Empty egress[] is legal only with operatorEgress (hosts are admin-supplied).
+          if (!egress.length && !mOperatorEgress) {
+            fail(`${tag}: http:outbound declared but egress[] is empty (set operatorEgress: true if the hosts are admin-supplied)`);
+          }
           if (egress.includes('*')) fail(`${tag}: egress[] must not contain a bare "*"`);
         }
         if (!failures.some((f) => f.startsWith(`${tag}: manifest`))) ok(`${tag}: manifest at commit matches the entry`);

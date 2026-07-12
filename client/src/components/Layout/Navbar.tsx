@@ -172,6 +172,21 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         </div>
       )}
 
+      {/* Centre slot for page-scoped notices (plugin trip warnings portal into it).
+          Only mounted on trip pages, where the tab pill above is absent, so the two
+          never fight over the centre. Zero-size while empty; pointer events stay off
+          on the wrapper so an empty slot can't swallow clicks. */}
+      {tripTitle && (
+        <div
+          id="trek-nav-center-slot"
+          style={{
+            position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+            display: 'flex', alignItems: 'center', gap: 6, maxWidth: '42%',
+            overflow: 'hidden', pointerEvents: 'none',
+          }}
+        />
+      )}
+
       {/* Spacer */}
       <div className="flex-1" />
 

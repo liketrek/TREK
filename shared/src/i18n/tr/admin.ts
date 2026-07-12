@@ -212,6 +212,13 @@ const admin: TranslationStrings = {
   'admin.plugins.dropToUpload': 'Yüklemek için bir eklenti .zip dosyası bırakın',
   'admin.plugins.uploaded': '“{name}” eklentisi yüklendi — çalıştırmak için etkinleştirin',
   'admin.plugins.sideloaded': 'Elle yüklendi',
+  'admin.plugins.devLinkBadge': 'Dev-Link',
+  'admin.plugins.devLinkHint':
+    'Yerel bir derleme dizininden yüklenir ve gerçek verilerle anında yeniden yüklenir — yalnızca geliştirme',
+  'admin.plugins.devLinkTitle': 'Yerel bir eklenti bağla',
+  'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
+  'admin.plugins.devLinkButton': 'Bağla',
+  'admin.plugins.devLinkLinked': '{id} bağlandı — çalıştırmak için etkinleştir',
   'admin.plugins.sideloadedHint': 'Elle yüklendi — dizinden değil, imzasız ve incelenmemiş',
   'admin.plugins.browse': 'Eklentilere göz at',
   'admin.plugins.installed': 'Yüklü',
@@ -224,6 +231,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Eklenti devre dışı bırakıldı',
   'admin.plugins.viewErrors': 'Hata günlüğünü görüntüle',
   'admin.plugins.errorLog': 'Hata günlüğü',
+  'admin.plugins.allowedHosts': 'İzin verilen ana bilgisayarlar',
+  'admin.plugins.allowedHosts.hint': 'Bu eklenti yalnızca sizin adlandırabileceğiniz bir hizmete bağlanır (kendi barındırdığınız sunucu). Erişebileceği ana bilgisayarları ekleyin — başkasına erişemez.',
+  'admin.plugins.allowedHosts.none': 'Henüz ana bilgisayar eklenmedi.',
+  'admin.plugins.allowedHosts.unsupported': 'Bu eklenti operatör tarafından verilen ana bilgisayarları kullanmaz. İzin verilenler manifestinde sabittir.',
+  'admin.plugins.allowedHosts.restartNote': 'Kaydetmek, yeni listeyi alması için eklentiyi yeniden başlatır.',
+  'admin.plugins.allowedHosts.add': 'İzin verilen ana bilgisayar ekle',
+  'admin.plugins.allowedHosts.count': '{n} izin verilen ana bilgisayar',
+  'admin.plugins.operatorEgressPill': '+ eklediğiniz ana bilgisayarlar',
+  'admin.plugins.operatorEgressHint': 'Bu eklenti yalnızca sizin adlandırabileceğiniz bir hizmete bağlanır (kendi barındırdığınız sunucu). Kurulumdan sonra ⋯ → İzin verilen ana bilgisayarlar altından ekleyin. Başkasına erişemez.',
   'admin.plugins.noErrors': 'Kayıtlı hata yok.',
   'admin.plugins.uninstalled': 'Eklenti kaldırıldı',
   'admin.plugins.uninstallTitle': 'Eklenti kaldırılsın mı?',
@@ -265,6 +281,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Kullanıcı başına',
   'admin.plugins.fieldRequired': 'Gerekli',
   'admin.plugins.sourceRepo': 'Kaynak deposu',
+  'admin.plugins.reportIssue': 'Sorun bildir',
   'admin.plugins.homepage': 'Ana sayfa',
   'admin.plugins.requiresTrek': 'TREK {version}+ gerektirir',
   'admin.plugins.reviewedOn': '{date} tarihinde incelendi',
@@ -273,7 +290,52 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Temel profil bilgilerini okur (ad, avatar — asla kimlik bilgileri değil)',
   'admin.plugins.perm.db:read:costs': 'İşlemi yapan kullanıcının erişebildiği harcamaları (bütçe kalemleri) okur',
   'admin.plugins.perm.db:read:packing': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin eşya listelerini okur',
+  'admin.plugins.perm.db:write:packing':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde bavul listesi öğeleri oluşturur, düzenler ve siler',
+  'admin.plugins.perm.weather:read': 'Ana makinenin önbelleğe alınmış hava durumu tahminini okur (koordinatlara göre)',
+  'admin.plugins.perm.db:read:categories': 'Genel yer kategorisi listesini okur',
+  'admin.plugins.perm.db:read:tags': 'İşlemi yapan kullanıcının etiketlerini okur',
+  'admin.plugins.perm.db:write:tags': 'İşlemi yapan kullanıcının etiketlerini oluşturur, düzenler ve siler',
+  'admin.plugins.perm.db:read:todos': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin yapılacaklarını okur',
+  'admin.plugins.perm.db:write:todos':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde yapılacaklar oluşturur, düzenler ve siler',
+  'admin.plugins.perm.db:write:atlas':
+    'Ülkeleri ve bölgeleri ziyaret edildi olarak işaretler ve işlemi yapan kullanıcının hedef listesini yönetir (Atlas eklentisi gerektirir)',
+  'admin.plugins.perm.db:write:vacay':
+    'İşlemi yapan kullanıcının etkin planında izin günlerini ve şirket tatillerini değiştirir (Vacay eklentisi gerektirir)',
+  'admin.plugins.perm.db:write:journal':
+    'İşlemi yapan kullanıcının düzenleyebildiği günlüklerde girişler oluşturur, düzenler ve siler (Journey eklentisi gerektirir)',
+  'admin.plugins.perm.db:write:collections':
+    'Koleksiyonlar oluşturur ve düzenler, işlemi yapan kullanıcının koleksiyon rolüyle içine yerler kaydeder (Collections eklentisi gerektirir)',
+  'admin.plugins.perm.db:write:files':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlere dosyalar ekler (10 MB sınırı, engellenen uzantılar reddedilir) ve bağlantılarını yönetir',
+  'admin.plugins.perm.db:write:collab':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde notlar, anketler ve sohbet mesajları yayınlar (Collab eklentisi gerektirir)',
+  'admin.plugins.perm.db:write:members':
+    'Seyahatlere kullanıcı ekler — seyahat erişimi verir; işlemi yapan kullanıcının üye yönetimi hakkıyla korunur',
+  'admin.plugins.perm.notify:send':
+    'İşlemi yapan kullanıcıya veya ait olduğu bir seyahate bildirim (zil kutusu + e-posta/ntfy) gönderir — asla rastgele bir alıcıya değil',
+  'admin.plugins.perm.ai:invoke':
+    'Yönetici tarafından yapılandırılan yapay zekâ sağlayıcısını (metin tamamlama + belge çıkarımı) işlemi yapan kullanıcı adına çalıştırır — eklenti asla anahtar tutmaz',
+  'admin.plugins.perm.oauth:client':
+    'Ana makine aracılı OAuth ile senin adına üçüncü taraf bir hizmete bağlanır (jetonları ana makine tutar, eklenti bunları hiç görmez)',
   'admin.plugins.perm.db:read:files': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin dosyalarını okur',
+  'admin.plugins.perm.db:write:reservations':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde rezervasyonlar oluşturur, düzenler ve siler',
+  'admin.plugins.perm.db:write:accommodations':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde konaklamalar oluşturur, düzenler ve siler',
+  'admin.plugins.perm.db:read:journal':
+    'İşlemi yapan kullanıcının seyahat günlüklerini okur (Journey eklentisi gerektirir)',
+  'admin.plugins.perm.db:read:atlas':
+    'İşlemi yapan kullanıcının ziyaret ettiği ülkeleri ve bölgeleri okur (Atlas eklentisi gerektirir)',
+  'admin.plugins.perm.db:read:vacay': 'İşlemi yapan kullanıcının tatil planını okur (Vacay eklentisi gerektirir)',
+  'admin.plugins.perm.db:read:daynotes': 'İşlemi yapan kullanıcının erişebildiği seyahatlerin gün notlarını okur',
+  'admin.plugins.perm.db:read:collections':
+    'İşlemi yapan kullanıcının kaydedilen yer koleksiyonlarını okur (Collections eklentisi gerektirir)',
+  'admin.plugins.perm.db:write:daynotes':
+    'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde gün notları oluşturur, düzenler ve siler',
+  'admin.plugins.perm.jobs:run':
+    'Bildirdiği arka plan işlerini bir zamanlamaya göre çalıştırır (kullanıcı bağlamı yok — kullanıcı verilerini okuyamaz)',
   'admin.plugins.perm.db:write:costs':
     'İşlemi yapan kullanıcının düzenleyebildiği seyahatlerde harcamalar (bütçe kalemleri) oluşturur',
   'admin.plugins.perm.db:write:places':
@@ -293,9 +355,28 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Bir yere ek ayrıntılar (yorumlar, puanlar, bağlantılar) katkıda bulunur',
   'admin.plugins.perm.hook:trip-warning-provider': 'Bir gezide doğrulama uyarıları oluşturur (planlayıcıda gösterilir)',
+  'admin.plugins.perm.hook:table-contributor':
+    'Seyahat görünümlerine sütunlar ve eylemler ekler (rezervasyonlar, yerler, günler)',
+  'admin.plugins.perm.hook:map-marker-provider':
+    "Seyahat haritasına işaretçiler ekler (ör. rezervasyonları veya POI'leri gösterir)",
+  'admin.plugins.perm.hook:pdf-section-provider': 'Seyahat PDF dışa aktarımına metin bölümleri ekler',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Atlas dünya haritasında ülkeleri vurgular (ör. istek listeleri veya seyahat uyarıları)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Günlük girişlerine ek satırlar (bağlantılar, istatistikler) ekler',
+  'admin.plugins.perm.hook:user-data':
+    'Bir kullanıcı hakkında sakladığı verileri silme veya dışa aktarma (KVKK/GDPR: hesap silme ve veri talepleri)',
+  'admin.plugins.perm.hook:trip-card-provider':
+    'Kontrol panelindeki gezi kartlarına küçük rozetler (durum, sayaçlar) ekleme',
+  'admin.plugins.perm.hook:notification-channel': 'Bildirimlerinizi ek bir kanal üzerinden iletmek',
   'admin.plugins.perm.events:subscribe':
     'Temel etkinlik olaylarına tepki verir (yalnızca olay adı + seyahat, asla içerik değil)',
   'admin.plugins.perm.http:outbound': 'Bildirdiği ana bilgisayarlara giden istekler yapar',
+  'admin.plugins.perm.db:read:collab':
+    'İşlemi yapan kullanıcının erişebildiği seyahatlerin notlarını, anketlerini ve sohbet mesajlarını okur (Collab eklentisi gerektirir)',
+  'admin.plugins.perm.db:read:files:content':
+    'İşlemi yapan kullanıcının erişebildiği seyahatlerdeki dosyaların içeriğini (baytlar) okur',
+  'admin.plugins.perm.db:create:trips': 'İşlemi yapan kullanıcıya ait yeni seyahatler oluşturur',
+  'admin.plugins.perm.rates:read': 'Ana makinenin önbelleğe alınmış döviz kurlarını okur',
   'admin.plugins.updateConsentTitle': 'Bu güncelleme yeni izinler gerektiriyor',
   'admin.plugins.updateConsentBody':
     '{name} v{version}, henüz vermediğiniz haklar istiyor. Yeni sürüm yüklendi ancak siz onaylayana kadar kapalı kalır.',
@@ -338,6 +419,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Ad',
   'admin.plugins.sortRecent': 'Son güncellenen',
   'admin.plugins.sortUpdates': 'Önce güncellemeler',
+  'admin.plugins.sortDownloads': 'En çok indirilen',
   'admin.plugins.updatesAvailable': 'Eklentileriniz için {count} güncelleme mevcut.',
   'admin.plugins.updateAll': 'Tümünü güncelle',
   'admin.plugins.noMatchInstalled': 'Aramanızla eşleşen yüklü eklenti yok.',
@@ -358,7 +440,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': "Pano widget'ı",
   'admin.plugins.cap.heroWidget': "Biniş kartı widget'ı",
   'admin.plugins.cap.placeSlot': 'Yer detayı',
+  'admin.plugins.cap.daySlot': 'Gün detayı',
+  'admin.plugins.cap.reservationSlot': 'Rezervasyon detayı',
+  'admin.plugins.cap.replacesTabs': 'Planlayıcı sekmelerini değiştirir',
   'admin.plugins.cap.realtime': 'Gerçek zamanlı güncellemeler',
+  'admin.plugins.cap.notificationChannel': 'Bildirim kanalı',
   'admin.plugins.cap.photos': 'Fotoğraf sağlar',
   'admin.plugins.cap.calendar': 'Takvim etkinlikleri sağlar',
   'admin.plugins.cap.placeDetails': 'Yerleri zenginleştirir',
@@ -384,11 +470,12 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Boyut',
   'admin.plugins.metaRequires': 'Gerektirir',
   'admin.plugins.metaReviewed': 'İncelenme tarihi',
+  'admin.plugins.downloads': 'İndirmeler',
   'admin.addons.title': 'Eklentiler',
   'admin.addons.subtitle': 'TREK deneyiminizi özelleştirmek için özellikleri etkinleştirin veya devre dışı bırakın.',
   'admin.addons.catalog.packing.name': 'Listeler',
   'admin.addons.catalog.packing.description': 'Seyahatleriniz için paket listeleri ve yapılacak işler',
-  'admin.addons.catalog.budget.name': 'Bütçe',
+  'admin.addons.catalog.budget.name': 'Maliyetler',
   'admin.addons.catalog.budget.description': 'Harcamaları takip edin ve seyahat bütçenizi planlayın',
   'admin.addons.catalog.documents.name': 'Belgeler',
   'admin.addons.catalog.documents.description': 'Seyahat belgelerini saklayın ve yönetin',

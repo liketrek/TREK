@@ -150,6 +150,44 @@ body.trek-ui {
 }
 .trek-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
 
+/* Enhanced select — the kit upgrades a native <select> into this listbox so the
+   dropdown matches the host (a native popup is drawn by the OS and can't be
+   themed). The real <select> stays in the DOM as the value source. */
+.trek-select-wrap { position: relative; }
+.trek-select-native-hidden {
+  position: absolute !important; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); border: 0;
+}
+.trek-select-trigger {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  text-align: start; cursor: pointer;
+}
+.trek-select-trigger:disabled { opacity: .5; cursor: not-allowed; }
+.trek-select-trigger[aria-expanded="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 22%, transparent);
+}
+.trek-select-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trek-select-caret { flex: none; display: inline-flex; color: var(--text-faint); transition: transform .15s; }
+.trek-select-trigger[aria-expanded="true"] .trek-select-caret { transform: rotate(180deg); }
+.trek-select-menu {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 50;
+  margin-top: 6px; padding: 4px;
+  max-height: 260px; overflow-y: auto;
+  background: var(--bg-card); color: var(--text-primary);
+  border: 1px solid var(--border-primary); border-radius: 10px;
+  box-shadow: var(--shadow-md);
+}
+.trek-select-menu[data-placement="top"] { top: auto; bottom: 100%; margin-top: 0; margin-bottom: 6px; }
+.trek-select-option {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 7px; cursor: pointer;
+  font-size: 13px; white-space: nowrap;
+}
+.trek-select-option.trek-active { background: var(--bg-hover); }
+.trek-select-option[aria-selected="true"] { color: var(--accent); font-weight: 600; }
+.trek-select-option[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+
 /* Chips + badges ----------------------------------------------------------- */
 .trek-chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -178,6 +216,101 @@ body.trek-ui {
 .trek-stack { display: flex; flex-direction: column; gap: 12px; }
 .trek-cluster { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
+/* Motion library — the host's animation vocabulary, mirrored 1:1 from
+   index.css so plugin UI moves exactly like TREK does. ---------------------- */
+@keyframes trek-menu-enter {
+  from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes trek-popover-enter {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes trek-modal-enter {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes trek-backdrop-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes trek-toast-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes trek-progress-fill {
+  from { width: 0%; }
+  to   { width: var(--trek-progress-to, 0%); }
+}
+@keyframes trek-pie-reveal {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.85); }
+  to   { opacity: 1; transform: rotate(0deg) scale(1); }
+}
+@keyframes trek-bar-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes trek-page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes trek-shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+@keyframes trek-drawer-enter {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes trek-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.trek-menu-enter {
+  animation: trek-menu-enter 200ms var(--trek-ease-quint);
+  transform-origin: top right; will-change: transform, opacity;
+}
+.trek-menu-enter-left {
+  animation: trek-menu-enter 200ms var(--trek-ease-quint);
+  transform-origin: top left; will-change: transform, opacity;
+}
+.trek-popover-enter { animation: trek-popover-enter 180ms var(--trek-ease-quint); will-change: transform, opacity; }
+.trek-modal-enter { animation: trek-modal-enter 220ms var(--trek-ease-quint); will-change: transform, opacity; }
+@media (max-width: 639px) {
+  .trek-modal-enter { animation: trek-drawer-enter 320ms cubic-bezier(0.32, 0.72, 0, 1); }
+}
+.trek-backdrop-enter { animation: trek-backdrop-enter 180ms var(--trek-ease-quint); }
+.trek-toast-enter { animation: trek-toast-enter 260ms var(--trek-ease-quint); will-change: transform, opacity; }
+.trek-pie-reveal {
+  animation: trek-pie-reveal 900ms var(--trek-ease-quint) both;
+  transform-origin: center; will-change: transform, opacity;
+}
+.trek-bar-fill {
+  animation: trek-bar-fill 700ms var(--trek-ease-quint) both;
+  transform-origin: left center; will-change: transform;
+}
+.trek-page-enter { animation: trek-page-enter 220ms var(--trek-ease-quint) both; }
+.trek-skeleton {
+  background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--bg-hover) 50%, var(--bg-tertiary) 100%);
+  background-size: 200% 100%;
+  animation: trek-shimmer 1.6s linear infinite;
+  border-radius: 8px; color: transparent; user-select: none;
+}
+[data-theme="dark"] .trek-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
+  background-size: 200% 100%;
+}
+.trek-stagger > * { animation: trek-fade-up 280ms var(--trek-ease-quint) both; }
+.trek-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.trek-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.trek-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.trek-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.trek-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.trek-stagger > *:nth-child(6) { animation-delay: 200ms; }
+.trek-stagger > *:nth-child(7) { animation-delay: 240ms; }
+.trek-stagger > *:nth-child(8) { animation-delay: 280ms; }
+.trek-stagger > *:nth-child(n+9) { animation-delay: 320ms; }
+
 /* Accessibility: mirror the host's own graceful-degrade rules. -------------- */
 [data-no-transparency] .trek-glass {
   background: var(--bg-card); border-color: var(--border-primary);
@@ -189,9 +322,26 @@ body.trek-ui {
 [data-reduce-motion] .trek-row { transition: none; }
 [data-reduce-motion] .trek-interactive:hover,
 [data-reduce-motion] .trek-btn:active { transform: none; }
+[data-reduce-motion] .trek-menu-enter, [data-reduce-motion] .trek-menu-enter-left,
+[data-reduce-motion] .trek-popover-enter, [data-reduce-motion] .trek-modal-enter,
+[data-reduce-motion] .trek-toast-enter, [data-reduce-motion] .trek-stagger > *,
+[data-reduce-motion] .trek-page-enter {
+  animation: trek-backdrop-enter 120ms ease-out;
+}
+[data-reduce-motion] .trek-pie-reveal, [data-reduce-motion] .trek-bar-fill {
+  animation: trek-backdrop-enter 120ms ease-out both;
+}
+[data-reduce-motion] .trek-skeleton { animation: none; background: var(--bg-tertiary); }
+[data-reduce-motion] .trek-select-caret { transition: none; }
 @media (prefers-reduced-motion: reduce) {
-  .trek-interactive, .trek-btn, .trek-row, .trek-input, .trek-textarea, .trek-select { transition: none; }
+  .trek-interactive, .trek-btn, .trek-row, .trek-input, .trek-textarea, .trek-select, .trek-select-caret { transition: none; }
   .trek-interactive:hover, .trek-btn:active { transform: none; }
+  .trek-menu-enter, .trek-menu-enter-left, .trek-popover-enter,
+  .trek-modal-enter, .trek-toast-enter, .trek-stagger > *, .trek-page-enter {
+    animation: trek-backdrop-enter 120ms ease-out;
+  }
+  .trek-pie-reveal, .trek-bar-fill { animation: trek-backdrop-enter 120ms ease-out both; }
+  .trek-skeleton { animation: none; background: var(--bg-tertiary); }
 }`;
 
 /**
@@ -205,8 +355,10 @@ export const TREK_THEME_JS = `(function () {
   'use strict';
   var docEl = document.documentElement;
   var ctxHandlers = [];
+  var evtHandlers = [];
   var lastCtx = null;
   var pending = {};
+  var pendingConfirms = {};
   var seq = 0;
   var lastH = -1;
 
@@ -215,6 +367,8 @@ export const TREK_THEME_JS = `(function () {
 
   function applyContext(m) {
     if (m.theme) { docEl.setAttribute('data-theme', m.theme); }
+    if (m.locale) { docEl.setAttribute('lang', m.locale); }
+    docEl.setAttribute('dir', m.dir === 'rtl' ? 'rtl' : 'ltr');
     var t = m.tokens || {};
     for (var k in t) {
       if (Object.prototype.hasOwnProperty.call(t, k) && t[k]) { docEl.style.setProperty(k, t[k]); }
@@ -249,6 +403,11 @@ export const TREK_THEME_JS = `(function () {
     } else if (m.type === 'trek:error') {
       var q = pending[m.requestId];
       if (q) { delete pending[m.requestId]; var err = new Error(m.message || 'invoke failed'); err.code = m.code; q.reject(err); }
+    } else if (m.type === 'trek:confirm:result') {
+      var c = pendingConfirms[m.requestId];
+      if (c) { delete pendingConfirms[m.requestId]; c(!!m.confirmed); }
+    } else if (m.type === 'trek:event') {
+      for (var j = 0; j < evtHandlers.length; j++) { try { evtHandlers[j](m.event, m.tripId); } catch (e) {} }
     }
   });
 
@@ -297,9 +456,26 @@ export const TREK_THEME_JS = `(function () {
       if (lastCtx) { try { cb(lastCtx); } catch (e) {} }
       return function () { var i = ctxHandlers.indexOf(cb); if (i >= 0) { ctxHandlers.splice(i, 1); } };
     },
-    notify: function (level, message) { send({ type: 'trek:notify', level: level, message: message }); },
+    notify: function (level, message, duration) { send({ type: 'trek:notify', level: level, message: message, duration: duration }); },
     navigate: function (to) { send({ type: 'trek:navigate', to: to }); },
+    openExternal: function (url) { send({ type: 'trek:openExternal', url: url }); },
     resize: function (px) { var h = px | 0; if (h > 0) { lastH = h; send({ type: 'trek:resize', height: h }); } },
+    // Host-rendered native confirm dialog; resolves true/false. The host shows one
+    // at a time — a second concurrent request resolves false immediately.
+    confirm: function (opts) {
+      opts = typeof opts === 'string' ? { message: opts } : (opts || {});
+      var id = 'c' + (++seq);
+      return new Promise(function (resolve) {
+        pendingConfirms[id] = resolve;
+        send({ type: 'trek:confirm', requestId: id, title: opts.title, message: opts.message, confirmLabel: opts.confirmLabel, cancelLabel: opts.cancelLabel, danger: opts.danger });
+      });
+    },
+    // Core-event names for the trip in view ({ event, tripId } only, no payloads) —
+    // refetch via invoke() when something relevant fires instead of polling.
+    onEvent: function (cb) {
+      evtHandlers.push(cb);
+      return function () { var i = evtHandlers.indexOf(cb); if (i >= 0) { evtHandlers.splice(i, 1); } };
+    },
     invoke: function (sub, opts) {
       opts = opts || {};
       var id = 'r' + (++seq);
@@ -311,8 +487,172 @@ export const TREK_THEME_JS = `(function () {
   };
   window.trek = api;
 
+  // --- Native <select> -> host-styled listbox ---------------------------------
+  // A native select's popup is drawn by the OS and can't match TREK. Upgrade each
+  // one to a keyboard-accessible listbox that uses the kit tokens, while the real
+  // <select> stays in the DOM as the value/form source (kept in sync both ways).
+  // Opt out per field with data-trek-native; multi/size selects are left alone.
+  function dispatch(el, type) {
+    var ev;
+    try { ev = new Event(type, { bubbles: true }); }
+    catch (e) { ev = document.createEvent('Event'); ev.initEvent(type, true, false); }
+    el.dispatchEvent(ev);
+  }
+  function enhanceSelect(sel) {
+    if (!sel || sel.__trekSelect || sel.hasAttribute('data-trek-native')) { return; }
+    if (sel.multiple || sel.size > 1 || !sel.parentNode) { return; }
+    sel.__trekSelect = true;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'trek-select-wrap';
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+    sel.classList.add('trek-select-native-hidden');
+    sel.setAttribute('tabindex', '-1');
+    sel.setAttribute('aria-hidden', 'true');
+
+    var trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'trek-select trek-select-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    if (sel.disabled) { trigger.disabled = true; }
+    var valueEl = document.createElement('span');
+    valueEl.className = 'trek-select-value';
+    var caret = document.createElement('span');
+    caret.className = 'trek-select-caret';
+    caret.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    trigger.appendChild(valueEl);
+    trigger.appendChild(caret);
+    wrap.appendChild(trigger);
+
+    var menu = document.createElement('div');
+    menu.className = 'trek-select-menu';
+    menu.setAttribute('role', 'listbox');
+    menu.hidden = true;
+    wrap.appendChild(menu);
+
+    var activeIdx = -1;
+
+    function syncTrigger() {
+      var o = sel.options[sel.selectedIndex];
+      valueEl.textContent = o ? o.text : '';
+    }
+    function buildMenu() {
+      menu.innerHTML = '';
+      for (var i = 0; i < sel.options.length; i++) {
+        var o = sel.options[i];
+        var item = document.createElement('div');
+        item.className = 'trek-select-option';
+        item.setAttribute('role', 'option');
+        item.setAttribute('data-idx', String(i));
+        item.setAttribute('aria-selected', i === sel.selectedIndex ? 'true' : 'false');
+        if (o.disabled) { item.setAttribute('aria-disabled', 'true'); }
+        item.textContent = o.text;
+        menu.appendChild(item);
+      }
+    }
+    function highlight(idx) {
+      var opts = menu.children;
+      for (var i = 0; i < opts.length; i++) {
+        opts[i].className = i === idx ? 'trek-select-option trek-active' : 'trek-select-option';
+      }
+      if (idx >= 0 && opts[idx] && opts[idx].scrollIntoView) { opts[idx].scrollIntoView({ block: 'nearest' }); }
+      activeIdx = idx;
+    }
+    function onDocDown(e) { if (!wrap.contains(e.target)) { closeMenu(); } }
+    function openMenu() {
+      if (trigger.disabled || !menu.hidden) { return; }
+      buildMenu();
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      // Flip above the trigger when there isn't room below in the frame viewport.
+      var r = trigger.getBoundingClientRect();
+      var below = window.innerHeight - r.bottom;
+      if (below < Math.min(260, menu.scrollHeight + 12) && r.top > below) { menu.setAttribute('data-placement', 'top'); }
+      else { menu.removeAttribute('data-placement'); }
+      highlight(sel.selectedIndex);
+      reportHeight();
+      document.addEventListener('mousedown', onDocDown, true);
+    }
+    function closeMenu() {
+      if (menu.hidden) { return; }
+      menu.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('mousedown', onDocDown, true);
+      reportHeight();
+    }
+    function nextEnabled(from, dir) {
+      var i = from;
+      for (var n = 0; n < sel.options.length; n++) {
+        i += dir;
+        if (i < 0) { i = sel.options.length - 1; }
+        if (i >= sel.options.length) { i = 0; }
+        if (!sel.options[i].disabled) { return i; }
+      }
+      return from;
+    }
+    function commit(idx) {
+      if (idx < 0 || idx >= sel.options.length || sel.options[idx].disabled) { return; }
+      if (sel.selectedIndex !== idx) { sel.selectedIndex = idx; dispatch(sel, 'input'); dispatch(sel, 'change'); }
+      syncTrigger();
+      closeMenu();
+      trigger.focus();
+    }
+
+    trigger.addEventListener('click', function () { if (menu.hidden) { openMenu(); } else { closeMenu(); } });
+    trigger.addEventListener('keydown', function (e) {
+      var k = e.key;
+      if (menu.hidden) {
+        if (k === 'ArrowDown' || k === 'ArrowUp' || k === 'Enter' || k === ' ' || k === 'Spacebar') { e.preventDefault(); openMenu(); }
+        return;
+      }
+      if (k === 'Escape') { e.preventDefault(); closeMenu(); trigger.focus(); }
+      else if (k === 'ArrowDown') { e.preventDefault(); highlight(nextEnabled(activeIdx, 1)); }
+      else if (k === 'ArrowUp') { e.preventDefault(); highlight(nextEnabled(activeIdx, -1)); }
+      else if (k === 'Home') { e.preventDefault(); highlight(nextEnabled(-1, 1)); }
+      else if (k === 'End') { e.preventDefault(); highlight(nextEnabled(0, -1)); }
+      else if (k === 'Enter' || k === ' ' || k === 'Spacebar') { e.preventDefault(); commit(activeIdx); }
+      else if (k === 'Tab') { closeMenu(); }
+    });
+    menu.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep focus on the trigger
+    menu.addEventListener('click', function (e) {
+      var t = e.target;
+      while (t && t !== menu && !(t.getAttribute && t.hasAttribute('data-idx'))) { t = t.parentNode; }
+      if (t && t.getAttribute && t.hasAttribute('data-idx')) { commit(parseInt(t.getAttribute('data-idx'), 10)); }
+    });
+    menu.addEventListener('mousemove', function (e) {
+      var t = e.target;
+      while (t && t !== menu && !(t.getAttribute && t.hasAttribute('data-idx'))) { t = t.parentNode; }
+      if (t && t.getAttribute && t.hasAttribute('data-idx')) { highlight(parseInt(t.getAttribute('data-idx'), 10)); }
+    });
+    // The plugin may set select.value itself — mirror it back to the trigger.
+    sel.addEventListener('change', syncTrigger);
+    syncTrigger();
+  }
+  function enhanceAllSelects(root) {
+    var live = (root || document).getElementsByTagName('select');
+    var arr = [];
+    for (var i = 0; i < live.length; i++) { arr.push(live[i]); }
+    for (var j = 0; j < arr.length; j++) { enhanceSelect(arr[j]); }
+  }
+
   function boot() {
     if (document.body) { document.body.classList.add('trek-ui'); }
+    enhanceAllSelects(document);
+    if (typeof MutationObserver !== 'undefined' && document.body) {
+      new MutationObserver(function (muts) {
+        for (var i = 0; i < muts.length; i++) {
+          var added = muts[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            var n = added[j];
+            if (!n || n.nodeType !== 1) { continue; }
+            if (n.tagName === 'SELECT') { enhanceSelect(n); }
+            else if (n.getElementsByTagName) { enhanceAllSelects(n); }
+          }
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    }
     api.ready();
     reportHeight();
     if (typeof ResizeObserver !== 'undefined' && document.body) {

@@ -136,18 +136,23 @@ export function createJourney(
 
   // link trips and sync skeleton entries
   if (data.trip_ids?.length) {
+    // Track the first trip that was ACTUALLY linked (addTripToJourney access-checks and
+    // returns false for a foreign/inaccessible trip). Inheriting the cover from a raw
+    // trip_ids[0] would otherwise leak an arbitrary trip's cover image cross-tenant.
+    let coverTripId: number | undefined;
     for (const tripId of data.trip_ids) {
-      addTripToJourney(journeyId, tripId, userId);
+      if (addTripToJourney(journeyId, tripId, userId) && coverTripId === undefined) coverTripId = tripId;
     }
 
-    // inherit cover image from first selected trip
-    const firstTrip = db.prepare('SELECT cover_image FROM trips WHERE id = ?').get(data.trip_ids[0]) as
-      | { cover_image: string | null }
-      | undefined;
-    if (firstTrip?.cover_image) {
-      // trip stores full path (/uploads/covers/x.jpg), journey stores relative (covers/x.jpg)
-      const relativePath = firstTrip.cover_image.replace(/^\/uploads\//, '');
-      db.prepare('UPDATE journeys SET cover_image = ? WHERE id = ?').run(relativePath, journeyId);
+    if (coverTripId !== undefined) {
+      const firstTrip = db.prepare('SELECT cover_image FROM trips WHERE id = ?').get(coverTripId) as
+        | { cover_image: string | null }
+        | undefined;
+      if (firstTrip?.cover_image) {
+        // trip stores full path (/uploads/covers/x.jpg), journey stores relative (covers/x.jpg)
+        const relativePath = firstTrip.cover_image.replace(/^\/uploads\//, '');
+        db.prepare('UPDATE journeys SET cover_image = ? WHERE id = ?').run(relativePath, journeyId);
+      }
     }
   }
 
@@ -398,26 +403,20 @@ export function syncTripPlaces(journeyId: number, tripId: number, authorId: numb
     const nextOrder = (dateMaxOrder.get(entryDate) ?? -1) + 1;
     dateMaxOrder.set(entryDate, nextOrder);
 
-    db.prepare(
-      `
-      INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    ).run(
+    insertSkeletonEntry({
       journeyId,
       tripId,
-      place.id,
+      placeId: place.id,
       authorId,
-      place.name,
+      title: place.name,
       entryDate,
       entryTime,
-      place.address || place.name,
-      place.lat || null,
-      place.lng || null,
-      nextOrder,
+      locationName: place.address || place.name,
+      lat: place.lat || null,
+      lng: place.lng || null,
+      sortOrder: nextOrder,
       now,
-      now,
-    );
+    });
   }
 }
 
@@ -478,26 +477,20 @@ export function onPlaceCreated(tripId: number, placeId: number) {
       .get(link.journey_id, entryDate) as { m: number | null };
     const nextOrder = (maxOrder?.m ?? -1) + 1;
 
-    db.prepare(
-      `
-      INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    ).run(
-      link.journey_id,
+    insertSkeletonEntry({
+      journeyId: link.journey_id,
       tripId,
       placeId,
-      journey.user_id,
-      place.name,
+      authorId: journey.user_id,
+      title: place.name,
       entryDate,
-      place.assignment_time || place.place_time || null,
-      place.address || place.name,
-      place.lat || null,
-      place.lng || null,
-      nextOrder,
+      entryTime: place.assignment_time || place.place_time || null,
+      locationName: place.address || place.name,
+      lat: place.lat || null,
+      lng: place.lng || null,
+      sortOrder: nextOrder,
       now,
-      now,
-    );
+    });
   }
 }
 
@@ -569,6 +562,189 @@ export function onPlaceDeleted(placeId: number) {
     db.prepare(
       'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
     ).run(entry.type === 'skeleton' ? 'entry' : entry.type, newStory, ts(), entry.id);
+  }
+}
+
+// Shared skeleton INSERT, reused by syncTripPlaces / onPlaceCreated / reconcileTripSkeletons.
+function insertSkeletonEntry(p: {
+  journeyId: number;
+  tripId: number;
+  placeId: number;
+  authorId: number;
+  title: string;
+  entryDate: string;
+  entryTime: string | null;
+  locationName: string;
+  lat: number | null;
+  lng: number | null;
+  sortOrder: number;
+  now: number;
+}) {
+  db.prepare(
+    `
+    INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `,
+  ).run(
+    p.journeyId,
+    p.tripId,
+    p.placeId,
+    p.authorId,
+    p.title,
+    p.entryDate,
+    p.entryTime,
+    p.locationName,
+    p.lat,
+    p.lng,
+    p.sortOrder,
+    p.now,
+    p.now,
+  );
+}
+
+// Make every journey linked to `tripId` mirror the trip's currently day-assigned
+// places: add skeletons for newly-assigned places, refresh skeleton snapshots when a
+// place is moved to another day / its time changes, and drop skeletons for places no
+// longer assigned. Filled entries are never destroyed — only detached + annotated,
+// mirroring onPlaceDeleted. Idempotent: a second call with no underlying change is a
+// no-op (no writes, no broadcast). Called from every assignment mutation path.
+export function reconcileTripSkeletons(tripId: number, sid?: string | number) {
+  const links = db.prepare('SELECT journey_id FROM journey_trips WHERE trip_id = ?').all(tripId) as {
+    journey_id: number;
+  }[];
+  if (!links.length) return;
+
+  const places = db
+    .prepare(
+      `
+    SELECT p.*, da.day_id, d.date as day_date, da.assignment_time, d.day_number, da.order_index
+    FROM places p
+    INNER JOIN day_assignments da ON da.place_id = p.id
+    INNER JOIN days d ON da.day_id = d.id
+    WHERE p.trip_id = ?
+    ORDER BY d.day_number ASC, da.order_index ASC
+  `,
+    )
+    .all(tripId) as any[];
+
+  // One skeleton per place (a place on multiple days keeps its first-by-day/order row),
+  // matching the one-skeleton-per-place model used by onPlaceCreated.
+  const placeById = new Map<number, any>();
+  for (const place of places) if (!placeById.has(place.id)) placeById.set(place.id, place);
+  const assignedPlaceIds = new Set(placeById.keys());
+
+  const now = ts();
+  for (const { journey_id } of links) {
+    const journey = db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(journey_id) as
+      | { user_id: number }
+      | undefined;
+    if (!journey) continue;
+
+    let changed = false;
+    const existing = db
+      .prepare(
+        `SELECT id, source_place_id, type, story, title, entry_date, entry_time, location_name, location_lat, location_lng
+         FROM journey_entries WHERE journey_id = ? AND source_trip_id = ?`,
+      )
+      .all(journey_id, tripId) as {
+      id: number;
+      source_place_id: number | null;
+      type: string;
+      story: string | null;
+      title: string | null;
+      entry_date: string | null;
+      entry_time: string | null;
+      location_name: string | null;
+      location_lat: number | null;
+      location_lng: number | null;
+    }[];
+    const existingByPlace = new Map<number, (typeof existing)[number]>();
+    for (const e of existing) if (e.source_place_id != null) existingByPlace.set(e.source_place_id, e);
+
+    // Next sort_order per date for freshly inserted skeletons.
+    const dateMaxOrder = new Map<string, number>();
+    const maxRows = db
+      .prepare(
+        'SELECT entry_date, COALESCE(MAX(sort_order), -1) AS m FROM journey_entries WHERE journey_id = ? GROUP BY entry_date',
+      )
+      .all(journey_id) as { entry_date: string; m: number }[];
+    for (const row of maxRows) dateMaxOrder.set(row.entry_date, row.m);
+
+    // 1) Upsert a skeleton for every currently-assigned place.
+    for (const place of placeById.values()) {
+      const entryDate = place.day_date || new Date().toISOString().split('T')[0];
+      const entryTime = place.assignment_time || place.place_time || null;
+      const locationName = place.address || place.name;
+      const lat = place.lat || null;
+      const lng = place.lng || null;
+      const found = existingByPlace.get(place.id);
+
+      if (!found) {
+        const nextOrder = (dateMaxOrder.get(entryDate) ?? -1) + 1;
+        dateMaxOrder.set(entryDate, nextOrder);
+        insertSkeletonEntry({
+          journeyId: journey_id,
+          tripId,
+          placeId: place.id,
+          authorId: journey.user_id,
+          title: place.name,
+          entryDate,
+          entryTime,
+          locationName,
+          lat,
+          lng,
+          sortOrder: nextOrder,
+          now,
+        });
+        changed = true;
+      } else if (found.type === 'skeleton') {
+        // Skeletons follow the place's day/time/location snapshot.
+        const stale =
+          found.title !== place.name ||
+          found.entry_date !== entryDate ||
+          found.entry_time !== entryTime ||
+          found.location_name !== locationName ||
+          found.location_lat !== lat ||
+          found.location_lng !== lng;
+        if (stale) {
+          db.prepare(
+            `UPDATE journey_entries SET title = ?, entry_date = ?, entry_time = ?, location_name = ?, location_lat = ?, location_lng = ?, updated_at = ? WHERE id = ?`,
+          ).run(place.name, entryDate, entryTime, locationName, lat, lng, now, found.id);
+          changed = true;
+        }
+      } else {
+        // Filled entries keep the user's date/story; only location follows the place.
+        const stale =
+          found.location_name !== locationName || found.location_lat !== lat || found.location_lng !== lng;
+        if (stale) {
+          db.prepare(
+            `UPDATE journey_entries SET location_name = ?, location_lat = ?, location_lng = ?, updated_at = ? WHERE id = ?`,
+          ).run(locationName, lat, lng, now, found.id);
+          changed = true;
+        }
+      }
+    }
+
+    // 2) Drop skeletons whose place is no longer assigned to a day in this trip.
+    for (const e of existing) {
+      if (e.source_place_id == null || assignedPlaceIds.has(e.source_place_id)) continue;
+      if (e.type === 'skeleton') {
+        const hasPhotos = db.prepare('SELECT 1 FROM journey_entry_photos WHERE entry_id = ?').get(e.id);
+        if (!hasPhotos && !e.story) {
+          db.prepare('DELETE FROM journey_entries WHERE id = ?').run(e.id);
+          changed = true;
+          continue;
+        }
+      }
+      const note = '\n\n> _Note: the original trip place was removed from the trip plan_';
+      const newStory = (e.story || '') + note;
+      db.prepare(
+        'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
+      ).run(e.type === 'skeleton' ? 'entry' : e.type, newStory, now, e.id);
+      changed = true;
+    }
+
+    if (changed) broadcastJourneyEvent(journey_id, 'journey:trip:synced', { tripId }, sid);
   }
 }
 

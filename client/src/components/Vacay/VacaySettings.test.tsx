@@ -7,6 +7,7 @@ import { server } from '../../../tests/helpers/msw/server'
 import { http, HttpResponse } from 'msw'
 import { useVacayStore } from '../../store/vacayStore'
 import VacaySettings from './VacaySettings'
+import { fetchRegionOptions } from './holidayRegions'
 
 const basePlan = {
   id: 1,
@@ -412,6 +413,40 @@ describe('VacaySettings', () => {
     await user.click(toggleButtons[2])
 
     expect(updatePlan).toHaveBeenCalledWith({ company_holidays_enabled: true })
+  })
+
+  it('FE-COMP-VACAYSETTINGS-019: fetchRegionOptions lists the full ISO subdivision set incl. states with no holiday (regression #1456: US-WA)', async () => {
+    // US 2026 nager data tags some states but NOT Washington — it must still appear.
+    server.use(
+      http.get('/api/addons/vacay/holidays/:year/:country', () =>
+        HttpResponse.json([
+          { date: '2026-01-01', global: true, counties: null },
+          { date: '2026-04-25', global: false, counties: ['US-CA', 'US-VT', 'US-WI'] },
+        ])
+      ),
+    )
+
+    const opts = await fetchRegionOptions('US')
+
+    // Washington is present with its proper name, and options are sorted by label.
+    expect(opts).toContainEqual({ value: 'US-WA', label: 'Washington' })
+    const labels = opts.map(o => o.label)
+    expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b)))
+    // Other previously-missing states surface too.
+    expect(opts.map(o => o.value)).toEqual(expect.arrayContaining(['US-AR', 'US-FL', 'US-NV', 'US-WY']))
+  })
+
+  it('FE-COMP-VACAYSETTINGS-020: fetchRegionOptions returns [] for a nationwide-only country (no region picker forced)', async () => {
+    server.use(
+      http.get('/api/addons/vacay/holidays/:year/:country', () =>
+        HttpResponse.json([
+          { date: '2026-01-01', global: true, counties: null },
+          { date: '2026-12-25', global: true, counties: null },
+        ])
+      ),
+    )
+
+    expect(await fetchRegionOptions('JP')).toEqual([])
   })
 
   it('FE-COMP-VACAYSETTINGS-018: adding weekend day calls updatePlan with day added', async () => {

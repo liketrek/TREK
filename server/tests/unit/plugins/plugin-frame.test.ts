@@ -40,7 +40,7 @@ function fakeRes() {
   };
   return res;
 }
-const req = (p: string) => ({ params: { path: p } }) as never;
+const req = (p: string, host?: string) => ({ params: { path: p }, get: (h: string) => (h.toLowerCase() === 'host' ? host : undefined) }) as never;
 
 function runtime(active = true, hosts: string[] = []): PluginRuntimeService {
   return { isActive: vi.fn(() => active), outboundHostsOf: vi.fn(() => hosts) } as unknown as PluginRuntimeService;
@@ -58,6 +58,24 @@ describe('PluginFrameController', () => {
     expect(csp).not.toContain('allow-same-origin');
     expect(csp).toContain('connect-src \'self\' https://api.weather.com');
     expect(res.headers['X-Content-Type-Options']).toBe('nosniff');
+  });
+
+  it('allows the plugin its own static assets when the Host header is clean', () => {
+    const res = fakeRes();
+    new PluginFrameController(runtime(true)).serve('widget', req('', 'trek.example.com:8443'), res as never);
+    const csp = res.headers['Content-Security-Policy'];
+    // Scheme-less on purpose: matches the frame's own http AND https documents.
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' trek.example.com:8443/plugin-frame/widget/");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline' trek.example.com:8443/plugin-frame/widget/");
+    expect(csp).toContain("connect-src 'self' trek.example.com:8443/plugin-frame/widget/");
+  });
+
+  it('drops the own-assets source on a malformed Host header instead of widening the policy', () => {
+    const res = fakeRes();
+    new PluginFrameController(runtime(true)).serve('widget', req('', 'evil.com *'), res as never);
+    const csp = res.headers['Content-Security-Policy'];
+    expect(csp).toContain("script-src 'self' 'unsafe-inline';");
+    expect(csp).not.toContain('evil.com');
   });
 
   it('404 when the plugin is inactive', () => {

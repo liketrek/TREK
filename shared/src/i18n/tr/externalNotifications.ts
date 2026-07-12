@@ -52,6 +52,7 @@ const tr: NotificationLocale = {
       title: 'Synology oturumu temizlendi',
       body: 'Synology hesabınız veya URL değişti. Synology Photos oturumunuz kapatıldı.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Şifrenizi sıfırlayın',

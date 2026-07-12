@@ -107,35 +107,47 @@ export class FeedsService {
     if (!user) return null;
 
     const cutoff = ninetyDaysAgo();
+    // "All Trips" means every trip the user can open — trips they own AND trips shared with
+    // them as a member — mirroring the single-trip feed's access (tripTokenRow/assertAccess).
+    // A membership WHERE on trips selects each row once, so owned + member trips don't dupe.
     const trips = db
       .prepare(
         `SELECT id FROM trips
-         WHERE user_id = ?
+         WHERE (user_id = ? OR id IN (SELECT trip_id FROM trip_members WHERE user_id = ?))
            AND is_archived = 0
            AND (end_date IS NULL OR end_date >= ?)
          ORDER BY start_date ASC`,
       )
-      .all(user.id, cutoff) as { id: number }[];
+      .all(user.id, user.id, cutoff) as { id: number }[];
 
     const esc = (s: string) =>
       s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
     const calName = `${user.username} – All Trips`;
-    let combined =
+    let header =
       'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
-    combined += `X-WR-CALNAME:${esc(calName)}\r\n`;
-    combined += 'REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\nX-PUBLISHED-TTL:PT1H\r\n';
+    header += `X-WR-CALNAME:${esc(calName)}\r\n`;
+    header += 'REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\nX-PUBLISHED-TTL:PT1H\r\n';
 
+    // VTIMEZONE blocks are deduped by TZID across all trips and emitted once in
+    // the combined header, before any VEVENT, so per-trip TZID references still
+    // resolve after extractVEvents strips everything but the events (#1453).
+    const zones = new Map<string, string>();
+    let events = '';
     for (const { id } of trips) {
       try {
         const { ics } = exportICS(id);
-        combined += extractVEvents(ics);
+        for (const vtz of extractVTimezones(ics)) {
+          const tzid = vtz.match(/\r\nTZID:(.+)\r\n/)?.[1];
+          if (tzid && !zones.has(tzid)) zones.set(tzid, vtz);
+        }
+        events += extractVEvents(ics);
       } catch {
         // skip failed trips
       }
     }
 
-    combined += 'END:VCALENDAR\r\n';
+    const combined = header + [...zones.values()].join('') + events + 'END:VCALENDAR\r\n';
     return { ics: combined, calName };
   }
 }
@@ -155,4 +167,25 @@ function extractVEvents(ics: string): string {
     if (line === 'END:VEVENT') inside = false;
   }
   return out;
+}
+
+// Pull out each VTIMEZONE block (same structural line scan as extractVEvents) so
+// the combined all-trips feed can carry the zone definitions its events' TZID
+// parameters reference.
+function extractVTimezones(ics: string): string[] {
+  const blocks: string[] = [];
+  let current = '';
+  let inside = false;
+  for (const line of ics.split('\r\n')) {
+    if (line === 'BEGIN:VTIMEZONE') {
+      inside = true;
+      current = '';
+    }
+    if (inside) current += line + '\r\n';
+    if (line === 'END:VTIMEZONE') {
+      inside = false;
+      blocks.push(current);
+    }
+  }
+  return blocks;
 }

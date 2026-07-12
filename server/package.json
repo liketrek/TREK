@@ -1,6 +1,6 @@
 {
   "name": "@trek/server",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "main": "src/index.ts",
   "scripts": {
     "start": "node --require tsconfig-paths/register dist/index.js",
@@ -53,6 +53,7 @@
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
+    "tz-lookup": "^6.1.25",
     "undici": "^7.0.0",
     "unzipper": "^0.12.3",
     "uuid": "^14.0.0",
@@ -103,7 +104,6 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "supertest": "^7.2.2",
     "typescript-eslint": "^8.58.2",
-    "tz-lookup": "^6.1.25",
     "unplugin-swc": "^1.5.9",
     "vitest": "^4.1.9"
   }

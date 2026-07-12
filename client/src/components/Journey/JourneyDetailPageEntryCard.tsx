@@ -1,8 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { MapPin, Clock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { formatLocationName } from '../../utils/formatters'
 import { useTranslation } from '../../i18n'
+import { pluginsApi } from '../../api/client'
+import { usePluginStore } from '../../store/pluginStore'
 import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
@@ -21,6 +23,19 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
   const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuBtnRef = useRef<HTMLButtonElement>(null)
+  // Extra rows contributed by journalEntryProvider plugins — same pattern as the
+  // PlaceInspector provider details: fetched only when plugins are active at all,
+  // fail-safe (the server drops slow/failing providers), only ever additive.
+  const hasPlugins = usePluginStore((s) => s.plugins.length > 0)
+  const [providerRows, setProviderRows] = useState<Array<{ pluginId: string; items: Array<{ label: string; value?: string; url?: string }> }>>([])
+  useEffect(() => {
+    if (!hasPlugins) { setProviderRows([]); return }
+    let cancelled = false
+    pluginsApi.journalEntryRows(entry.id)
+      .then((d) => { if (!cancelled) setProviderRows((d.providers || []).filter((p) => Array.isArray(p.items) && p.items.length > 0)) })
+      .catch(() => { if (!cancelled) setProviderRows([]) })
+    return () => { cancelled = true }
+  }, [entry.id, hasPlugins])
   const photos = entry.photos || []
   const mood = entry.mood ? MOOD_CONFIG[entry.mood] : null
   const weather = entry.weather ? WEATHER_CONFIG[entry.weather] : null
@@ -144,6 +159,20 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
                 <span key={i} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">{tag}</span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Plugin provider rows — host-vetted label/value/url, plain text only */}
+        {providerRows.length > 0 && (
+          <div className="pt-3 mt-3 border-t border-zinc-100 dark:border-zinc-800 space-y-1.5">
+            {providerRows.flatMap((p) => p.items.map((it, i) => (
+              <div key={`${p.pluginId}-${i}`} className="flex items-baseline justify-between gap-2 text-[12px]">
+                <span className="font-medium text-zinc-500 dark:text-zinc-400 flex-shrink-0">{it.label}</span>
+                {it.url
+                  ? <a href={it.url} target="_blank" rel="noreferrer noopener" className="text-indigo-600 dark:text-indigo-400 truncate text-right">{it.value ?? it.url}</a>
+                  : <span className="text-zinc-600 dark:text-zinc-300 truncate text-right">{it.value}</span>}
+              </div>
+            )))}
           </div>
         )}
       </div>

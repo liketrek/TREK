@@ -43,7 +43,7 @@ import {
   setAdminPreferences,
   getAdminGlobalPref,
   getActiveChannels,
-  getAvailableChannels,
+  isSmtpConfigured,
   isWebhookConfigured,
 } from '../../../src/services/notificationPreferencesService';
 
@@ -94,14 +94,15 @@ describe('getPreferencesMatrix', () => {
     const { user } = createUser(testDb);
     const { event_types } = getPreferencesMatrix(user.id, 'user');
     expect(event_types).not.toContain('version_available');
-    expect(event_types.length).toBe(10);
+    // +1 for plugin_notification: users can mute host-mediated plugin notifications.
+    expect(event_types.length).toBe(11);
   });
 
   it('NPREF-005 — user scope excludes version_available for everyone including admins', () => {
     const { user } = createAdmin(testDb);
     const { event_types } = getPreferencesMatrix(user.id, 'admin', 'user');
     expect(event_types).not.toContain('version_available');
-    expect(event_types.length).toBe(10);
+    expect(event_types.length).toBe(11);
   });
 
   it('NPREF-005b — admin scope returns only version_available', () => {
@@ -133,24 +134,24 @@ describe('getPreferencesMatrix', () => {
     expect(preferences['booking_change']!['email']).toBe(true);
   });
 
-  it('NPREF-008 — available_channels.inapp is always true', () => {
+  it('NPREF-008 — the inapp channel is always active', () => {
     const { user } = createUser(testDb);
-    const { available_channels } = getPreferencesMatrix(user.id, 'user');
-    expect(available_channels.inapp).toBe(true);
+    const { channels } = getPreferencesMatrix(user.id, 'user');
+    expect(channels.find(c => c.id === 'inapp')?.active).toBe(true);
   });
 
-  it('NPREF-009 — available_channels.email is true when email is in notification_channels', () => {
+  it('NPREF-009 — email is active when email is in notification_channels', () => {
     const { user } = createUser(testDb);
     setNotificationChannels(testDb, 'email');
-    const { available_channels } = getPreferencesMatrix(user.id, 'user');
-    expect(available_channels.email).toBe(true);
+    const { channels } = getPreferencesMatrix(user.id, 'user');
+    expect(channels.find(c => c.id === 'email')?.active).toBe(true);
   });
 
-  it('NPREF-010 — available_channels.email is false when email is not in notification_channels', () => {
+  it('NPREF-010 — email is inactive when email is not in notification_channels', () => {
     const { user } = createUser(testDb);
     // No notification_channels set → defaults to none
-    const { available_channels } = getPreferencesMatrix(user.id, 'user');
-    expect(available_channels.email).toBe(false);
+    const { channels } = getPreferencesMatrix(user.id, 'user');
+    expect(channels.find(c => c.id === 'email')?.active).toBe(false);
   });
 
   it('NPREF-011 — implemented_combos maps version_available to [inapp, email, webhook, ntfy]', () => {
@@ -240,33 +241,35 @@ describe('getActiveChannels', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// getAvailableChannels
+// SMTP / active-channel detection
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('getAvailableChannels', () => {
+describe('channel availability', () => {
   it('NPREF-019 — detects SMTP config from app_settings.smtp_host', () => {
     setAppSetting(testDb, 'smtp_host', 'mail.example.com');
-    const channels = getAvailableChannels();
-    expect(channels.email).toBe(true);
-    expect(channels.inapp).toBe(true);
+    expect(isSmtpConfigured()).toBe(true);
   });
 
-  it('NPREF-020 — webhook available when admin has enabled the webhook channel', () => {
+  it('NPREF-020 — webhook is active when admin has enabled the webhook channel', () => {
     setNotificationChannels(testDb, 'webhook');
-    const channels = getAvailableChannels();
-    expect(channels.webhook).toBe(true);
+    expect(getActiveChannels()).toContain('webhook');
   });
 
   it('NPREF-021 — detects SMTP config from env var SMTP_HOST', () => {
     const original = process.env.SMTP_HOST;
     process.env.SMTP_HOST = 'env-mail.example.com';
     try {
-      const channels = getAvailableChannels();
-      expect(channels.email).toBe(true);
+      expect(isSmtpConfigured()).toBe(true);
     } finally {
       if (original === undefined) delete process.env.SMTP_HOST;
       else process.env.SMTP_HOST = original;
     }
+  });
+
+  it('NPREF-022 — an unknown channel id in notification_channels is ignored', () => {
+    // e.g. a plugin channel left in the CSV after the plugin was uninstalled
+    setNotificationChannels(testDb, 'webhook,plugin:long-gone');
+    expect(getActiveChannels()).toEqual(['webhook']);
   });
 });
 

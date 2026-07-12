@@ -52,6 +52,7 @@ const gr: NotificationLocale = {
       title: 'Η σύνδεση Synology τερματίστηκε',
       body: 'Ο λογαριασμός σας Synology ή το URL άλλαξε. Έχετε αποσυνδεθεί από το Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Επαναφορά κωδικού πρόσβασης',

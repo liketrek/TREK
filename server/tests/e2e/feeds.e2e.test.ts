@@ -196,8 +196,47 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     expect(calledIds).toEqual([5]); // only the active, recent trip — not 6 (archived) or 7 (old)
   });
 
+  it('all-trips feed includes trips shared with the user as a member, not just owned trips', async () => {
+    // user 1 owns active trip 5. Trip 8 is owned by user 2 but shared with user 1 as a
+    // member — "All Trips" must include it, mirroring the single-trip feed's member access.
+    db.prepare("INSERT INTO trips (id, user_id, title, is_archived, start_date, end_date) VALUES (8, 2, 'Shared', 0, '2026-01-01', '2099-01-01')").run();
+    db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (8, 1)').run();
+
+    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(1));
+    const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
+
+    const res = await request(server).get(`/api/feed/user/${token}.ics`);
+    expect(res.status).toBe(200);
+
+    const calledIds = exportICS.mock.calls.map((c) => c[0]).sort();
+    expect(calledIds).toEqual([5, 8]); // owned trip 5 AND member trip 8
+  });
+
   it('public user feed: 404 for an unknown token', async () => {
     const res = await request(server).get('/api/feed/user/00000000-0000-0000-0000-000000000000.ics');
     expect(res.status).toBe(404);
+  });
+
+  it('all-trips feed carries VTIMEZONE blocks so TZID references resolve (#1453)', async () => {
+    // A per-trip calendar whose event references a zone via TZID and defines it.
+    const ZONED_ICS =
+      'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\n' +
+      'METHOD:PUBLISH\r\nX-WR-CALNAME:Zoned\r\n' +
+      'BEGIN:VTIMEZONE\r\nTZID:Europe/Paris\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\n' +
+      'TZOFFSETFROM:+0100\r\nTZOFFSETTO:+0100\r\nTZNAME:Europe/Paris\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n' +
+      'BEGIN:VEVENT\r\nUID:trek-res-1@trek\r\nDTSTAMP:20260101T000000Z\r\n' +
+      'DTSTART;TZID=Europe/Paris:20260602T090000\r\nSUMMARY:Flight\r\nEND:VEVENT\r\n' +
+      'END:VCALENDAR\r\n';
+    exportICS.mockReturnValue({ ics: ZONED_ICS, filename: 'zoned.ics' });
+
+    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(1));
+    const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
+
+    const res = await request(server).get(`/api/feed/user/${token}.ics`);
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Paris');
+    expect(res.text).toContain('DTSTART;TZID=Europe/Paris:20260602T090000');
+    // VTIMEZONE must precede the VEVENT that references it.
+    expect(res.text.indexOf('BEGIN:VTIMEZONE')).toBeLessThan(res.text.indexOf('BEGIN:VEVENT'));
   });
 });

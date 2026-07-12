@@ -32,7 +32,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
-import { createBudgetItem, updateMembers, toggleMemberPaid } from '../../../src/services/budgetService';
+import { createBudgetItem, updateMembers, toggleMemberPaid, calculateSettlement } from '../../../src/services/budgetService';
 
 beforeAll(() => {
   createTables(testDb);
@@ -79,5 +79,35 @@ describe('toggleMemberPaid trip-scoping', () => {
 
     expect(member).toBeNull();
     expect(paidFlag(itemB.id, user.id)).toBe(0); // unchanged
+  });
+});
+
+describe('calculateSettlement custom splits', () => {
+  it('BUDGET-SVC-DB-003: settles by the custom per-member amounts, not the equal split (#1458)', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id, { title: 'Trip' });
+
+    // 100 total, custom split: Alice owes 90, Bob owes 10. Alice paid the whole bill.
+    createBudgetItem(trip.id, {
+      name: 'Dinner',
+      payers: [{ user_id: alice.id, amount: 100 }],
+      members: [
+        { user_id: alice.id, amount: 90 },
+        { user_id: bob.id, amount: 10 },
+      ],
+    });
+
+    const result = calculateSettlement(trip.id);
+
+    // Alice paid 100 but owes 90 → net +10 (creditor); Bob owes 10 → net -10 (debtor).
+    // With the equal-split bug both owe 50, so the flow would be 50 instead of 10.
+    expect(result.flows).toEqual([
+      expect.objectContaining({
+        from: expect.objectContaining({ user_id: bob.id }),
+        to: expect.objectContaining({ user_id: alice.id }),
+        amount: 10,
+      }),
+    ]);
   });
 });

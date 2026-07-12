@@ -26,13 +26,16 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
   const tripRemindersActive = smtpValues.notify_trip_reminder !== 'false'
 
   const setChannels = async (email: boolean, webhook: boolean, ntfy: boolean) => {
-    const chans = [email && 'email', webhook && 'webhook', ntfy && 'ntfy'].filter(Boolean).join(',') || 'none'
+    // Preserve any id this toggle doesn't know about instead of rebuilding the CSV from
+    // just these three booleans — that used to silently DROP anything else stored here.
+    const others = activeChans.filter((c: string) => c !== 'email' && c !== 'webhook' && c !== 'ntfy')
+    const chans = [email && 'email', webhook && 'webhook', ntfy && 'ntfy', ...others].filter(Boolean).join(',') || 'none'
     setSmtpValues(prev => ({ ...prev, notification_channels: chans }))
     try {
       await authApi.updateAppSettings({ notification_channels: chans })
     } catch {
       // Revert state on failure
-      const reverted = [emailActive && 'email', webhookActive && 'webhook', ntfyActive && 'ntfy'].filter(Boolean).join(',') || 'none'
+      const reverted = [emailActive && 'email', webhookActive && 'webhook', ntfyActive && 'ntfy', ...others].filter(Boolean).join(',') || 'none'
       setSmtpValues(prev => ({ ...prev, notification_channels: reverted }))
       toast.error(t('common.error'))
     }

@@ -131,6 +131,21 @@ In addition to the database, audit events are written to a plain-text log file:
 
 Audit entries in the database are never automatically deleted. They accumulate and are paginated in the UI.
 
+## Plugin capability audit
+
+Separate from the instance audit log above, TREK keeps a dedicated **hash-chained capability audit** for installed plugins. Every host-mediated action a plugin takes — core-data reads, WebSocket broadcasts, notifications, AI calls, cross-plugin calls — is recorded at the point the plugin cannot reach, together with the acting user (bound by the host, never supplied by the plugin), the resource touched, and the outcome.
+
+Each plugin's entries form a per-plugin hash chain (`hash = sha256(previous_hash + row)`), so the log is tamper-evident: any altered or removed entry breaks the chain. Older rows are pruned per plugin once the row cap is reached (default 20,000 rows/plugin, tunable via `TREK_PLUGIN_AUDIT_MAX_ROWS`; `0` disables pruning). Pruning keeps the retained window verifiable.
+
+Two views read this log:
+
+| View | Who | Where | Shows |
+|---|---|---|---|
+| Per-plugin audit | Admins | Admin plugin management (`GET /api/admin/plugins/:id/audit`) | Every action **one plugin** took, across all users |
+| My plugin activity | Any user | Settings → Plugins (`GET /api/plugin-activity`) | Every action **any plugin** took **in that user's name** |
+
+The user-facing view is what makes broad read grants accountable to the person whose data a plugin reads, without needing admin access.
+
 ## See also
 
 - [Admin-Panel-Overview](Admin-Panel-Overview)

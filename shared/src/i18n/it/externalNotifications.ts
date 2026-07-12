@@ -52,6 +52,7 @@ const it: NotificationLocale = {
       title: 'Sessione Synology rimossa',
       body: 'Il tuo account o URL Synology è cambiato. Sei stato disconnesso da Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Reimposta la tua password',

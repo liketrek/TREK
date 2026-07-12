@@ -268,9 +268,12 @@ interface TripMembersModalProps {
   onClose: () => void
   tripId: number
   tripTitle: string
+  /** Called after the roster changes (guest/member added, renamed or removed) so the
+   *  planner can refresh its members for Costs participants, Collab, etc. */
+  onMembersChanged?: () => void
 }
 
-export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }: TripMembersModalProps) {
+export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, onMembersChanged }: TripMembersModalProps) {
   const [data, setData] = useState(null)
   const [allUsers, setAllUsers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -297,11 +300,14 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
     }
   }, [isOpen, tripId])
 
-  const loadMembers = async () => {
+  const loadMembers = async (notify = false) => {
     setLoading(true)
     try {
       const d = await tripsApi.getMembers(tripId)
       setData(d)
+      // Notify the planner to re-sync (Costs participants etc.) only after an actual
+      // roster mutation — not on the initial open load, which would be a redundant fetch.
+      if (notify) onMembersChanged?.()
     } catch {
       toast.error(t('members.loadError'))
     } finally {
@@ -323,7 +329,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
       const target = allUsers.find(u => String(u.id) === String(selectedUserId))
       await tripsApi.addMember(tripId, target.username)
       setSelectedUserId('')
-      await loadMembers()
+      await loadMembers(true)
       toast.success(`${target.username} ${t('members.added')}`)
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('members.addError')))
@@ -354,7 +360,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
     try {
       await tripsApi.createGuest(tripId, name)
       setNewGuestName('')
-      await loadMembers()
+      await loadMembers(true)
       toast.success(t('members.guestAdded'))
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('members.guestAddError')))
@@ -369,7 +375,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
     try {
       await tripsApi.renameGuest(tripId, userId, name)
       setRenamingGuestId(null)
-      await loadMembers()
+      await loadMembers(true)
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('members.guestRenameError')))
     }
@@ -380,7 +386,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
     setRemovingId(userId)
     try {
       await tripsApi.deleteGuest(tripId, userId)
-      await loadMembers()
+      await loadMembers(true)
       toast.success(t('members.guestRemoved'))
     } catch {
       toast.error(t('members.removeError'))
@@ -398,7 +404,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
     try {
       await tripsApi.removeMember(tripId, userId)
       if (isSelf) { onClose(); window.location.reload() }
-      else { await loadMembers(); toast.success(t('members.removed')) }
+      else { await loadMembers(true); toast.success(t('members.removed')) }
     } catch {
       toast.error(t('members.removeError'))
     } finally {

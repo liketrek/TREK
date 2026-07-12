@@ -13,12 +13,29 @@ import type { INestApplication } from '@nestjs/common';
 
 // ── Hoisted DB mock ──────────────────────────────────────────────────────────
 
-const { testDb, dbMock } = vi.hoisted(() => {
+const { testDb, dbMock, immichState } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const db = new Database(':memory:');
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec('PRAGMA busy_timeout = 5000');
+
+  // Mutable fixture driving the fake Immich responses. Tests may override
+  // `albumAssetPages` to exercise pagination, and read `searchCalls` to assert
+  // on the request bodies TREK sends to POST /api/search/metadata.
+  const state: {
+    albumAssets: any[];
+    albumAssetPages: any[][] | null;
+    searchCalls: any[];
+    /** Immich v2 embeds `assets` in the album detail body; v3 does not (#1492). */
+    albumDetailHasAssets: boolean;
+  } = {
+    albumAssets: [],
+    albumAssetPages: null,
+    searchCalls: [],
+    albumDetailHasAssets: false,
+  };
+
   const mock = {
     db,
     closeDb: () => {},
@@ -29,8 +46,21 @@ const { testDb, dbMock } = vi.hoisted(() => {
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
-  return { testDb: db, dbMock: mock };
+  return { testDb: db, dbMock: mock, immichState: state };
 });
+
+/**
+ * Default contents of `album-uuid-1` as Immich returns them from
+ * POST /api/search/metadata. Two visible assets plus two hidden ones (Live Photo
+ * motion parts): `visibility: 'hidden'` is the modern marker, `isVisible: false`
+ * the legacy one. Both must be filtered out of the picker (#1474).
+ */
+const DEFAULT_ALBUM_ASSETS = [
+  { id: 'asset-sync-1', type: 'IMAGE', fileCreatedAt: '2024-06-01T10:00:00.000Z', exifInfo: { city: 'Paris', country: 'France' } },
+  { id: 'asset-sync-2', type: 'VIDEO', fileCreatedAt: '2024-06-02T10:00:00.000Z', exifInfo: { city: 'Lyon', country: 'France' } },
+  { id: 'asset-hidden', type: 'VIDEO', fileCreatedAt: '2024-06-03T10:00:00.000Z', visibility: 'hidden' },
+  { id: 'asset-legacy-hidden', type: 'VIDEO', fileCreatedAt: '2024-06-04T10:00:00.000Z', isVisible: false },
+];
 
 vi.mock('../../src/db/database', () => dbMock);
 vi.mock('../../src/config', () => ({
@@ -69,8 +99,24 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
         body: null,
       });
     }
-    // /api/search/metadata — search
+    // /api/search/metadata — timeline search AND (since Immich v3) album contents
     if (u.includes('/api/search/metadata')) {
+      const body = init?.body ? JSON.parse(init.body) : {};
+      immichState.searchCalls.push(body);
+
+      // Album query: Immich v3 removed AlbumResponseDto.assets, so album
+      // contents are fetched via an albumIds-filtered metadata search.
+      if (body.albumIds?.length) {
+        const pages = immichState.albumAssetPages ?? [immichState.albumAssets];
+        const items = pages[(body.page ?? 1) - 1] ?? [];
+        return Promise.resolve({
+          ok: true, status: 200,
+          headers: { get: () => null },
+          json: () => Promise.resolve({ assets: { items } }),
+          body: null,
+        });
+      }
+
       return Promise.resolve({
         ok: true, status: 200,
         headers: { get: () => null },
@@ -135,12 +181,16 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
         body: null,
       });
     }
-    // /api/albums/:id — album detail (for sync)
+    // /api/albums/:id — album detail.
+    // Immich v3 removed the `assets` property from AlbumResponseDto (#1492).
+    // Defaults to the v3 shape; `albumDetailHasAssets` models a v2 server.
     if (/\/api\/albums\//.test(u)) {
+      const base: any = { id: 'album-uuid-1', albumName: 'Vacation 2024', assetCount: 42 };
+      if (immichState.albumDetailHasAssets) base.assets = immichState.albumAssets;
       return Promise.resolve({
         ok: true, status: 200,
         headers: { get: () => null },
-        json: () => Promise.resolve({ assets: [{ id: 'asset-sync-1', type: 'IMAGE' }] }),
+        json: () => Promise.resolve(base),
         body: null,
       });
     }
@@ -192,6 +242,10 @@ beforeAll(async () => {
 beforeEach(() => {
   resetTestDb(testDb);
   resetRateLimits(nestApp);
+  immichState.albumAssets = DEFAULT_ALBUM_ASSETS.map((a) => ({ ...a }));
+  immichState.albumAssetPages = null;
+  immichState.searchCalls = [];
+  immichState.albumDetailHasAssets = false; // default: Immich v3
 });
 
 afterAll(async () => {
@@ -488,6 +542,164 @@ describe('Immich albums', () => {
   });
 });
 
+// ── Album photos (#1492) ──────────────────────────────────────────────────────
+
+describe('Immich album photos', () => {
+  it('IMMICH-062 — GET /albums/:id/photos returns photos even though the album detail body has no `assets` (Immich v3)', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.assets).toHaveLength(2);
+    expect(res.body.assets.map((a: any) => a.id)).toEqual(['asset-sync-1', 'asset-sync-2']);
+  });
+
+  it('IMMICH-063 — GET /albums/:id/photos filters hidden assets (both visibility and legacy isVisible markers)', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    const ids = res.body.assets.map((a: any) => a.id);
+    expect(ids).not.toContain('asset-hidden');
+    expect(ids).not.toContain('asset-legacy-hidden');
+  });
+
+  it('IMMICH-064 — GET /albums/:id/photos maps exif and media type', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.body.assets[0]).toMatchObject({
+      id: 'asset-sync-1',
+      takenAt: '2024-06-01T10:00:00.000Z',
+      city: 'Paris',
+      country: 'France',
+      mediaType: 'image',
+    });
+    expect(res.body.assets[1].mediaType).toBe('video');
+  });
+
+  it('IMMICH-065 — album photos are fetched via search/metadata with albumIds and withExif', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(immichState.searchCalls).toHaveLength(1);
+    // withExif is required: without it Immich omits exifInfo entirely and
+    // city/country would silently become null for every photo.
+    expect(immichState.searchCalls[0]).toMatchObject({
+      albumIds: ['album-uuid-1'],
+      withExif: true,
+      page: 1,
+    });
+  });
+
+  it('IMMICH-066 — GET /albums/:id/photos pages through albums larger than one page', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    // Page 1 is exactly `size` long, so the service must ask for page 2.
+    const pageOne = Array.from({ length: 1000 }, (_, i) => ({
+      id: `bulk-${i}`, type: 'IMAGE', fileCreatedAt: '2024-06-01T10:00:00.000Z',
+    }));
+    const pageTwo = [{ id: 'tail-asset', type: 'IMAGE', fileCreatedAt: '2024-06-02T10:00:00.000Z' }];
+    immichState.albumAssetPages = [pageOne, pageTwo];
+
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.assets).toHaveLength(1001);
+    expect(res.body.assets[1000].id).toBe('tail-asset');
+    expect(immichState.searchCalls.map((c) => c.page)).toEqual([1, 2]);
+  });
+
+  // Immich v2 still embeds `assets` in the album detail body. It must be used as-is:
+  // v2's searchMetadata unconditionally scopes to `[self, ...partners]`, so an
+  // albumIds search there returns nothing for an album shared by a non-partner.
+  it('IMMICH-069a — on Immich v2 album photos come from the album detail body, with no search call', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    immichState.albumDetailHasAssets = true;
+
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.assets.map((a: any) => a.id)).toEqual(['asset-sync-1', 'asset-sync-2']);
+    expect(immichState.searchCalls).toHaveLength(0);
+  });
+
+  it('IMMICH-069b — on Immich v2 an empty album stays empty and does not fall back to search', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    immichState.albumDetailHasAssets = true;
+    immichState.albumAssets = [];
+
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.assets).toEqual([]);
+    expect(immichState.searchCalls).toHaveLength(0);
+  });
+
+  it('IMMICH-069c — on Immich v2 sync reads the album detail body', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+    immichState.albumDetailHasAssets = true;
+
+    const res = await request(app)
+      .post(`${IMMICH}/trips/${trip.id}/album-links/${link.id}/sync`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.added).toBe(1);
+    expect(immichState.searchCalls).toHaveLength(0);
+  });
+
+  it('IMMICH-067 — GET /albums/:id/photos when not configured returns 400', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(400);
+  });
+
+  it('IMMICH-068 — GET /albums/:id/photos when Immich is unreachable returns 502', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    vi.mocked(safeFetch).mockRejectedValueOnce(new Error('network failure'));
+
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(502);
+  });
+});
+
 // ── Auth checks ───────────────────────────────────────────────────────────────
 
 describe('Immich auth checks', () => {
@@ -539,8 +751,10 @@ describe('Immich syncAlbumAssets', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(typeof res.body.total).toBe('number');
-    expect(typeof res.body.added).toBe('number');
+    // Only asset-sync-1 is an IMAGE; the video and the hidden motion parts are
+    // not synced. A zero here is the #1492 silent-failure mode.
+    expect(res.body.total).toBe(1);
+    expect(res.body.added).toBe(1);
 
     // Verify photos were inserted into the DB
     const photos = testDb.prepare(`
@@ -550,6 +764,49 @@ describe('Immich syncAlbumAssets', () => {
     `).all(trip.id, user.id) as any[];
     expect(photos.length).toBeGreaterThan(0);
     expect(photos[0].provider).toBe('immich');
+  });
+
+  it('IMMICH-087 — POST sync does not persist hidden assets (#1474)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+
+    // A hidden IMAGE slips past the `type === 'IMAGE'` filter. Persisting it
+    // yields a permanently broken tile: nothing re-checks visibility on the
+    // render path, and Immich has no thumbnail to serve.
+    immichState.albumAssets = [
+      { id: 'visible-still', type: 'IMAGE', visibility: 'timeline', fileCreatedAt: '2024-06-01T10:00:00.000Z' },
+      { id: 'hidden-image', type: 'IMAGE', visibility: 'hidden', fileCreatedAt: '2024-06-02T10:00:00.000Z' },
+      { id: 'legacy-hidden-image', type: 'IMAGE', isVisible: false, fileCreatedAt: '2024-06-03T10:00:00.000Z' },
+    ];
+
+    const res = await request(app)
+      .post(`${IMMICH}/trips/${trip.id}/album-links/${link.id}/sync`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+
+    const rows = testDb.prepare(`
+      SELECT tkp.asset_id FROM trip_photos tp
+      JOIN trek_photos tkp ON tkp.id = tp.photo_id
+      WHERE tp.trip_id = ?
+    `).all(trip.id) as any[];
+    expect(rows.map((r) => r.asset_id)).toEqual(['visible-still']);
+  });
+
+  it('IMMICH-086 — POST sync fetches album contents via search/metadata with albumIds', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+
+    await request(app)
+      .post(`${IMMICH}/trips/${trip.id}/album-links/${link.id}/sync`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(immichState.searchCalls[0]).toMatchObject({ albumIds: ['album-uuid-1'] });
   });
 
   it('IMMICH-081 — POST sync when user is not a trip member returns 404', async () => {
@@ -692,6 +949,72 @@ describe('Immich searchPhotos pagination pass-through', () => {
     expect(res.status).toBe(200);
     expect(res.body.assets.length).toBe(3);
     expect(res.body.hasMore).toBe(false);
+  });
+
+  it('IMMICH-093 — POST /search requests timeline visibility so Immich v3 never returns hidden assets (#1474)', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    // A sibling test installs a permanent mockResolvedValue on safeFetch, so
+    // assert on the spy's recorded call rather than immichState.searchCalls.
+    vi.mocked(safeFetch).mockClear();
+    vi.mocked(safeFetch).mockResolvedValue({
+      ok: true, status: 200,
+      headers: { get: () => null },
+      json: () => Promise.resolve({ assets: { items: [] } }),
+      body: null,
+    } as any);
+
+    await request(app)
+      .post(`${IMMICH}/search`)
+      .set('Cookie', authCookie(user.id))
+      .send({ from: '2024-06-01', to: '2024-06-14' });
+
+    // Immich v2 hard-defaulted metadata search to `timeline` visibility; v3
+    // defaults to "any except locked", which is what started surfacing Live
+    // Photo motion parts. Asking for `timeline` explicitly restores v2
+    // semantics on both, so hidden assets never cross the wire.
+    const callBody = JSON.parse(vi.mocked(safeFetch).mock.calls[0][1]!.body as string);
+    expect(callBody.visibility).toBe('timeline');
+  });
+
+  it('IMMICH-092 — POST /search filters hidden Live Photo motion assets (#1474)', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    // A Live Photo pair (visible still + hidden motion video) plus a legacy
+    // hidden asset — only the still should survive, but hasMore reflects the
+    // raw page count (4 >= size 4).
+    const mixedResponse = {
+      ok: true, status: 200,
+      headers: { get: () => null },
+      json: () => Promise.resolve({
+        assets: {
+          items: [
+            { id: 'still-1', type: 'IMAGE', visibility: 'timeline', fileCreatedAt: '2024-06-01T10:00:00.000Z', exifInfo: { city: 'Kyoto', country: 'Japan' }, livePhotoVideoId: 'motion-1' },
+            { id: 'motion-1', type: 'VIDEO', visibility: 'hidden', fileCreatedAt: '2024-06-01T10:00:00.000Z' },
+            { id: 'legacy-hidden', type: 'VIDEO', isVisible: false, fileCreatedAt: '2024-06-01T10:00:00.000Z' },
+            { id: 'video-visible', type: 'VIDEO', visibility: 'timeline', fileCreatedAt: '2024-06-01T10:00:00.000Z' },
+          ],
+        },
+      }),
+      body: null,
+    } as any;
+
+    vi.mocked(safeFetch).mockResolvedValue(mixedResponse);
+
+    const res = await request(app)
+      .post(`${IMMICH}/search`)
+      .set('Cookie', authCookie(user.id))
+      .send({ page: 1, size: 4 });
+
+    expect(res.status).toBe(200);
+    // motion-1 (hidden) and legacy-hidden (isVisible:false) are dropped.
+    expect(res.body.assets.map((a: any) => a.id)).toEqual(['still-1', 'video-visible']);
+    // Ordinary visible video survives, tagged as video.
+    expect(res.body.assets.find((a: any) => a.id === 'video-visible').mediaType).toBe('video');
+    // hasMore stays on raw page length so pagination advances past a filtered page.
+    expect(res.body.hasMore).toBe(true);
   });
 });
 

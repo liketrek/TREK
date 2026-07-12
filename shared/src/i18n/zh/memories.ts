@@ -21,7 +21,7 @@ const memories: TranslationStrings = {
   'memories.providerPassword': '密码',
   'memories.providerOTP': 'MFA 验证码（如已启用）',
   'memories.skipSSLVerification': '跳过 SSL 证书验证',
-  'memories.immichAutoUpload': '上传 Journey 照片时同步到 Immich',
+  'memories.immichAutoUpload': '上传旅程照片时同步到 Immich',
   'memories.providerUrlHintSynology': '在 URL 中包含照片应用路径，例如 https://nas:5001/photo',
   'memories.testConnection': '测试连接',
   'memories.testShort': '测试',

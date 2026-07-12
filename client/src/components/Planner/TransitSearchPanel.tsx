@@ -368,7 +368,10 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
     setExpandedIdx(null)
     try {
       const tzFrom = tzAt(from.lat, from.lng)
-      const timeIso = localToUtcIso(day.date, time, tzFrom)
+      const tzTo = tzAt(to.lat, to.lng)
+      // Depart-by anchors the entered time at the origin; arrive-by anchors it at
+      // the destination (#1479), so each mode must convert with the matching zone.
+      const timeIso = localToUtcIso(day.date, time, arriveBy ? tzTo : tzFrom)
       const allModes = activeModes.size === MODE_GROUPS.length
       const modes = allModes ? undefined : MODE_GROUPS.filter(m => activeModes.has(m.key)).map(m => m.modes).join(',')
       const d = await transitApi.plan({ from: `${from.lat},${from.lng}`, to: `${to.lat},${to.lng}`, time: timeIso, arriveBy, modes })

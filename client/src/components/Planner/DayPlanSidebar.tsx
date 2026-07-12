@@ -22,7 +22,7 @@ import { useAddonStore } from '../../store/addonStore'
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { placeToSaveTarget } from '../Collections/saveTarget'
 import { useTranslation } from '../../i18n'
-import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels } from '../../utils/dayOrder'
+import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg } from '../../utils/dayOrder'
 import {
   TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, getDisplayTimeForDay, getTransportRouteEndpoints,
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
@@ -455,9 +455,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
             cur = []
             curHasPlace = false
             if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng })
-          } else if (cur.length > 0) {
+          } else if (cur.length > 0 && !(r.type === 'car' && getSpanPhase(r, dayId) === 'middle')) {
             // No location: ignore for routing, but attribute the through-leg to the
             // booking so its distance/duration shows under it (purely cosmetic).
+            // Not for a car rental's middle days though — that row isn't rendered
+            // in the timeline, so re-keying would drop the leg entirely (#1504).
             cur[cur.length - 1] = { ...cur[cur.length - 1], id: r.id }
           }
         }
@@ -475,22 +477,23 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       const endHotel = bookends?.evening
       // Waypoints include transport endpoints (a car return, a taxi/train arrival), so the hotel
       // legs connect even when the day starts or ends with a booking rather than a place. Track
-      // whether each is a place so we can skip a hotel↔transport leg that isn't real: on a day-1
-      // arrival the check-in hotel never drove to the departure airport (#1321).
-      const wayPts: { lat: number; lng: number; isPlace: boolean }[] = []
+      // whether each is a place and its time so the bookend decision can drop a leg that isn't
+      // real: a check-in hotel never drove to a departure airport (#1321), and a place timed before
+      // check-in / after check-out means you weren't at the hotel then (#1465).
+      const wayPts: { lat: number; lng: number; isPlace: boolean; time: string | null }[] = []
       for (const it of merged) {
         if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
-          wayPts.push({ lat: it.data.place.lat, lng: it.data.place.lng, isPlace: true })
+          wayPts.push({ lat: it.data.place.lat, lng: it.data.place.lng, isPlace: true, time: it.data.place?.place_time ?? null })
         } else if (it.type === 'transport') {
           const { from, to } = getTransportRouteEndpoints(it.data, dayId)
-          if (from) wayPts.push({ lat: from.lat, lng: from.lng, isPlace: false })
-          if (to) wayPts.push({ lat: to.lat, lng: to.lng, isPlace: false })
+          if (from) wayPts.push({ lat: from.lat, lng: from.lng, isPlace: false, time: null })
+          if (to) wayPts.push({ lat: to.lat, lng: to.lng, isPlace: false, time: null })
         }
       }
       const firstWay = wayPts[0]
       const lastWay = wayPts[wayPts.length - 1]
-      const wantTop = !!(startHotel && firstWay && (firstWay.isPlace || bookends?.morningIsSleptHere))
-      const wantBottom = !!(endHotel && lastWay && (lastWay.isPlace || bookends?.eveningIsOvernight))
+      const wantTop = !!(startHotel && firstWay && bookends && day && shouldDrawMorningLeg(bookends, day, firstWay))
+      const wantBottom = !!(endHotel && lastWay && bookends && day && shouldDrawEveningLeg(bookends, day, lastWay))
       return { runs, startHotel, endHotel, firstWay, lastWay, wantTop, wantBottom }
     }
 
@@ -2358,11 +2361,19 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             // Bookend the Google Maps route with the day's accommodation the
                             // same way the drawn map route does (routeBookends is null when
                             // "optimize from accommodation" is off), so hotels aren't dropped
-                            // from the exported route (#1372).
-                            const stops = getDayAssignments(day.id).map(a => a.place).filter(p => p?.lat != null && p?.lng != null) as { lat: number; lng: number }[]
-                            const morning = routeBookends?.morning?.place_lat != null && routeBookends?.morning?.place_lng != null
+                            // from the exported route (#1372) — but only when the leg is real:
+                            // no hotel prepended before an early check-in-day stop, none appended
+                            // after a post-check-out stop (#1465).
+                            const dayStops = getDayAssignments(day.id).filter(a => a.place?.lat != null && a.place?.lng != null)
+                            const stops = dayStops.map(a => ({ lat: a.place!.lat!, lng: a.place!.lng! }))
+                            const firstStop = dayStops[0] ? { isPlace: true, time: dayStops[0].place?.place_time ?? null } : undefined
+                            const lastAssignment = dayStops[dayStops.length - 1]
+                            const lastStop = lastAssignment ? { isPlace: true, time: lastAssignment.place?.place_time ?? null } : undefined
+                            const drawMorning = !!routeBookends && shouldDrawMorningLeg(routeBookends, day, firstStop)
+                            const drawEvening = !!routeBookends && shouldDrawEveningLeg(routeBookends, day, lastStop)
+                            const morning = drawMorning && routeBookends?.morning?.place_lat != null && routeBookends?.morning?.place_lng != null
                               ? { lat: routeBookends.morning.place_lat, lng: routeBookends.morning.place_lng } : null
-                            const evening = routeBookends?.evening?.place_lat != null && routeBookends?.evening?.place_lng != null
+                            const evening = drawEvening && routeBookends?.evening?.place_lat != null && routeBookends?.evening?.place_lng != null
                               ? { lat: routeBookends.evening.place_lat, lng: routeBookends.evening.place_lng } : null
                             const url = generateGoogleMapsUrl([...(morning ? [morning] : []), ...stops, ...(evening ? [evening] : [])])
                             if (url) window.open(url, '_blank', 'noopener,noreferrer')

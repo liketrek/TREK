@@ -28,6 +28,15 @@ The Admin Panel is divided into tabs. Most tabs are always visible; a few appear
 | **GitHub** | Release timeline and support links | No |
 | **Dev: Notifications** | Test notification dispatch | Only in development mode (`NODE_ENV=development`) |
 
+## Plugin activity and audit
+
+Plugins that are granted data-access capabilities have every host-mediated action they take recorded in a tamper-evident, hash-chained log. This log is separate from the instance **Audit** tab described above.
+
+- **Admins** can review the per-plugin capability audit — every core-data read, broadcast, notification, and AI call a plugin made, with the acting user, the resource touched, and the outcome. This is exposed for each installed plugin in the admin plugin management view.
+- **Every user** (not just admins) can see the plugin actions taken in their own name under **Settings → Plugins**. This is what keeps a plugin's broad read grants accountable to the person whose data was read.
+
+See [Audit-Log](Audit-Log) for details on the hash chain and how the two logs differ.
+
 ## Related pages
 
 - [Admin-Users-and-Invites](Admin-Users-and-Invites)

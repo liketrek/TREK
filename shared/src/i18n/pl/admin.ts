@@ -161,6 +161,13 @@ const admin: TranslationStrings = {
   'admin.plugins.dropToUpload': 'Upuść plik .zip wtyczki, aby zainstalować',
   'admin.plugins.uploaded': 'Wtyczka “{name}” przesłana — aktywuj ją, aby uruchomić',
   'admin.plugins.sideloaded': 'Załadowano ręcznie',
+  'admin.plugins.devLinkBadge': 'Dev-Link',
+  'admin.plugins.devLinkHint':
+    'Wczytany z lokalnego katalogu kompilacji i przeładowywany na gorąco na prawdziwych danych — tylko dla programistów',
+  'admin.plugins.devLinkTitle': 'Podłącz lokalny plugin',
+  'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
+  'admin.plugins.devLinkButton': 'Podłącz',
+  'admin.plugins.devLinkLinked': '{id} podłączony — aktywuj, aby uruchomić',
   'admin.plugins.sideloadedHint': 'Przesłano ręcznie — nie z rejestru, niepodpisane i niesprawdzone',
   'admin.plugins.browse': 'Przeglądaj wtyczki',
   'admin.plugins.installed': 'Zainstalowane',
@@ -173,6 +180,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Wtyczka została dezaktywowana',
   'admin.plugins.viewErrors': 'Pokaż dziennik błędów',
   'admin.plugins.errorLog': 'Dziennik błędów',
+  'admin.plugins.allowedHosts': 'Dozwolone hosty',
+  'admin.plugins.allowedHosts.hint': 'Ta wtyczka łączy się z usługą, którą tylko Ty możesz wskazać (serwer self-hosted). Dodaj hosty, do których może sięgać — do innych nie sięgnie.',
+  'admin.plugins.allowedHosts.none': 'Nie dodano jeszcze żadnych hostów.',
+  'admin.plugins.allowedHosts.unsupported': 'Ta wtyczka nie używa hostów podanych przez operatora. Jej dozwolone hosty są zapisane w manifeście.',
+  'admin.plugins.allowedHosts.restartNote': 'Zapis restartuje wtyczkę, aby pobrała nową listę.',
+  'admin.plugins.allowedHosts.add': 'Dodaj dozwolony host',
+  'admin.plugins.allowedHosts.count': '{n} dozwolonych hostów',
+  'admin.plugins.operatorEgressPill': '+ hosty, które dodasz',
+  'admin.plugins.operatorEgressHint': 'Ta wtyczka łączy się z usługą, którą tylko Ty możesz wskazać (serwer self-hosted). Po instalacji dodaj hosty w ⋯ → Dozwolone hosty. Do innych nie sięgnie.',
   'admin.plugins.noErrors': 'Brak zarejestrowanych błędów.',
   'admin.plugins.uninstalled': 'Wtyczka została odinstalowana',
   'admin.plugins.uninstallTitle': 'Odinstalować wtyczkę?',
@@ -214,6 +230,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Na użytkownika',
   'admin.plugins.fieldRequired': 'Wymagane',
   'admin.plugins.sourceRepo': 'Repozytorium źródłowe',
+  'admin.plugins.reportIssue': 'Zgłoś problem',
   'admin.plugins.homepage': 'Strona główna',
   'admin.plugins.requiresTrek': 'Wymaga TREK {version}+',
   'admin.plugins.reviewedOn': 'Zweryfikowano {date}',
@@ -224,7 +241,52 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:costs': 'Odczyt wydatków (pozycji budżetu), do których działający użytkownik ma dostęp',
   'admin.plugins.perm.db:read:packing':
     'Odczyt list rzeczy do spakowania w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:write:packing':
+    'Tworzenie, edytowanie i usuwanie pozycji listy pakowania w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.weather:read': 'Odczyt zapisanej w pamięci prognozy pogody hosta (wg współrzędnych)',
+  'admin.plugins.perm.db:read:categories': 'Odczyt globalnej listy kategorii miejsc',
+  'admin.plugins.perm.db:read:tags': 'Odczyt tagów działającego użytkownika',
+  'admin.plugins.perm.db:write:tags': 'Tworzenie, edytowanie i usuwanie tagów działającego użytkownika',
+  'admin.plugins.perm.db:read:todos': 'Odczyt zadań w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:write:todos':
+    'Tworzenie, edytowanie i usuwanie zadań w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:write:atlas':
+    'Oznaczanie krajów i regionów jako odwiedzonych oraz zarządzanie listą marzeń działającego użytkownika (wymaga dodatku Atlas)',
+  'admin.plugins.perm.db:write:vacay':
+    'Przełączanie dni urlopu i świąt firmowych w aktywnym planie działającego użytkownika (wymaga dodatku Vacay)',
+  'admin.plugins.perm.db:write:journal':
+    'Tworzenie, edytowanie i usuwanie wpisów w dziennikach, które działający użytkownik może edytować (wymaga dodatku Journey)',
+  'admin.plugins.perm.db:write:collections':
+    'Tworzenie i edytowanie kolekcji oraz zapisywanie w nich miejsc, z rolą działającego użytkownika w kolekcji (wymaga dodatku Collections)',
+  'admin.plugins.perm.db:write:files':
+    'Dołączanie plików do podróży, które działający użytkownik może edytować (limit 10 MB, zablokowane rozszerzenia odrzucane), i zarządzanie ich powiązaniami',
+  'admin.plugins.perm.db:write:collab':
+    'Publikowanie notatek, ankiet i wiadomości czatu w podróżach, które działający użytkownik może edytować (wymaga dodatku Collab)',
+  'admin.plugins.perm.db:write:members':
+    'Dodawanie użytkowników do podróży — przyznaje dostęp do podróży; chronione uprawnieniem zarządzania członkami działającego użytkownika',
+  'admin.plugins.perm.notify:send':
+    'Wysyłanie powiadomienia (skrzynka dzwonka + e-mail/ntfy) do działającego użytkownika lub jego podróży — nigdy do dowolnego odbiorcy',
+  'admin.plugins.perm.ai:invoke':
+    'Korzystanie ze skonfigurowanego przez administratora dostawcy AI (uzupełnianie tekstu + wyodrębnianie z dokumentów) w imieniu działającego użytkownika — wtyczka nigdy nie przechowuje klucza',
+  'admin.plugins.perm.oauth:client':
+    'Łączenie się z usługą zewnętrzną w Twoim imieniu przez OAuth pośredniczony przez hosta (host przechowuje tokeny, wtyczka ich nie widzi)',
   'admin.plugins.perm.db:read:files': 'Odczyt plików w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:write:reservations':
+    'Tworzenie, edytowanie i usuwanie rezerwacji w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:write:accommodations':
+    'Tworzenie, edytowanie i usuwanie zakwaterowań w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.db:read:journal': 'Odczyt dzienników podróży działającego użytkownika (wymaga dodatku Journey)',
+  'admin.plugins.perm.db:read:atlas':
+    'Odczyt krajów i regionów odwiedzonych przez działającego użytkownika (wymaga dodatku Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Odczyt planu urlopu działającego użytkownika (wymaga dodatku Vacay)',
+  'admin.plugins.perm.db:read:daynotes':
+    'Odczyt notatek dziennych w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:read:collections':
+    'Odczyt kolekcji zapisanych miejsc działającego użytkownika (wymaga dodatku Collections)',
+  'admin.plugins.perm.db:write:daynotes':
+    'Tworzenie, edytowanie i usuwanie notatek dziennych w podróżach, które działający użytkownik może edytować',
+  'admin.plugins.perm.jobs:run':
+    'Uruchamianie zadeklarowanych zadań w tle według harmonogramu (bez kontekstu użytkownika — nie może odczytywać danych użytkownika)',
   'admin.plugins.perm.db:write:costs':
     'Tworzenie wydatków (pozycji budżetu) w podróżach, które działający użytkownik może edytować',
   'admin.plugins.perm.db:write:places':
@@ -245,9 +307,28 @@ const admin: TranslationStrings = {
     'Dodawanie dodatkowych szczegółów (recenzji, ocen, linków) do miejsca',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Zgłaszanie ostrzeżeń walidacyjnych dla podróży (widocznych w planerze)',
+  'admin.plugins.perm.hook:table-contributor': 'Dodawanie kolumn i akcji do widoków podróży (rezerwacje, miejsca, dni)',
+  'admin.plugins.perm.hook:map-marker-provider':
+    'Dodawanie znaczników do mapy podróży (np. pokazywanie rezerwacji lub POI)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Dołączanie sekcji tekstowych do eksportu PDF podróży',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Wyróżnianie krajów na mapie świata Atlasu (np. listy życzeń lub ostrzeżenia dla podróżnych)',
+  'admin.plugins.perm.hook:journal-entry-provider':
+    'Dodawanie dodatkowych wierszy (linki, statystyki) do wpisów dziennika',
+  'admin.plugins.perm.hook:user-data':
+    'Usuwanie lub eksport przechowywanych danych o użytkowniku (RODO: usunięcie konta i wnioski o dane)',
+  'admin.plugins.perm.hook:trip-card-provider':
+    'Dodawanie małych plakietek (status, liczniki) do kart podróży na pulpicie',
+  'admin.plugins.perm.hook:notification-channel': 'Dostarczać Twoje powiadomienia dodatkowym kanałem',
   'admin.plugins.perm.events:subscribe':
     'Reagowanie na podstawowe zdarzenia aktywności (tylko nazwa zdarzenia i podróż, nigdy treść)',
   'admin.plugins.perm.http:outbound': 'Wykonywanie wychodzących zapytań do zadeklarowanych hostów',
+  'admin.plugins.perm.db:read:collab':
+    'Odczyt notatek, ankiet i wiadomości czatu w podróżach, do których działający użytkownik ma dostęp (wymaga dodatku Collab)',
+  'admin.plugins.perm.db:read:files:content':
+    'Odczyt zawartości (bajtów) plików w podróżach, do których działający użytkownik ma dostęp',
+  'admin.plugins.perm.db:create:trips': 'Tworzenie nowych podróży należących do działającego użytkownika',
+  'admin.plugins.perm.rates:read': 'Odczyt zapisanych w pamięci kursów walut hosta',
   'admin.plugins.updateConsentTitle': 'Ta aktualizacja wymaga nowych uprawnień',
   'admin.plugins.updateConsentBody':
     '{name} v{version} prosi o uprawnienia, których jeszcze nie przyznałeś. Nowa wersja jest zainstalowana, ale pozostaje wyłączona, dopóki jej nie zatwierdzisz.',
@@ -291,6 +372,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Nazwa',
   'admin.plugins.sortRecent': 'Ostatnio zaktualizowane',
   'admin.plugins.sortUpdates': 'Najpierw aktualizacje',
+  'admin.plugins.sortDownloads': 'Najczęściej pobierane',
   'admin.plugins.updatesAvailable': 'Dostępne aktualizacje dla Twoich wtyczek: {count}.',
   'admin.plugins.updateAll': 'Zaktualizuj wszystkie',
   'admin.plugins.noMatchInstalled': 'Żadna zainstalowana wtyczka nie pasuje do wyszukiwania.',
@@ -311,7 +393,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Widget na pulpicie',
   'admin.plugins.cap.heroWidget': 'Widget karty pokładowej',
   'admin.plugins.cap.placeSlot': 'Szczegóły miejsca',
+  'admin.plugins.cap.daySlot': 'Szczegóły dnia',
+  'admin.plugins.cap.reservationSlot': 'Szczegóły rezerwacji',
+  'admin.plugins.cap.replacesTabs': 'Zastępuje karty planera',
   'admin.plugins.cap.realtime': 'Aktualizacje na żywo',
+  'admin.plugins.cap.notificationChannel': 'Kanał powiadomień',
   'admin.plugins.cap.photos': 'Dostarcza zdjęcia',
   'admin.plugins.cap.calendar': 'Dostarcza wydarzenia kalendarza',
   'admin.plugins.cap.placeDetails': 'Wzbogaca miejsca',
@@ -337,11 +423,12 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Rozmiar',
   'admin.plugins.metaRequires': 'Wymaga',
   'admin.plugins.metaReviewed': 'Zweryfikowano',
+  'admin.plugins.downloads': 'Pobrania',
   'admin.addons.title': 'Dodatki',
   'admin.addons.subtitle': 'Włączaj lub wyłączaj funkcje, aby dostosować swoje doświadczenie w TREK.',
   'admin.addons.catalog.packing.name': 'Listy',
   'admin.addons.catalog.packing.description': 'Listy pakowania i zadania do wykonania dla Twoich podróży',
-  'admin.addons.catalog.budget.name': 'Budżet',
+  'admin.addons.catalog.budget.name': 'Koszty',
   'admin.addons.catalog.budget.description': 'Śledź wydatki i planuj budżet podróży',
   'admin.addons.catalog.documents.name': 'Dokumenty',
   'admin.addons.catalog.documents.description': 'Przechowuj i zarządzaj dokumentami podróżnymi',

@@ -36,8 +36,16 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment } from '../../helpers/factories';
+import { createUser, createTrip, createDay, createPlace, createDayAssignment, createJourney } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+
+/** Link a journey to a trip so reconcileTripSkeletons has a target. */
+function linkJourney(journeyId: number, tripId: number) {
+  testDb.prepare('INSERT INTO journey_trips (journey_id, trip_id, added_at) VALUES (?, ?, ?)').run(journeyId, tripId, Date.now());
+}
+function skeletonFor(journeyId: number, placeId: number) {
+  return testDb.prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?').get(journeyId, placeId) as any;
+}
 
 beforeAll(() => {
   createTables(testDb);
@@ -80,6 +88,26 @@ describe('Tool: assign_place_to_day', () => {
       expect(data.assignment.day_id).toBe(day.id);
       expect(data.assignment.place_id).toBe(place.id);
       expect(data.assignment.order_index).toBe(0);
+    });
+  });
+
+  it('creates a skeleton suggestion in a linked journey', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Linked Place' });
+    const journey = createJourney(testDb, user.id);
+    linkJourney(journey.id, trip.id);
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'assign_place_to_day',
+        arguments: { tripId: trip.id, dayId: day.id, placeId: place.id },
+      });
+      const skeleton = skeletonFor(journey.id, place.id);
+      expect(skeleton).toBeDefined();
+      expect(skeleton.type).toBe('skeleton');
+      expect(skeleton.title).toBe('Linked Place');
     });
   });
 
@@ -189,6 +217,26 @@ describe('Tool: unassign_place', () => {
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'unassign_place', arguments: { tripId: trip.id, dayId: day.id, assignmentId: assignment.id } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'assignment:deleted', expect.any(Object));
+    });
+  });
+
+  it('removes the linked journey skeleton when the place is unassigned', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const journey = createJourney(testDb, user.id);
+    linkJourney(journey.id, trip.id);
+
+    await withHarness(user.id, async (h) => {
+      // Assign via MCP (materialises the skeleton), then unassign that same assignment.
+      const assigned = parseToolResult(
+        await h.client.callTool({ name: 'assign_place_to_day', arguments: { tripId: trip.id, dayId: day.id, placeId: place.id } }),
+      ) as any;
+      expect(skeletonFor(journey.id, place.id)).toBeDefined();
+
+      await h.client.callTool({ name: 'unassign_place', arguments: { tripId: trip.id, dayId: day.id, assignmentId: assigned.assignment.id } });
+      expect(skeletonFor(journey.id, place.id)).toBeUndefined();
     });
   });
 

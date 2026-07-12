@@ -158,7 +158,7 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
     },
     async ({ tripId }) => {
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const summary = getTripSummary(tripId);
+      const summary = getTripSummary(tripId, userId);
       if (!summary) return noAccess();
       // Addon availability gates
       const packingEnabled = isAddonEnabled(ADDON_IDS.PACKING);
@@ -181,8 +181,20 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
         if (collabFeatures?.chat)  messageCount = countMessages(tripId);
       }
       const notice = getDeprecationNotice();
+      // The core bucket (trip metadata, members WITH email, days with place
+      // coordinates, accommodations) carries confidential PII and itinerary data,
+      // so it is gated on trips:read just like the sub-sections below. Without a
+      // read scope the tool still resolves trip id + title so it stays usable for
+      // navigation (list_trips already covers discovery). trek_ PATs (null scopes)
+      // and any trips:read holder keep the full payload — no behaviour change.
       const summaryData = {
-        ...summary,
+        trip:          R                                             ? summary.trip          : { id: summary.trip.id, title: summary.trip.title },
+        members:       R                                             ? summary.members       : undefined,
+        days:          R                                             ? summary.days          : undefined,
+        // Accommodations are "accommodation details" under reservations:read too
+        // (see SCOPE_INFO) and pair with reservations in the share payload, so a
+        // reservations-scoped token keeps them — gate on either read scope.
+        accommodations: (R || canReadRes)                            ? summary.accommodations : undefined,
         reservations:  canReadRes                                    ? summary.reservations : undefined,
         packing:       canReadPacking                                ? summary.packing      : undefined,
         budget:        canReadBudget                                 ? summary.budget       : undefined,

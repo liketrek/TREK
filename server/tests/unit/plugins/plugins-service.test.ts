@@ -9,7 +9,7 @@ const { testDb } = vi.hoisted(() => {
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE plugins (
     id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
-    status TEXT, enabled INTEGER DEFAULT 0, last_error TEXT, reviewed_at TEXT, source_repo TEXT, config TEXT DEFAULT '{}', permissions TEXT DEFAULT '[]', capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', updated_at TEXT,
+    status TEXT, enabled INTEGER DEFAULT 0, last_error TEXT, reviewed_at TEXT, source_repo TEXT, config TEXT DEFAULT '{}', permissions TEXT DEFAULT '[]', capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, updated_at TEXT,
     sort_order INTEGER DEFAULT 0);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT DEFAULT '2026-01-01');`);
@@ -90,6 +90,31 @@ describe('PluginsFeedController (client feed)', () => {
     const out = new PluginsFeedController().list();
     expect(out.plugins.find((p) => p.id === 'h')?.slot).toBe('hero');
     expect(out.plugins.find((p) => p.id === 'b')?.slot).toBe('sidebar');
+  });
+
+  it('exposes the day-detail slot (a day-panel widget must not fall back to the dashboard)', () => {
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('d','D','widget','Box','active','{\"widget\":{\"slot\":\"day-detail\"}}')").run();
+    process.env.TREK_PLUGINS_ENABLED = 'true';
+    expect(new PluginsFeedController().list().plugins.find((p) => p.id === 'd')?.slot).toBe('day-detail');
+  });
+
+  it('exposes the reservation-detail slot (a booking-card widget must not fall back to the dashboard)', () => {
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('r','R','widget','Box','active','{\"widget\":{\"slot\":\"reservation-detail\"}}')").run();
+    process.env.TREK_PLUGINS_ENABLED = 'true';
+    expect(new PluginsFeedController().list().plugins.find((p) => p.id === 'r')?.slot).toBe('reservation-detail');
+  });
+
+  it('exposes tripPage for trip-page plugins, re-validated against the replaceable-tab whitelist', () => {
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('t','T','trip-page','Box','active','{\"tripPage\":{\"replaces\":[\"transports\",\"buchungen\"],\"position\":1}}')").run();
+    // a hand-edited row trying to hide 'plan' (or junk) is filtered here, not just at install
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('evil','E','trip-page','Box','active','{\"tripPage\":{\"replaces\":[\"plan\",\"nope\"],\"position\":-3}}')").run();
+    // the capability is meaningless off a trip-page and must not leak onto widgets
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('w2','W2','widget','Box','active','{\"tripPage\":{\"replaces\":[\"transports\"]}}')").run();
+    process.env.TREK_PLUGINS_ENABLED = 'true';
+    const out = new PluginsFeedController().list();
+    expect(out.plugins.find((p) => p.id === 't')?.tripPage).toEqual({ replaces: ['transports', 'buchungen'], position: 1 });
+    expect(out.plugins.find((p) => p.id === 'evil')?.tripPage).toBeUndefined();
+    expect(out.plugins.find((p) => p.id === 'w2')?.tripPage).toBeUndefined();
   });
 });
 

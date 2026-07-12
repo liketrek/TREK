@@ -88,7 +88,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   }
 
   return (
-    <div className="flex flex-col h-screen md:block md:h-auto">
+    <div className="flex flex-col h-dvh md:block md:h-auto">
       <div className="flex-1 overflow-y-auto md:overflow-visible">{children}</div>
       <BottomNav />
     </div>

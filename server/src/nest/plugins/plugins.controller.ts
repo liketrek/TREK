@@ -7,6 +7,7 @@ import { PluginRegistryService } from './registry/registry.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { pluginsEnabled } from './kill-switch';
+import { devLinkEnabled } from './dev-link';
 
 /**
  * /api/admin/plugins — admin-only plugin control surface (#plugins).
@@ -74,6 +75,24 @@ export class PluginsController {
     }
   }
 
+  /**
+   * DEV-ONLY: register a plugin from a LOCAL built directory and hot-reload it
+   * against real data. Gated by TREK_PLUGINS_DEV_LINK on top of admin + kill-switch.
+   */
+  @Post('link')
+  @HttpCode(200)
+  async link(@Body() body: { path?: string }) {
+    if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
+    if (!devLinkEnabled()) throw new HttpException({ error: 'Dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)' }, 403);
+    const dir = body?.path?.trim();
+    if (!dir) throw new HttpException({ error: 'path is required' }, 400);
+    try {
+      return await this.runtime.link(dir);
+    } catch (e) {
+      throw new HttpException({ error: e instanceof Error ? e.message : 'link failed' }, 400);
+    }
+  }
+
   @Get(':id/config')
   getConfig(@Param('id') id: string) {
     return { config: this.plugins.getInstanceConfig(id) };
@@ -82,6 +101,28 @@ export class PluginsController {
   @Put(':id/config')
   updateConfig(@Param('id') id: string, @Body() body: Record<string, unknown>) {
     return { config: this.plugins.updateInstanceConfig(id, body || {}) };
+  }
+
+  /**
+   * Operator-supplied egress hosts. A plugin that talks to a SELF-HOSTED service can't
+   * name the operator's hostname in its manifest, so an admin adds it here — and the
+   * runtime re-spawns the plugin with the widened allow-list. Admin-only (this controller
+   * is admin-guarded): an end user can never widen a plugin's egress.
+   */
+  @Get(':id/egress-hosts')
+  egressHosts(@Param('id') id: string) {
+    return { supported: this.runtime.wantsOperatorEgress(id), hosts: this.runtime.operatorEgressHosts(id) };
+  }
+
+  @Put(':id/egress-hosts')
+  async setEgressHosts(@Param('id') id: string, @Body() body: { hosts?: unknown } = {}) {
+    if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
+    const hosts = Array.isArray(body.hosts) ? body.hosts.map(String) : [];
+    try {
+      return { hosts: await this.runtime.setOperatorEgressHosts(id, hosts) };
+    } catch (e) {
+      throw new HttpException({ error: e instanceof Error ? e.message : 'Invalid hosts' }, 400);
+    }
   }
 
   @Post(':id/activate')
@@ -118,6 +159,28 @@ export class PluginsController {
     return { status: 'inactive' };
   }
 
+  /** DEV-ONLY: re-fork a dev-linked plugin so it picks up rebuilt code. */
+  @Post(':id/reload')
+  @HttpCode(200)
+  async reload(@Param('id') id: string) {
+    if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
+    if (!devLinkEnabled()) throw new HttpException({ error: 'Dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)' }, 403);
+    try {
+      await this.runtime.reload(id);
+    } catch (e) {
+      // A rebuilt manifest that widened permissions must still re-consent, exactly
+      // like activate — surface the same codes so the admin UI reacts identically.
+      if (e instanceof PluginConsentRequired) {
+        throw new HttpException({ error: e.message, code: 'CONSENT_REQUIRED', newPermissions: e.newPermissions, newEgress: e.newEgress }, 409);
+      }
+      if (e instanceof PluginDependencyError) {
+        throw new HttpException({ error: e.message, code: e.code, ...e.detail }, 409);
+      }
+      throw new HttpException({ error: e instanceof Error ? e.message : 'reload failed' }, 400);
+    }
+    return { status: this.runtime.isActive(id) ? 'active' : 'inactive' };
+  }
+
   @Post(':id/update')
   @HttpCode(200)
   async update(@Param('id') id: string) {
@@ -144,6 +207,21 @@ export class PluginsController {
   @Get(':id/audit')
   audit(@Param('id') id: string) {
     return { audit: this.plugins.auditLog(id) };
+  }
+
+  @Get(':id/budget')
+  budget(@Param('id') id: string) {
+    return { budget: this.plugins.budget(id) };
+  }
+
+  /** GDPR portability: aggregate everything the installed plugins hold about one
+   * user, for an admin fulfilling a data-access request. Literal-prefixed path, so it
+   * never collides with the :id routes. */
+  @Get('user-data/:userId/export')
+  async exportUserData(@Param('userId') userId: string) {
+    const id = Number(userId);
+    if (!Number.isInteger(id) || id <= 0) throw new HttpException({ error: 'invalid user id' }, 400);
+    return { userId: id, plugins: await this.runtime.exportUserData(id) };
   }
 
   @Delete(':id/errors')

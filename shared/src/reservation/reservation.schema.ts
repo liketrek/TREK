@@ -35,6 +35,31 @@ export const reservationEndpointSchema = z.object({
 export type ReservationEndpoint = z.infer<typeof reservationEndpointSchema>;
 
 /**
+ * Endpoints as accepted on a WRITE (create/update body `endpoints` array). This
+ * pins the STRUCTURE (role must be a known value, name/code are strings) so a
+ * plugin can't crash the service with a stray type, but stays permissive on the
+ * rest to match the service exactly: it silently drops rows whose lat/lng are
+ * missing and defaults sequence from the array index. So lat/lng/sequence are
+ * nullable+optional here — a coord-less endpoint validates and is then dropped
+ * downstream, byte-for-byte the pre-existing REST/importer behaviour (no breaking
+ * change), while `role: 'banana'` or a non-string name is still rejected up front.
+ */
+export const reservationEndpointsInputSchema = z.array(
+  z.object({
+    role: z.enum(['from', 'to', 'stop']),
+    name: z.string().min(1),
+    lat: z.number().nullable().optional(),
+    lng: z.number().nullable().optional(),
+    sequence: z.number().nullable().optional(),
+    code: z.string().nullable().optional(),
+    timezone: z.string().nullable().optional(),
+    local_time: z.string().nullable().optional(),
+    local_date: z.string().nullable().optional(),
+  }),
+);
+export type ReservationEndpointsInput = z.infer<typeof reservationEndpointsInputSchema>;
+
+/**
  * Reservation entity as returned by the reservation list endpoint
  * (server/src/services/reservationService.ts -> listReservations). Columns of
  * the `reservations` table plus the joined day_number / place_name / linked

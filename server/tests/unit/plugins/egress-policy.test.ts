@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import net from 'node:net';
 import {
-  isBlockedIp, makeHostAllow, classifyConnect, dgramSendTarget, dgramConnectTarget,
+  isBlockedIp, makeHostAllow, classifyConnect, unwrapConnectArgs, dgramSendTarget, dgramConnectTarget,
 } from '../../../src/nest/plugins/runtime/egress-policy';
 
 const isIP = (s: string) => net.isIP(s) !== 0;
@@ -114,5 +114,59 @@ describe('dgramConnectTarget', () => {
   it('is null for connect(port) or connect(port, cb)', () => {
     expect(dgramConnectTarget([53])).toBeNull();
     expect(dgramConnectTarget([53, () => {}])).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Node's pre-normalised connect args (the plain-HTTP egress bug)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// net.connect() normalises its arguments into an [options, callback] array and calls
+// Socket.prototype.connect with THAT ARRAY as the single argument. undici's plain-HTTP
+// connector goes through this path; its TLS connector does not.
+//
+// Before unwrapConnectArgs, `host` read as undefined off the array and classifyConnect
+// fell back to 'localhost' — so EVERY plain-HTTP request a plugin made was misclassified
+// and refused with "localhost is not in the plugin's declared hosts", no matter which
+// host it had declared. It only escaped notice because the sole shipped egress plugin
+// uses HTTPS.
+
+describe('unwrapConnectArgs (pre-normalised connect args)', () => {
+  // Exactly what undici's plain-HTTP connector produces.
+  const normalised = [[{ highWaterMark: 65536, localAddress: null, port: '18080', host: 'gotify.example.com' }, null]];
+
+  it('unwraps the [options, cb] array Node passes as a single argument', () => {
+    expect(unwrapConnectArgs(normalised)[0]).toEqual(
+      expect.objectContaining({ host: 'gotify.example.com', port: '18080' }),
+    );
+  });
+
+  it('leaves a conventional argument list alone', () => {
+    expect(unwrapConnectArgs([{ host: 'a.example.com', port: 443 }])).toEqual([{ host: 'a.example.com', port: 443 }]);
+    expect(unwrapConnectArgs([443, 'a.example.com'])).toEqual([443, 'a.example.com']);
+  });
+
+  it('classifyConnect reads the REAL host out of it, not the localhost fallback', () => {
+    expect(classifyConnect(normalised, isIP)).toEqual({ kind: 'hostname', host: 'gotify.example.com' });
+  });
+
+  it('a normalised literal-IP target is still classified as an IP (so the private-IP block applies)', () => {
+    expect(classifyConnect([[{ port: 80, host: '169.254.169.254' }, null]], isIP)).toEqual({
+      kind: 'literal-ip',
+      host: '169.254.169.254',
+    });
+  });
+
+  it('a normalised unix-socket target is still classified as local', () => {
+    expect(classifyConnect([[{ path: '/var/run/docker.sock' }, null]], isIP)).toEqual({
+      kind: 'local',
+      host: '/var/run/docker.sock',
+    });
+  });
+
+  it('an undeclared host in normalised form is still refused by the allow-list', () => {
+    const allow = makeHostAllow(['gotify.example.com']);
+    const target = classifyConnect([[{ port: 80, host: 'evil.example.com' }, null]], isIP);
+    expect(allow(target.host)).toBe(false);
   });
 });

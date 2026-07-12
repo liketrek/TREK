@@ -43,8 +43,16 @@ vi.mock('../../../src/services/mapsService', () => ({ searchPlaces: searchPlaces
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createPlace, createDay } from '../../helpers/factories';
+import { createUser, createTrip, createPlace, createDay, createDayAssignment, createJourney } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+
+/** Link a journey to a trip so journey-skeleton sync has a target. */
+function linkJourney(journeyId: number, tripId: number) {
+  testDb.prepare('INSERT INTO journey_trips (journey_id, trip_id, added_at) VALUES (?, ?, ?)').run(journeyId, tripId, Date.now());
+}
+function skeletonFor(journeyId: number, placeId: number) {
+  return testDb.prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?').get(journeyId, placeId) as any;
+}
 
 beforeAll(() => {
   createTables(testDb);
@@ -299,6 +307,51 @@ describe('Tool: delete_place', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_place', arguments: { tripId: trip.id, placeId: place.id } });
       expect(result.isError).toBe(true);
+    });
+  });
+
+  it('removes the linked journey skeleton when the place is deleted', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    createDayAssignment(testDb, day.id, place.id);
+    const journey = createJourney(testDb, user.id);
+    linkJourney(journey.id, trip.id);
+    // Materialise the skeleton for the assigned place.
+    testDb.prepare(
+      `INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'skeleton', ?, ?, 0, ?, ?)`,
+    ).run(journey.id, trip.id, place.id, user.id, place.name, '2026-05-01', Date.now(), Date.now());
+    expect(skeletonFor(journey.id, place.id)).toBeDefined();
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'delete_place', arguments: { tripId: trip.id, placeId: place.id } });
+      expect(skeletonFor(journey.id, place.id)).toBeUndefined();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// create_and_assign_place
+// ---------------------------------------------------------------------------
+
+describe('Tool: create_and_assign_place', () => {
+  it('creates a skeleton suggestion in a linked journey', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const journey = createJourney(testDb, user.id);
+    linkJourney(journey.id, trip.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = parseToolResult(
+        await h.client.callTool({ name: 'create_and_assign_place', arguments: { tripId: trip.id, dayId: day.id, name: 'Fresh POI' } }),
+      ) as any;
+      const skeleton = skeletonFor(journey.id, result.place.id);
+      expect(skeleton).toBeDefined();
+      expect(skeleton.type).toBe('skeleton');
+      expect(skeleton.title).toBe('Fresh POI');
     });
   });
 });

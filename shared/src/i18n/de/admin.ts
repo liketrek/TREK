@@ -168,6 +168,13 @@ const admin: TranslationStrings = {
   'admin.plugins.dropToUpload': 'Plugin-.zip zum Installieren hier ablegen',
   'admin.plugins.uploaded': 'Plugin „{name}“ hochgeladen — zum Ausführen aktivieren',
   'admin.plugins.sideloaded': 'Manuell geladen',
+  'admin.plugins.devLinkBadge': 'Dev-Link',
+  'admin.plugins.devLinkHint':
+    'Aus einem lokalen Build-Verzeichnis geladen und gegen echte Daten neu geladen — nur für Entwicklung',
+  'admin.plugins.devLinkTitle': 'Lokales Plugin verknüpfen',
+  'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
+  'admin.plugins.devLinkButton': 'Verknüpfen',
+  'admin.plugins.devLinkLinked': '{id} verknüpft — zum Ausführen aktivieren',
   'admin.plugins.sideloadedHint': 'Manuell hochgeladen — nicht aus der Registry, unsigniert und ungeprüft',
   'admin.plugins.browse': 'Plugins durchsuchen',
   'admin.plugins.installed': 'Installiert',
@@ -180,6 +187,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Plugin deaktiviert',
   'admin.plugins.viewErrors': 'Fehlerprotokoll ansehen',
   'admin.plugins.errorLog': 'Fehlerprotokoll',
+  'admin.plugins.allowedHosts': 'Erlaubte Hosts',
+  'admin.plugins.allowedHosts.hint': 'Dieses Plugin spricht mit einem Dienst, den nur du benennen kannst (ein selbst gehosteter Server). Füge die Hosts hinzu, die es erreichen darf — andere erreicht es nicht.',
+  'admin.plugins.allowedHosts.none': 'Noch keine Hosts hinzugefügt.',
+  'admin.plugins.allowedHosts.unsupported': 'Dieses Plugin nutzt keine vom Betreiber angegebenen Hosts. Seine erlaubten Hosts stehen fest im Manifest.',
+  'admin.plugins.allowedHosts.restartNote': 'Beim Speichern wird das Plugin neu gestartet, damit es die neue Liste übernimmt.',
+  'admin.plugins.allowedHosts.add': 'Erlaubten Host hinzufügen',
+  'admin.plugins.allowedHosts.count': '{n} erlaubte Hosts',
+  'admin.plugins.operatorEgressPill': '+ von dir ergänzte Hosts',
+  'admin.plugins.operatorEgressHint': 'Dieses Plugin spricht mit einem Dienst, den nur du benennen kannst (ein selbst gehosteter Server). Füge nach der Installation unter ⋯ → Erlaubte Hosts die erreichbaren Hosts hinzu. Andere erreicht es nicht.',
   'admin.plugins.noErrors': 'Keine Fehler protokolliert.',
   'admin.plugins.uninstalled': 'Plugin deinstalliert',
   'admin.plugins.uninstallTitle': 'Plugin deinstallieren?',
@@ -221,6 +237,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Pro Nutzer',
   'admin.plugins.fieldRequired': 'Erforderlich',
   'admin.plugins.sourceRepo': 'Quell-Repository',
+  'admin.plugins.reportIssue': 'Problem melden',
   'admin.plugins.homepage': 'Homepage',
   'admin.plugins.requiresTrek': 'Benötigt TREK {version}+',
   'admin.plugins.reviewedOn': 'Geprüft am {date}',
@@ -229,7 +246,43 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': 'Grundlegende Profilinfos lesen (Name, Avatar — nie Zugangsdaten)',
   'admin.plugins.perm.db:read:costs': 'Ausgaben (Budgetposten) lesen, auf die der handelnde Nutzer Zugriff hat',
   'admin.plugins.perm.db:read:packing': 'Packlisten von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
+  'admin.plugins.perm.db:write:packing':
+    'Packlisten-Einträge auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.weather:read': 'Die zwischengespeicherte Wettervorhersage des Hosts lesen (nach Koordinaten)',
+  'admin.plugins.perm.db:read:categories': 'Die globale Orts-Kategorienliste lesen',
+  'admin.plugins.perm.db:read:tags': 'Die eigenen Tags des handelnden Nutzers lesen',
+  'admin.plugins.perm.db:write:tags': 'Die eigenen Tags des handelnden Nutzers anlegen, bearbeiten und löschen',
+  'admin.plugins.perm.db:read:todos': 'To-dos von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
+  'admin.plugins.perm.db:write:todos':
+    'To-dos auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:write:atlas':
+    'Länder und Regionen als besucht markieren und die Bucket-List des handelnden Nutzers verwalten (benötigt das Atlas-Addon)',
+  'admin.plugins.perm.db:write:vacay':
+    'Urlaubstage und Betriebsferien im aktiven Plan des handelnden Nutzers umschalten (benötigt das Vacay-Addon)',
+  'admin.plugins.perm.db:write:journal':
+    'Tagebucheinträge in Reisetagebüchern anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann (benötigt das Journey-Addon)',
+  'admin.plugins.perm.db:write:collections':
+    'Sammlungen anlegen und bearbeiten und Orte darin speichern, mit der Sammlungsrolle des handelnden Nutzers (benötigt das Collections-Addon)',
+  'admin.plugins.perm.db:write:files':
+    'Dateien an Reisen anhängen, die der handelnde Nutzer bearbeiten kann (10-MB-Limit, gesperrte Endungen abgelehnt), und deren Verknüpfungen verwalten',
+  'admin.plugins.perm.db:write:collab':
+    'Notizen, Umfragen und Chat-Nachrichten auf Reisen erstellen, die der handelnde Nutzer bearbeiten kann (benötigt das Collab-Addon)',
+  'admin.plugins.perm.db:write:members':
+    'Nutzer zu Reisen hinzufügen — gewährt Reise-Zugriff; über das Mitglieder-verwalten-Recht des handelnden Nutzers abgesichert',
+  'admin.plugins.perm.notify:send':
+    'Eine Benachrichtigung (Glocken-Postfach + E-Mail/ntfy) an den handelnden Nutzer oder eine seiner Reisen senden — nie an beliebige Empfänger',
+  'admin.plugins.perm.ai:invoke':
+    'Den vom Admin konfigurierten KI-Anbieter (Textvervollständigung + Dokumentenextraktion) im Namen des handelnden Nutzers nutzen — das Plugin hält nie einen Schlüssel',
+  'admin.plugins.perm.oauth:client':
+    'Über host-vermitteltes OAuth in deinem Namen mit einem Drittanbieter verbinden (der Host hält die Tokens, das Plugin sieht sie nie)',
   'admin.plugins.perm.db:read:files': 'Dateien von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
+  'admin.plugins.perm.db:read:journal': 'Reisetagebücher des handelnden Nutzers lesen (benötigt das Journey-Addon)',
+  'admin.plugins.perm.db:read:atlas':
+    'Besuchte Länder und Regionen des handelnden Nutzers lesen (benötigt das Atlas-Addon)',
+  'admin.plugins.perm.db:read:vacay': 'Urlaubsplanung des handelnden Nutzers lesen (benötigt das Vacay-Addon)',
+  'admin.plugins.perm.db:read:daynotes': 'Tagesnotizen von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
+  'admin.plugins.perm.db:read:collections':
+    'Sammlungen gespeicherter Orte des handelnden Nutzers lesen (benötigt das Collections-Addon)',
   'admin.plugins.perm.db:write:costs':
     'Ausgaben (Budgetposten) auf Reisen erstellen, die der handelnde Nutzer bearbeiten kann',
   'admin.plugins.perm.db:write:places':
@@ -240,6 +293,12 @@ const admin: TranslationStrings = {
     'Orte den Tagen von Reisen zuordnen und entfernen, die der handelnde Nutzer bearbeiten kann',
   'admin.plugins.perm.db:write:trips':
     'Reisedetails (Titel, Daten, Währung …) auf Reisen bearbeiten, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:write:reservations':
+    'Buchungen (Reservierungen) auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
+  'admin.plugins.perm.db:write:accommodations':
+    'Unterkünfte (Übernachtungsblöcke) auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten darf',
+  'admin.plugins.perm.db:write:daynotes':
+    'Tagesnotizen auf Reisen anlegen, bearbeiten und löschen, die der handelnde Nutzer bearbeiten kann',
   'admin.plugins.perm.db:meta':
     'Eigene private Daten an Reisen, Orte und Tage anhängen, auf die der handelnde Nutzer Zugriff hat',
   'admin.plugins.perm.ws:broadcast:trip': 'Echtzeit-Updates an Reisemitglieder senden',
@@ -250,9 +309,30 @@ const admin: TranslationStrings = {
     'Zusatzdetails (Bewertungen, Ratings, Links) zu einem Ort beisteuern',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validierungswarnungen zu einer Reise ausgeben (im Planer angezeigt)',
+  'admin.plugins.perm.hook:table-contributor':
+    'Spalten und Aktionen zu Reise-Ansichten hinzufügen (Reservierungen, Orte, Tage)',
+  'admin.plugins.perm.hook:map-marker-provider':
+    'Marker zur Reisekarte hinzufügen (z. B. Buchungen oder POIs anzeigen)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Textabschnitte an den PDF-Export einer Reise anhängen',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Länder auf der Atlas-Weltkarte hervorheben (z. B. Wunschlisten oder Reisehinweise)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Zusatzzeilen (Links, Statistiken) zu Journal-Einträgen beisteuern',
+  'admin.plugins.perm.hook:user-data':
+    'Von ihm gespeicherte Nutzerdaten löschen oder exportieren (DSGVO: Kontolöschung & Auskunft)',
+  'admin.plugins.perm.hook:trip-card-provider':
+    'Kleine Badges (Status, Zähler) zu deinen Dashboard-Trip-Karten hinzufügen',
+  'admin.plugins.perm.hook:notification-channel': 'Deine Benachrichtigungen über einen zusätzlichen Kanal zustellen',
   'admin.plugins.perm.events:subscribe':
     'Auf Kern-Aktivitäts-Events reagieren (nur Event-Name + Reise, nie der Inhalt)',
+  'admin.plugins.perm.jobs:run':
+    'Deklarierte Hintergrund-Jobs zeitgesteuert ausführen (kein Nutzerkontext — kann keine Nutzerdaten lesen)',
   'admin.plugins.perm.http:outbound': 'Ausgehende Anfragen an deklarierte Hosts stellen',
+  'admin.plugins.perm.db:read:collab':
+    'Notizen, Umfragen und Chat-Nachrichten von Reisen lesen, auf die der handelnde Nutzer Zugriff hat (benötigt das Collab-Addon)',
+  'admin.plugins.perm.db:read:files:content':
+    'Dateiinhalte (Bytes) von Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
+  'admin.plugins.perm.db:create:trips': 'Neue Reisen im Besitz des handelnden Nutzers anlegen',
+  'admin.plugins.perm.rates:read': 'Die zwischengespeicherten Wechselkurse des Hosts lesen',
   'admin.plugins.updateConsentTitle': 'Dieses Update braucht neue Berechtigungen',
   'admin.plugins.updateConsentBody':
     '{name} v{version} verlangt Rechte, die du bisher nicht freigegeben hast. Die neue Version ist installiert, bleibt aber aus, bis du sie freigibst.',
@@ -295,6 +375,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Name',
   'admin.plugins.sortRecent': 'Zuletzt aktualisiert',
   'admin.plugins.sortUpdates': 'Updates zuerst',
+  'admin.plugins.sortDownloads': 'Meiste Downloads',
   'admin.plugins.updatesAvailable': '{count} Updates für deine Plugins verfügbar.',
   'admin.plugins.updateAll': 'Alle aktualisieren',
   'admin.plugins.noMatchInstalled': 'Keine installierten Plugins passen zu deiner Suche.',
@@ -315,7 +396,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Dashboard-Widget',
   'admin.plugins.cap.heroWidget': 'Boarding-Pass-Widget',
   'admin.plugins.cap.placeSlot': 'Ortsdetails',
+  'admin.plugins.cap.daySlot': 'Tagesdetails',
+  'admin.plugins.cap.reservationSlot': 'Reservierungsdetails',
+  'admin.plugins.cap.replacesTabs': 'Ersetzt Planer-Tabs',
   'admin.plugins.cap.realtime': 'Echtzeit-Updates',
+  'admin.plugins.cap.notificationChannel': 'Benachrichtigungskanal',
   'admin.plugins.cap.photos': 'Liefert Fotos',
   'admin.plugins.cap.calendar': 'Liefert Kalender-Events',
   'admin.plugins.cap.placeDetails': 'Reichert Orte an',
@@ -341,11 +426,12 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Größe',
   'admin.plugins.metaRequires': 'Benötigt',
   'admin.plugins.metaReviewed': 'Geprüft am',
+  'admin.plugins.downloads': 'Downloads',
   'admin.addons.title': 'Addons',
   'admin.addons.subtitle': 'Aktiviere oder deaktiviere Funktionen, um TREK nach deinen Wünschen anzupassen.',
   'admin.addons.catalog.packing.name': 'Listen',
   'admin.addons.catalog.packing.description': 'Packlisten und To-Do-Aufgaben für deine Reisen',
-  'admin.addons.catalog.budget.name': 'Budget',
+  'admin.addons.catalog.budget.name': 'Kosten',
   'admin.addons.catalog.budget.description': 'Ausgaben verfolgen und Reisebudget planen',
   'admin.addons.catalog.documents.name': 'Dokumente',
   'admin.addons.catalog.documents.description': 'Reisedokumente speichern und verwalten',

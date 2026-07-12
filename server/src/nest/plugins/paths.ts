@@ -110,8 +110,20 @@ export function serverCodeRoot(): string {
  * out, closing the direct-filesystem and RCE escapes that bypass the RPC layer.
  * Empty (opt-out) when TREK_PLUGIN_PERMISSIONS=off.
  */
+let warnedPermissionsOff = false;
 export function pluginPermissionArgs(pluginId: string): string[] {
-  if ((process.env.TREK_PLUGIN_PERMISSIONS ?? 'on').toLowerCase() === 'off') return [];
+  if ((process.env.TREK_PLUGIN_PERMISSIONS ?? 'on').toLowerCase() === 'off') {
+    // The OS permission jail is the boundary that stops an installed plugin from
+    // reading trek.db / the secret files / shelling out. Turning it off makes plugin
+    // isolation crash-only — surface that loudly once so an operator can't leave it
+    // off by accident.
+    if (!warnedPermissionsOff) {
+      warnedPermissionsOff = true;
+      // eslint-disable-next-line no-console
+      console.warn('[plugins] TREK_PLUGIN_PERMISSIONS=off — the OS permission jail is DISABLED; installed plugins run with full Node access to this process. Only use this on a machine you fully trust.');
+    }
+    return [];
+  }
   const codeRoot = serverCodeRoot();
   return [
     '--permission',

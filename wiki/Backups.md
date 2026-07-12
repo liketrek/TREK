@@ -12,12 +12,14 @@ TREK stores all data in a single SQLite database (`travel.db`) plus an `uploads/
 
 ## What a backup contains
 
-A backup is a ZIP archive with two entries:
+A backup is a ZIP archive with these entries:
 
 | Entry | Contents |
 |---|---|
 | `travel.db` | The full SQLite database |
 | `uploads/` | All uploaded attachments, covers, and avatars |
+| `plugins-data/` | Each installed plugin's own database + files (present only if plugins are installed) |
+| `plugins-code/` | The installed plugin code, so a restore is self-contained (dev-linked plugins are skipped) |
 
 **Not included:** the encryption key. Store your `ENCRYPTION_KEY` separately from the backup ZIP — for example, in a password manager. See [Encryption-Key-Rotation](Encryption-Key-Rotation).
 
@@ -40,6 +42,8 @@ Before restoring, TREK runs integrity checks on the uploaded database:
 2. **Required tables present** — confirms the file contains `users`, `trips`, `trip_members`, `places`, and `days`. Files missing any of these are rejected as not being a valid TREK backup.
 
 > **Warning:** Restoring replaces all current data. Back up your current state first if you want to keep it.
+
+> **Plugins & restart:** `travel.db` and `uploads/` are swapped in immediately. Plugin data and code are **staged** and applied on the **next server restart** — the running plugins hold their databases open, so they can't be swapped live (the same reason the bundled encryption key only takes effect on restart). Restart the server after restoring an instance that uses plugins.
 
 ## Auto-backup
 

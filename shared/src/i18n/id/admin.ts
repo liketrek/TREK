@@ -210,6 +210,13 @@ const admin: TranslationStrings = {
   'admin.plugins.dropToUpload': 'Lepaskan .zip plugin untuk memasang',
   'admin.plugins.uploaded': 'Plugin “{name}” diunggah — aktifkan untuk menjalankan',
   'admin.plugins.sideloaded': 'Dimuat manual',
+  'admin.plugins.devLinkBadge': 'Dev-Link',
+  'admin.plugins.devLinkHint':
+    'Dimuat dari direktori build lokal dan dimuat ulang langsung dengan data nyata — hanya untuk pengembangan',
+  'admin.plugins.devLinkTitle': 'Tautkan plugin lokal',
+  'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
+  'admin.plugins.devLinkButton': 'Tautkan',
+  'admin.plugins.devLinkLinked': '{id} ditautkan — aktifkan untuk menjalankan',
   'admin.plugins.sideloadedHint': 'Diunggah manual — bukan dari registri, tanpa tanda tangan dan tinjauan',
   'admin.plugins.browse': 'Jelajahi plugin',
   'admin.plugins.installed': 'Terpasang',
@@ -222,6 +229,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Plugin dinonaktifkan',
   'admin.plugins.viewErrors': 'Lihat log error',
   'admin.plugins.errorLog': 'Log error',
+  'admin.plugins.allowedHosts': 'Host yang diizinkan',
+  'admin.plugins.allowedHosts.hint': 'Plugin ini berbicara dengan layanan yang hanya Anda yang tahu namanya (server swakelola). Tambahkan host yang boleh dijangkau — selain itu tidak bisa.',
+  'admin.plugins.allowedHosts.none': 'Belum ada host yang ditambahkan.',
+  'admin.plugins.allowedHosts.unsupported': 'Plugin ini tidak memakai host dari operator. Host yang diizinkan sudah tetap di manifesnya.',
+  'admin.plugins.allowedHosts.restartNote': 'Menyimpan akan memulai ulang plugin agar memakai daftar baru.',
+  'admin.plugins.allowedHosts.add': 'Tambah host yang diizinkan',
+  'admin.plugins.allowedHosts.count': '{n} host diizinkan',
+  'admin.plugins.operatorEgressPill': '+ host yang Anda tambahkan',
+  'admin.plugins.operatorEgressHint': 'Plugin ini berbicara dengan layanan yang hanya Anda yang tahu namanya (server swakelola). Setelah dipasang, tambahkan host di ⋯ → Host yang diizinkan. Selain itu tidak bisa.',
   'admin.plugins.noErrors': 'Tidak ada error yang tercatat.',
   'admin.plugins.uninstalled': 'Plugin dihapus',
   'admin.plugins.uninstallTitle': 'Hapus plugin?',
@@ -263,6 +279,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Per pengguna',
   'admin.plugins.fieldRequired': 'Wajib diisi',
   'admin.plugins.sourceRepo': 'Repositori sumber',
+  'admin.plugins.reportIssue': 'Laporkan masalah',
   'admin.plugins.homepage': 'Beranda',
   'admin.plugins.requiresTrek': 'Memerlukan TREK {version}+',
   'admin.plugins.reviewedOn': 'Ditinjau {date}',
@@ -273,8 +290,55 @@ const admin: TranslationStrings = {
     'Membaca pengeluaran (item anggaran) yang dapat diakses oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:read:packing':
     'Membaca daftar barang bawaan dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:packing':
+    'Membuat, mengedit, dan menghapus item daftar bawaan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.weather:read': 'Membaca prakiraan cuaca host yang di-cache (berdasarkan koordinat)',
+  'admin.plugins.perm.db:read:categories': 'Membaca daftar kategori tempat global',
+  'admin.plugins.perm.db:read:tags': 'Membaca tag pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:tags': 'Membuat, mengedit, dan menghapus tag pengguna yang bersangkutan',
+  'admin.plugins.perm.db:read:todos':
+    'Membaca tugas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:todos':
+    'Membuat, mengedit, dan menghapus tugas pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:atlas':
+    'Menandai negara dan wilayah sebagai sudah dikunjungi dan mengelola bucket list pengguna yang bersangkutan (memerlukan add-on Atlas)',
+  'admin.plugins.perm.db:write:vacay':
+    'Mengalihkan hari cuti dan libur perusahaan pada rencana aktif pengguna yang bersangkutan (memerlukan add-on Vacay)',
+  'admin.plugins.perm.db:write:journal':
+    'Membuat, mengedit, dan menghapus entri jurnal di jurnal yang dapat diedit oleh pengguna yang bersangkutan (memerlukan add-on Journey)',
+  'admin.plugins.perm.db:write:collections':
+    'Membuat dan mengedit koleksi serta menyimpan tempat ke dalamnya, dengan peran koleksi pengguna yang bersangkutan (memerlukan add-on Collections)',
+  'admin.plugins.perm.db:write:files':
+    'Melampirkan berkas ke perjalanan yang dapat diedit oleh pengguna yang bersangkutan (batas 10 MB, ekstensi terblokir ditolak) dan mengelola tautannya',
+  'admin.plugins.perm.db:write:collab':
+    'Memublikasikan catatan, jajak pendapat, dan pesan obrolan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan (memerlukan add-on Collab)',
+  'admin.plugins.perm.db:write:members':
+    'Menambahkan pengguna ke perjalanan — memberikan akses perjalanan; dilindungi oleh hak kelola anggota pengguna yang bersangkutan',
+  'admin.plugins.perm.notify:send':
+    'Mengirim notifikasi (kotak lonceng + email/ntfy) kepada pengguna yang bersangkutan atau perjalanan yang diikutinya — tidak pernah ke penerima sembarangan',
+  'admin.plugins.perm.ai:invoke':
+    'Menjalankan penyedia AI yang dikonfigurasi admin (penyelesaian teks + ekstraksi dokumen) atas nama pengguna yang bersangkutan — plugin tidak pernah menyimpan kunci',
+  'admin.plugins.perm.oauth:client':
+    'Terhubung ke layanan pihak ketiga atas namamu melalui OAuth yang diperantarai host (host menyimpan token, plugin tidak pernah melihatnya)',
   'admin.plugins.perm.db:read:files':
     'Membaca berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:reservations':
+    'Membuat, mengedit, dan menghapus pemesanan pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:write:accommodations':
+    'Membuat, mengedit, dan menghapus akomodasi pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:read:journal':
+    'Membaca jurnal perjalanan pengguna yang bersangkutan (memerlukan add-on Journey)',
+  'admin.plugins.perm.db:read:atlas':
+    'Membaca negara dan wilayah yang dikunjungi oleh pengguna yang bersangkutan (memerlukan add-on Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Membaca rencana liburan pengguna yang bersangkutan (memerlukan add-on Vacay)',
+  'admin.plugins.perm.db:read:daynotes':
+    'Membaca catatan harian dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:read:collections':
+    'Membaca koleksi tempat tersimpan milik pengguna yang bersangkutan (memerlukan add-on Collections)',
+  'admin.plugins.perm.db:write:daynotes':
+    'Membuat, mengedit, dan menghapus catatan harian pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.jobs:run':
+    'Menjalankan tugas latar belakang yang dideklarasikan sesuai jadwal (tanpa konteks pengguna — tidak dapat membaca data pengguna)',
   'admin.plugins.perm.db:write:costs':
     'Membuat pengeluaran (item anggaran) pada perjalanan yang dapat diedit oleh pengguna yang bersangkutan',
   'admin.plugins.perm.db:write:places':
@@ -295,9 +359,27 @@ const admin: TranslationStrings = {
     'Menyumbangkan detail tambahan (ulasan, peringkat, tautan) untuk suatu tempat',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Munculkan peringatan validasi pada perjalanan (ditampilkan di perencana)',
+  'admin.plugins.perm.hook:table-contributor':
+    'Menambahkan kolom dan tindakan ke tampilan perjalanan (pemesanan, tempat, hari)',
+  'admin.plugins.perm.hook:map-marker-provider':
+    'Menambahkan penanda ke peta perjalanan (mis. menampilkan pemesanan atau POI)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Menambahkan bagian teks ke ekspor PDF perjalanan',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Menyorot negara di peta dunia Atlas (mis. daftar keinginan atau peringatan perjalanan)',
+  'admin.plugins.perm.hook:journal-entry-provider': 'Menambahkan baris tambahan (tautan, statistik) ke entri jurnal',
+  'admin.plugins.perm.hook:user-data':
+    'Menghapus atau mengekspor data yang disimpannya tentang pengguna (GDPR: penghapusan akun & permintaan data)',
+  'admin.plugins.perm.hook:trip-card-provider': 'Menambahkan lencana kecil (status, jumlah) ke kartu perjalanan dasbor',
+  'admin.plugins.perm.hook:notification-channel': 'Mengirim notifikasi Anda melalui saluran tambahan',
   'admin.plugins.perm.events:subscribe':
     'Bereaksi terhadap peristiwa aktivitas inti (hanya nama peristiwa + perjalanan, tidak pernah kontennya)',
   'admin.plugins.perm.http:outbound': 'Membuat permintaan keluar ke host yang telah dideklarasikannya',
+  'admin.plugins.perm.db:read:collab':
+    'Membaca catatan, jajak pendapat, dan pesan obrolan dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan (memerlukan add-on Collab)',
+  'admin.plugins.perm.db:read:files:content':
+    'Membaca isi (byte) berkas dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
+  'admin.plugins.perm.db:create:trips': 'Membuat perjalanan baru milik pengguna yang bersangkutan',
+  'admin.plugins.perm.rates:read': 'Membaca kurs mata uang host yang di-cache',
   'admin.plugins.updateConsentTitle': 'Pembaruan ini memerlukan izin baru',
   'admin.plugins.updateConsentBody':
     '{name} v{version} meminta hak akses yang belum kamu berikan. Versi baru sudah terpasang tetapi tetap nonaktif sampai kamu menyetujuinya.',
@@ -340,6 +422,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Nama',
   'admin.plugins.sortRecent': 'Baru diperbarui',
   'admin.plugins.sortUpdates': 'Pembaruan dulu',
+  'admin.plugins.sortDownloads': 'Paling banyak diunduh',
   'admin.plugins.updatesAvailable': '{count} pembaruan tersedia untuk plugin kamu.',
   'admin.plugins.updateAll': 'Perbarui semua',
   'admin.plugins.noMatchInstalled': 'Tidak ada plugin terpasang yang cocok dengan pencarianmu.',
@@ -360,7 +443,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Widget dasbor',
   'admin.plugins.cap.heroWidget': 'Widget boarding pass',
   'admin.plugins.cap.placeSlot': 'Detail tempat',
+  'admin.plugins.cap.daySlot': 'Detail hari',
+  'admin.plugins.cap.reservationSlot': 'Detail reservasi',
+  'admin.plugins.cap.replacesTabs': 'Menggantikan tab perencana',
   'admin.plugins.cap.realtime': 'Pembaruan real-time',
+  'admin.plugins.cap.notificationChannel': 'Saluran notifikasi',
   'admin.plugins.cap.photos': 'Menyediakan foto',
   'admin.plugins.cap.calendar': 'Menyediakan acara kalender',
   'admin.plugins.cap.placeDetails': 'Memperkaya tempat',
@@ -386,11 +473,12 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Ukuran',
   'admin.plugins.metaRequires': 'Memerlukan',
   'admin.plugins.metaReviewed': 'Ditinjau pada',
+  'admin.plugins.downloads': 'Unduhan',
   'admin.addons.title': 'Addon',
   'admin.addons.subtitle': 'Aktifkan atau nonaktifkan fitur untuk menyesuaikan pengalaman TREK kamu.',
   'admin.addons.catalog.packing.name': 'Daftar',
   'admin.addons.catalog.packing.description': 'Daftar packing dan tugas to-do untuk perjalananmu',
-  'admin.addons.catalog.budget.name': 'Anggaran',
+  'admin.addons.catalog.budget.name': 'Biaya',
   'admin.addons.catalog.budget.description': 'Lacak pengeluaran dan rencanakan anggaran perjalananmu',
   'admin.addons.catalog.documents.name': 'Dokumen',
   'admin.addons.catalog.documents.description': 'Simpan dan kelola dokumen perjalanan',

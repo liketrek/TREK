@@ -307,12 +307,20 @@ export function listBags(tripId: string | number) {
   }));
 }
 
+/** Owner + collaborators of a trip — the only user ids that may be assigned to a bag. */
+function tripRosterIds(tripId: string | number): Set<number> {
+  const rows = db.prepare('SELECT user_id FROM trip_members WHERE trip_id = ? UNION SELECT user_id FROM trips WHERE id = ?').all(tripId, tripId) as { user_id: number }[];
+  return new Set(rows.map(r => r.user_id));
+}
+
 export function setBagMembers(tripId: string | number, bagId: string | number, userIds: number[]) {
   const bag = db.prepare('SELECT * FROM packing_bags WHERE id = ? AND trip_id = ?').get(bagId, tripId);
   if (!bag) return null;
   db.prepare('DELETE FROM packing_bag_members WHERE bag_id = ?').run(bagId);
   const ins = db.prepare('INSERT OR IGNORE INTO packing_bag_members (bag_id, user_id) VALUES (?, ?)');
-  for (const uid of userIds) ins.run(bagId, uid);
+  // Only real trip members may be bag members — never write an arbitrary account id.
+  const roster = tripRosterIds(tripId);
+  for (const uid of userIds) if (roster.has(uid)) ins.run(bagId, uid);
   const rows = db.prepare(`
     SELECT bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_bag_members bm JOIN users u ON bm.user_id = u.id
@@ -338,6 +346,8 @@ export function updateBag(
   const bag = db.prepare('SELECT * FROM packing_bags WHERE id = ? AND trip_id = ?').get(bagId, tripId);
   if (!bag) return null;
 
+  // A bag may only be assigned to a real trip member; an off-roster id becomes unassigned.
+  const assignUser = data.user_id != null && tripRosterIds(tripId).has(data.user_id) ? data.user_id : null;
   db.prepare(`UPDATE packing_bags SET
     name = COALESCE(?, name),
     color = COALESCE(?, color),
@@ -348,7 +358,7 @@ export function updateBag(
     data.color || null,
     data.weight_limit_grams ?? (bag as any).weight_limit_grams ?? null,
     bodyKeys?.includes('user_id') ? 1 : 0,
-    data.user_id ?? null,
+    assignUser,
     bagId
   );
   return db.prepare('SELECT b.*, COALESCE(u.display_name, u.username) as assigned_username FROM packing_bags b LEFT JOIN users u ON b.user_id = u.id WHERE b.id = ?').get(bagId);

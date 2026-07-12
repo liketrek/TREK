@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { appendAudit, readAudit, auditResource, isAuditable } from '../../../src/nest/plugins/host/plugin-audit';
+import { appendAudit, readAudit, readAuditForUser, auditResource, isAuditable, pruneAudit } from '../../../src/nest/plugins/host/plugin-audit';
 
 function makeDb() {
   const db = new Database(':memory:');
@@ -67,10 +67,40 @@ describe('appendAudit hash chain', () => {
     expect(row.code).toBe('RESOURCE_FORBIDDEN');
   });
 
+  it('readAuditForUser returns one user\'s actions across ALL plugins, newest first, with the plugin name', () => {
+    db.exec("CREATE TABLE plugins (id TEXT PRIMARY KEY, name TEXT)");
+    db.prepare("INSERT INTO plugins (id, name) VALUES ('koffi','Koffi'), ('flight','Flight Tracker')").run();
+    appendAudit(db, { pluginId: 'koffi', actingUserId: 42, method: 'trips.getById', resource: 'trip:1', code: 'ok' });
+    appendAudit(db, { pluginId: 'flight', actingUserId: 42, method: 'reservations.create', resource: 'trip:1', code: 'ok' });
+    appendAudit(db, { pluginId: 'koffi', actingUserId: 99, method: 'trips.getById', resource: 'trip:2', code: 'ok' }); // another user
+    const mine = readAuditForUser(db, 42) as Array<{ plugin_id: string; plugin_name: string; method: string }>;
+    expect(mine).toHaveLength(2);                       // only user 42's rows, across both plugins
+    expect(mine[0]).toMatchObject({ plugin_id: 'flight', plugin_name: 'Flight Tracker', method: 'reservations.create' }); // newest first
+    expect(mine[1]).toMatchObject({ plugin_id: 'koffi', plugin_name: 'Koffi' });
+    expect(mine.some((r) => r.plugin_id === 'koffi' && r.method === 'trips.getById' && (r as { resource?: string }).resource === 'trip:2')).toBe(false); // never another user's
+  });
+
   it('readAudit returns newest first with the projected fields only', () => {
     appendAudit(db, { pluginId: 'p', actingUserId: 42, method: 'trips.getById', resource: 'trip:1', code: 'ok' });
     const rows = readAudit(db, 'p') as Array<Record<string, unknown>>;
     expect(rows[0]).toHaveProperty('method', 'trips.getById');
     expect(rows[0]).not.toHaveProperty('prev_hash'); // internal chain fields not exposed
+  });
+
+  it('pruneAudit keeps only the newest N rows per plugin, leaving the retained window chain-consistent', () => {
+    for (let i = 0; i < 50; i++) appendAudit(db, { pluginId: 'p', actingUserId: 1, method: 'trips.getById', resource: `trip:${i}`, code: 'ok' });
+    appendAudit(db, { pluginId: 'other', actingUserId: 1, method: 'trips.getById', resource: 'trip:x', code: 'ok' });
+    pruneAudit(db, 'p', 10);
+    const rows = db.prepare("SELECT resource, prev_hash, hash FROM plugin_capability_audit WHERE plugin_id = 'p' ORDER BY id ASC").all() as Array<{ resource: string; prev_hash: string | null; hash: string }>;
+    expect(rows).toHaveLength(10);
+    expect(rows[rows.length - 1].resource).toBe('trip:49'); // newest kept
+    // each retained row is still self-consistent: hash === sha256(prev_hash + row-content)
+    // (proven by re-appending on top — the chain continues from the surviving tip)
+    appendAudit(db, { pluginId: 'p', actingUserId: 1, method: 'trips.getById', resource: 'trip:new', code: 'ok' });
+    expect(db.prepare("SELECT COUNT(*) c FROM plugin_capability_audit WHERE plugin_id='p'").get()).toMatchObject({ c: 11 });
+    // pruning one plugin never touches another's rows
+    expect(db.prepare("SELECT COUNT(*) c FROM plugin_capability_audit WHERE plugin_id='other'").get()).toMatchObject({ c: 1 });
+    expect(() => pruneAudit(db, 'p', 0)).not.toThrow(); // 0 = disabled, no-op
+    expect(db.prepare("SELECT COUNT(*) c FROM plugin_capability_audit WHERE plugin_id='p'").get()).toMatchObject({ c: 11 });
   });
 });

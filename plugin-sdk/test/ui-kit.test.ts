@@ -46,6 +46,19 @@ describe('design kit', () => {
     expect(out).toContain('window.trek');
   });
 
+  it('auto-upgrades native <select> into a host-styled, opt-out-able listbox', () => {
+    // Styles for the enhanced control ship in the kit.
+    for (const cls of ['.trek-select-trigger', '.trek-select-menu', '.trek-select-option']) {
+      expect(TREK_UI_CSS).toContain(cls);
+    }
+    // The bootstrap enhances selects as a listbox, keeps a per-field opt-out, and
+    // re-emits real change events so form/plugin code still works.
+    expect(TREK_THEME_JS).toContain('enhanceSelect');
+    expect(TREK_THEME_JS).toContain('data-trek-native');
+    expect(TREK_THEME_JS).toContain("'listbox'");
+    expect(TREK_THEME_JS).toContain("dispatch(sel, 'change')");
+  });
+
   it('injectTrekUi is a no-op without the marker and expands every occurrence', () => {
     const plain = '<html><body><h1>hi</h1></body></html>';
     expect(injectTrekUi(plain)).toBe(plain);

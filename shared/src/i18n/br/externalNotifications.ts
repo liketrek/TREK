@@ -52,6 +52,7 @@ const br: NotificationLocale = {
       title: 'Sessão Synology encerrada',
       body: 'Sua conta ou URL do Synology foi alterada. Você foi desconectado do Synology Photos.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Redefinir sua senha',

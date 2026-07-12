@@ -17,15 +17,69 @@ import * as sdk from '../index.js';
 import { injectTrekUi } from '../ui/kit.js';
 import { readJsonFile } from './json.js';
 
-interface Fixtures {
-  config?: Record<string, unknown>;
-  trips?: Record<number, { members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[] }>;
-  users?: Record<number, unknown>;
-}
+// Dev fixtures ARE mock-host options — the dev ctx delegates every non-db-own
+// capability to a grant-enforcing mock host, so dev-fixtures.json can seed the full
+// surface (trips, costs, packing, files, users, settings, weather, ai, …), exactly the
+// shape a mock-host unit test uses. `actingUserId` binds the dev user (like the prod
+// invocation user), defaulting to 1.
+type Fixtures = NonNullable<Parameters<typeof sdk.createMockHost>[0]>;
 interface PluginRouteLike { method: string; path: string; auth?: boolean; handler: (req: unknown, ctx: unknown) => Promise<{ status: number; headers?: Record<string, string>; body?: unknown }>; }
-interface PluginLike { onLoad?: (ctx: unknown) => unknown; routes?: PluginRouteLike[]; }
+type Handler = (...a: unknown[]) => unknown;
+interface PluginLike {
+  onLoad?: (ctx: unknown) => unknown;
+  routes?: PluginRouteLike[];
+  jobs?: Array<{ id: string; handler: Handler }>;
+  scheduled?: Handler;
+  events?: Array<{ on: string; handler: Handler }>;
+  deleteUserData?: Handler;
+  exportUserData?: Handler;
+  hooks?: Record<string, Record<string, Handler>>;
+}
 
 class PermissionDenied extends Error {}
+
+// The same SQL guards the real host's PluginDataDb applies (plugin-data.service.ts):
+// forbidden statement types, an sql-length cap, a result-row cap, and — inside tx() —
+// no transaction control plus a batch-size cap. Without them a statement production
+// refuses would silently work in dev, and the author would debug a phantom.
+const MAX_SQL_LENGTH = 100_000;
+const FORBIDDEN_SQL = /\b(ATTACH|DETACH|VACUUM|PRAGMA|RECURSIVE|LOAD_EXTENSION)\b/i;
+const TX_CONTROL = /^\s*(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|END)\b/i;
+const MAX_TX_OPS = 100;
+const MAX_ROWS = 100_000;
+
+function guardSql(sql: string): void {
+  if (typeof sql !== 'string') throw new Error('sql must be a string');
+  if (sql.length > MAX_SQL_LENGTH) throw new Error('sql too long');
+  if (FORBIDDEN_SQL.test(sql)) throw new Error('statement type not allowed for plugin databases');
+}
+
+/** Strip LEADING comments/whitespace so a COMMIT hidden behind a comment can't slip
+ * past the start-anchored TX_CONTROL check (mirrors the host's tx() guard). */
+function stripLeadingComments(sql: string): string {
+  return String(sql ?? '').replace(/^(?:\s|--[^\n]*\n?|\/\*[\s\S]*?\*\/)*/, '');
+}
+
+// The credential-free inbound-header allowlist TREK's proxy forwards to auth:false
+// routes (webhooks) — never Cookie/Authorization/session. Kept in lockstep with
+// SAFE_INBOUND_HEADERS in plugins-proxy.controller.ts.
+const SAFE_INBOUND_HEADERS = new Set([
+  'content-type', 'user-agent', 'x-request-id', 'x-idempotency-key',
+  'x-hub-signature', 'x-hub-signature-256', 'x-github-event', 'x-github-delivery',
+  'stripe-signature',
+  'svix-id', 'svix-timestamp', 'svix-signature',
+  'x-gitlab-event', 'x-gitlab-token',
+  'x-signature', 'x-signature-256', 'x-webhook-signature', 'x-event-type',
+]);
+
+function pickInboundHeaders(raw: http.IncomingHttpHeaders): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (!SAFE_INBOUND_HEADERS.has(k.toLowerCase())) continue;
+    out[k.toLowerCase()] = Array.isArray(v) ? v.join(', ') : String(v ?? '');
+  }
+  return out;
+}
 
 /**
  * Accept both bind shapes the real host accepts: spread positional args AND a
@@ -48,12 +102,18 @@ export function createDevDb(dbFile: string): { db: PluginContextDb; note: string
       note: `db:own → real SQLite at ${dbFile}`,
       close: () => { try { sq.close(); } catch { /* ignore */ } },
       db: {
-        async query(sql: string, ...args: unknown[]) { return sq.prepare(sql).all(...flatBind(args)) as unknown[]; },
+        async query(sql: string, ...args: unknown[]) {
+          guardSql(sql);
+          const rows = sq.prepare(sql).all(...flatBind(args)) as unknown[];
+          if (rows.length > MAX_ROWS) throw new Error(`query returned more than ${MAX_ROWS} rows`);
+          return rows;
+        },
         async exec(sql: string, ...args: unknown[]) {
+          guardSql(sql);
           if (args.length) { const r = sq.prepare(sql).run(...flatBind(args)); return { changes: Number(r.changes ?? 0) }; }
           sq.exec(sql); return { changes: 0 };
         },
-        async migrate(id: string, sql: string) { if (applied.has(id)) return { applied: false }; sq.exec(sql); applied.add(id); return { applied: true }; },
+        async migrate(id: string, sql: string) { guardSql(sql); if (applied.has(id)) return { applied: false }; sq.exec(sql); applied.add(id); return { applied: true }; },
       },
     };
   } catch {
@@ -61,9 +121,9 @@ export function createDevDb(dbFile: string): { db: PluginContextDb; note: string
       note: 'db:own → in-memory stub (upgrade to Node 22.5+ for a real SQLite dev db)',
       close: () => {},
       db: {
-        async query() { return []; },
-        async exec() { return { changes: 0 }; },
-        async migrate() { return { applied: true }; },
+        async query(sql: string) { guardSql(sql); return []; },
+        async exec(sql: string) { guardSql(sql); return { changes: 0 }; },
+        async migrate(_id: string, sql: string) { guardSql(sql); return { applied: true }; },
       },
     };
   }
@@ -74,33 +134,74 @@ interface PluginContextDb { query(sql: string, ...a: unknown[]): Promise<unknown
 
 function createDevContext(id: string, grants: Set<string>, fx: Fixtures, db: PluginContextDb, broadcasts: unknown[]) {
   const need = (perm: string, method: string) => { if (!grants.has(perm)) throw new PermissionDenied(`PERMISSION_DENIED: ${method} requires ${perm}`); };
-  const member = (tripId: number, asUser: number) => {
-    const t = fx.trips?.[tripId];
-    if (!t || !t.members.includes(asUser)) throw new Error(`RESOURCE_FORBIDDEN: no access to trip ${tripId}`);
-    return t;
+  // Full parity: delegate EVERY capability to a grant-enforcing mock host (the same one
+  // used in unit tests), so ctx.costs/packing/files/notify/ai/settings/scheduler/meta/
+  // oauth/weather/rates/journal/… all work in dev instead of throwing TypeErrors — then
+  // override just the three surfaces dev does natively: db:own (real node:sqlite so your
+  // migrations/queries actually persist), ws broadcasts (captured for the dashboard),
+  // and logging (to the dev console). The mock enforces the SAME grants, so a missing
+  // permission fails identically here and in production.
+  // Default the dev acting user to 1 (like the prod invocation user) so the documented
+  // one-arg calls work on a fresh scaffold — without this, a fixtures file that omits
+  // actingUserId leaves the mock userless and every user-bound capability throws.
+  const mock = sdk.createMockHost({ ...fx, actingUserId: fx.actingUserId ?? 1, grants: [...grants] });
+  const isRead = (sql: string) => /^\s*(SELECT|WITH|VALUES)\b/i.test(sql) || /\bRETURNING\b/i.test(sql);
+  const devDb = {
+    query: (sql: string, ...a: unknown[]) => { need('db:own', 'db.query'); return db.query(sql, ...a); },
+    exec: (sql: string, ...a: unknown[]) => { need('db:own', 'db.exec'); return db.exec(sql, ...a); },
+    migrate: (mid: string, sql: string) => { need('db:own', 'db.migrate'); return db.migrate(mid, sql); },
+    // A functional (not strictly atomic) tx over the real dev db so read-modify-write
+    // batches work in dev; production runs it in one better-sqlite3 transaction.
+    tx: async (ops: Array<{ sql: string; args?: unknown[] }>) => {
+      need('db:own', 'db.tx');
+      // Validate the WHOLE batch up front, like the host's PluginDataDb.tx — a bad
+      // op must fail before anything ran, not leave earlier writes behind.
+      if (!Array.isArray(ops)) throw new Error('tx requires an array of { sql, args }');
+      if (ops.length > MAX_TX_OPS) throw new Error(`tx allows at most ${MAX_TX_OPS} statements`);
+      for (const op of ops) {
+        guardSql(op?.sql as string);
+        if (TX_CONTROL.test(stripLeadingComments(op?.sql as string))) throw new Error('transaction-control statements are not allowed inside tx()');
+      }
+      const results: Array<{ changes?: number; rows?: unknown[] }> = [];
+      for (const op of ops) {
+        if (isRead(op.sql)) results.push({ rows: await db.query(op.sql, ...(op.args ?? [])) as unknown[] });
+        else { const r = await db.exec(op.sql, ...(op.args ?? [])) as { changes?: number }; results.push({ changes: r?.changes ?? 0 }); }
+      }
+      return { results };
+    },
   };
-  return {
-    id, config: Object.freeze({ ...(fx.config ?? {}) }),
-    db: {
-      query: (sql: string, ...a: unknown[]) => { need('db:own', 'db.query'); return db.query(sql, ...a); },
-      exec: (sql: string, ...a: unknown[]) => { need('db:own', 'db.exec'); return db.exec(sql, ...a); },
-      migrate: (mid: string, sql: string) => { need('db:own', 'db.migrate'); return db.migrate(mid, sql); },
-    },
-    trips: {
-      getById: async (t: number, u: number) => { need('db:read:trips', 'trips.getById'); return member(t, u).data ?? null; },
-      getPlaces: async (t: number, u: number) => { need('db:read:trips', 'trips.getPlaces'); return member(t, u).places ?? []; },
-      getReservations: async (t: number, u: number) => { need('db:read:trips', 'trips.getReservations'); return member(t, u).reservations ?? []; },
-    },
-    users: { getById: async (uid: number) => { need('db:read:users', 'users.getById'); return fx.users?.[uid] ?? null; } },
+  const wrap = (base: typeof mock.ctx, actingUserId: number | undefined) => ({
+    ...base,
+    id,
+    db: devDb,
     ws: {
-      broadcastToTrip: async (t: number, event: string, data: unknown) => { need('ws:broadcast:trip', 'ws.broadcastToTrip'); broadcasts.push({ kind: 'trip', target: t, event, data }); },
-      broadcastToUser: async (u: number, event: string, data: unknown) => { need('ws:broadcast:user', 'ws.broadcastToUser'); broadcasts.push({ kind: 'user', target: u, event, data }); },
+      // Same target gates as production: a trip room only for a member acting user,
+      // a user push only to the acting user themself.
+      broadcastToTrip: async (t: number, event: string, data: unknown) => {
+        need('ws:broadcast:trip', 'ws.broadcastToTrip');
+        if (actingUserId === undefined) throw new Error('RESOURCE_FORBIDDEN: broadcasts require an authenticated user context');
+        const trip = fx.trips?.[t];
+        if (!trip || !trip.members.includes(actingUserId)) throw new Error(`RESOURCE_FORBIDDEN: no access to trip ${t}`);
+        broadcasts.push({ kind: 'trip', target: t, event, data });
+      },
+      broadcastToUser: async (u: number, event: string, data: unknown) => {
+        need('ws:broadcast:user', 'ws.broadcastToUser');
+        if (actingUserId === undefined || u !== actingUserId) throw new Error('RESOURCE_FORBIDDEN: a plugin may only broadcast to the acting user');
+        broadcasts.push({ kind: 'user', target: u, event, data });
+      },
     },
     log: {
       info: (m: string) => console.log(`  [plugin] ${m}`),
       warn: (m: string) => console.warn(`  [plugin] ${m}`),
       error: (m: string) => console.error(`  [plugin] ${m}`),
     },
+  });
+  // Routes (and hooks) run user-bound; jobs, scheduled tasks, event deliveries and the
+  // GDPR handlers run with NO acting user — exactly the split production makes, so a
+  // membership read from a job fails here the same way it would in TREK.
+  return {
+    ctx: wrap(mock.ctx, fx.actingUserId ?? 1),
+    userlessCtx: wrap(mock.userlessCtx, undefined),
   };
 }
 
@@ -165,7 +266,21 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
 
   let plugin: PluginLike = {};
   let version = 0;
-  const ctx = createDevContext(id, grants, fx, db, broadcasts);
+  const { ctx, userlessCtx } = createDevContext(id, grants, fx, db, broadcasts);
+  const port = opts.port ?? 4317;
+
+  // Block a browser-initiated cross-site request to the side-effectful endpoints:
+  // modern browsers stamp Sec-Fetch-Site (anything but same-origin is another site;
+  // 'none' is the user's own address bar and stays allowed), and every browser sends
+  // Origin on cross-origin fetches — refuse an Origin that isn't this dev server.
+  // curl/devtools-on-the-page pass both checks.
+  const isCrossSite = (request: http.IncomingMessage): boolean => {
+    const site = request.headers['sec-fetch-site'];
+    if (typeof site === 'string' && site !== 'same-origin' && site !== 'none') return true;
+    const origin = request.headers['origin'];
+    if (typeof origin === 'string' && origin !== `http://localhost:${port}` && origin !== `http://127.0.0.1:${port}`) return true;
+    return false;
+  };
 
   const load = async () => {
     const entry = path.join(abs, 'server', 'index.js');
@@ -200,6 +315,41 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
     };
 
     if (url.pathname === '/__dev/version') return send(200, String(version));
+
+    // Fire a NON-route entry point against the dev ctx — the half the dev server used to
+    // be unable to reach. GET /__dev/fire/<kind>[/<name>][/<fn>], e.g.
+    //   /__dev/fire/job/refresh · /__dev/fire/scheduled/daily · /__dev/fire/event/place:created
+    //   /__dev/fire/hook/tripCardProvider/getCards · /__dev/fire/deleteUserData
+    // Query params become the payload/args; a JSON body is used verbatim when present.
+    if (url.pathname.startsWith('/__dev/fire/')) {
+      // These endpoints are side-effectful (fire a job, wipe user data, …). Even bound to
+      // loopback, a drive-by <img src="http://127.0.0.1:PORT/__dev/fire/deleteUserData?…">
+      // from an open browser tab could hit them — block a cross-site request.
+      if (isCrossSite(request)) return send(403, 'cross-site request refused');
+      const [kind, name, fn] = url.pathname.slice('/__dev/fire/'.length).split('/');
+      const bodyRaw = await readBody(request); // already JSON-parsed when sent as application/json
+      let payload: unknown = bodyRaw;
+      if (typeof bodyRaw === 'string') { try { payload = JSON.parse(bodyRaw); } catch { payload = bodyRaw; } }
+      if (payload === undefined) { const q: Record<string, string> = {}; url.searchParams.forEach((v, k) => { q[k] = v; }); if (Object.keys(q).length) payload = q; }
+      try {
+        // Jobs, scheduled tasks, events and the GDPR handlers run with NO acting user in
+        // production — fire them against the userless ctx so a membership read fails here
+        // exactly like it would in TREK. Hooks stay user-bound.
+        let out: unknown;
+        if (kind === 'job') { const j = plugin.jobs?.find((x) => x.id === name); if (!j) return send(404, `no job "${name}"`); out = await j.handler(userlessCtx); }
+        else if (kind === 'scheduled') { if (!plugin.scheduled) return send(404, 'plugin has no scheduled handler'); out = await plugin.scheduled({ name, payload }, userlessCtx); }
+        else if (kind === 'event') { for (const s of plugin.events ?? []) if (s.on === name || s.on === '*') await s.handler({ event: name, tripId: 0, ...(payload as object) }, userlessCtx); out = { delivered: true }; }
+        else if (kind === 'deleteUserData') { if (!plugin.deleteUserData) return send(404, 'no deleteUserData handler'); out = await plugin.deleteUserData({ userId: Number((payload as { userId?: unknown })?.userId ?? name ?? 0) }, userlessCtx); }
+        else if (kind === 'exportUserData') { if (!plugin.exportUserData) return send(404, 'no exportUserData handler'); out = await plugin.exportUserData({ userId: Number((payload as { userId?: unknown })?.userId ?? name ?? 0) }, userlessCtx); }
+        else if (kind === 'hook') { const impl = plugin.hooks?.[name]; if (!impl || typeof impl[fn] !== 'function') return send(404, `no hook ${name}.${fn}`); out = await impl[fn](...(Array.isArray(payload) ? payload : payload != null ? [payload] : []), ctx); }
+        else return send(400, `unknown fire kind "${kind}"`);
+        return send(200, JSON.stringify(out ?? { ok: true }, null, 2), 'application/json; charset=utf-8');
+      } catch (e) {
+        const denied = e instanceof PermissionDenied;
+        return send(denied ? 403 : 500, e instanceof Error ? e.message : String(e));
+      }
+    }
+
     if (url.pathname === '/') return send(200, dashboard(id, String(manifest.type), plugin.routes ?? [], dbNote, broadcasts.length), 'text/html; charset=utf-8');
 
     // Faithful host preview: embeds /ui in a sandboxed opaque-origin iframe (exactly
@@ -210,9 +360,15 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       return send(200, preview(id, String(manifest.type)), 'text/html; charset=utf-8');
     }
 
-    // Static plugin UI at /ui (page/widget client bundle)
+    // Static plugin UI at /ui (page/widget client bundle). The iframe loads
+    // `/ui/index.html` (not bare `/ui`) so relative asset URLs — `./assets/x.js`
+    // from a multi-file Vite/React build with `base: './'` — resolve to
+    // `/ui/assets/x.js`, exactly as the real host resolves them against
+    // `/plugin-frame/<id>/index.html`. A bare `/ui` document would resolve them
+    // against the origin root (`/assets/x.js`) and 404. Bare `/ui` and `/ui/` both
+    // still serve index.html for direct navigation.
     if (url.pathname === '/ui' || url.pathname.startsWith('/ui/')) {
-      const relFile = url.pathname === '/ui' ? 'index.html' : url.pathname.slice('/ui/'.length);
+      const relFile = url.pathname === '/ui' ? 'index.html' : (url.pathname.slice('/ui/'.length) || 'index.html');
       const file = path.join(abs, 'client', relFile);
       if (!file.startsWith(path.join(abs, 'client'))) return send(403, 'forbidden');
       if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return send(404, 'not found — build your client/ bundle');
@@ -229,16 +385,24 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
 
     // Plugin API routes mounted under /api/<route path>
     if (url.pathname.startsWith('/api/')) {
+      // Same drive-by guard as /__dev/fire: routes are side-effectful against the real
+      // dev db with no auth — an off-site page must not reach them on 127.0.0.1.
+      if (isCrossSite(request)) return send(403, 'cross-site request refused');
       const pluginPath = url.pathname.slice('/api'.length); // "/api/hello" -> "/hello"
       const route = (plugin.routes ?? []).find((r) => r.method.toUpperCase() === request.method && r.path === pluginPath);
       if (!route) return send(404, `no ${request.method} route ${pluginPath}`);
       const anon = url.searchParams.get('_anon') === '1';
       if (route.auth !== false && anon) return send(401, 'this route requires auth (drop ?_anon=1 to send the dev user)');
-      const user = anon ? null : { id: 1, username: 'dev', isAdmin: true };
+      // The dev user matches the ctx's acting user and is a regular account — the prod
+      // proxy never hands a plugin an admin session it didn't authenticate.
+      const user = anon ? null : { id: fx.actingUserId ?? 1, username: 'dev', isAdmin: false };
       const body = await readBody(request);
       const query: Record<string, unknown> = {}; url.searchParams.forEach((v, k) => { if (k !== '_anon') query[k] = v; });
+      // headers is always present on a PluginRequest; only auth:false routes (webhooks)
+      // receive the allowlisted, credential-free inbound subset — like the prod proxy.
+      const headers = route.auth === false ? pickInboundHeaders(request.headers) : {};
       try {
-        const r = await route.handler({ method: route.method, path: route.path, query, body, user }, ctx);
+        const r = await route.handler({ method: route.method, path: route.path, query, body, headers, user }, ctx);
         const out = typeof r.body === 'string' || Buffer.isBuffer(r.body) ? String(r.body) : JSON.stringify(r.body ?? null);
         return send(r.status ?? 200, out, r.headers?.['content-type'] || 'application/json; charset=utf-8', r.headers ?? {});
       } catch (e) {
@@ -249,11 +413,12 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
     return send(404, 'not found');
   }
 
-  const port = opts.port ?? 4317;
   await new Promise<void>((resolve, reject) => {
     server.once('error', (e: NodeJS.ErrnoException) =>
       reject(e.code === 'EADDRINUSE' ? new Error(`port ${port} is already in use — pass --port <n> to pick another`) : e));
-    server.listen(port, resolve);
+    // Bind loopback only: the dev server serves the plugin's routes AND the side-effectful
+    // /__dev/fire endpoints against a real db with no auth — never expose that to the LAN.
+    server.listen(port, '127.0.0.1', resolve);
   });
   const routes = plugin.routes ?? [];
   console.log(`\n  trek-plugin dev — ${id} (${String(manifest.type)})`);
@@ -351,7 +516,7 @@ iframe{width:100%;border:0;background:transparent;min-height:120px;display:block
   <label><input type="checkbox" id="nt"> no transparency</label>
   <label><input type="checkbox" id="trip" checked> trip context</label>
 </header>
-<div class="stage"><div class="wrap"><iframe id="f" src="/ui" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" title="${id}"></iframe></div></div>
+<div class="stage"><div class="wrap"><iframe id="f" src="/ui/index.html" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" title="${id}"></iframe></div></div>
 <p class="hint">The frame runs sandboxed at an opaque origin, exactly like TREK — <code>trek.invoke()</code> is proxied to your /api routes as the dev user.</p>
 <div class="toast" id="toast"></div>
 <script>
@@ -385,6 +550,12 @@ window.addEventListener("message", function(ev){
   else if(m.type==="trek:resize"){ if(m.height>0) f.style.height=Math.min(m.height,2000)+"px"; }
   else if(m.type==="trek:notify"){ toast((m.level?("["+m.level+"] "):"")+(m.message||"")); }
   else if(m.type==="trek:navigate"){ toast("navigate \\u2192 "+m.to); }
+  else if(m.type==="trek:openExternal"){ toast("openExternal \\u2192 "+m.url); try{ var u=new URL(String(m.url||"")); if(u.protocol==="https:"||u.protocol==="http:") window.open(u.href,"_blank","noopener,noreferrer"); }catch(e){} }
+  else if(m.type==="trek:confirm"){
+    // Mirror the host contract so trek.confirm() resolves in the preview too.
+    var ok=window.confirm((m.title?m.title+"\\n\\n":"")+(m.message||""));
+    f.contentWindow.postMessage({type:"trek:confirm:result",requestId:m.requestId,confirmed:ok},"*");
+  }
   else if(m.type==="trek:invoke"){
     fetch("/api"+m.sub,{method:m.method||"GET",headers:{"content-type":"application/json"},body:m.body!=null?JSON.stringify(m.body):undefined})
       .then(function(r){var ct=r.headers.get("content-type")||"";return (ct.indexOf("json")>=0?r.json():r.text());})

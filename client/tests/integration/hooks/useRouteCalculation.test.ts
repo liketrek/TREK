@@ -371,6 +371,67 @@ describe('useRouteCalculation', () => {
     expect(result.current.route).toBeNull();
   });
 
+  it('FE-HOOK-ROUTE-020: #1465 check-in day with a place before check-in draws no hotel → first-stop leg', async () => {
+    // Airport (10:00) and a museum (12:00) on the check-in day, both before the 15:00 check-in.
+    // You reach them before dropping your bags, so the day starts at the airport — no hotel →
+    // airport leg. The evening leg to the hotel (where you sleep tonight) still stands.
+    const airport = buildPlace({ lat: 41.30, lng: 2.08, place_time: '10:00' });
+    const museum = buildPlace({ lat: 41.38, lng: 2.17, place_time: '12:00' });
+    const hotel = { lat: 41.39, lng: 2.16 };
+    const a1 = buildAssignment({ day_id: 1, order_index: 0, place: airport });
+    const a2 = buildAssignment({ day_id: 1, order_index: 1, place: museum });
+    const accommodations = [{ id: 1, start_day_id: 1, end_day_id: 2, check_in: '15:00', place_lat: hotel.lat, place_lng: hotel.lng }];
+    const store = { assignments: { '1': [a1, a2] } } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: store.assignments,
+      reservations: [],
+      days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }],
+    } as any);
+
+    const { result } = renderHook(() =>
+      useRouteCalculation(store, 1, true, 'driving', accommodations as any)
+    );
+    await act(async () => {});
+
+    const legs = (result.current.route ?? []).map(run => run.map(p => `${p[0]},${p[1]}`));
+    // No spurious morning bookend [hotel → airport].
+    expect(legs).not.toContainEqual([`${hotel.lat},${hotel.lng}`, `${airport.lat},${airport.lng}`]);
+    // The day starts at the airport, and still ends at the hotel for the night.
+    expect(result.current.route?.[0]?.[0]).toEqual([airport.lat, airport.lng]);
+    expect(legs).toContainEqual([`${museum.lat},${museum.lng}`, `${hotel.lat},${hotel.lng}`]);
+  });
+
+  it('FE-HOOK-ROUTE-021: #1465 check-out day with a place after check-out draws no last-stop → hotel leg', async () => {
+    // Day 2 is the hotel's check-out day (11:00). You wake there, visit a museum (09:00), then
+    // head "home" (18:00, after check-out). Having left the hotel, there is no return leg — but
+    // the morning leg [hotel → museum] (you slept there) stays.
+    const museum = buildPlace({ lat: 41.38, lng: 2.17, place_time: '09:00' });
+    const home = buildPlace({ lat: 41.10, lng: 1.80, place_time: '18:00' });
+    const hotel = { lat: 41.39, lng: 2.16 };
+    const a1 = buildAssignment({ day_id: 2, order_index: 0, place: museum });
+    const a2 = buildAssignment({ day_id: 2, order_index: 1, place: home });
+    const accommodations = [{ id: 1, start_day_id: 1, end_day_id: 2, check_out: '11:00', place_lat: hotel.lat, place_lng: hotel.lng }];
+    const store = { assignments: { '2': [a1, a2] } } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: store.assignments,
+      reservations: [],
+      days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }],
+    } as any);
+
+    const { result } = renderHook(() =>
+      useRouteCalculation(store, 2, true, 'driving', accommodations as any)
+    );
+    await act(async () => {});
+
+    const legs = (result.current.route ?? []).map(run => run.map(p => `${p[0]},${p[1]}`));
+    // No spurious evening bookend [home → hotel].
+    expect(legs).not.toContainEqual([`${home.lat},${home.lng}`, `${hotel.lat},${hotel.lng}`]);
+    // The morning leg from the slept-in hotel is still drawn, and the day ends at home.
+    expect(legs).toContainEqual([`${hotel.lat},${hotel.lng}`, `${museum.lat},${museum.lng}`]);
+    const flat = result.current.route ?? [];
+    expect(flat[flat.length - 1]?.[flat[flat.length - 1].length - 1]).toEqual([home.lat, home.lng]);
+  });
+
   it('FE-HOOK-ROUTE-012: setRoute and setRouteInfo are exposed', () => {
     const store = buildMockStore({});
     const { result } = renderHook(() =>

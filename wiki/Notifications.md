@@ -8,7 +8,7 @@ The Notifications tab (Settings → Notifications) lets you choose which events 
 
 ## Notification channels
 
-TREK supports four delivery channels. Which channels appear depends on what the admin has enabled server-side.
+TREK ships four delivery channels, and a plugin can add more. Which channels appear depends on what the admin has enabled server-side.
 
 | Channel | Description |
 |---------|-------------|
@@ -16,6 +16,25 @@ TREK supports four delivery channels. Which channels appear depends on what the 
 | **Email** | Delivered to your account email. Requires the admin to configure SMTP. |
 | **Webhook** | TREK POSTs a JSON payload to a URL you specify. Discord and Slack webhook URLs are auto-detected and receive a natively formatted payload. |
 | **ntfy** | Push notifications via [ntfy.sh](https://ntfy.sh) or a self-hosted ntfy server. |
+
+### Plugin channels
+
+A plugin can register an **additional channel** — Gotify, Pushover, Telegram, anything that
+takes a message — by implementing the `notificationChannel` hook. See
+[Plugin-Development](Plugin-Development.md#notification-channels).
+
+Once the admin installs the plugin and switches its channel on, it appears as a new column in
+the preferences matrix beside Email and In-App, and behaves like any other channel: each user
+supplies their own credentials (in the plugin's own settings) and picks per-event which
+notifications they want on it.
+
+Two things are true of plugin channels specifically:
+
+- **They are user-scoped.** Admin-only events (like `version_available`) always go out over the
+  built-in admin channels, never a plugin's.
+- **The plugin never sees your trips.** The notification is rendered by TREK — in your language,
+  with the deep link already built — before the plugin is handed it. The plugin gets that message
+  and your own credentials for its service, and nothing else.
 
 ## Notification events
 
@@ -30,6 +49,7 @@ The following events are configurable in user settings:
 | `photos_shared` | Photos were shared with a trip |
 | `collab_message` | A new message in a collaborative trip |
 | `packing_tagged` | You were assigned to a packing category in a trip |
+| `plugin_notification` | An installed plugin sent you a notification (only plugins granted the `notify:send` capability can do this) |
 
 All user-facing events support all four channels (in-app, email, webhook, ntfy). A dash (—) in the matrix means that channel/event combination is not implemented.
 

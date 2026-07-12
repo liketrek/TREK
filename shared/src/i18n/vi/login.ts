@@ -8,7 +8,7 @@ const login: TranslationStrings = {
   'login.features.mapsDesc': 'Google Địa điểm, tuyến đường và phân cụm',
   'login.features.realtime': 'Đồng bộ hóa thời gian thực',
   'login.features.realtimeDesc': 'Lập kế hoạch cùng nhau thông qua WebSocket',
-  'login.features.budget': 'Theo dõi ngân sách',
+  'login.features.budget': 'Theo dõi chi phí',
   'login.features.budgetDesc': 'Danh mục, biểu đồ và chi phí mỗi người',
   'login.features.collab': 'Sự hợp tác',
   'login.features.collabDesc': 'Nhiều người dùng với các chuyến đi chung',

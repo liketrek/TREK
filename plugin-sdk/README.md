@@ -52,7 +52,10 @@ trek.notify('success', 'Saved')
 ```
 
 The kit applies the theme, mirrors the appearance flags (reduced-motion,
-no-transparency) and auto-reports your height. See the
+no-transparency) and auto-reports your height. It also upgrades any native
+`<select>` into a host-styled, keyboard-accessible dropdown that matches TREK —
+the OS-drawn popup never could. Write a plain `<select>` and it just works; add
+`data-trek-native` to opt a field out. See the
 [Plugin Development wiki](https://github.com/mauriceboe/TREK/wiki/Plugin-Development)
 for the full component + token reference.
 

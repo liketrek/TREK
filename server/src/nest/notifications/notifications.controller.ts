@@ -103,6 +103,18 @@ export class NotificationsController {
     return this.notifications.testNtfy({ topic: resolvedTopic, server: resolvedServer ?? null, token: resolvedToken });
   }
 
+  /**
+   * Generic channel test, dispatched through the registry — this is how a plugin
+   * channel's "Send test" button works. The three routes above stay as they are:
+   * they carry bespoke masked-secret and admin-fallback resolution whose exact
+   * error bodies the client depends on, and folding them in here would risk that.
+   */
+  @Post('test/:channelId')
+  @HttpCode(200)
+  async testChannel(@CurrentUser() user: User, @Param('channelId') channelId: string): Promise<ChannelTestResult> {
+    return this.notifications.testChannel(user.id, channelId);
+  }
+
   @Get('in-app')
   listInApp(
     @CurrentUser() user: User,

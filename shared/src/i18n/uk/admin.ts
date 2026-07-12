@@ -168,6 +168,13 @@ const admin: TranslationStrings = {
   'admin.plugins.dropToUpload': 'Перетягніть .zip плагіна для встановлення',
   'admin.plugins.uploaded': 'Плагін “{name}” завантажено — активуйте для запуску',
   'admin.plugins.sideloaded': 'Завантажено вручну',
+  'admin.plugins.devLinkBadge': 'Dev-Link',
+  'admin.plugins.devLinkHint':
+    'Завантажено з локального каталогу збірки та гаряче перезавантажується з реальними даними — лише для розробки',
+  'admin.plugins.devLinkTitle': 'Підключити локальний плагін',
+  'admin.plugins.devLinkPathPlaceholder': '/absolute/path/to/your/plugin',
+  'admin.plugins.devLinkButton': 'Підключити',
+  'admin.plugins.devLinkLinked': '{id} підключено — активуйте для запуску',
   'admin.plugins.sideloadedHint': 'Завантажено вручну — не з реєстру, без підпису та перевірки',
   'admin.plugins.browse': 'Огляд плагінів',
   'admin.plugins.installed': 'Встановлено',
@@ -180,6 +187,15 @@ const admin: TranslationStrings = {
   'admin.plugins.deactivated': 'Плагін деактивовано',
   'admin.plugins.viewErrors': 'Переглянути журнал помилок',
   'admin.plugins.errorLog': 'Журнал помилок',
+  'admin.plugins.allowedHosts': 'Дозволені хости',
+  'admin.plugins.allowedHosts.hint': 'Цей плагін звертається до сервісу, який можете вказати лише ви (self-hosted сервер). Додайте хости, до яких він може звертатися — до інших він не зможе.',
+  'admin.plugins.allowedHosts.none': 'Хости ще не додано.',
+  'admin.plugins.allowedHosts.unsupported': 'Цей плагін не використовує хости, задані оператором. Його дозволені хости зафіксовані в маніфесті.',
+  'admin.plugins.allowedHosts.restartNote': 'Збереження перезапускає плагін, щоб він підхопив новий список.',
+  'admin.plugins.allowedHosts.add': 'Додати дозволений хост',
+  'admin.plugins.allowedHosts.count': 'Дозволених хостів: {n}',
+  'admin.plugins.operatorEgressPill': '+ додані вами хости',
+  'admin.plugins.operatorEgressHint': 'Цей плагін звертається до сервісу, який можете вказати лише ви (self-hosted сервер). Після встановлення додайте хости в ⋯ → Дозволені хости. До інших він не зможе звертатися.',
   'admin.plugins.noErrors': 'Помилок не зафіксовано.',
   'admin.plugins.uninstalled': 'Плагін видалено',
   'admin.plugins.uninstallTitle': 'Видалити плагін?',
@@ -220,6 +236,7 @@ const admin: TranslationStrings = {
   'admin.plugins.scope.user': 'Для кожного користувача окремо',
   'admin.plugins.fieldRequired': "Обов'язково",
   'admin.plugins.sourceRepo': 'Репозиторій вихідного коду',
+  'admin.plugins.reportIssue': 'Повідомити про проблему',
   'admin.plugins.homepage': 'Домашня сторінка',
   'admin.plugins.requiresTrek': 'Потрібен TREK {version}+',
   'admin.plugins.reviewedOn': 'Перевірено {date}',
@@ -228,7 +245,51 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:users': "Читати базову інформацію профілю (ім'я, аватар — ніколи не облікові дані)",
   'admin.plugins.perm.db:read:costs': 'Читати витрати (статті бюджету), до яких має доступ поточний користувач',
   'admin.plugins.perm.db:read:packing': 'Читати списки речей подорожей, до яких має доступ поточний користувач',
+  'admin.plugins.perm.db:write:packing':
+    'Створювати, редагувати та видаляти пункти списку речей у подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.weather:read': 'Читати кешований прогноз погоди хоста (за координатами)',
+  'admin.plugins.perm.db:read:categories': 'Читати глобальний список категорій місць',
+  'admin.plugins.perm.db:read:tags': 'Читати теги поточного користувача',
+  'admin.plugins.perm.db:write:tags': 'Створювати, редагувати та видаляти теги поточного користувача',
+  'admin.plugins.perm.db:read:todos': 'Читати завдання подорожей, до яких має доступ поточний користувач',
+  'admin.plugins.perm.db:write:todos':
+    'Створювати, редагувати та видаляти завдання в подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.db:write:atlas':
+    'Позначати країни та регіони як відвідані та керувати списком бажань поточного користувача (потрібен додаток Atlas)',
+  'admin.plugins.perm.db:write:vacay':
+    'Перемикати дні відпустки та корпоративні свята в активному плані поточного користувача (потрібен додаток Vacay)',
+  'admin.plugins.perm.db:write:journal':
+    'Створювати, редагувати та видаляти записи в щоденниках, які може редагувати поточний користувач (потрібен додаток Journey)',
+  'admin.plugins.perm.db:write:collections':
+    'Створювати та редагувати колекції й зберігати в них місця з роллю поточного користувача в колекції (потрібен додаток Collections)',
+  'admin.plugins.perm.db:write:files':
+    "Прикріплювати файли до подорожей, які може редагувати поточний користувач (ліміт 10 МБ, заблоковані розширення відхиляються), і керувати їхніми зв'язками",
+  'admin.plugins.perm.db:write:collab':
+    'Публікувати нотатки, опитування та повідомлення чату в подорожах, які може редагувати поточний користувач (потрібен додаток Collab)',
+  'admin.plugins.perm.db:write:members':
+    'Додавати користувачів до подорожей — надає доступ до подорожі; захищено правом керування учасниками поточного користувача',
+  'admin.plugins.perm.notify:send':
+    'Надсилати сповіщення (скринька дзвіночка + email/ntfy) поточному користувачеві або його подорожі — ніколи довільному одержувачу',
+  'admin.plugins.perm.ai:invoke':
+    'Використовувати налаштованого адміністратором ШІ-провайдера (доповнення тексту + видобування з документів) від імені поточного користувача — плагін ніколи не зберігає ключ',
+  'admin.plugins.perm.oauth:client':
+    'Підключення до сторонньої служби від вашого імені через OAuth за посередництва хоста (хост зберігає токени, плагін їх не бачить)',
   'admin.plugins.perm.db:read:files': 'Читати файли подорожей, до яких має доступ поточний користувач',
+  'admin.plugins.perm.db:write:reservations':
+    'Створювати, редагувати та видаляти бронювання в подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.db:write:accommodations':
+    'Створювати, редагувати та видаляти проживання в подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.db:read:journal': 'Читати щоденники подорожей поточного користувача (потрібен додаток Journey)',
+  'admin.plugins.perm.db:read:atlas':
+    'Читати відвідані країни та регіони поточного користувача (потрібен додаток Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Читати план відпустки поточного користувача (потрібен додаток Vacay)',
+  'admin.plugins.perm.db:read:daynotes': 'Читати нотатки дня подорожей, до яких має доступ поточний користувач',
+  'admin.plugins.perm.db:read:collections':
+    'Читати колекції збережених місць поточного користувача (потрібен додаток Collections)',
+  'admin.plugins.perm.db:write:daynotes':
+    'Створювати, редагувати та видаляти нотатки дня в подорожах, які може редагувати поточний користувач',
+  'admin.plugins.perm.jobs:run':
+    'Запускати оголошені фонові завдання за розкладом (без контексту користувача — не може читати дані користувача)',
   'admin.plugins.perm.db:write:costs':
     'Створювати витрати (статті бюджету) у подорожах, які може редагувати поточний користувач',
   'admin.plugins.perm.db:write:places':
@@ -248,9 +309,28 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider': 'Додавати додаткові деталі (відгуки, оцінки, посилання) до місця',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Створювати попередження перевірки для подорожі (показуються в планувальнику)',
+  'admin.plugins.perm.hook:table-contributor': 'Додавати стовпці та дії до подань подорожі (бронювання, місця, дні)',
+  'admin.plugins.perm.hook:map-marker-provider':
+    'Додавати мітки на карту подорожі (наприклад, показувати бронювання або POI)',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Додавати текстові розділи до PDF-експорту подорожі',
+  'admin.plugins.perm.hook:atlas-layer-provider':
+    'Виділяти країни на карті світу в Атласі (наприклад, списки бажань або попередження для мандрівників)',
+  'admin.plugins.perm.hook:journal-entry-provider':
+    'Додавати додаткові рядки (посилання, статистику) до записів щоденника',
+  'admin.plugins.perm.hook:user-data':
+    'Видалення або експорт збережених даних про користувача (GDPR: видалення акаунта та запити даних)',
+  'admin.plugins.perm.hook:trip-card-provider':
+    'Додавати невеликі значки (статус, лічильники) на картки подорожей на панелі',
+  'admin.plugins.perm.hook:notification-channel': 'Доставляти ваші сповіщення через додатковий канал',
   'admin.plugins.perm.events:subscribe':
     'Реагувати на основні події активності (лише назва події + подорож, ніколи вміст)',
   'admin.plugins.perm.http:outbound': 'Виконувати вихідні запити до заявлених хостів',
+  'admin.plugins.perm.db:read:collab':
+    'Читати нотатки, опитування та повідомлення чату подорожей, до яких має доступ поточний користувач (потрібен додаток Collab)',
+  'admin.plugins.perm.db:read:files:content':
+    'Читати вміст (байти) файлів подорожей, до яких має доступ поточний користувач',
+  'admin.plugins.perm.db:create:trips': 'Створювати нові подорожі, що належать поточному користувачеві',
+  'admin.plugins.perm.rates:read': 'Читати кешовані курси валют хоста',
   'admin.plugins.updateConsentTitle': 'Це оновлення потребує нових дозволів',
   'admin.plugins.updateConsentBody':
     '{name} v{version} запитує права, які ви ще не надали. Нову версію встановлено, але вона залишається вимкненою, доки ви її не схвалите.',
@@ -293,6 +373,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortName': 'Назва',
   'admin.plugins.sortRecent': 'Нещодавно оновлені',
   'admin.plugins.sortUpdates': 'Спочатку оновлення',
+  'admin.plugins.sortDownloads': 'За завантаженнями',
   'admin.plugins.updatesAvailable': 'Для ваших плагінів доступно оновлень: {count}.',
   'admin.plugins.updateAll': 'Оновити все',
   'admin.plugins.noMatchInstalled': 'Жоден встановлений плагін не відповідає вашому запиту.',
@@ -313,7 +394,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.widget': 'Віджет панелі',
   'admin.plugins.cap.heroWidget': 'Віджет посадкового талона',
   'admin.plugins.cap.placeSlot': 'Деталі місця',
+  'admin.plugins.cap.daySlot': 'Деталі дня',
+  'admin.plugins.cap.reservationSlot': 'Деталі бронювання',
+  'admin.plugins.cap.replacesTabs': 'Замінює вкладки планувальника',
   'admin.plugins.cap.realtime': 'Оновлення в реальному часі',
+  'admin.plugins.cap.notificationChannel': 'Канал сповіщень',
   'admin.plugins.cap.photos': 'Надає фотографії',
   'admin.plugins.cap.calendar': 'Надає події календаря',
   'admin.plugins.cap.placeDetails': 'Збагачує місця',
@@ -339,6 +424,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaSize': 'Розмір',
   'admin.plugins.metaRequires': 'Потребує',
   'admin.plugins.metaReviewed': 'Перевірено',
+  'admin.plugins.downloads': 'Завантаження',
   'admin.addons.title': 'Доповнення',
   'admin.addons.subtitle': 'Увімкніть або вимкніть функції, щоб налаштувати TREK під себе.',
   'admin.addons.catalog.memories.name': 'Фото (Immich)',
@@ -347,7 +433,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.mcp.description': 'Протокол контексту моделі для інтеграції з ІІ-асистентами',
   'admin.addons.catalog.packing.name': 'Списки',
   'admin.addons.catalog.packing.description': 'Списки речей та завдання для ваших подорожей',
-  'admin.addons.catalog.budget.name': 'Бюджет',
+  'admin.addons.catalog.budget.name': 'Витрати',
   'admin.addons.catalog.budget.description': 'Відстежуйте витрати та плануйте бюджет подорожі',
   'admin.addons.catalog.documents.name': 'Документи',
   'admin.addons.catalog.documents.description': 'Зберігайте та керуйте документами для подорожей',

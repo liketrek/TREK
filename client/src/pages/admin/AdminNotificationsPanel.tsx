@@ -15,8 +15,11 @@ export default function AdminNotificationsPanel({ t, toast }: { t: (k: string) =
 
   if (!matrix) return <p className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontStyle: 'italic', padding: 16 }}>Loading…</p>
 
+  // Admin-scoped events only ever go out over the built-in channels (plugin channels
+  // are user-scoped), so this list stays explicit rather than server-driven.
+  const isActive = (id: string) => matrix.channels?.some((c: { id: string; active: boolean }) => c.id === id && c.active) ?? false
   const visibleChannels = (['inapp', 'email', 'webhook', 'ntfy'] as const).filter(ch => {
-    if (!matrix.available_channels[ch]) return false
+    if (!isActive(ch)) return false
     return matrix.event_types.some((evt: string) => matrix.implemented_combos[evt]?.includes(ch))
   })
 

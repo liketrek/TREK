@@ -52,6 +52,7 @@ const de: NotificationLocale = {
       title: 'Synology-Sitzung beendet',
       body: 'Dein Synology-Konto oder die URL hat sich geändert. Du wurdest von Synology Photos abgemeldet.',
     }),
+    plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Passwort zurücksetzen',

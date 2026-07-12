@@ -57,7 +57,7 @@ const memories: TranslationStrings = {
   'memories.allLocations': 'Tất cả địa điểm',
   'memories.tripDates': 'Ngày chuyến đi',
   'memories.allPhotos': 'Tất cả ảnh',
-  'memories.confirmShareTitle': 'Chia sẻ với các thành viên chuyến đi?',
+  'memories.confirmShareTitle': 'Chia sẻ với các thành viên?',
   'memories.confirmShareHint':
     '{count} ảnh sẽ hiển thị với tất cả thành viên của chuyến đi này. Bạn có thể đặt từng ảnh riêng tư sau này.',
   'memories.confirmShareButton': 'Chia sẻ ảnh',

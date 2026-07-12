@@ -195,8 +195,12 @@ export function getFormattedNoteById(noteId: string | number) {
   return formatNote(note);
 }
 
-export function deleteNoteFile(noteId: string | number, fileId: string | number): boolean {
-  const file = db.prepare('SELECT * FROM trip_files WHERE id = ? AND note_id = ?').get(fileId, noteId) as TripFile | undefined;
+export function deleteNoteFile(tripId: string | number, noteId: string | number, fileId: string | number): boolean {
+  // Scope to the trip — like every sibling collab op — so a caller authorized for THEIR
+  // trip can't delete a note-file that belongs to someone else's trip (IDOR). trip_files
+  // carries trip_id, so this ties the deleted object to the URL's :tripId the controller
+  // access-checked, not just to a note/file id an attacker can enumerate.
+  const file = db.prepare('SELECT * FROM trip_files WHERE id = ? AND note_id = ? AND trip_id = ?').get(fileId, noteId, tripId) as TripFile | undefined;
   if (!file) return false;
 
   const filePath = path.join(__dirname, '../../uploads', file.filename);
