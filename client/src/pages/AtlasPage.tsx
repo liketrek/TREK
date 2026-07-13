@@ -338,12 +338,18 @@ export default function AtlasPage(): React.ReactElement {
                         if (remaining.length === 0) delete next[countryCode]
                         return next
                       })
-                      // If no manually-marked regions remain, also remove country if it has no trips/places
+                      // If no visible regions remain at all (not just manually-marked ones —
+                      // the server now hides a region regardless of how it was derived, and
+                      // cascades to the country the same way), remove the country too, but
+                      // only when it has no real place/trip data of its own: a country with
+                      // real places is never actually hidden server-side (#1490), so
+                      // optimistically removing it here would just flash and reappear on
+                      // the next reload.
                       setData(prev => {
                         if (!prev) return prev
                         const c = prev.countries.find(c => c.code === countryCode)
                         if (!c || c.placeCount > 0 || c.tripCount > 0) return prev
-                        const remainingRegions = (visitedRegions[countryCode] || []).filter(r => r.code !== rCode && r.manuallyMarked)
+                        const remainingRegions = (visitedRegions[countryCode] || []).filter(r => r.code !== rCode)
                         if (remainingRegions.length > 0) return prev
                         const cont = continentForCountry(countryCode)
                         return {
