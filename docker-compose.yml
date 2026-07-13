@@ -1,6 +1,6 @@
 services:
   app:
-    image: mauriceboe/trek:latest
+    image: kmontibello/trek:latest
     container_name: trek
     read_only: true
     security_opt:
@@ -19,7 +19,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-} # Recommended. Generate with: openssl rand -hex 32. If unset, falls back to data/.jwt_secret (existing installs) or auto-generates a key (fresh installs).
-      - TZ=${TZ:-UTC} # Timezone for logs, reminders and scheduled tasks (e.g. Europe/Berlin)
+      - TZ=${TZ:-America/New_York} # Timezone for logs, reminders and scheduled tasks (e.g. Europe/Berlin)
       - LOG_LEVEL=${LOG_LEVEL:-info} # info = concise user actions; debug = verbose admin-level details
 #      - DEFAULT_LANGUAGE=en # Default language on the login page for users with no saved preference. Browser/OS language is auto-detected first; this is the fallback. Supported: de, en, es, fr, hu, nl, br, cs, pl, ru, zh, zh-TW, it, ar
 #      - SESSION_DURATION=30d # How long users stay logged in (trek_session JWT + cookie maxAge). Accepts: 1h | 12h | 7d | 30d | 90d. Default: 24h
@@ -30,7 +30,7 @@ services:
 #      - COOKIE_SECURE=false # Escape hatch: force session cookies over plain HTTP even in production. Not recommended.
 #      - TRUST_PROXY=1 # Trusted proxy count for X-Forwarded-For / X-Forwarded-Proto. Required for FORCE_HTTPS to work.
 #      - ALLOW_INTERNAL_NETWORK=false # Set to true if Immich or other services are hosted on your local network (RFC-1918 IPs). Loopback and link-local addresses remain blocked regardless.
-#      - APP_URL=https://trek.example.com # Public base URL — required when OIDC is enabled (must match the redirect URI registered with your IdP); also used as base URL for links in email notifications
+      - APP_URL=https://plans.tanqaways.com # Public base URL — required when OIDC is enabled (must match the redirect URI registered with your IdP); also used as base URL for links in email notifications
 #      - OIDC_ISSUER=https://auth.example.com # OpenID Connect provider URL
 #      - OIDC_CLIENT_ID=trek # OpenID Connect client ID
 #      - OIDC_CLIENT_SECRET=supersecret # OpenID Connect client secret

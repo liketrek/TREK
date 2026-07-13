@@ -1,0 +1,37 @@
+name: Update container image when pushing to main
+
+on:
+  push:
+    branches:
+      - "main"
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
+jobs:
+  build:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: docker login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: docker build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ${{ env.IMAGE_NAME }}:latest
+
+      - name: Update container image on Magic Containers
+        uses: BunnyWay/actions/container-update-image@main
+        with:
+          app_id: ${{ vars.APP_ID }}
+          api_key: ${{ secrets.BUNNYNET_API_KEY }}
+          container: app
+          image_tag: "${{ github.sha }}"
