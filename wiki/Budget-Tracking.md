@@ -18,9 +18,15 @@ Open the **Budget** tab inside the trip planner. The tab is only visible when th
 
 ## Currency
 
-Costs is **multi-currency** (#551). Each expense (line item) is entered in **its own currency** — pick it from the currency picker in the expense modal — and everything is converted to a single **display currency** for totals, charts and settlement. The display currency is your own preferred currency (**Settings → default currency**), falling back to the trip's currency when you haven't set one. 47 currencies are supported.
+Costs is **multi-currency** (#551). Three settings are involved, and they do different jobs:
 
-When an item's currency differs from the display currency, the modal shows the converted amount alongside the rate (`1 {from} in {to}`). The exchange rate is **frozen at entry time**, so a settled position keeps the rate it was booked at and doesn't drift as live rates move.
+- The **trip currency** (Trip → Edit trip) is the trip's accounting base. Every balance and settle-up is calculated in it.
+- Each **expense** carries **its own currency** — pick it in the expense modal and enter what the receipt says (a $100 dinner on a rouble trip is `100 USD`). It is converted into the trip currency at a rate **frozen when you save it**, so a settled debt doesn't reopen when the market moves.
+- Your **display currency** (Settings → Display) converts what you *read* — totals, chart, balances — into one currency. It changes nothing that is stored. Left on **Trip currency** (the default), each trip is shown in its own currency.
+
+165 currencies are supported, with rates from [Frankfurter](https://frankfurter.dev) (no API key needed). When an item's currency differs from the display currency, the modal shows the converted amount alongside the rate (`1 {from} in {to}`), and the ledger row shows both (`$100.00 → 7 668,71 ₽`).
+
+> **Read [Currencies](Currencies) for the full picture** — how the three interact, what happens when you change a trip's currency, and which currency a public share link is shown in.
 
 ## Categories
 
@@ -74,6 +80,10 @@ When multiple members are assigned to expenses and there are outstanding debts b
 - Transfer flows: who pays whom and how much.
 - Net balances: each member's overall surplus or deficit.
 
+Balances are always netted in the **trip currency** and converted to your display currency once, at the end — so they stay stable even when the trip mixes currencies.
+
+A recorded payment carries **its own currency** too: settling a rouble debt with a euro transfer is normal, so the payment modal has a currency picker, and its rate is frozen when you record it. A payment made in another currency shows both amounts in the ledger (`$30.00 → 27,00 €`).
+
 ![Final Settlement](assets/BudgetFinalSettlement.gif)
 
 ## Budget summary
@@ -89,10 +99,11 @@ Click **Export CSV** in the toolbar to download all expenses as a spreadsheet (r
 
 ## Permissions
 
-All write operations (adding/editing/deleting items and categories, changing currency) require the `budget_edit` permission.
+All write operations (adding/editing/deleting items and categories, and an expense's currency) require the `budget_edit` permission. The **trip** currency lives on the trip itself, so changing that requires `trip_edit` instead.
 
 ## See also
 
+- [Currencies](Currencies)
 - [Admin-Addons](Admin-Addons)
 - [Reservations-and-Bookings](Reservations-and-Bookings)
 - [Trip-Planner-Overview](Trip-Planner-Overview)

@@ -40,6 +40,7 @@
 - [[Transport: Flights, Trains, Cars|Transport-Flights-Trains-Cars]]
 - [[Accommodations]]
 - [[Budget Tracking|Budget-Tracking]]
+- [[Currencies]]
 - [[Packing Lists|Packing-Lists]]
 - [[Packing Templates|Packing-Templates]]
 - [[Todos and Tasks|Todos-and-Tasks]]

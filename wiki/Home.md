@@ -16,7 +16,7 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 
 ### Travel Management
 - **Reservations & Bookings** — track flights, accommodations, restaurants with confirmation numbers and file attachments
-- **Budget Tracking** — category-based expenses with pie chart, per-person/per-day splitting, multi-currency support
+- **Budget Tracking** — category-based expenses with pie chart, per-person/per-day splitting, multi-currency support (see [Currencies](Currencies))
 - **Packing Lists** — category-based checklists with user assignment, templates, and progress tracking
 - **Document Manager** — attach documents, tickets, and PDFs to trips, places, or reservations (up to 50 MB per file)
 - **PDF Export** — export complete trip plans as PDF with cover page, images, and notes
