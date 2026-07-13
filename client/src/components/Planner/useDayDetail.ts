@@ -11,7 +11,13 @@ export function useDayDetail(day: any, days: any, tripId: any, lat: any, lng: an
   const [dayAccommodations, setDayAccommodations] = useState<any[]>([])
   const [accommodations, setAccommodations] = useState([])
   const [showHotelPicker, setShowHotelPicker] = useState(false)
-  const [hotelDayRange, setHotelDayRange] = useState({ start: day?.id, end: day?.id })
+  // A stay virtually never checks out the day it checks in — default the range
+  // to check-out on the next day, unless the trip ends here.
+  const defaultHotelDayRange = (d: any) => {
+    const idx = (days || []).findIndex((x: any) => x.id === d?.id)
+    return { start: d?.id, end: (idx >= 0 && days[idx + 1]?.id) || d?.id }
+  }
+  const [hotelDayRange, setHotelDayRange] = useState(() => defaultHotelDayRange(day))
   const [hotelCategoryFilter, setHotelCategoryFilter] = useState('')
   const [hotelForm, setHotelForm] = useState({ check_in: '', check_in_end: '', check_out: '', confirmation: '', place_id: null })
 
@@ -38,7 +44,7 @@ export function useDayDetail(day: any, days: any, tripId: any, lat: any, lng: an
       .catch(() => {})
   }, [tripId, day?.id])
 
-  useEffect(() => { if (day) setHotelDayRange({ start: day.id, end: day.id }) }, [day?.id])
+  useEffect(() => { if (day) setHotelDayRange(defaultHotelDayRange(day)) }, [day?.id])
 
   const handleSelectPlace = (placeId) => {
     setHotelForm(f => ({ ...f, place_id: placeId }))
