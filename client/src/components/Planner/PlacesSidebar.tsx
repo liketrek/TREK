@@ -17,19 +17,20 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
     sidebarDragOver, handleSidebarDragEnter, handleSidebarDragOver, handleSidebarDragLeave, handleSidebarDrop,
     selectMode, filtered, t, dayPickerPlace, listImportOpen,
     fileImportOpen, setFileImportOpen, sidebarDropFile, setSidebarDropFile, tripId, pushUndo,
-    ctxMenu, isMobile, pendingDeleteIds, setPendingDeleteIds, onBulkDeleteConfirm,
+    ctxMenu, isMobile, isTouch, pendingDeleteIds, setPendingDeleteIds, onBulkDeleteConfirm,
     categories, selectedIds, exitSelectMode, onBulkChangeCategory, categoryPickerOpen, setCategoryPickerOpen,
     collectionsEnabled, saveToListOpen, setSaveToListOpen,
   } = S
+  const dragDisabled = isMobile || isTouch
   return (
     <div
-      onDragEnter={isMobile ? undefined : handleSidebarDragEnter}
-      onDragOver={isMobile ? undefined : handleSidebarDragOver}
-      onDragLeave={isMobile ? undefined : handleSidebarDragLeave}
-      onDrop={isMobile ? undefined : handleSidebarDrop}
+      onDragEnter={dragDisabled ? undefined : handleSidebarDragEnter}
+      onDragOver={dragDisabled ? undefined : handleSidebarDragOver}
+      onDragLeave={dragDisabled ? undefined : handleSidebarDragLeave}
+      onDrop={dragDisabled ? undefined : handleSidebarDrop}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: "var(--font-system)", position: 'relative' }}
     >
-      {!isMobile && sidebarDragOver && <PlacesDropOverlay {...S} />}
+      {!dragDisabled && sidebarDragOver && <PlacesDropOverlay {...S} />}
       {/* Kopfbereich */}
       <PlacesHeader {...S} />
 

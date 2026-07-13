@@ -203,7 +203,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
     visibleConnections, setVisibleConnections, toggleConnection, mapTransportDetail, setMapTransportDetail,
-    isMobile, mapCategoryFilter, setMapCategoryFilter, mapPlacesFilter, setMapPlacesFilter,
+    isMobile, isTouch, mapCategoryFilter, setMapCategoryFilter, mapPlacesFilter, setMapPlacesFilter,
     expandedDayIds, setExpandedDayIds, mapPlaces,
     route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
     handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi,
@@ -387,6 +387,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
               }}>
                 <DayPlanSidebar
                   isMobile={isMobile}
+                  isTouch={isTouch}
                   tripId={tripId}
                   trip={trip}
                   days={days}
@@ -498,6 +499,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
                     pushUndo={pushUndo}
                     days={days}
                     isMobile={false}
+                    isTouch={isTouch}
                   />
                 </div>
               </div>
