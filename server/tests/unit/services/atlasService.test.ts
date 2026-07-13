@@ -31,7 +31,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation } from '../../helpers/factories';
-import { getStats, getCached, setCache, getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getRegionGeo, getCountryGeo, getCountryPlaces, getVisitedRegions, markCountryVisited, unmarkCountryVisited } from '../../../src/services/atlasService';
+import { getStats, getCached, setCache, getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getRegionGeo, getCountryGeo, getCountryPlaces, getVisitedRegions, markCountryVisited, unmarkCountryVisited, markRegionVisited, unmarkRegionVisited } from '../../../src/services/atlasService';
 
 function insertReservationEndpoint(
   db: any,
@@ -942,5 +942,99 @@ describe('getVisitedRegions', () => {
     expect(result.regions['JP']).toBeUndefined();
 
     vi.useRealTimers();
+  });
+});
+
+// ── unmarkRegionVisited — tombstones + country cascade ──────────────────────
+
+// Places are region-resolved by a fire-and-forget background task (see reverseGeocodeRegion
+// callers); a single getVisitedRegions() call returns before it settles. Populate the cache
+// deterministically before asserting against it or calling unmarkRegionVisited (which reads
+// place_regions directly, not through this function).
+async function primeRegionCache(userId: number): Promise<void> {
+  await getVisitedRegions(userId);
+  await new Promise(resolve => setTimeout(resolve, 10));
+}
+
+describe('unmarkRegionVisited — tombstones + country cascade', () => {
+  it('ATLAS-SVC-024: hides a region derived from a real place, not just a manually-marked one', async () => {
+    // Unlike unmarkCountryVisited (ATLAS-SVC-023), a region hide is NOT lifted just
+    // because it has a real place — that is exactly the case this feature exists for (a
+    // real place that resolved to a region the user doesn't want highlighted, e.g. a
+    // border-simplification misassignment), so it must stay hidden regardless of
+    // placeCount until explicitly re-marked.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'SF Trip' });
+    insertPlaceWithCoords(testDb, trip.id, 'Golden Gate Park', 37.7694, -122.4862);
+    await primeRegionCache(user.id);
+
+    const before = await getVisitedRegions(user.id);
+    expect(before.regions['US']?.map((r: any) => r.code)).toContain('US-CA');
+
+    unmarkRegionVisited(user.id, 'US-CA');
+
+    const after = await getVisitedRegions(user.id);
+    expect(after.regions['US']?.map((r: any) => r.code) ?? []).not.toContain('US-CA');
+  });
+
+  it('ATLAS-SVC-025: re-marking a hidden region brings it back', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'SF Trip' });
+    insertPlaceWithCoords(testDb, trip.id, 'Golden Gate Park', 37.7694, -122.4862);
+    await primeRegionCache(user.id);
+
+    unmarkRegionVisited(user.id, 'US-CA');
+    expect((await getVisitedRegions(user.id)).regions['US']?.map((r: any) => r.code) ?? []).not.toContain('US-CA');
+
+    markRegionVisited(user.id, 'US-CA', 'California', 'US');
+    expect((await getVisitedRegions(user.id)).regions['US']?.map((r: any) => r.code)).toContain('US-CA');
+  });
+
+  it('ATLAS-SVC-026: hiding a country\'s only visible region also hides the country', async () => {
+    // Uses a manually-marked region rather than a real place: getStats' places-derived
+    // country entries are never suppressed by hidden_countries (#1490 — a country with a
+    // real place always reappears, see ATLAS-SVC-023), so the cascade can only ever have a
+    // visible effect on a country with no real place backing it, exactly like
+    // unmarkCountryVisited's own tombstone tests above use flight-endpoint-derived
+    // countries rather than real places for the same reason.
+    const { user } = createUser(testDb);
+    markRegionVisited(user.id, 'JP-13', 'Tokyo', 'JP'); // also auto-marks JP visited
+
+    const beforeStats = await getStats(user.id);
+    expect(beforeStats.countries.map((c: any) => c.code)).toContain('JP');
+
+    unmarkRegionVisited(user.id, 'JP-13');
+
+    const afterStats = await getStats(user.id);
+    expect(afterStats.countries.map((c: any) => c.code)).not.toContain('JP');
+  });
+
+  it('ATLAS-SVC-027: hiding one of a country\'s several regions does NOT cascade-hide the country', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'NY road trip' });
+    insertPlaceWithCoords(testDb, trip.id, 'Boston hotel', 42.3588336, -71.0578303); // MA
+    insertPlaceWithCoords(testDb, trip.id, 'Philly hotel', 39.9527237, -75.1635262); // PA
+    await primeRegionCache(user.id);
+
+    unmarkRegionVisited(user.id, 'US-MA');
+
+    const stats = await getStats(user.id);
+    expect(stats.countries.map((c: any) => c.code)).toContain('US');
+    const regions = (await getVisitedRegions(user.id)).regions['US'].map((r: any) => r.code);
+    expect(regions).not.toContain('US-MA');
+    expect(regions).toContain('US-PA');
+  });
+
+  it('ATLAS-SVC-028: re-marking a region whose country was cascade-hidden brings the country back too', async () => {
+    const { user } = createUser(testDb);
+    markRegionVisited(user.id, 'JP-13', 'Tokyo', 'JP');
+
+    unmarkRegionVisited(user.id, 'JP-13');
+    expect((await getStats(user.id)).countries.map((c: any) => c.code)).not.toContain('JP');
+
+    markRegionVisited(user.id, 'JP-13', 'Tokyo', 'JP');
+
+    const stats = await getStats(user.id);
+    expect(stats.countries.map((c: any) => c.code)).toContain('JP');
   });
 });
