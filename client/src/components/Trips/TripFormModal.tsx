@@ -12,6 +12,7 @@ import { normalizeImageFile } from '../../utils/convertHeic'
 import { getApiErrorMessage, type Trip } from '../../types'
 import type { TripCreateRequest } from '@trek/shared'
 import { NumericInput } from '../shared/NumericInput'
+import { currenciesWith, SYMBOLS } from '../Budget/BudgetPanel.constants'
 
 interface TripFormModalProps {
   isOpen: boolean
@@ -50,6 +51,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     description: '',
     start_date: '',
     end_date: '',
+    currency: 'EUR',
     reminder_days: 0 as number,
     day_count: 7 as number | '',
   })
@@ -77,6 +79,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         description: trip.description || '',
         start_date: trip.start_date || '',
         end_date: trip.end_date || '',
+        currency: trip.currency || 'EUR',
         reminder_days: rd,
         day_count: trip.day_count || 7,
       })
@@ -84,7 +87,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setCoverPreview(trip.cover_image || null)
       setCoverSearchQuery('')
     } else {
-      setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
+      setFormData({ title: '', description: '', start_date: '', end_date: '', currency: 'EUR', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
       setCoverPreview(null)
       setCoverSearchQuery('')
@@ -134,6 +137,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         description: formData.description.trim() || null,
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
+        currency: formData.currency,
         reminder_days: formData.reminder_days,
         ...(!formData.start_date && !formData.end_date ? { day_count: Number(formData.day_count) } : {}),
       })
@@ -447,6 +451,17 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             <p className="text-xs text-slate-400 mt-1.5">{t('dashboard.dayCountHint')}</p>
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('dashboard.currency')}</label>
+          <CustomSelect
+            value={formData.currency}
+            onChange={v => canEditTrip && update('currency', v)}
+            disabled={!canEditTrip}
+            options={currenciesWith(formData.currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
+            searchable
+          />
+        </div>
 
         {/* Reminder — only visible to owner (or when creating) */}
         {(!isEditing || trip?.user_id === currentUser?.id || currentUser?.role === 'admin') && (

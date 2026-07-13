@@ -347,4 +347,38 @@ describe('TripFormModal', () => {
       expect(updateBody).toMatchObject({ cover_image: 'https://images.example.com/regular.jpg' });
     });
   });
+
+  // The trip currency is the base every expense and settlement is netted against, and
+  // until #1543 the only way to set it was the legacy Budget addon panel.
+  it('FE-COMP-TRIPFORM-032: pre-fills the currency of the trip being edited', () => {
+    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, currency: 'RUB' })} />);
+    expect(screen.getByText(/^RUB/)).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TRIPFORM-033: defaults a new trip to EUR and sends the currency on save', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Moscow 2026');
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR' }));
+  });
+
+  it('FE-COMP-TRIPFORM-034: picking a currency sends the new one on save', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, currency: 'EUR' })} onSave={onSave} />);
+
+    await user.click(screen.getByText(/^EUR/));
+    await user.click(await screen.findByText(/^USD/));
+
+    await user.click(screen.getByText('Update').closest('button')!);
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD' }));
+  });
 });

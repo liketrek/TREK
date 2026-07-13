@@ -18,6 +18,7 @@ import { countMessages, listPolls } from '../../services/collabService';
 import {
   listItems as listTodoItems,
 } from '../../services/todoService';
+import { rebaseTripCurrency } from '../../services/budgetService';
 import {
   safeBroadcast, MAX_MCP_TRIP_DAYS,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
@@ -97,6 +98,8 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
         if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== end_date)
           return { content: [{ type: 'text' as const, text: 'end_date is not a valid calendar date.' }], isError: true };
       }
+      // Re-anchor the budget before the trip row moves off the old currency (#1543).
+      await rebaseTripCurrency(tripId, currency);
       const { updatedTrip } = updateTrip(tripId, userId, { title, description, start_date, end_date, currency, is_archived, cover_image }, 'user');
       safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
       return ok({ trip: updatedTrip });
