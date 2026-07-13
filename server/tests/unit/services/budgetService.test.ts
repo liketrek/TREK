@@ -287,6 +287,78 @@ describe('calculateSettlement', () => {
     // settleToTrip(62.5) = 62.5 * 0.5 = 31.25 EUR; balance -50 + 31.25 = -18.75 EUR → reopens.
     expect(Math.abs(bob.balance)).toBeGreaterThan(1);
   });
+
+  // ── Multi-payer (#1426 regression): several people front one bill ──────────
+  // The UI could only send one payer between 3.2.0 and this fix, but the ledger
+  // has credited each payer individually since 3.1.0. These pin that.
+
+  it('2 payers, 3 members: each payer is credited what they actually paid', () => {
+    // $90 bill split 3 ways ($30 each). Alice and Bob each fronted $45.
+    // Alice: +45 - 30 = +15. Bob: +45 - 30 = +15. Carol: -30.
+    setupDb(
+      [makeItem(1, 90)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, 45, 'alice'), makePayer(1, 2, 45, 'bob')],
+    );
+    const result = calculateSettlement(1);
+    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+
+    expect(balance(1)).toBeCloseTo(15, 2);
+    expect(balance(2)).toBeCloseTo(15, 2);
+    expect(balance(3)).toBeCloseTo(-30, 2);
+  });
+
+  it('2 payers with unequal amounts: credits follow the actual amounts paid', () => {
+    // $100 bill split 2 ways ($50 each). Alice fronted $70, Bob fronted $30.
+    // Alice: +70 - 50 = +20. Bob: +30 - 50 = -20. Bob owes Alice $20.
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 70, 'alice'), makePayer(1, 2, 30, 'bob')],
+    );
+    const result = calculateSettlement(1);
+    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+
+    expect(balance(1)).toBeCloseTo(20, 2);
+    expect(balance(2)).toBeCloseTo(-20, 2);
+    expect(result.flows).toHaveLength(1);
+    expect(result.flows[0].from.user_id).toBe(2);
+    expect(result.flows[0].to.user_id).toBe(1);
+    expect(result.flows[0].amount).toBeCloseTo(20, 2);
+  });
+
+  it('multi-payer balances sum to zero (no money invented or destroyed)', () => {
+    // The invariant that makes settle-up trustworthy: credits == debits.
+    setupDb(
+      [makeItem(1, 90), makeItem(2, 55)],
+      [
+        makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol'),
+        makeMember(2, 1, 'alice'), makeMember(2, 3, 'carol'),
+      ],
+      [
+        makePayer(1, 1, 45, 'alice'), makePayer(1, 2, 45, 'bob'),
+        makePayer(2, 2, 25, 'bob'), makePayer(2, 3, 30, 'carol'),
+      ],
+    );
+    const result = calculateSettlement(1);
+    const sum = result.balances.reduce((a, b) => a + b.balance, 0);
+
+    expect(sum).toBeCloseTo(0, 2);
+  });
+
+  it('3 payers on one bill: an odd total still splits to the cent', () => {
+    // $100.01 split 3 ways. splitEqualShares distributes the remainder cent,
+    // so debits must still exactly cancel the $100.01 of credits.
+    setupDb(
+      [makeItem(1, 100.01)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, 33.34, 'alice'), makePayer(1, 2, 33.34, 'bob'), makePayer(1, 3, 33.33, 'carol')],
+    );
+    const result = calculateSettlement(1);
+    const sum = result.balances.reduce((a, b) => a + b.balance, 0);
+
+    expect(sum).toBeCloseTo(0, 2);
+  });
 });
 
 // ── freezeForeignRate (write-path FX freeze, #1445) ───────────────────────────

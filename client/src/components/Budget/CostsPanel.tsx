@@ -15,6 +15,7 @@ import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
+import { payersBalanced, rebalancePayers } from './CostsPanel.helpers'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
@@ -989,13 +990,29 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
 
-  // Payer state: 0 represents "Nobody (planning entry)". On an existing expense a
-  // missing payer is a deliberate choice, so only a brand-new one defaults to me.
+  // Payer state. An expense can be fronted by several people, each with their own
+  // amount (budget_item_payers) — a shared card, or "I got this round, you get the
+  // next". The single-payer dropdown stays the default path; multiPayer swaps in a
+  // per-person amount editor. 0 represents "Nobody (planning entry)"; on an
+  // existing expense a missing payer is a deliberate choice, so only a brand-new
+  // one defaults to me.
+  const initialPayers = (editing?.payers || []).filter(p => p.amount > 0)
+
   const [payerId, setPayerId] = useState<number>(() => {
-    const existingPayer = (editing?.payers || []).find(p => p.amount > 0)
+    const existingPayer = initialPayers[0]
     if (existingPayer) return existingPayer.user_id
     return editing ? 0 : me
   })
+  const [multiPayer, setMultiPayer] = useState(() => initialPayers.length > 1)
+  const [payerIds, setPayerIds] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
+  const [payerAmounts, setPayerAmounts] = useState<Record<number, string>>(() => {
+    const m: Record<number, string> = {}
+    for (const p of initialPayers) m[p.user_id] = String(p.amount)
+    return m
+  })
+  // Payers the user typed an amount for: rebalance leaves these alone and makes
+  // the others absorb the remainder.
+  const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
 
   const [splitMode, setSplitMode] = useState<'equally' | 'custom' | 'ticket'>(() => {
     if (editing?.note && editing.note.startsWith('TICKETJSON:')) {
@@ -1066,7 +1083,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   }, [totalNum, participants, customAmounts, editing])
   
   const ticketValid = ticketItems.length > 0 && ticketItems.every(item => item.name.trim().length > 0 && (parseFloat(item.price) || 0) > 0 && item.participants.size > 0)
-  const valid = name.trim().length > 0 && (
+  const payersOk = !multiPayer || (payerIds.size > 0 && payersBalanced(payerAmounts, payerIds, totalNum))
+  const valid = name.trim().length > 0 && payersOk && (
     isTicketMode
       ? ticketValid
       : totalNum > 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced)
@@ -1074,6 +1092,52 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
 
   const onTotalChange = (v: string) => {
     setTotal(v.replace(',', '.'))
+  }
+
+  // Keep the payer amounts summing to the total as it changes — including in ticket
+  // mode, where the total is derived from the ticket items rather than typed.
+  useEffect(() => {
+    if (!multiPayer) return
+    setPayerAmounts(prev => rebalancePayers(prev, pinnedPayers, payerIds, totalNum))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalNum])
+
+  const enableMultiPayer = () => {
+    const seed = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
+    const pinned = new Set<number>()
+    setPayerIds(seed)
+    setPinnedPayers(pinned)
+    setPayerAmounts(prev => rebalancePayers(prev, pinned, seed, totalNum))
+    setMultiPayer(true)
+  }
+
+  const disableMultiPayer = () => {
+    // Collapsing back keeps the first payer; their amount becomes the whole total.
+    const [first] = [...payerIds]
+    setPayerId(first ?? me)
+    setMultiPayer(false)
+  }
+
+  const togglePayer = (id: number) => {
+    const nextIds = new Set(payerIds)
+    const nextPinned = new Set(pinnedPayers)
+    if (nextIds.has(id)) {
+      nextIds.delete(id)
+      nextPinned.delete(id)
+    } else {
+      nextIds.add(id)
+    }
+    setPayerIds(nextIds)
+    setPinnedPayers(nextPinned)
+    setPayerAmounts(prev => rebalancePayers(prev, nextPinned, nextIds, totalNum))
+  }
+
+  const onPayerAmountChange = (id: number, v: string) => {
+    const val = v.replace(',', '.')
+    const nextPinned = new Set(pinnedPayers)
+    nextPinned.add(id)
+    setPinnedPayers(nextPinned)
+    setPayerAmounts(prev => rebalancePayers({ ...prev, [id]: val }, nextPinned, payerIds, totalNum))
   }
 
   const handleCustomAmountChange = (id: number, val: string) => {
@@ -1140,7 +1204,11 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const save = async () => {
     if (!valid) return
     setSaving(true)
-    const payerList = (payerId > 0 && participants.size > 0) ? [{ user_id: payerId, amount: totalNum }] : []
+    const payerList = multiPayer
+      ? [...payerIds]
+          .map(id => ({ user_id: id, amount: parseFloat(payerAmounts[id]) || 0 }))
+          .filter(p => p.amount > 0)
+      : (payerId > 0 && participants.size > 0) ? [{ user_id: payerId, amount: totalNum }] : []
     const memberList = [...participants].map(id => ({
       user_id: id,
       amount: splitMode === 'custom'
@@ -1245,13 +1313,66 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
         </div>
 
         <div>
-          <label className={labelCls}>{t('costs.whoPaid')}</label>
-          <CustomSelect value={String(payerId)} onChange={v => setPayerId(Number(v))}
-            options={[
-              { value: '0', label: t('costs.noOnePaid') || 'Nobody (planning entry)' },
-              ...people.map(p => ({ value: String(p.id), label: p.id === me ? t('costs.you') : p.username }))
-            ]}
-            style={{ width: '100%' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <label className={labelCls} style={{ marginBottom: 0 }}>{t('costs.whoPaid')}</label>
+            <button type="button" onClick={() => (multiPayer ? disableMultiPayer() : enableMultiPayer())}
+              className="text-content-muted"
+              style={{ background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, textDecoration: 'underline' }}>
+              {multiPayer ? t('costs.singlePayer') : t('costs.multiplePayers')}
+            </button>
+          </div>
+          {!multiPayer ? (
+            <CustomSelect value={String(payerId)} onChange={v => setPayerId(Number(v))}
+              options={[
+                { value: '0', label: t('costs.noOnePaid') || 'Nobody (planning entry)' },
+                ...people.map(p => ({ value: String(p.id), label: p.id === me ? t('costs.you') : p.username }))
+              ]}
+              style={{ width: '100%' }} />
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {people.map((p, idx) => {
+                  const on = payerIds.has(p.id)
+                  return (
+                    <div key={p.id} className="bg-surface-secondary border border-edge"
+                      style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10, opacity: on ? 1 : 0.5 }}>
+                      <button type="button" onClick={() => togglePayer(p.id)} data-testid="payer-toggle"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', padding: 0, minWidth: 0, textAlign: 'left' }}>
+                        {p.avatar_url
+                          ? <img src={p.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', display: 'block', flexShrink: 0, opacity: on ? 1 : 0.45 }} />
+                          : <span style={{ width: 22, height: 22, borderRadius: '50%', background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0, opacity: on ? 1 : 0.45 }}>
+                              {(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}
+                            </span>}
+                        <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.id === me ? t('costs.you') : p.username}
+                        </span>
+                      </button>
+                      {on ? (
+                        <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
+                          <span className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{sym(currency)}</span>
+                          <NumericInput mode="decimal" placeholder="0.00" data-testid="payer-amount"
+                            value={payerAmounts[p.id] || ''}
+                            onValueChange={v => onPayerAmountChange(p.id, v)}
+                            className="text-content"
+                            style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => togglePayer(p.id)} className="text-content-faint"
+                          style={{ background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-caption, 1))', textAlign: 'right' }}>
+                          {t('costs.tapToInclude')}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {!payersOk && (
+                <div style={{ marginTop: 8, fontSize: 'calc(12.5px * var(--fs-scale-caption, 1))', color: '#d97706' }}>
+                  {t('costs.payersUnbalanced', { amount: formatMoney(totalNum, currency, locale) })}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div>

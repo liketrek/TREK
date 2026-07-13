@@ -270,6 +270,118 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(await screen.findByRole('button', { name: 'You' })).toBeInTheDocument()
   })
 
+  // ── Multi-payer (#1426 regression) ─────────────────────────────────────────
+  // 3.2.0 collapsed payers[] to a single payer, so a bill fronted by two people
+  // credited all of it to one and skewed settle-up. The ledger always supported N
+  // payers; only the form could no longer send them.
+
+  it('records an expense paid by two people with their own amounts', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Dinner' }), id: 11 } })
+      }),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '90')
+
+    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }))
+
+    // Alice (me) is seeded as the sole payer; including Bob rebalances to 45/45.
+    await user.click(screen.getAllByTestId('payer-toggle')[1])
+    expect(screen.getAllByTestId('payer-amount').map(i => (i as HTMLInputElement).value))
+      .toEqual(['45.00', '45.00'])
+
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
+    await user.click(addBtns[addBtns.length - 1])
+
+    await waitFor(() => expect(posted).toBeTruthy())
+    expect(posted!.total_price).toBe(90)
+    expect(posted!.payers).toEqual(expect.arrayContaining([
+      { user_id: 1, amount: 45 },
+      { user_id: 2, amount: 45 },
+    ]))
+    expect(posted!.payers).toHaveLength(2)
+  })
+
+  it('blocks saving when the payer amounts do not add up to the total', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ item: buildBudgetItem({ trip_id: 1, name: 'Dinner' }) })
+      }),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '90')
+    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }))
+    await user.click(screen.getAllByTestId('payer-toggle')[1])
+
+    // Pin both payers at 20 of a 90 bill, so nobody is left to absorb the rest.
+    const amounts = () => screen.getAllByTestId('payer-amount') as HTMLInputElement[]
+    await user.clear(amounts()[0])
+    await user.type(amounts()[0], '20')
+    await user.clear(amounts()[1])
+    await user.type(amounts()[1], '20')
+
+    // An unbalanced payer list would make the server re-derive total_price as 40.
+    expect(screen.getByText(/must add up to/i)).toBeInTheDocument()
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
+    expect(addBtns[addBtns.length - 1]).toBeDisabled()
+    expect(posted).toBeNull()
+  })
+
+  it('reopens a two-payer expense with both payers intact', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
+    let put: Record<string, unknown> | null = null
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
+      id: 7,
+      total_price: 90,
+      payers: [{ user_id: 1, amount: 45, username: 'alice' }, { user_id: 2, amount: 45, username: 'bob' }],
+      members: [{ user_id: 1, username: 'alice', paid: 0 }, { user_id: 2, username: 'bob', paid: 0 }],
+    }
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.put('/api/trips/1/budget/7', async ({ request }) => {
+        put = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ item })
+      }),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await screen.findByText('Dinner')
+    await user.click(screen.getByTitle('Edit'))
+
+    // Loading used to be payers.find(...), which silently dropped the second payer.
+    const amounts = await screen.findAllByTestId('payer-amount')
+    expect(amounts.map(i => (i as HTMLInputElement).value)).toEqual(['45', '45'])
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(put).toBeTruthy())
+    expect(put!.payers).toHaveLength(2)
+  })
+
   it('exports the expenses as a CSV download (#1500)', async () => {
     // Display in the trip's own currency so FX conversion is an identity.
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
