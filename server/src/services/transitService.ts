@@ -19,12 +19,14 @@ const UA = buildUserAgent(getAppUrl());
 // Modes the client may request — a strict whitelist so the proxy can't be used
 // to smuggle arbitrary query values upstream. TRANSIT covers everything; the
 // others let the user filter (RAIL already includes subway/suburban etc.).
-const ALLOWED_MODES = new Set([
-  'TRANSIT', 'BUS', 'COACH', 'TRAM', 'SUBWAY', 'RAIL', 'FERRY', 'FUNICULAR', 'AERIAL_LIFT',
+export const SCHEDULED_TRANSIT_MODES = [
+  'BUS', 'COACH', 'TRAM', 'SUBWAY', 'RAIL', 'FERRY', 'FUNICULAR', 'AERIAL_LIFT',
   // Fine-grained rail modes so "train without subway" is expressible (RAIL
   // itself includes SUBWAY per the MOTIS mode taxonomy).
   'HIGHSPEED_RAIL', 'LONG_DISTANCE', 'NIGHT_RAIL', 'REGIONAL_RAIL', 'SUBURBAN',
-]);
+] as const;
+
+const ALLOWED_MODES = new Set(['TRANSIT', ...SCHEDULED_TRANSIT_MODES]);
 
 // Short-lived response cache: planning is the expensive call per the Transitous
 // usage policy, and a user toggling filters re-requests identical plans.

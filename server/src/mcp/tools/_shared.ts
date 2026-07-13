@@ -19,6 +19,11 @@ export const TOOL_ANNOTATIONS_READONLY = {
   openWorldHint: false,
 } as const;
 
+export const TOOL_ANNOTATIONS_OPEN_WORLD_READONLY = {
+  ...TOOL_ANNOTATIONS_READONLY,
+  openWorldHint: true,
+} as const;
+
 export const TOOL_ANNOTATIONS_WRITE = {
   readOnlyHint: false,
   destructiveHint: false,
