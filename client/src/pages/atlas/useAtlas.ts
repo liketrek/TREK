@@ -536,18 +536,17 @@ export function useAtlas() {
         layer.on('click', () => {
           if (!countryA2) return
           if (visited) {
-            const regionEntry = visitedRegions[countryA2]?.find(r => r.code === regionCode || normalizeRegionName(r.name) === normalizeRegionName(regionNameEn))
-            if (regionEntry?.manuallyMarked) {
-              setConfirmActionRef.current({
-                type: 'unmark-region',
-                code: countryA2,
-                name: regionName,
-                regionCode,
-                countryName,
-              })
-            } else {
-              loadCountryDetailRef.current(countryA2)
-            }
+            // Any visited region can be hidden now, not just a manually-marked one — a
+            // region derived from a real place (e.g. one a border-simplification gap
+            // misassigned) is exactly the case that needs it. Country details remain
+            // reachable via the country search/sidebar.
+            setConfirmActionRef.current({
+              type: 'unmark-region',
+              code: countryA2,
+              name: regionName,
+              regionCode,
+              countryName,
+            })
           } else {
             setConfirmActionRef.current({
               type: 'choose-region',
