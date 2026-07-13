@@ -4,7 +4,7 @@ const nav: TranslationStrings = {
   'nav.trip': 'Поездка',
   'nav.share': 'Поделиться',
   'nav.settings': 'Настройки',
-  'nav.admin': 'Админ',
+  'nav.admin': 'Администрирование',
   'nav.logout': 'Выйти',
   'nav.lightMode': 'Светлая тема',
   'nav.darkMode': 'Тёмная тема',
@@ -16,6 +16,6 @@ const nav: TranslationStrings = {
   'nav.bottomAdmin': 'Администрирование',
   'nav.bottomLogout': 'Выйти',
   'nav.bottomAdminBadge': 'Админ',
-  'nav.help': 'Help',
+  'nav.help': 'Помощь',
 };
 export default nav;
