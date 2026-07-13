@@ -5,7 +5,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
 import { LayoutGrid, CalendarDays, Globe, Compass, Bookmark, Plus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { resolvePluginIcon } from '../shared/pluginIcon'
+import { resolvePluginIcon } from '../shared/PluginIcon'
 
 const ADDON_NAV: Record<string, { icon: LucideIcon; labelKey: string }> = {
   vacay:       { icon: CalendarDays, labelKey: 'admin.addons.catalog.vacay.name' },

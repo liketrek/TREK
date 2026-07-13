@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { Blocks, Stethoscope } from 'lucide-react'
-import { resolvePluginIcon } from './pluginIcon'
-import PluginIcon from './PluginIcon'
+import PluginIcon, { resolvePluginIcon } from './PluginIcon'
 
 describe('resolvePluginIcon', () => {
   it('resolves a lucide name outside the old 14-icon allowlist', () => {
