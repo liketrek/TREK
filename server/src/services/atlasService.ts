@@ -1190,28 +1190,65 @@ export function listManuallyVisitedRegions(
     .all(userId) as { region_code: string; region_name: string; country_code: string }[];
 }
 
+/** Regions the user explicitly removed, which getVisitedRegions must not re-derive. */
+export function getHiddenRegions(userId: number): Set<string> {
+  const rows = db.prepare('SELECT region_code FROM hidden_regions WHERE user_id = ?').all(userId) as { region_code: string }[];
+  return new Set(rows.map(r => r.region_code));
+}
+
+// Bundled/geocoded region codes are always "<countryCode>-<rest>" (ISO 3166-2 format, and
+// buildRegionInfo's synthesized fallback follows the same convention) — used to recover a
+// region's country when there's no visited_regions row to read it from (a place-derived
+// region was never inserted there).
+function countryCodeFromRegionCode(regionCode: string): string {
+  return (regionCode.split('-')[0] || '').toUpperCase();
+}
+
 export function markRegionVisited(userId: number, regionCode: string, regionName: string, countryCode: string): void {
-  db.prepare(
-    'INSERT OR IGNORE INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)',
-  ).run(userId, regionCode, regionName, countryCode);
-  // Auto-mark parent country if not already visited
+  db.prepare('INSERT OR IGNORE INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)').run(userId, regionCode, regionName, countryCode);
+  // Re-marking lifts a previous removal of the region itself...
+  db.prepare('DELETE FROM hidden_regions WHERE user_id = ? AND region_code = ?').run(userId, regionCode);
+  // ...and of the parent country, which the "last region removed" cascade in
+  // unmarkRegionVisited below may have hidden — otherwise marking a region visited again
+  // would leave its country invisible.
   db.prepare('INSERT OR IGNORE INTO visited_countries (user_id, country_code) VALUES (?, ?)').run(userId, countryCode);
+  db.prepare('DELETE FROM hidden_countries WHERE user_id = ? AND country_code = ?').run(userId, countryCode);
+}
+
+// True when the given country still has at least one region that would show as visited —
+// derived from place_regions or manually marked — after excluding the given user's hidden
+// regions. Used to decide whether removing a region should cascade into hiding the country.
+function hasVisibleRegionForCountry(userId: number, countryCode: string, hidden: Set<string>): boolean {
+  const tripIds = getUserTrips(userId).map(t => t.id);
+  const placeIds = getPlacesForTrips(tripIds).filter(p => p.lat && p.lng).map(p => p.id);
+  const placeRegionCodes = placeIds.length > 0
+    ? (db.prepare(
+        `SELECT DISTINCT region_code FROM place_regions WHERE country_code = ? AND place_id IN (${placeIds.map(() => '?').join(',')})`
+      ).all(countryCode, ...placeIds) as { region_code: string }[]).map(r => r.region_code)
+    : [];
+  const manualRegionCodes = (db.prepare(
+    'SELECT region_code FROM visited_regions WHERE user_id = ? AND country_code = ?'
+  ).all(userId, countryCode) as { region_code: string }[]).map(r => r.region_code);
+  return [...placeRegionCodes, ...manualRegionCodes].some(code => !hidden.has(code));
 }
 
 export function unmarkRegionVisited(userId: number, regionCode: string): void {
-  const region = db
-    .prepare('SELECT country_code FROM visited_regions WHERE user_id = ? AND region_code = ?')
-    .get(userId, regionCode) as { country_code: string } | undefined;
+  const region = db.prepare('SELECT country_code FROM visited_regions WHERE user_id = ? AND region_code = ?').get(userId, regionCode) as { country_code: string } | undefined;
+  const countryCode = region?.country_code || countryCodeFromRegionCode(regionCode);
+
   db.prepare('DELETE FROM visited_regions WHERE user_id = ? AND region_code = ?').run(userId, regionCode);
-  if (region) {
-    const remaining = db
-      .prepare('SELECT COUNT(*) as count FROM visited_regions WHERE user_id = ? AND country_code = ?')
-      .get(userId, region.country_code) as { count: number };
-    if (remaining.count === 0) {
-      db.prepare('DELETE FROM visited_countries WHERE user_id = ? AND country_code = ?').run(
-        userId,
-        region.country_code,
-      );
+
+  // Tombstone unconditionally, not just for a manually-marked region — a region derived
+  // from real place data (the common case) needs to be dismissable too, mirroring
+  // unmarkCountryVisited's tombstone for a place-derived country (#1490).
+  if (countryCode) {
+    db.prepare('INSERT OR IGNORE INTO hidden_regions (user_id, region_code, country_code) VALUES (?, ?, ?)').run(userId, regionCode, countryCode);
+
+    // If that was the country's last visible region, hide the country too — otherwise it
+    // keeps showing "visited" on the world map with nothing left to drill into.
+    const hidden = getHiddenRegions(userId);
+    if (!hasVisibleRegionForCountry(userId, countryCode, hidden)) {
+      unmarkCountryVisited(userId, countryCode);
     }
   }
 }
@@ -1477,6 +1514,17 @@ export async function getVisitedRegions(
     if (!result[r.country_code]) result[r.country_code] = [];
     if (!result[r.country_code].find((x) => x.code === r.region_code)) {
       result[r.country_code].push({ code: r.region_code, name: r.region_name, placeCount: 0, manuallyMarked: true });
+    }
+  }
+
+  // Suppress regions the user explicitly removed, same as getStats does for countries
+  // via getHiddenCountries (#1490) — otherwise a region derived fresh from place_regions
+  // (or a manual mark) on every request could never actually be dismissed.
+  const hidden = getHiddenRegions(userId);
+  if (hidden.size > 0) {
+    for (const country of Object.keys(result)) {
+      result[country] = result[country].filter(r => !hidden.has(r.code));
+      if (result[country].length === 0) delete result[country];
     }
   }
 

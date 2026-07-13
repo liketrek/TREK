@@ -3679,6 +3679,28 @@ function runMigrations(db: Database.Database): void {
         if (!(err instanceof Error) || !err.message.includes('no such table')) throw err;
       }
     },
+
+    // Tombstones for Atlas regions the user has explicitly removed — the region-level
+    // counterpart to hidden_countries above (#1490). A visited region is normally derived
+    // fresh from place_regions/visited_regions on every request, so "removing" it has
+    // nothing to delete; recording it here lets getVisitedRegions suppress a derived region
+    // the same way getStats already suppresses a derived country. Unlike the country-level
+    // tombstone (originally only reachable for a manually-marked or zero-count country),
+    // this also covers a region derived from real place data — e.g. one that ended up on
+    // the wrong side of a border-simplification gap and the user just wants gone.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS hidden_regions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          region_code TEXT NOT NULL,
+          country_code TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (user_id, region_code)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_regions_user ON hidden_regions (user_id);');
+    },
   ];
 
   if (currentVersion < migrations.length) {
