@@ -1,5 +1,6 @@
 import semver from 'semver';
 import { isKnownPermission } from '../protocol/envelope';
+import { isValidTrekRange, minTrekOf } from './host-compat';
 import type { NotifEventType } from '../../../services/notificationPreferencesService';
 
 /**
@@ -87,7 +88,11 @@ export interface PluginManifest {
   homepage?: string;
   icon?: string;
   type: 'integration' | 'page' | 'widget' | 'trip-page';
+  /** The raw semver RANGE of TREK versions this plugin supports (">=3.2.0 <4.0.0"). */
   trek?: string;
+  /** Same range, normalized: a valid+satisfiable one, or null. What the host gates on. */
+  trekRange: string | null;
+  /** The range's lower bound, for display ("Requires TREK 3.2.0+"). Derived, never authored. */
   minTrekVersion?: string;
   nativeModules: boolean;
   permissions: string[];
@@ -134,7 +139,19 @@ export function parseJsonText(text: string): unknown {
   return JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
 }
 
-export function parseManifest(raw: unknown): PluginManifest {
+/**
+ * Validate a manifest.
+ *
+ * `requireTrek` is the INSTALL front doors (registry, sideload, dev-link): a plugin
+ * that doesn't say which TREK versions it supports may not be installed at all.
+ *
+ * It is deliberately OFF for discovery, which is a reconciler, not a gate. Discovery's
+ * failure path only logs and skips — it never touches the plugins row — so a plugin it
+ * rejects keeps its stale `enabled = 1` and gets spawned by the next boot anyway. Making
+ * this strict there would produce a plugin that is invisible to discovery and still
+ * running. Activation is where an undeclared range is actually refused.
+ */
+export function parseManifest(raw: unknown, opts?: { requireTrek?: boolean }): PluginManifest {
   if (!raw || typeof raw !== 'object') throw new ManifestError('manifest is not an object');
   const m = raw as Record<string, unknown>;
 
@@ -183,6 +200,14 @@ export function parseManifest(raw: unknown): PluginManifest {
   if (badEgress !== undefined) throw new ManifestError(`invalid egress host "${badEgress}"`);
 
   const trek = optStr(m.trek);
+  const trekRange = isValidTrekRange(trek) ? trek : null;
+  if (opts?.requireTrek && !trekRange) {
+    throw new ManifestError(
+      trek
+        ? `invalid "trek" version range "${trek}" (expected a satisfiable semver range, e.g. ">=3.2.0 <4.0.0")`
+        : 'missing "trek" version range — declare the TREK versions this plugin supports, e.g. ">=3.2.0 <4.0.0"',
+    );
+  }
   return {
     id,
     name: str(m.name, 'name'),
@@ -194,7 +219,11 @@ export function parseManifest(raw: unknown): PluginManifest {
     icon: optStr(m.icon) ?? 'Blocks',
     type: type as PluginManifest['type'],
     trek,
-    minTrekVersion: trek ? (trek.match(/(\d+\.\d+\.\d+)/)?.[1] ?? undefined) : undefined,
+    trekRange,
+    // Derived from the range itself, never from the first number that looks like a
+    // version in it: a range of "<4.0.0" has a *first* semver of 4.0.0 but a lower
+    // bound of 0.0.0, so reading it off the text produced the exact inverse of the truth.
+    minTrekVersion: trekRange ? minTrekOf(trekRange) : undefined,
     nativeModules: false,
     permissions,
     egress,

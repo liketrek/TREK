@@ -5,6 +5,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { createRequire } from 'node:module';
 import { definePlugin, PLUGIN_API_VERSION, validateManifest, createMockHost } from '../src/index.js';
+import { isUnboundedRange } from '../src/manifest.js';
 import { scaffold } from '../src/cli/create.js';
 import { validatePluginDir } from '../src/cli/validate.js';
 import { makeZip, listZipNames } from '../src/zip.js';
@@ -44,7 +45,7 @@ describe('definePlugin + api version', () => {
 });
 
 describe('validateManifest', () => {
-  const base = { id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', apiVersion: 1 };
+  const base = { id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', apiVersion: 1, trek: '>=3.2.0 <4.0.0' };
   it('accepts a valid manifest', () => {
     expect(validateManifest(base).ok).toBe(true);
   });
@@ -587,14 +588,14 @@ describe('pack + entry (publishing automation)', () => {
   it('refuses a plugin that ships a native binary', () => {
     const bad = path.join(tmp, 'bad');
     fs.mkdirSync(path.join(bad, 'server'), { recursive: true });
-    fs.writeFileSync(path.join(bad, 'trek-plugin.json'), JSON.stringify({ id: 'bad-plug', name: 'Bad', version: '1.0.0', type: 'integration', permissions: [], egress: [] }));
+    fs.writeFileSync(path.join(bad, 'trek-plugin.json'), JSON.stringify({ id: 'bad-plug', name: 'Bad', version: '1.0.0', type: 'integration', permissions: [], egress: [], trek: '>=3.2.0 <4.0.0' }));
     fs.writeFileSync(path.join(bad, 'server', 'index.js'), 'module.exports={}');
     fs.writeFileSync(path.join(bad, 'server', 'thing.node'), Buffer.from([1, 2, 3]));
     fs.writeFileSync(path.join(bad, 'README.md'), '# Bad\n![x](x.png)\ncontent');
     expect(() => packPluginDir(bad, path.join(tmp, 'x.zip'))).toThrow(/native binaries/);
   });
 
-  it('builds a registry entry with sha256/size/commit/minTrekVersion filled in', () => {
+  it('builds a registry entry with sha256/size/commit/trek filled in', () => {
     const out = path.join(tmp, 'plugin.zip');
     const packed = packPluginDir(koffi, out);
     const entry = buildEntry({
@@ -607,10 +608,42 @@ describe('pack + entry (publishing automation)', () => {
     expect(v.sha256).toBe(packed.sha256);
     expect(v.size).toBe(packed.size);
     expect(v.commitSha).toBe('a'.repeat(40));
-    expect(v.minTrekVersion).toBe('3.2.0');
+    // The RAW range is the one compatibility field an entry carries. minTrekVersion is gone:
+    // it restated the range's lower bound in a weaker form (it cannot express the exclusive
+    // upper bound), so the entry used to drop "<4.0.0" silently and a TREK 4 server read
+    // "requires 3.2.0+" and considered the plugin compatible.
+    expect(v.trek).toBe('>=3.2.0 <4.0.0');
+    expect(v).not.toHaveProperty('minTrekVersion');
     expect(v.downloadUrl).toBe('https://github.com/mauriceboe/trek-plugin-koffi/releases/download/v1.0.0/plugin.zip');
     expect(v.nativeModules).toBe(false);
   });
+
+  it('publishes an upper-bound-only range verbatim, with no floor to get wrong', () => {
+    // This is why the derived floor is gone. "<4.0.0" has a first X.Y.Z of 4.0.0 but a lower
+    // bound of 0.0.0, and the old regex published 4.0.0 as the MINIMUM — advertising a plugin
+    // that supports everything BELOW 4 as requiring 4+, the precise inverse of what its author
+    // wrote. A field that only ever restates the range cannot be wrong if it does not exist.
+    const entry = buildEntry({ ...entryOptsFor('upper-only', '<4.0.0'), now: '2026-07-04T00:00:00.000Z' });
+    expect(entry.versions[0].trek).toBe('<4.0.0');
+    expect(entry.versions[0]).not.toHaveProperty('minTrekVersion');
+  });
+
+  it('refuses to publish a plugin with no usable trek range', () => {
+    expect(() => buildEntry({ ...entryOptsFor('no-trek', undefined), now: '2026-07-04T00:00:00.000Z' }))
+      .toThrow(/no valid "trek" version range/);
+    expect(() => buildEntry({ ...entryOptsFor('bad-trek', '>=4.0.0 <3.0.0'), now: '2026-07-04T00:00:00.000Z' }))
+      .toThrow(/no valid "trek" version range/);
+  });
+
+  /** A minimal plugin dir + artifact for buildEntry (which only needs the zip to exist). */
+  function entryOptsFor(id: string, trek: string | undefined) {
+    const dir = path.join(tmp, id);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'trek-plugin.json'), JSON.stringify({ id, name: id, version: '1.0.0', type: 'integration', ...(trek === undefined ? {} : { trek }) }));
+    const zipPath = path.join(tmp, `${id}.zip`);
+    fs.writeFileSync(zipPath, makeZip([{ name: 'trek-plugin.json', data: Buffer.from('{}') }]));
+    return { dir, repo: 'a/b', tag: 'v1.0.0', zipPath, commit: 'a'.repeat(40) };
+  }
 
   it('--merge prepends the new version onto an existing entry, newest-first', () => {
     const out = path.join(tmp, 'plugin.zip');
@@ -808,7 +841,7 @@ describe('mock-host inter-plugin (plugins.call + events.emit)', () => {
 });
 
 describe('validateManifest capabilities.provides/emits', () => {
-  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'] };
+  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'], trek: '>=3.2.0 <4.0.0' };
   it('accepts well-formed provides + emits', () => {
     const r = validateManifest({ ...base, capabilities: { provides: ['computeRate'], emits: ['rate.updated'] } });
     expect(r.ok).toBe(true);
@@ -816,5 +849,39 @@ describe('validateManifest capabilities.provides/emits', () => {
   it('rejects a malformed export/event name and a non-array', () => {
     expect(validateManifest({ ...base, capabilities: { provides: ['bad name!'] } }).ok).toBe(false);
     expect(validateManifest({ ...base, capabilities: { emits: 'nope' } }).ok).toBe(false);
+  });
+});
+
+/**
+ * The `trek` range is what TREK gates installs on, so it has to be caught HERE — the same
+ * validateManifest the registry CI runs — rather than by a rejected install.
+ */
+describe('validateManifest: the trek range', () => {
+  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'] };
+
+  it('requires a range', () => {
+    const r = validateManifest({ ...base });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join()).toMatch(/missing "trek"/);
+  });
+
+  it('rejects a range that is not semver, and one nothing can satisfy', () => {
+    expect(validateManifest({ ...base, trek: '3.2+' }).ok).toBe(false);
+    // Syntactically valid, semantically empty: no TREK could ever run it.
+    expect(validateManifest({ ...base, trek: '>=4.0.0 <3.0.0' }).ok).toBe(false);
+  });
+
+  it('accepts the ranges authors really write, and carries the range through', () => {
+    for (const trek of ['>=3.2.0 <4.0.0', '^3.2.0', '>=3']) {
+      const r = validateManifest({ ...base, trek });
+      expect(r.ok, trek).toBe(true);
+      expect(r.manifest?.trek).toBe(trek);
+    }
+  });
+
+  it('allows "*" (it is a legal claim) but validate warns — it is nearly always a lie', () => {
+    expect(validateManifest({ ...base, trek: '*' }).ok).toBe(true);
+    expect(isUnboundedRange('*')).toBe(true);
+    expect(isUnboundedRange('>=3.2.0 <4.0.0')).toBe(false);
   });
 });

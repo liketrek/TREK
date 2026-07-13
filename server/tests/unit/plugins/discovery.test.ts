@@ -27,7 +27,7 @@ beforeEach(() => {
   db = new Database(':memory:');
   db.exec(`
     CREATE TABLE plugins (id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
-      api_version INTEGER, min_trek_version TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT, status TEXT, config TEXT, updated_at TEXT);
+      api_version INTEGER, min_trek_version TEXT, trek_range TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT, status TEXT, config TEXT, updated_at TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT,
       required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, sort_order INTEGER);
     CREATE TABLE plugin_actions (plugin_id TEXT, action_key TEXT, label TEXT, hint TEXT, danger INTEGER, sort_order INTEGER,
@@ -124,5 +124,32 @@ describe('discoverPlugins', () => {
   it('is a no-op when the plugins dir is absent', () => {
     process.env.TREK_PLUGINS_DIR = path.join(codeRoot, 'does-not-exist');
     expect(discoverPlugins(db)).toEqual({ discovered: [], skipped: [] });
+  });
+
+  describe('the TREK range', () => {
+    it('persists the range and its lower bound', () => {
+      writePlugin('ranged', { trek: '>=3.2.0 <4.0.0' });
+      discoverPlugins(db);
+      expect(db.prepare("SELECT trek_range, min_trek_version FROM plugins WHERE id='ranged'").get())
+        .toMatchObject({ trek_range: '>=3.2.0 <4.0.0', min_trek_version: '3.2.0' });
+    });
+
+    it('still registers a plugin that declares NO range — it must not vanish', () => {
+      // Discovery is a reconciler, not a gate: it only logs and skips on a throw and never
+      // touches the plugins row, so refusing here would leave an existing plugin's stale
+      // enabled=1 row to be spawned by the next boot — invisible AND running. The row is
+      // registered with a null range and the activation gate refuses it (TREK_VERSION_UNKNOWN).
+      writePlugin('rangeless', {});
+      expect(discoverPlugins(db).discovered).toEqual(['rangeless']);
+      expect(db.prepare("SELECT trek_range FROM plugins WHERE id='rangeless'").get()).toMatchObject({ trek_range: null });
+    });
+
+    it('refreshes the range on re-discovery, so a plugin that narrowed its support is caught', () => {
+      writePlugin('shrink', { trek: '>=3.0.0' });
+      discoverPlugins(db);
+      writePlugin('shrink', { trek: '>=3.0.0 <3.1.0' });
+      discoverPlugins(db);
+      expect(db.prepare("SELECT trek_range FROM plugins WHERE id='shrink'").get()).toMatchObject({ trek_range: '>=3.0.0 <3.1.0' });
+    });
   });
 });

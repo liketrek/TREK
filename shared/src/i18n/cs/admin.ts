@@ -186,14 +186,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Zobrazit protokol chyb',
   'admin.plugins.errorLog': 'Protokol chyb',
   'admin.plugins.allowedHosts': 'Povolení hostitelé',
-  'admin.plugins.allowedHosts.hint': 'Tento plugin komunikuje se službou, kterou umíš pojmenovat jen ty (self-hosted server). Přidej hostitele, na které smí — na jiné se nedostane.',
+  'admin.plugins.allowedHosts.hint':
+    'Tento plugin komunikuje se službou, kterou umíš pojmenovat jen ty (self-hosted server). Přidej hostitele, na které smí — na jiné se nedostane.',
   'admin.plugins.allowedHosts.none': 'Zatím nebyli přidáni žádní hostitelé.',
-  'admin.plugins.allowedHosts.unsupported': 'Tento plugin nepoužívá hostitele zadané provozovatelem. Povolení hostitelé jsou pevně dáni v manifestu.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Tento plugin nepoužívá hostitele zadané provozovatelem. Povolení hostitelé jsou pevně dáni v manifestu.',
   'admin.plugins.allowedHosts.restartNote': 'Uložení restartuje plugin, aby načetl nový seznam.',
   'admin.plugins.allowedHosts.add': 'Přidat povoleného hostitele',
   'admin.plugins.allowedHosts.count': '{n} povolených hostitelů',
   'admin.plugins.operatorEgressPill': '+ hostitelé, které přidáš',
-  'admin.plugins.operatorEgressHint': 'Tento plugin komunikuje se službou, kterou umíš pojmenovat jen ty (self-hosted server). Po instalaci přidej hostitele v ⋯ → Povolení hostitelé. Na jiné se nedostane.',
+  'admin.plugins.operatorEgressHint':
+    'Tento plugin komunikuje se službou, kterou umíš pojmenovat jen ty (self-hosted server). Po instalaci přidej hostitele v ⋯ → Povolení hostitelé. Na jiné se nedostane.',
   'admin.plugins.noErrors': 'Žádné zaznamenané chyby.',
   'admin.plugins.uninstalled': 'Plugin odinstalován',
   'admin.plugins.uninstallTitle': 'Odinstalovat plugin?',
@@ -350,6 +353,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Co znamená „Zkontrolováno“',
   'admin.plugins.security.reviewedBody':
     'Zkontrolovaný plugin ručně prověřil správce TREK na škodlivý kód u každé verze — kontroloval nepřátelský kód, nikoli to, zda dobře funguje. Není to slib, že je plugin neškodný.',
+  'admin.plugins.security.signedTitle': 'Co znamená „Podepsáno“',
+  'admin.plugins.security.signedBody':
+    'Kontrolní součet, který TREK ověřuje při každé instalaci, dokazuje, že soubory jsou přesně tím, za co se registr zaručuje. Podpis dokazuje něco jiného: že pocházejí od autora a jsou podepsané klíčem, který drží jen on. Podepsaný plugin má obojí. Nepodepsaný není nebezpečný — nese jen o jednu záruku méně a většina pluginů v registru dnes podepsaná není.',
+  'admin.plugins.signed': 'Podepsáno',
+  'admin.plugins.signedHint': 'Při instalaci ověřeno proti podpisovému klíči autora',
+  'admin.plugins.unsigned': 'Nepodepsáno',
+  'admin.plugins.unsignedHint':
+    'Soubory odpovídají tomu, za co se registr zaručuje, ale nic je nespojuje s autorem. O jednu záruku méně — nikoli nebezpečné.',
+  'admin.plugins.updateBlocked': 'Aktualizace zablokována — {reason}',
+  'admin.plugins.reviewBlock': 'Zkontrolovat',
+  'admin.plugins.retrusted': 'Nový podpisový klíč je důvěryhodný — plugin je aktualizován',
+  'admin.plugins.sig.title': 'Podpis pluginu {name} se nepodařilo ověřit',
+  'admin.plugins.sig.keyChangedBody':
+    'Podpisový klíč autora není ten, se kterým byl tento plugin nainstalován. Autoři klíče skutečně mění — ale útočník, který plugin převzal, by vypadal přesně takhle.',
+  'admin.plugins.sig.invalidBody':
+    'Soubory neodpovídají podpisu autora. Nejsou tím, co autor podepsal — buď se poškodily, nebo do nich někdo zasáhl. Toto nelze obejít.',
+  'admin.plugins.sig.missingBody':
+    'Tento plugin byl při instalaci podepsaný, ale nová verze žádný podpis nepřináší. TREK takové zhoršení tiše nepřijme. Toto nelze obejít.',
+  'admin.plugins.sig.incompleteBody':
+    'Záznam v registru je podepsaný jen napůl: uvádí klíč autora, ale verze nenese žádný podpis (nebo naopak). To je chyba na straně pluginu. Toto nelze obejít.',
+  'admin.plugins.sig.pinnedKey': 'Klíč, se kterým byl nainstalován',
+  'admin.plugins.sig.newKey': 'Klíč, který nabízí nyní',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK nedokáže odlišit legitimní výměnu klíče od převzetí pluginu — odsud vypadají obě stejně. Než nový klíč přijmete, ověřte si ho u autora kanálem, kterému už důvěřujete. Jakmile to uděláte, plugin se aktualizuje a nový klíč si TREK zapamatuje.',
+  'admin.plugins.sig.retrustConfirm': 'Důvěřovat novému klíči a aktualizovat',
+  'admin.plugins.sig.cancel': 'Nedůvěřovat',
+  'admin.plugins.sig.consentUnsigned':
+    'Tuto verzi nic nespojuje s jejím autorem — soubory odpovídají registru, ale nenesou podpis autora.',
   'admin.plugins.security.trustTitle': 'Závěrem',
   'admin.plugins.security.trustBody':
     'Instalace pluginu je jako instalace jakékoli aplikace třetí strany: přidávejte pouze kód od autorů, kterým důvěřujete, a v případě pochybností si jej nejprve sami prohlédněte. TREK nenese žádnou odpovědnost za pluginy třetích stran.',
@@ -409,6 +440,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Stáhnout',
   'admin.plugins.dep.update': 'Aktualizovat',
   'admin.plugins.dep.resolveHint': 'Stáhne nejnovější kompatibilní verzi včetně jejích vlastních závislostí.',
+  'admin.plugins.dep.trekIncompatible': 'Vyžaduje TREK {range} — tento server běží na {host}',
+  'admin.plugins.dep.trekUnknown': 'Neuvádí, které verze TREK podporuje',
+  'admin.plugins.installCompatible': 'Nainstalovat {version}',
+  'admin.plugins.incompatible': 'Nekompatibilní',
   'admin.plugins.accessTitle': 'K čemu má přístup',
   'admin.plugins.connectsTitle': 'Připojuje se k',
   'admin.plugins.detailsTitle': 'Podrobnosti',

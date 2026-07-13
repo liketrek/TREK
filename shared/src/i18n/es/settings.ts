@@ -298,7 +298,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Configurar',
   'settings.notificationPreferences.testSuccess': 'Notificación de prueba enviada.',
   'settings.notificationPreferences.testFailed': 'La prueba falló.',
-  'settings.notificationPreferences.pluginConfigured': 'Configurado. Gestiona tus credenciales en la página de ajustes del plugin.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Configurado. Gestiona tus credenciales en la página de ajustes del plugin.',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',

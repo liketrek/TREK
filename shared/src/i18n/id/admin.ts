@@ -230,14 +230,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Lihat log error',
   'admin.plugins.errorLog': 'Log error',
   'admin.plugins.allowedHosts': 'Host yang diizinkan',
-  'admin.plugins.allowedHosts.hint': 'Plugin ini berbicara dengan layanan yang hanya Anda yang tahu namanya (server swakelola). Tambahkan host yang boleh dijangkau — selain itu tidak bisa.',
+  'admin.plugins.allowedHosts.hint':
+    'Plugin ini berbicara dengan layanan yang hanya Anda yang tahu namanya (server swakelola). Tambahkan host yang boleh dijangkau — selain itu tidak bisa.',
   'admin.plugins.allowedHosts.none': 'Belum ada host yang ditambahkan.',
-  'admin.plugins.allowedHosts.unsupported': 'Plugin ini tidak memakai host dari operator. Host yang diizinkan sudah tetap di manifesnya.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Plugin ini tidak memakai host dari operator. Host yang diizinkan sudah tetap di manifesnya.',
   'admin.plugins.allowedHosts.restartNote': 'Menyimpan akan memulai ulang plugin agar memakai daftar baru.',
   'admin.plugins.allowedHosts.add': 'Tambah host yang diizinkan',
   'admin.plugins.allowedHosts.count': '{n} host diizinkan',
   'admin.plugins.operatorEgressPill': '+ host yang Anda tambahkan',
-  'admin.plugins.operatorEgressHint': 'Plugin ini berbicara dengan layanan yang hanya Anda yang tahu namanya (server swakelola). Setelah dipasang, tambahkan host di ⋯ → Host yang diizinkan. Selain itu tidak bisa.',
+  'admin.plugins.operatorEgressHint':
+    'Plugin ini berbicara dengan layanan yang hanya Anda yang tahu namanya (server swakelola). Setelah dipasang, tambahkan host di ⋯ → Host yang diizinkan. Selain itu tidak bisa.',
   'admin.plugins.noErrors': 'Tidak ada error yang tercatat.',
   'admin.plugins.uninstalled': 'Plugin dihapus',
   'admin.plugins.uninstallTitle': 'Hapus plugin?',
@@ -406,6 +409,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Apa arti "Ditinjau"',
   'admin.plugins.security.reviewedBody':
     'Plugin yang ditinjau telah dipindai secara manual dari malware oleh seorang maintainer TREK pada setiap versi — diperiksa untuk kode berbahaya, bukan untuk apakah plugin berfungsi dengan baik. Ini bukan janji bahwa plugin tidak berbahaya.',
+  'admin.plugins.security.signedTitle': 'Apa arti "Ditandatangani"',
+  'admin.plugins.security.signedBody':
+    'Checksum yang diverifikasi TREK pada setiap pemasangan membuktikan bahwa file-nya persis seperti yang dijamin registri. Tanda tangan membuktikan hal yang berbeda: bahwa file itu datang dari pembuatnya, ditandatangani dengan kunci yang hanya dia miliki. Plugin yang ditandatangani punya keduanya. Plugin tanpa tanda tangan bukan berarti tidak aman — ia hanya membawa satu jaminan lebih sedikit, dan sebagian besar plugin di registri saat ini memang belum ditandatangani.',
+  'admin.plugins.signed': 'Ditandatangani',
+  'admin.plugins.signedHint': 'Diverifikasi dengan kunci tanda tangan pembuatnya saat dipasang',
+  'admin.plugins.unsigned': 'Tanpa tanda tangan',
+  'admin.plugins.unsignedHint':
+    'File-nya cocok dengan yang dijamin registri, tetapi tidak ada yang mengaitkannya dengan pembuatnya. Satu jaminan lebih sedikit — bukan berarti tidak aman.',
+  'admin.plugins.updateBlocked': 'Pembaruan diblokir — {reason}',
+  'admin.plugins.reviewBlock': 'Tinjau',
+  'admin.plugins.retrusted': 'Kunci tanda tangan baru dipercaya — plugin diperbarui',
+  'admin.plugins.sig.title': 'Tanda tangan {name} tidak dapat diverifikasi',
+  'admin.plugins.sig.keyChangedBody':
+    'Kunci tanda tangan pembuatnya bukan kunci yang dipakai saat plugin ini dipasang. Pembuat memang kadang mengganti kunci — tetapi penyerang yang mengambil alih plugin ini akan terlihat persis seperti ini.',
+  'admin.plugins.sig.invalidBody':
+    'File-nya tidak cocok dengan tanda tangan pembuatnya. File itu bukan yang ditandatangani pembuatnya — entah rusak, entah diutak-atik. Ini tidak bisa dilewati.',
+  'admin.plugins.sig.missingBody':
+    'Plugin ini ditandatangani saat kamu memasangnya, tetapi versi barunya tidak menyertakan tanda tangan. TREK tidak akan diam-diam menerima kemunduran itu. Ini tidak bisa dilewati.',
+  'admin.plugins.sig.incompleteBody':
+    'Entri registrinya setengah ditandatangani: ia mendeklarasikan kunci pembuat tetapi versinya tidak membawa tanda tangan (atau sebaliknya). Itu kesalahan di sisi plugin. Ini tidak bisa dilewati.',
+  'admin.plugins.sig.pinnedKey': 'Kunci saat dipasang',
+  'admin.plugins.sig.newKey': 'Kunci yang ditawarkan sekarang',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK tidak bisa membedakan pergantian kunci yang sah dari pengambilalihan — dari sini keduanya terlihat sama persis. Pastikan dulu kunci baru itu ke pembuatnya lewat saluran yang sudah kamu percaya sebelum kamu menerimanya. Setelah kamu menerimanya, plugin diperbarui dan kunci barunya diingat.',
+  'admin.plugins.sig.retrustConfirm': 'Percayai kunci baru & perbarui',
+  'admin.plugins.sig.cancel': 'Jangan percayai',
+  'admin.plugins.sig.consentUnsigned':
+    'Tidak ada yang mengaitkan versi ini dengan pembuatnya — file-nya cocok dengan registri, tetapi tidak membawa tanda tangan pembuat.',
   'admin.plugins.security.trustTitle': 'Intinya',
   'admin.plugins.security.trustBody':
     'Memasang plugin sama seperti memasang aplikasi pihak ketiga mana pun: hanya tambahkan kode dari pembuat yang kamu percaya, dan jika ragu, periksa sendiri terlebih dahulu. TREK tidak bertanggung jawab atas plugin pihak ketiga.',
@@ -465,6 +496,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Unduh',
   'admin.plugins.dep.update': 'Perbarui',
   'admin.plugins.dep.resolveHint': 'Mengunduh versi kompatibel terbaru, termasuk dependensinya sendiri.',
+  'admin.plugins.dep.trekIncompatible': 'Membutuhkan TREK {range} — server ini menjalankan {host}',
+  'admin.plugins.dep.trekUnknown': 'Tidak menyatakan versi TREK mana yang didukung',
+  'admin.plugins.installCompatible': 'Instal {version}',
+  'admin.plugins.incompatible': 'Tidak kompatibel',
   'admin.plugins.accessTitle': 'Yang bisa diaksesnya',
   'admin.plugins.connectsTitle': 'Terhubung ke',
   'admin.plugins.detailsTitle': 'Detail',

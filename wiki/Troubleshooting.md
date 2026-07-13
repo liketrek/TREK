@@ -349,9 +349,9 @@ Restart the container after adding the variable. Once set, clicking **Connect** 
 
 ---
 
-## MCP integration: "Too many requests" or "Session limit reached"
+## MCP integration: "Too many requests"
 
-**Cause:** Each user is limited to 300 MCP requests per minute and 20 concurrent sessions by default. Exceeding either limit returns a `429` response.
+**Cause:** Each user is limited to 300 MCP requests per minute by default. Exceeding the limit returns a `429` response.
 
 **Fix:** Increase the limits via environment variables:
 
@@ -359,6 +359,48 @@ Restart the container after adding the variable. Once set, clicking **Connect** 
 environment:
   - MCP_RATE_LIMIT=600          # requests per minute per user (default: 300)
   - MCP_MAX_SESSION_PER_USER=50 # concurrent sessions per user (default: 20)
+```
+
+The session limit no longer rejects requests: at the cap, the server closes the user's least-recently-active session to make room for the new one. If you are hitting the cap at all, see the next entry — the usual cause is sessions being created faster than they are reused, not genuinely parallel clients.
+
+---
+
+## MCP: a new session is created on every tool call / sessions pile up
+
+**Symptoms:** the server log shows a `Session <uuid> created` line for *every* tool call, with `Active sessions` climbing steadily. The idle sweep reports `cleaned 0` no matter how many sessions are open. On older versions the connection dies once the count reaches `MCP_MAX_SESSION_PER_USER` and only a restart brings it back.
+
+**Cause:** the client never receives — or cannot read — the `Mcp-Session-Id` response header, so it cannot send it back on the next call. Every request then looks like a brand-new connection and the server opens a fresh session for it. The `cleaned 0` sweep is a red herring: the sweep expires sessions after an hour of *inactivity* (`MCP_SESSION_TTL`), so sessions created seconds apart are nowhere near expiry.
+
+There are two reasons the header goes missing:
+
+1. **TREK 3.3.0 and earlier** did not send `Access-Control-Expose-Headers: Mcp-Session-Id`. Without it, browser-based clients — Claude.ai, Claude Desktop connectors, MCP Inspector — are forbidden by the browser from reading the session id, no matter how the proxy is configured. **Fix: upgrade** — no proxy change will help.
+2. **A reverse proxy stripping the header.** Nginx and Caddy forward it by default, so this only happens if you have a `proxy_hide_header` directive or a response-header allowlist in front of `/mcp`. See [Reverse-Proxy](Reverse-Proxy).
+
+**How to tell which:** from the machine running the proxy, ask for a session and look at the response headers.
+
+```bash
+curl -i -X POST https://trek.example.com/mcp \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
+```
+
+A healthy response contains **both**:
+
+```
+mcp-session-id: 412d245d-1daa-4dfc-b453-eaf266673696
+access-control-expose-headers: Mcp-Session-Id,MCP-Protocol-Version,WWW-Authenticate
+```
+
+If `mcp-session-id` is missing, the proxy is stripping it. If `access-control-expose-headers` is missing, you are on an affected version — upgrade.
+
+On current versions the server also warns on every session-less request, which is the same signal:
+
+```
+[MCP] POST without mcp-session-id for user 1 — starting a new session. If this
+repeats on every tool call, the Mcp-Session-Id response header is not reaching
+the client (check that your reverse proxy forwards it).
 ```
 
 ---

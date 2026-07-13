@@ -185,14 +185,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Ver registro de erros',
   'admin.plugins.errorLog': 'Registro de erros',
   'admin.plugins.allowedHosts': 'Hosts permitidos',
-  'admin.plugins.allowedHosts.hint': 'Este plugin fala com um serviço que só você pode nomear (um servidor auto-hospedado). Adicione os hosts que ele pode alcançar — nenhum outro.',
+  'admin.plugins.allowedHosts.hint':
+    'Este plugin fala com um serviço que só você pode nomear (um servidor auto-hospedado). Adicione os hosts que ele pode alcançar — nenhum outro.',
   'admin.plugins.allowedHosts.none': 'Nenhum host adicionado ainda.',
-  'admin.plugins.allowedHosts.unsupported': 'Este plugin não usa hosts fornecidos pelo operador. Seus hosts permitidos são fixos no manifesto.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Este plugin não usa hosts fornecidos pelo operador. Seus hosts permitidos são fixos no manifesto.',
   'admin.plugins.allowedHosts.restartNote': 'Salvar reinicia o plugin para que ele use a nova lista.',
   'admin.plugins.allowedHosts.add': 'Adicionar host permitido',
   'admin.plugins.allowedHosts.count': '{n} host(s) permitido(s)',
   'admin.plugins.operatorEgressPill': '+ hosts que você adicionar',
-  'admin.plugins.operatorEgressHint': 'Este plugin fala com um serviço que só você pode nomear (um servidor auto-hospedado). Após instalar, adicione os hosts que ele pode alcançar em ⋯ → Hosts permitidos. Nenhum outro.',
+  'admin.plugins.operatorEgressHint':
+    'Este plugin fala com um serviço que só você pode nomear (um servidor auto-hospedado). Após instalar, adicione os hosts que ele pode alcançar em ⋯ → Hosts permitidos. Nenhum outro.',
   'admin.plugins.noErrors': 'Nenhum erro registrado.',
   'admin.plugins.uninstalled': 'Plugin desinstalado',
   'admin.plugins.uninstallTitle': 'Desinstalar plugin?',
@@ -352,6 +355,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'O que significa "Revisado"',
   'admin.plugins.security.reviewedBody':
     'Um plugin revisado foi verificado manualmente em busca de malware por um mantenedor do TREK em cada versão — checado quanto a código malicioso, não quanto a funcionar bem. Não é uma promessa de que o plugin seja inofensivo.',
+  'admin.plugins.security.signedTitle': 'O que significa "Assinado"',
+  'admin.plugins.security.signedBody':
+    'A soma de verificação que o TREK confere em toda instalação prova que os arquivos são exatamente aqueles pelos quais o registro responde. Uma assinatura prova algo diferente: que eles vieram do autor, assinados com uma chave que só ele possui. Um plugin assinado tem as duas coisas. Um plugin sem assinatura não é inseguro — ele apenas carrega uma garantia a menos, e hoje a maioria dos plugins do registro não é assinada.',
+  'admin.plugins.signed': 'Assinado',
+  'admin.plugins.signedHint': 'Verificado contra a chave de assinatura do autor no momento da instalação',
+  'admin.plugins.unsigned': 'Sem assinatura',
+  'admin.plugins.unsignedHint':
+    'Os arquivos correspondem àquilo pelo qual o registro responde, mas nada os liga ao autor. Uma garantia a menos — não é inseguro.',
+  'admin.plugins.updateBlocked': 'Atualização bloqueada — {reason}',
+  'admin.plugins.reviewBlock': 'Revisar',
+  'admin.plugins.retrusted': 'Nova chave de assinatura confiada — o plugin foi atualizado',
+  'admin.plugins.sig.title': 'Não foi possível verificar a assinatura de {name}',
+  'admin.plugins.sig.keyChangedBody':
+    'A chave de assinatura do autor não é aquela com a qual este plugin foi instalado. Autores realmente trocam de chave — mas um invasor que tivesse assumido o plugin se pareceria exatamente com isto.',
+  'admin.plugins.sig.invalidBody':
+    'Os arquivos não correspondem à assinatura do autor. Eles não são o que o autor assinou — ou foram corrompidos, ou foram adulterados. Isso não pode ser ignorado.',
+  'admin.plugins.sig.missingBody':
+    'Este plugin estava assinado quando você o instalou, mas a nova versão não traz assinatura alguma. O TREK não vai aceitar essa perda em silêncio. Isso não pode ser ignorado.',
+  'admin.plugins.sig.incompleteBody':
+    'A entrada no registro está assinada pela metade: ela declara uma chave do autor, mas a versão não traz assinatura (ou o contrário). Isso é um erro do lado do plugin. Isso não pode ser ignorado.',
+  'admin.plugins.sig.pinnedKey': 'Chave com que foi instalado',
+  'admin.plugins.sig.newKey': 'Chave que ele está oferecendo agora',
+  'admin.plugins.sig.confirmOutOfBand':
+    'O TREK não consegue distinguir uma troca legítima de chave de um sequestro do plugin — daqui, as duas coisas são idênticas. Confirme a nova chave com o autor por um canal em que você já confia antes de aceitá-la. Assim que aceitar, o plugin é atualizado e a nova chave passa a ser lembrada.',
+  'admin.plugins.sig.retrustConfirm': 'Confiar na nova chave e atualizar',
+  'admin.plugins.sig.cancel': 'Não confiar',
+  'admin.plugins.sig.consentUnsigned':
+    'Nada liga esta versão ao seu autor — os arquivos correspondem ao registro, mas não trazem assinatura do autor.',
   'admin.plugins.security.trustTitle': 'Em resumo',
   'admin.plugins.security.trustBody':
     'Instalar um plugin é como instalar qualquer app de terceiros: adicione apenas código de autores em quem você confia e, em caso de dúvida, inspecione-o você mesmo antes. O TREK não assume nenhuma responsabilidade por plugins de terceiros.',
@@ -411,6 +442,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Baixar',
   'admin.plugins.dep.update': 'Atualizar',
   'admin.plugins.dep.resolveHint': 'Baixa a versão compatível mais recente, incluindo suas próprias dependências.',
+  'admin.plugins.dep.trekIncompatible': 'Requer TREK {range} — este servidor executa {host}',
+  'admin.plugins.dep.trekUnknown': 'Não informa quais versões do TREK são compatíveis',
+  'admin.plugins.installCompatible': 'Instalar {version}',
+  'admin.plugins.incompatible': 'Incompatível',
   'admin.plugins.accessTitle': 'O que ele pode acessar',
   'admin.plugins.connectsTitle': 'Conecta-se a',
   'admin.plugins.detailsTitle': 'Detalhes',

@@ -22,7 +22,10 @@ import { parseJsonText, parseManifest } from './install/manifest';
 import { scanForNativeBinaries } from './install/native-scan';
 import { devLinkEnabled, DEV_LINK_SOURCE } from './dev-link';
 import { pluginCodeDir, pluginDataDir } from './paths';
-import { PluginRegistryService } from './registry/registry.service';
+import { assertHostCompatible, PluginRegistryService, RegistryError } from './registry/registry.service';
+import { hostSatisfies, hostVersion } from './install/host-compat';
+import { keyFingerprint } from './signature-status';
+import { writeAudit } from '../../services/auditLog';
 import { isAddonEnabled } from '../../services/adminService';
 import type { PluginDependency } from './install/manifest';
 import type { VersionMismatch, PluginDepRow } from './dependencies';
@@ -83,18 +86,31 @@ export class PluginConsentRequired extends Error {
   }
 }
 
-export type PluginDependencyCode = 'ADDON_DISABLED' | 'DEPENDENCY_MISSING';
+export type PluginDependencyCode =
+  | 'ADDON_DISABLED'
+  | 'DEPENDENCY_MISSING'
+  /** The plugin's declared TREK range doesn't admit the running host. */
+  | 'TREK_VERSION_INCOMPATIBLE'
+  /** The plugin never declared a range, so we can't know that it does. */
+  | 'TREK_VERSION_UNKNOWN';
 
 /**
- * Thrown when a plugin can't activate because a required addon is disabled or a
- * declared plugin dependency is missing / version-mismatched. The controller maps
- * it to a 409 carrying `code` + `detail` so the admin UI can offer the right fix.
+ * Thrown when a plugin can't activate because a required addon is disabled, a declared
+ * plugin dependency is missing / version-mismatched, or it doesn't support this TREK.
+ * The controller maps it to a 409 carrying `code` + `detail` so the admin UI can offer
+ * the right fix.
+ *
+ * Host-incompatibility deliberately reuses this class rather than introducing its own.
+ * The boot loop only reconciles a failed activation's row back to `enabled = 0` for a
+ * PluginDependencyError / DependencyCycleError; any other error falls through to a branch
+ * that relies on the supervisor persisting a status — and the supervisor never ran. A
+ * separate class would therefore leave a plugin that never started still reading "active".
  */
 export class PluginDependencyError extends Error {
   constructor(
     message: string,
     readonly code: PluginDependencyCode,
-    readonly detail: { addons?: string[]; missing?: PluginDependency[]; versionMismatch?: VersionMismatch[] } = {},
+    readonly detail: { addons?: string[]; missing?: PluginDependency[]; versionMismatch?: VersionMismatch[]; trekRange?: string | null; hostVersion?: string } = {},
   ) {
     super(message);
     this.name = 'PluginDependencyError';
@@ -447,14 +463,34 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Read-only activation gate for one plugin — throws (without mutating) if it may
-   * not activate. Checks run most- to least-severe: permission re-consent →
-   * required addon disabled → missing/mismatched plugin dependency.
+   * not activate. Checks run most- to least-severe: TREK-version compatibility →
+   * permission re-consent → required addon disabled → missing/mismatched plugin dependency.
    */
   private assertActivatable(id: string, installed: Map<string, PluginDepRow>, consentWiden: boolean): void {
-    const row = db.prepare('SELECT permissions, granted_permissions, dependencies FROM plugins WHERE id = ?').get(id) as
-      | { permissions: string; granted_permissions: string; dependencies: string | null }
+    const row = db.prepare('SELECT permissions, granted_permissions, dependencies, trek_range FROM plugins WHERE id = ?').get(id) as
+      | { permissions: string; granted_permissions: string; dependencies: string | null; trek_range: string | null }
       | undefined;
     if (!row) throw new Error(`plugin ${id} not found`);
+
+    // This runs FIRST, and before the consent check in particular: a plugin that cannot
+    // run on this TREK must never be offered a permission dialog, because consenting to
+    // it would not make the plugin start. It is also the gate that catches the case
+    // install can't — TREK was upgraded PAST the plugin's declared upper bound, so code
+    // that was legitimately installed no longer supports the host it's sitting on.
+    if (!row.trek_range) {
+      throw new PluginDependencyError(
+        `plugin ${id} does not declare which TREK versions it supports`,
+        'TREK_VERSION_UNKNOWN',
+        { trekRange: null, hostVersion: hostVersion() },
+      );
+    }
+    if (!hostSatisfies(row.trek_range)) {
+      throw new PluginDependencyError(
+        `plugin ${id} requires TREK ${row.trek_range} — this is TREK ${hostVersion()}`,
+        'TREK_VERSION_INCOMPATIBLE',
+        { trekRange: row.trek_range, hostVersion: hostVersion() },
+      );
+    }
 
     const declared = parseArray(row.permissions).filter(isKnownPermission);
     const granted = parseArray(row.granted_permissions);
@@ -586,16 +622,24 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
    * Install runs first so a failed download/signature/integrity check leaves the
    * currently-running child untouched (it keeps serving the old code from memory).
    */
-  async update(id: string): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
-    const before = db.prepare('SELECT enabled, granted_permissions FROM plugins WHERE id = ?').get(id) as
-      | { enabled: number; granted_permissions: string }
+  async update(id: string, opts?: { version?: string; retrustKey?: string }): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
+    const before = db.prepare('SELECT enabled, granted_permissions, version FROM plugins WHERE id = ?').get(id) as
+      | { enabled: number; granted_permissions: string; version: string | null }
       | undefined;
     if (!before) throw new Error(`plugin ${id} not found`);
     if (!this.registry) throw new Error('registry service unavailable');
     const wasEnabled = before.enabled === 1;
     const granted = new Set(parseArray(before.granted_permissions));
 
-    const res = await this.registry.install(id); // swaps code + refreshes declared permissions; keeps granted
+    // Pick the newest version that this TREK can actually run, not simply the newest one
+    // published. Taking the latest blindly is how an update BREAKS a working plugin: the
+    // new release drops support for this host, the swap succeeds, and the activation gate
+    // then refuses to restart it — leaving the admin worse off than not updating. Refusing
+    // is the honest outcome; the plugin keeps running on the code it has.
+    const target = opts?.version ?? (await this.resolveUpdateTarget(id, before.version));
+
+    // swaps code + refreshes declared permissions; keeps granted
+    const res = await this.registry.install(id, { version: target, retrustKey: opts?.retrustKey });
 
     const declared = parseArray(
       (db.prepare('SELECT permissions FROM plugins WHERE id = ?').get(id) as { permissions: string }).permissions,
@@ -612,6 +656,72 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // New rights requested (or it was already disabled): leave it inactive until
     // an admin explicitly consents by activating it.
     return { version: res.version, activated: false, newPermissions, newEgress };
+  }
+
+  /**
+   * The version an "update" should install: the newest one compatible with this TREK.
+   * Refuses when that is not actually newer than what's installed — a compatible-but-older
+   * artifact is a DOWNGRADE, and silently rolling a plugin back under the word "update"
+   * would be worse than doing nothing.
+   */
+  private async resolveUpdateTarget(id: string, installedVersion: string | null): Promise<string> {
+    if (!this.registry) throw new Error('registry service unavailable');
+    const target = await this.registry.resolveVersion(id); // throws TREK_VERSION_INCOMPATIBLE if nothing fits
+    if (installedVersion && semver.valid(installedVersion) && !semver.gt(target.version, installedVersion)) {
+      throw new RegistryError(
+        `no update available for ${id} on TREK ${hostVersion()} — ${installedVersion} is already the newest compatible version`,
+        'NO_COMPATIBLE_UPDATE',
+      );
+    }
+    return target.version;
+  }
+
+  /**
+   * Re-trust a plugin whose author signing key ROTATED, and update it — in ONE call.
+   *
+   * The single call is the point. A re-pin that returns and waits for the client to
+   * then call /update leaves a window where `author_pubkey` is pinned to a key no
+   * install has ever been verified against; if that second call never arrives (the
+   * admin closes the tab), the plugin sits pinned to an unverified key. So: either the
+   * new key verifies the artifact and the plugin lands on the new version with the new
+   * key pinned, or nothing changes at all.
+   *
+   * The safety properties live below this call, not here:
+   *  - assertRetrustable re-derives the condition server-side, so this refuses anything
+   *    other than a genuinely changed key (an invalid signature is NOT overridable),
+   *    and refuses a key that changed again since the admin was shown it.
+   *  - install() still verifies the artifact under the new key before pinning it, and
+   *    only ever pins a key — never clears one to NULL.
+   */
+  async retrust(
+    id: string,
+    version: string,
+    publicKey: string,
+    actor: { userId: number | null; ip?: string | null },
+  ): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
+    if (!this.registry) throw new Error('registry service unavailable');
+    const before = db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string | null } | undefined;
+    const entry = await this.registry.assertRetrustable(id, publicKey); // throws unless SIGNATURE_KEY_CHANGED
+
+    const res = await this.update(id, { version, retrustKey: publicKey });
+
+    // Audited because re-trusting a signing key is precisely the event that has to be
+    // reconstructible after an incident. This goes to the ADMIN audit log, not the
+    // plugin capability log — that one answers "what have plugins done in my name?"
+    // and is shown to end users; a lifecycle action by an admin does not belong there.
+    writeAudit({
+      userId: actor.userId,
+      action: 'admin.plugin_retrust',
+      resource: id,
+      details: {
+        plugin: id,
+        version: res.version,
+        oldKeyFingerprint: keyFingerprint(before?.author_pubkey),
+        newKeyFingerprint: keyFingerprint(entry.authorPublicKey),
+      },
+      ip: actor.ip ?? null,
+    });
+    return res;
   }
 
   /**
@@ -654,7 +764,8 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     if (!path.isAbsolute(sourceDir)) throw new Error('the dev-link path must be absolute');
     const manifestPath = path.join(sourceDir, 'trek-plugin.json');
     if (!fs.existsSync(manifestPath)) throw new Error(`no trek-plugin.json at ${sourceDir}`);
-    const manifest = parseManifest(parseJsonText(fs.readFileSync(manifestPath, 'utf8')));
+    const manifest = parseManifest(parseJsonText(fs.readFileSync(manifestPath, 'utf8')), { requireTrek: true });
+    assertHostCompatible(manifest.trekRange, manifest.id);
     if (!fs.existsSync(path.join(sourceDir, 'server', 'index.js'))) {
       throw new Error('no built server/index.js — build the plugin first (the loader runs the compiled artifact, not TS source)');
     }
@@ -675,8 +786,13 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.symlinkSync(sourceDir, dest, 'junction'); // Windows junction (no elevation); POSIX ignores the type -> dir symlink
     discoverPlugins(db); // registers/updates the row from the linked manifest, INACTIVE
+    // Same as a sideload: the plugin has left the registry trust model, so a block that
+    // described a refused REGISTRY update no longer describes the code that will run.
     db.prepare(
-      `UPDATE plugins SET source_repo = ?, source_commit = NULL, sha256 = NULL, author_pubkey = NULL, status = 'inactive', enabled = 0 WHERE id = ?`,
+      `UPDATE plugins SET source_repo = ?, source_commit = NULL, sha256 = NULL, author_pubkey = NULL,
+                          update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL,
+                          status = 'inactive', enabled = 0
+       WHERE id = ?`,
     ).run(DEV_LINK_SOURCE, id);
     this.watchLinked(id, sourceDir);
     return { id, version: manifest.version, replaced };

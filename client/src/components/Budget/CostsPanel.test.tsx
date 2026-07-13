@@ -222,6 +222,54 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(posted!.payers).toEqual([])
   })
 
+  it('keeps "no one paid yet" when reopening a payer-less expense (#1533)', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
+    let put: Record<string, unknown> | null = null
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Hotel' }),
+      id: 5,
+      total_price: 120,
+      payers: [],
+      members: [{ user_id: 1, username: 'alice', paid: 0 }, { user_id: 2, username: 'bob', paid: 0 }],
+    }
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.put('/api/trips/1/budget/5', async ({ request }) => {
+        put = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ item })
+      }),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await screen.findByText('Hotel')
+    await user.click(screen.getByTitle('Edit'))
+
+    // Nobody paid this expense — reopening it must not silently reselect "You".
+    expect(await screen.findByRole('button', { name: 'No one paid yet' })).toBeInTheDocument()
+
+    // …and saving an untouched edit must not assign the current user as payer.
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(put).toBeTruthy())
+    expect(put!.payers).toEqual([])
+  })
+
+  it('still defaults a brand-new expense to "You" as the payer', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
+    expect(await screen.findByRole('button', { name: 'You' })).toBeInTheDocument()
+  })
+
   it('exports the expenses as a CSV download (#1500)', async () => {
     // Display in the trip's own currency so FX conversion is an identity.
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })

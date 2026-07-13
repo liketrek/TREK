@@ -181,14 +181,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Pokaż dziennik błędów',
   'admin.plugins.errorLog': 'Dziennik błędów',
   'admin.plugins.allowedHosts': 'Dozwolone hosty',
-  'admin.plugins.allowedHosts.hint': 'Ta wtyczka łączy się z usługą, którą tylko Ty możesz wskazać (serwer self-hosted). Dodaj hosty, do których może sięgać — do innych nie sięgnie.',
+  'admin.plugins.allowedHosts.hint':
+    'Ta wtyczka łączy się z usługą, którą tylko Ty możesz wskazać (serwer self-hosted). Dodaj hosty, do których może sięgać — do innych nie sięgnie.',
   'admin.plugins.allowedHosts.none': 'Nie dodano jeszcze żadnych hostów.',
-  'admin.plugins.allowedHosts.unsupported': 'Ta wtyczka nie używa hostów podanych przez operatora. Jej dozwolone hosty są zapisane w manifeście.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Ta wtyczka nie używa hostów podanych przez operatora. Jej dozwolone hosty są zapisane w manifeście.',
   'admin.plugins.allowedHosts.restartNote': 'Zapis restartuje wtyczkę, aby pobrała nową listę.',
   'admin.plugins.allowedHosts.add': 'Dodaj dozwolony host',
   'admin.plugins.allowedHosts.count': '{n} dozwolonych hostów',
   'admin.plugins.operatorEgressPill': '+ hosty, które dodasz',
-  'admin.plugins.operatorEgressHint': 'Ta wtyczka łączy się z usługą, którą tylko Ty możesz wskazać (serwer self-hosted). Po instalacji dodaj hosty w ⋯ → Dozwolone hosty. Do innych nie sięgnie.',
+  'admin.plugins.operatorEgressHint':
+    'Ta wtyczka łączy się z usługą, którą tylko Ty możesz wskazać (serwer self-hosted). Po instalacji dodaj hosty w ⋯ → Dozwolone hosty. Do innych nie sięgnie.',
   'admin.plugins.noErrors': 'Brak zarejestrowanych błędów.',
   'admin.plugins.uninstalled': 'Wtyczka została odinstalowana',
   'admin.plugins.uninstallTitle': 'Odinstalować wtyczkę?',
@@ -356,6 +359,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Co oznacza „Zweryfikowana”',
   'admin.plugins.security.reviewedBody':
     'Zweryfikowana wtyczka została ręcznie przeskanowana pod kątem złośliwego oprogramowania przez opiekuna TREK w każdej wersji — sprawdzona pod kątem wrogiego kodu, a nie tego, czy działa dobrze. To nie jest obietnica, że wtyczka jest nieszkodliwa.',
+  'admin.plugins.security.signedTitle': 'Co oznacza „Podpisana”',
+  'admin.plugins.security.signedBody':
+    'Suma kontrolna, którą TREK weryfikuje przy każdej instalacji, dowodzi, że pliki są dokładnie tym, za co ręczy rejestr. Podpis dowodzi czegoś innego: że pochodzą od autora i zostały podpisane kluczem, który ma tylko on. Podpisana wtyczka ma jedno i drugie. Wtyczka bez podpisu nie jest niebezpieczna — po prostu niesie o jedną gwarancję mniej, a większość wtyczek w rejestrze jest dziś niepodpisana.',
+  'admin.plugins.signed': 'Podpisana',
+  'admin.plugins.signedHint': 'Zweryfikowana kluczem podpisującym autora w chwili instalacji',
+  'admin.plugins.unsigned': 'Niepodpisana',
+  'admin.plugins.unsignedHint':
+    'Pliki zgadzają się z tym, za co ręczy rejestr, ale nic nie wiąże ich z autorem. O jedną gwarancję mniej — nie oznacza to, że jest niebezpieczna.',
+  'admin.plugins.updateBlocked': 'Aktualizacja zablokowana — {reason}',
+  'admin.plugins.reviewBlock': 'Sprawdź',
+  'admin.plugins.retrusted': 'Nowy klucz podpisujący uznany za zaufany — wtyczka została zaktualizowana',
+  'admin.plugins.sig.title': 'Nie udało się zweryfikować podpisu wtyczki {name}',
+  'admin.plugins.sig.keyChangedBody':
+    'Klucz podpisujący autora nie jest tym, którym podpisano wtyczkę w chwili instalacji. Autorzy rzeczywiście wymieniają klucze — ale atakujący, który przejął wtyczkę, wyglądałby dokładnie tak samo.',
+  'admin.plugins.sig.invalidBody':
+    'Pliki nie zgadzają się z podpisem autora. Nie są tym, co autor podpisał — albo uległy uszkodzeniu, albo zostały zmodyfikowane. Tego nie można pominąć.',
+  'admin.plugins.sig.missingBody':
+    'Ta wtyczka była podpisana, gdy ją instalowałeś, ale nowa wersja nie zawiera żadnego podpisu. TREK nie przyjmie po cichu takiego kroku wstecz. Tego nie można pominąć.',
+  'admin.plugins.sig.incompleteBody':
+    'Wpis w rejestrze jest podpisany połowicznie: deklaruje klucz autora, ale wersja nie ma podpisu (albo odwrotnie). To błąd po stronie wtyczki. Tego nie można pominąć.',
+  'admin.plugins.sig.pinnedKey': 'Klucz, którym podpisano ją przy instalacji',
+  'admin.plugins.sig.newKey': 'Klucz, który proponuje teraz',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK nie odróżni prawidłowej wymiany klucza od przejęcia wtyczki — stąd wyglądają identycznie. Zanim zaakceptujesz nowy klucz, potwierdź go u autora kanałem, któremu już ufasz. Gdy to zrobisz, wtyczka zostanie zaktualizowana, a nowy klucz zapamiętany.',
+  'admin.plugins.sig.retrustConfirm': 'Zaufaj nowemu kluczowi i zaktualizuj',
+  'admin.plugins.sig.cancel': 'Nie ufaj mu',
+  'admin.plugins.sig.consentUnsigned':
+    'Nic nie wiąże tej wersji z jej autorem — pliki zgadzają się z rejestrem, ale nie niosą podpisu autora.',
   'admin.plugins.security.trustTitle': 'Podsumowanie',
   'admin.plugins.security.trustBody':
     'Instalacja wtyczki jest jak instalacja dowolnej aplikacji innych firm: dodawaj tylko kod od autorów, którym ufasz, a w razie wątpliwości najpierw samodzielnie go sprawdź. TREK nie ponosi żadnej odpowiedzialności za wtyczki innych firm.',
@@ -415,6 +446,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Pobierz',
   'admin.plugins.dep.update': 'Aktualizuj',
   'admin.plugins.dep.resolveHint': 'Pobiera najnowszą zgodną wersję wraz z jej zależnościami.',
+  'admin.plugins.dep.trekIncompatible': 'Wymaga TREK {range} — ten serwer działa na {host}',
+  'admin.plugins.dep.trekUnknown': 'Nie określa, które wersje TREK obsługuje',
+  'admin.plugins.installCompatible': 'Zainstaluj {version}',
+  'admin.plugins.incompatible': 'Niezgodny',
   'admin.plugins.accessTitle': 'Do czego ma dostęp',
   'admin.plugins.connectsTitle': 'Łączy się z',
   'admin.plugins.detailsTitle': 'Szczegóły',

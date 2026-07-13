@@ -243,14 +243,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Xem nhật ký lỗi',
   'admin.plugins.errorLog': 'Nhật ký lỗi',
   'admin.plugins.allowedHosts': 'Máy chủ được phép',
-  'admin.plugins.allowedHosts.hint': 'Plugin này kết nối tới một dịch vụ mà chỉ bạn mới biết tên (máy chủ tự lưu trữ). Hãy thêm các máy chủ mà nó được phép truy cập — ngoài ra không có gì khác.',
+  'admin.plugins.allowedHosts.hint':
+    'Plugin này kết nối tới một dịch vụ mà chỉ bạn mới biết tên (máy chủ tự lưu trữ). Hãy thêm các máy chủ mà nó được phép truy cập — ngoài ra không có gì khác.',
   'admin.plugins.allowedHosts.none': 'Chưa thêm máy chủ nào.',
-  'admin.plugins.allowedHosts.unsupported': 'Plugin này không dùng máy chủ do người vận hành cung cấp. Danh sách được cố định trong manifest.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Plugin này không dùng máy chủ do người vận hành cung cấp. Danh sách được cố định trong manifest.',
   'admin.plugins.allowedHosts.restartNote': 'Lưu sẽ khởi động lại plugin để nó dùng danh sách mới.',
   'admin.plugins.allowedHosts.add': 'Thêm máy chủ được phép',
   'admin.plugins.allowedHosts.count': '{n} máy chủ được phép',
   'admin.plugins.operatorEgressPill': '+ máy chủ bạn thêm',
-  'admin.plugins.operatorEgressHint': 'Plugin này kết nối tới một dịch vụ mà chỉ bạn mới biết tên (máy chủ tự lưu trữ). Sau khi cài, hãy thêm máy chủ tại ⋯ → Máy chủ được phép. Ngoài ra không có gì khác.',
+  'admin.plugins.operatorEgressHint':
+    'Plugin này kết nối tới một dịch vụ mà chỉ bạn mới biết tên (máy chủ tự lưu trữ). Sau khi cài, hãy thêm máy chủ tại ⋯ → Máy chủ được phép. Ngoài ra không có gì khác.',
   'admin.plugins.noErrors': 'Chưa ghi nhận lỗi nào.',
   'admin.plugins.uninstalled': 'Đã gỡ cài đặt plugin',
   'admin.plugins.uninstallTitle': 'Gỡ cài đặt plugin?',
@@ -356,6 +359,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': '"Đã kiểm duyệt" nghĩa là gì',
   'admin.plugins.security.reviewedBody':
     'Một plugin đã kiểm duyệt đã được người bảo trì TREK quét thủ công để tìm mã độc trên mỗi phiên bản — được kiểm tra về mã độc hại, chứ không phải về việc nó có hoạt động tốt hay không. Đây không phải là lời hứa rằng plugin vô hại.',
+  'admin.plugins.security.signedTitle': '"Đã ký" nghĩa là gì',
+  'admin.plugins.security.signedBody':
+    'Giá trị kiểm tra (checksum) mà TREK xác minh ở mỗi lần cài đặt chứng minh rằng các tệp đúng là những gì kho đăng ký bảo chứng. Chữ ký chứng minh một điều khác: rằng chúng đến từ tác giả, được ký bằng một khóa chỉ mình họ nắm giữ. Một plugin đã ký có cả hai. Một plugin chưa ký không phải là không an toàn — nó chỉ mang ít hơn một bảo đảm, và hiện nay phần lớn plugin trong kho đăng ký đều chưa ký.',
+  'admin.plugins.signed': 'Đã ký',
+  'admin.plugins.signedHint': 'Đã được xác minh với khóa ký của tác giả khi cài đặt',
+  'admin.plugins.unsigned': 'Chưa ký',
+  'admin.plugins.unsignedHint':
+    'Các tệp khớp với những gì kho đăng ký bảo chứng, nhưng không có gì gắn chúng với tác giả. Ít hơn một bảo đảm — không phải là không an toàn.',
+  'admin.plugins.updateBlocked': 'Cập nhật bị chặn — {reason}',
+  'admin.plugins.reviewBlock': 'Xem lại',
+  'admin.plugins.retrusted': 'Đã tin cậy khóa ký mới — plugin đã được cập nhật',
+  'admin.plugins.sig.title': 'Không thể xác minh chữ ký của "{name}"',
+  'admin.plugins.sig.keyChangedBody':
+    'Khóa ký của tác giả không phải là khóa mà plugin này đã được cài đặt cùng. Các tác giả đôi khi có xoay vòng khóa — nhưng một kẻ tấn công đã chiếm quyền plugin cũng sẽ trông y hệt như vậy.',
+  'admin.plugins.sig.invalidBody':
+    'Các tệp không khớp với chữ ký của tác giả. Chúng không phải là những gì tác giả đã ký — hoặc chúng bị hỏng, hoặc chúng đã bị can thiệp. Không thể bỏ qua điều này.',
+  'admin.plugins.sig.missingBody':
+    'Plugin này đã được ký khi bạn cài đặt, nhưng phiên bản mới không kèm chữ ký nào. TREK sẽ không lặng lẽ chấp nhận bước lùi đó. Không thể bỏ qua điều này.',
+  'admin.plugins.sig.incompleteBody':
+    'Mục trong kho đăng ký chỉ được ký một nửa: nó khai báo khóa của tác giả nhưng phiên bản lại không có chữ ký (hoặc ngược lại). Đó là một sai sót từ phía plugin. Không thể bỏ qua điều này.',
+  'admin.plugins.sig.pinnedKey': 'Khóa đã dùng khi cài đặt',
+  'admin.plugins.sig.newKey': 'Khóa nó đang đưa ra hiện giờ',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK không thể phân biệt một lần xoay khóa hợp lệ với một vụ chiếm quyền — nhìn từ đây, cả hai giống hệt nhau. Hãy xác nhận khóa mới với tác giả qua một kênh mà bạn đã tin tưởng trước khi chấp nhận nó. Khi bạn chấp nhận, plugin sẽ được cập nhật và khóa mới sẽ được ghi nhớ.',
+  'admin.plugins.sig.retrustConfirm': 'Tin cậy khóa mới & cập nhật',
+  'admin.plugins.sig.cancel': 'Không tin cậy',
+  'admin.plugins.sig.consentUnsigned':
+    'Không có gì gắn phiên bản này với tác giả của nó — các tệp khớp với kho đăng ký, nhưng chúng không mang chữ ký của tác giả.',
   'admin.plugins.security.trustTitle': 'Điểm mấu chốt',
   'admin.plugins.security.trustBody':
     'Cài đặt một plugin cũng giống như cài đặt bất kỳ ứng dụng bên thứ ba nào: chỉ cài đặt mã từ những tác giả bạn tin tưởng, và khi còn nghi ngờ, hãy tự kiểm tra nó trước. TREK không chịu trách nhiệm về các plugin của bên thứ ba.',
@@ -415,6 +446,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Tải xuống',
   'admin.plugins.dep.update': 'Cập nhật',
   'admin.plugins.dep.resolveHint': 'Tải phiên bản tương thích mới nhất, bao gồm cả các phần phụ thuộc của nó.',
+  'admin.plugins.dep.trekIncompatible': 'Cần TREK {range} — máy chủ này đang chạy {host}',
+  'admin.plugins.dep.trekUnknown': 'Không nêu rõ hỗ trợ những phiên bản TREK nào',
+  'admin.plugins.installCompatible': 'Cài đặt {version}',
+  'admin.plugins.incompatible': 'Không tương thích',
   'admin.plugins.accessTitle': 'Những gì có thể truy cập',
   'admin.plugins.connectsTitle': 'Kết nối tới',
   'admin.plugins.detailsTitle': 'Chi tiết',

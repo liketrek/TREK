@@ -97,7 +97,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Yapılandır',
   'settings.notificationPreferences.testSuccess': 'Test bildirimi gönderildi.',
   'settings.notificationPreferences.testFailed': 'Test başarısız.',
-  'settings.notificationPreferences.pluginConfigured': 'Yapılandırıldı. Kimlik bilgilerini eklentinin ayarlar sayfasından yönetin.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Yapılandırıldı. Kimlik bilgilerini eklentinin ayarlar sayfasından yönetin.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.notificationPreferences.noChannels':
     'Bildirim kanalı yapılandırılmadı. Yöneticiden e-posta veya webhook kurmasını isteyin.',

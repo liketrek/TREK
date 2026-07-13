@@ -297,7 +297,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Beállítás',
   'settings.notificationPreferences.testSuccess': 'Teszt értesítés elküldve.',
   'settings.notificationPreferences.testFailed': 'A teszt sikertelen.',
-  'settings.notificationPreferences.pluginConfigured': 'Beállítva. A hitelesítő adatok a bővítmény beállításainál kezelhetők.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Beállítva. A hitelesítő adatok a bővítmény beállításainál kezelhetők.',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',

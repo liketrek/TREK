@@ -788,9 +788,19 @@ export function createPluginContext(
     },
     events: {
       // Fire-and-forget by contract, but the host CAN reject (undeclared event name,
-      // rate-limit) — swallow it, otherwise the detached rejection crashes the child
-      // and terminally disables the plugin over one bad emit.
-      emit: (name, payload) => { t.rpc('events.emit', { event: name, payload }).catch(() => {}); },
+      // rate-limit). The rejection must not escape — a detached rejection crashes the child
+      // and terminally disables the plugin over one bad emit — but swallowing it silently
+      // left an author with no way to discover that `emits` was missing from the manifest.
+      // Surface it on the plugin's own log stream instead.
+      emit: (name, payload) => {
+        t.rpc('events.emit', { event: name, payload }).catch((e: unknown) => {
+          t.emit('log', {
+            level: 'warn',
+            msg: `events.emit("${name}") was rejected by the host: ${e instanceof Error ? e.message : String(e)}`,
+            meta: { event: name },
+          });
+        });
+      },
     },
   };
 }

@@ -989,10 +989,12 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
 
-  // Payer state: 0 represents "Nobody (planning entry)"
+  // Payer state: 0 represents "Nobody (planning entry)". On an existing expense a
+  // missing payer is a deliberate choice, so only a brand-new one defaults to me.
   const [payerId, setPayerId] = useState<number>(() => {
     const existingPayer = (editing?.payers || []).find(p => p.amount > 0)
-    return existingPayer ? existingPayer.user_id : me
+    if (existingPayer) return existingPayer.user_id
+    return editing ? 0 : me
   })
 
   const [splitMode, setSplitMode] = useState<'equally' | 'custom' | 'ticket'>(() => {

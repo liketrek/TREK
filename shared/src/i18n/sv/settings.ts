@@ -102,7 +102,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Konfigurera',
   'settings.notificationPreferences.testSuccess': 'Testavisering skickad.',
   'settings.notificationPreferences.testFailed': 'Testet misslyckades.',
-  'settings.notificationPreferences.pluginConfigured': 'Konfigurerat. Hantera dina uppgifter på pluginets inställningssida.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Konfigurerat. Hantera dina uppgifter på pluginets inställningssida.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.notificationPreferences.noChannels':
     'Inga meddelandekanaler har konfigurerats. Be en administratör att ställa in e-post- eller webhook-meddelanden.',

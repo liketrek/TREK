@@ -303,8 +303,11 @@ export class PluginRpcHost {
       this.methods.set('trips.getById', (p, uid) =>
         this.tripRead(p, uid, () => deps.db.prepare('SELECT * FROM trips WHERE id = ?').get(num(p.tripId, 'tripId'))),
       );
+      // The trip's place POOL — places carry no itinerary position of their own
+      // (day_id/order_index live on day_assignments), so order by created_at like
+      // the REST list does. Use trips.getDays for the day-ordered itinerary.
       this.methods.set('trips.getPlaces', (p, uid) =>
-        this.tripRead(p, uid, () => deps.db.prepare('SELECT * FROM places WHERE trip_id = ? ORDER BY day_id, position').all(num(p.tripId, 'tripId'))),
+        this.tripRead(p, uid, () => deps.db.prepare('SELECT * FROM places WHERE trip_id = ? ORDER BY created_at DESC').all(num(p.tripId, 'tripId'))),
       );
       // Hydrated like the REST list (endpoints, day_positions, joins, normalized
       // accommodation_id) — a strict superset of the raw row, so older callers

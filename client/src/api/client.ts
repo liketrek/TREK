@@ -502,6 +502,11 @@ export const adminApi = {
   pluginActivate: (id: string, consent?: boolean) => apiClient.post(`/admin/plugins/${id}/activate`, consent ? { consent: true } : {}).then(r => r.data),
   pluginDeactivate: (id: string) => apiClient.post(`/admin/plugins/${id}/deactivate`).then(r => r.data),
   pluginUpdate: (id: string) => apiClient.post(`/admin/plugins/${id}/update`).then(r => r.data),
+  // Re-trust a ROTATED author signing key and update, in ONE call. `publicKey` is the
+  // full key the admin was shown (not a fingerprint): the server compares it exactly, so
+  // it can refuse if the registry entry was re-keyed again since the dialog rendered.
+  pluginRetrust: (id: string, version: string, publicKey: string) =>
+    apiClient.post(`/admin/plugins/${id}/retrust`, { version, publicKey }).then(r => r.data),
   pluginUninstall: (id: string, deleteData: boolean) => apiClient.post(`/admin/plugins/${id}/uninstall`, { deleteData }).then(r => r.data),
   pluginRescan: () => apiClient.post('/admin/plugins/rescan').then(r => r.data),
   pluginUpload: (file: File) => { const fd = new FormData(); fd.append('file', file); return postMultipart('/admin/plugins/upload', fd) },

@@ -189,14 +189,18 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': "Voir le journal d'erreurs",
   'admin.plugins.errorLog': "Journal d'erreurs",
   'admin.plugins.allowedHosts': 'Hôtes autorisés',
-  'admin.plugins.allowedHosts.hint': 'Ce plugin communique avec un service que vous seul pouvez nommer (un serveur auto-hébergé). Ajoutez les hôtes qu’il peut joindre — il ne joindra aucun autre.',
+  'admin.plugins.allowedHosts.hint':
+    'Ce plugin communique avec un service que vous seul pouvez nommer (un serveur auto-hébergé). Ajoutez les hôtes qu’il peut joindre — il ne joindra aucun autre.',
   'admin.plugins.allowedHosts.none': 'Aucun hôte ajouté pour l’instant.',
-  'admin.plugins.allowedHosts.unsupported': 'Ce plugin n’utilise pas d’hôtes fournis par l’opérateur. Ses hôtes autorisés sont fixés dans son manifeste.',
-  'admin.plugins.allowedHosts.restartNote': 'L’enregistrement redémarre le plugin pour qu’il prenne en compte la nouvelle liste.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Ce plugin n’utilise pas d’hôtes fournis par l’opérateur. Ses hôtes autorisés sont fixés dans son manifeste.',
+  'admin.plugins.allowedHosts.restartNote':
+    'L’enregistrement redémarre le plugin pour qu’il prenne en compte la nouvelle liste.',
   'admin.plugins.allowedHosts.add': 'Ajouter un hôte autorisé',
   'admin.plugins.allowedHosts.count': '{n} hôte(s) autorisé(s)',
   'admin.plugins.operatorEgressPill': '+ hôtes que vous ajoutez',
-  'admin.plugins.operatorEgressHint': 'Ce plugin communique avec un service que vous seul pouvez nommer (un serveur auto-hébergé). Après installation, ajoutez les hôtes qu’il peut joindre via ⋯ → Hôtes autorisés. Il ne joindra aucun autre.',
+  'admin.plugins.operatorEgressHint':
+    'Ce plugin communique avec un service que vous seul pouvez nommer (un serveur auto-hébergé). Après installation, ajoutez les hôtes qu’il peut joindre via ⋯ → Hôtes autorisés. Il ne joindra aucun autre.',
   'admin.plugins.noErrors': 'Aucune erreur enregistrée.',
   'admin.plugins.uninstalled': 'Plugin désinstallé',
   'admin.plugins.uninstallTitle': 'Désinstaller le plugin ?',
@@ -362,6 +366,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Ce que signifie « Vérifié »',
   'admin.plugins.security.reviewedBody':
     "Un plugin vérifié a été analysé manuellement à la recherche de logiciels malveillants par un mainteneur de TREK à chaque version — contrôlé pour du code hostile, non pour son bon fonctionnement. Ce n'est pas une promesse que le plugin est inoffensif.",
+  'admin.plugins.security.signedTitle': 'Ce que signifie « Signé »',
+  'admin.plugins.security.signedBody':
+    "La somme de contrôle que TREK vérifie à chaque installation prouve que les fichiers sont exactement ceux dont le registre se porte garant. Une signature prouve autre chose : qu'ils proviennent de l'auteur, signés avec une clé que lui seul détient. Un plugin signé possède les deux. Un plugin non signé n'est pas dangereux — il porte simplement une garantie de moins, et la plupart des plugins du registre ne sont pas signés aujourd'hui.",
+  'admin.plugins.signed': 'Signé',
+  'admin.plugins.signedHint': "Vérifié avec la clé de signature de l'auteur au moment de l'installation",
+  'admin.plugins.unsigned': 'Non signé',
+  'admin.plugins.unsignedHint':
+    "Les fichiers correspondent à ce dont le registre se porte garant, mais rien ne les relie à l'auteur. Une garantie de moins — pas un danger.",
+  'admin.plugins.updateBlocked': 'Mise à jour bloquée — {reason}',
+  'admin.plugins.reviewBlock': 'Examiner',
+  'admin.plugins.retrusted': 'Nouvelle clé de signature approuvée — le plugin est mis à jour',
+  'admin.plugins.sig.title': "La signature de {name} n'a pas pu être vérifiée",
+  'admin.plugins.sig.keyChangedBody':
+    "La clé de signature de l'auteur n'est pas celle avec laquelle ce plugin a été installé. Les auteurs changent bel et bien de clé — mais un attaquant ayant pris le contrôle du plugin ressemblerait exactement à ceci.",
+  'admin.plugins.sig.invalidBody':
+    "Les fichiers ne correspondent pas à la signature de l'auteur. Ce n'est pas ce que l'auteur a signé — soit ils ont été corrompus, soit ils ont été altérés. Impossible de passer outre.",
+  'admin.plugins.sig.missingBody':
+    "Ce plugin était signé lorsque vous l'avez installé, mais la nouvelle version ne fournit aucune signature. TREK n'acceptera pas ce recul en silence. Impossible de passer outre.",
+  'admin.plugins.sig.incompleteBody':
+    "L'entrée du registre est à moitié signée : elle déclare une clé d'auteur mais la version ne porte aucune signature (ou l'inverse). C'est une erreur du côté du plugin. Impossible de passer outre.",
+  'admin.plugins.sig.pinnedKey': "Clé utilisée lors de l'installation",
+  'admin.plugins.sig.newKey': "Clé proposée aujourd'hui",
+  'admin.plugins.sig.confirmOutOfBand':
+    "TREK ne peut pas distinguer un changement de clé légitime d'une prise de contrôle — vus d'ici, les deux sont identiques. Confirmez la nouvelle clé auprès de l'auteur via un canal auquel vous faites déjà confiance avant de l'accepter. Une fois que c'est fait, le plugin est mis à jour et la nouvelle clé est mémorisée.",
+  'admin.plugins.sig.retrustConfirm': 'Faire confiance à la nouvelle clé et mettre à jour',
+  'admin.plugins.sig.cancel': 'Ne pas lui faire confiance',
+  'admin.plugins.sig.consentUnsigned':
+    "Rien ne relie cette version à son auteur — les fichiers correspondent au registre, mais ne portent aucune signature d'auteur.",
   'admin.plugins.security.trustTitle': 'En résumé',
   'admin.plugins.security.trustBody':
     "Installer un plugin revient à installer n'importe quelle application tierce : n'ajoutez que du code provenant d'auteurs de confiance et, en cas de doute, inspectez-le vous-même au préalable. TREK décline toute responsabilité concernant les plugins tiers.",
@@ -421,6 +453,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Télécharger',
   'admin.plugins.dep.update': 'Mettre à jour',
   'admin.plugins.dep.resolveHint': 'Télécharge la dernière version compatible, y compris ses propres dépendances.',
+  'admin.plugins.dep.trekIncompatible': 'Nécessite TREK {range} — ce serveur exécute {host}',
+  'admin.plugins.dep.trekUnknown': 'N’indique pas quelles versions de TREK sont prises en charge',
+  'admin.plugins.installCompatible': 'Installer {version}',
+  'admin.plugins.incompatible': 'Incompatible',
   'admin.plugins.accessTitle': 'Ce à quoi il peut accéder',
   'admin.plugins.connectsTitle': 'Se connecte à',
   'admin.plugins.detailsTitle': 'Détails',

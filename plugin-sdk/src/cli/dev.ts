@@ -92,9 +92,31 @@ function flatBind(args: unknown[]): unknown[] {
 
 /** A dev db backed by node:sqlite if available, else an in-memory recorder that returns []. */
 export function createDevDb(dbFile: string): { db: PluginContextDb; note: string; close: () => void } {
+  // node:sqlite ships on Node 22.5+. Probe for it SEPARATELY from opening the database:
+  // one try/catch around both meant an mkdir/permission failure silently degraded to the
+  // stub too, and the stub swallows every write while reporting success — a db:own plugin
+  // "works" in dev and persists nothing. Fail loudly on a real error; degrade only on old Node.
+  let DatabaseSync: (new (p: string) => SqliteDb) | undefined;
   try {
-    // node:sqlite is available on Node 22.5+ (experimental). Fall back gracefully if not.
-    const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as { DatabaseSync: new (p: string) => SqliteDb };
+    ({ DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as { DatabaseSync: new (p: string) => SqliteDb });
+  } catch {
+    console.warn(
+      `\n  ⚠ node:sqlite is unavailable on this Node (${process.version}) — ctx.db is a STUB.\n` +
+      `    Every query returns [] and every write reports 0 changes: a db:own plugin will look\n` +
+      `    like it works and persist NOTHING. Upgrade to Node 22.5+ to test db:own for real.\n`,
+    );
+    return {
+      note: `db:own → in-memory STUB (writes are discarded — upgrade to Node 22.5+; you are on ${process.version})`,
+      close: () => {},
+      db: {
+        async query(sql: string) { guardSql(sql); return []; },
+        async exec(sql: string) { guardSql(sql); return { changes: 0 }; },
+        async migrate(_id: string, sql: string) { guardSql(sql); return { applied: true }; },
+      },
+    };
+  }
+
+  {
     fs.mkdirSync(path.dirname(dbFile), { recursive: true });
     const sq = new DatabaseSync(dbFile);
     const applied = new Set<string>();
@@ -114,16 +136,6 @@ export function createDevDb(dbFile: string): { db: PluginContextDb; note: string
           sq.exec(sql); return { changes: 0 };
         },
         async migrate(id: string, sql: string) { guardSql(sql); if (applied.has(id)) return { applied: false }; sq.exec(sql); applied.add(id); return { applied: true }; },
-      },
-    };
-  } catch {
-    return {
-      note: 'db:own → in-memory stub (upgrade to Node 22.5+ for a real SQLite dev db)',
-      close: () => {},
-      db: {
-        async query(sql: string) { guardSql(sql); return []; },
-        async exec(sql: string) { guardSql(sql); return { changes: 0 }; },
-        async migrate(_id: string, sql: string) { guardSql(sql); return { applied: true }; },
       },
     };
   }
@@ -341,7 +353,26 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
         else if (kind === 'event') { for (const s of plugin.events ?? []) if (s.on === name || s.on === '*') await s.handler({ event: name, tripId: 0, ...(payload as object) }, userlessCtx); out = { delivered: true }; }
         else if (kind === 'deleteUserData') { if (!plugin.deleteUserData) return send(404, 'no deleteUserData handler'); out = await plugin.deleteUserData({ userId: Number((payload as { userId?: unknown })?.userId ?? name ?? 0) }, userlessCtx); }
         else if (kind === 'exportUserData') { if (!plugin.exportUserData) return send(404, 'no exportUserData handler'); out = await plugin.exportUserData({ userId: Number((payload as { userId?: unknown })?.userId ?? name ?? 0) }, userlessCtx); }
-        else if (kind === 'hook') { const impl = plugin.hooks?.[name]; if (!impl || typeof impl[fn] !== 'function') return send(404, `no hook ${name}.${fn}`); out = await impl[fn](...(Array.isArray(payload) ? payload : payload != null ? [payload] : []), ctx); }
+        else if (kind === 'hook') {
+          const impl = plugin.hooks?.[name];
+          if (!impl || typeof impl[fn] !== 'function') return send(404, `no hook ${name}.${fn}`);
+          if (name === 'notificationChannel') {
+            // A notification channel is NOT like the other hooks: the host fires it with no
+            // acting user (it delivers to an arbitrary recipient), and hands the recipient's
+            // decrypted settings in as a separate `config` argument —
+            //   send(msg, config, ctx) · test(config, ctx)
+            // Firing it like a normal hook passed `ctx` where `config` belongs, so a channel
+            // plugin read its settings off the ctx object and "worked" in dev while being
+            // broken in production. Mirror the host (and createMockHost) exactly.
+            const config = (fx.userSettings ?? {}) as Record<string, unknown>;
+            const args = Array.isArray(payload) ? (payload as unknown[]) : payload != null ? [payload] : [];
+            out = fn === 'test'
+              ? await impl[fn](config, userlessCtx)
+              : await impl[fn](args[0], (args[1] as Record<string, unknown>) ?? config, userlessCtx);
+          } else {
+            out = await impl[fn](...(Array.isArray(payload) ? payload : payload != null ? [payload] : []), ctx);
+          }
+        }
         else return send(400, `unknown fire kind "${kind}"`);
         return send(200, JSON.stringify(out ?? { ok: true }, null, 2), 'application/json; charset=utf-8');
       } catch (e) {
@@ -357,7 +388,11 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
     // proxies trek:invoke to your /api routes, and honours resize/notify/navigate. This
     // is where the design kit actually renders themed.
     if (url.pathname === '/preview' && String(manifest.type) !== 'integration') {
-      return send(200, preview(id, String(manifest.type)), 'text/html; charset=utf-8');
+      // Preview against a trip that actually EXISTS in the fixtures. This used to be
+      // hard-coded to 42 while the scaffold seeds trip 1, so the widget's first
+      // trek:invoke hit assertMember(42, …) and 500'd with RESOURCE_FORBIDDEN.
+      const previewTripId = Number(Object.keys(fx.trips ?? {})[0] ?? 1) || 1;
+      return send(200, preview(id, String(manifest.type), previewTripId), 'text/html; charset=utf-8');
     }
 
     // Static plugin UI at /ui (page/widget client bundle). The iframe loads
@@ -485,7 +520,7 @@ ${LIVE_RELOAD}`;
  * toggle), proxies trek:invoke to the dev server's /api routes with the dev user,
  * and surfaces resize/notify/navigate. This is where the design kit renders themed.
  */
-function preview(id: string, type: string): string {
+function preview(id: string, type: string, tripId: number): string {
   const maxW = type === 'widget' ? '440px' : '1000px';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>${id} · preview</title>
@@ -535,7 +570,7 @@ function ctx(){
   document.body.classList.toggle("dark", theme==="dark");
   var tokens={}; var src=theme==="dark"?DA[accent]:LA[accent]; for(var k in src){tokens[k]=src[k];}
   return {type:"trek:context",theme:theme,locale:"en",hostOrigin:location.origin,
-    tripId: val("trip").checked?42:null, userId:"1",
+    tripId: val("trip").checked?${tripId}:null, userId:"1",
     user:{name:"Dev User",avatar:null,isAdmin:true},
     appearance:{scheme:accent,density:"comfortable",reducedMotion:val("rm").checked,noTransparency:val("nt").checked},
     formats:{locale:"en",currency:"EUR",timeFormat:"24h",distanceUnit:"metric",temperatureUnit:"celsius",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},

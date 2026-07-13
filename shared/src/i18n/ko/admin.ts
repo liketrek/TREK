@@ -224,14 +224,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': '오류 로그 보기',
   'admin.plugins.errorLog': '오류 로그',
   'admin.plugins.allowedHosts': '허용된 호스트',
-  'admin.plugins.allowedHosts.hint': '이 플러그인은 관리자만 알 수 있는 서비스(자체 호스팅 서버)와 통신합니다. 접근을 허용할 호스트를 추가하세요 — 그 외에는 접근할 수 없습니다.',
+  'admin.plugins.allowedHosts.hint':
+    '이 플러그인은 관리자만 알 수 있는 서비스(자체 호스팅 서버)와 통신합니다. 접근을 허용할 호스트를 추가하세요 — 그 외에는 접근할 수 없습니다.',
   'admin.plugins.allowedHosts.none': '아직 추가된 호스트가 없습니다.',
-  'admin.plugins.allowedHosts.unsupported': '이 플러그인은 운영자가 지정하는 호스트를 사용하지 않습니다. 허용 호스트는 매니페스트에 고정되어 있습니다.',
+  'admin.plugins.allowedHosts.unsupported':
+    '이 플러그인은 운영자가 지정하는 호스트를 사용하지 않습니다. 허용 호스트는 매니페스트에 고정되어 있습니다.',
   'admin.plugins.allowedHosts.restartNote': '저장하면 플러그인이 재시작되어 새 목록을 적용합니다.',
   'admin.plugins.allowedHosts.add': '허용 호스트 추가',
   'admin.plugins.allowedHosts.count': '허용 호스트 {n}개',
   'admin.plugins.operatorEgressPill': '+ 직접 추가하는 호스트',
-  'admin.plugins.operatorEgressHint': '이 플러그인은 관리자만 알 수 있는 서비스(자체 호스팅 서버)와 통신합니다. 설치 후 ⋯ → 허용된 호스트에서 추가하세요. 그 외에는 접근할 수 없습니다.',
+  'admin.plugins.operatorEgressHint':
+    '이 플러그인은 관리자만 알 수 있는 서비스(자체 호스팅 서버)와 통신합니다. 설치 후 ⋯ → 허용된 호스트에서 추가하세요. 그 외에는 접근할 수 없습니다.',
   'admin.plugins.noErrors': '기록된 오류가 없습니다.',
   'admin.plugins.uninstalled': '플러그인이 제거되었습니다',
   'admin.plugins.uninstallTitle': '플러그인을 제거할까요?',
@@ -373,6 +376,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': '"검토됨"의 의미',
   'admin.plugins.security.reviewedBody':
     '검토된 플러그인은 각 버전마다 TREK 관리자가 악성코드를 수동으로 검사한 것입니다 — 정상 작동 여부가 아니라 악의적인 코드가 있는지 확인한 것입니다. 플러그인이 무해하다는 약속은 아닙니다.',
+  'admin.plugins.security.signedTitle': '"서명됨"의 의미',
+  'admin.plugins.security.signedBody':
+    'TREK이 설치할 때마다 검증하는 체크섬은 파일이 레지스트리가 보증하는 것과 정확히 일치함을 증명합니다. 서명은 다른 것을 증명합니다. 그 파일이 작성자에게서 왔으며, 작성자만 가진 키로 서명되었다는 사실입니다. 서명된 플러그인은 두 가지를 모두 갖추고 있습니다. 서명되지 않았다고 해서 안전하지 않다는 뜻은 아닙니다 — 보장이 하나 적을 뿐이며, 현재 레지스트리의 플러그인 대부분은 서명되어 있지 않습니다.',
+  'admin.plugins.signed': '서명됨',
+  'admin.plugins.signedHint': '설치 당시 작성자의 서명 키로 검증되었습니다',
+  'admin.plugins.unsigned': '서명 없음',
+  'admin.plugins.unsignedHint':
+    '파일은 레지스트리가 보증하는 것과 일치하지만, 작성자와 연결해 주는 것은 없습니다. 보장이 하나 적을 뿐, 안전하지 않다는 뜻은 아닙니다.',
+  'admin.plugins.updateBlocked': '업데이트가 차단되었습니다 — {reason}',
+  'admin.plugins.reviewBlock': '확인',
+  'admin.plugins.retrusted': '새 서명 키를 신뢰했습니다 — 플러그인이 업데이트되었습니다',
+  'admin.plugins.sig.title': '{name}의 서명을 검증할 수 없습니다',
+  'admin.plugins.sig.keyChangedBody':
+    '작성자의 서명 키가 이 플러그인을 설치할 때 사용된 키와 다릅니다. 작성자가 키를 교체하는 일은 실제로 있습니다 — 하지만 플러그인을 탈취한 공격자도 여기서는 이와 똑같아 보입니다.',
+  'admin.plugins.sig.invalidBody':
+    '파일이 작성자의 서명과 일치하지 않습니다. 작성자가 서명한 파일이 아니며, 손상되었거나 변조된 것입니다. 이 경우는 무시하고 진행할 수 없습니다.',
+  'admin.plugins.sig.missingBody':
+    '설치할 때 이 플러그인에는 서명이 있었지만, 새 버전에는 서명이 없습니다. TREK은 이런 후퇴를 조용히 받아들이지 않습니다. 이 경우는 무시하고 진행할 수 없습니다.',
+  'admin.plugins.sig.incompleteBody':
+    '레지스트리 항목이 반만 서명되어 있습니다. 작성자 키는 선언되어 있지만 해당 버전에는 서명이 없습니다(또는 그 반대입니다). 이는 플러그인 쪽의 실수입니다. 이 경우는 무시하고 진행할 수 없습니다.',
+  'admin.plugins.sig.pinnedKey': '설치할 때 사용된 키',
+  'admin.plugins.sig.newKey': '지금 제시하는 키',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK은 정당한 키 교체와 탈취를 구분할 수 없습니다 — 여기서는 둘이 똑같아 보입니다. 받아들이기 전에 이미 신뢰하는 경로를 통해 작성자에게 새 키를 확인하세요. 받아들이면 플러그인이 업데이트되고 새 키가 기억됩니다.',
+  'admin.plugins.sig.retrustConfirm': '새 키를 신뢰하고 업데이트',
+  'admin.plugins.sig.cancel': '신뢰하지 않기',
+  'admin.plugins.sig.consentUnsigned':
+    '이 버전과 작성자를 연결해 주는 것이 없습니다 — 파일은 레지스트리와 일치하지만 작성자 서명이 없습니다.',
   'admin.plugins.security.trustTitle': '핵심 요약',
   'admin.plugins.security.trustBody':
     '플러그인을 설치하는 것은 다른 서드파티 앱을 설치하는 것과 같습니다: 신뢰할 수 있는 작성자의 코드만 추가하고, 의심스러우면 먼저 직접 확인하세요. TREK은 서드파티 플러그인에 대해 어떠한 책임도 지지 않습니다.',
@@ -432,6 +463,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': '다운로드',
   'admin.plugins.dep.update': '업데이트',
   'admin.plugins.dep.resolveHint': '자체 종속성을 포함하여 호환되는 최신 버전을 다운로드합니다.',
+  'admin.plugins.dep.trekIncompatible': 'TREK {range}이(가) 필요합니다 — 이 서버는 {host}입니다',
+  'admin.plugins.dep.trekUnknown': '지원하는 TREK 버전을 명시하지 않았습니다',
+  'admin.plugins.installCompatible': '{version} 설치',
+  'admin.plugins.incompatible': '호환되지 않음',
   'admin.plugins.accessTitle': '접근할 수 있는 항목',
   'admin.plugins.connectsTitle': '연결 대상',
   'admin.plugins.detailsTitle': '상세 정보',

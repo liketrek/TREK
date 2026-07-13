@@ -4,8 +4,8 @@
  *                   [--merge registry/plugins/<id>.json] [--out file]
  *
  * Generates the ready-to-PR TREK-Plugins registry entry from the manifest + the
- * packed plugin.zip + the git tag — so the sha256, size, commitSha, downloadUrl
- * and minTrekVersion an author would compute by hand all come out of one command.
+ * packed plugin.zip + the git tag — so the sha256, size, commitSha and downloadUrl
+ * an author would compute by hand all come out of one command.
  * With --merge it prepends the new version onto an existing entry (the update
  * case), keeping versions newest-first.
  */
@@ -13,12 +13,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { minVersion, validRange } from 'semver';
 import { loadPrivateKey, signArtifact, publicKeyBase64 } from './sign.js';
 import { readJsonFile } from './json.js';
 
 interface Version {
   version: string; gitTag: string; commitSha: string; downloadUrl: string;
-  sha256: string; minTrekVersion: string; size: number; apiVersion: number;
+  sha256: string;
+  /**
+   * The manifest's `trek` range, verbatim — the ONE compatibility field an entry carries.
+   * It is what TREK gates installs and activation on, and the only field that can express
+   * an exclusive upper bound.
+   *
+   * There is deliberately no `minTrekVersion` here any more. It said the same thing (the
+   * range's lower bound) in a weaker form, and a second field restating a derived fact is a
+   * second field that can be wrong. The registry still ACCEPTS one on entries published
+   * before `trek` existed — and checks it agrees with the range — but nothing emits one now.
+   */
+  trek: string;
+  size: number; apiVersion: number;
   nativeModules: false; operatorEgress?: boolean; publishedAt: string; signature?: string;
 }
 interface Entry {
@@ -26,10 +39,20 @@ interface Entry {
   homepage?: string; tags?: string[]; type: string; authorPublicKey?: string; versions: Version[];
 }
 
-/** Lower bound of a `trek` range like ">=3.2.0 <4.0.0" -> "3.2.0" (matches the server). */
+/**
+ * Lower bound of a `trek` range like ">=3.2.0 <4.0.0" -> "3.2.0" (matches the server).
+ *
+ * Read off the range with semver rather than by finding the first version-shaped substring:
+ * for "<4.0.0" the first such substring is 4.0.0, which is the range's *upper* bound and
+ * would have been published as the minimum — the precise inverse of what the plugin says.
+ */
 function minTrekFrom(trek: unknown): string | null {
-  if (typeof trek !== 'string') return null;
-  return trek.match(/(\d+\.\d+\.\d+)/)?.[1] ?? null;
+  if (typeof trek !== 'string' || validRange(trek) === null) return null;
+  try {
+    return minVersion(trek)?.version ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function resolveCommit(dir: string, tag: string, override?: string): string {
@@ -50,8 +73,9 @@ export function buildEntry(opts: {
 }): Entry {
   const manifest = readJsonFile<Record<string, unknown>>(path.join(opts.dir, 'trek-plugin.json'));
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(opts.repo)) throw new Error(`--repo must be "owner/name", got "${opts.repo}"`);
-  const minTrek = minTrekFrom(manifest.trek);
-  if (!minTrek) throw new Error('manifest has no "trek" version range to derive minTrekVersion from (e.g. "trek": ">=3.2.0 <4.0.0")');
+  // minVersion() is null for a range nothing can satisfy (">=4.0.0 <3.0.0" parses fine), so
+  // this doubles as the satisfiability check — TREK would refuse to install such a plugin.
+  if (!minTrekFrom(manifest.trek)) throw new Error('manifest has no valid "trek" version range (e.g. "trek": ">=3.2.0 <4.0.0")');
   if (!fs.existsSync(opts.zipPath)) throw new Error(`artifact not found: ${opts.zipPath} — run \`trek-plugin pack\` first`);
 
   const buf = fs.readFileSync(opts.zipPath);
@@ -62,7 +86,7 @@ export function buildEntry(opts: {
     commitSha: resolveCommit(opts.dir, opts.tag, opts.commit),
     downloadUrl: `https://github.com/${opts.repo}/releases/download/${opts.tag}/${asset}`,
     sha256: createHash('sha256').update(buf).digest('hex'),
-    minTrekVersion: minTrek,
+    trek: String(manifest.trek),
     size: buf.length,
     apiVersion: typeof manifest.apiVersion === 'number' ? manifest.apiVersion : 1,
     nativeModules: false,

@@ -110,7 +110,7 @@ describe('scaffold + validate dependencies', () => {
 });
 
 describe('validateManifest dependency rules', () => {
-  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'] };
+  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'], trek: '>=3.2.0 <4.0.0' };
   it('accepts valid requiredAddons + pluginDependencies', () => {
     const r = validateManifest({ ...base, requiredAddons: ['budget', 'journey'], pluginDependencies: [{ id: 'koffi', version: '>=1.0.0 <2.0.0' }] });
     expect(r.ok).toBe(true);
@@ -205,7 +205,7 @@ describe('notification-channel template', () => {
 describe('capabilities.notificationChannel validation', () => {
   const base = {
     id: 'chan', name: 'Chan', version: '1.0.0', apiVersion: 1, type: 'integration',
-    nativeModules: false, permissions: ['hook:notification-channel'],
+    nativeModules: false, permissions: ['hook:notification-channel'], trek: '>=3.2.0 <4.0.0',
   };
 
   it('accepts a narrowed event list', () => {

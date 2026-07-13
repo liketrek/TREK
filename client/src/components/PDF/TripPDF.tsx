@@ -495,7 +495,11 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   .day-title { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
   .day-date  { font-size: 9px; color: rgba(255,255,255,0.45); }
   .day-cost  { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.65); }
-  .day-body  { padding: 12px 28px 6px; }
+  /* The gap under the header bar must sit inside the repeated <thead> cell: a block-start
+     padding on .day-body is only painted on the box's first fragment, so overflow pages
+     would render their first card flush against the bar (#1531). */
+  .day-header > tr > td { padding-bottom: 12px; }
+  .day-body  { padding: 0 28px 6px; }
 
   /* accommodation info */
   .day-accommodations-overview { font-size: 12px; }

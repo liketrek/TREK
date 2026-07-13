@@ -232,14 +232,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Hata günlüğünü görüntüle',
   'admin.plugins.errorLog': 'Hata günlüğü',
   'admin.plugins.allowedHosts': 'İzin verilen ana bilgisayarlar',
-  'admin.plugins.allowedHosts.hint': 'Bu eklenti yalnızca sizin adlandırabileceğiniz bir hizmete bağlanır (kendi barındırdığınız sunucu). Erişebileceği ana bilgisayarları ekleyin — başkasına erişemez.',
+  'admin.plugins.allowedHosts.hint':
+    'Bu eklenti yalnızca sizin adlandırabileceğiniz bir hizmete bağlanır (kendi barındırdığınız sunucu). Erişebileceği ana bilgisayarları ekleyin — başkasına erişemez.',
   'admin.plugins.allowedHosts.none': 'Henüz ana bilgisayar eklenmedi.',
-  'admin.plugins.allowedHosts.unsupported': 'Bu eklenti operatör tarafından verilen ana bilgisayarları kullanmaz. İzin verilenler manifestinde sabittir.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Bu eklenti operatör tarafından verilen ana bilgisayarları kullanmaz. İzin verilenler manifestinde sabittir.',
   'admin.plugins.allowedHosts.restartNote': 'Kaydetmek, yeni listeyi alması için eklentiyi yeniden başlatır.',
   'admin.plugins.allowedHosts.add': 'İzin verilen ana bilgisayar ekle',
   'admin.plugins.allowedHosts.count': '{n} izin verilen ana bilgisayar',
   'admin.plugins.operatorEgressPill': '+ eklediğiniz ana bilgisayarlar',
-  'admin.plugins.operatorEgressHint': 'Bu eklenti yalnızca sizin adlandırabileceğiniz bir hizmete bağlanır (kendi barındırdığınız sunucu). Kurulumdan sonra ⋯ → İzin verilen ana bilgisayarlar altından ekleyin. Başkasına erişemez.',
+  'admin.plugins.operatorEgressHint':
+    'Bu eklenti yalnızca sizin adlandırabileceğiniz bir hizmete bağlanır (kendi barındırdığınız sunucu). Kurulumdan sonra ⋯ → İzin verilen ana bilgisayarlar altından ekleyin. Başkasına erişemez.',
   'admin.plugins.noErrors': 'Kayıtlı hata yok.',
   'admin.plugins.uninstalled': 'Eklenti kaldırıldı',
   'admin.plugins.uninstallTitle': 'Eklenti kaldırılsın mı?',
@@ -403,6 +406,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': '„İncelendi" ne anlama gelir',
   'admin.plugins.security.reviewedBody':
     'İncelenmiş bir eklenti, her sürümde bir TREK sorumlusu tarafından kötü amaçlı yazılıma karşı elle taranmıştır — düşmanca koda karşı kontrol edilmiştir, iyi çalışıp çalışmadığına göre değil. Bu, eklentinin zararsız olduğunun bir garantisi değildir.',
+  'admin.plugins.security.signedTitle': '„İmzalı" ne anlama gelir',
+  'admin.plugins.security.signedBody':
+    "TREK'in her kurulumda doğruladığı sağlama toplamı, dosyaların tam olarak dizinin kefil olduğu dosyalar olduğunu kanıtlar. Bir imza ise başka bir şeyi kanıtlar: dosyaların yazardan geldiğini ve yalnızca onun elindeki bir anahtarla imzalandığını. İmzalı bir eklentide her ikisi de vardır. İmzasız olan güvensiz değildir — yalnızca bir güvence eksiği taşır ve bugün dizindeki eklentilerin çoğu imzasızdır.",
+  'admin.plugins.signed': 'İmzalı',
+  'admin.plugins.signedHint': 'Kurulduğunda yazarın imzalama anahtarıyla doğrulandı',
+  'admin.plugins.unsigned': 'İmzasız',
+  'admin.plugins.unsignedHint':
+    'Dosyalar dizinin kefil olduğu dosyalarla eşleşiyor, ancak hiçbir şey onları yazara bağlamıyor. Bir güvence eksik — güvensiz değil.',
+  'admin.plugins.updateBlocked': 'Güncelleme engellendi — {reason}',
+  'admin.plugins.reviewBlock': 'İncele',
+  'admin.plugins.retrusted': 'Yeni imzalama anahtarına güvenildi — eklenti güncellendi',
+  'admin.plugins.sig.title': '{name} eklentisinin imzası doğrulanamadı',
+  'admin.plugins.sig.keyChangedBody':
+    'Yazarın imzalama anahtarı, bu eklentinin kurulduğu anahtar değil. Yazarlar anahtarlarını gerçekten değiştirir — ama eklentiyi ele geçiren bir saldırgan da tam olarak böyle görünürdü.',
+  'admin.plugins.sig.invalidBody':
+    'Dosyalar yazarın imzasıyla eşleşmiyor. Yazarın imzaladığı dosyalar bunlar değil — ya bozulmuşlar ya da kurcalanmışlar. Bu durum geçersiz kılınamaz.',
+  'admin.plugins.sig.missingBody':
+    'Bu eklenti siz kurduğunuzda imzalıydı, ancak yeni sürüm hiçbir imza içermiyor. TREK bu geriye gidişi sessizce kabul etmez. Bu durum geçersiz kılınamaz.',
+  'admin.plugins.sig.incompleteBody':
+    'Dizin kaydı yarım imzalı: bir yazar anahtarı bildiriyor ama sürüm imza taşımıyor (ya da tersi). Bu, eklenti tarafındaki bir hatadır. Bu durum geçersiz kılınamaz.',
+  'admin.plugins.sig.pinnedKey': 'Kurulduğu anahtar',
+  'admin.plugins.sig.newKey': 'Şimdi sunduğu anahtar',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK, meşru bir anahtar değişimini bir ele geçirmeden ayırt edemez — buradan bakıldığında ikisi birebir aynı görünür. Kabul etmeden önce yeni anahtarı, zaten güvendiğiniz bir kanaldan yazara doğrulatın. Doğruladığınızda eklenti güncellenir ve yeni anahtar hatırlanır.',
+  'admin.plugins.sig.retrustConfirm': 'Yeni anahtara güven ve güncelle',
+  'admin.plugins.sig.cancel': 'Güvenme',
+  'admin.plugins.sig.consentUnsigned':
+    'Bu sürümü yazarına bağlayan hiçbir şey yok — dosyalar dizinle eşleşiyor, ama yazar imzası taşımıyorlar.',
   'admin.plugins.security.trustTitle': 'Özetle',
   'admin.plugins.security.trustBody':
     'Bir eklenti yüklemek, herhangi bir üçüncü taraf uygulamasını yüklemek gibidir: yalnızca güvendiğiniz geliştiricilerin kodunu ekleyin ve şüpheye düştüğünüzde önce kendiniz inceleyin. TREK, üçüncü taraf eklentiler için hiçbir sorumluluk kabul etmez.',
@@ -462,6 +493,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'İndir',
   'admin.plugins.dep.update': 'Güncelle',
   'admin.plugins.dep.resolveHint': 'Kendi bağımlılıkları dahil, en son uyumlu sürümü indirir.',
+  'admin.plugins.dep.trekIncompatible': 'TREK {range} gerektiriyor — bu sunucu {host} çalıştırıyor',
+  'admin.plugins.dep.trekUnknown': 'Hangi TREK sürümlerini desteklediğini belirtmiyor',
+  'admin.plugins.installCompatible': '{version} sürümünü yükle',
+  'admin.plugins.incompatible': 'Uyumsuz',
   'admin.plugins.accessTitle': 'Neye erişebilir',
   'admin.plugins.connectsTitle': 'Şuraya bağlanır',
   'admin.plugins.detailsTitle': 'Detaylar',

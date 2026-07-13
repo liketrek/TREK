@@ -188,14 +188,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Переглянути журнал помилок',
   'admin.plugins.errorLog': 'Журнал помилок',
   'admin.plugins.allowedHosts': 'Дозволені хости',
-  'admin.plugins.allowedHosts.hint': 'Цей плагін звертається до сервісу, який можете вказати лише ви (self-hosted сервер). Додайте хости, до яких він може звертатися — до інших він не зможе.',
+  'admin.plugins.allowedHosts.hint':
+    'Цей плагін звертається до сервісу, який можете вказати лише ви (self-hosted сервер). Додайте хости, до яких він може звертатися — до інших він не зможе.',
   'admin.plugins.allowedHosts.none': 'Хости ще не додано.',
-  'admin.plugins.allowedHosts.unsupported': 'Цей плагін не використовує хости, задані оператором. Його дозволені хости зафіксовані в маніфесті.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Цей плагін не використовує хости, задані оператором. Його дозволені хости зафіксовані в маніфесті.',
   'admin.plugins.allowedHosts.restartNote': 'Збереження перезапускає плагін, щоб він підхопив новий список.',
   'admin.plugins.allowedHosts.add': 'Додати дозволений хост',
   'admin.plugins.allowedHosts.count': 'Дозволених хостів: {n}',
   'admin.plugins.operatorEgressPill': '+ додані вами хости',
-  'admin.plugins.operatorEgressHint': 'Цей плагін звертається до сервісу, який можете вказати лише ви (self-hosted сервер). Після встановлення додайте хости в ⋯ → Дозволені хости. До інших він не зможе звертатися.',
+  'admin.plugins.operatorEgressHint':
+    'Цей плагін звертається до сервісу, який можете вказати лише ви (self-hosted сервер). Після встановлення додайте хости в ⋯ → Дозволені хости. До інших він не зможе звертатися.',
   'admin.plugins.noErrors': 'Помилок не зафіксовано.',
   'admin.plugins.uninstalled': 'Плагін видалено',
   'admin.plugins.uninstallTitle': 'Видалити плагін?',
@@ -357,6 +360,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Що означає «Перевірено»',
   'admin.plugins.security.reviewedBody':
     'Перевірений плагін вручну сканував супроводжувач TREK на наявність шкідливого коду в кожній версії — перевіряли на ворожий код, а не на те, чи добре він працює. Це не обіцянка, що плагін безпечний.',
+  'admin.plugins.security.signedTitle': 'Що означає «Підписано»',
+  'admin.plugins.security.signedBody':
+    'Контрольна сума, яку TREK перевіряє під час кожного встановлення, доводить, що файли — це саме те, за що ручається реєстр. Підпис доводить інше: що вони походять від автора й підписані ключем, який є лише в нього. Підписаний плагін має і те, і те. Плагін без підпису не є небезпечним — він просто дає на одну гарантію менше, і сьогодні більшість плагінів у реєстрі не підписані.',
+  'admin.plugins.signed': 'Підписано',
+  'admin.plugins.signedHint': 'Під час встановлення перевірено за ключем підпису автора',
+  'admin.plugins.unsigned': 'Без підпису',
+  'admin.plugins.unsignedHint':
+    "Файли збігаються з тим, за що ручається реєстр, але ніщо не пов'язує їх з автором. На одну гарантію менше — але це не небезпечно.",
+  'admin.plugins.updateBlocked': 'Оновлення заблоковано — {reason}',
+  'admin.plugins.reviewBlock': 'Переглянути',
+  'admin.plugins.retrusted': 'Новому ключу підпису надано довіру — плагін оновлено',
+  'admin.plugins.sig.title': 'Не вдалося перевірити підпис плагіна «{name}»',
+  'admin.plugins.sig.keyChangedBody':
+    'Ключ підпису автора не той, з яким цей плагін було встановлено. Автори справді змінюють ключі — але зловмисник, який захопив плагін, виглядав би точнісінько так само.',
+  'admin.plugins.sig.invalidBody':
+    'Файли не відповідають підпису автора. Це не те, що підписав автор — їх або пошкоджено, або підмінено. Це не можна обійти.',
+  'admin.plugins.sig.missingBody':
+    'Цей плагін був підписаний, коли ви його встановлювали, але нова версія не має підпису. TREK не прийме таке пониження мовчки. Це не можна обійти.',
+  'admin.plugins.sig.incompleteBody':
+    'Запис у реєстрі підписаний наполовину: він оголошує ключ автора, але версія не має підпису (або навпаки). Це помилка на боці плагіна. Це не можна обійти.',
+  'admin.plugins.sig.pinnedKey': 'Ключ, з яким його встановлено',
+  'admin.plugins.sig.newKey': 'Ключ, який він пропонує зараз',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK не може відрізнити законну зміну ключа від захоплення — звідси вони виглядають однаково. Перш ніж прийняти новий ключ, підтвердьте його в автора через канал, якому ви вже довіряєте. Щойно ви це зробите, плагін буде оновлено, а новий ключ — збережено.',
+  'admin.plugins.sig.retrustConfirm': 'Довіряти новому ключу й оновити',
+  'admin.plugins.sig.cancel': 'Не довіряти',
+  'admin.plugins.sig.consentUnsigned':
+    "Ніщо не пов'язує цю версію з її автором — файли збігаються з реєстром, але не мають підпису автора.",
   'admin.plugins.security.trustTitle': 'Підсумок',
   'admin.plugins.security.trustBody':
     'Встановлення плагіна — це те саме, що встановлення будь-якого стороннього застосунку: додавайте лише код від авторів, яким довіряєте, а в разі сумнівів спершу перевірте його самостійно. TREK не несе відповідальності за сторонні плагіни.',
@@ -416,6 +447,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Завантажити',
   'admin.plugins.dep.update': 'Оновити',
   'admin.plugins.dep.resolveHint': 'Завантажує останню сумісну версію разом з її залежностями.',
+  'admin.plugins.dep.trekIncompatible': 'Потрібен TREK {range} — на цьому сервері {host}',
+  'admin.plugins.dep.trekUnknown': 'Не вказано, які версії TREK підтримуються',
+  'admin.plugins.installCompatible': 'Встановити {version}',
+  'admin.plugins.incompatible': 'Несумісно',
   'admin.plugins.accessTitle': 'До чого має доступ',
   'admin.plugins.connectsTitle': 'Підключається до',
   'admin.plugins.detailsTitle': 'Деталі',

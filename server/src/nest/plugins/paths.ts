@@ -119,7 +119,6 @@ export function pluginPermissionArgs(pluginId: string): string[] {
     // off by accident.
     if (!warnedPermissionsOff) {
       warnedPermissionsOff = true;
-      // eslint-disable-next-line no-console
       console.warn('[plugins] TREK_PLUGIN_PERMISSIONS=off — the OS permission jail is DISABLED; installed plugins run with full Node access to this process. Only use this on a machine you fully trust.');
     }
     return [];

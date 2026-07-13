@@ -221,14 +221,16 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': '檢視錯誤日誌',
   'admin.plugins.errorLog': '錯誤日誌',
   'admin.plugins.allowedHosts': '允許的主機',
-  'admin.plugins.allowedHosts.hint': '此外掛會連線到只有你才知道位址的服務（自架伺服器）。請新增它可以存取的主機 —— 其他主機一律無法存取。',
+  'admin.plugins.allowedHosts.hint':
+    '此外掛會連線到只有你才知道位址的服務（自架伺服器）。請新增它可以存取的主機 —— 其他主機一律無法存取。',
   'admin.plugins.allowedHosts.none': '尚未新增主機。',
   'admin.plugins.allowedHosts.unsupported': '此外掛不使用營運者提供的主機。其允許的主機已在資訊清單中固定。',
   'admin.plugins.allowedHosts.restartNote': '儲存會重新啟動外掛，以便套用新的清單。',
   'admin.plugins.allowedHosts.add': '新增允許的主機',
   'admin.plugins.allowedHosts.count': '{n} 個允許的主機',
   'admin.plugins.operatorEgressPill': '+ 你新增的主機',
-  'admin.plugins.operatorEgressHint': '此外掛會連線到只有你才知道位址的服務（自架伺服器）。安裝後請在 ⋯ → 允許的主機 中新增。其他主機一律無法存取。',
+  'admin.plugins.operatorEgressHint':
+    '此外掛會連線到只有你才知道位址的服務（自架伺服器）。安裝後請在 ⋯ → 允許的主機 中新增。其他主機一律無法存取。',
   'admin.plugins.noErrors': '沒有錯誤記錄。',
   'admin.plugins.uninstalled': '外掛已解除安裝',
   'admin.plugins.uninstallTitle': '解除安裝外掛？',
@@ -358,6 +360,33 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': '「已審核」的含義',
   'admin.plugins.security.reviewedBody':
     '已審核的外掛，代表 TREK 維護者曾針對每個版本手動掃描惡意程式碼——檢查是否含有有害程式碼，而非它是否運作良好。這並不保證外掛無害。',
+  'admin.plugins.security.signedTitle': '「已簽署」的含義',
+  'admin.plugins.security.signedBody':
+    'TREK 在每次安裝時驗證的總和檢查碼，證明這些檔案正是外掛庫所擔保的檔案。簽章證明的則是另一回事：它們出自作者之手，並以只有作者持有的金鑰簽署。已簽署的外掛兩者兼備。未簽署並不代表不安全——它只是少了一層保證，而目前外掛庫中的多數外掛都尚未簽署。',
+  'admin.plugins.signed': '已簽署',
+  'admin.plugins.signedHint': '安裝時已以作者的簽署金鑰驗證',
+  'admin.plugins.unsigned': '未簽署',
+  'admin.plugins.unsignedHint':
+    '檔案與外掛庫所擔保的內容相符，但沒有任何東西能將它們與作者連結起來。少了一層保證——但並非不安全。',
+  'admin.plugins.updateBlocked': '更新已阻擋——{reason}',
+  'admin.plugins.reviewBlock': '查看',
+  'admin.plugins.retrusted': '已信任新的簽署金鑰——外掛已更新',
+  'admin.plugins.sig.title': '無法驗證「{name}」的簽章',
+  'admin.plugins.sig.keyChangedBody':
+    '作者的簽署金鑰並非安裝此外掛時所用的那把。作者確實會輪替金鑰——但接管了該外掛的攻擊者，看起來也會與此一模一樣。',
+  'admin.plugins.sig.invalidBody':
+    '這些檔案與作者的簽章不符。它們並非作者所簽署的內容——不是已損毀，就是遭到竄改。此項無法略過。',
+  'admin.plugins.sig.missingBody':
+    '你安裝此外掛時它是有簽章的，但新版本並未附上任何簽章。TREK 不會默默接受這種倒退。此項無法略過。',
+  'admin.plugins.sig.incompleteBody':
+    '外掛庫中的項目只簽了一半：它宣告了作者金鑰，但該版本沒有簽章（或反之）。這是外掛一方的疏失。此項無法略過。',
+  'admin.plugins.sig.pinnedKey': '安裝時使用的金鑰',
+  'admin.plugins.sig.newKey': '它現在提供的金鑰',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK 無法分辨正當的金鑰輪替與一次接管——從這裡看，兩者毫無二致。在接受之前，請透過你原本就信任的管道向作者確認這把新金鑰。一旦你接受，外掛就會更新，新金鑰也會被記住。',
+  'admin.plugins.sig.retrustConfirm': '信任新金鑰並更新',
+  'admin.plugins.sig.cancel': '不信任',
+  'admin.plugins.sig.consentUnsigned': '沒有任何東西能將這個版本與它的作者連結起來——檔案與外掛庫相符，但不帶作者簽章。',
   'admin.plugins.security.trustTitle': '結論',
   'admin.plugins.security.trustBody':
     '安裝外掛就像安裝任何第三方應用程式：只加入你信任的作者所提供的程式碼，如有疑慮，請先自行檢查。TREK 對第三方外掛概不承擔任何責任。',
@@ -417,6 +446,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': '下載',
   'admin.plugins.dep.update': '更新',
   'admin.plugins.dep.resolveHint': '下載最新的相容版本，包含其自身的相依項目。',
+  'admin.plugins.dep.trekIncompatible': '需要 TREK {range}——此伺服器執行的是 {host}',
+  'admin.plugins.dep.trekUnknown': '未宣告支援的 TREK 版本',
+  'admin.plugins.installCompatible': '安裝 {version}',
+  'admin.plugins.incompatible': '不相容',
   'admin.plugins.accessTitle': '可存取的內容',
   'admin.plugins.connectsTitle': '連線至',
   'admin.plugins.detailsTitle': '詳細資訊',

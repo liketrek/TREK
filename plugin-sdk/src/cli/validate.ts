@@ -7,7 +7,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { validateManifest, KNOWN_ADDONS } from '../manifest.js';
+import { validateManifest, isUnboundedRange, KNOWN_ADDONS } from '../manifest.js';
 import { readJsonFile } from './json.js';
 
 export interface ValidateReport {
@@ -32,6 +32,13 @@ export function validatePluginDir(dir: string): ValidateReport {
     // dir name should match the id
     if (manifestId && path.basename(path.resolve(dir)) !== manifestId) {
       warnings.push(`directory name should equal the plugin id "${manifestId}"`);
+    }
+    // A `trek` of "*" installs on every TREK ever released and every one still to come.
+    // It is legal — a plugin may honestly have no version-specific surface — but it is far
+    // more often an author who didn't want to think about it, and it opts them out of the
+    // one mechanism that stops their plugin running on a host it was never tested against.
+    if (isUnboundedRange(res.manifest?.trek ?? '')) {
+      warnings.push('trek: "*" claims support for every TREK version, including ones that do not exist yet — pin a range like ">=3.2.0 <4.0.0"');
     }
     // A well-formed but unrecognised addon id is not an error (the plugin may target
     // a newer TREK), but it can never enable here — surface it as a warning.

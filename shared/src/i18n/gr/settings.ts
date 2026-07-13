@@ -104,7 +104,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Ρύθμιση',
   'settings.notificationPreferences.testSuccess': 'Στάλθηκε δοκιμαστική ειδοποίηση.',
   'settings.notificationPreferences.testFailed': 'Η δοκιμή απέτυχε.',
-  'settings.notificationPreferences.pluginConfigured': 'Ρυθμίστηκε. Διαχειριστείτε τα διαπιστευτήρια στη σελίδα ρυθμίσεων του πρόσθετου.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Ρυθμίστηκε. Διαχειριστείτε τα διαπιστευτήρια στη σελίδα ρυθμίσεων του πρόσθετου.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.notificationPreferences.noChannels':
     'Δεν έχουν διαμορφωθεί κανάλια ειδοποιήσεων. Ζητήστε από έναν διαχειριστή να ρυθμίσει ειδοποιήσεις email ή webhook.',

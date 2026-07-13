@@ -144,19 +144,32 @@ html.dark button[class*="text-slate-600"][class*="border-slate-200"]:hover { bac
 html.dark .border-dashed.border-gray-300 { border-color: var(--border-primary) !important; }
 html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color: transparent !important; }
 
-/* Reorder buttons: desktop = original style; mobile = always visible, larger touch targets */
+/* Reorder buttons: desktop = original style; touch = always visible, larger touch targets.
+   Keyed on pointer as well as width — a tablet is a wide touch device, and drag reorder is
+   off wherever the pointer is coarse (#1432), so these buttons are the only affordance left. */
 .reorder-buttons {
   flex-direction: column;
   opacity: 0;
+  /* Hidden means non-interactive. Opacity alone still hit-tests, which left an invisible
+     but fully clickable target on every row that silently reordered the itinerary. */
+  pointer-events: none;
 }
 .reorder-buttons button {
   background: none !important;
   padding: 1px 2px;
 }
-@media (max-width: 767px) {
+/* Reveal on row hover (and on keyboard focus, so the buttons are reachable by Tab). */
+.dp-row:hover .reorder-buttons,
+.dp-row:focus-within .reorder-buttons {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (max-width: 767px), (pointer: coarse) {
   .reorder-buttons {
     flex-direction: row !important;
     opacity: 1 !important;
+    /* There is no hover on touch, so these are always live — undo the base rule. */
+    pointer-events: auto !important;
     align-items: center;
     margin-left: auto;
   }
@@ -173,11 +186,6 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
   .note-edit-buttons {
     opacity: 1 !important;
   }
-}
-
-/* Ort-Zeile Hover: Sortier-Buttons anzeigen */
-.place-row:hover .reorder-btns {
-  opacity: 1 !important;
 }
 
 /* Ladeanimation */

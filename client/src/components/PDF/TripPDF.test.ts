@@ -170,6 +170,18 @@ describe('downloadTripPDF', () => {
     expect(srcdoc).toContain('Colosseum')
   })
 
+  it('FE-COMP-TRIPPDF-005c: the gap under the day header lives in the repeated thead cell (#1531)', async () => {
+    await downloadTripPDF(richArgs)
+    const iframe = getIframe()
+    const srcdoc = iframe!.srcdoc
+    // The thead is repeated on every overflow page, so the spacing below the header bar
+    // must be declared on its cell...
+    expect(srcdoc).toContain('.day-header > tr > td { padding-bottom: 12px; }')
+    // ...and not as a block-start padding on .day-body, which the print engine only paints
+    // on the first fragment of the (fragmented) body cell.
+    expect(srcdoc).toContain('.day-body  { padding: 0 28px 6px; }')
+  })
+
   it('FE-COMP-TRIPPDF-006: escHtml prevents XSS in trip title', async () => {
     const args = {
       ...minimalArgs,

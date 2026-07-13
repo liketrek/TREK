@@ -205,14 +205,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'عرض سجل الأخطاء',
   'admin.plugins.errorLog': 'سجل الأخطاء',
   'admin.plugins.allowedHosts': 'المضيفون المسموح بهم',
-  'admin.plugins.allowedHosts.hint': 'تتصل هذه الإضافة بخدمة لا يمكن لأحد سواك تسميتها (خادم مستضاف ذاتيًا). أضف المضيفين الذين يمكنها الوصول إليهم — ولن تصل إلى غيرهم.',
+  'admin.plugins.allowedHosts.hint':
+    'تتصل هذه الإضافة بخدمة لا يمكن لأحد سواك تسميتها (خادم مستضاف ذاتيًا). أضف المضيفين الذين يمكنها الوصول إليهم — ولن تصل إلى غيرهم.',
   'admin.plugins.allowedHosts.none': 'لم تتم إضافة أي مضيف بعد.',
-  'admin.plugins.allowedHosts.unsupported': 'لا تستخدم هذه الإضافة مضيفين يحددهم المشغّل. مضيفوها المسموح بهم ثابتون في ملف التعريف.',
+  'admin.plugins.allowedHosts.unsupported':
+    'لا تستخدم هذه الإضافة مضيفين يحددهم المشغّل. مضيفوها المسموح بهم ثابتون في ملف التعريف.',
   'admin.plugins.allowedHosts.restartNote': 'الحفظ يعيد تشغيل الإضافة لتأخذ القائمة الجديدة.',
   'admin.plugins.allowedHosts.add': 'إضافة مضيف مسموح به',
   'admin.plugins.allowedHosts.count': '{n} مضيف مسموح به',
   'admin.plugins.operatorEgressPill': '+ مضيفون تضيفهم',
-  'admin.plugins.operatorEgressHint': 'تتصل هذه الإضافة بخدمة لا يمكن لأحد سواك تسميتها (خادم مستضاف ذاتيًا). بعد التثبيت أضف المضيفين من ⋯ ← المضيفون المسموح بهم. ولن تصل إلى غيرهم.',
+  'admin.plugins.operatorEgressHint':
+    'تتصل هذه الإضافة بخدمة لا يمكن لأحد سواك تسميتها (خادم مستضاف ذاتيًا). بعد التثبيت أضف المضيفين من ⋯ ← المضيفون المسموح بهم. ولن تصل إلى غيرهم.',
   'admin.plugins.noErrors': 'لا توجد أخطاء مسجّلة.',
   'admin.plugins.uninstalled': 'تمت إزالة الإضافة',
   'admin.plugins.uninstallTitle': 'إزالة الإضافة؟',
@@ -364,6 +367,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'ماذا تعني "تمت مراجعتها"',
   'admin.plugins.security.reviewedBody':
     'الإضافة التي تمت مراجعتها فُحصت يدويًا بحثًا عن البرمجيات الخبيثة بواسطة أحد القائمين على TREK في كل إصدار — جرى فحصها بحثًا عن شيفرة ضارة، لا لمعرفة ما إذا كانت تعمل جيدًا. وهي ليست وعدًا بأن الإضافة غير ضارة.',
+  'admin.plugins.security.signedTitle': 'ماذا تعني "موقّعة"',
+  'admin.plugins.security.signedBody':
+    'المجموع الاختباري الذي يتحقق منه TREK عند كل تثبيت يثبت أن الملفات هي بالضبط ما يضمنه السجل. أما التوقيع فيثبت شيئًا مختلفًا: أنها جاءت من المؤلف، موقّعة بمفتاح لا يملكه سواه. الإضافة الموقّعة تجمع الاثنين معًا. وغير الموقّعة ليست غير آمنة — إنها ببساطة تحمل ضمانًا واحدًا أقل، ومعظم الإضافات في السجل غير موقّعة اليوم.',
+  'admin.plugins.signed': 'موقّعة',
+  'admin.plugins.signedHint': 'جرى التحقق منها مقابل مفتاح توقيع المؤلف عند تثبيتها',
+  'admin.plugins.unsigned': 'غير موقّعة',
+  'admin.plugins.unsignedHint':
+    'الملفات تطابق ما يضمنه السجل، لكن لا شيء يربطها بالمؤلف. ضمان واحد أقل — وليست غير آمنة.',
+  'admin.plugins.updateBlocked': 'تم حظر التحديث — {reason}',
+  'admin.plugins.reviewBlock': 'مراجعة',
+  'admin.plugins.retrusted': 'تم الوثوق بمفتاح التوقيع الجديد — وتم تحديث الإضافة',
+  'admin.plugins.sig.title': 'تعذّر التحقق من توقيع {name}',
+  'admin.plugins.sig.keyChangedBody':
+    'مفتاح توقيع المؤلف ليس المفتاح الذي ثُبّتت به هذه الإضافة. المؤلفون يبدّلون مفاتيحهم أحيانًا — لكن مهاجمًا استولى على الإضافة سيبدو تمامًا هكذا.',
+  'admin.plugins.sig.invalidBody':
+    'الملفات لا تطابق توقيع المؤلف. إنها ليست ما وقّعه المؤلف — فإما أنها تلفت، وإما أنه جرى العبث بها. لا يمكن تجاوز ذلك.',
+  'admin.plugins.sig.missingBody':
+    'كانت هذه الإضافة موقّعة عند تثبيتها، لكن الإصدار الجديد لا يحمل أي توقيع. لن يقبل TREK هذا التراجع بصمت. لا يمكن تجاوز ذلك.',
+  'admin.plugins.sig.incompleteBody':
+    'مدخل السجل موقّع نصف توقيع: يعلن عن مفتاح للمؤلف لكن الإصدار لا يحمل توقيعًا (أو العكس). هذا خطأ من جانب الإضافة. لا يمكن تجاوز ذلك.',
+  'admin.plugins.sig.pinnedKey': 'المفتاح الذي ثُبّتت به',
+  'admin.plugins.sig.newKey': 'المفتاح الذي تقدّمه الآن',
+  'admin.plugins.sig.confirmOutOfBand':
+    'لا يستطيع TREK التمييز بين تبديل مشروع للمفتاح وبين استيلاء على الإضافة — يبدو الأمران متطابقين من هنا. تحقّق من المفتاح الجديد مع المؤلف عبر قناة تثق بها أصلًا قبل قبوله. وحين تفعل، يتم تحديث الإضافة ويُحفظ المفتاح الجديد.',
+  'admin.plugins.sig.retrustConfirm': 'الوثوق بالمفتاح الجديد والتحديث',
+  'admin.plugins.sig.cancel': 'عدم الوثوق به',
+  'admin.plugins.sig.consentUnsigned':
+    'لا شيء يربط هذا الإصدار بمؤلفه — الملفات تطابق السجل، لكنها لا تحمل توقيع المؤلف.',
   'admin.plugins.security.trustTitle': 'الخلاصة',
   'admin.plugins.security.trustBody':
     'تثبيت إضافة يشبه تثبيت أي تطبيق من جهة خارجية: لا تُضِف سوى شيفرة من مطورين تثق بهم، وعند الشك، افحصها بنفسك أولًا. لا يتحمل TREK أي مسؤولية عن إضافات الجهات الخارجية.',
@@ -423,6 +454,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'تنزيل',
   'admin.plugins.dep.update': 'تحديث',
   'admin.plugins.dep.resolveHint': 'ينزّل أحدث إصدار متوافق، بما في ذلك تبعياته الخاصة.',
+  'admin.plugins.dep.trekIncompatible': 'يتطلب TREK {range} — يعمل هذا الخادم بالإصدار {host}',
+  'admin.plugins.dep.trekUnknown': 'لا يحدد إصدارات TREK المدعومة',
+  'admin.plugins.installCompatible': 'تثبيت {version}',
+  'admin.plugins.incompatible': 'غير متوافق',
   'admin.plugins.accessTitle': 'ما الذي يمكنها الوصول إليه',
   'admin.plugins.connectsTitle': 'يتصل بـ',
   'admin.plugins.detailsTitle': 'التفاصيل',

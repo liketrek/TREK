@@ -61,7 +61,10 @@ export function submitEntry(entry: EntryLike, opts: { registry?: string; branch?
     }
     if (!cloned) throw new Error(`could not clone your fork ${login}/${name} (is the fork ready on GitHub?)`);
 
-    git(tmp, 'remote', 'add', 'upstream', `https://github.com/${registry}.git`);
+    // `gh repo clone` of a fork may already have wired an `upstream` remote, in which case a
+    // bare `remote add` exits non-zero and takes the whole submit down. Set it either way.
+    try { git(tmp, 'remote', 'add', 'upstream', `https://github.com/${registry}.git`); }
+    catch { git(tmp, 'remote', 'set-url', 'upstream', `https://github.com/${registry}.git`); }
     git(tmp, 'fetch', '--depth=1', 'upstream', 'main');
     git(tmp, 'checkout', '-B', branch, 'upstream/main');
 
