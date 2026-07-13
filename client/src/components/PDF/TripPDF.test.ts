@@ -307,6 +307,8 @@ describe('downloadTripPDF', () => {
     expect(iframe!.srcdoc).toContain('$15.00')
     // No literal "EUR" text should leak into a USD trip's export.
     expect(iframe!.srcdoc).not.toContain('EUR')
+    // Price chip icon must stay currency-neutral — not the euro-shaped glyph.
+    expect(iframe!.srcdoc).not.toContain('M14 5c-3.87 0-7 3.13-7 7s3.13 7 7 7c2.17 0 4.1-.99 5.4-2.55')
   })
 
   it('FE-COMP-TRIPPDF-016c: a place with its own currency overrides the trip currency for its price chip', async () => {

@@ -40,7 +40,7 @@ const svgPin   = `<svg width="11" height="11" viewBox="0 0 24 24" fill="#94a3b8"
 const svgClock = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`
 const svgClock2= `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`
 const svgCheck = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg>`
-const svgEuro  = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round"><path d="M14 5c-3.87 0-7 3.13-7 7s3.13 7 7 7c2.17 0 4.1-.99 5.4-2.55"/><path d="M5 11h8M5 13h8"/></svg>`
+const svgMoney = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12h6" stroke-linecap="round"/></svg>`
 
 function escHtml(str) {
   if (!str) return ''
@@ -320,7 +320,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
 
           const chips = [
             place.place_time ? `<span class="chip">${svgClock}${escHtml(place.place_time)}</span>` : '',
-            place.price && parseFloat(place.price) > 0 ? `<span class="chip chip-green">${svgEuro}${formatMoney(Number(place.price), place.currency || trip.currency, loc)}</span>` : '',
+            place.price && parseFloat(place.price) > 0 ? `<span class="chip chip-green">${svgMoney}${formatMoney(Number(place.price), place.currency || trip.currency, loc)}</span>` : '',
           ].filter(Boolean).join('')
 
           return `
