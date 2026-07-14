@@ -49,8 +49,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Rechtsklick und ziehen, um die Karte zu drehen/neigen. Mittelklick, um einen Ort hinzuzufügen (Rechtsklick ist für die Rotation reserviert).',
-  'settings.latitude': 'Breitengrad',
-  'settings.longitude': 'Längengrad',
   'settings.saveMap': 'Karte speichern',
   'settings.apiKeys': 'API-Schlüssel',
   'settings.mapsKey': 'Google Maps API-Schlüssel',

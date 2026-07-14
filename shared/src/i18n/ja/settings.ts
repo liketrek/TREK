@@ -47,8 +47,6 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityWarning': '低性能デバイスではパフォーマンスに影響する場合があります。',
   'settings.mapTipLabel': 'ヒント:',
   'settings.mapTip': '右クリック＋ドラッグで回転／傾き。中クリックで場所を追加（右クリックは回転用）。',
-  'settings.latitude': '緯度',
-  'settings.longitude': '経度',
   'settings.saveMap': '地図を保存',
   'settings.apiKeys': 'APIキー',
   'settings.mapsKey': 'Google Maps APIキー',

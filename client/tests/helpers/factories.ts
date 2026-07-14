@@ -21,7 +21,6 @@ import type {
   Settings,
   AppConfig,
 } from '../../src/types';
-import { DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../src/constants/mapDefaults';
 
 // ── Counters ──────────────────────────────────────────────────────────────────
 
@@ -261,9 +260,6 @@ export function buildCategory(overrides: Partial<Category> = {}): Category {
 export function buildSettings(overrides: Partial<Settings> = {}): Settings {
   return {
     map_tile_url: '',
-    default_lat: DEFAULT_MAP_LAT,
-    default_lng: DEFAULT_MAP_LNG,
-    default_zoom: DEFAULT_MAP_ZOOM,
     dark_mode: false,
     default_currency: 'USD',
     language: 'en',

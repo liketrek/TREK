@@ -47,8 +47,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': '팁:',
   'settings.mapTip':
     '우클릭 후 드래그하여 지도를 회전/기울이세요. 가운데 클릭으로 장소를 추가할 수 있습니다 (우클릭은 회전 전용).',
-  'settings.latitude': '위도',
-  'settings.longitude': '경도',
   'settings.saveMap': '지도 저장',
   'settings.apiKeys': 'API 키',
   'settings.mapsKey': 'Google Maps API 키',

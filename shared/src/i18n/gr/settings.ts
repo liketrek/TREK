@@ -52,8 +52,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Συμβουλή:',
   'settings.mapTip':
     'κάντε δεξί κλικ και σύρετε για περιστροφή/κλίση του χάρτη. Μεσαίο κλικ για προσθήκη τοποθεσίας (το δεξί κλικ έχει κρατηθεί για περιστροφή).',
-  'settings.latitude': 'Γεωγραφικό Πλάτος',
-  'settings.longitude': 'Γεωγραφικό Μήκος',
   'settings.saveMap': 'Αποθήκευση Χάρτη',
   'settings.apiKeys': 'Κλειδιά API',
   'settings.mapsKey': 'Google Maps API Key',

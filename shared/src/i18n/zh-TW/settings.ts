@@ -46,8 +46,6 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityWarning': '可能影響低階裝置的效能。',
   'settings.mapTipLabel': '提示：',
   'settings.mapTip': '右鍵點擊並拖曳以旋轉/傾斜地圖。中鍵點擊新增地點(右鍵用於旋轉)。',
-  'settings.latitude': '緯度',
-  'settings.longitude': '經度',
   'settings.saveMap': '儲存地圖',
   'settings.apiKeys': 'API 金鑰',
   'settings.mapsKey': 'Google Maps API 金鑰',

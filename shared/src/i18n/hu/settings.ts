@@ -49,8 +49,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Jobb klikk és húzás a térkép forgatásához/döntéséhez. Középső kattintás hely hozzáadásához (a jobb klikk a forgatáshoz van fenntartva).',
-  'settings.latitude': 'Szélességi fok',
-  'settings.longitude': 'Hosszúsági fok',
   'settings.saveMap': 'Térkép mentése',
   'settings.apiKeys': 'API kulcsok',
   'settings.mapsKey': 'Google Maps API kulcs',

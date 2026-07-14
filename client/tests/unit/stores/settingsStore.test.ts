@@ -210,10 +210,10 @@ describe('settingsStore', () => {
       );
 
       await expect(
-        useSettingsStore.getState().updateSetting('default_zoom', 15)
+        useSettingsStore.getState().updateSetting('default_currency', 'EUR')
       ).rejects.toThrow();
 
-      expect(useSettingsStore.getState().settings.default_zoom).toBe(15);
+      expect(useSettingsStore.getState().settings.default_currency).toBe('EUR');
     });
   });
 });

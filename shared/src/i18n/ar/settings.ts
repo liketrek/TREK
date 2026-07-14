@@ -45,8 +45,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'نصيحة:',
   'settings.mapTip':
     'انقر بزر الماوس الأيمن واسحب لتدوير/إمالة الخريطة. النقر الأوسط لإضافة مكان (النقر الأيمن مخصص للتدوير).',
-  'settings.latitude': 'خط العرض',
-  'settings.longitude': 'خط الطول',
   'settings.saveMap': 'حفظ الخريطة',
   'settings.apiKeys': 'مفاتيح API',
   'settings.mapsKey': 'مفتاح Google Maps API',
