@@ -1037,9 +1037,16 @@ export function MapViewGL({
   }, [selectedPlaceId, enableMapbox3d]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // External center/zoom prop changes — jump without animation
+  const jumpedToRef = useRef<[number, number] | null>(null)
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
+    // Not on mount: the map was just built with its own camera, framed on the places, and
+    // jumping to the prop centre here would throw that away and land on the world view.
+    // This effect is for *changes* to the prop, which only arrive later.
+    const previous = jumpedToRef.current
+    jumpedToRef.current = [center[0], center[1]]
+    if (!previous || (previous[0] === center[0] && previous[1] === center[1])) return
     try { map.jumpTo({ center: [center[1], center[0]], zoom }) } catch { /* noop */ }
   }, [center[0], center[1]]) // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -555,6 +555,17 @@ describe('MapViewGL', () => {
       expect(zoom).toBeLessThan(12)
     })
 
+    it('FE-COMP-MAPVIEWGL-020: does not jump to the default centre on mount, undoing the framing', async () => {
+      const places = [buildMapPlace({ id: 1, lat: 35.01, lng: 135.76 })]
+
+      render(<MapViewGL places={places} glProvider="maplibre-gl" />)
+      await act(async () => {})
+
+      // The centre prop is the world-view default nobody passed. Jumping to it on mount would
+      // throw away the camera the map was just built with and land on Null Island at zoom 2.
+      expect(glMap.jumpTo).not.toHaveBeenCalled()
+    })
+
     it('FE-COMP-MAPVIEWGL-018: does not fit on mount when it opened already framed', async () => {
       const places = [buildMapPlace({ id: 1, lat: 35.01, lng: 135.76 })]
 

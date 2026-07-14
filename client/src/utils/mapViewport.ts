@@ -63,6 +63,12 @@ export interface ViewportOptions {
   padding?: Partial<ViewportPadding>
   maxZoom?: number
   singlePlaceZoom?: number
+  /**
+   * Does the renderer draw markers on the nearest copy of a repeating world? MapLibre/Mapbox
+   * do; Leaflet does not. Only a wrapping renderer can be framed across the antimeridian.
+   * Defaults to true for the GL tile scheme, false for the raster one.
+   */
+  wrapsWorld?: boolean
 }
 
 const NO_PADDING: ViewportPadding = { top: 0, right: 0, bottom: 0, left: 0 }
@@ -107,10 +113,20 @@ function latRad(lat: number): number {
  * span can exclude a point sitting inside it.
  *
  * `east` may exceed 180 when the arc wraps; callers project it and let unproject wrap back.
+ *
+ * Only sound when the renderer wraps the world. MapLibre/Mapbox draw a marker on whichever
+ * copy of the world is nearest the camera; Leaflet does not, so a centre reached "the short
+ * way" across the antimeridian leaves markers on the far side of the single world it drew,
+ * off-screen entirely. For those, take the plain min..max arc — the long way round — which is
+ * also what L.latLngBounds would do.
  */
-function lngExtent(lngs: number[]): { west: number; east: number; span: number } {
+function lngExtent(lngs: number[], wrapsWorld: boolean): { west: number; east: number; span: number } {
   const sorted = [...lngs].sort((a, b) => a - b)
   const last = sorted.length - 1
+
+  if (!wrapsWorld) {
+    return { west: sorted[0], east: sorted[last], span: sorted[last] - sorted[0] }
+  }
 
   // The gap that wraps past the antimeridian, from the easternmost point back to the westernmost.
   let widestGap = sorted[0] + 360 - sorted[last]
@@ -196,6 +212,7 @@ export function computeMapViewport(
   const maxZoom = options.maxZoom ?? (isGl ? MAX_ZOOM_GL : MAX_ZOOM_RASTER)
   const singlePlaceZoom = options.singlePlaceZoom
     ?? (isGl ? SINGLE_PLACE_ZOOM_RASTER - 1 : SINGLE_PLACE_ZOOM_RASTER)
+  const wrapsWorld = options.wrapsWorld ?? isGl
 
   const padding: ViewportPadding = { ...NO_PADDING, ...options.padding }
   const width = Math.max(1, (options.width ?? defaultWidth()) - padding.left - padding.right)
@@ -204,7 +221,7 @@ export function computeMapViewport(
   const lats = pts.map(p => p[0])
   const south = Math.min(...lats)
   const north = Math.max(...lats)
-  const { west, east, span } = lngExtent(pts.map(p => p[1]))
+  const { west, east, span } = lngExtent(pts.map(p => p[1]), wrapsWorld)
 
   const latFraction = (latRad(north) - latRad(south)) / Math.PI
   const lngFraction = span / 360
