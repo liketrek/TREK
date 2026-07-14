@@ -106,6 +106,16 @@ Requires `reservations:write` scope.
 | `update_transport` | Update an existing transport booking. Pass `endpoints[]` to replace all stops. |
 | `delete_transport` | Delete a transport booking from a trip. |
 
+### Automated public transit
+
+Transit search is powered by Transitous and uses the existing `geo:read` and `reservations:write` scopes.
+
+| Tool | Scope required | Description |
+|---|---|---|
+| `search_transit_stops` | `geo:read` | Search real public-transit stops and stations, optionally biased around coordinates. |
+| `search_transit_routes` | `geo:read` | Search scheduled routes between two coordinates with time, mode, and transfer filters. Also returns `dropped`, the number of provider itineraries that failed validation and are absent from the results. |
+| `create_transit_journey` | `reservations:write` | Save a selected route as a first-class automated transit journey on a trip day. |
+
 ### Reservations
 
 Requires `reservations:read` or `reservations:write` scope.

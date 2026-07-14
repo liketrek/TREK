@@ -19,6 +19,38 @@ export interface ReservationEndpoint {
 
 export type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence'> & { sequence?: number };
 
+export function notifyBookingChange(
+  tripId: string | number,
+  actorId: number,
+  booking: string,
+  type: string,
+): void {
+  import('./notificationService')
+    .then(({ send }) => {
+      try {
+        const actor = db.prepare('SELECT email FROM users WHERE id = ?').get(actorId) as { email: string } | undefined;
+        if (!actor) return;
+        const trip = db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
+        send({
+          event: 'booking_change',
+          actorId,
+          scope: 'trip',
+          targetId: Number(tripId),
+          params: {
+            trip: trip?.title || 'Untitled',
+            actor: actor.email,
+            booking,
+            type: type || 'booking',
+            tripId: String(tripId),
+          },
+        }).catch(() => {});
+      } catch {
+        // Notifications must never make the booking write fail.
+      }
+    })
+    .catch(() => {});
+}
+
 export function loadEndpointsByTrip(tripId: string | number): Map<number, ReservationEndpoint[]> {
   const rows = db.prepare(`
     SELECT e.* FROM reservation_endpoints e

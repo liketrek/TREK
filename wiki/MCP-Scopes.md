@@ -32,7 +32,7 @@ TREK defines 27 scopes across 13 groups.
 | | `notifications:write` | Mark notifications as read or unread (individually or all at once) |
 | **Vacation** | `vacay:read` | Read vacation planning data, entries, and stats |
 | | `vacay:write` | Create and manage vacation entries, holidays, and team plans |
-| **Geo** | `geo:read` | Search locations, resolve map URLs, and reverse-geocode coordinates |
+| **Geo** | `geo:read` | Search locations and public transit routes, resolve map URLs, and reverse-geocode coordinates |
 | **Weather** | `weather:read` | Fetch weather forecasts for trip locations and dates |
 | **Journey** | `journey:read` | Read journeys, entries, and contributor list |
 | | `journey:write` | Create, update, and delete journeys and their entries |
