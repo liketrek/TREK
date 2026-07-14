@@ -127,6 +127,23 @@ describe('VacayMonthCard', () => {
     }
   })
 
+  it('FE-COMP-VACAYMONTHCARD-013: Recomputes day positions when week start changes', () => {
+    const { container, rerender } = render(<VacayMonthCard {...baseProps} weekStart={1} />)
+
+    const getFirstWeekLabels = () =>
+      Array.from(container.querySelectorAll('.grid.grid-cols-7')[1].children)
+        .map((cell) => cell.textContent?.trim() || '')
+
+    // January 1, 2025 is Wednesday: two leading blanks for Monday-first weeks.
+    expect(getFirstWeekLabels()).toEqual(['', '', '1', '2', '3', '4', '5'])
+
+    rerender(<VacayMonthCard {...baseProps} weekStart={0} />)
+
+    // Sunday-first weeks need three leading blanks; this must update after the
+    // setting changes so Saturday/Sunday weekends stay under their real headers.
+    expect(getFirstWeekLabels()).toEqual(['', '', '', '1', '2', '3', '4'])
+  })
+
   it('FE-COMP-VACAYMONTHCARD-011: Two vacation entries render gradient overlay', () => {
     const props = {
       ...baseProps,
