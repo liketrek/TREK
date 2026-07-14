@@ -959,7 +959,12 @@ export function MapViewGL({
     if (!map) return
     if (fitKeyChanged) {
       prevFitKey.current = fitKey
-      pendingRouteFitRef.current = { fitKey, routeKey: routeFitKey }
+      // Only wait for better geometry when a route is already on screen: the day's
+      // route lands as straight lines in the same batch as the fit, then upgrades to
+      // the real road geometry a moment later. With no route drawn, none is coming for
+      // this fit — arming the slot anyway would let a route toggled on much later
+      // (after the user has panned somewhere else) yank the camera back.
+      pendingRouteFitRef.current = routeFitKey ? { fitKey, routeKey: routeFitKey } : null
     }
     const target = dayPlaces.length > 0 ? dayPlaces : places
     const markerPoints = target.filter(hasValidCoords).map(p => [p.lat, p.lng] as [number, number])

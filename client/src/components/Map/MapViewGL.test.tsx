@@ -477,7 +477,47 @@ describe('MapViewGL', () => {
       buildMapPlace({ id: 1, lat: 35.38, lng: 136.94 }),
       buildMapPlace({ id: 2, lat: 35.42, lng: 136.76 }),
     ]
+    // The day's route is drawn as straight lines in the same batch as the fit, then
+    // upgraded to the real road geometry — which detours well outside the markers.
+    const straightLines: [number, number][][] = [[[35.38, 136.94], [35.42, 136.76]]]
+    const roadGeometry: [number, number][][] = [[[35.38, 136.94], [35.72, 137.51], [35.42, 136.76]]]
 
+    const { rerender } = render(
+      <MapViewGL
+        places={dayPlaces}
+        dayPlaces={dayPlaces}
+        route={straightLines}
+        fitKey={1}
+        glProvider="maplibre-gl"
+      />,
+    )
+    await act(async () => {})
+    const afterDayFit = glMap.fitBounds.mock.calls.length
+
+    rerender(
+      <MapViewGL
+        places={dayPlaces}
+        dayPlaces={dayPlaces}
+        route={roadGeometry}
+        fitKey={1}
+        glProvider="maplibre-gl"
+      />,
+    )
+    await act(async () => {})
+
+    expect(glMap.fitBounds.mock.calls.length).toBeGreaterThan(afterDayFit)
+    const latestBounds = glBounds.instances[glBounds.instances.length - 1]
+    expect(latestBounds.extend).toHaveBeenCalledWith([137.51, 35.72])
+  })
+
+  it('FE-COMP-MAPVIEWGL-016: leaves the camera alone when a route appears long after the fit', async () => {
+    const dayPlaces = [
+      buildMapPlace({ id: 1, lat: 35.38, lng: 136.94 }),
+      buildMapPlace({ id: 2, lat: 35.42, lng: 136.76 }),
+    ]
+
+    // Fit with the route toggle off — no route is pending, so nothing should refit
+    // when the user turns the route on later, after panning somewhere else.
     const { rerender } = render(
       <MapViewGL
         places={dayPlaces}
@@ -501,8 +541,6 @@ describe('MapViewGL', () => {
     )
     await act(async () => {})
 
-    expect(glMap.fitBounds.mock.calls.length).toBeGreaterThan(afterDayFit)
-    const latestBounds = glBounds.instances[glBounds.instances.length - 1]
-    expect(latestBounds.extend).toHaveBeenCalledWith([137.51, 35.72])
+    expect(glMap.fitBounds.mock.calls.length).toBe(afterDayFit)
   })
 })
