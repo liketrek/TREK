@@ -180,6 +180,22 @@ export interface PlanQuery {
   maxTransfers?: number;
 }
 
+export function deriveTransitStats(
+  startTime: string,
+  endTime: string,
+  legs: TransitLeg[],
+  reportedTransfers?: number,
+): Pick<TransitItinerary, 'duration' | 'transfers' | 'walkSeconds'> {
+  return {
+    duration: Math.max(0, Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000)),
+    transfers:
+      typeof reportedTransfers === 'number'
+        ? reportedTransfers
+        : Math.max(0, legs.filter((leg) => leg.mode !== 'WALK').length - 1),
+    walkSeconds: legs.filter((leg) => leg.mode === 'WALK').reduce((total, leg) => total + leg.duration, 0),
+  };
+}
+
 // GTFS colors come as bare hex ("FF0000"), with hash, or empty — normalise to
 // a #-prefixed value or null so the client can use them in CSS directly.
 function safeColor(v: unknown): string | null {
@@ -292,19 +308,14 @@ export async function plan(q: PlanQuery): Promise<{ itineraries: TransitItinerar
       geometry: leg.legGeometry?.points || null,
       geometryPrecision: leg.legGeometry?.precision ?? 6,
     }));
-    const walkSeconds = legs.filter((l) => l.mode === 'WALK').reduce((a, l) => a + l.duration, 0);
+    const stats = deriveTransitStats(it.startTime, it.endTime, legs, it.transfers);
     return [
       {
         startTime: it.startTime,
         endTime: it.endTime,
         // Wall-clock duration (start→end) so waits/transfers count — summing leg
         // run-times would understate the journey and mis-slot it in the timeline.
-        duration: Math.max(0, Math.round((new Date(it.endTime).getTime() - new Date(it.startTime).getTime()) / 1000)),
-        transfers:
-          typeof it.transfers === 'number'
-            ? it.transfers
-            : Math.max(0, legs.filter((l) => l.mode !== 'WALK').length - 1),
-        walkSeconds,
+        ...stats,
         legs,
       },
     ];
