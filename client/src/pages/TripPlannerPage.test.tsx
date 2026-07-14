@@ -7,6 +7,7 @@ import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment } from '../
 import { useAuthStore } from '../store/authStore';
 import { useTripStore } from '../store/tripStore';
 import { usePluginStore } from '../store/pluginStore';
+import { useSettingsStore } from '../store/settingsStore';
 import TripPlannerPage from './TripPlannerPage';
 import { server } from '../../tests/helpers/msw/server';
 import { http, HttpResponse } from 'msw';
@@ -1467,6 +1468,31 @@ describe('TripPlannerPage', () => {
   });
 
   describe('FE-PAGE-PLANNER-049: Mobile sidebar left panel opens via Plan button', () => {
+    it('renders the POI category pill in the mobile map controls', async () => {
+      vi.useFakeTimers();
+
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 375 });
+      seedStore(useSettingsStore, {
+        settings: {
+          ...useSettingsStore.getState().settings,
+          map_poi_pill_enabled: true,
+        },
+      } as any);
+      seedTripStore({ id: 42 });
+
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        const pill = screen.getByTestId('mobile-poi-category-pill');
+        expect(pill).toBeInTheDocument();
+        expect(pill.querySelectorAll('button').length).toBeGreaterThan(0);
+      });
+
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1024 });
+    });
+
     it('clicking the mobile Plan button opens the left sidebar portal (lines 882-893)', async () => {
       vi.useFakeTimers();
 
