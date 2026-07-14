@@ -838,52 +838,57 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   };
 
   // Build the DTSTART/DTEND lines for a reservation, or null when it has no
-  // calendar-placeable time. Restaurants/events use reservation_time; flights
-  // fall back to their first/last endpoint.
+  // calendar-placeable time. Endpoints (transports) are checked first: they
+  // carry per-side wall clocks AND zones, while reservation_time — which
+  // imports/edits can leave set on the same reservation — has no zone of its
+  // own, so preferring it rendered flights as floating times (#1453 remnant).
   const buildReservationTimeLines = (r: any): string | null => {
-    if (r.reservation_time) {
-      if (!datePart(r.reservation_time)) return null; // time-only (relative "Day N" trips)
-      if (r.reservation_time.includes('T')) {
-        // Restaurants/events: derive the zone from the linked place, if any.
-        const zone = resolveTimeZone(r.place_lat, r.place_lng);
-        const startDt = fmtDateTime(r.reservation_time);
-        let out = dtLine('DTSTART', r.reservation_time, zone);
-        if (r.reservation_end_time) {
-          const endDt = fmtDateTime(r.reservation_end_time, r.reservation_time);
-          // Guard: same-zone wall clocks are chronologically comparable as
-          // fixed-width strings; drop an end that isn't after the start (bad
-          // overnight data produced invalid negative-duration VEVENTs).
-          if (endDt.length >= 15 && endDt > startDt) out += dtLine('DTEND', r.reservation_end_time, zone, r.reservation_time);
+    const eps = endpointsMap.get(r.id);
+    if (eps && eps.length > 0) {
+      const ordered = [...eps].sort((a, b) => a.sequence - b.sequence);
+      const first = ordered[0];
+      const last = ordered[ordered.length - 1];
+      if (isDate(first.local_date)) {
+        if (isTime(first.local_time)) {
+          // Transport: departure endpoint zone drives DTSTART, arrival drives DTEND.
+          // Prefer the stored IANA zone; fall back to the endpoint's coordinates.
+          const startZone = first.timezone || resolveTimeZone(first.lat, first.lng);
+          const startDt = fmtDateTime(`${first.local_date}T${first.local_time}`);
+          let out = dtLine('DTSTART', `${first.local_date}T${first.local_time}`, startZone);
+          if (last !== first && isDate(last.local_date) && isTime(last.local_time)) {
+            const endZone = last.timezone || resolveTimeZone(last.lat, last.lng);
+            const endDt = fmtDateTime(`${last.local_date}T${last.local_time}`);
+            // Wall clocks are only comparable within one zone — a valid HND→JFK
+            // arrival can read "earlier" than departure. Same zone (or both
+            // floating) with end ≤ start is bad overnight data: drop the DTEND.
+            const comparable = (startZone || null) === (endZone || null);
+            if (!comparable || endDt > startDt) out += dtLine('DTEND', `${last.local_date}T${last.local_time}`, endZone);
+          }
+          return out;
         }
-        return out;
+        return `DTSTART;VALUE=DATE:${fmtDate(first.local_date)}\r\n`;
       }
-      return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
+      // Endpoints exist but are undated (relative "Day N" trips) — fall through
+      // to reservation_time rather than dropping the reservation outright.
     }
 
-    const eps = endpointsMap.get(r.id);
-    if (!eps || eps.length === 0) return null;
-    const ordered = [...eps].sort((a, b) => a.sequence - b.sequence);
-    const first = ordered[0];
-    const last = ordered[ordered.length - 1];
-    if (!isDate(first.local_date)) return null;
-    if (isTime(first.local_time)) {
-      // Transport: departure endpoint zone drives DTSTART, arrival drives DTEND.
-      // Prefer the stored IANA zone; fall back to the endpoint's coordinates.
-      const startZone = first.timezone || resolveTimeZone(first.lat, first.lng);
-      const startDt = fmtDateTime(`${first.local_date}T${first.local_time}`);
-      let out = dtLine('DTSTART', `${first.local_date}T${first.local_time}`, startZone);
-      if (last !== first && isDate(last.local_date) && isTime(last.local_time)) {
-        const endZone = last.timezone || resolveTimeZone(last.lat, last.lng);
-        const endDt = fmtDateTime(`${last.local_date}T${last.local_time}`);
-        // Wall clocks are only comparable within one zone — a valid HND→JFK
-        // arrival can read "earlier" than departure. Same zone (or both
-        // floating) with end ≤ start is bad overnight data: drop the DTEND.
-        const comparable = (startZone || null) === (endZone || null);
-        if (!comparable || endDt > startDt) out += dtLine('DTEND', `${last.local_date}T${last.local_time}`, endZone);
+    if (!r.reservation_time) return null;
+    if (!datePart(r.reservation_time)) return null; // time-only (relative "Day N" trips)
+    if (r.reservation_time.includes('T')) {
+      // Restaurants/events: derive the zone from the linked place, if any.
+      const zone = resolveTimeZone(r.place_lat, r.place_lng);
+      const startDt = fmtDateTime(r.reservation_time);
+      let out = dtLine('DTSTART', r.reservation_time, zone);
+      if (r.reservation_end_time) {
+        const endDt = fmtDateTime(r.reservation_end_time, r.reservation_time);
+        // Guard: same-zone wall clocks are chronologically comparable as
+        // fixed-width strings; drop an end that isn't after the start (bad
+        // overnight data produced invalid negative-duration VEVENTs).
+        if (endDt.length >= 15 && endDt > startDt) out += dtLine('DTEND', r.reservation_end_time, zone, r.reservation_time);
       }
       return out;
     }
-    return `DTSTART;VALUE=DATE:${fmtDate(first.local_date)}\r\n`;
+    return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
   };
 
   const buildReservationDescription = (r: any, meta: any): string => {

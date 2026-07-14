@@ -702,6 +702,28 @@ describe('exportICS', () => {
     expect(flight).not.toContain('DTEND');
   });
 
+  it('TRIP-SVC-030: flight with BOTH reservation_time and endpoints uses the endpoint zones', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Both Fields Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'SEA → HND', type: 'flight' });
+    // Import/manual edits can leave reservation_time set alongside endpoints;
+    // the endpoints carry the per-side zones and must win.
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-07-06T11:50:00', '2026-07-07T14:15:00', reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    insertEp.run(reservation.id, 'from', 0, 'Seattle', 'SEA', 47.45, -122.31, 'America/Los_Angeles', '11:50', '2026-07-06');
+    insertEp.run(reservation.id, 'to', 1, 'Tokyo Haneda', 'HND', 35.55, 139.78, 'Asia/Tokyo', '14:15', '2026-07-07');
+
+    const { ics } = exportICS(trip.id);
+
+    const flight = blockWithSummary(ics, 'SEA → HND');
+    expect(flight).toContain('DTSTART;TZID=America/Los_Angeles:20260706T115000');
+    expect(flight).toContain('DTEND;TZID=Asia/Tokyo:20260707T141500');
+    expect(flight).not.toContain('DTSTART:20260706T115000');
+  });
+
   it('TRIP-SVC-029: trip banner and day-summary events are free (TRANSP:TRANSPARENT)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Banner Trip', start_date: '2025-06-01', end_date: '2025-06-03' });
