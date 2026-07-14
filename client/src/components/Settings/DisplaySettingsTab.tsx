@@ -40,13 +40,18 @@ export default function DisplaySettingsTab(): React.ReactElement {
       {/* Display currency */}
       <div>
         <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.currency')}</label>
+        {/* Unset ('') means "no personal preference": Costs then shows each trip in its
+            own currency, instead of forcing every trip through one display currency. */}
         <CustomSelect
-          value={settings.default_currency || 'EUR'}
+          value={settings.default_currency || ''}
           onChange={async v => {
             try { await updateSetting('default_currency', String(v)) }
             catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
           }}
-          options={currenciesWith(settings.default_currency).map(c => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` }))}
+          options={[
+            { value: '', label: t('settings.currencyTrip') },
+            ...currenciesWith(settings.default_currency || '').map(c => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` })),
+          ]}
           searchable
         />
         <p className="text-xs text-content-faint mt-2">{t('settings.currencyHint')}</p>

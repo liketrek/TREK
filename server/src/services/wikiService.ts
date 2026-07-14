@@ -1,20 +1,40 @@
 import path from 'path';
-import { promises as fs } from 'fs';
+import { existsSync, promises as fs } from 'fs';
 
 /**
- * In-app Help/Wiki content, sourced from the TREK GitHub wiki (kept in the repo
- * under `wiki/**` and mirrored to the GitHub wiki on push to main). The server
- * fetches the markdown from GitHub and caches it, so the embedded help stays in
- * sync with wiki edits without a redeploy — and the client never talks to GitHub
- * directly (images are proxied too). A bundled snapshot under server/assets/wiki
- * is the cold-start / offline fallback.
+ * In-app Help/Wiki content, sourced from the `wiki/**` directory that ships with
+ * the app — the same content that CI mirrors to the public GitHub wiki. Reading
+ * from disk keeps the help pages pinned to the running version (a v1.2 install
+ * shows v1.2 docs, not whatever `main` says) and works offline.
+ *
+ * If that directory can't be resolved — an unusual layout, an image built without
+ * it — we fall back to fetching from the GitHub wiki over the network and caching
+ * hourly, so help degrades instead of disappearing. The client never talks to
+ * GitHub directly either way; images are proxied through /api/help/asset.
  */
 
 const REPO = 'mauriceboe/TREK';
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO}/main/wiki`;
-const TTL_MS = 60 * 60 * 1000; // refresh from GitHub at most hourly
-const SNAPSHOT_DIR = path.join(__dirname, '..', '..', 'assets', 'wiki');
+const TTL_MS = 60 * 60 * 1000; // remote fallback only: refresh from GitHub at most hourly
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+/**
+ * `server/{src,dist}/services` both sit three levels under the repo root, so this
+ * one anchor resolves in dev, a built source install, vitest, and Docker (where
+ * the Dockerfile copies `wiki/` to /app/wiki). `process.cwd()` would not — Docker
+ * runs the server from /app/server.
+ */
+const WIKI_DIR = process.env.TREK_WIKI_DIR ?? path.join(__dirname, '..', '..', '..', 'wiki');
+
+/**
+ * Probe for the sidebar rather than the bare directory: an empty or half-copied
+ * `wiki/` should fall back to GitHub, not serve an empty table of contents.
+ */
+const useLocalWiki = existsSync(path.join(WIKI_DIR, '_Sidebar.md'));
+
+if (!useLocalWiki) {
+  console.warn(`[help] wiki not found at ${WIKI_DIR} — falling back to the GitHub wiki (help may not match this version)`);
+}
 
 export class WikiNotFound extends Error {
   status = 404;
@@ -29,16 +49,26 @@ const assetCache = new Map<string, { buf: Buffer; type: string; ts: number }>();
 
 const fresh = (ts: number): boolean => Date.now() - ts < TTL_MS;
 
-async function readSnapshot(file: string): Promise<string | null> {
-  try {
-    return await fs.readFile(path.join(SNAPSHOT_DIR, file), 'utf8');
-  } catch {
-    return null;
-  }
+/** Resolve a path inside the wiki dir, refusing anything that escapes it. */
+function resolveInWiki(rel: string): string {
+  const root = path.resolve(WIKI_DIR);
+  const full = path.resolve(root, rel);
+  if (full !== root && !full.startsWith(root + path.sep)) throw new WikiNotFound(rel);
+  return full;
 }
 
-/** Fetch a wiki text file with cache → stale-cache → bundled-snapshot fallback. */
+/** Fetch a wiki text file: local disk, or GitHub with cache → stale-cache fallback. */
 async function fetchText(file: string): Promise<string> {
+  if (useLocalWiki) {
+    try {
+      return await fs.readFile(resolveInWiki(file), 'utf8');
+    } catch (err) {
+      if (err instanceof WikiNotFound) throw err;
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new WikiNotFound(file);
+      throw err;
+    }
+  }
+
   const cached = textCache.get(file);
   if (cached && fresh(cached.ts)) return cached.data;
   try {
@@ -53,14 +83,9 @@ async function fetchText(file: string): Promise<string> {
     if (res.status === 404) throw new WikiNotFound(file);
   } catch (err) {
     if (err instanceof WikiNotFound) throw err;
-    // network/parse error — fall through to stale cache or snapshot
+    // network/parse error — fall through to stale cache
   }
   if (cached) return cached.data; // serve stale rather than fail
-  const snap = await readSnapshot(file);
-  if (snap != null) {
-    textCache.set(file, { data: snap, ts: Date.now() });
-    return snap;
-  }
   throw new WikiNotFound(file);
 }
 
@@ -128,6 +153,9 @@ export interface WikiPage {
   markdown: string;
 }
 
+/** True when help is served from the bundled wiki rather than fetched from GitHub. */
+export const isLocalWiki = (): boolean => useLocalWiki;
+
 export async function getWikiIndex(): Promise<{ sections: WikiNavSection[] }> {
   const md = await fetchText('_Sidebar.md');
   return { sections: parseSidebar(md) };
@@ -148,13 +176,25 @@ const ASSET_TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
 };
 
-/** Proxy a wiki image so the browser never calls GitHub directly. */
+/** Read a wiki image from disk, or proxy it from GitHub so the browser never calls it directly. */
 export async function getWikiAsset(assetPath: string): Promise<{ buf: Buffer; type: string }> {
   // Defend against traversal; allow nested image folders.
   if (assetPath.includes('..') || !/^[A-Za-z0-9/._-]+$/.test(assetPath)) throw new WikiNotFound(assetPath);
   const ext = path.extname(assetPath).toLowerCase();
   const type = ASSET_TYPES[ext];
   if (!type) throw new WikiNotFound(assetPath);
+
+  if (useLocalWiki) {
+    try {
+      // resolveInWiki re-checks containment: the regex above is a filter, this is the boundary.
+      const buf = await fs.readFile(resolveInWiki(assetPath));
+      return { buf, type };
+    } catch (err) {
+      if (err instanceof WikiNotFound) throw err;
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new WikiNotFound(assetPath);
+      throw err;
+    }
+  }
 
   const cached = assetCache.get(assetPath);
   if (cached && fresh(cached.ts)) return { buf: cached.buf, type: cached.type };
@@ -171,10 +211,5 @@ export async function getWikiAsset(assetPath: string): Promise<{ buf: Buffer; ty
     /* fall through */
   }
   if (cached) return { buf: cached.buf, type: cached.type };
-  try {
-    const buf = await fs.readFile(path.join(SNAPSHOT_DIR, assetPath));
-    return { buf, type };
-  } catch {
-    throw new WikiNotFound(assetPath);
-  }
+  throw new WikiNotFound(assetPath);
 }

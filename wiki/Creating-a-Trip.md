@@ -28,6 +28,14 @@ If you leave **both** dates empty, a separate **Day count** field appears. Enter
 
 You cannot set only one date and leave the other blank via normal interaction — setting a start date auto-fills or adjusts the end date to preserve the previous duration.
 
+### Currency
+
+The trip's currency — its **accounting base**. Every expense in the Costs tab is converted into it, and every balance and settle-up suggestion is calculated in it. Defaults to **EUR**; 165 currencies are available.
+
+Pick the currency you will actually settle up in. It is not a cosmetic label, but it is not a one-way door either: you can change it later from the same dialog (with the `trip_edit` permission), and TREK re-bases the existing expenses so no money moves — see [Currencies → Changing the trip currency](Currencies#changing-the-trip-currency).
+
+> This is **not** the same as the display currency in Settings → Display, which only changes what *you* read. See [Currencies](Currencies).
+
 ### Cover Image
 
 The cover image is displayed on the trip card and as the background of the Spotlight card. You can add one in three ways:

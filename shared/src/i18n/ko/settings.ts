@@ -294,6 +294,7 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': '머신',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': '여행 통화',
   'settings.passkey.title': '패스키',
   'settings.passkey.description':
     '지문, 얼굴, PIN 또는 하드웨어 키 같은 패스키로 더 빠르고 피싱에 강하게 로그인하세요. 비밀번호는 백업으로 그대로 유지됩니다.',

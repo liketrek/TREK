@@ -28,7 +28,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     default_lng: 2.3522,
     default_zoom: 10,
     dark_mode: false,
-    default_currency: 'USD',
+    // Empty = no personal display currency, so Costs falls back to the trip's own.
+    default_currency: '',
     language: localStorage.getItem('app_language') || 'en',
     temperature_unit: 'fahrenheit',
     distance_unit: 'metric',

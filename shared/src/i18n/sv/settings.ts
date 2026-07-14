@@ -306,6 +306,7 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'Finns inte i demoläge',
   'settings.currency': 'Valuta',
   'settings.currencyHint': 'Alla belopp under kostnader omräknas till och redovisas i denna valuta.',
+  'settings.currencyTrip': 'Resans valuta',
   'settings.passkey.title': 'Inloggningsnycklar',
   'settings.passkey.description':
     'Logga in snabbare och med bättre skydd mot nätfiske med en inloggningsnyckel – ditt fingeravtryck, ditt ansikte, din PIN-kod eller en hårdvarunyckel. Ditt lösenord finns kvar som reserv.',

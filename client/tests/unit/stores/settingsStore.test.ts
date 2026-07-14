@@ -158,7 +158,10 @@ describe('settingsStore', () => {
 
       const state = useSettingsStore.getState();
       expect(state.settings.dark_mode).toBe(true);
-      expect(state.settings.default_currency).toBe('USD');
+      expect(state.settings.language).toBe('en');
+      // No display currency of their own: Costs then follows each trip's own currency
+      // rather than forcing every trip through one code.
+      expect(state.settings.default_currency).toBe('');
     });
   });
 

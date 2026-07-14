@@ -283,6 +283,7 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': '货币',
   'settings.currencyHint': '费用中的所有金额都会换算并以此货币显示。',
+  'settings.currencyTrip': '行程货币',
   'settings.passkey.title': '通行密钥',
   'settings.passkey.description':
     '使用通行密钥更快登录，并能抵御钓鱼攻击——通过指纹、面容、PIN 或硬件密钥验证。你的密码仍可作为备用方式。',

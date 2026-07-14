@@ -244,6 +244,39 @@ describe('MapViewGL', () => {
     expect(mapboxgl.Map).not.toHaveBeenCalled()
   })
 
+  it('FE-COMP-MAPVIEWGL-014: MapLibre maps disable the around-center mouse rotate (#1545)', async () => {
+    const mapboxgl = (await import('mapbox-gl')).default
+    const maplibregl = (await import('maplibre-gl')).default
+    useSettingsStore.setState({
+      settings: {
+        ...useSettingsStore.getState().settings,
+        map_provider: 'maplibre-gl',
+        mapbox_access_token: '',
+        maplibre_style: 'https://tiles.openfreemap.org/styles/liberty',
+      },
+    } as any)
+    const places = [buildMapPlace({ id: 1, lat: 48.8584, lng: 2.2945 })]
+
+    render(<MapViewGL places={places} fitKey={1} glProvider="maplibre-gl" />)
+    await act(async () => {})
+    // MapLibre 5's around-center rotate reverses direction at a drifting
+    // mid-screen line, so the map must opt out of it.
+    expect((maplibregl.Map as any).mock.calls[0][0]).toMatchObject({ aroundCenter: false })
+
+    vi.clearAllMocks()
+    useSettingsStore.setState({
+      settings: {
+        ...useSettingsStore.getState().settings,
+        map_provider: 'mapbox-gl',
+        mapbox_access_token: 'pk.test_token',
+      },
+    } as any)
+    render(<MapViewGL places={places} fitKey={1} glProvider="mapbox-gl" />)
+    await act(async () => {})
+    // mapbox-gl has no such option — it must not receive the stray key.
+    expect((mapboxgl.Map as any).mock.calls[0][0]).not.toHaveProperty('aroundCenter')
+  })
+
   it('FE-COMP-MAPVIEWGL-005: adds the clustered place source + layers so markers group on zoom-out (#1385)', async () => {
     glMap.on.mockImplementation((event: string, handlerOrLayer: unknown) => {
       if (event === 'load' && typeof handlerOrLayer === 'function') (handlerOrLayer as () => void)()

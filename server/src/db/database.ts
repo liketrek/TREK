@@ -129,11 +129,12 @@ function getPlaceWithTags(placeId: number | string): PlaceWithTags | null {
 interface TripAccess {
   id: number;
   user_id: number;
+  currency: string | null;
 }
 
 function canAccessTrip(tripId: number | string, userId: number): TripAccess | undefined {
   return db.prepare(`
-    SELECT t.id, t.user_id FROM trips t
+    SELECT t.id, t.user_id, t.currency FROM trips t
     LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
     WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
   `).get(userId, tripId, userId) as TripAccess | undefined;

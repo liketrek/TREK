@@ -362,6 +362,9 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       antialias: mapboxQuality,
     }
     if (!isMapLibre) mapOptions.projection = mapboxQuality ? 'globe' : 'mercator'
+    // MapLibre 5's around-center mouse rotate ping-pongs near mid-screen (#1545)
+    // — see MapViewGL. Keep the plain dx-based rotate everywhere.
+    if (isMapLibre) mapOptions.aroundCenter = false
 
     const map = new gl.Map(mapOptions as any)
     mapRef.current = map

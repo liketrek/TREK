@@ -300,6 +300,7 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': 'makine',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Gezi para birimi',
   'settings.passkey.title': 'Passkey’ler',
   'settings.passkey.description':
     'Passkey ile daha hızlı ve kimlik avına dayanıklı şekilde oturum açın — parmak iziniz, yüzünüz, PIN’iniz veya bir donanım anahtarı. Şifreniz yedek olarak kalır.',

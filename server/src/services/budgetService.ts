@@ -141,6 +141,61 @@ export async function freezeForeignRate(
   if (r && r > 0) data.exchange_rate = r;
 }
 
+/**
+ * Re-anchor a trip's budget when its base currency changes (#1543).
+ *
+ * Every frozen `exchange_rate` is "units of the row's currency per 1 *trip*
+ * currency", and `currency = NULL` means "the trip's own currency" — both are
+ * relative to the trip currency, so swapping it out from under them silently
+ * corrupts the settlement: NULL rows redenominate (9 000 RUB becomes 9 000 EUR)
+ * and frozen rates keep pointing at the old base, which is exactly the mismatch
+ * that inflated #1543 by ~27x.
+ *
+ * So, before the switch: pin the implicit rows to the outgoing currency (their
+ * amounts really were in it) and re-freeze every row against the incoming one.
+ * No stored amount is rewritten — each expense keeps the figure the user typed,
+ * in the currency they typed it in, and its real-world value is preserved.
+ *
+ * Must run *before* the (synchronous) trip update, while the old currency is
+ * still in `trips`, and is a no-op when the currency isn't actually changing.
+ */
+export async function rebaseTripCurrency(
+  tripId: string | number,
+  newCurrency: string | null | undefined,
+): Promise<void> {
+  const next = (newCurrency || '').toUpperCase();
+  if (!next) return;
+  const trip = db.prepare('SELECT currency FROM trips WHERE id = ?')
+    .get(tripId) as { currency?: string } | undefined;
+  if (!trip) return;
+  const prev = (trip.currency || 'EUR').toUpperCase();
+  if (prev === next) return;
+
+  const rates = await getRates(next);
+  // A row already denominated in the new base needs no conversion (rate 1). When no
+  // live rate is available we also store 1 rather than a stale one: rate 1 means "not
+  // frozen", so the settlement falls back to live rates instead of trusting a figure
+  // anchored to a currency this trip no longer uses.
+  const rateFor = (cur: string): number => {
+    if (cur === next) return 1;
+    const r = rates?.[cur];
+    return r && r > 0 ? r : 1;
+  };
+
+  const rebase = (table: 'budget_items' | 'budget_settlements') => {
+    db.prepare(`UPDATE ${table} SET currency = ? WHERE trip_id = ? AND (currency IS NULL OR currency = '')`)
+      .run(prev, tripId);
+    const rows = db.prepare(`SELECT DISTINCT currency AS cur FROM ${table} WHERE trip_id = ? AND currency IS NOT NULL`)
+      .all(tripId) as { cur: string }[];
+    for (const { cur } of rows) {
+      db.prepare(`UPDATE ${table} SET exchange_rate = ? WHERE trip_id = ? AND currency = ?`)
+        .run(rateFor(cur.toUpperCase()), tripId, cur);
+    }
+  };
+
+  db.transaction(() => { rebase('budget_items'); rebase('budget_settlements'); })();
+}
+
 export function createBudgetItem(
   tripId: string | number,
   data: {

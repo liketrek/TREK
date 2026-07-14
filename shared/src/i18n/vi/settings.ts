@@ -308,6 +308,7 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'Không có sẵn ở chế độ demo',
   'settings.currency': 'Tiền tệ',
   'settings.currencyHint': 'Tất cả số tiền trong Chi phí được chuyển đổi sang và hiển thị bằng loại tiền tệ này.',
+  'settings.currencyTrip': 'Tiền tệ của chuyến đi',
   'settings.passkey.title': 'Mật mã',
   'settings.passkey.description':
     'Đăng nhập nhanh hơn và chống lừa đảo bằng mật mã — vân tay, khuôn mặt, PIN hoặc khóa phần cứng của bạn. Mật khẩu của bạn vẫn là bản sao lưu.',

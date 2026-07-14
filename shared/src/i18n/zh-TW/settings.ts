@@ -285,6 +285,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint': '在地圖上顯示車站 / 機場名稱。關閉時僅顯示圖示。',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': '行程貨幣',
   'settings.passkey.title': 'Passkey',
   'settings.passkey.description':
     '使用 Passkey 更快登入，並可抵禦網路釣魚——透過你的指紋、臉部、PIN 碼或硬體金鑰。你的密碼仍會保留作為備援。',

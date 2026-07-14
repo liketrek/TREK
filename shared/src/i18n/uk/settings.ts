@@ -302,6 +302,7 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': 'машина',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Валюта подорожі',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Входьте швидше та з захистом від фішингу за допомогою passkey — відбитка пальця, обличчя, PIN-коду або апаратного ключа. Ваш пароль залишається як резервний варіант.',

@@ -291,6 +291,11 @@ export function MapViewGL({
       antialias: mapboxQuality,
     }
     if (!isMapLibre) mapOptions.projection = mapboxQuality ? 'globe' : 'mercator'
+    // MapLibre 5's mouse-rotate inverts its sign at a mid-screen line it gets by
+    // re-projecting the map center — a line that drifts with the bearing, so a
+    // right-button drag near mid-screen ping-pongs instead of rotating (#1545).
+    // aroundCenter: false restores the plain dx-based rotate mapbox-gl uses.
+    if (isMapLibre) mapOptions.aroundCenter = false
 
     const map = new gl.Map(mapOptions as any)
     mapRef.current = map

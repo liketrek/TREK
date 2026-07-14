@@ -290,6 +290,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate', // en-fallback
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'عملة الرحلة',
   'settings.passkey.title': 'مفاتيح المرور',
   'settings.passkey.description':
     'سجّل الدخول بشكل أسرع وأكثر مقاومة للتصيّد باستخدام مفتاح مرور — ببصمة إصبعك أو وجهك أو رمز PIN أو مفتاح أمان مادي. تبقى كلمة المرور كنسخة احتياطية.',

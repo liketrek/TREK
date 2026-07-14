@@ -309,6 +309,7 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'Not available in demo mode',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Trip currency',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Sign in faster and phishing-resistant with a passkey — your fingerprint, face, PIN, or a hardware key. Your password stays as a backup.',

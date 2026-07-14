@@ -13,6 +13,9 @@ data:
   {{- if .Values.env.LOG_LEVEL }}
   LOG_LEVEL: {{ .Values.env.LOG_LEVEL | quote }}
   {{- end }}
+  {{- if .Values.env.TREK_WIKI_DIR }}
+  TREK_WIKI_DIR: {{ .Values.env.TREK_WIKI_DIR | quote }}
+  {{- end }}
   {{- if .Values.env.ALLOWED_ORIGINS }}
   ALLOWED_ORIGINS: {{ .Values.env.ALLOWED_ORIGINS | quote }}
   {{- end }}

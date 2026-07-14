@@ -302,6 +302,7 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': 'Валюта',
   'settings.currencyHint': 'Все расходы будут конвертированы и показаны в этой валюте.',
+  'settings.currencyTrip': 'Валюта поездки',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Входите быстрее и с защитой от фишинга с помощью passkey — отпечатка пальца, лица, PIN-кода или аппаратного ключа. Ваш пароль остаётся как резервный способ.',

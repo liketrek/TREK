@@ -71,6 +71,10 @@ COPY --from=server-builder /app/server/dist ./server/dist
 # only emits dist, so these must be copied explicitly or the features silently
 # degrade to empty in the image.
 COPY --from=server-builder /app/server/assets ./server/assets
+# The in-app help pages (/help) read this straight from disk at runtime, so the
+# docs always match the version running. Without it, wikiService falls back to
+# fetching the GitHub wiki, which tracks main and needs network access.
+COPY wiki ./wiki
 # tsconfig-paths/register reads this at runtime to resolve MCP SDK paths.
 COPY server/tsconfig.json ./server/
 # Encryption-key rotation is run on demand via tsx (a prod dep) straight from the

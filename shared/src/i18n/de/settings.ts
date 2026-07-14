@@ -305,6 +305,7 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': 'Währung',
   'settings.currencyHint': 'Alle Beträge in Costs werden in diese Währung umgerechnet und angezeigt.',
+  'settings.currencyTrip': 'Reisewährung',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Melde dich schneller und phishing-resistent mit einem Passkey an — per Fingerabdruck, Gesicht, PIN oder Hardware-Schlüssel. Dein Passwort bleibt als Backup erhalten.',

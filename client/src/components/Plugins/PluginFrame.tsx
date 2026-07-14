@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useTripStore } from '../../store/tripStore'
 import { useToast } from '../shared/Toast'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { pluginsApi } from '../../api/client'
@@ -141,6 +142,10 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   const userAvatar = useAuthStore((s) => s.user?.avatar_url ?? null)
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin')
   const settings = useSettingsStore((s) => s.settings)
+  // Plugins format money against a concrete code, so resolve the same chain Costs
+  // uses: the user's display currency, else the trip's own.
+  const tripCurrency = useTripStore((s) => s.trip?.currency)
+  const displayCurrency = (settings.default_currency || tripCurrency || 'EUR').toUpperCase()
   const [height, setHeight] = useState<number | null>(null)
   // A host-rendered ConfirmDialog on the plugin's behalf: sandboxed frames have no
   // allow-modals and can't overlay the host, so destructive plugin actions get the
@@ -177,7 +182,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
     appearance: readAppearance(),
     formats: {
       locale,
-      currency: settings.default_currency,
+      currency: displayCurrency,
       timeFormat: settings.time_format,
       distanceUnit: settings.distance_unit,
       temperatureUnit: settings.temperature_unit,

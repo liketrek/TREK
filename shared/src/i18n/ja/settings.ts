@@ -278,6 +278,7 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': 'マシン',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': '旅行の通貨',
   'settings.passkey.title': 'パスキー',
   'settings.passkey.description':
     '指紋、顔認証、PIN、またはハードウェアキーを使うパスキーで、より速く、フィッシングに強いサインインができます。パスワードはバックアップとして残ります。',
