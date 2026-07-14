@@ -1,10 +1,10 @@
 import { canAccessTrip } from '../../db/database';
-import { isDemoUser } from '../../services/authService';
 import { RateLimitService } from '../../nest/auth/rate-limit.service';
-import { haversineKm } from '../../services/distanceService';
+import { isDemoUser } from '../../services/authService';
 import { getDay, listDays } from '../../services/dayService';
+import { haversineKm } from '../../services/distanceService';
 import { createReservation, notifyBookingChange, type EndpointInput } from '../../services/reservationService';
-import { resolveTimeZone } from '../../services/timezoneService';
+import { localParts, resolveTimeZone } from '../../services/timezoneService';
 import {
   geocode,
   plan,
@@ -44,7 +44,10 @@ const transitStopSchema = transitPlaceSchema.extend({
 
 const transitLegModes = z.enum(['WALK', ...SCHEDULED_TRANSIT_MODES]);
 
-const colorSchema = z.string().regex(/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/).nullable();
+const colorSchema = z
+  .string()
+  .regex(/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/)
+  .nullable();
 
 const transitLegSchema = z.object({
   mode: transitLegModes,
@@ -101,21 +104,10 @@ function rateLimit(userId: number, bucket: string, max: number) {
   };
 }
 
-function localParts(iso: string, timezone: string): { date: string; time: string } {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(new Date(iso));
-  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? '';
-  return {
-    date: `${value('year')}-${value('month')}-${value('day')}`,
-    time: `${value('hour')}:${value('minute')}`,
-  };
+function transitLocalParts(iso: string, timezone: string): { date: string; time: string } {
+  const parts = localParts(iso, timezone);
+  if (!parts.date || !parts.time) throw new Error(`Unable to convert ${iso} to local time in ${timezone}.`);
+  return { date: parts.date, time: parts.time };
 }
 
 function timezoneAt(lat: number, lng: number): string {
@@ -150,8 +142,8 @@ function buildEndpoints(
 ): EndpointInput[] {
   const fromTimezone = timezoneAt(from.lat, from.lng);
   const toTimezone = timezoneAt(to.lat, to.lng);
-  const departure = localParts(itinerary.startTime, fromTimezone);
-  const arrival = localParts(itinerary.endTime, toTimezone);
+  const departure = transitLocalParts(itinerary.startTime, fromTimezone);
+  const arrival = transitLocalParts(itinerary.endTime, toTimezone);
   const transitLegs = itinerary.legs.filter((leg) => leg.mode !== 'WALK');
   const endpoints: EndpointInput[] = [
     {
@@ -170,7 +162,7 @@ function buildEndpoints(
   transitLegs.slice(0, -1).forEach((leg, index) => {
     const stop = leg.to;
     const timezone = timezoneAt(stop.lat, stop.lng);
-    const local = stop.time ? localParts(stop.time, timezone) : null;
+    const local = stop.time ? transitLocalParts(stop.time, timezone) : null;
     endpoints.push({
       role: 'stop',
       sequence: index + 1,
@@ -223,12 +215,12 @@ function buildMetadata(itinerary: TransitItinerary) {
         stops: leg.intermediateStops,
         from: {
           name: leg.from.name,
-          time: leg.from.time ? localParts(leg.from.time, timezoneAt(leg.from.lat, leg.from.lng)).time : null,
+          time: leg.from.time ? transitLocalParts(leg.from.time, timezoneAt(leg.from.lat, leg.from.lng)).time : null,
           track: leg.from.track,
         },
         to: {
           name: leg.to.name,
-          time: leg.to.time ? localParts(leg.to.time, timezoneAt(leg.to.lat, leg.to.lng)).time : null,
+          time: leg.to.time ? transitLocalParts(leg.to.time, timezoneAt(leg.to.lat, leg.to.lng)).time : null,
           track: leg.to.track,
         },
         geometry: leg.geometry,
@@ -338,7 +330,9 @@ export function registerTransitTools(server: McpServer, userId: number, scopes: 
       const lastStop = cleaned.legs[cleaned.legs.length - 1].to;
       if (!coordinatesMatch(from, firstStop) || !coordinatesMatch(to, lastStop)) {
         return {
-          content: [{ type: 'text' as const, text: 'The itinerary does not match the requested origin and destination.' }],
+          content: [
+            { type: 'text' as const, text: 'The itinerary does not match the requested origin and destination.' },
+          ],
           isError: true,
         };
       }
@@ -353,11 +347,19 @@ export function registerTransitTools(server: McpServer, userId: number, scopes: 
       const departure = endpoints[0];
       const arrival = endpoints[endpoints.length - 1];
       if (!day.date) {
-        return { content: [{ type: 'text' as const, text: 'Automated transit requires a dated trip day.' }], isError: true };
+        return {
+          content: [{ type: 'text' as const, text: 'Automated transit requires a dated trip day.' }],
+          isError: true,
+        };
       }
       if (departure.local_date !== day.date) {
         return {
-          content: [{ type: 'text' as const, text: `The journey departs on ${departure.local_date}, but dayId is ${day.date}.` }],
+          content: [
+            {
+              type: 'text' as const,
+              text: `The journey departs on ${departure.local_date}, but dayId is ${day.date}.`,
+            },
+          ],
           isError: true,
         };
       }

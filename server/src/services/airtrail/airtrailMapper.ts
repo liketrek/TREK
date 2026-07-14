@@ -1,6 +1,8 @@
-import * as crypto from 'node:crypto';
+import { localParts } from '../timezoneService';
 import type { AirtrailAirport, AirtrailFlightRaw, AirtrailNamedCode } from './airtrailClient';
 import type { AirtrailFlight } from '@trek/shared';
+
+import * as crypto from 'node:crypto';
 
 /** Preferred display/lookup code for an airport. */
 function airportCode(a: AirtrailAirport | null): string | null {
@@ -24,37 +26,6 @@ export function entityName(e: AirtrailNamedCode | null | undefined): string | nu
   return e?.name || e?.icao || e?.iata || null;
 }
 
-/**
- * Local calendar date + clock time for an instant at a given IANA zone.
- * AirTrail stores `departure`/`arrival` as instants (ISO w/ offset) plus a local
- * `date`; the airport-local wall time is what TREK shows and files days by.
- */
-function localParts(iso: string | null, tz: string | null): { date: string | null; time: string | null } {
-  if (!iso) return { date: null, time: null };
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return { date: null, time: null };
-    const fmt = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz || 'UTC',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-    const parts = fmt.formatToParts(d);
-    const get = (t: string) => parts.find(p => p.type === t)?.value ?? '';
-    const date = `${get('year')}-${get('month')}-${get('day')}`;
-    let hh = get('hour');
-    if (hh === '24') hh = '00'; // some ICU builds emit 24:00 for midnight
-    const time = `${hh}:${get('minute')}`;
-    return { date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null, time };
-  } catch {
-    return { date: null, time: null };
-  }
-}
-
 /** Raw AirTrail flight → the normalized shape the import picker consumes. */
 export function normalizeFlight(raw: AirtrailFlightRaw): AirtrailFlight {
   return {
@@ -69,7 +40,7 @@ export function normalizeFlight(raw: AirtrailFlightRaw): AirtrailFlight {
     airline: entityName(raw.airline),
     flightNumber: raw.flightNumber ?? null,
     aircraft: entityCode(raw.aircraft),
-    seatClass: (raw.seats?.find(s => s.userId) ?? raw.seats?.[0])?.seatClass ?? null,
+    seatClass: (raw.seats?.find((s) => s.userId) ?? raw.seats?.[0])?.seatClass ?? null,
   };
 }
 
@@ -153,7 +124,7 @@ export function mapFlightToReservation(raw: AirtrailFlightRaw): MappedReservatio
     needsReview = 1;
   }
 
-  const seat = raw.seats?.find(s => s.userId) ?? raw.seats?.[0];
+  const seat = raw.seats?.find((s) => s.userId) ?? raw.seats?.[0];
   const airlineName = entityName(raw.airline);
   const airlineCode = entityCode(raw.airline);
   const aircraftCode = entityCode(raw.aircraft);
@@ -207,7 +178,7 @@ export function mapFlightsToMultiLegReservation(
 ): MappedReservation {
   if (flights.length === 1) return mapFlightToReservation(flights[0]);
 
-  let needsReview = flights.some(f => f.datePrecision && f.datePrecision !== 'day') ? 1 : 0;
+  let needsReview = flights.some((f) => f.datePrecision && f.datePrecision !== 'day') ? 1 : 0;
   const endpoints: MappedEndpoint[] = [];
   const legs: Record<string, unknown>[] = [];
 
@@ -250,13 +221,13 @@ export function mapFlightsToMultiLegReservation(
         lng: f.to.lon,
         timezone: f.to.tz,
         local_time: isLast ? arr.time : (nextDep?.time ?? null),
-        local_date: isLast ? arr.date : (next?.date || nextDep?.date || null),
+        local_date: isLast ? arr.date : next?.date || nextDep?.date || null,
       });
     } else {
       needsReview = 1;
     }
 
-    const seat = f.seats?.find(s => s.userId) ?? f.seats?.[0];
+    const seat = f.seats?.find((s) => s.userId) ?? f.seats?.[0];
     const airline = entityName(f.airline);
     legs.push({
       from: airportCode(f.from),
@@ -270,7 +241,9 @@ export function mapFlightsToMultiLegReservation(
       ...(seat?.seatNumber ? { seat: seat.seatNumber } : {}),
     });
   });
-  endpoints.forEach((e, i) => { e.sequence = i; });
+  endpoints.forEach((e, i) => {
+    e.sequence = i;
+  });
 
   const last = flights[flights.length - 1];
   const lastArr = localParts(last.arrivalScheduled ?? last.arrival, last.to?.tz ?? null);
@@ -284,7 +257,7 @@ export function mapFlightsToMultiLegReservation(
   const aircraftCode = entityCode(first.aircraft);
   const metadata: Record<string, unknown> = {
     legs,
-    airtrail_ids: flights.map(f => String(f.id)),
+    airtrail_ids: flights.map((f) => String(f.id)),
   };
   if (airlineName) metadata.airline = airlineName;
   if (airlineCode) metadata.airline_code = airlineCode;
@@ -294,8 +267,8 @@ export function mapFlightsToMultiLegReservation(
   if (toCode) metadata.arrival_airport = toCode;
   if (legs[0]?.seat) metadata.seat = legs[0].seat;
 
-  const route = [fromCode, ...flights.map(f => airportCode(f.to))].filter(Boolean).join(' → ');
-  const notes = [...new Set(flights.map(f => f.note?.trim()).filter((n): n is string => !!n))].join('\n') || null;
+  const route = [fromCode, ...flights.map((f) => airportCode(f.to))].filter(Boolean).join(' → ');
+  const notes = [...new Set(flights.map((f) => f.note?.trim()).filter((n): n is string => !!n))].join('\n') || null;
 
   return {
     title: route || first.flightNumber?.trim() || 'Flight',
@@ -334,7 +307,7 @@ export function canonicalHash(raw: AirtrailFlightRaw): string {
     flightReason: raw.flightReason ?? null,
     note: raw.note ?? null,
     seats: (raw.seats ?? [])
-      .map(s => ({
+      .map((s) => ({
         userId: s.userId ?? null,
         guestName: s.guestName ?? null,
         seat: s.seat ?? null,
