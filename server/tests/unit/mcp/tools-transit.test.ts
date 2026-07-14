@@ -468,4 +468,54 @@ describe('MCP transit tools', () => {
       expect(metadata.transit.legs[1].from.time).toBe('09:05');
     });
   });
+
+  // The provider's response taxonomy is wider than the mode whitelist a caller may request:
+  // MOTIS's default TRANSIT expands to include AIRPLANE, ODM, RIDE_SHARING and OTHER. Norway's
+  // GTFS, for one, routes Trondheim → Ålesund over AIRPLANE legs. Those itineraries must survive
+  // the search and be persistable, exactly as they are in the web app.
+  it('accepts provider leg modes outside the requestable mode whitelist', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-12-03', end_date: '2026-12-03' });
+    const day = testDb.prepare('SELECT * FROM days WHERE trip_id = ?').get(trip.id) as any;
+    const flying = {
+      ...itinerary,
+      legs: itinerary.legs.map((leg) => (leg.mode === 'WALK' ? leg : { ...leg, mode: 'AIRPLANE' })),
+    };
+    planMock.mockResolvedValue({ itineraries: [flying] });
+
+    await withHarness(user.id, ['geo:read'], async (harness) => {
+      const routes = parseToolResult(
+        await harness.client.callTool({ name: 'search_transit_routes', arguments: { from, to } }),
+      ) as any;
+      expect(routes.itineraries).toHaveLength(1);
+      expect(routes.itineraries[0].legs[1].mode).toBe('AIRPLANE');
+      expect(routes.dropped).toBe(0);
+    });
+
+    await withHarness(user.id, ['reservations:write'], async (harness) => {
+      const result = parseToolResult(
+        await harness.client.callTool({
+          name: 'create_transit_journey',
+          arguments: { tripId: trip.id, dayId: day.id, from, to, itinerary: flying },
+        }),
+      ) as any;
+      expect(result.reservation.type).toBe('transit');
+      const metadata = JSON.parse(result.reservation.metadata);
+      expect(metadata.transit.legs[1].mode).toBe('AIRPLANE');
+    });
+  });
+
+  it('reports how many provider itineraries failed validation', async () => {
+    const { user } = createUser(testDb);
+    const walkOnly = { ...itinerary, legs: [itinerary.legs[0]] };
+    planMock.mockResolvedValue({ itineraries: [itinerary, walkOnly] });
+
+    await withHarness(user.id, ['geo:read'], async (harness) => {
+      const routes = parseToolResult(
+        await harness.client.callTool({ name: 'search_transit_routes', arguments: { from, to } }),
+      ) as any;
+      expect(routes.itineraries).toHaveLength(1);
+      expect(routes.dropped).toBe(1);
+    });
+  });
 });

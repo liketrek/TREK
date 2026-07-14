@@ -1,7 +1,7 @@
 import { haversineKm } from './distanceService';
 import type { EndpointInput } from './reservationService';
 import { localParts, resolveTimeZone } from './timezoneService';
-import { deriveTransitStats, SCHEDULED_TRANSIT_MODES, type TransitItinerary, type TransitLeg } from './transitService';
+import { deriveTransitStats, type TransitItinerary, type TransitLeg } from './transitService';
 
 import { z } from 'zod';
 
@@ -24,7 +24,19 @@ const transitStopSchema = transitPlaceSchema.extend({
   track: z.string().max(100).nullable(),
 });
 
-const transitLegModes = z.enum(['WALK', ...SCHEDULED_TRANSIT_MODES]);
+// SCHEDULED_TRANSIT_MODES is the *request* whitelist — what a caller may filter by. The
+// provider's response taxonomy is wider: MOTIS's default TRANSIT expands to
+// TRAM,FERRY,AIRPLANE,BUS,COACH,RAIL,ODM,RIDE_SHARING,FUNICULAR,AERIAL_LIFT,OTHER, and a leg
+// can also be a street mode (BIKE/CAR/RENTAL). Validating legs against the request whitelist
+// silently dropped every itinerary containing e.g. an AIRPLANE leg. transitService already
+// uppercases the mode and defaults it to WALK, so accept any mode token and let the
+// "at least one non-WALK leg" rule below do the gating — exactly as the web client does,
+// which treats mode as a free string.
+const transitLegModes = z
+  .string()
+  .min(1)
+  .max(40)
+  .regex(/^[A-Z_]+$/);
 
 const colorSchema = z
   .string()

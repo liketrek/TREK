@@ -79,7 +79,7 @@ export function registerTransitTools(server: McpServer, userId: number, scopes: 
       'search_transit_routes',
       {
         description:
-          'Search scheduled public-transit routes via Transitous between two coordinates. Returns itineraries that can be passed unchanged to create_transit_journey.',
+          'Search scheduled public-transit routes via Transitous between two coordinates. Returns itineraries that can be passed unchanged to create_transit_journey. `dropped` counts provider itineraries that failed validation and are therefore absent from the results — a non-zero value means the provider offered routes this tool could not represent.',
         inputSchema: {
           from: transitPlaceSchema,
           to: transitPlaceSchema,
@@ -115,7 +115,10 @@ export function registerTransitTools(server: McpServer, userId: number, scopes: 
               ? [parsed.data]
               : [];
           });
-          return ok({ itineraries });
+          // A rejected itinerary is provider data we could not vouch for, but dropping it
+          // silently is indistinguishable from "no routes exist" — report the count so the
+          // caller knows the difference.
+          return ok({ itineraries, dropped: result.itineraries.length - itineraries.length });
         } catch (err) {
           return errorResult(err, 'Transit route search failed.');
         }
