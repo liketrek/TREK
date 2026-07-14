@@ -687,6 +687,23 @@ describe('TripPlannerPage', () => {
         expect(capturedMapViewProps.current.fitKey).toBe(initialFitKey + 1);
       });
     });
+
+    it('leaves the opening camera to the map instead of passing a default centre', async () => {
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('map-view')).toBeInTheDocument();
+      });
+
+      // The map frames itself on the trip's places at mount; a center/zoom from settings
+      // would only fight that.
+      expect(capturedMapViewProps.current.center).toBeUndefined();
+      expect(capturedMapViewProps.current.zoom).toBeUndefined();
+    });
   });
 
   describe('FE-PAGE-PLANNER-020b: the transit (tram) action needs trip dates', () => {

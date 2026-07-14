@@ -19,6 +19,7 @@ import type { Place, Reservation } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { buildPoiPopupHtml } from './placePopup'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
+import { computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -285,17 +286,31 @@ export function MapViewGL({
     () => routeCoords.map(([lat, lng]) => `${lat.toFixed(6)},${lng.toFixed(6)}`).join('|'),
     [routeCoords],
   )
+  // Set when the map was built already framed on its places, so the fit below knows there is
+  // nothing left to do on mount.
+  const framedOnMountRef = useRef(false)
 
   // Build/rebuild the map on provider/style/token/3d change
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !mapboxToken)) return
     if (!isMapLibre) mapboxgl.accessToken = mapboxToken
 
+    // Open framed on the places rather than on the caller's default: a trip in Japan should
+    // show Japan straight away, not the world view followed by a flight across the planet.
+    // Reading them here is what makes this "on load" — the map is built once, and the trip's
+    // places are already loaded by then (TripPlannerPage holds a splash until they are).
+    const framed = computeMapViewport(dayPlaces.length > 0 ? dayPlaces : places, {
+      tileSize: TILE_SIZE_GL,
+      padding: paddingOpts,
+    })
+    framedOnMountRef.current = framed !== null
+    const initial = framed ?? { center, zoom }
+
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,
       style: glStyle,
-      center: [center[1], center[0]],
-      zoom,
+      center: [initial.center[1], initial.center[0]],
+      zoom: initial.zoom,
       pitch: enableMapbox3d ? 45 : 0,
       attributionControl: true,
       antialias: mapboxQuality,
@@ -947,6 +962,7 @@ export function MapViewGL({
 
   const prevFitKey = useRef<number | null>(-1)
   const pendingRouteFitRef = useRef<{ fitKey: number | null; routeKey: string } | null>(null)
+  const fitRanRef = useRef(false)
   useEffect(() => {
     const fitKeyChanged = fitKey !== prevFitKey.current
     const routeArrivedForPendingFit =
@@ -957,6 +973,17 @@ export function MapViewGL({
     if (!fitKeyChanged && !routeArrivedForPendingFit) return
     const map = mapRef.current
     if (!map) return
+
+    // The map was built framed on these very places, so fitting now would only re-do that —
+    // and its maxZoom would overrule the gentler zoom a single place opens at. Adopt the
+    // current fitKey and stand down; every later fit (picking a day) still runs.
+    if (!fitRanRef.current && framedOnMountRef.current) {
+      fitRanRef.current = true
+      prevFitKey.current = fitKey
+      pendingRouteFitRef.current = null
+      return
+    }
+    fitRanRef.current = true
     if (fitKeyChanged) {
       prevFitKey.current = fitKey
       // Only wait for better geometry when a route is already on screen: the day's

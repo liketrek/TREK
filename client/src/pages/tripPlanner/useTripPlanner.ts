@@ -870,8 +870,6 @@ export function useTripPlanner() {
   }, [selectedDayId, assignments])
 
   const mapTileUrl = settings.map_tile_url || 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-  const defaultCenter = [settings.default_lat ?? DEFAULT_MAP_LAT, settings.default_lng ?? DEFAULT_MAP_LNG]
-  const defaultZoom = settings.default_zoom ?? DEFAULT_MAP_ZOOM
 
   const fontStyle = { fontFamily: "var(--font-system)" }
 
@@ -918,6 +916,6 @@ export function useTripPlanner() {
     handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
-    mapTileUrl, defaultCenter, defaultZoom, fontStyle, splashDone,
+    mapTileUrl, fontStyle, splashDone,
   }
 }

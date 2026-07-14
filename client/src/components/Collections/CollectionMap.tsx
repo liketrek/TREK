@@ -2,7 +2,6 @@ import React from 'react'
 import { MapViewAuto } from '../Map/MapViewAuto'
 import type { CollectionPlace } from '@trek/shared'
 import { mappablePlaces } from '../../pages/collections/collectionsModel'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 
 interface CollectionMapProps {
   places: CollectionPlace[]
@@ -21,9 +20,6 @@ interface CollectionMapProps {
  */
 export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, onDeselect, dark }: CollectionMapProps): React.ReactElement {
   const pts = mappablePlaces(places)
-  const center: [number, number] = pts.length > 0
-    ? [pts[0].lat as number, pts[0].lng as number]
-    : DEFAULT_MAP_CENTER
   const tileUrl = dark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
@@ -36,8 +32,8 @@ export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, on
         hoverDisabled
         onMarkerClick={onOpenPlace}
         onMapClick={onDeselect ? () => onDeselect() : undefined}
-        center={center}
-        zoom={pts.length > 0 ? 6 : DEFAULT_MAP_ZOOM}
+        // No center/zoom: the map frames itself on the collection's places at mount, and
+        // falls back to the world view for a collection with none.
         tileUrl={tileUrl}
         fitKey={pts.length}
       />
