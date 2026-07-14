@@ -20,7 +20,7 @@ import {
   ok,
   permissionDenied,
   safeBroadcast,
-  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
 } from './_shared';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
@@ -28,17 +28,23 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
 
 const TRANSIT_RATE_WINDOW = 15 * 60 * 1000;
+const MAX_ENDPOINT_DISTANCE_KM = 0.1;
+const MAX_LEG_GAP_KM = 1;
+const TIME_TOLERANCE_MS = 60_000;
 const transitRateLimiter = new RateLimitService();
 
-const transitPlaceSchema = z.object({
-  name: z.string().min(1).max(300),
+const transitCoordinatesSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
 });
 
+const transitPlaceSchema = transitCoordinatesSchema.extend({
+  name: z.string().min(1).max(300),
+});
+
 const transitStopSchema = transitPlaceSchema.extend({
-  time: z.string().nullable(),
-  scheduledTime: z.string().nullable(),
+  time: z.string().datetime({ offset: true }).nullable(),
+  scheduledTime: z.string().datetime({ offset: true }).nullable(),
   track: z.string().max(100).nullable(),
 });
 
@@ -48,6 +54,10 @@ const colorSchema = z
   .string()
   .regex(/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/)
   .nullable();
+
+function effectiveStopTime(stop: { time?: string | null; scheduledTime?: string | null }): string | null {
+  return stop.time ?? stop.scheduledTime ?? null;
+}
 
 const transitLegSchema = z.object({
   mode: transitLegModes,
@@ -75,15 +85,89 @@ const transitItinerarySchema = z
     legs: z.array(transitLegSchema).min(1).max(20),
   })
   .superRefine((itinerary, context) => {
-    if (new Date(itinerary.endTime).getTime() <= new Date(itinerary.startTime).getTime()) {
+    const startTime = new Date(itinerary.startTime).getTime();
+    const endTime = new Date(itinerary.endTime).getTime();
+    if (endTime <= startTime) {
       context.addIssue({ code: 'custom', message: 'endTime must be after startTime', path: ['endTime'] });
     }
     if (!itinerary.legs.some((leg) => leg.mode !== 'WALK')) {
       context.addIssue({ code: 'custom', message: 'At least one scheduled transit leg is required', path: ['legs'] });
     }
+    const maximumTransfers = Math.max(0, itinerary.legs.filter((leg) => leg.mode !== 'WALK').length - 1);
+    if (itinerary.transfers > maximumTransfers) {
+      context.addIssue({
+        code: 'custom',
+        message: 'transfers exceeds the number of transit legs',
+        path: ['transfers'],
+      });
+    }
     const geometrySize = itinerary.legs.reduce((total, leg) => total + (leg.geometry?.length ?? 0), 0);
     if (geometrySize > 60_000) {
       context.addIssue({ code: 'custom', message: 'Combined transit geometry is too large', path: ['legs'] });
+    }
+    itinerary.legs.forEach((leg, index) => {
+      const effectiveFromTime = effectiveStopTime(leg.from);
+      const effectiveToTime = effectiveStopTime(leg.to);
+      const fromTime = effectiveFromTime ? new Date(effectiveFromTime).getTime() : null;
+      const toTime = effectiveToTime ? new Date(effectiveToTime).getTime() : null;
+      if (fromTime === null || toTime === null) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Every leg requires departure and arrival times',
+          path: ['legs', index],
+        });
+        return;
+      }
+      if (toTime < fromTime) {
+        context.addIssue({ code: 'custom', message: 'Leg arrival must not precede departure', path: ['legs', index] });
+      }
+      if (Math.abs(toTime - fromTime - leg.duration * 1000) > TIME_TOLERANCE_MS) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Leg duration does not match its times',
+          path: ['legs', index, 'duration'],
+        });
+      }
+      if (fromTime < startTime || toTime > endTime) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Leg times must stay within the itinerary',
+          path: ['legs', index],
+        });
+      }
+      if (index === 0) return;
+      const previous = itinerary.legs[index - 1];
+      if (haversineKm(previous.to.lat, previous.to.lng, leg.from.lat, leg.from.lng) > MAX_LEG_GAP_KM) {
+        context.addIssue({ code: 'custom', message: 'Adjacent legs are not connected', path: ['legs', index, 'from'] });
+      }
+      const previousTime = effectiveStopTime(previous.to);
+      if (
+        previousTime &&
+        effectiveFromTime &&
+        new Date(effectiveFromTime).getTime() < new Date(previousTime).getTime()
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Adjacent legs are not chronological',
+          path: ['legs', index, 'from', 'time'],
+        });
+      }
+    });
+    const firstDeparture = effectiveStopTime(itinerary.legs[0].from);
+    const lastArrival = effectiveStopTime(itinerary.legs[itinerary.legs.length - 1].to);
+    if (!firstDeparture || Math.abs(new Date(firstDeparture).getTime() - startTime) > TIME_TOLERANCE_MS) {
+      context.addIssue({
+        code: 'custom',
+        message: 'First leg must start with the itinerary',
+        path: ['legs', 0, 'from', 'time'],
+      });
+    }
+    if (!lastArrival || Math.abs(new Date(lastArrival).getTime() - endTime) > TIME_TOLERANCE_MS) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Last leg must end with the itinerary',
+        path: ['legs', itinerary.legs.length - 1, 'to', 'time'],
+      });
     }
   });
 
@@ -120,7 +204,7 @@ function coordinatesMatch(
   expected: z.infer<typeof transitPlaceSchema>,
   actual: z.infer<typeof transitPlaceSchema>,
 ): boolean {
-  return haversineKm(expected.lat, expected.lng, actual.lat, actual.lng) <= 0.1;
+  return haversineKm(expected.lat, expected.lng, actual.lat, actual.lng) <= MAX_ENDPOINT_DISTANCE_KM;
 }
 
 function cleanItineraryNames(itinerary: TransitItinerary, fromName: string, toName: string): TransitItinerary {
@@ -162,7 +246,8 @@ function buildEndpoints(
   transitLegs.slice(0, -1).forEach((leg, index) => {
     const stop = leg.to;
     const timezone = timezoneAt(stop.lat, stop.lng);
-    const local = stop.time ? transitLocalParts(stop.time, timezone) : null;
+    const stopTime = effectiveStopTime(stop);
+    const local = stopTime ? transitLocalParts(stopTime, timezone) : null;
     endpoints.push({
       role: 'stop',
       sequence: index + 1,
@@ -204,28 +289,32 @@ function buildMetadata(itinerary: TransitItinerary) {
       duration,
       transfers: itinerary.transfers,
       walk_seconds: walkSeconds,
-      legs: itinerary.legs.map((leg: TransitLeg) => ({
-        mode: leg.mode,
-        line: leg.line,
-        line_color: leg.lineColor,
-        line_text_color: leg.lineTextColor,
-        headsign: leg.headsign,
-        agency: leg.agency,
-        duration: leg.duration,
-        stops: leg.intermediateStops,
-        from: {
-          name: leg.from.name,
-          time: leg.from.time ? transitLocalParts(leg.from.time, timezoneAt(leg.from.lat, leg.from.lng)).time : null,
-          track: leg.from.track,
-        },
-        to: {
-          name: leg.to.name,
-          time: leg.to.time ? transitLocalParts(leg.to.time, timezoneAt(leg.to.lat, leg.to.lng)).time : null,
-          track: leg.to.track,
-        },
-        geometry: leg.geometry,
-        geometry_precision: leg.geometryPrecision,
-      })),
+      legs: itinerary.legs.map((leg: TransitLeg) => {
+        const fromTime = effectiveStopTime(leg.from);
+        const toTime = effectiveStopTime(leg.to);
+        return {
+          mode: leg.mode,
+          line: leg.line,
+          line_color: leg.lineColor,
+          line_text_color: leg.lineTextColor,
+          headsign: leg.headsign,
+          agency: leg.agency,
+          duration: leg.duration,
+          stops: leg.intermediateStops,
+          from: {
+            name: leg.from.name,
+            time: fromTime ? transitLocalParts(fromTime, timezoneAt(leg.from.lat, leg.from.lng)).time : null,
+            track: leg.from.track,
+          },
+          to: {
+            name: leg.to.name,
+            time: toTime ? transitLocalParts(toTime, timezoneAt(leg.to.lat, leg.to.lng)).time : null,
+            track: leg.to.track,
+          },
+          geometry: leg.geometry,
+          geometry_precision: leg.geometryPrecision,
+        };
+      }),
     },
   };
 }
@@ -241,7 +330,7 @@ export function registerTransitTools(server: McpServer, userId: number, scopes: 
           query: z.string().min(2).max(200),
           language: z.string().min(2).max(5).optional(),
           near: z
-            .object({ lat: z.number(), lng: z.number() })
+            .object(transitCoordinatesSchema.shape)
             .optional()
             .describe('Optional coordinates used to bias nearby results'),
         },
@@ -289,9 +378,14 @@ export function registerTransitTools(server: McpServer, userId: number, scopes: 
             modes: modes?.join(','),
             maxTransfers,
           });
-          return ok({
-            itineraries: result.itineraries.map((itinerary) => cleanItineraryNames(itinerary, from.name, to.name)),
+          const itineraries = result.itineraries.flatMap((itinerary) => {
+            const parsed = transitItinerarySchema.safeParse(cleanItineraryNames(itinerary, from.name, to.name));
+            if (!parsed.success) return [];
+            const firstStop = parsed.data.legs[0].from;
+            const lastStop = parsed.data.legs[parsed.data.legs.length - 1].to;
+            return coordinatesMatch(from, firstStop) && coordinatesMatch(to, lastStop) ? [parsed.data] : [];
           });
+          return ok({ itineraries });
         } catch (err) {
           return errorResult(err, 'Transit route search failed.');
         }
@@ -314,7 +408,7 @@ export function registerTransitTools(server: McpServer, userId: number, scopes: 
         itinerary: transitItinerarySchema,
         notes: z.string().max(1000).optional(),
       },
-      annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+      annotations: TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
     },
     async ({ tripId, dayId, from, to, itinerary, notes }) => {
       if (isDemoUser(userId)) return demoDenied();
