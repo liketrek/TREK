@@ -61,8 +61,18 @@ export class PluginFrameController {
     const ext = path.extname(resolved).toLowerCase();
     res.setHeader('Content-Type', MIME[ext] ?? 'application/octet-stream');
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    // The frame document runs at an OPAQUE origin (sandbox without
+    // allow-same-origin), so its own <script src>/<link> subresource loads are
+    // cross-origin — helmet's default CORP: same-origin makes the browser drop
+    // them (ERR_BLOCKED_BY_RESPONSE) and a multi-file client dies on boot.
+    // The sandbox + per-plugin CSP are the isolation boundary here, not CORP:
+    // these files are the plugin's own public client code.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.setHeader('Content-Security-Policy', this.frameCsp(pluginId, req.get('host')));
-    res.sendFile(resolved);
+    // Explicit { root } + basename, not the absolute path: under the Nest
+    // ExpressAdapter, res.sendFile(absolutePath) resolves against the rewritten
+    // req.url and 404s spuriously (same trap as files-download.controller.ts).
+    res.sendFile(path.basename(resolved), { root: path.dirname(resolved) });
   }
 
   /** Per-plugin, locked-down CSP for the sandboxed frame document. */

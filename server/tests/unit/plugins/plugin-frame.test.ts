@@ -33,10 +33,15 @@ function fakeRes() {
     headers: {} as Record<string, string>,
     sent: undefined as unknown,
     filePath: undefined as string | undefined,
+    fileRoot: undefined as string | undefined,
     status(c: number) { res.statusCode = c; return res; },
     setHeader(k: string, v: string) { res.headers[k] = v; },
     send(b: unknown) { res.sent = b; return res; },
-    sendFile(p: string) { res.filePath = p; res.statusCode ||= 200; },
+    sendFile(p: string, opts?: { root?: string }) {
+      res.filePath = opts?.root ? path.join(opts.root, p) : p;
+      res.fileRoot = opts?.root;
+      res.statusCode ||= 200;
+    },
   };
   return res;
 }
@@ -62,6 +67,23 @@ describe('PluginFrameController', () => {
     expect(csp).not.toContain('allow-same-origin');
     expect(csp).toContain('connect-src \'self\' https://api.weather.com');
     expect(res.headers['X-Content-Type-Options']).toBe('nosniff');
+  });
+
+  // Under the Nest ExpressAdapter, res.sendFile(absolutePath) resolves against the
+  // rewritten req.url and 404s spuriously — files must go out root-relative.
+  it('serves files with an explicit root, not an absolute path', () => {
+    const res = fakeRes();
+    new PluginFrameController(runtime(true)).serve('widget', req(''), res as never);
+    expect(res.fileRoot).toBe(path.join(codeRoot, 'widget', 'client'));
+  });
+
+  // The frame document runs at an opaque origin, so its own <script src> loads are
+  // cross-origin fetches; helmet's CORP: same-origin makes the browser drop them
+  // and a multi-file client dies on boot.
+  it('marks responses cross-origin loadable for the opaque frame', () => {
+    const res = fakeRes();
+    new PluginFrameController(runtime(true)).serve('widget', req(''), res as never);
+    expect(res.headers['Cross-Origin-Resource-Policy']).toBe('cross-origin');
   });
 
   // An operatorEgress plugin's hosts are supplied by the ADMIN after install, so they are not
