@@ -20,12 +20,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useSettingsStore, {
-    settings: buildSettings({
-      map_tile_url: '',
-      default_lat: 48.8566,
-      default_lng: 2.3522,
-      default_zoom: 10,
-    }),
+    settings: buildSettings({ map_tile_url: '' }),
     updateSettings: vi.fn().mockResolvedValue(undefined),
   });
 });
@@ -46,38 +41,10 @@ describe('MapSettingsTab', () => {
     expect(screen.getByText('Map Template')).toBeInTheDocument();
   });
 
-  it('FE-COMP-MAP-004: shows latitude and longitude inputs', () => {
+  it('FE-COMP-MAP-004: no longer offers a default map centre — each map frames its own places', () => {
     render(<MapSettingsTab />);
-    expect(screen.getByText('Latitude')).toBeInTheDocument();
-    expect(screen.getByText('Longitude')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-MAP-005: latitude input is pre-filled from store settings', () => {
-    render(<MapSettingsTab />);
-    expect(screen.getByDisplayValue('48.8566')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-MAP-006: longitude input is pre-filled from store settings', () => {
-    render(<MapSettingsTab />);
-    expect(screen.getByDisplayValue('2.3522')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-MAP-007: typing in the latitude input updates its displayed value', async () => {
-    const user = userEvent.setup();
-    render(<MapSettingsTab />);
-    const latInput = screen.getByDisplayValue('48.8566');
-    await user.clear(latInput);
-    await user.type(latInput, '51.5');
-    expect(screen.getByDisplayValue('51.5')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-MAP-008: typing in the longitude input updates its displayed value', async () => {
-    const user = userEvent.setup();
-    render(<MapSettingsTab />);
-    const lngInput = screen.getByDisplayValue('2.3522');
-    await user.clear(lngInput);
-    await user.type(lngInput, '-0.1');
-    expect(screen.getByDisplayValue('-0.1')).toBeInTheDocument();
+    expect(screen.queryByText('Latitude')).not.toBeInTheDocument();
+    expect(screen.queryByText('Longitude')).not.toBeInTheDocument();
   });
 
   it('FE-COMP-MAP-009: tile URL text input is shown', () => {
@@ -100,7 +67,7 @@ describe('MapSettingsTab', () => {
     const user = userEvent.setup();
     const updateSettings = vi.fn().mockResolvedValue(undefined);
     seedStore(useSettingsStore, {
-      settings: buildSettings({ map_tile_url: '', default_lat: 48.8566, default_lng: 2.3522, default_zoom: 10 }),
+      settings: buildSettings({ map_tile_url: '' }),
       updateSettings,
     });
     render(<MapSettingsTab />);
@@ -108,27 +75,24 @@ describe('MapSettingsTab', () => {
     expect(updateSettings).toHaveBeenCalledTimes(1);
     expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
       map_tile_url: expect.any(String),
-      default_lat: expect.any(Number),
-      default_lng: expect.any(Number),
-      default_zoom: expect.any(Number),
+      map_provider: expect.any(String),
     }));
   });
 
-  it('FE-COMP-MAP-012: Save Map parses numeric values correctly', async () => {
+  it('FE-COMP-MAP-012: Save Map no longer writes a default centre or zoom', async () => {
     const user = userEvent.setup();
     const updateSettings = vi.fn().mockResolvedValue(undefined);
     seedStore(useSettingsStore, {
-      settings: buildSettings({ map_tile_url: '', default_lat: 48.8566, default_lng: 2.3522, default_zoom: 10 }),
+      settings: buildSettings({ map_tile_url: '' }),
       updateSettings,
     });
     render(<MapSettingsTab />);
     await user.click(screen.getByText('Save Map'));
-    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
-      map_tile_url: '',
-      default_lat: 48.8566,
-      default_lng: 2.3522,
-      default_zoom: 10,
-    }));
+
+    const saved = updateSettings.mock.calls[0][0];
+    expect(saved).not.toHaveProperty('default_lat');
+    expect(saved).not.toHaveProperty('default_lng');
+    expect(saved).not.toHaveProperty('default_zoom');
   });
 
   it('FE-COMP-MAP-013: Save Map button shows spinner while saving', async () => {
@@ -156,16 +120,6 @@ describe('MapSettingsTab', () => {
     await screen.findByText('Save failed');
   });
 
-  it('FE-COMP-MAP-015: clicking the map updates lat/lng state', async () => {
-    const user = userEvent.setup();
-    render(<MapSettingsTab />);
-    await user.click(screen.getByTestId('map-view'));
-    await waitFor(() => {
-      expect(screen.getByDisplayValue('51.5')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('-0.1')).toBeInTheDocument();
-    });
-  });
-
   it('FE-COMP-MAP-016: preset dropdown is rendered', () => {
     render(<MapSettingsTab />);
     expect(screen.getByText('Select template...')).toBeInTheDocument();
@@ -173,15 +127,14 @@ describe('MapSettingsTab', () => {
 
   it('FE-COMP-MAP-017: settings update from store syncs local state', async () => {
     const { rerender } = render(<MapSettingsTab />);
-    expect(screen.getByDisplayValue('48.8566')).toBeInTheDocument();
 
     seedStore(useSettingsStore, {
-      settings: buildSettings({ default_lat: 40.0 }),
+      settings: buildSettings({ map_tile_url: 'https://custom.tiles/{z}/{x}/{y}.png' }),
     });
     rerender(<MapSettingsTab />);
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('40')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('https://custom.tiles/{z}/{x}/{y}.png')).toBeInTheDocument();
     });
   });
 });

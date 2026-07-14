@@ -47,8 +47,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Совет:',
   'settings.mapTip':
     'Зажмите правую кнопку мыши и перетащите, чтобы повернуть/наклонить карту. Клик средней кнопкой — добавить место (правая кнопка зарезервирована для вращения).',
-  'settings.latitude': 'Широта',
-  'settings.longitude': 'Долгота',
   'settings.saveMap': 'Сохранить карту',
   'settings.apiKeys': 'API-ключи',
   'settings.mapsKey': 'API-ключ Google Maps',

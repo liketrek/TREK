@@ -48,8 +48,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'Klik kanan dan seret untuk memutar/memiringkan peta. Klik tengah untuk menambah tempat (klik kanan untuk rotasi).',
-  'settings.latitude': 'Lintang',
-  'settings.longitude': 'Bujur',
   'settings.saveMap': 'Simpan Peta',
   'settings.apiKeys': 'API Keys',
   'settings.mapsKey': 'Google Maps API Key',

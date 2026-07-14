@@ -211,7 +211,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
     handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
-    mapTileUrl, defaultCenter, defaultZoom, fontStyle, splashDone,
+    mapTileUrl, fontStyle, splashDone,
   } = useTripPlanner()
 
   const poi = usePoiExplore()
@@ -320,8 +320,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
               onMarkerClick={handleMarkerClick}
               onMapClick={handleMapClick}
               onMapContextMenu={handleMapContextMenu}
-              center={defaultCenter}
-              zoom={defaultZoom}
+              // No center/zoom: the map frames itself on the trip's places at mount, and
+              // falls back to the world view when the trip has none.
               tileUrl={mapTileUrl}
               fitKey={fitKey}
               dayOrderMap={dayOrderMap}

@@ -12,8 +12,12 @@ import { server } from '../../tests/helpers/msw/server';
 import { http, HttpResponse } from 'msw';
 
 // Mock Leaflet-dependent components
+const capturedMapViewProps: { current: Record<string, any> } = { current: {} };
 vi.mock('../components/Map/MapView', () => ({
-  MapView: () => React.createElement('div', { 'data-testid': 'map-view' }),
+  MapView: (props: Record<string, any>) => {
+    capturedMapViewProps.current = props;
+    return React.createElement('div', { 'data-testid': 'map-view' });
+  },
 }));
 
 vi.mock('react-leaflet', () => ({
@@ -227,6 +231,7 @@ beforeEach(() => {
   mockSelectAssignment.mockReset();
   mockPlaceSelectionState.selectedPlaceId = null;
   mockPlaceSelectionState.selectedAssignmentId = null;
+  capturedMapViewProps.current = {};
   capturedDayPlanSidebarProps.current = {};
   capturedPlacesSidebarProps.current = {};
   capturedReservationsPanelProps.current = {};
@@ -654,6 +659,50 @@ describe('TripPlannerPage', () => {
       await act(async () => {
         capturedDayPlanSidebarProps.current.onSelectDay?.(day.id);
       });
+    });
+
+    it('bumps map fitKey even when selecting the already selected day', async () => {
+      vi.useFakeTimers();
+
+      const { day } = seedTripStore({ id: 42 });
+      seedStore(useTripStore, { selectedDayId: day.id } as any);
+
+      renderPlannerPage(42);
+
+      act(() => { vi.runAllTimers(); });
+
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
+      });
+
+      const initialFitKey = capturedMapViewProps.current.fitKey;
+
+      await act(async () => {
+        capturedDayPlanSidebarProps.current.onSelectDay?.(day.id);
+      });
+
+      await waitFor(() => {
+        expect(capturedMapViewProps.current.fitKey).toBe(initialFitKey + 1);
+      });
+    });
+
+    it('leaves the opening camera to the map instead of passing a default centre', async () => {
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('map-view')).toBeInTheDocument();
+      });
+
+      // The map frames itself on the trip's places at mount; a center/zoom from settings
+      // would only fight that.
+      expect(capturedMapViewProps.current.center).toBeUndefined();
+      expect(capturedMapViewProps.current.zoom).toBeUndefined();
     });
   });
 

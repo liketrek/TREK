@@ -50,8 +50,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Suggerimento:',
   'settings.mapTip':
     'Click destro e trascina per ruotare/inclinare la mappa. Click centrale per aggiungere un luogo (il click destro è riservato alla rotazione).',
-  'settings.latitude': 'Latitudine',
-  'settings.longitude': 'Longitudine',
   'settings.saveMap': 'Salva Mappa',
   'settings.apiKeys': 'Chiavi API',
   'settings.mapsKey': 'Chiave API Google Maps',

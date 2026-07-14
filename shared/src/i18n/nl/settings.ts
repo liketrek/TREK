@@ -49,8 +49,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'Rechts-klik en sleep om de kaart te roteren/kantelen. Middenklik om een locatie toe te voegen (rechts-klik is voor rotatie).',
-  'settings.latitude': 'Breedtegraad',
-  'settings.longitude': 'Lengtegraad',
   'settings.saveMap': 'Kaart opslaan',
   'settings.apiKeys': 'API-sleutels',
   'settings.mapsKey': 'Google Maps API-sleutel',

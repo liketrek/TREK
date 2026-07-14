@@ -49,8 +49,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tips:',
   'settings.mapTip':
     'högerklicka och dra för att rotera eller luta kartan. Mittklicka för att lägga till en plats (högerklick är reserverat för rotation).',
-  'settings.latitude': 'Latitud',
-  'settings.longitude': 'Longitud',
   'settings.saveMap': 'Spara karta',
   'settings.apiKeys': 'API nycklar',
   'settings.mapsKey': 'Google Maps API nyckel',

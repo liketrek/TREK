@@ -48,8 +48,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Wskazówka:',
   'settings.mapTip':
     'Kliknij prawym przyciskiem i przeciągnij, aby obrócić/pochylić mapę. Środkowy przycisk dodaje miejsce (prawy jest zarezerwowany dla obrotu).',
-  'settings.latitude': 'Szerokość',
-  'settings.longitude': 'Długość',
   'settings.saveMap': 'Zapisz mapę',
   'settings.apiKeys': 'Klucze API',
   'settings.mapsKey': 'Klucz Google Maps API',

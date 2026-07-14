@@ -50,8 +50,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Mẹo:',
   'settings.mapTip':
     'nhấp chuột phải và kéo để xoay/cao độ bản đồ. Nhấp chuột giữa để thêm địa điểm (nhấp chuột phải được dành riêng cho việc xoay).',
-  'settings.latitude': 'Vĩ độ',
-  'settings.longitude': 'Kinh độ',
   'settings.saveMap': 'Lưu bản đồ',
   'settings.apiKeys': 'API Key',
   'settings.mapsKey': 'Google Maps API Key',

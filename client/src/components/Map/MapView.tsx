@@ -13,6 +13,8 @@ import { PluginMapMarkers } from './MapPluginMarkers'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import type { Reservation } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
+import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -241,12 +243,15 @@ interface BoundsControllerProps {
   routeCoords: [number, number][]
   fitKey: number
   paddingOpts: L.FitBoundsOptions
+  /** The map was built already framed on these places, so the opening fit has nothing to do. */
+  framedOnMount?: boolean
 }
 
-function BoundsController({ places, routeCoords, fitKey, paddingOpts, hasDayDetail }: BoundsControllerProps) {
+function BoundsController({ places, routeCoords, fitKey, paddingOpts, hasDayDetail, framedOnMount = false }: BoundsControllerProps) {
   const map = useMap()
   const prevFitKey = useRef(-1)
   const awaitingRoute = useRef(false)
+  const fitRan = useRef(false)
 
   const fitTo = useCallback((coords: [number, number][]) => {
     if (coords.length === 0) return
@@ -268,6 +273,14 @@ function BoundsController({ places, routeCoords, fitKey, paddingOpts, hasDayDeta
     prevFitKey.current = fitKey
     awaitingRoute.current = false
     if (places.length === 0) return
+    // The map opened framed on these very places — re-fitting would only re-do that, and its
+    // maxZoom would overrule the gentler zoom a single place opens at. Later fits (picking a
+    // day) still run.
+    if (!fitRan.current && framedOnMount) {
+      fitRan.current = true
+      return
+    }
+    fitRan.current = true
     fitTo(places.map(p => [p.lat, p.lng] as [number, number]))
     awaitingRoute.current = true
   }, [fitKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -435,8 +448,8 @@ export const MapView = memo(function MapView({
   onMarkerClick,
   onMapClick,
   onMapContextMenu = null,
-  center = [48.8566, 2.3522],
-  zoom = 10,
+  center = DEFAULT_MAP_CENTER,
+  zoom = DEFAULT_MAP_ZOOM,
   tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   fitKey = 0,
   dayOrderMap = {},
@@ -474,15 +487,36 @@ export const MapView = memo(function MapView({
   // Real road geometry for car/bus/taxi/bicycle bookings (straight line until it loads/if it fails).
   const transportRoutes = useTransportRoutes(visibleReservations)
   // Dynamic padding: account for sidebars + bottom inspector + day detail panel
-  const paddingOpts = useMemo((): L.FitBoundsOptions => {
+  // The chrome overlaying the map (side panels, day detail). Kept as a plain box so both the
+  // Leaflet fit options and the opening-camera maths can read the same numbers.
+  const paddingBox = useMemo((): ViewportPadding => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-    if (isMobile) return { padding: [40, 20] }
-    const top = 60
-    const bottom = hasInspector ? 320 : hasDayDetail ? 280 : 60
-    const left = leftWidth + 40
-    const right = rightWidth + 40
-    return { paddingTopLeft: [left, top], paddingBottomRight: [right, bottom] }
+    if (isMobile) return { top: 20, right: 40, bottom: 20, left: 40 }
+    return {
+      top: 60,
+      right: rightWidth + 40,
+      bottom: hasInspector ? 320 : hasDayDetail ? 280 : 60,
+      left: leftWidth + 40,
+    }
   }, [leftWidth, rightWidth, hasInspector, hasDayDetail])
+
+  const paddingOpts = useMemo((): L.FitBoundsOptions => ({
+    paddingTopLeft: [paddingBox.left, paddingBox.top],
+    paddingBottomRight: [paddingBox.right, paddingBox.bottom],
+  }), [paddingBox])
+
+  // Open framed on the places rather than on the caller's default, so a trip in Japan shows
+  // Japan straight away instead of the world view followed by a flight across the planet.
+  // The initializer runs once, at mount — exactly when this should be decided; afterwards the
+  // camera belongs to the user. `framed` is false when no place has coordinates (a new trip),
+  // and then the caller's center/zoom stands.
+  const [initialView] = useState(() => {
+    const framed = computeMapViewport(dayPlaces.length > 0 ? dayPlaces : places, {
+      tileSize: TILE_SIZE_RASTER,
+      padding: paddingBox,
+    })
+    return { center: framed?.center ?? center, zoom: framed?.zoom ?? zoom, framed: framed !== null }
+  })
 
   // Hover state for the single tooltip overlay (replaces per-marker <Tooltip>)
   const [hoveredPlace, setHoveredPlace] = useState<any>(null)
@@ -656,8 +690,8 @@ export const MapView = memo(function MapView({
     <div className="w-full h-full relative">
     <MapContainer
       id="trek-map"
-      center={center}
-      zoom={zoom}
+      center={initialView.center}
+      zoom={initialView.zoom}
       zoomControl={false}
       className="w-full h-full bg-[#e5e7eb]"
     >
@@ -672,7 +706,7 @@ export const MapView = memo(function MapView({
       />
 
       <MapController center={center} zoom={zoom} />
-      <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} hasDayDetail={hasDayDetail} />
+      <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} hasDayDetail={hasDayDetail} framedOnMount={initialView.framed} />
       <SelectionController places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} paddingOpts={paddingOpts} />
       <MapClickHandler onClick={onMapClick} />
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />

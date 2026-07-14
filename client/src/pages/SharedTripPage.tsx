@@ -1,5 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { avatarSrc } from '../utils/avatarSrc'
+import { computeMapViewport, TILE_SIZE_RASTER } from '../utils/mapViewport'
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/mapDefaults'
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
@@ -30,13 +32,21 @@ function createMarkerIcon(place: any) {
   })
 }
 
-function FitBoundsToPlaces({ places }: { places: any[] }) {
+function FitBoundsToPlaces({ places, framedOnMount }: { places: any[]; framedOnMount: boolean }) {
   const map = useMap()
+  const fitRan = useRef(false)
   useEffect(() => {
     if (places.length === 0) return
+    // The map already opened framed on these places; fitting again would only re-do it.
+    // Picking a day afterwards still refits to that day.
+    if (!fitRan.current && framedOnMount) {
+      fitRan.current = true
+      return
+    }
+    fitRan.current = true
     const bounds = L.latLngBounds(places.map(p => [p.lat, p.lng]))
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
-  }, [places, map])
+  }, [places, map]) // eslint-disable-line react-hooks/exhaustive-deps
   return null
 }
 
@@ -70,7 +80,13 @@ export default function SharedTripPage() {
     ? (assignments[String(selectedDay)] || []).map((a: any) => a.place).filter((p: any) => p?.lat && p?.lng)
     : (places || []).filter((p: any) => p?.lat && p?.lng)
 
-  const center = mapPlaces.length > 0 ? [mapPlaces[0].lat, mapPlaces[0].lng] : [48.85, 2.35]
+  // Open framed on the trip's places instead of on Paris. MapContainer only reads center/zoom
+  // at mount, so recomputing this per render is free — and the fit below takes over from there.
+  const framed = computeMapViewport(mapPlaces, {
+    tileSize: TILE_SIZE_RASTER,
+    padding: { top: 40, right: 40, bottom: 40, left: 40 },
+  })
+  const initialView = framed ?? { center: DEFAULT_MAP_CENTER, zoom: DEFAULT_MAP_ZOOM }
 
   return (
     <div className="bg-surface-secondary" style={{ minHeight: '100vh', fontFamily: "var(--font-system)" }}>
@@ -164,9 +180,9 @@ export default function SharedTripPage() {
         {/* Map */}
         {activeTab === 'plan' && (<>
         <div style={{ borderRadius: 16, overflow: 'hidden', height: 300, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-          <MapContainer center={center as [number, number]} zoom={11} zoomControl={false} style={{ width: '100%', height: '100%' }}>
+          <MapContainer center={initialView.center} zoom={initialView.zoom} zoomControl={false} style={{ width: '100%', height: '100%' }}>
             <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" referrerPolicy="strict-origin-when-cross-origin" />
-            <FitBoundsToPlaces places={mapPlaces} />
+            <FitBoundsToPlaces places={mapPlaces} framedOnMount={framed !== null} />
             {mapPlaces.map((p: any) => (
               <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p)}>
                 <Tooltip>{p.name}</Tooltip>

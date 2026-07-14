@@ -48,8 +48,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'İpucu:',
   'settings.mapTip':
     'Haritayı döndürmek/eğmek için sağ tıklayıp sürükleyin. Yer eklemek için orta tıklama (sağ tık döndürmeye ayrılmıştır).',
-  'settings.latitude': 'Enlem',
-  'settings.longitude': 'Boylam',
   'settings.saveMap': 'Haritayı Kaydet',
   'settings.apiKeys': 'API Anahtarları',
   'settings.mapsKey': 'Google Maps API Anahtarı',

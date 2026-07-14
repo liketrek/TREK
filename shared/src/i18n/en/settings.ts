@@ -56,8 +56,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'right-click and drag to rotate/pitch the map. Middle-click to add a place (right-click is reserved for rotation).',
-  'settings.latitude': 'Latitude',
-  'settings.longitude': 'Longitude',
   'settings.saveMap': 'Save Map',
   'settings.apiKeys': 'API Keys',
   'settings.mapsKey': 'Google Maps API Key',
