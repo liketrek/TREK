@@ -16,6 +16,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': 'Planı',
   'trip.mobilePlaces': 'Yerler',
   'trip.toast.placeUpdated': 'Yer güncellendi',
+  'trip.toast.tripUpdated': 'Gezi güncellendi',
   'trip.toast.placeAdded': 'Yer eklendi',
   'trip.toast.placeDeleted': 'Yer silindi',
   'trip.toast.selectDay': 'Lütfen önce bir gün seçin',

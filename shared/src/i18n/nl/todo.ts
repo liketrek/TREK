@@ -1,6 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const todo: TranslationStrings = {
+  'todo.emptyFiltered': 'Geen taken komen overeen met dit filter',
   'todo.subtab.packing': 'Inpaklijst',
   'todo.subtab.todo': 'Taken',
   'todo.completed': 'voltooid',

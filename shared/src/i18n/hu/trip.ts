@@ -15,6 +15,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': 'Tervezés',
   'trip.mobilePlaces': 'Helyek',
   'trip.toast.placeUpdated': 'Hely frissítve',
+  'trip.toast.tripUpdated': 'Utazás frissítve',
   'trip.toast.placeAdded': 'Hely hozzáadva',
   'trip.toast.placeDeleted': 'Hely törölve',
   'trip.toast.selectDay': 'Kérjük, először válassz egy napot',

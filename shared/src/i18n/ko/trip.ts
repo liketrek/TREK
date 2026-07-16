@@ -16,6 +16,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': '계획',
   'trip.mobilePlaces': '장소',
   'trip.toast.placeUpdated': '장소가 업데이트되었습니다',
+  'trip.toast.tripUpdated': '여행이 업데이트됨',
   'trip.toast.placeAdded': '장소가 추가되었습니다',
   'trip.toast.placeDeleted': '장소가 삭제되었습니다',
   'trip.toast.selectDay': '먼저 날을 선택하세요',

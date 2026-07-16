@@ -1,6 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const todo: TranslationStrings = {
+  'todo.emptyFiltered': 'Nincs a szűrőnek megfelelő feladat',
   'todo.subtab.packing': 'Csomagolási lista',
   'todo.subtab.todo': 'Teendők',
   'todo.completed': 'kész',

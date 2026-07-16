@@ -11,6 +11,8 @@ import { useAtlas } from './atlas/useAtlas'
 import AtlasCountrySearch from './atlas/AtlasCountrySearch'
 import { useToast } from '../components/shared/Toast'
 import { getApiErrorMessage } from '../types'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MAtlas from '../mobile/screens/atlas/MAtlas'
 
 function MobileStats({ data, stats, countries, resolveName, t, dark }: { data: AtlasData | null; stats: AtlasStats; countries: AtlasCountry[]; resolveName: (code: string) => string; t: TranslationFn; dark: boolean }): React.ReactElement {
   const tp = dark ? '#f1f5f9' : '#0f172a'
@@ -62,6 +64,11 @@ function MobileStats({ data, stats, countries, resolveName, t, dark }: { data: A
 }
 
 export default function AtlasPage(): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <MAtlas /> : <AtlasPageDesktop />
+}
+
+function AtlasPageDesktop(): React.ReactElement {
   // Page = wiring container: the whole interactive globe (map lifecycle, atlas +
   // bucket data, mark/unmark flows, country search) lives in useAtlas. The page
   // only wires that state into JSX and its presentational SidebarContent helper.

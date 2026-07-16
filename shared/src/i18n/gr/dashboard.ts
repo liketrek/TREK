@@ -122,6 +122,9 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.tomorrow': 'Αύριο',
   'dashboard.mobile.inDays': 'Σε {count} ημέρες',
   'dashboard.mobile.inMonths': 'Σε {count} μήνες',
+  'dashboard.mobile.spotlightDayOf': 'Ημέρα {day} από {total}',
+  'dashboard.mobile.spotlightDayOne': '{count} ημέρα',
+  'dashboard.mobile.spotlightDaysMany': '{count} ημέρες',
   'dashboard.mobile.completed': 'Ολοκληρώθηκε',
   'dashboard.mobile.currencyConverter': 'Μετατροπέας Νομισμάτων',
   'dashboard.newTripSub': 'Plan a new trip from scratch', // en-fallback

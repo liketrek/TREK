@@ -1,6 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const todo: TranslationStrings = {
+  'todo.emptyFiltered': 'Ninguna tarea coincide con este filtro',
   'todo.subtab.packing': 'Lista de equipaje',
   'todo.subtab.todo': 'Por hacer',
   'todo.completed': 'completado(s)',

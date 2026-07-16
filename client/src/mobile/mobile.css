@@ -1,0 +1,288 @@
+/* ── Mobile rewrite design tokens ─────────────────────────────────────────────
+ * Scoped to .m-root (the MobileShell wrapper) so the mobile design system
+ * never leaks into desktop chrome. Values are the mobile design ground truth;
+ * dark values follow the app-wide `.dark` class strategy.
+ */
+.m-root {
+  --m-ink: #101013;
+  --m-muted: #68686F;
+  --m-faint: #9A9AA1;
+  --m-bg: #F3F2EF;
+  --m-scr: radial-gradient(120% 80% at 50% -10%, #FBFAF7 0%, #F1EFEA 55%, #E9E7E1 100%);
+  --m-glass: rgba(255,255,255,.6);
+  --m-gbr: rgba(255,255,255,.75);
+  --m-card: rgba(255,255,255,.55);
+  --m-cbr: rgba(255,255,255,.75);
+  --m-inner: rgba(255,255,255,.68);
+  --m-inbr: rgba(255,255,255,.9);
+  --m-act: #101013;
+  --m-actfg: #fff;
+  --m-dim: rgba(16,16,19,.4);
+  --m-sheet: rgba(250,250,248,.94);
+  --m-sheetop: #FAFAF8;
+  --m-shbr: rgba(255,255,255,.95);
+  --m-ic: rgba(16,16,19,.04);
+  --m-avbr: rgba(255,255,255,.9);
+  --m-rowbr: rgba(16,16,19,.045);
+  --m-conn: #9A9AA1;
+  --m-mapb: #E8E6E1;
+  --m-mapr: #FBFAF8;
+  --m-mapw: #DFE2E4;
+  --m-mkr: #101013;
+  --m-mkfg: #fff;
+  --m-trackoff: rgba(16,16,19,.14);
+
+  /* Toggle knob is white on both themes (off-track is translucent enough). */
+  --m-knob: #fff;
+
+  /* Status color canon — theme independent. */
+  --m-st-confirmed: #2FA37A;
+  --m-st-pending: #E8A13A;
+  --m-st-info: #4A7DDB;
+  --m-st-danger: #D6273B;
+  --m-st-neutral: #9A9AA1;
+
+  /* Chrome metrics. --bottom-nav-h stays the single source of truth for
+   * content clearance (same value the legacy shell uses). The demo's fixed
+   * 52px/26px offsets stand in for the phone status bar / home indicator, so
+   * real devices derive them from the safe-area insets. */
+  --bottom-nav-h: calc(84px + env(safe-area-inset-bottom, 0px));
+  --m-safe-top: calc(env(safe-area-inset-top, 0px) + 12px);
+}
+
+.dark .m-root {
+  --m-ink: #F5F5F7;
+  --m-muted: #9C9CA3;
+  --m-faint: #6E6E76;
+  --m-bg: #0A0A0C;
+  --m-scr: radial-gradient(120% 80% at 50% -10%, #17171C 0%, #0C0C0F 55%, #08080A 100%);
+  --m-glass: rgba(26,26,31,.6);
+  --m-gbr: rgba(255,255,255,.12);
+  --m-card: rgba(24,24,29,.55);
+  --m-cbr: rgba(255,255,255,.1);
+  --m-inner: rgba(255,255,255,.07);
+  --m-inbr: rgba(255,255,255,.1);
+  --m-act: #F5F5F7;
+  --m-actfg: #101013;
+  --m-dim: rgba(0,0,0,.55);
+  --m-sheet: rgba(22,22,27,.94);
+  --m-sheetop: #191920;
+  --m-shbr: rgba(255,255,255,.14);
+  --m-ic: rgba(255,255,255,.09);
+  --m-avbr: rgba(255,255,255,.14);
+  --m-rowbr: rgba(255,255,255,.07);
+  --m-conn: #6E6E76;
+  --m-mapb: #121215;
+  --m-mapr: #1E1F24;
+  --m-mapw: #0D1013;
+  --m-mkr: #F5F5F7;
+  --m-mkfg: #101013;
+  --m-trackoff: rgba(255,255,255,.14);
+}
+
+/* Geist "subtext" tier weight — single knob. The design's Geist labels/numbers
+ * read heavy at their declared bold; render the whole tier at Medium (500) for
+ * the fine, low-key look. Higher specificity than Tailwind's font-* utilities,
+ * so it caps font-medium / font-semibold / font-bold / font-extrabold on any
+ * .font-geist span. Retune here if a weight feels too light or heavy. */
+.m-root .font-geist { font-weight: 500; }
+
+/* ── Keyframes ──────────────────────────────────────────────────────────── */
+
+@keyframes m-sheet-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes m-sheet-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(24px); }
+}
+@keyframes m-drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes m-drawer-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+@keyframes m-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes m-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes m-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes m-toast-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes m-toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(6px); }
+}
+
+.m-sheet-in { animation: m-sheet-in 280ms var(--ease-drawer) both; }
+.m-sheet-out { animation: m-sheet-out 280ms var(--ease-drawer) both; }
+.m-drawer-in { animation: m-drawer-in 280ms var(--ease-drawer) both; }
+.m-drawer-out { animation: m-drawer-out 280ms var(--ease-drawer) both; }
+.m-fade-in { animation: m-fade-in 280ms var(--ease-drawer) both; }
+.m-fade-out { animation: m-fade-out 280ms var(--ease-drawer) both; }
+.m-pop-in { animation: m-pop-in 220ms var(--ease-out-quint) both; }
+.m-toast-in { animation: m-toast-in 260ms var(--ease-out-quint) both; }
+.m-toast-out { animation: m-toast-out 220ms ease both; }
+
+/* Reduced motion: gentler, not zero (same rule the desktop keyframes follow). */
+@media (prefers-reduced-motion: reduce) {
+  .m-sheet-in, .m-drawer-in, .m-pop-in, .m-toast-in {
+    animation: m-fade-in 120ms ease-out both;
+  }
+  .m-sheet-out, .m-drawer-out, .m-toast-out {
+    animation: m-fade-out 120ms ease-out both;
+  }
+}
+
+/* ── TREK mascot (empty-state) — logo-as-body character, per-scene props ───── */
+@keyframes trek-idle    { 0%, 100% { transform: translateY(0) rotate(-1.1deg); } 50% { transform: translateY(-2px) rotate(1.1deg); } }
+@keyframes trek-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.012, 1.024); } }
+@keyframes trek-shadow  { 0%, 100% { transform: scaleX(1); opacity: .15; } 50% { transform: scaleX(1.05); opacity: .17; } }
+/* body hop, occasional: long rest, then anticipation squash → airborne → land → settle */
+@keyframes trek-hop {
+  0%, 74%, 100% { transform: translateY(0) scale(1, 1); }
+  79%           { transform: translateY(1px) scale(1.05, .92); }
+  87%           { transform: translateY(-10px) scale(.95, 1.07); }
+  94%           { transform: translateY(0) scale(1.07, .93); }
+  98%           { transform: translateY(0) scale(.99, 1.01); }
+}
+/* body nod — a pleased look left-and-right, e.g. cheering the poll results */
+@keyframes trek-nod {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  25%      { transform: translateY(-2px) rotate(-4deg); }
+  50%      { transform: translateY(0) rotate(0); }
+  75%      { transform: translateY(-2px) rotate(4deg); }
+}
+/* slow blink: eyes squeeze shut for a couple of frames each cycle */
+@keyframes trek-blink { 0%, 90%, 100% { transform: scaleY(1); } 94%, 97% { transform: scaleY(.12); } }
+/* entrance / poke-to-react pop-in (plays on mount and on each remount/tap) */
+@keyframes trek-in {
+  0%   { opacity: 0; transform: translateY(7px) scale(.85); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* pupils glancing around — centred most of the time, occasional look down/side */
+@keyframes trek-look {
+  0%, 34%, 100% { transform: translate(0, 0); }
+  42%, 52%      { transform: translate(0, .9px); }
+  64%, 72%      { transform: translate(.9px, .1px); }
+  84%, 90%      { transform: translate(-.8px, .2px); }
+}
+/* wheels rolling in place */
+@keyframes trek-roll  { to { transform: rotate(360deg); } }
+/* skateboard ollie — body and board pop off the ground together, now and then */
+@keyframes trek-sk-body {
+  0%, 68%, 100% { transform: translateY(0) scale(1, 1); }
+  73%           { transform: translateY(1.5px) scale(1.04, .95); }
+  84%           { transform: translateY(-9px) scale(.97, 1.05); }
+  92%           { transform: translateY(0) scale(1.05, .95); }
+  96%           { transform: translateY(0) scale(1, 1); }
+}
+@keyframes trek-sk-board {
+  0%, 68%, 100% { transform: translateY(0) rotate(0); }
+  73%           { transform: translateY(0) rotate(-6deg); }
+  84%           { transform: translateY(-8px) rotate(7deg); }
+  90%           { transform: translateY(-3px) rotate(-3deg); }
+  95%           { transform: translateY(0) rotate(0); }
+}
+/* guide pennant fluttering — pivots at the pole */
+@keyframes trek-flag {
+  0%, 100% { transform: skewY(0) scaleX(1); }
+  30%      { transform: skewY(-7deg) scaleX(.96); }
+  60%      { transform: skewY(6deg) scaleX(1.03); }
+}
+/* poll bars staying up, gently rising and settling like live tallies */
+@keyframes trek-bar   { 0%, 100% { transform: scaleY(.78); } 50% { transform: scaleY(1); } }
+/* card / note rocking gently */
+@keyframes trek-ticket { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+/* a line being written: draws in from the left, holds, then a fresh pass */
+@keyframes trek-write {
+  0%       { transform: scaleX(0); }
+  30%, 82% { transform: scaleX(1); }
+  92%, 100% { transform: scaleX(0); }
+}
+/* pencil scribbling as the lines appear */
+@keyframes trek-pencil {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  20%      { transform: translate(-1.5px, 1.5px) rotate(-4deg); }
+  45%      { transform: translate(1.5px, -.5px) rotate(3deg); }
+  70%      { transform: translate(-1px, 1px) rotate(-2deg); }
+}
+/* suitcase rocking on its wheels, restless to get going */
+@keyframes trek-suitcase { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+/* suitcase handle telescoping up and down */
+@keyframes trek-handle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+/* collections map pin bobbing */
+@keyframes trek-pin { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+/* atlas globe meridian drifting to fake a slow spin */
+@keyframes trek-globe { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
+/* costs top coin bouncing on */
+@keyframes trek-coin { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } 55% { transform: translateY(0); } 70% { transform: translateY(-2px); } 84% { transform: translateY(0); } }
+/* journey page turning over the spine */
+@keyframes trek-page { 0%, 55%, 100% { transform: scaleX(1); } 78% { transform: scaleX(-.9); } }
+/* dashboard paper plane bobbing in flight */
+@keyframes trek-plane { 0%, 100% { transform: translate(0, 0) rotate(0); } 25% { transform: translate(-1px, -2px) rotate(-4deg); } 50% { transform: translate(0, 0) rotate(0); } 75% { transform: translate(1px, 2px) rotate(4deg); } }
+/* notifications Zzz drifting up and fading */
+@keyframes trek-z { 0% { opacity: 0; transform: translate(0, 4px) scale(.7); } 30% { opacity: .9; } 100% { opacity: 0; transform: translate(3px, -8px) scale(1.1); } }
+/* search magnifier scanning */
+@keyframes trek-magnifier { 0%, 100% { transform: translateX(-3px) rotate(-3deg); } 50% { transform: translateX(3px) rotate(3deg); } }
+/* to-do checkmark ticking on, holding, then resetting */
+@keyframes trek-check { 0%, 8% { transform: scale(0); } 22% { transform: scale(1.2); } 32%, 88% { transform: scale(1); } 96%, 100% { transform: scale(0); } }
+
+.trek        { animation: trek-in 480ms cubic-bezier(.34, 1.4, .64, 1) both; transform-origin: 50% 100%; }
+.trek-root   { animation: trek-idle 3.4s ease-in-out infinite;     transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-body   { animation: trek-breathe 3.8s ease-in-out infinite;  transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-shadow { animation: trek-shadow 3.4s ease-in-out infinite;   transform-box: fill-box; transform-origin: 50% 50%; opacity: .15; filter: blur(1px); }
+/* eyes read as cutouts in the surface behind the mascot, so they stay visible on the monochrome body */
+.trek-eye    { fill: var(--m-bg); }
+.trek-eyes   { animation: trek-blink 5.2s ease-in-out infinite;    transform-box: fill-box; transform-origin: center; }
+.trek-pupils { animation: trek-look 7s ease-in-out infinite;       transform-box: fill-box; transform-origin: center; }
+/* body bounce — per scene */
+.trek-bounce           { transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-bounce--idle     { animation: trek-hop 4.6s ease-in-out infinite; }
+.trek-bounce--polls    { animation: trek-nod 3s ease-in-out infinite; }
+.trek-bounce--transport { animation: trek-sk-body 3.6s ease-in-out infinite; }
+/* per-scene props */
+.trek-board    { animation: trek-sk-board 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 65%; }
+.trek-wheel    { animation: trek-roll 1.1s linear infinite;        transform-box: fill-box; transform-origin: center; }
+.trek-flag     { animation: trek-flag 1.8s ease-in-out infinite;   transform-box: fill-box; transform-origin: 0% 50%; }
+.trek-ticket   { animation: trek-ticket 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-note     { animation: trek-ticket 3.9s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-pencil   { animation: trek-pencil 1.15s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.trek-write    { animation: trek-write 3.8s ease-in-out infinite;  transform-box: fill-box; transform-origin: 0% 50%; }
+.trek-bar      { animation: trek-bar 2.6s ease-in-out infinite;    transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-suitcase { animation: trek-suitcase 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-handle   { animation: trek-handle 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-pin      { animation: trek-pin 2.2s ease-in-out infinite;   transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-globe    { animation: trek-globe 3s ease-in-out infinite;   transform-box: fill-box; transform-origin: center; }
+.trek-coin     { animation: trek-coin 2s ease-in-out infinite;    transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-page     { animation: trek-page 3.4s ease-in-out infinite;  transform-box: fill-box; transform-origin: 0% 50%; }
+.trek-plane    { animation: trek-plane 3s ease-in-out infinite;   transform-box: fill-box; transform-origin: center; }
+.trek-magnifier { animation: trek-magnifier 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.trek-z        { animation: trek-z 2.8s ease-in-out infinite;     transform-box: fill-box; transform-origin: center; }
+.trek-check    { animation: trek-check 3s ease-in-out infinite;   transform-box: fill-box; transform-origin: center; }
+/* staggered starts for written lines / poll bars / Zzz */
+.trek-d2, .trek-z2 { animation-delay: .5s; }
+.trek-d3, .trek-z3 { animation-delay: 1s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .trek, .trek-root, .trek-body, .trek-shadow, .trek-eyes, .trek-pupils,
+  .trek-bounce--idle, .trek-bounce--polls, .trek-bounce--transport,
+  .trek-board, .trek-wheel, .trek-flag, .trek-ticket, .trek-note, .trek-pencil, .trek-write, .trek-bar,
+  .trek-suitcase, .trek-handle, .trek-pin, .trek-globe, .trek-coin, .trek-page, .trek-plane,
+  .trek-magnifier, .trek-z, .trek-check { animation: none; }
+  /* Zzz would sit invisible at opacity 0 without their animation — pin them visible */
+  .trek-z { opacity: 1; }
+}

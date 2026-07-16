@@ -16,6 +16,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': 'Πλάνο',
   'trip.mobilePlaces': 'Μέρη',
   'trip.toast.placeUpdated': 'Το μέρος ενημερώθηκε',
+  'trip.toast.tripUpdated': 'Το ταξίδι ενημερώθηκε',
   'trip.toast.placeAdded': 'Το μέρος προστέθηκε',
   'trip.toast.placeDeleted': 'Το μέρος διαγράφηκε',
   'trip.toast.selectDay': 'Παρακαλώ επιλέξτε πρώτα μια ημέρα',

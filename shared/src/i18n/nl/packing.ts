@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Acties',
+  'packing.editDone': 'Klaar',
+  'packing.personalEmptyHint': 'Je persoonlijke lijst is leeg — kopieer gedeelde items of voeg je eigen items toe.',
+  'packing.assignMembers': 'Leden toewijzen',
+  'packing.categoryOptions': 'Lijstopties',
+  'packing.editItem': 'Item bewerken',
+  'packing.itemName': 'Naam',
+  'packing.itemQuantity': 'Aantal',
+  'packing.itemWeight': 'Gewicht (g)',
   'packing.title': 'Inpaklijst',
   'packing.empty': 'Inpaklijst is leeg',
   'packing.import': 'Importeren',

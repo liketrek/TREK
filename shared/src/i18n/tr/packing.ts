@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'İşlemler',
+  'packing.editDone': 'Bitti',
+  'packing.personalEmptyHint': 'Kişisel listen boş — paylaşılan öğeleri kopyala veya kendi öğeni ekle.',
+  'packing.assignMembers': 'Üye ata',
+  'packing.categoryOptions': 'Liste seçenekleri',
+  'packing.editItem': 'Öğeyi düzenle',
+  'packing.itemName': 'Ad',
+  'packing.itemQuantity': 'Miktar',
+  'packing.itemWeight': 'Ağırlık (g)',
   'packing.title': 'Paket Listesi',
   'packing.empty': 'Paket listesi boş',
   'packing.import': 'İçe aktar',

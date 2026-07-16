@@ -28,7 +28,8 @@ import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import { ToastContainer } from './components/shared/Toast'
 import SaveToCollectionModal from './components/Collections/SaveToCollectionModal'
 import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget'
-import BottomNav from './components/Layout/BottomNav'
+import MobileShell from './mobile/MobileShell'
+import { useIsPhone } from './mobile/useIsPhone'
 import { TranslationProvider, useTranslation } from './i18n'
 import { authApi } from './api/client'
 import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
@@ -53,6 +54,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   const addonStore = useAddonStore()
   const { t } = useTranslation()
   const location = useLocation()
+  const isPhone = useIsPhone()
 
   if (isLoading) {
     return (
@@ -87,12 +89,11 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
     return <Navigate to="/dashboard" replace />
   }
 
-  return (
-    <div className="flex flex-col h-dvh md:block md:h-auto">
-      <div className="flex-1 overflow-y-auto md:overflow-visible">{children}</div>
-      <BottomNav />
-    </div>
-  )
+  // Below the md breakpoint the new mobile shell owns chrome (tokens, dock,
+  // sheets, toasts); from 768px up the legacy wrapper stays untouched. The
+  // shell branches internally so pages keep their state when the viewport
+  // crosses the breakpoint.
+  return <MobileShell isPhone={isPhone}>{children}</MobileShell>
 }
 
 function RootRedirect() {

@@ -22,8 +22,15 @@ import { GalleryView } from '../components/Journey/JourneyDetailPageGalleryView'
 import { EntryEditor } from '../components/Journey/JourneyDetailPageEntryEditor'
 import { AddTripDialog } from '../components/Journey/JourneyDetailPageAddTripDialog'
 import { JourneySettingsDialog } from '../components/Journey/JourneyDetailPageSettingsDialog'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MJourneyDetail from '../mobile/screens/journey/MJourneyDetail'
 
 export default function JourneyDetailPage() {
+  const isPhone = useIsPhone()
+  return isPhone ? <MJourneyDetail /> : <JourneyDetailPageDesktop />
+}
+
+function JourneyDetailPageDesktop() {
   // Page = wiring container: load + live sync, view state, dialogs, the
   // scroll-synced map and the map/trip-date derivations live in the hook.
   const {

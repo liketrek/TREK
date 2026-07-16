@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'Позначені',
+  'files.link': 'Пов’язати',
+  'files.linkTitle': 'Пов’язати файл',
+  'files.linkEmpty': 'Поки немає місць чи бронювань для зв’язування',
+  'files.menu': 'Більше опцій',
+  'files.uploadErrorSize': 'Файл завеликий (макс. 50 МБ)',
   'files.title': 'Файли',
   'files.pageTitle': 'Файли та документи',
   'files.subtitle': '{count} файлів для {trip}',

@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Akce',
+  'packing.editDone': 'Hotovo',
+  'packing.personalEmptyHint': 'Váš osobní seznam je prázdný — zkopírujte sdílené položky nebo přidejte vlastní.',
+  'packing.assignMembers': 'Přiřadit členy',
+  'packing.categoryOptions': 'Možnosti seznamu',
+  'packing.editItem': 'Upravit položku',
+  'packing.itemName': 'Název',
+  'packing.itemQuantity': 'Množství',
+  'packing.itemWeight': 'Hmotnost (g)',
   'packing.title': 'Seznam věcí',
   'packing.empty': 'Seznam věcí je prázdný',
   'packing.import': 'Importovat',

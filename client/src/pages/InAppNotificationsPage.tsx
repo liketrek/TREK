@@ -5,8 +5,15 @@ import PageShell from '../components/Layout/PageShell'
 import { Spinner } from '../components/shared/Spinner'
 import InAppNotificationItem from '../components/Notifications/InAppNotificationItem.tsx'
 import { useInAppNotifications } from './inAppNotifications/useInAppNotifications'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MNotifications from '../mobile/screens/notifications/MNotifications'
 
 export default function InAppNotificationsPage(): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <MNotifications /> : <InAppNotificationsPageDesktop />
+}
+
+function InAppNotificationsPageDesktop(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: store, filter, fetch + infinite scroll live in the hook.
   const {

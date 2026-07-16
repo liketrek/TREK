@@ -16,6 +16,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': 'الخطة',
   'trip.mobilePlaces': 'الأماكن',
   'trip.toast.placeUpdated': 'تم تحديث المكان',
+  'trip.toast.tripUpdated': 'تم تحديث الرحلة',
   'trip.toast.placeAdded': 'تمت إضافة المكان',
   'trip.toast.placeDeleted': 'تم حذف المكان',
   'trip.toast.selectDay': 'يرجى اختيار يوم أولًا',

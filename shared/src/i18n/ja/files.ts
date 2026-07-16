@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'スター付き',
+  'files.link': 'リンク',
+  'files.linkTitle': 'ファイルをリンク',
+  'files.linkEmpty': 'リンクできる場所や予約がまだありません',
+  'files.menu': 'その他のオプション',
+  'files.uploadErrorSize': 'ファイルが大きすぎます（最大50MB）',
   'files.title': 'ファイル',
   'files.pageTitle': 'ファイル・ドキュメント',
   'files.subtitle': '{trip} のファイル {count} 件',

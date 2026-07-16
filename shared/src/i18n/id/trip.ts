@@ -16,6 +16,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': 'Rencana',
   'trip.mobilePlaces': 'Tempat',
   'trip.toast.placeUpdated': 'Tempat diperbarui',
+  'trip.toast.tripUpdated': 'Perjalanan diperbarui',
   'trip.toast.placeAdded': 'Tempat ditambahkan',
   'trip.toast.placeDeleted': 'Tempat dihapus',
   'trip.toast.selectDay': 'Pilih hari terlebih dahulu',

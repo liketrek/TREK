@@ -16,6 +16,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': '计划',
   'trip.mobilePlaces': '地点',
   'trip.toast.placeUpdated': '地点已更新',
+  'trip.toast.tripUpdated': '行程已更新',
   'trip.toast.placeAdded': '地点已添加',
   'trip.toast.placeDeleted': '地点已删除',
   'trip.toast.selectDay': '请先选择一天',

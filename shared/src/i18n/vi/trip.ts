@@ -16,6 +16,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': 'Kế hoạch',
   'trip.mobilePlaces': 'Địa điểm',
   'trip.toast.placeUpdated': 'Đã cập nhật địa điểm',
+  'trip.toast.tripUpdated': 'Đã cập nhật chuyến đi',
   'trip.toast.placeAdded': 'Đã thêm địa điểm',
   'trip.toast.placeDeleted': 'Địa điểm đã bị xóa',
   'trip.toast.selectDay': 'Vui lòng chọn một ngày trước',

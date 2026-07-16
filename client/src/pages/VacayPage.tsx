@@ -9,8 +9,15 @@ import VacaySettings from '../components/Vacay/VacaySettings'
 import { Plus, Minus, ChevronLeft, ChevronRight, Settings, CalendarDays, AlertTriangle, Users, Eye, Pencil, Trash2, Unlink, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import Modal from '../components/shared/Modal'
 import { useVacay } from './vacay/useVacay'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MVacay from '../mobile/screens/vacay/MVacay'
 
 export default function VacayPage(): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <MVacay /> : <VacayPageDesktop />
+}
+
+function VacayPageDesktop(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: vacay store, live sync + UI state live in the hook.
   const {

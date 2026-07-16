@@ -16,6 +16,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': 'Plan',
   'trip.mobilePlaces': 'Platser',
   'trip.toast.placeUpdated': 'Plats uppdaterad',
+  'trip.toast.tripUpdated': 'Resan uppdaterad',
   'trip.toast.placeAdded': 'Plats tillagd',
   'trip.toast.placeDeleted': 'Plats raderad',
   'trip.toast.selectDay': 'Vänligen välj en dag först',

@@ -50,6 +50,8 @@ import { ListTodo, Upload, Plus, Trash2, FolderPlus } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import PoiCategoryPill from '../components/Map/PoiCategoryPill'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MTripShell from '../mobile/screens/trip/MTripShell'
 
 function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
   const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
@@ -175,6 +177,14 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
 }
 
 export default function TripPlannerPage(): React.ReactElement | null {
+  // Below md the trip renders as the new mobile shell; the desktop planner is
+  // untouched for tablets and up. Each branch mounts its own useTripPlanner,
+  // so no hook is called conditionally here.
+  const isPhone = useIsPhone()
+  return isPhone ? <MTripShell /> : <TripPlannerPageDesktop />
+}
+
+function TripPlannerPageDesktop(): React.ReactElement | null {
   // Page = wiring container: the entire planner state machine (store, tabs,
   // selection, CRUD handlers with undo, map filters, splash) lives in the hook.
   const {

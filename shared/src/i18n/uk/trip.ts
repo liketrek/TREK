@@ -16,6 +16,7 @@ const trip: TranslationStrings = {
   'trip.mobilePlan': 'План',
   'trip.mobilePlaces': 'Місця',
   'trip.toast.placeUpdated': 'Місце оновлено',
+  'trip.toast.tripUpdated': 'Подорож оновлено',
   'trip.toast.placeAdded': 'Місце додано',
   'trip.toast.placeDeleted': 'Місце видалено',
   'trip.toast.selectDay': 'Спочатку виберіть день',

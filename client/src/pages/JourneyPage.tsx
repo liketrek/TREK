@@ -7,6 +7,8 @@ import {
 import type { Journey } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
 import { useJourney } from './journey/useJourney'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MJourney from '../mobile/screens/journey/MJourney'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #6366F1 45%, #EC4899 100%)',
@@ -31,6 +33,11 @@ function timeAgo(timestamp: number, t: (k: string, p?: any) => string): string {
 }
 
 export default function JourneyPage() {
+  const isPhone = useIsPhone()
+  return isPhone ? <MJourney /> : <JourneyPageDesktop />
+}
+
+function JourneyPageDesktop() {
   const { t } = useTranslation()
   // Page = wiring container: store load, create modal, search + suggestions in the hook.
   const {

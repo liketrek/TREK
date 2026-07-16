@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'المميزة',
+  'files.link': 'ربط',
+  'files.linkTitle': 'ربط الملف',
+  'files.linkEmpty': 'لا توجد أماكن أو حجوزات للربط بعد',
+  'files.menu': 'المزيد من الخيارات',
+  'files.uploadErrorSize': 'الملف كبير جدًا (الحد الأقصى 50 ميغابايت)',
   'files.title': 'الملفات',
   'files.pageTitle': 'الملفات والمستندات',
   'files.subtitle': '{count} ملف لـ {trip}',

@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Действия',
+  'packing.editDone': 'Готово',
+  'packing.personalEmptyHint': 'Ваш личный список пуст — скопируйте общие вещи или добавьте свои.',
+  'packing.assignMembers': 'Назначить участников',
+  'packing.categoryOptions': 'Параметры списка',
+  'packing.editItem': 'Изменить предмет',
+  'packing.itemName': 'Название',
+  'packing.itemQuantity': 'Количество',
+  'packing.itemWeight': 'Вес (г)',
   'packing.title': 'Список вещей',
   'packing.empty': 'Список вещей пуст',
   'packing.import': 'Импорт',

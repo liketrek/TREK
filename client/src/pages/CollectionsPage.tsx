@@ -16,6 +16,8 @@ import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDeta
 import LabelManager from '../components/Collections/LabelManager'
 import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal'
 import { useCollections } from './collections/useCollections'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MCollections from '../mobile/screens/collections/MCollections'
 import '../styles/dashboard.css'
 import '../styles/collections.css'
 
@@ -31,6 +33,11 @@ function EmptyState({ icon, title, text, action }: { icon: React.ReactNode; titl
 }
 
 export default function CollectionsPage(): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <MCollections /> : <CollectionsPageDesktop />
+}
+
+function CollectionsPageDesktop(): React.ReactElement {
   const c = useCollections()
   const { t } = c
 

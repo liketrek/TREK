@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const budget: TranslationStrings = {
+  'costs.confirm.deleteTitle': '지출을 삭제할까요?',
+  'costs.confirm.deleteBody': '"{name}"이(가) 영구적으로 삭제됩니다.',
   'budget.title': '예산',
   'budget.exportCsv': 'CSV 내보내기',
   'budget.emptyTitle': '아직 예산이 없습니다',

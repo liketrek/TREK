@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': 'Πρόσβαση μόνο για ανάγνωση σε αυτήν τη συνομιλία',
+  'collab.chat.messageOptions': 'Επιλογές μηνύματος',
+  'collab.polls.confirmDeleteTitle': 'Διαγραφή δημοσκόπησης;',
+  'collab.polls.confirmDeleteBody': 'Αυτή η δημοσκόπηση θα διαγραφεί οριστικά.',
+  'collab.polls.countdownDaysHours': 'Απομένουν {d} ημ. {h} ώ.',
+  'collab.polls.countdownHoursMinutes': 'Απομένουν {h} ώ. {m} λ.',
+  'collab.polls.countdownMinutes': 'Απομένουν {m} λ.',
+  'collab.polls.clearDeadline': 'Απαλοιφή προθεσμίας',
   'collab.tabs.chat': 'Συνομιλία',
   'collab.tabs.notes': 'Σημειώσεις',
   'collab.tabs.polls': 'Δημοσκοπήσεις',

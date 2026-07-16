@@ -1,0 +1,110 @@
+import type { HolidaysMap, VacayEntry } from '../../../types'
+
+// Users created before picking a color have color=null; same fallback the
+// desktop persons panel uses.
+export const FALLBACK_PERSON_COLOR = '#6366f1'
+
+export interface DayVisual {
+  background: string
+  numColor: string
+  boxShadow?: string
+}
+
+export interface DayVisualContext {
+  todayStr: string
+  entryMap: Record<string, VacayEntry[]>
+  companyHolidaySet: Set<string>
+  companyHolidaysEnabled: boolean
+  holidays: HolidaysMap
+  weekendDays: number[]
+}
+
+function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim())
+  if (!m) return null
+  const n = parseInt(m[1], 16)
+  const r = ((n >> 16) & 255) / 255
+  const g = ((n >> 8) & 255) / 255
+  const b = (n & 255) / 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const d = max - min
+  if (d === 0) return { h: 0, s: 0, l }
+  const s = d / (1 - Math.abs(2 * l - 1))
+  let h: number
+  if (max === r) h = ((g - b) / d) % 6
+  else if (max === g) h = (b - r) / d + 2
+  else h = (r - g) / d + 4
+  h = Math.round(h * 60)
+  if (h < 0) h += 360
+  return { h, s, l }
+}
+
+/**
+ * Light pastel tint of a person color for logged-day cells (the design's
+ * pink/teal pastels, derived from the real member colors).
+ */
+export function personTint(color: string): string {
+  const hsl = hexToHsl(color)
+  if (!hsl) return color
+  const s = Math.round(Math.min(hsl.s * 72, 80))
+  return `hsl(${hsl.h} ${s}% 85%)`
+}
+
+/**
+ * Dark readable ink for a day number on top of a pastel holiday-calendar
+ * color (the design's #C0392B on #FBE0E0, generalized to any calendar color).
+ */
+export function holidayInk(color: string): string {
+  const hsl = hexToHsl(color)
+  if (!hsl) return 'var(--m-ink)'
+  const s = Math.round(Math.min(Math.max(hsl.s * 80, 45), 75))
+  return `hsl(${hsl.h} ${s}% 42%)`
+}
+
+/** Hard split background when several persons logged the same day. */
+export function splitBackground(colors: string[]): string {
+  const n = colors.length
+  const stops = colors
+    .map((c, i) => `${c} ${Math.round((i * 100) / n)}% ${Math.round(((i + 1) * 100) / n)}%`)
+    .join(',')
+  return `linear-gradient(105deg,${stops})`
+}
+
+/**
+ * Day-cell color matrix, priority top-down: today ring > company holiday >
+ * logged persons (pastel, split for several) > public holiday > weekend >
+ * plain. Logged and company cells keep hard dark inks — the pastels are
+ * theme-independent surfaces.
+ */
+export function dayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext): DayVisual {
+  if (dateStr === ctx.todayStr) {
+    return { background: 'transparent', numColor: 'var(--m-ink)', boxShadow: 'inset 0 0 0 1.5px var(--m-ink)' }
+  }
+  if (ctx.companyHolidaysEnabled && ctx.companyHolidaySet.has(dateStr)) {
+    return { background: '#F5D9A6', numColor: '#8A5A00' }
+  }
+  const entries = ctx.entryMap[dateStr]
+  if (entries && entries.length > 0) {
+    const tints = entries.map(e => personTint(e.person_color || FALLBACK_PERSON_COLOR))
+    return { background: tints.length === 1 ? tints[0] : splitBackground(tints), numColor: '#101013' }
+  }
+  const holiday = ctx.holidays[dateStr]
+  if (holiday) {
+    return { background: holiday.color, numColor: holidayInk(holiday.color) }
+  }
+  if (ctx.weekendDays.includes(dayOfWeek)) {
+    return { background: 'var(--m-ic)', numColor: 'var(--m-faint)' }
+  }
+  return { background: 'transparent', numColor: 'var(--m-muted)' }
+}
+
+/** Empty leading cells before the 1st, honoring the configured week start. */
+export function monthLead(year: number, month: number, weekStart: number): number {
+  return (new Date(year, month, 1).getDay() - weekStart + 7) % 7
+}
+
+export function localDateStr(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
