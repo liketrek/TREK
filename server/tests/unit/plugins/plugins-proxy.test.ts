@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { pluginsEnabledMock, extractTokenMock, verifyMock } = vi.hoisted(() => ({
   pluginsEnabledMock: vi.fn(() => true),
   extractTokenMock: vi.fn(() => 'tok'),
-  verifyMock: vi.fn(() => ({ id: 5, username: 'ada', is_admin: false })),
+  verifyMock: vi.fn(() => ({ id: 5, username: 'ada', role: 'user' })),
 }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled: pluginsEnabledMock }));
 vi.mock('../../../src/middleware/auth', () => ({ extractToken: extractTokenMock, verifyJwtAndLoadUser: verifyMock }));
@@ -44,7 +44,7 @@ function makeRuntime(over: Partial<PluginRuntimeService> = {}): PluginRuntimeSer
 
 beforeEach(() => {
   pluginsEnabledMock.mockClear().mockReturnValue(true);
-  verifyMock.mockClear().mockReturnValue({ id: 5, username: 'ada', is_admin: false });
+  verifyMock.mockClear().mockReturnValue({ id: 5, username: 'ada', role: 'user' });
   extractTokenMock.mockClear().mockReturnValue('tok');
 });
 
@@ -88,6 +88,18 @@ describe('PluginsProxyController', () => {
       routeId: 0,
       req: expect.objectContaining({ user: { id: 5, username: 'ada', isAdmin: false } }),
     }), 5);
+  });
+
+  it('maps role:admin to isAdmin:true in the forwarded user view', async () => {
+    // Regression: the proxy derives isAdmin from the loaded user's `role`, not a
+    // non-existent `is_admin` field — otherwise every user (admins included) is false.
+    verifyMock.mockReturnValue({ id: 7, username: 'root', role: 'admin' } as never);
+    const runtime = makeRuntime();
+    const res = fakeRes();
+    await new PluginsProxyController(runtime).proxy('p', fakeReq('GET', '/status'), res as never);
+    expect(runtime.invoke).toHaveBeenCalledWith('p', 'invoke.route', expect.objectContaining({
+      req: expect.objectContaining({ user: { id: 7, username: 'root', isAdmin: true } }),
+    }), 7);
   });
 
   it('a public (auth:false) route skips the session check', async () => {
