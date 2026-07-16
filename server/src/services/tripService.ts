@@ -9,7 +9,7 @@ import { Trip, User } from '../types';
 import { listDays, listAccommodations, addDays, resyncAccommodationDays, restampReservationDates } from './dayService';
 import { listBudgetItems, removeUserFromBudgetItems } from './budgetService';
 import { listItems as listPackingItems } from '../nest/packing/packing.bridge';
-import { listReservations, loadEndpointsByTrip, resyncReservationDays } from './reservationService';
+import { listReservations, loadEndpointsByTrip, normalizeAccommodationId, resyncReservationDays } from './reservationService';
 import { listNotes as listCollabNotes } from '../nest/collab/collab.bridge';
 import { shiftOwnerEntriesForTripWindow } from './vacayService';
 import { resolveTimeZone } from './timezoneService';
@@ -806,26 +806,33 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     const m = t ? t.match(/^(\d{2}:\d{2})/) : null;
     return m ? m[1] : null;
   };
-  // Local wall-clock arithmetic → YYYYMMDDTHHMMSS. Reads local Date components
-  // back out (never toISOString), so the result is server-timezone independent.
-  const addMinutesLocal = (date: string, time: string, mins: number): string => {
-    const [y, mo, d] = date.split('-').map(Number);
+  // Pure wall-clock arithmetic (no Date object, so no server-DST edge cases):
+  // "YYYY-MM-DD" + "HH:MM" + minutes → "YYYY-MM-DDTHH:MM", carrying days via
+  // the UTC-safe addDays.
+  const addMinutesWall = (date: string, time: string, mins: number): string => {
     const [h, mi] = time.split(':').map(Number);
-    const dt = new Date(y, mo - 1, d, h, mi + mins);
+    const total = h * 60 + mi + mins;
+    const dayCarry = Math.floor(total / 1440);
+    const rest = total - dayCarry * 1440;
     const p = (n: number) => String(n).padStart(2, '0');
-    return `${dt.getFullYear()}${p(dt.getMonth() + 1)}${p(dt.getDate())}T${p(dt.getHours())}${p(dt.getMinutes())}00`;
+    return `${dayCarry ? addDays(date, dayCarry) : date}T${p(Math.floor(rest / 60))}:${p(rest % 60)}`;
   };
 
   // A short free (non-busy) marker event: hotel check-in/check-out, car rental
-  // pickup/drop-off. Without a time it degrades to a transparent all-day event.
+  // pickup/drop-off. endTime (a window end like check_in_end "20:00") wins over
+  // the default one-hour duration. Without a time it degrades to a transparent
+  // all-day event.
   const emitWindowEvent = (opts: {
     uid: string; summary: string; date: string; time: string | null; zone: string | null;
-    durationMin?: number; description?: string; location?: string;
+    endTime?: string | null; durationMin?: number; description?: string; location?: string;
   }): string => {
     let ev = `BEGIN:VEVENT\r\nUID:${opts.uid}\r\nDTSTAMP:${now}\r\n`;
     if (opts.time) {
       ev += dtLine('DTSTART', `${opts.date}T${opts.time}`, opts.zone);
-      ev += dtLine('DTEND', addMinutesLocal(opts.date, opts.time, opts.durationMin ?? 60), opts.zone);
+      const endWall = opts.endTime && opts.endTime > opts.time
+        ? `${opts.date}T${opts.endTime}`
+        : addMinutesWall(opts.date, opts.time, opts.durationMin ?? 60);
+      ev += dtLine('DTEND', endWall, opts.zone);
     } else {
       ev += `DTSTART;VALUE=DATE:${fmtDate(opts.date)}\r\n`;
     }
@@ -880,11 +887,18 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
       const startDt = fmtDateTime(r.reservation_time);
       let out = dtLine('DTSTART', r.reservation_time, zone);
       if (r.reservation_end_time) {
-        const endDt = fmtDateTime(r.reservation_end_time, r.reservation_time);
+        let endWall = r.reservation_end_time;
+        let endDt = fmtDateTime(endWall, r.reservation_time);
+        // A time-only end earlier than the start crosses midnight (a bar that
+        // closes at 01:00): anchor it to the NEXT day instead of the start's.
+        if (!endWall.includes('T') && isTime(endWall) && endDt.length >= 15 && endDt < startDt) {
+          endWall = `${addDays(datePart(r.reservation_time)!, 1)}T${timePart(endWall)}`;
+          endDt = fmtDateTime(endWall);
+        }
         // Guard: same-zone wall clocks are chronologically comparable as
         // fixed-width strings; drop an end that isn't after the start (bad
         // overnight data produced invalid negative-duration VEVENTs).
-        if (endDt.length >= 15 && endDt > startDt) out += dtLine('DTEND', r.reservation_end_time, zone, r.reservation_time);
+        if (endDt.length >= 15 && endDt > startDt) out += dtLine('DTEND', endWall, zone, r.reservation_time);
       }
       return out;
     }
@@ -918,20 +932,23 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
 
   // Accommodation rows give hotels their stay range (day dates), check-in/
   // check-out times, and a place for LOCATION + zone; check_in/check_out may be
-  // "HH:MM" (UI) or full ISO (booking import).
+  // "HH:MM" (UI) or full ISO (booking import). Only loaded when the trip
+  // actually has hotel reservations.
   const accommodations = new Map<number, any>();
-  const accRows = db.prepare(`
-    SELECT a.id, a.check_in, a.check_out,
-           ds.date AS start_date, de.date AS end_date,
-           p.name AS place_name, p.address AS place_address,
-           p.lat AS place_lat, p.lng AS place_lng
-    FROM day_accommodations a
-    LEFT JOIN days ds ON a.start_day_id = ds.id
-    LEFT JOIN days de ON a.end_day_id = de.id
-    LEFT JOIN places p ON a.place_id = p.id
-    WHERE a.trip_id = ?
-  `).all(tripId) as any[];
-  for (const a of accRows) accommodations.set(a.id, a);
+  if (reservations.some(r => r.type === 'hotel')) {
+    const accRows = db.prepare(`
+      SELECT a.id, a.check_in, a.check_in_end, a.check_out,
+             ds.date AS start_date, de.date AS end_date,
+             p.name AS place_name, p.address AS place_address,
+             p.lat AS place_lat, p.lng AS place_lng
+      FROM day_accommodations a
+      LEFT JOIN days ds ON a.start_day_id = ds.id
+      LEFT JOIN days de ON a.end_day_id = de.id
+      LEFT JOIN places p ON a.place_id = p.id
+      WHERE a.trip_id = ?
+    `).all(tripId) as any[];
+    for (const a of accRows) accommodations.set(a.id, a);
+  }
 
   // Reservations as events
   for (const r of reservations) {
@@ -940,25 +957,28 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     // Hotels: a pair of short transparent Check-in / Check-out marker events
     // (like TripIt) instead of a single all-day event on the check-in date.
     if (r.type === 'hotel') {
-      // accommodation_id is TEXT and may read back as "14.0" — normalize.
-      const accId = r.accommodation_id != null ? Math.trunc(Number(r.accommodation_id)) : NaN;
-      const acc = Number.isFinite(accId) ? accommodations.get(accId) : undefined;
+      const accId = normalizeAccommodationId(r.accommodation_id);
+      const acc = accId != null ? accommodations.get(accId) : undefined;
+      const checkinDate = acc?.start_date || datePart(acc?.check_in) || datePart(r.reservation_time);
+      if (!checkinDate) continue;
+
       const desc = buildReservationDescription(r, meta);
       const location = r.location || acc?.place_address || acc?.place_name || undefined;
       const zone = resolveTimeZone(r.place_lat, r.place_lng) || resolveTimeZone(acc?.place_lat, acc?.place_lng);
 
-      const checkinDate = acc?.start_date || datePart(acc?.check_in) || datePart(r.reservation_time);
-      if (!checkinDate) continue;
       const checkinTime = timePart(meta.check_in_time) || timePart(acc?.check_in) || timePart(r.reservation_time) || '15:00';
       ics += emitWindowEvent({
         uid: `trek-res-${r.id}-checkin@trek`,
         summary: `Check-in: ${r.title}`,
-        date: checkinDate, time: checkinTime, zone, description: desc, location,
+        date: checkinDate, time: checkinTime, zone,
+        // Hotels advertise a check-in window ("15:00–20:00"); use its end when stored.
+        endTime: timePart(meta.check_in_end_time) || timePart(acc?.check_in_end),
+        description: desc, location,
       });
 
       const checkoutDate = acc?.end_date || datePart(acc?.check_out) || datePart(r.reservation_end_time);
       if (checkoutDate) {
-        const checkoutTime = timePart(meta.check_out_time) || timePart(acc?.check_out) || '11:00';
+        const checkoutTime = timePart(meta.check_out_time) || timePart(acc?.check_out) || timePart(r.reservation_end_time) || '11:00';
         ics += emitWindowEvent({
           uid: `trek-res-${r.id}-checkout@trek`,
           summary: `Check-out: ${r.title}`,
@@ -972,9 +992,14 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     // opaque event spanning the whole rental period.
     if (r.type === 'car') {
       const eps = [...(endpointsMap.get(r.id) || [])].sort((a, b) => a.sequence - b.sequence);
-      const dated = eps.filter(e => isDate(e.local_date));
-      const first = dated[0];
-      const last = dated.length > 1 ? dated[dated.length - 1] : undefined;
+      // Sides come from the endpoint role — import can drop one endpoint
+      // (failed geocoding), and a surviving return endpoint must not
+      // masquerade as the pickup. Positional first/last is only a fallback
+      // when roles are absent, and each side must be dated to count.
+      const pickupEp = eps.find(e => e.role === 'from') ?? (eps.length > 1 ? eps[0] : undefined);
+      const dropEp = eps.find(e => e.role === 'to') ?? (eps.length > 1 ? eps[eps.length - 1] : undefined);
+      const first = pickupEp && isDate(pickupEp.local_date) ? pickupEp : undefined;
+      const last = dropEp && dropEp !== pickupEp && isDate(dropEp.local_date) ? dropEp : undefined;
       const desc = buildReservationDescription(r, meta);
 
       // Per-side fallback: import may drop endpoints (failed geocoding) but

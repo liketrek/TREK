@@ -222,6 +222,14 @@ function saveEndpoints(reservationId: number, endpoints: EndpointInput[]): void 
   tx(reservationId, endpoints);
 }
 
+// accommodation_id is a TEXT column; the integer FK reads back as a numeric
+// string (e.g. "14.0"). Normalize to an int so consumers can use it as a key.
+export function normalizeAccommodationId(value: unknown): number | null {
+  if (value == null) return null;
+  const n = Math.trunc(Number(value));
+  return Number.isFinite(n) ? n : null;
+}
+
 export function listReservations(tripId: string | number) {
   const reservations = db.prepare(`
     SELECT r.*, d.day_number, p.name as place_name, r.assignment_id,
@@ -256,9 +264,7 @@ export function listReservations(tripId: string | number) {
     r.day_positions = posMap.get(r.id) || null;
     r.endpoints = endpointsMap.get(r.id) || [];
     r.travelers = travelersMap.get(r.id) || [];
-    // accommodation_id is a TEXT column; the integer FK reads back as a numeric
-    // string (e.g. "14.0"). Normalize to an int so clients can parse it.
-    r.accommodation_id = r.accommodation_id == null ? null : Math.trunc(Number(r.accommodation_id));
+    r.accommodation_id = normalizeAccommodationId(r.accommodation_id);
   }
 
   return reservations;
