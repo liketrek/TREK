@@ -60,6 +60,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
   const [clearCheckedSignal, setClearCheckedSignal] = useState(0)
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [addTodoSignal, setAddTodoSignal] = useState(0)
+  const [packingView, setPackingView] = useState<'common' | 'personal'>('common')
   const { t } = useTranslation()
   const isAdmin = useAuthStore(s => s.user?.role === 'admin')
 
@@ -127,6 +128,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                 )}
                 <ApplyTemplateButton
                   tripId={tripId}
+                  visibility={packingView}
                   className={`${sharedBtnClass} bg-accent text-accent-text`}
                   style={sharedBtnStyle}
                 />
@@ -167,7 +169,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
         </div>
       </div>
       <div style={{ padding: '16px 28px 0' }} className="max-md:!px-4">
-        {subTab === 'packing' && <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} />}
+        {subTab === 'packing' && <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} />}
         {subTab === 'todo' && <TodoListPanel tripId={tripId} items={todoItems} addItemSignal={addTodoSignal} />}
       </div>
     </div>

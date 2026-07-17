@@ -383,18 +383,39 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
 
     it('404 when applying a missing/empty template (POST stays 200 otherwise)', () => {
       const svc = makeService({ applyTemplate: vi.fn().mockReturnValue(null) } as Partial<PackingService>);
-      expect(thrown(() => new PackingController(svc).applyTemplate(user, '5', 't1'))).toEqual({
+      expect(thrown(() => new PackingController(svc).applyTemplate(user, '5', 't1', {}))).toEqual({
         status: 404, body: { error: 'Template not found or empty' },
       });
     });
 
     it('applies a template, broadcasts the added items and reports the count', () => {
-      const applyTemplate = vi.fn().mockReturnValue([{ id: 1 }, { id: 2 }, { id: 3 }]);
-      const broadcast = vi.fn();
-      const svc = makeService({ applyTemplate, broadcast } as Partial<PackingService>);
-      const res = new PackingController(svc).applyTemplate(user, '5', 't1', 'sock');
-      expect(res).toEqual({ items: [{ id: 1 }, { id: 2 }, { id: 3 }], count: 3 });
-      expect(broadcast).toHaveBeenCalledWith('5', 'packing:template-applied', { items: [{ id: 1 }, { id: 2 }, { id: 3 }] }, 'sock');
+      const items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+      const applyTemplate = vi.fn().mockReturnValue(items);
+      const broadcastItem = vi.fn();
+      const svc = makeService({ applyTemplate, broadcastItem } as Partial<PackingService>);
+      const res = new PackingController(svc).applyTemplate(user, '5', 't1', {}, 'sock');
+      expect(res).toEqual({ items, count: 3 });
+      expect(applyTemplate).toHaveBeenCalledWith('5', 't1', 'common', user.id);
+      expect(broadcastItem).toHaveBeenCalledWith('5', 'packing:template-applied', { items }, items[0], 'sock');
+    });
+
+    // #1565: the template must follow the tab the user is on, and a personal apply
+    // must not be broadcast to the rest of the trip.
+    it('applies a template into the personal list and keeps the broadcast to its owner', () => {
+      const items = [{ id: 1, is_private: 1, owner_id: user.id }];
+      const applyTemplate = vi.fn().mockReturnValue(items);
+      const broadcastItem = vi.fn();
+      const svc = makeService({ applyTemplate, broadcastItem } as Partial<PackingService>);
+      new PackingController(svc).applyTemplate(user, '5', 't1', { visibility: 'personal' }, 'sock');
+      expect(applyTemplate).toHaveBeenCalledWith('5', 't1', 'personal', user.id);
+      expect(broadcastItem).toHaveBeenCalledWith('5', 'packing:template-applied', { items }, items[0], 'sock');
+    });
+
+    it('falls back to the common pool for an unknown visibility', () => {
+      const applyTemplate = vi.fn().mockReturnValue([{ id: 1 }]);
+      const svc = makeService({ applyTemplate } as Partial<PackingService>);
+      new PackingController(svc).applyTemplate(user, '5', 't1', { visibility: 'bogus' } as never);
+      expect(applyTemplate).toHaveBeenCalledWith('5', 't1', 'common', user.id);
     });
 
     it('400 when an admin saves a template with no name (whitespace)', () => {
