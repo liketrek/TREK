@@ -163,6 +163,24 @@ describe('applyTemplate', () => {
 
     expect(result).toBeNull();
   });
+
+  it('PACK-SVC-004a: applies a template to the caller personal list when requested', () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const templateResult = testDb.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)').run('Solo', user.id);
+    const templateId = templateResult.lastInsertRowid as number;
+    const catResult = testDb.prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)').run(templateId, 'Private Gear', 0);
+    testDb.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)').run(catResult.lastInsertRowid, 'Medication', 0);
+
+    const result = applyTemplate(trip.id, templateId, { visibility: 'personal', ownerId: user.id }) as any[];
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ name: 'Medication', is_private: 1, owner_id: user.id });
+    expect((listItems(trip.id, user.id) as any[]).map(i => i.name)).toEqual(['Medication']);
+    expect(listItems(trip.id, other.id)).toEqual([]);
+  });
 });
 
 // ── createBag / deleteBag ─────────────────────────────────────────────────────

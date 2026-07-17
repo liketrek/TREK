@@ -383,18 +383,40 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
 
     it('404 when applying a missing/empty template (POST stays 200 otherwise)', () => {
       const svc = makeService({ applyTemplate: vi.fn().mockReturnValue(null) } as Partial<PackingService>);
-      expect(thrown(() => new PackingController(svc).applyTemplate(user, '5', 't1'))).toEqual({
+      expect(thrown(() => new PackingController(svc).applyTemplate(user, '5', 't1', {}))).toEqual({
         status: 404, body: { error: 'Template not found or empty' },
       });
     });
 
-    it('applies a template, broadcasts the added items and reports the count', () => {
-      const applyTemplate = vi.fn().mockReturnValue([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    it('applies a template to Common, broadcasts the added items and reports the count', () => {
+      const applyTemplate = vi.fn().mockReturnValue([{ id: 1, is_private: 0 }, { id: 2, is_private: 0 }, { id: 3, is_private: 0 }]);
       const broadcast = vi.fn();
       const svc = makeService({ applyTemplate, broadcast } as Partial<PackingService>);
-      const res = new PackingController(svc).applyTemplate(user, '5', 't1', 'sock');
-      expect(res).toEqual({ items: [{ id: 1 }, { id: 2 }, { id: 3 }], count: 3 });
-      expect(broadcast).toHaveBeenCalledWith('5', 'packing:template-applied', { items: [{ id: 1 }, { id: 2 }, { id: 3 }] }, 'sock');
+      const res = new PackingController(svc).applyTemplate(user, '5', 't1', {}, 'sock');
+      expect(res).toEqual({ items: [{ id: 1, is_private: 0 }, { id: 2, is_private: 0 }, { id: 3, is_private: 0 }], count: 3 });
+      expect(applyTemplate).toHaveBeenCalledWith('5', 't1', { visibility: 'common', ownerId: user.id });
+      expect(broadcast).toHaveBeenCalledTimes(3);
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: { id: 1, is_private: 0 } }, 'sock');
+    });
+
+    it('applies a template to My list and scopes broadcasts to the owner', () => {
+      const item = { id: 1, is_private: 1, owner_id: user.id };
+      const applyTemplate = vi.fn().mockReturnValue([item]);
+      const broadcastToViewers = vi.fn();
+      const svc = makeService({ applyTemplate, broadcastToViewers } as Partial<PackingService>);
+      const res = new PackingController(svc).applyTemplate(user, '5', 't1', { visibility: 'personal' }, 'sock');
+      expect(res).toEqual({ items: [item], count: 1 });
+      expect(applyTemplate).toHaveBeenCalledWith('5', 't1', { visibility: 'personal', ownerId: user.id });
+      expect(broadcastToViewers).toHaveBeenCalledWith('5', 'packing:created', { item }, [user.id], 'sock');
+    });
+
+    it('400 when applying a template with invalid visibility', () => {
+      const applyTemplate = vi.fn();
+      const svc = makeService({ applyTemplate } as Partial<PackingService>);
+      expect(thrown(() => new PackingController(svc).applyTemplate(user, '5', 't1', { visibility: 'shared' as never }))).toEqual({
+        status: 400, body: { error: 'Invalid visibility' },
+      });
+      expect(applyTemplate).not.toHaveBeenCalled();
     });
 
     it('400 when an admin saves a template with no name (whitespace)', () => {

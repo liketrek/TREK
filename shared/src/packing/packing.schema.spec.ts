@@ -3,6 +3,7 @@ import {
   packingImportRequestSchema,
   packingCreateBagRequestSchema,
   packingSaveTemplateRequestSchema,
+  packingApplyTemplateRequestSchema,
 } from './packing.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -42,5 +43,13 @@ describe('packingSaveTemplateRequestSchema', () => {
   it('requires a name', () => {
     expect(packingSaveTemplateRequestSchema.safeParse({ name: 'Summer' }).success).toBe(true);
     expect(packingSaveTemplateRequestSchema.safeParse({ name: '' }).success).toBe(false);
+  });
+});
+
+describe('packingApplyTemplateRequestSchema', () => {
+  it('accepts Common or Personal as the target list', () => {
+    expect(packingApplyTemplateRequestSchema.safeParse({ visibility: 'common' }).success).toBe(true);
+    expect(packingApplyTemplateRequestSchema.safeParse({ visibility: 'personal' }).success).toBe(true);
+    expect(packingApplyTemplateRequestSchema.safeParse({ visibility: 'shared' }).success).toBe(false);
   });
 });

@@ -126,8 +126,8 @@ export class PackingService {
     return svc.listTemplates();
   }
 
-  applyTemplate(tripId: string, templateId: string) {
-    return svc.applyTemplate(tripId, templateId);
+  applyTemplate(tripId: string, templateId: string, options?: Parameters<typeof svc.applyTemplate>[2]) {
+    return svc.applyTemplate(tripId, templateId, options);
   }
 
   saveAsTemplate(tripId: string, userId: number, name: string) {

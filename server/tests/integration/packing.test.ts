@@ -511,6 +511,32 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
     expect(res.body.count).toBeGreaterThan(0);
   });
 
+  it('PACK-015a — POST /apply-template/:templateId can apply template items to My list', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const tpl = testDb.prepare("INSERT INTO packing_templates (name, created_by) VALUES ('Private Beach', ?)").run(user.id);
+    const cat = testDb.prepare("INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, 'Essentials', 0)").run(tpl.lastInsertRowid);
+    testDb.prepare("INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, 'Medication', 0)").run(cat.lastInsertRowid);
+    const templateId = tpl.lastInsertRowid;
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/packing/apply-template/${templateId}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ visibility: 'personal' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0]).toMatchObject({ name: 'Medication', is_private: 1, owner_id: user.id });
+
+    const ownerList = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(user.id));
+    expect(ownerList.body.items.map((i: { name: string }) => i.name)).toContain('Medication');
+
+    const otherList = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(other.id));
+    expect(otherList.body.items.map((i: { name: string }) => i.name)).not.toContain('Medication');
+  });
+
   it('PACK-015b — POST /apply-template/:id for empty template returns 404', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

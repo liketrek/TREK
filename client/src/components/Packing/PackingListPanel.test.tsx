@@ -9,6 +9,7 @@ import { useTripStore } from '../../store/tripStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildAdmin, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
 import PackingListPanel, { itemWeight } from './PackingListPanel';
+import ApplyTemplateButton from './ApplyTemplateButton';
 
 describe('itemWeight (bag total weight calc)', () => {
   it('FE-COMP-PACKING-030: multiplies unit weight by quantity', () => {
@@ -1135,13 +1136,13 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-061: applying a template calls applyTemplate API', async () => {
     const user = userEvent.setup();
-    let applyCalled = false;
+    let applyBody: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/:id/packing/templates', () =>
         HttpResponse.json({ templates: [{ id: 5, name: 'Beach Trip', item_count: 12 }] })
       ),
-      http.post('/api/trips/1/packing/apply-template/5', () => {
-        applyCalled = true;
+      http.post('/api/trips/1/packing/apply-template/5', async ({ request }) => {
+        applyBody = await request.json() as Record<string, unknown>;
         return HttpResponse.json({ count: 12 });
       })
     );
@@ -1156,7 +1157,49 @@ describe('PackingListPanel', () => {
     const tmplBtn = await screen.findByText('Beach Trip');
     await user.click(tmplBtn);
 
-    await waitFor(() => expect(applyCalled).toBe(true));
+    await waitFor(() => expect(applyBody).toMatchObject({ visibility: 'common' }));
+  });
+
+  it('FE-COMP-PACKING-061b: applying a template from My list targets personal visibility', async () => {
+    const user = userEvent.setup();
+    let applyBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/:id/packing/templates', () =>
+        HttpResponse.json({ templates: [{ id: 5, name: 'Beach Trip', item_count: 12 }] })
+      ),
+      http.post('/api/trips/1/packing/apply-template/5', async ({ request }) => {
+        applyBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ count: 12 });
+      })
+    );
+    render(<PackingListPanel tripId={1} items={[]} />);
+
+    await user.click(screen.getByText('My list'));
+    await user.click(await screen.findByText('Apply template'));
+    await user.click(await screen.findByText('Beach Trip'));
+
+    await waitFor(() => expect(applyBody).toMatchObject({ visibility: 'personal' }));
+  });
+
+  it('FE-COMP-PACKING-061c: standalone template button applies to its target visibility', async () => {
+    const user = userEvent.setup();
+    let applyBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/:id/packing/templates', () =>
+        HttpResponse.json({ templates: [{ id: 5, name: 'Beach Trip', item_count: 12 }] })
+      ),
+      http.post('/api/trips/1/packing/apply-template/5', async ({ request }) => {
+        applyBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ count: 12 });
+      })
+    );
+
+    render(<ApplyTemplateButton tripId={1} targetVisibility="personal" style={{}} />);
+
+    await user.click(await screen.findByText('Apply template'));
+    await user.click(await screen.findByText('Beach Trip'));
+
+    await waitFor(() => expect(applyBody).toMatchObject({ visibility: 'personal' }));
   });
 
   it('FE-COMP-PACKING-062: handleBulkImport calls import API and closes modal', async () => {
