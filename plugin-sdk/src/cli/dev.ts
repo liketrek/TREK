@@ -658,7 +658,7 @@ function ctx(){
     tripId: val("trip").checked?${tripId}:null, userId:"1",
     user:{name:"Dev User",avatar:null,isAdmin:true},
     appearance:{scheme:accent,density:"comfortable",reducedMotion:val("rm").checked,noTransparency:val("nt").checked},
-    formats:{locale:"en",currency:"EUR",timeFormat:"24h",distanceUnit:"metric",temperatureUnit:"celsius",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},
+    formats:{locale:"en",currency:"EUR",timeFormat:"24h",distanceUnit:"metric",temperatureUnit:"celsius",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,blurBookingCodes:false},
     tokens:tokens};
 }
 function postCtx(){ if(f.contentWindow) f.contentWindow.postMessage(ctx(),"*"); }

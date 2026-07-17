@@ -218,6 +218,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       distanceUnit: settings.distance_unit,
       temperatureUnit: settings.temperature_unit,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      blurBookingCodes: Boolean(settings.blur_booking_codes),
     },
     tokens: readThemeTokens(),
   }), [tripId, placeId, dayId, reservationId, userId, locale, userName, userAvatar, isAdmin, settings])

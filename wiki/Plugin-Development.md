@@ -533,7 +533,7 @@ declared), no popups.
 | `locale` | e.g. `'en'` |
 | `hostOrigin` | the app origin |
 | `user` | `{ name, avatar, isAdmin } \| null` — **never** an email; role only as a boolean |
-| `formats` | `{ locale, currency, timeFormat, distanceUnit, temperatureUnit, timezone }` |
+| `formats` | `{ locale, currency, timeFormat, distanceUnit, temperatureUnit, timezone, blurBookingCodes }` |
 | `tokens` | TREK's resolved CSS design tokens for the current theme (see below) |
 | `appearance` | `{ scheme, density: 'comfortable'\|'compact', reducedMotion, noTransparency }` |
 

@@ -12,7 +12,7 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }));
 vi.mock('../shared/Toast', () => ({ useToast: () => toast }));
 vi.mock('../../i18n', () => ({ useTranslation: () => ({ locale: 'en', t: (k: string) => k }) }));
 vi.mock('../../store/authStore', () => ({ useAuthStore: (sel: (s: unknown) => unknown) => sel({ user: { id: 7, username: 'ada', avatar_url: null, role: 'admin' } }) }));
-vi.mock('../../store/settingsStore', () => ({ useSettingsStore: (sel: (s: unknown) => unknown) => sel({ settings: { default_currency: 'EUR', time_format: '24h', distance_unit: 'metric', temperature_unit: 'celsius' } }) }));
+vi.mock('../../store/settingsStore', () => ({ useSettingsStore: (sel: (s: unknown) => unknown) => sel({ settings: { default_currency: 'EUR', time_format: '24h', distance_unit: 'metric', temperature_unit: 'celsius', blur_booking_codes: true } }) }));
 vi.mock('../../api/client', () => ({ pluginsApi: { invoke: (id: string, sub: string, init?: unknown) => invoke(id, sub, init) } }));
 vi.mock('../../api/websocket', () => ({
   addListener: (fn: (ev: Record<string, unknown>) => void) => wsListeners.add(fn),
@@ -84,7 +84,13 @@ describe('PluginFrame', () => {
     const ctx = posted.find((m) => m.type === 'trek:context') as Record<string, unknown> | undefined;
     expect(ctx).toBeTruthy();
     expect(ctx!.tokens).toBeTruthy(); // resolved design tokens (empty {} in jsdom, but present)
-    expect(ctx!.formats).toMatchObject({ currency: 'EUR', timeFormat: '24h', distanceUnit: 'metric' });
+    expect(ctx!.formats).toMatchObject({
+      currency: 'EUR',
+      timeFormat: '24h',
+      distanceUnit: 'metric',
+      temperatureUnit: 'celsius',
+      blurBookingCodes: true,
+    });
     // Display identity is present but carries NO secret (no email, role only as a boolean).
     expect(ctx!.user).toMatchObject({ name: 'ada', isAdmin: true });
     expect(JSON.stringify(ctx)).not.toContain('@'); // no email leaked
