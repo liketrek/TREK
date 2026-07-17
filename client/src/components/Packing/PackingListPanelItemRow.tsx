@@ -372,7 +372,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
                   padding: 6,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 8px' }}>
-                    <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0 }}>Qty</span>
+                    <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0 }}>{t('packing.quantity')}</span>
                     <QuantityInput value={item.quantity || 1} onSave={qty => updatePackingItem(tripId, item.id, { quantity: qty })} />
                   </div>
 
