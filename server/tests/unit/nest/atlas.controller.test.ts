@@ -12,7 +12,11 @@ function makeController(svc: Partial<AtlasService>) {
 }
 
 function makeRes() {
-  return { setHeader: vi.fn() } as unknown as Response & { setHeader: ReturnType<typeof vi.fn> };
+  return { setHeader: vi.fn(), send: vi.fn(), json: vi.fn() } as unknown as Response & {
+    setHeader: ReturnType<typeof vi.fn>;
+    send: ReturnType<typeof vi.fn>;
+    json: ReturnType<typeof vi.fn>;
+  };
 }
 
 async function thrown(fn: () => unknown): Promise<{ status: number; body: unknown }> {
@@ -53,11 +57,22 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
     });
   });
 
-  it('GET /countries/geo delegates to the service', () => {
-    const fc = { type: 'FeatureCollection', features: [{ id: 'NO' }] };
-    const countryGeo = vi.fn().mockReturnValue(fc);
-    expect(makeController({ countryGeo }).countryGeo()).toBe(fc);
-    expect(countryGeo).toHaveBeenCalledWith();
+  it('GET /countries/geo serves the gzipped admin-0 bundle with Content-Encoding', () => {
+    const gz = Buffer.from('gzipped-bytes');
+    const countryGeoGz = vi.fn().mockReturnValue(gz);
+    const res = makeRes();
+    makeController({ countryGeoGz }).countryGeo(res);
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Encoding', 'gzip');
+    expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'public, max-age=86400');
+    expect(res.send).toHaveBeenCalledWith(gz);
+  });
+
+  it('GET /countries/geo falls back to an empty FeatureCollection when the bundle is missing', () => {
+    const countryGeoGz = vi.fn().mockReturnValue(null);
+    const res = makeRes();
+    makeController({ countryGeoGz }).countryGeo(res);
+    expect(res.json).toHaveBeenCalledWith({ type: 'FeatureCollection', features: [] });
+    expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
   });
 
   describe('country', () => {
