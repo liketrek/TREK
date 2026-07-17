@@ -188,6 +188,28 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
   }
 }
 
+/* Packing list rows: on phones, keep the item name readable and move the dense
+   per-item controls behind the overflow menu. */
+.packing-row-overflow {
+  display: none !important;
+}
+@media (max-width: 639px) {
+  .packing-item-row {
+    gap: 6px !important;
+    padding: 7px 8px !important;
+  }
+  .packing-item-row > span {
+    flex-basis: auto !important;
+  }
+  .packing-row-inline-actions,
+  .packing-row-badge {
+    display: none !important;
+  }
+  .packing-row-overflow {
+    display: flex !important;
+  }
+}
+
 /* Ladeanimation */
 @keyframes spin {
   to { transform: rotate(360deg); }
