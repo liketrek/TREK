@@ -120,6 +120,9 @@ export function useMVacay() {
   }, [isFused, currentUser?.id, setSelectedUserId])
 
   const handleDayTap = useCallback(async (dateStr: string) => {
+    // The year overview is read-only — logging only happens in edit mode
+    // (neither vacation days nor company holidays can be set while viewing).
+    if (view !== 'edit') return
     if (mode === 'company') {
       if (!companyHolidaysEnabled) return
       await toggleCompanyHoliday(dateStr)
@@ -128,7 +131,7 @@ export function useMVacay() {
     if (blockWeekends && isWeekend(dateStr, weekendDays)) return
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
     await toggleEntry(dateStr, selectedUserId || undefined)
-  }, [mode, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId])
+  }, [view, mode, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId])
 
   // Entitlement stepper: never below what is already used this year
   // (carried-over days cover the difference when used > entitlement).

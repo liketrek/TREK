@@ -3,6 +3,7 @@ import {
   ArrowRight, ArrowUpRight, BedDouble, CalendarRange, ChevronRight, LogIn, LogOut,
   MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay'
 import { formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
@@ -62,7 +63,9 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         className="absolute left-4 right-4 overflow-y-auto overscroll-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]"
         style={{ top: `calc(var(--m-safe-top, 12px) + ${editing ? 140 : tl.upNext ? 216 : 102}px)` }}
       >
-        <TimelineHeader tl={tl} onOpenDay={() => tl.day && shell.openSheet('day', { dayId: tl.day.id })} />
+        {(tl.hotelChips.length > 0 || tl.weatherTemp != null) && (
+          <TimelineHeader tl={tl} onOpenDay={() => tl.day && shell.openSheet('day', { dayId: tl.day.id })} />
+        )}
 
         {tl.rows.map(row => {
           switch (row.kind) {
@@ -131,37 +134,18 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         )}
 
         {editing && (
-          <>
-            <AddBar className="mt-2.5">
-              <AddBarButton label={t('mobileTrip.addPlaceShort')} onClick={tl.addPlace}>
-                <MapPin size={12} strokeWidth={2} />
-              </AddBarButton>
-              <AddBarSep />
-              <AddBarButton
-                label={t('mobileTrip.addNoteShort')}
-                onClick={() => tl.day && shell.openSheet('note', { dayId: tl.day.id })}
-              >
-                <PencilLine size={12} strokeWidth={2} />
-              </AddBarButton>
-              <AddBarSep />
-              <AddBarButton label={t('mobileTrip.addBookingShort')} onClick={tl.addBooking}>
-                <Ticket size={12} strokeWidth={2} />
-              </AddBarButton>
-              <AddBarSep />
-              <AddBarButton label={t('mobileTrip.addTransportShort')} onClick={tl.addTransport}>
-                <TrainFront size={12} strokeWidth={2} />
-              </AddBarButton>
-            </AddBar>
-            <AddBar className="mt-2">
-              <AddBarButton label={t('dayplan.optimize')} onClick={() => void tl.optimize()}>
-                <Route size={12} strokeWidth={2} />
-              </AddBarButton>
-              <AddBarSep />
-              <AddBarButton label={t('mobileTrip.googleMaps')} onClick={tl.exportGoogleMaps}>
-                <ArrowUpRight size={12} strokeWidth={2} />
-              </AddBarButton>
-            </AddBar>
-          </>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <PlanAction icon={MapPin} label={t('mobileTrip.addPlaceShort')} onClick={tl.addPlace} />
+            <PlanAction
+              icon={PencilLine}
+              label={t('mobileTrip.addNoteShort')}
+              onClick={() => tl.day && shell.openSheet('note', { dayId: tl.day.id })}
+            />
+            <PlanAction icon={Ticket} label={t('mobileTrip.addBookingShort')} onClick={tl.addBooking} />
+            <PlanAction icon={TrainFront} label={t('mobileTrip.addTransportShort')} onClick={tl.addTransport} />
+            <PlanAction icon={Route} label={t('dayplan.optimize')} onClick={() => void tl.optimize()} />
+            <PlanAction icon={ArrowUpRight} label={t('mobileTrip.googleMaps')} onClick={tl.exportGoogleMaps} />
+          </div>
         )}
       </div>
     </div>
@@ -326,28 +310,16 @@ function HotelChipIcon({ variant }: { variant: 'checkout' | 'checkin' | 'stay' }
   return <BedDouble size={12} strokeWidth={2.2} className="text-m-muted" />
 }
 
-/** Dashed rounded add bar of the edit mode (Place · Note · Booking · Transport / Optimize · Google Maps). */
-function AddBar({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <div className={`flex items-center justify-between rounded-full border-[1.5px] border-dashed border-[color:var(--m-faint)] px-3.5 py-[3px] ${className}`}>
-      {children}
-    </div>
-  )
-}
-
-function AddBarButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+/** Edit-mode action tile — Place · Note · Booking · Transport · Optimize · Google Maps, three per row. */
+function PlanAction({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-[5px] whitespace-nowrap px-0.5 py-[9px] font-geist text-[0.6875rem] font-semibold"
+      className="flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-1 py-2.5 transition-transform active:scale-[.97]"
     >
-      {children}
-      {label}
+      <Icon size={17} strokeWidth={2} className="text-m-muted" />
+      <span className="max-w-full text-center font-geist text-[0.625rem] font-semibold leading-tight text-m-ink">{label}</span>
     </button>
   )
-}
-
-function AddBarSep() {
-  return <span className="h-4 w-px flex-none bg-[color:var(--m-rowbr)]" />
 }

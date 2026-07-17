@@ -6,6 +6,7 @@ import { useCanDo } from '../../../store/permissionsStore'
 import { useToast } from '../../../components/shared/Toast'
 import { normalizeImageFile } from '../../../utils/convertHeic'
 import { getApiErrorMessage } from '../../../types'
+import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
 import type { DashboardTrip } from '../../../pages/dashboard/dashboardModel'
 import type { Trip, TripCreateRequest } from '@trek/shared'
 import MSheet from '../../components/MSheet'
@@ -223,7 +224,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
   const inputCls = 'w-full border-none bg-transparent pt-[2px] font-[inherit] text-[0.9375rem] font-semibold text-m-ink outline-none placeholder:text-m-faint'
 
   return (
-    <MSheet open={open} onClose={onClose} variant="card" ariaLabel={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}>
+    <MSheet open={open} onClose={onClose} variant="card" material="opaque" ariaLabel={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}>
       <div className="flex items-center gap-[11px] p-[16px_16px_0]">
         <div className="min-w-0 flex-1 truncate text-[1.0625rem] font-bold">
           {isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
@@ -266,25 +267,22 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
         <div className="mt-2 flex gap-2">
           <div className={`${boxCls} min-w-0 flex-1`}>
             <FieldLabel>{t('dashboard.startDate')}</FieldLabel>
-            <input
-              type="date"
+            <CustomDatePicker
               value={startDate}
-              onChange={e => canEditTrip && changeStart(e.target.value)}
-              readOnly={!canEditTrip}
-              aria-label={t('dashboard.startDate')}
-              className={`${inputCls} text-[0.8125rem]`}
+              onChange={v => { if (canEditTrip) changeStart(v) }}
+              placeholder={t('dashboard.startDate')}
+              borderless
+              style={{ marginTop: 3 }}
             />
           </div>
           <div className={`${boxCls} min-w-0 flex-1`}>
             <FieldLabel>{t('dashboard.endDate')}</FieldLabel>
-            <input
-              type="date"
+            <CustomDatePicker
               value={endDate}
-              min={startDate || undefined}
-              onChange={e => canEditTrip && setEndDate(e.target.value)}
-              readOnly={!canEditTrip}
-              aria-label={t('dashboard.endDate')}
-              className={`${inputCls} text-[0.8125rem]`}
+              onChange={v => { if (canEditTrip) setEndDate(v) }}
+              placeholder={t('dashboard.endDate')}
+              borderless
+              style={{ marginTop: 3 }}
             />
           </div>
         </div>
@@ -332,7 +330,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
                 className="flex w-full items-center justify-center gap-[6px] rounded-[14px] border border-dashed border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[18px] text-[0.8125rem] font-medium text-m-muted"
               >
                 <Camera size={15} strokeWidth={2} />
-                {uploadingCover ? t('common.uploading') : t('dashboard.addCoverImage')}
+                {uploadingCover ? t('common.uploading') : t('dashboard.mobile.addCoverImage')}
               </button>
             )}
 

@@ -176,7 +176,7 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
             {t(`reservations.type.${res.type}`)}
           </span>
           <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-bold text-m-ink">{res.title}</span>
-          {res.needs_review && (
+          {!!res.needs_review && (
             <span className="flex-none rounded-full bg-[rgba(232,161,58,.16)] px-2 py-[2px] font-geist text-[0.5rem] font-bold uppercase tracking-[.03em] text-[color:var(--m-st-pending)]">
               {t('reservations.needsReview')}
             </span>

@@ -168,9 +168,8 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
   }
 
   const addAccommodation = () => {
-    planner.setEditingReservation(null)
-    planner.setShowReservationModal(true)
-    shell.closeSheet()
+    if (!day) return
+    shell.openSheet('accommodation', { dayId: day.id })
   }
 
   const cTemp = (c: number) => Math.round(isFahrenheit ? c * 9 / 5 + 32 : c)

@@ -28,6 +28,9 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': 'Eliminare {count} luoghi?',
   'trip.toast.placesDeleted': '{count} luoghi eliminati',
   'trip.loadingPhotos': 'Caricamento foto dei luoghi...',
+  'trip.loadingSteps.pack': 'Facciamo le valigie...',
+  'trip.loadingSteps.road': 'Si parte...',
+  'trip.loadingSteps.arrive': 'Quasi arrivati...',
   'trip.invite.linkTitle': 'Link di invito al viaggio',
   'trip.invite.linkHint':
     'Chiunque abbia un account TREK e apra questo link entra nel viaggio come membro. Rigenera per invalidare il vecchio link.',

@@ -11,6 +11,7 @@ import MMapArea from './map/MMapArea'
 import MPlacesBrowser from './places/MPlacesBrowser'
 import MTripTabPanel from './tabs/MTripTabPanel'
 import MTripSheets from './sheets/MTripSheets'
+import MTripLoadingSplash from './MTripLoadingSplash'
 import type { Day } from '../../../types'
 
 /**
@@ -237,26 +238,7 @@ export default function MTripShell({
 
   // Splash — same gate as the desktop page, in the mobile design language.
   if (planner.isLoading || !planner.splashDone) {
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink">
-        <img
-          src={document.documentElement.classList.contains('dark') ? '/icons/trek-loading-light.gif' : '/icons/trek-loading-dark.gif'}
-          alt="Loading"
-          width={64}
-          height={64}
-          className="mb-7"
-        />
-        <div className="mb-1.5 text-[1.25rem] font-bold tracking-[-0.3px]">{trip?.title || 'TREK'}</div>
-        <div className="mb-8 text-[0.75rem] font-medium uppercase tracking-[2px] text-m-faint">
-          {t('trip.loadingPhotos')}
-        </div>
-        <div className="flex gap-1.5">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-m-muted" />
-          <span className="h-2 w-2 animate-pulse rounded-full bg-m-muted [animation-delay:200ms]" />
-          <span className="h-2 w-2 animate-pulse rounded-full bg-m-muted [animation-delay:400ms]" />
-        </div>
-      </div>
-    )
+    return <MTripLoadingSplash title={trip?.title || ''} />
   }
   if (!trip) return null
 

@@ -108,6 +108,7 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.places': 'Τοποθεσίες',
   'dashboard.mobile.buddies': 'Συνταξιδιώτες',
   'dashboard.mobile.newTrip': 'Νέο Ταξίδι',
+  'dashboard.mobile.addCoverImage': 'Προσθήκη εικόνας εξωφύλλου',
   'dashboard.mobile.currency': 'Νόμισμα',
   'dashboard.mobile.timezone': 'Ζώνη ώρας',
   'dashboard.mobile.upcomingTrips': 'Επερχόμενα Ταξίδια',
@@ -128,6 +129,8 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.completed': 'Ολοκληρώθηκε',
   'dashboard.mobile.currencyConverter': 'Μετατροπέας Νομισμάτων',
   'dashboard.newTripSub': 'Plan a new trip from scratch', // en-fallback
+  'dashboard.subscribeAllTrips': 'Εγγραφή σε όλα τα ταξίδια',
+  'dashboard.subscribeAllTripsDesc': 'Μία ροή ημερολογίου για όλα τα ενεργά σας ταξίδια, η οποία διατηρείται αυτόματα συγχρονισμένη. Εξαιρούνται τα αρχειοθετημένα ταξίδια και τα ταξίδια που ολοκληρώθηκαν πριν από περισσότερες από 90 ημέρες.',
   'dashboard.filter.planned': 'Planned', // en-fallback
   'dashboard.hero.badgeLive': 'LIVE NOW', // en-fallback
   'dashboard.hero.badgeToday': 'STARTS TODAY', // en-fallback

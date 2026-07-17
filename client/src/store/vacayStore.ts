@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import apiClient from '../api/client'
+import { useAuthStore } from './authStore'
 import type { AxiosResponse } from 'axios'
 import type { VacayPlan, VacayUser, VacayEntry, VacayStat, HolidaysMap, HolidayInfo, VacayHolidayCalendar } from '../types'
 import type {
@@ -244,15 +245,46 @@ export const useVacayStore = create<VacayState>((set, get) => ({
   },
 
   toggleEntry: async (date: string, targetUserId?: number) => {
-    await api.toggleEntry(date, targetUserId)
-    await get().loadEntries()
-    await get().loadStats()
+    // Optimistic: flip the day locally so the cell reacts instantly, then
+    // reconcile with the server (stats are server-computed). Roll back on error.
+    const userId = targetUserId ?? useAuthStore.getState().user?.id
+    const prevEntries = get().entries
+    const prevStats = get().stats
+    if (userId != null) {
+      const has = prevEntries.some(e => e.date === date && e.user_id === userId)
+      if (has) {
+        set({ entries: prevEntries.filter(e => !(e.date === date && e.user_id === userId)) })
+      } else {
+        const u = get().users.find(x => x.id === userId)
+        set({ entries: [...prevEntries, { date, user_id: userId, person_color: u?.color || undefined, person_name: u?.username }] })
+      }
+    }
+    try {
+      await api.toggleEntry(date, targetUserId)
+      await get().loadEntries()
+      await get().loadStats()
+    } catch (e) {
+      set({ entries: prevEntries, stats: prevStats })
+      throw e
+    }
   },
 
   toggleCompanyHoliday: async (date: string) => {
-    await api.toggleCompanyHoliday(date)
-    await get().loadEntries()
-    await get().loadStats()
+    // Optimistic like toggleEntry; a company holiday also overrides personal
+    // entries on that day, so refetch entries afterwards to reconcile.
+    const prevEntries = get().entries
+    const prevCompany = get().companyHolidays
+    const prevStats = get().stats
+    const has = prevCompany.some(h => h.date === date)
+    set({ companyHolidays: has ? prevCompany.filter(h => h.date !== date) : [...prevCompany, { date }] })
+    try {
+      await api.toggleCompanyHoliday(date)
+      await get().loadEntries()
+      await get().loadStats()
+    } catch (e) {
+      set({ entries: prevEntries, companyHolidays: prevCompany, stats: prevStats })
+      throw e
+    }
   },
 
   loadStats: async (year?: number) => {

@@ -27,6 +27,7 @@ import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import { ToastContainer } from './components/shared/Toast'
 import SaveToCollectionModal from './components/Collections/SaveToCollectionModal'
+import MSaveToCollectionSheet from './components/Collections/MSaveToCollectionSheet'
 import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget'
 import MobileShell from './mobile/MobileShell'
 import { useIsPhone } from './mobile/useIsPhone'
@@ -201,6 +202,7 @@ export default function App() {
     }
   }, [settings.dark_mode, settings.appearance, isSharedPage])
 
+  const isPhone = useIsPhone()
   const isAuthPage = location.pathname.startsWith('/login')
     || location.pathname.startsWith('/register')
     || location.pathname.startsWith('/forgot-password')
@@ -211,7 +213,7 @@ export default function App() {
       {!isAuthPage && <SystemNoticeHost />}
       <ToastContainer />
       {!isAuthPage && <BackgroundTasksWidget />}
-      {!isAuthPage && <SaveToCollectionModal />}
+      {!isAuthPage && (isPhone ? <MSaveToCollectionSheet /> : <SaveToCollectionModal />)}
       <OfflineBanner />
       <Routes>
         <Route path="/" element={<RootRedirect />} />

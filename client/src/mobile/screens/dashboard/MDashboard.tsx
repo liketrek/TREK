@@ -15,6 +15,7 @@ import { usePluginStore } from '../../../store/pluginStore'
 import { useTripCardBadges } from '../../../components/Plugins/TripCardBadges'
 import type { TripCardBadge } from '../../../api/client'
 import DemoBanner from '../../../components/Layout/DemoBanner'
+import { IcsSubscribeModal } from '../../../components/Planner/IcsSubscribeModal'
 import PluginWidgets from '../../../components/Plugins/PluginWidgets'
 import { entityGradient } from '../../../utils/gradients'
 import MGlassBar from '../../components/MGlassBar'
@@ -65,6 +66,7 @@ export default function MDashboard(): React.ReactElement {
   const unread = useInAppNotificationStore(s => s.unreadCount)
   const fetchUnreadCount = useInAppNotificationStore(s => s.fetchUnreadCount)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [subOpen, setSubOpen] = useState(false)
 
   // Plugin dashboard widgets + trip-card badges, mirroring the desktop page:
   // same slot filter (only true dashboard widgets), one badge fetch for all
@@ -188,7 +190,7 @@ export default function MDashboard(): React.ReactElement {
               { value: 'completed', label: t('dashboard.mobile.completed') },
             ]}
           />
-          <MIconBtn ariaLabel={t('dashboard.newTrip')} size={36} className="ml-auto" onClick={openCreate}>
+          <MIconBtn ariaLabel={t('dashboard.subscribeAllTrips')} size={36} className="ml-auto" onClick={() => setSubOpen(true)}>
             <CalendarPlus size={15} strokeWidth={2} className="text-m-muted" />
           </MIconBtn>
           <button
@@ -290,6 +292,15 @@ export default function MDashboard(): React.ReactElement {
         onConfirm={confirmCopy}
         onClose={() => setCopyTrip(null)}
       />
+
+      {subOpen && (
+        <IcsSubscribeModal
+          endpoint="/api/feed/user"
+          title={t('dashboard.subscribeAllTrips')}
+          description={t('dashboard.subscribeAllTripsDesc')}
+          onClose={() => setSubOpen(false)}
+        />
+      )}
     </>
   )
 }

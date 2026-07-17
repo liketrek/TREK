@@ -28,6 +28,9 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': '{count} helyet töröl?',
   'trip.toast.placesDeleted': '{count} hely törölve',
   'trip.loadingPhotos': 'Helyek fotóinak betöltése...',
+  'trip.loadingSteps.pack': 'Pakoljuk a bőröndöt...',
+  'trip.loadingSteps.road': 'Útnak indulunk...',
+  'trip.loadingSteps.arrive': 'Mindjárt ott vagyunk...',
   'trip.invite.linkTitle': 'Meghívó link az utazáshoz',
   'trip.invite.linkHint':
     'Bárki, akinek van TREK-fiókja és megnyitja ezt a linket, tagként csatlakozik az utazáshoz. A régi link érvénytelenítéséhez hozz létre újat.',

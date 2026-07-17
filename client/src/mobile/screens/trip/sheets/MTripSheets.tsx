@@ -13,6 +13,7 @@ import { useTripStore } from '../../../../store/tripStore'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import MDaySheet from './MDaySheet'
 import MDaysSheet from './MDaysSheet'
+import MAccommodationSheet from './MAccommodationSheet'
 import MPlaceSheet from './MPlaceSheet'
 import MPlaceEditSheet from './MPlaceEditSheet'
 import MTransportSheet from './MTransportSheet'
@@ -58,6 +59,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
       <MPlaceSheet planner={planner} shell={shell} />
       <MDaySheet planner={planner} shell={shell} />
       <MDaysSheet planner={planner} shell={shell} />
+      <MAccommodationSheet planner={planner} shell={shell} />
       <MTransportSheet planner={planner} shell={shell} />
       <MBrowseActionsSheet planner={planner} shell={shell} />
       <MMehrSheet planner={planner} shell={shell} />
