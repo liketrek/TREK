@@ -76,6 +76,27 @@ const data = await trek.invoke('/status')   // calls your own route, host-proxie
 trek.notify('success', 'Saved')
 ```
 
+### Keep UI state for this browser tab
+
+The opaque frame cannot use browser storage directly. The bridge provides
+host-managed, JSON-only session state instead. It survives an iframe remount and
+page reload in the same browser tab, but is not durable data. Do not use it to
+store secrets.
+
+```js
+// Default: this user + this plugin + this browser tab.
+await trek.session.set('dismissed-onboarding', true)
+const dismissed = await trek.session.get('dismissed-onboarding')
+
+// Explicitly partition state by the trip in view (fails without a trip context).
+await trek.session.set('filters', ['flight', 'hotel'], { scope: 'trip' })
+```
+
+`get()` returns `undefined` for a missing key. `set`, `get`, `remove`, and
+`clear` accept `{ scope: 'plugin' | 'trip' }`; `plugin` is the default. Use your
+plugin's own logical key (for example `reservation:88:expanded`) for any finer
+partitioning.
+
 The kit applies the theme, mirrors the appearance flags (reduced-motion,
 no-transparency) and auto-reports your height. It also upgrades any native
 `<select>` into a host-styled, keyboard-accessible dropdown that matches TREK —

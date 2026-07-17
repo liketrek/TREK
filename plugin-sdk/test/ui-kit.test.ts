@@ -27,6 +27,9 @@ describe('design kit', () => {
     expect(TREK_THEME_JS).toContain('trek:resize');
     // Trusts only the real parent window (opaque frame has a 'null' origin).
     expect(TREK_THEME_JS).toContain('ev.source !== window.parent');
+    // Host-managed tab state uses the same request/response channel.
+    expect(TREK_THEME_JS).toContain("trek:session:get");
+    expect(TREK_THEME_JS).toContain('session: session');
   });
 
   it('never contains a closing tag that would break <style>/<script> inlining', () => {

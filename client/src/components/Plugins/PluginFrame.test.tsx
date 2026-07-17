@@ -25,6 +25,7 @@ function fromFrame(frame: HTMLIFrameElement, data: unknown) {
 
 afterEach(() => {
   cleanup();
+  sessionStorage.clear();
   navigate.mockClear();
   Object.values(toast).forEach((f) => f.mockClear());
   invoke.mockClear();
@@ -310,5 +311,45 @@ describe('PluginFrame', () => {
       expect(posted.length).toBe(before);
       expect(geo.clearWatch).toHaveBeenCalledWith(7);
     });
+  });
+
+  it('FE-PLUGINS-FRAME-015: brokered plugin session state round-trips through host sessionStorage', () => {
+    const { container } = render(<PluginFrame pluginId="demo" />);
+    const iframe = container.querySelector('iframe')!;
+    const posted: Array<Record<string, unknown>> = [];
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+
+    fromFrame(iframe, { type: 'trek:session:set', requestId: 's1', key: 'dismissed', value: { version: 1 } });
+    fromFrame(iframe, { type: 'trek:session:get', requestId: 's2', key: 'dismissed' });
+
+    expect(posted.find((m) => m.requestId === 's1')).toMatchObject({ type: 'trek:response' });
+    expect(posted.find((m) => m.requestId === 's2')).toMatchObject({ type: 'trek:response', data: { version: 1 } });
+    // The raw key is host-owned: it includes the authenticated user + plugin id,
+    // not just the value name supplied by the untrusted frame.
+    expect(sessionStorage.key(0)).toContain('trek:plugin-session:7:demo:plugin:');
+    expect(sessionStorage.key(0)).not.toBe('dismissed');
+  });
+
+  it('FE-PLUGINS-FRAME-016: trip session state requires a trip and is partitioned from plugin scope', () => {
+    const noTrip = render(<PluginFrame pluginId="demo" />);
+    const noTripFrame = noTrip.container.querySelector('iframe')!;
+    const noTripPosted: Array<Record<string, unknown>> = [];
+    (noTripFrame.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => noTripPosted.push(m as Record<string, unknown>);
+
+    fromFrame(noTripFrame, { type: 'trek:session:get', requestId: 's1', key: 'filters', scope: 'trip' });
+    expect(noTripPosted.find((m) => m.requestId === 's1')).toMatchObject({ type: 'trek:error', code: 'NO_TRIP_CONTEXT' });
+
+    noTrip.unmount();
+    const { container } = render(<PluginFrame pluginId="demo" tripId="42" />);
+    const iframe = container.querySelector('iframe')!;
+    const posted: Array<Record<string, unknown>> = [];
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+
+    fromFrame(iframe, { type: 'trek:session:set', requestId: 's2', key: 'filters', value: ['flight'], scope: 'trip' });
+    fromFrame(iframe, { type: 'trek:session:get', requestId: 's3', key: 'filters' });
+    fromFrame(iframe, { type: 'trek:session:get', requestId: 's4', key: 'filters', scope: 'trip' });
+
+    expect(posted.find((m) => m.requestId === 's3')).toMatchObject({ type: 'trek:response', data: undefined });
+    expect(posted.find((m) => m.requestId === 's4')).toMatchObject({ type: 'trek:response', data: ['flight'] });
   });
 });

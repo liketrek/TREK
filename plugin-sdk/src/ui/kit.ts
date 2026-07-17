@@ -457,9 +457,41 @@ export const TREK_THEME_JS = `(function () {
     mount: function (node, target) { (target || document.body).appendChild(node); return node; }
   };
 
+  var session = {
+    get: function (key, opts) {
+      var id = 's' + (++seq);
+      return new Promise(function (resolve, reject) {
+        pending[id] = { resolve: resolve, reject: reject };
+        send({ type: 'trek:session:get', requestId: id, key: key, scope: opts && opts.scope });
+      });
+    },
+    set: function (key, value, opts) {
+      var id = 's' + (++seq);
+      return new Promise(function (resolve, reject) {
+        pending[id] = { resolve: resolve, reject: reject };
+        send({ type: 'trek:session:set', requestId: id, key: key, value: value, scope: opts && opts.scope });
+      });
+    },
+    remove: function (key, opts) {
+      var id = 's' + (++seq);
+      return new Promise(function (resolve, reject) {
+        pending[id] = { resolve: resolve, reject: reject };
+        send({ type: 'trek:session:remove', requestId: id, key: key, scope: opts && opts.scope });
+      });
+    },
+    clear: function (opts) {
+      var id = 's' + (++seq);
+      return new Promise(function (resolve, reject) {
+        pending[id] = { resolve: resolve, reject: reject };
+        send({ type: 'trek:session:clear', requestId: id, scope: opts && opts.scope });
+      });
+    }
+  };
+
   var api = {
     context: null,
     ui: ui,
+    session: session,
     ready: function () { send({ type: 'trek:ready' }); },
     requestContext: function () { send({ type: 'trek:context:request' }); },
     onContext: function (cb) {

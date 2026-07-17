@@ -456,6 +456,7 @@ works. Add `data-trek-native` to a field to keep the browser default; `multiple`
 | `trek.onContext(cb)` | run `cb(context)` now (if already received) and on every update; returns an unsubscribe fn |
 | `trek.context` | the last context (or `null`) |
 | `trek.invoke(sub, { method, body })` | call your own route; returns a `Promise` (rejects with an `Error`, `.code` = HTTP status) |
+| `trek.session.get(key, options?)`, `.set(key, value, options?)`, `.remove(key, options?)`, `.clear(options?)` | Host-managed JSON session state for this browser tab. `scope: 'plugin'` is the default; `scope: 'trip'` additionally partitions it by the trip in view and rejects with `NO_TRIP_CONTEXT` outside a trip. Missing `get()` values are `undefined`. Do not use it to store secrets. |
 | `trek.notify(level, message, duration?)` | toast (`info`/`success`/`warning`/`error`); optional duration in ms (clamped 1.5–15s) |
 | `trek.confirm({ title?, message, confirmLabel?, cancelLabel?, danger? })` | host-rendered native confirm dialog; resolves `true`/`false` (one at a time — a second concurrent request resolves `false`) |
 | `trek.navigate(to)` | in-app navigation (relative paths only) |

@@ -663,6 +663,22 @@ function ctx(){
 }
 function postCtx(){ if(f.contentWindow) f.contentWindow.postMessage(ctx(),"*"); }
 var tt; function toast(msg){var el=document.getElementById("toast");el.textContent=msg;el.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){el.classList.remove("on");},2200);}
+var SESSION_PREFIX="trek:plugin-session:1:"+encodeURIComponent(${JSON.stringify(id)})+":";
+function sessionMessage(m){
+  var trip=ctx().tripId, scope=m.scope==="trip"?"trip":"plugin";
+  if(scope==="trip"&&!trip){f.contentWindow.postMessage({type:"trek:error",requestId:m.requestId,code:"NO_TRIP_CONTEXT",message:"trip session storage requires a trip context"},"*");return;}
+  var prefix=SESSION_PREFIX+scope+(scope==="trip"?":"+encodeURIComponent(String(trip)):"")+":";
+  var data;
+  if(m.type==="trek:session:clear"){
+    var doomed=[];for(var i=0;i<sessionStorage.length;i++){var stored=sessionStorage.key(i);if(stored&&stored.indexOf(prefix)===0)doomed.push(stored);}doomed.forEach(function(stored){sessionStorage.removeItem(stored);});
+  } else {
+    var key=prefix+encodeURIComponent(m.key);
+    if(m.type==="trek:session:get"){var raw=sessionStorage.getItem(key);data=raw===null?undefined:JSON.parse(raw);}
+    else if(m.type==="trek:session:remove"){sessionStorage.removeItem(key);}
+    else {sessionStorage.setItem(key,JSON.stringify(m.value));}
+  }
+  f.contentWindow.postMessage({type:"trek:response",requestId:m.requestId,data:data},"*");
+}
 window.addEventListener("message", function(ev){
   if(ev.source!==f.contentWindow) return;
   var m=ev.data; if(!m||typeof m!=="object") return;
@@ -695,6 +711,9 @@ window.addEventListener("message", function(ev){
       f.contentWindow.postMessage({type:"trek:geolocation:update",position:pos},"*");
     }
     else { f.contentWindow.postMessage({type:"trek:geolocation:result",requestId:m.requestId,position:pos},"*"); }
+  }
+  else if(m.type==="trek:session:get"||m.type==="trek:session:set"||m.type==="trek:session:remove"||m.type==="trek:session:clear"){
+    sessionMessage(m);
   }
 });
 var geoTick=null;

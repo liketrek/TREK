@@ -106,6 +106,8 @@ interface PluginFrameProps {
   path?: string
 }
 
+type PluginSessionStorageScope = 'plugin' | 'trip'
+
 type Inbound =
   | { type: 'trek:ready' }
   | { type: 'trek:context:request' }
@@ -113,6 +115,10 @@ type Inbound =
   | { type: 'trek:notify'; level?: 'info' | 'success' | 'warning' | 'error'; message?: string; duration?: number }
   | { type: 'trek:resize'; height?: number }
   | { type: 'trek:invoke'; requestId: string; sub: string; method?: string; body?: unknown }
+  | { type: 'trek:session:get'; requestId: string; key: string; scope?: PluginSessionStorageScope }
+  | { type: 'trek:session:set'; requestId: string; key: string; value: unknown; scope?: PluginSessionStorageScope }
+  | { type: 'trek:session:remove'; requestId: string; key: string; scope?: PluginSessionStorageScope }
+  | { type: 'trek:session:clear'; requestId: string; scope?: PluginSessionStorageScope }
   | { type: 'trek:confirm'; requestId: string; title?: string; message?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean }
   | { type: 'trek:openExternal'; url?: string }
   | { type: 'trek:geolocation'; requestId: string; action?: 'get' | 'watch' | 'clear' }
@@ -140,6 +146,38 @@ interface ConfirmRequest {
   confirmLabel?: string
   cancelLabel?: string
   danger: boolean
+}
+
+/**
+ * Creates the prefix and full key for host-owned plugin session storage.
+ *
+ *   trek:plugin-session:{userId}:{pluginId}:plugin:{key}
+ *   trek:plugin-session:{userId}:{pluginId}:trip:{tripId}:{key}
+ *
+ * Each dynamic segment is URI-encoded, so plugin-controlled values cannot alter
+ * the key format. For clear, omit logicalKey; the returned full key is then
+ * the same as the scoped prefix.
+ */
+function createPluginSessionStorageKeys(
+  userId: string | number | null,
+  pluginId: string,
+  scope: PluginSessionStorageScope,
+  tripId: string | null,
+  logicalKey?: string,
+) {
+  const namespace = 'trek:plugin-session:'
+  const encodedUserId = encodeURIComponent(String(userId))
+  const encodedPluginId = encodeURIComponent(pluginId)
+  const encodedTripId = scope === 'trip' ? encodeURIComponent(tripId!) : null
+  const encodedLogicalKey = logicalKey === undefined ? undefined : encodeURIComponent(logicalKey)
+
+  const storageScopeSegment = encodedTripId === null ? scope : `${scope}:${encodedTripId}`
+  const storageKeyPrefix = `${namespace}${encodedUserId}:${encodedPluginId}:${storageScopeSegment}:`
+  const storageKey = encodedLogicalKey === undefined ? storageKeyPrefix : `${storageKeyPrefix}${encodedLogicalKey}`
+  return {
+    storageKeyPrefix,
+    storageKey,
+  }
 }
 
 export default function PluginFrame({ pluginId, tripId = null, placeId = null, dayId = null, reservationId = null, fill = false, className, title, path = 'index.html' }: PluginFrameProps) {
@@ -347,6 +385,65 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
             (e) => { if (loadsRef.current <= 1) fail(geoErrorCode(e)) },
             geoOpts,
           )
+          break
+        }
+        case 'trek:session:clear': {
+          const scope = msg.scope === 'trip' ? 'trip' : 'plugin'
+
+          // tripId required if we are on a trip-scoped key.
+          if (scope === 'trip' && tripId == null) {
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'NO_TRIP_CONTEXT', message: 'trip session storage requires a trip context' })
+            break
+          }
+
+          const { storageKeyPrefix } = createPluginSessionStorageKeys(userId, pluginId, scope, tripId)
+          try {
+            const keysToRemove: string[] = []
+            for (let i = 0; i < sessionStorage.length; i += 1) {
+              const storageKey = sessionStorage.key(i)
+              if (storageKey?.startsWith(storageKeyPrefix)) keysToRemove.push(storageKey)
+            }
+            keysToRemove.forEach((storageKey) => sessionStorage.removeItem(storageKey))
+            post({ type: 'trek:response', requestId: msg.requestId, data: undefined })
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'session storage failed'
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_STORAGE_ERROR', message })
+          }
+          break
+        }
+        case 'trek:session:get':
+        case 'trek:session:set':
+        case 'trek:session:remove': {
+          const scope = msg.scope === 'trip' ? 'trip' : 'plugin'
+          if (scope === 'trip' && tripId == null) {
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'NO_TRIP_CONTEXT', message: 'trip session storage requires a trip context' })
+            break
+          }
+          const { storageKey } = createPluginSessionStorageKeys(userId, pluginId, scope, tripId, msg.key)
+          try {
+            if (msg.type === 'trek:session:get') {
+              const storedValue = sessionStorage.getItem(storageKey)
+              post({ type: 'trek:response', requestId: msg.requestId, data: storedValue === null ? undefined : JSON.parse(storedValue) })
+              break
+            }
+
+            if (msg.type === 'trek:session:set') {
+              const serializedValue = JSON.stringify(msg.value)
+              if (serializedValue === undefined) {
+                post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_INVALID_VALUE', message: 'session value must be JSON-serialisable' })
+                break
+              }
+              sessionStorage.setItem(storageKey, serializedValue)
+              post({ type: 'trek:response', requestId: msg.requestId, data: undefined })
+              break
+            }
+
+            sessionStorage.removeItem(storageKey)
+            post({ type: 'trek:response', requestId: msg.requestId, data: undefined })
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'session storage failed'
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_STORAGE_ERROR', message })
+          }
           break
         }
       }
