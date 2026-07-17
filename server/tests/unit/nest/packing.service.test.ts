@@ -83,7 +83,7 @@ describe('PackingService (wrapper delegation + helpers)', () => {
     s.deleteBag('5', '2'); expect(pk.deleteBag).toHaveBeenCalledWith('5', '2');
     s.setBagMembers('5', '2', [1, 2]); expect(pk.setBagMembers).toHaveBeenCalledWith('5', '2', [1, 2]);
     s.listTemplates(); expect(pk.listTemplates).toHaveBeenCalled();
-    s.applyTemplate('5', 't1'); expect(pk.applyTemplate).toHaveBeenCalledWith('5', 't1');
+    s.applyTemplate('5', 't1', 'personal', 1); expect(pk.applyTemplate).toHaveBeenCalledWith('5', 't1', 'personal', 1);
     s.saveAsTemplate('5', 1, 'Tpl'); expect(pk.saveAsTemplate).toHaveBeenCalledWith('5', 1, 'Tpl');
     s.getCategoryAssignees('5'); expect(pk.getCategoryAssignees).toHaveBeenCalledWith('5');
     s.updateCategoryAssignees('5', 'Clothes', [2]); expect(pk.updateCategoryAssignees).toHaveBeenCalledWith('5', 'Clothes', [2]);

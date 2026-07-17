@@ -348,15 +348,17 @@ export class PackingController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('templateId') templateId: string,
+    @Body() body: { visibility?: 'common' | 'personal' },
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const added = this.packing.applyTemplate(tripId, templateId);
+    const visibility = body?.visibility === 'personal' ? 'personal' : 'common';
+    const added = this.packing.applyTemplate(tripId, templateId, visibility, user.id);
     if (!added) {
       throw new HttpException({ error: 'Template not found or empty' }, 404);
     }
-    this.packing.broadcast(tripId, 'packing:template-applied', { items: added }, socketId);
+    this.packing.broadcastItem(tripId, 'packing:template-applied', { items: added }, added[0], socketId);
     return { items: added, count: added.length };
   }
 
