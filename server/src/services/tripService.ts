@@ -793,15 +793,16 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   const endpointsMap = loadEndpointsByTrip(tripId);
   const isDate = (s: string | null | undefined) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
   const isTime = (s: string | null | undefined) => !!s && /^\d{2}:\d{2}/.test(s);
-  // "YYYY-MM-DD", "YYYY-MM-DDTHH:MM[..]" → "YYYY-MM-DD"; anything else → null
-  const datePart = (s: string | null | undefined): string | null => {
-    if (!s) return null;
+  // "YYYY-MM-DD", "YYYY-MM-DDTHH:MM[..]" → "YYYY-MM-DD"; anything else → null.
+  // Inputs may come from metadata JSON, so non-strings are tolerated, not thrown on.
+  const datePart = (s: unknown): string | null => {
+    if (typeof s !== 'string' || !s) return null;
     const d = s.includes('T') ? s.split('T')[0] : s;
     return isDate(d) ? d : null;
   };
   // "HH:MM[:SS]", "YYYY-MM-DDTHH:MM[..]" → "HH:MM"; bare dates → null
-  const timePart = (s: string | null | undefined): string | null => {
-    if (!s) return null;
+  const timePart = (s: unknown): string | null => {
+    if (typeof s !== 'string' || !s) return null;
     const t = s.includes('T') ? s.split('T')[1] : s;
     const m = t ? t.match(/^(\d{2}:\d{2})/) : null;
     return m ? m[1] : null;
@@ -873,10 +874,15 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
           }
           return out;
         }
-        return `DTSTART;VALUE=DATE:${fmtDate(first.local_date)}\r\n`;
+        // Endpoint has a date but no clock: a timed reservation_time is more
+        // precise, so only render all-day when no timed fallback exists.
+        if (!(typeof r.reservation_time === 'string' && r.reservation_time.includes('T'))) {
+          return `DTSTART;VALUE=DATE:${fmtDate(first.local_date)}\r\n`;
+        }
       }
-      // Endpoints exist but are undated (relative "Day N" trips) — fall through
-      // to reservation_time rather than dropping the reservation outright.
+      // Otherwise (undated endpoints, or dated-but-timeless with a timed
+      // reservation_time) fall through to reservation_time rather than
+      // dropping or downgrading the reservation.
     }
 
     if (!r.reservation_time) return null;
@@ -952,7 +958,14 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
 
   // Reservations as events
   for (const r of reservations) {
-    const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
+    // One corrupt metadata blob must not take down the whole feed.
+    let meta: any = {};
+    if (r.metadata) {
+      try {
+        meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata;
+      } catch { /* render the event without metadata fields */ }
+      if (!meta || typeof meta !== 'object') meta = {};
+    }
 
     // Hotels: a pair of short transparent Check-in / Check-out marker events
     // (like TripIt) instead of a single all-day event on the check-in date.

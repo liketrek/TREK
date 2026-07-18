@@ -796,6 +796,44 @@ describe('exportICS', () => {
     expect(bar).toContain('DTEND:20250603T010000');
   });
 
+  it('TRIP-SVC-035: corrupt or non-string metadata never crashes the export', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Robust Trip' });
+    const broken = createReservation(testDb, trip.id, { title: 'Broken Meta', type: 'activity' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
+      .run('2025-06-02T09:00', '{not valid json', broken.id);
+    const hotel = createReservation(testDb, trip.id, { title: 'Numeric Meta Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
+      .run('2025-06-02', JSON.stringify({ check_in_time: 1600 }), hotel.id);
+
+    let ics = '';
+    expect(() => { ics = exportICS(trip.id).ics; }).not.toThrow();
+
+    // The corrupt-metadata event still renders, just without metadata fields.
+    expect(ics).toContain('SUMMARY:Broken Meta');
+    // The numeric check_in_time is ignored in favor of the default.
+    expect(blockWithSummary(ics, 'Check-in: Numeric Meta Hotel')).toContain('DTSTART:20250602T150000');
+  });
+
+  it('TRIP-SVC-036: a dated but timeless endpoint does not downgrade a timed reservation_time to all-day', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Timeless Endpoint Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Ferry Ride', type: 'ferry' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2025-06-02T09:00', '2025-06-02T11:30', reservation.id);
+    // Endpoint carries only a date (no local_time) — the precise reservation_time must win.
+    testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(reservation.id, 'from', 0, 'Harbor', null, 26.2, 127.65, 'Asia/Tokyo', null, '2025-06-02');
+
+    const { ics } = exportICS(trip.id);
+
+    const ferry = blockWithSummary(ics, 'Ferry Ride');
+    expect(ferry).toContain('DTSTART:20250602T090000');
+    expect(ferry).toContain('DTEND:20250602T113000');
+    expect(ferry).not.toContain('DTSTART;VALUE=DATE');
+  });
+
   it('TRIP-SVC-029: trip banner and day-summary events are free (TRANSP:TRANSPARENT)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Banner Trip', start_date: '2025-06-01', end_date: '2025-06-03' });
