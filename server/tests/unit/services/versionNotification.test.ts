@@ -2,6 +2,12 @@
  * Unit tests for checkAndNotifyVersion() in adminService.
  * Covers VNOTIF-001 to VNOTIF-007.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { checkAndNotifyVersion, __clearVersionCacheForTests } from '../../../src/services/adminService';
+import { createAdmin } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -30,18 +36,15 @@ vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
 // Mock MCP to avoid session side-effects
 vi.mock('../../../src/mcp', () => ({ revokeUserSessions: vi.fn() }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createAdmin } from '../../helpers/factories';
-import { checkAndNotifyVersion, __clearVersionCacheForTests } from '../../../src/services/adminService';
-
 // Helper: mock the GitHub releases/latest endpoint
 function mockGitHubLatest(tagName: string, ok = true): void {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-    ok,
-    json: async () => ({ tag_name: tagName, html_url: `https://github.com/mauriceboe/TREK/releases/tag/${tagName}` }),
-  }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok,
+      json: async () => ({ tag_name: tagName, html_url: `https://github.com/liketrek/TREK/releases/tag/${tagName}` }),
+    }),
+  );
 }
 
 function mockGitHubFetchFailure(): void {
@@ -49,7 +52,11 @@ function mockGitHubFetchFailure(): void {
 }
 
 function getLastNotifiedVersion(): string | undefined {
-  return (testDb.prepare('SELECT value FROM app_settings WHERE key = ?').get('last_notified_version') as { value: string } | undefined)?.value;
+  return (
+    testDb.prepare('SELECT value FROM app_settings WHERE key = ?').get('last_notified_version') as
+      | { value: string }
+      | undefined
+  )?.value;
 }
 
 function getNotificationCount(): number {
@@ -96,9 +103,13 @@ describe('checkAndNotifyVersion', () => {
 
     await checkAndNotifyVersion();
 
-    const notifications = testDb.prepare('SELECT * FROM notifications ORDER BY id').all() as Array<{ recipient_id: number; type: string; scope: string }>;
+    const notifications = testDb.prepare('SELECT * FROM notifications ORDER BY id').all() as Array<{
+      recipient_id: number;
+      type: string;
+      scope: string;
+    }>;
     expect(notifications.length).toBe(2);
-    const recipientIds = notifications.map(n => n.recipient_id);
+    const recipientIds = notifications.map((n) => n.recipient_id);
     expect(recipientIds).toContain(admin1.id);
     expect(recipientIds).toContain(admin2.id);
     expect(notifications[0].type).toBe('navigate');
@@ -131,7 +142,9 @@ describe('checkAndNotifyVersion', () => {
   it('VNOTIF-005 — creates new notification when last_notified_version is an older version', async () => {
     createAdmin(testDb);
     // Simulate having been notified about an older version
-    testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run('last_notified_version', '98.0.0');
+    testDb
+      .prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
+      .run('last_notified_version', '98.0.0');
     mockGitHubLatest('v99.3.0');
 
     await checkAndNotifyVersion();

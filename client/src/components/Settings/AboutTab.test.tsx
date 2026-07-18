@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import AboutTab from './AboutTab';
 
@@ -41,10 +41,7 @@ describe('AboutTab', () => {
     render(<AboutTab appVersion="2.9.10" />);
     const link = document.querySelector('a[href*="issues/new"]');
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute(
-      'href',
-      'https://github.com/mauriceboe/TREK/issues/new?template=bug_report.yml',
-    );
+    expect(link).toHaveAttribute('href', 'https://github.com/liketrek/TREK/issues/new?template=bug_report.yml');
   });
 
   it('FE-COMP-ABOUT-007: displays feature request link', () => {

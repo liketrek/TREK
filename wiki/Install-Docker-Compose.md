@@ -4,7 +4,7 @@ Production-ready setup using Docker Compose with security hardening enabled.
 
 ## Compose File
 
-See https://github.com/mauriceboe/TREK/blob/main/docker-compose.yml
+See https://github.com/liketrek/TREK/blob/main/docker-compose.yml
 
 ## Security Hardening Explained
 

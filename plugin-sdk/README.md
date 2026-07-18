@@ -1,6 +1,6 @@
 # trek-plugin-sdk
 
-The SDK for building [TREK](https://github.com/mauriceboe/TREK) plugins.
+The SDK for building [TREK](https://github.com/liketrek/TREK) plugins.
 
 The path is four commands: **`create` → `dev` → `status` → `publish`**. Everything
 else the CLI can do is a step one of those already does for you.
@@ -81,7 +81,7 @@ no-transparency) and auto-reports your height. It also upgrades any native
 `<select>` into a host-styled, keyboard-accessible dropdown that matches TREK —
 the OS-drawn popup never could. Write a plain `<select>` and it just works; add
 `data-trek-native` to opt a field out. See the
-[Plugin Development wiki](https://github.com/mauriceboe/TREK/wiki/Plugin-Development)
+[Plugin Development wiki](https://github.com/liketrek/TREK/wiki/Plugin-Development)
 for the full component + token reference.
 
 ## Write a plugin

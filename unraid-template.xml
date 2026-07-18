@@ -9,8 +9,8 @@
   </Branch>
   <Network>bridge</Network>
   <Privileged>false</Privileged>
-  <Support>https://github.com/mauriceboe/TREK/issues</Support>
-  <Project>https://github.com/mauriceboe/TREK</Project>
+  <Support>https://github.com/liketrek/TREK/issues</Support>
+  <Project>https://github.com/liketrek/TREK</Project>
   <Overview>TREK is a self-hosted, real-time collaborative travel planner with interactive maps, budgets, bookings, packing lists, file management, and more. Plan trips together with your group — changes sync instantly across all connected users. Includes OIDC/SSO support, dark mode, PWA, and a modular addon system (Vacay, Atlas, Collab, Budget, Packing).</Overview>
   <Category>Productivity: Tools:</Category>
   <WebUI>http://[IP]:[PORT:3000]</WebUI>

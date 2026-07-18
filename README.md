@@ -31,9 +31,9 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 <a href="https://www.buymeacoffee.com/mauriceboe"><img alt="BMAC" src="https://img.shields.io/badge/BMAC-support-FFDD00?style=for-the-badge" /></a>
 <br />
 <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL_v3-6B7280?style=flat-square" /></a>
-<a href="https://github.com/mauriceboe/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/mauriceboe/TREK?include_prereleases&style=flat-square&color=6B7280" /></a>
+<a href="https://github.com/liketrek/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/mauriceboe/TREK?include_prereleases&style=flat-square&color=6B7280" /></a>
 <a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mauriceboe/trek?style=flat-square&color=6B7280" /></a>
-<a href="https://github.com/mauriceboe/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/mauriceboe/TREK?style=flat-square&color=6B7280" /></a>
+<a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/mauriceboe/TREK?style=flat-square&color=6B7280" /></a>
 
 </div>
 
@@ -41,7 +41,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 <div align="center">
 
-<img src="https://github.com/mauriceboe/trek-media/releases/download/readme-assets/TREK1.gif" alt="TREK — 60-second tour" width="100%" />
+<img src="https://github.com/liketrek/TREK-media/releases/download/readme-assets/TREK1.gif" alt="TREK — 60-second tour" width="100%" />
 
 </div>
 
@@ -280,7 +280,7 @@ helm repo update
 helm install trek trek/trek
 ```
 
-See [`charts/README.md`](https://github.com/mauriceboe/TREK/blob/main/charts/README.md) for values.
+See [`charts/README.md`](https://github.com/liketrek/TREK/blob/main/charts/README.md) for values.
 
 <h2 id="install-as-app-pwa">Install as App (PWA)</h2>
 
@@ -331,7 +331,7 @@ The script creates a timestamped DB backup before making changes and prompts for
 
 For production, put TREK behind a TLS-terminating reverse proxy. TREK uses WebSockets for real-time sync, so the proxy **must** support WebSocket upgrades on `/ws`.
 
-If you use the MCP addon, the proxy must also pass the `Mcp-Session-Id` header through in both directions on `/mcp` — Nginx and Caddy do this by default, but a proxy that strips it makes every tool call open a new session instead of reusing one. See the [Reverse Proxy wiki page](https://github.com/mauriceboe/TREK/wiki/Reverse-Proxy) for details.
+If you use the MCP addon, the proxy must also pass the `Mcp-Session-Id` header through in both directions on `/mcp` — Nginx and Caddy do this by default, but a proxy that strips it makes every tool call open a new session instead of reusing one. See the [Reverse Proxy wiki page](https://github.com/liketrek/TREK/wiki/Reverse-Proxy) for details.
 
 <details>
 <summary>Nginx</summary>

@@ -13,7 +13,7 @@
 
 ## 1. Fork & Clone the Repository
 
-Go to the [TREK repository](https://github.com/mauriceboe/TREK) and click **Fork** to create your own copy.
+Go to the [TREK repository](https://github.com/liketrek/TREK) and click **Fork** to create your own copy.
 
 Then clone your fork locally:
 

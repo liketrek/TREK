@@ -741,7 +741,7 @@ describe('pack + entry (publishing automation)', () => {
     // "requires 3.2.0+" and considered the plugin compatible.
     expect(v.trek).toBe('>=3.2.0 <4.0.0');
     expect(v).not.toHaveProperty('minTrekVersion');
-    expect(v.downloadUrl).toBe('https://github.com/mauriceboe/trek-plugin-koffi/releases/download/v1.0.0/plugin.zip');
+    expect(v.downloadUrl).toBe('https://github.com/liketrek/TREK-plugin-koffi/releases/download/v1.0.0/plugin.zip');
     expect(v.nativeModules).toBe(false);
   });
 

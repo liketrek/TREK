@@ -12,7 +12,7 @@ Portainer must be installed and connected to your Docker environment. Use **Stac
 
 1. In Portainer, go to **Stacks → Add stack**.
 2. Give the stack a name (e.g. `trek`).
-3. Select **Web editor** and paste the compose file from [docker-compose.yml](https://github.com/mauriceboe/TREK/blob/main/docker-compose.yml).
+3. Select **Web editor** and paste the compose file from [docker-compose.yml](https://github.com/liketrek/TREK/blob/main/docker-compose.yml).
 
 ![Web editor with the docker-compose content pasted in](assets/portainer-stack-save.png)
 
@@ -26,7 +26,7 @@ Portainer must be installed and connected to your Docker environment. Use **Stac
 
 ## Compose Content
 
-See https://github.com/mauriceboe/TREK/blob/main/docker-compose.yml
+See https://github.com/liketrek/TREK/blob/main/docker-compose.yml
 
 Set at minimum `ENCRYPTION_KEY`, `TZ`, and `APP_URL` in the **Environment variables** section of the stack editor. Generate an encryption key with:
 

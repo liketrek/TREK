@@ -11,7 +11,7 @@ for the permission catalogue see [[Plugin Permissions|Plugin-Permissions]].
 > loudly; it never silently escalates.
 
 The complete, runnable version of these recipes is the
-[`trip-doctor`](https://github.com/mauriceboe/TREK/tree/main/plugin-sdk/examples/trip-doctor)
+[`trip-doctor`](https://github.com/liketrek/TREK/tree/main/plugin-sdk/examples/trip-doctor)
 example plugin.
 
 ---

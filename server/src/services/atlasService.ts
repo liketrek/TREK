@@ -1,9 +1,10 @@
-import fs from 'fs';
-import path from 'path';
-import zlib from 'zlib';
 import { db } from '../db/database';
 import { Trip, Place } from '../types';
 import { CONTINENT_MAP } from '@trek/shared';
+
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
 
 // ── Bundled boundary GeoJSON (admin-0 countries + admin-1 regions) ─────────
 //
@@ -80,7 +81,11 @@ let admin1Building: Promise<Map<string, string>> | null = null;
 function getAdmin1Store(): Promise<Map<string, string>> {
   if (admin1Store) return Promise.resolve(admin1Store);
   if (!admin1Building) {
-    admin1Building = buildAdmin1Store().then((s) => { admin1Store = s; admin1Building = null; return s; });
+    admin1Building = buildAdmin1Store().then((s) => {
+      admin1Store = s;
+      admin1Building = null;
+      return s;
+    });
   }
   return admin1Building;
 }
@@ -95,9 +100,12 @@ function createFeatureSplitter(onFeature: (text: string) => void): (chunk: strin
   // A large Feature (e.g. Canada, ~5.5MB) spans hundreds of gunzip chunks; re-scanning the
   // accumulated partial from the start on every chunk was O(n²) per feature and pushed the
   // one-time admin1 build past the 15s test timeout under coverage/CI (#1576-followup).
-  let scanning = false;            // currently inside a Feature object?
-  let depth = 0, inStr = false, esc = false;
-  let scanPos = 0, featStart = 0;  // resume point + current feature start, in `pending`
+  let scanning = false; // currently inside a Feature object?
+  let depth = 0,
+    inStr = false,
+    esc = false;
+  let scanPos = 0,
+    featStart = 0; // resume point + current feature start, in `pending`
   return (chunk: string) => {
     pending += chunk;
     if (!started) {
@@ -113,20 +121,45 @@ function createFeatureSplitter(onFeature: (text: string) => void): (chunk: strin
     while (scanPos < n) {
       if (!scanning) {
         const c = pending[scanPos];
-        if (c === ' ' || c === '\n' || c === '\r' || c === '\t' || c === ',') { scanPos++; continue; }
-        if (c === ']') { scanPos = n; break; }
-        if (c !== '{') { scanPos++; continue; }
-        scanning = true; depth = 0; inStr = false; esc = false; featStart = scanPos;
+        if (c === ' ' || c === '\n' || c === '\r' || c === '\t' || c === ',') {
+          scanPos++;
+          continue;
+        }
+        if (c === ']') {
+          scanPos = n;
+          break;
+        }
+        if (c !== '{') {
+          scanPos++;
+          continue;
+        }
+        scanning = true;
+        depth = 0;
+        inStr = false;
+        esc = false;
+        featStart = scanPos;
       }
       let end = -1;
       for (let j = scanPos; j < n; j++) {
         const c = pending[j];
-        if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; }
-        else if (c === '"') inStr = true;
+        if (inStr) {
+          if (esc) esc = false;
+          else if (c === '\\') esc = true;
+          else if (c === '"') inStr = false;
+        } else if (c === '"') inStr = true;
         else if (c === '{') depth++;
-        else if (c === '}') { if (--depth === 0) { end = j + 1; scanPos = j + 1; break; } }
+        else if (c === '}') {
+          if (--depth === 0) {
+            end = j + 1;
+            scanPos = j + 1;
+            break;
+          }
+        }
       }
-      if (end === -1) { scanPos = n; break; } // partial feature — resume from n next chunk
+      if (end === -1) {
+        scanPos = n;
+        break;
+      } // partial feature — resume from n next chunk
       onFeature(pending.slice(featStart, end));
       scanning = false;
     }
@@ -212,9 +245,12 @@ setInterval(() => {
 // their box and win via the smallest-box tie-break in getCountryFromCoords()
 // (e.g. Hong Kong/Macau over China, Gibraltar over Spain).
 const MICRO_TERRITORY_BOXES: Record<string, [number, number, number, number]> = {
-  HK:[113.83,22.15,114.43,22.56],MO:[113.53,22.10,113.60,22.21],
-  GI:[-5.36,36.11,-5.33,36.16],PR:[-67.30,17.88,-65.22,18.53],
-  PS:[34.2,29.5,35.6,32.6],XK:[20.0,41.9,21.8,43.3],
+  HK: [113.83, 22.15, 114.43, 22.56],
+  MO: [113.53, 22.1, 113.6, 22.21],
+  GI: [-5.36, 36.11, -5.33, 36.16],
+  PR: [-67.3, 17.88, -65.22, 18.53],
+  PS: [34.2, 29.5, 35.6, 32.6],
+  XK: [20.0, 41.9, 21.8, 43.3],
 };
 
 // A polygon-less micro-territory box only auto-wins the smallest-box tie-break when it is
@@ -227,50 +263,245 @@ const MICRO_TERRITORY_BOXES: Record<string, [number, number, number, number]> = 
 const MICRO_BOX_MAX_AREA = 2.0;
 
 export const NAME_TO_CODE: Record<string, string> = {
-  'germany':'DE','deutschland':'DE','france':'FR','frankreich':'FR','spain':'ES','spanien':'ES',
-  'italy':'IT','italien':'IT','united kingdom':'GB','uk':'GB','england':'GB','united states':'US',
-  'usa':'US','netherlands':'NL','niederlande':'NL','austria':'AT','osterreich':'AT','switzerland':'CH',
-  'schweiz':'CH','portugal':'PT','greece':'GR','griechenland':'GR','turkey':'TR','turkei':'TR',
-  'croatia':'HR','kroatien':'HR','czech republic':'CZ','tschechien':'CZ','czechia':'CZ',
-  'poland':'PL','polen':'PL','sweden':'SE','schweden':'SE','norway':'NO','norwegen':'NO',
-  'denmark':'DK','danemark':'DK','finland':'FI','finnland':'FI','belgium':'BE','belgien':'BE',
-  'ireland':'IE','irland':'IE','hungary':'HU','ungarn':'HU','romania':'RO','rumanien':'RO',
-  'bulgaria':'BG','bulgarien':'BG','japan':'JP','china':'CN','australia':'AU','australien':'AU',
-  'canada':'CA','kanada':'CA','mexico':'MX','mexiko':'MX','brazil':'BR','brasilien':'BR',
-  'argentina':'AR','argentinien':'AR','thailand':'TH','indonesia':'ID','indonesien':'ID',
-  'india':'IN','indien':'IN','egypt':'EG','agypten':'EG','morocco':'MA','marokko':'MA',
-  'south africa':'ZA','sudafrika':'ZA','new zealand':'NZ','neuseeland':'NZ','iceland':'IS','island':'IS',
-  'luxembourg':'LU','luxemburg':'LU','slovenia':'SI','slowenien':'SI','slovakia':'SK','slowakei':'SK',
-  'estonia':'EE','estland':'EE','latvia':'LV','lettland':'LV','lithuania':'LT','litauen':'LT',
-  'serbia':'RS','serbien':'RS','israel':'IL','russia':'RU','russland':'RU','ukraine':'UA',
-  'vietnam':'VN','south korea':'KR','sudkorea':'KR','philippines':'PH','philippinen':'PH',
-  'malaysia':'MY','colombia':'CO','kolumbien':'CO','peru':'PE','chile':'CL','iran':'IR',
-  'iraq':'IQ','irak':'IQ','pakistan':'PK','kenya':'KE','kenia':'KE','nigeria':'NG',
-  'saudi arabia':'SA','saudi-arabien':'SA','albania':'AL','albanien':'AL',
-  'georgia':'GE','georgien':'GE','montenegro':'ME','north macedonia':'MK','nordmazedonien':'MK',
-  'macedonia':'MK','bosnia':'BA','bosnia and herzegovina':'BA','bosnien':'BA','kosovo':'XK',
-  'cyprus':'CY','zypern':'CY','malta':'MT','tunisia':'TN','tunesien':'TN','jordan':'JO','jordanien':'JO',
-  'lebanon':'LB','libanon':'LB','ghana':'GH','ethiopia':'ET','athiopien':'ET','tanzania':'TZ','uganda':'UG',
-  'singapore':'SG','taiwan':'TW','nepal':'NP','sri lanka':'LK','cambodia':'KH','kambodscha':'KH',
-  'myanmar':'MM','burma':'MM','laos':'LA','mongolia':'MN','mongolei':'MN','kazakhstan':'KZ','kasachstan':'KZ',
-  'uzbekistan':'UZ','usbekistan':'UZ','kyrgyzstan':'KG','kirgisistan':'KG','tajikistan':'TJ','tadschikistan':'TJ',
-  'turkmenistan':'TM','costa rica':'CR','panama':'PA','ecuador':'EC','uruguay':'UY','cuba':'CU','kuba':'CU',
-  'dominican republic':'DO','dominikanische republik':'DO','jamaica':'JM','haiti':'HT','honduras':'HN',
-  'guatemala':'GT','el salvador':'SV','nicaragua':'NI','bolivia':'BO','bolivia plurinational state of':'BO',
-  'paraguay':'PY','venezuela':'VE','trinidad and tobago':'TT','trinidad':'TT',
-  'oman':'OM','kuwait':'KW','qatar':'QA','bahrain':'BH',
-  'syria':'SY','syrien':'SY','yemen':'YE','jemen':'YE','palestine':'PS','palastina':'PS',
-  'moldova':'MD','republic of moldova':'MD','moldawien':'MD',
-  'libya':'LY','libyen':'LY','sudan':'SD','eritrea':'ER','djibouti':'DJ',
-  'senegal':'SN','cameroon':'CM','kamerun':'CM','ivory coast':'CI','cote d\'ivoire':'CI',
-  'mali':'ML','niger':'NE','burkina faso':'BF','togo':'TG','benin':'BJ','guinea':'GN',
-  'dr congo':'CD','democratic republic of the congo':'CD','republic of the congo':'CG','congo':'CG',
-  'angola':'AO','namibia':'NA','botswana':'BW','zimbabwe':'ZW','zambia':'ZM','malawi':'MW',
-  'mozambique':'MZ','mozambik':'MZ','madagascar':'MG','rwanda':'RW','burundi':'BI',
-  'somalia':'SO','papua new guinea':'PG','brunei':'BN',
-  'hong kong':'HK','hong kong sar':'HK','macau':'MO','macao':'MO','macau sar':'MO',
-  'san marino':'SM','vatican':'VA','vatican city':'VA','holy see':'VA','monaco':'MC',
-  'liechtenstein':'LI','gibraltar':'GI','puerto rico':'PR',
+  germany: 'DE',
+  deutschland: 'DE',
+  france: 'FR',
+  frankreich: 'FR',
+  spain: 'ES',
+  spanien: 'ES',
+  italy: 'IT',
+  italien: 'IT',
+  'united kingdom': 'GB',
+  uk: 'GB',
+  england: 'GB',
+  'united states': 'US',
+  usa: 'US',
+  netherlands: 'NL',
+  niederlande: 'NL',
+  austria: 'AT',
+  osterreich: 'AT',
+  switzerland: 'CH',
+  schweiz: 'CH',
+  portugal: 'PT',
+  greece: 'GR',
+  griechenland: 'GR',
+  turkey: 'TR',
+  turkei: 'TR',
+  croatia: 'HR',
+  kroatien: 'HR',
+  'czech republic': 'CZ',
+  tschechien: 'CZ',
+  czechia: 'CZ',
+  poland: 'PL',
+  polen: 'PL',
+  sweden: 'SE',
+  schweden: 'SE',
+  norway: 'NO',
+  norwegen: 'NO',
+  denmark: 'DK',
+  danemark: 'DK',
+  finland: 'FI',
+  finnland: 'FI',
+  belgium: 'BE',
+  belgien: 'BE',
+  ireland: 'IE',
+  irland: 'IE',
+  hungary: 'HU',
+  ungarn: 'HU',
+  romania: 'RO',
+  rumanien: 'RO',
+  bulgaria: 'BG',
+  bulgarien: 'BG',
+  japan: 'JP',
+  china: 'CN',
+  australia: 'AU',
+  australien: 'AU',
+  canada: 'CA',
+  kanada: 'CA',
+  mexico: 'MX',
+  mexiko: 'MX',
+  brazil: 'BR',
+  brasilien: 'BR',
+  argentina: 'AR',
+  argentinien: 'AR',
+  thailand: 'TH',
+  indonesia: 'ID',
+  indonesien: 'ID',
+  india: 'IN',
+  indien: 'IN',
+  egypt: 'EG',
+  agypten: 'EG',
+  morocco: 'MA',
+  marokko: 'MA',
+  'south africa': 'ZA',
+  sudafrika: 'ZA',
+  'new zealand': 'NZ',
+  neuseeland: 'NZ',
+  iceland: 'IS',
+  island: 'IS',
+  luxembourg: 'LU',
+  luxemburg: 'LU',
+  slovenia: 'SI',
+  slowenien: 'SI',
+  slovakia: 'SK',
+  slowakei: 'SK',
+  estonia: 'EE',
+  estland: 'EE',
+  latvia: 'LV',
+  lettland: 'LV',
+  lithuania: 'LT',
+  litauen: 'LT',
+  serbia: 'RS',
+  serbien: 'RS',
+  israel: 'IL',
+  russia: 'RU',
+  russland: 'RU',
+  ukraine: 'UA',
+  vietnam: 'VN',
+  'south korea': 'KR',
+  sudkorea: 'KR',
+  philippines: 'PH',
+  philippinen: 'PH',
+  malaysia: 'MY',
+  colombia: 'CO',
+  kolumbien: 'CO',
+  peru: 'PE',
+  chile: 'CL',
+  iran: 'IR',
+  iraq: 'IQ',
+  irak: 'IQ',
+  pakistan: 'PK',
+  kenya: 'KE',
+  kenia: 'KE',
+  nigeria: 'NG',
+  'saudi arabia': 'SA',
+  'saudi-arabien': 'SA',
+  albania: 'AL',
+  albanien: 'AL',
+  georgia: 'GE',
+  georgien: 'GE',
+  montenegro: 'ME',
+  'north macedonia': 'MK',
+  nordmazedonien: 'MK',
+  macedonia: 'MK',
+  bosnia: 'BA',
+  'bosnia and herzegovina': 'BA',
+  bosnien: 'BA',
+  kosovo: 'XK',
+  cyprus: 'CY',
+  zypern: 'CY',
+  malta: 'MT',
+  tunisia: 'TN',
+  tunesien: 'TN',
+  jordan: 'JO',
+  jordanien: 'JO',
+  lebanon: 'LB',
+  libanon: 'LB',
+  ghana: 'GH',
+  ethiopia: 'ET',
+  athiopien: 'ET',
+  tanzania: 'TZ',
+  uganda: 'UG',
+  singapore: 'SG',
+  taiwan: 'TW',
+  nepal: 'NP',
+  'sri lanka': 'LK',
+  cambodia: 'KH',
+  kambodscha: 'KH',
+  myanmar: 'MM',
+  burma: 'MM',
+  laos: 'LA',
+  mongolia: 'MN',
+  mongolei: 'MN',
+  kazakhstan: 'KZ',
+  kasachstan: 'KZ',
+  uzbekistan: 'UZ',
+  usbekistan: 'UZ',
+  kyrgyzstan: 'KG',
+  kirgisistan: 'KG',
+  tajikistan: 'TJ',
+  tadschikistan: 'TJ',
+  turkmenistan: 'TM',
+  'costa rica': 'CR',
+  panama: 'PA',
+  ecuador: 'EC',
+  uruguay: 'UY',
+  cuba: 'CU',
+  kuba: 'CU',
+  'dominican republic': 'DO',
+  'dominikanische republik': 'DO',
+  jamaica: 'JM',
+  haiti: 'HT',
+  honduras: 'HN',
+  guatemala: 'GT',
+  'el salvador': 'SV',
+  nicaragua: 'NI',
+  bolivia: 'BO',
+  'bolivia plurinational state of': 'BO',
+  paraguay: 'PY',
+  venezuela: 'VE',
+  'trinidad and tobago': 'TT',
+  trinidad: 'TT',
+  oman: 'OM',
+  kuwait: 'KW',
+  qatar: 'QA',
+  bahrain: 'BH',
+  syria: 'SY',
+  syrien: 'SY',
+  yemen: 'YE',
+  jemen: 'YE',
+  palestine: 'PS',
+  palastina: 'PS',
+  moldova: 'MD',
+  'republic of moldova': 'MD',
+  moldawien: 'MD',
+  libya: 'LY',
+  libyen: 'LY',
+  sudan: 'SD',
+  eritrea: 'ER',
+  djibouti: 'DJ',
+  senegal: 'SN',
+  cameroon: 'CM',
+  kamerun: 'CM',
+  'ivory coast': 'CI',
+  "cote d'ivoire": 'CI',
+  mali: 'ML',
+  niger: 'NE',
+  'burkina faso': 'BF',
+  togo: 'TG',
+  benin: 'BJ',
+  guinea: 'GN',
+  'dr congo': 'CD',
+  'democratic republic of the congo': 'CD',
+  'republic of the congo': 'CG',
+  congo: 'CG',
+  angola: 'AO',
+  namibia: 'NA',
+  botswana: 'BW',
+  zimbabwe: 'ZW',
+  zambia: 'ZM',
+  malawi: 'MW',
+  mozambique: 'MZ',
+  mozambik: 'MZ',
+  madagascar: 'MG',
+  rwanda: 'RW',
+  burundi: 'BI',
+  somalia: 'SO',
+  'papua new guinea': 'PG',
+  brunei: 'BN',
+  'hong kong': 'HK',
+  'hong kong sar': 'HK',
+  macau: 'MO',
+  macao: 'MO',
+  'macau sar': 'MO',
+  'san marino': 'SM',
+  vatican: 'VA',
+  'vatican city': 'VA',
+  'holy see': 'VA',
+  monaco: 'MC',
+  liechtenstein: 'LI',
+  gibraltar: 'GI',
+  'puerto rico': 'PR',
 };
 
 // ── Geocoding helpers ───────────────────────────────────────────────────────
@@ -280,7 +511,7 @@ let lastNominatimCall = 0;
 // Shared throttle: enforces ≥1.1s between any Nominatim request, across all callers.
 async function throttleNominatim() {
   const elapsed = Date.now() - lastNominatimCall;
-  if (elapsed < 1100) await new Promise(r => setTimeout(r, 1100 - elapsed));
+  if (elapsed < 1100) await new Promise((r) => setTimeout(r, 1100 - elapsed));
   lastNominatimCall = Date.now();
 }
 
@@ -289,12 +520,15 @@ export async function reverseGeocodeCountry(lat: number, lng: number): Promise<s
   if (geocodeCache.has(key)) return geocodeCache.get(key)!;
   await throttleNominatim();
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=3&accept-language=en`, {
-      headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
-      signal: AbortSignal.timeout(10_000),
-    });
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=3&accept-language=en`,
+      {
+        headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/liketrek/TREK)' },
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
     if (!res.ok) return null;
-    const data = await res.json() as { address?: { country_code?: string } };
+    const data = (await res.json()) as { address?: { country_code?: string } };
     const code = data.address?.country_code?.toUpperCase() || null;
     geocodeCache.set(key, code);
     return code;
@@ -313,9 +547,11 @@ function pointInFlatRing(lng: number, lat: number, ring: Float64Array): boolean 
   let inside = false;
   const n = ring.length / 2;
   for (let i = 0, j = n - 1; i < n; j = i++) {
-    const xi = ring[2 * i], yi = ring[2 * i + 1];
-    const xj = ring[2 * j], yj = ring[2 * j + 1];
-    if (((yi > lat) !== (yj > lat)) && (lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)) {
+    const xi = ring[2 * i],
+      yi = ring[2 * i + 1];
+    const xj = ring[2 * j],
+      yj = ring[2 * j + 1];
+    if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
       inside = !inside;
     }
   }
@@ -331,7 +567,10 @@ function pointInGeometry(lng: number, lat: number, geom: CompactGeom): boolean {
     if (pointInFlatRing(lng, lat, geom.rings[ri])) {
       let inHole = false;
       for (let h = 1; h < rc; h++) {
-        if (pointInFlatRing(lng, lat, geom.rings[ri + h])) { inHole = true; break; }
+        if (pointInFlatRing(lng, lat, geom.rings[ri + h])) {
+          inHole = true;
+          break;
+        }
       }
       if (!inHole) return true;
     }
@@ -378,7 +617,9 @@ function buildCountryIndexes(): void {
       if (!raw || raw === '-99' || !f.geometry) return;
       const code = String(raw).toUpperCase();
 
-      const parts = (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates) as number[][][][];
+      const parts = (
+        f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates
+      ) as number[][][][];
       const rings: Float64Array[] = [];
       const polyRingCounts: number[] = [];
       const codeBoxes = boxes.get(code) ?? [];
@@ -386,11 +627,17 @@ function buildCountryIndexes(): void {
         polyRingCounts.push(part.length);
         for (const ring of part) {
           const flat = new Float64Array(ring.length * 2);
-          for (let i = 0; i < ring.length; i++) { flat[2 * i] = ring[i][0]; flat[2 * i + 1] = ring[i][1]; }
+          for (let i = 0; i < ring.length; i++) {
+            flat[2 * i] = ring[i][0];
+            flat[2 * i + 1] = ring[i][1];
+          }
           rings.push(flat);
         }
         // Bounding box from the part's outer ring (part[0]).
-        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+        let minLng = Infinity,
+          minLat = Infinity,
+          maxLng = -Infinity,
+          maxLat = -Infinity;
         for (const [lng, lat] of part[0]) {
           if (lng < minLng) minLng = lng;
           if (lng > maxLng) maxLng = lng;
@@ -470,7 +717,10 @@ export function getCountryFromCoords(lat: number, lng: number): string | null {
 
 export function getCountryFromAddress(address: string | null): string | null {
   if (!address) return null;
-  const parts = address.split(',').map(s => s.trim()).filter(Boolean);
+  const parts = address
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (parts.length === 0) return null;
   const last = parts[parts.length - 1];
   const normalized = last.toLowerCase();
@@ -504,12 +754,16 @@ function resolveCountryCodeSync(place: Place): string | null {
 // ── Shared query: all trips the user owns or is a member of ─────────────────
 
 function getUserTrips(userId: number): Trip[] {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     SELECT DISTINCT t.* FROM trips t
     LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
     WHERE t.user_id = ? OR m.user_id = ?
     ORDER BY t.start_date DESC
-  `).all(userId, userId, userId) as Trip[];
+  `,
+    )
+    .all(userId, userId, userId) as Trip[];
 }
 
 function getPlacesForTrips(tripIds: number[]): Place[] {
@@ -522,22 +776,31 @@ function getPlacesForTrips(tripIds: number[]): Place[] {
 
 function resolvePlaceCountries(places: Place[]): Map<number, string> {
   const out = new Map<number, string>();
-  const geoPlaces = places.filter(p => p.lat && p.lng);
-  const placeIds = geoPlaces.map(p => p.id);
+  const geoPlaces = places.filter((p) => p.lat && p.lng);
+  const placeIds = geoPlaces.map((p) => p.id);
 
-  const cached = placeIds.length > 0
-    ? (db.prepare(
-        `SELECT place_id, country_code FROM place_regions WHERE place_id IN (${placeIds.map(() => '?').join(',')})`
-      ).all(...placeIds) as { place_id: number; country_code: string }[])
-    : [];
-  const cachedMap = new Map(cached.map(r => [r.place_id, r.country_code]));
+  const cached =
+    placeIds.length > 0
+      ? (db
+          .prepare(
+            `SELECT place_id, country_code FROM place_regions WHERE place_id IN (${placeIds.map(() => '?').join(',')})`,
+          )
+          .all(...placeIds) as { place_id: number; country_code: string }[])
+      : [];
+  const cachedMap = new Map(cached.map((r) => [r.place_id, r.country_code]));
 
   const uncachedForGeocode: Place[] = [];
   for (const p of places) {
     const fromDb = cachedMap.get(p.id);
-    if (fromDb) { out.set(p.id, fromDb); continue; }
+    if (fromDb) {
+      out.set(p.id, fromDb);
+      continue;
+    }
     const sync = resolveCountryCodeSync(p);
-    if (sync) { out.set(p.id, sync); continue; }
+    if (sync) {
+      out.set(p.id, sync);
+      continue;
+    }
     if (p.lat && p.lng && !geocodingInFlight.has(p.id)) {
       uncachedForGeocode.push(p);
     }
@@ -545,7 +808,7 @@ function resolvePlaceCountries(places: Place[]): Map<number, string> {
 
   if (uncachedForGeocode.length > 0) {
     const insertStmt = db.prepare(
-      'INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)'
+      'INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)',
     );
     for (const p of uncachedForGeocode) geocodingInFlight.add(p.id);
     void (async () => {
@@ -554,8 +817,11 @@ function resolvePlaceCountries(places: Place[]): Map<number, string> {
           try {
             const info = await reverseGeocodeRegion(place.lat!, place.lng!);
             if (info) insertStmt.run(place.id, info.country_code, info.region_code, info.region_name);
-          } catch { /* continue */ }
-          finally { geocodingInFlight.delete(place.id); }
+          } catch {
+            /* continue */
+          } finally {
+            geocodingInFlight.delete(place.id);
+          }
         }
       } catch {
         for (const p of uncachedForGeocode) geocodingInFlight.delete(p.id);
@@ -570,20 +836,30 @@ function resolvePlaceCountries(places: Place[]): Map<number, string> {
 
 export async function getStats(userId: number) {
   const trips = getUserTrips(userId);
-  const tripIds = trips.map(t => t.id);
+  const tripIds = trips.map((t) => t.id);
 
   if (tripIds.length === 0) {
     const hiddenOnly = getHiddenCountries(userId);
-    const manualCountries = db.prepare('SELECT country_code FROM visited_countries WHERE user_id = ?').all(userId) as { country_code: string }[];
+    const manualCountries = db.prepare('SELECT country_code FROM visited_countries WHERE user_id = ?').all(userId) as {
+      country_code: string;
+    }[];
     const countries = manualCountries
-      .filter(mc => !hiddenOnly.has(mc.country_code))
-      .map(mc => ({ code: mc.country_code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }));
-    return { countries, trips: [], stats: { totalTrips: 0, totalPlaces: 0, totalCountries: countries.length, totalDays: 0 } };
+      .filter((mc) => !hiddenOnly.has(mc.country_code))
+      .map((mc) => ({ code: mc.country_code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }));
+    return {
+      countries,
+      trips: [],
+      stats: { totalTrips: 0, totalPlaces: 0, totalCountries: countries.length, totalDays: 0 },
+    };
   }
 
   const places = getPlacesForTrips(tripIds);
 
-  interface CountryEntry { code: string; places: { id: number; name: string; lat: number | null; lng: number | null }[]; tripIds: Set<number> }
+  interface CountryEntry {
+    code: string;
+    places: { id: number; name: string; lat: number | null; lng: number | null }[];
+    tripIds: Set<number>;
+  }
   const placeCountries = resolvePlaceCountries(places);
   const countrySet = new Map<string, CountryEntry>();
   for (const place of places) {
@@ -592,7 +868,9 @@ export async function getStats(userId: number) {
       if (!countrySet.has(code)) {
         countrySet.set(code, { code, places: [], tripIds: new Set() });
       }
-      countrySet.get(code)!.places.push({ id: place.id, name: place.name, lat: place.lat ?? null, lng: place.lng ?? null });
+      countrySet
+        .get(code)!
+        .places.push({ id: place.id, name: place.name, lat: place.lat ?? null, lng: place.lng ?? null });
       countrySet.get(code)!.tripIds.add(place.trip_id);
     }
   }
@@ -607,9 +885,12 @@ export async function getStats(userId: number) {
     }
   }
 
-  const countries = [...countrySet.values()].map(c => {
-    const countryTrips = trips.filter(t => c.tripIds.has(t.id));
-    const dates = countryTrips.map(t => t.start_date).filter(Boolean).sort();
+  const countries = [...countrySet.values()].map((c) => {
+    const countryTrips = trips.filter((t) => c.tripIds.has(t.id));
+    const dates = countryTrips
+      .map((t) => t.start_date)
+      .filter(Boolean)
+      .sort();
     return {
       code: c.code,
       placeCount: c.places.length,
@@ -622,7 +903,10 @@ export async function getStats(userId: number) {
   const citySet = new Set<string>();
   for (const place of places) {
     if (place.address) {
-      const parts = place.address.split(',').map((s: string) => s.trim()).filter(Boolean);
+      const parts = place.address
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter(Boolean);
       // The last part is the country; the city is usually right before it, but a
       // full formatted address can have a postal code sitting between them
       // (e.g. "Bucharest, 010071, Romania"). Walk back from the country and take
@@ -631,7 +915,10 @@ export async function getStats(userId: number) {
       let city = '';
       for (let i = candidates.length - 1; i >= 0; i--) {
         const cleaned = candidates[i].replace(/[\d\-\u2212\u3012]+/g, '').trim();
-        if (cleaned) { city = cleaned.toLowerCase(); break; }
+        if (cleaned) {
+          city = cleaned.toLowerCase();
+          break;
+        }
       }
       if (city) citySet.add(city);
     }
@@ -644,10 +931,12 @@ export async function getStats(userId: number) {
   const hidden = getHiddenCountries(userId);
 
   // Merge manually marked countries
-  const manualCountries = db.prepare('SELECT country_code FROM visited_countries WHERE user_id = ?').all(userId) as { country_code: string }[];
+  const manualCountries = db.prepare('SELECT country_code FROM visited_countries WHERE user_id = ?').all(userId) as {
+    country_code: string;
+  }[];
   for (const mc of manualCountries) {
     if (hidden.has(mc.country_code)) continue;
-    if (!countries.find(c => c.code === mc.country_code)) {
+    if (!countries.find((c) => c.code === mc.country_code)) {
       countries.push({ code: mc.country_code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null });
     }
   }
@@ -657,41 +946,63 @@ export async function getStats(userId: number) {
   // via resolvePlaceCountries above and would otherwise be missed (#1366).
   // Only 'from'/'to' legs count as actually reached — a 'stop' is an intermediate
   // connection/layover (e.g. a plane change) the traveler never really visited.
-  const endpoints = db.prepare(`
+  const endpoints = db
+    .prepare(
+      `
     SELECT DISTINCT e.lat, e.lng
     FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
     WHERE r.trip_id IN (${tripIds.map(() => '?').join(',')}) AND e.role IN ('from', 'to')
-  `).all(...tripIds) as { lat: number; lng: number }[];
+  `,
+    )
+    .all(...tripIds) as { lat: number; lng: number }[];
   for (const e of endpoints) {
     const code = getCountryFromCoords(e.lat, e.lng);
-    if (code && !hidden.has(code) && !countries.find(c => c.code === code)) {
+    if (code && !hidden.has(code) && !countries.find((c) => c.code === code)) {
       countries.push({ code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null });
     }
   }
 
-  const mostVisited = countries.length > 0 ? countries.reduce((a, b) => a.placeCount > b.placeCount ? a : b) : null;
+  const mostVisited = countries.length > 0 ? countries.reduce((a, b) => (a.placeCount > b.placeCount ? a : b)) : null;
 
   const continents: Record<string, number> = {};
-  countries.forEach(c => {
+  countries.forEach((c) => {
     const cont = CONTINENT_MAP[c.code] || 'Other';
     continents[cont] = (continents[cont] || 0) + 1;
   });
 
   const now = new Date().toISOString().split('T')[0];
-  const pastTrips = trips.filter(t => t.end_date && t.end_date <= now).sort((a, b) => b.end_date!.localeCompare(a.end_date!));
-  const lastTrip: { id: number; title: string; start_date?: string | null; end_date?: string | null; countryCode?: string } | null = pastTrips[0]
-    ? { id: pastTrips[0].id, title: pastTrips[0].title, start_date: pastTrips[0].start_date, end_date: pastTrips[0].end_date }
+  const pastTrips = trips
+    .filter((t) => t.end_date && t.end_date <= now)
+    .sort((a, b) => b.end_date!.localeCompare(a.end_date!));
+  const lastTrip: {
+    id: number;
+    title: string;
+    start_date?: string | null;
+    end_date?: string | null;
+    countryCode?: string;
+  } | null = pastTrips[0]
+    ? {
+        id: pastTrips[0].id,
+        title: pastTrips[0].title,
+        start_date: pastTrips[0].start_date,
+        end_date: pastTrips[0].end_date,
+      }
     : null;
   if (lastTrip) {
-    const lastTripPlaces = places.filter(p => p.trip_id === lastTrip.id);
+    const lastTripPlaces = places.filter((p) => p.trip_id === lastTrip.id);
     for (const p of lastTripPlaces) {
       const code = resolveCountryCodeSync(p);
-      if (code) { lastTrip.countryCode = code; break; }
+      if (code) {
+        lastTrip.countryCode = code;
+        break;
+      }
     }
   }
 
-  const futureTrips = trips.filter(t => t.start_date && t.start_date > now).sort((a, b) => a.start_date!.localeCompare(b.start_date!));
+  const futureTrips = trips
+    .filter((t) => t.start_date && t.start_date > now)
+    .sort((a, b) => a.start_date!.localeCompare(b.start_date!));
   const nextTrip: { id: number; title: string; start_date?: string | null; daysUntil?: number } | null = futureTrips[0]
     ? { id: futureTrips[0].id, title: futureTrips[0].title, start_date: futureTrips[0].start_date }
     : null;
@@ -700,7 +1011,7 @@ export async function getStats(userId: number) {
     nextTrip.daysUntil = Math.max(0, diff);
   }
 
-  const tripYears = new Set(trips.filter(t => t.start_date).map(t => parseInt(t.start_date!.split('-')[0])));
+  const tripYears = new Set(trips.filter((t) => t.start_date).map((t) => parseInt(t.start_date!.split('-')[0])));
   let streak = 0;
   const currentYear = new Date().getFullYear();
   for (let y = currentYear; y >= 2000; y--) {
@@ -724,7 +1035,7 @@ export async function getStats(userId: number) {
     nextTrip,
     streak,
     firstYear,
-    tripsThisYear: trips.filter(t => t.start_date && t.start_date.startsWith(String(currentYear))).length,
+    tripsThisYear: trips.filter((t) => t.start_date && t.start_date.startsWith(String(currentYear))).length,
   };
 }
 
@@ -732,40 +1043,60 @@ export async function getStats(userId: number) {
 
 export function getCountryPlaces(userId: number, code: string) {
   const trips = getUserTrips(userId);
-  const tripIds = trips.map(t => t.id);
+  const tripIds = trips.map((t) => t.id);
   if (tripIds.length === 0) return { places: [], trips: [], manually_marked: false };
 
   const places = getPlacesForTrips(tripIds);
 
-  const matchingPlaces: { id: number; name: string; address: string | null; lat: number | null; lng: number | null; trip_id: number }[] = [];
+  const matchingPlaces: {
+    id: number;
+    name: string;
+    address: string | null;
+    lat: number | null;
+    lng: number | null;
+    trip_id: number;
+  }[] = [];
   const matchingTripIds = new Set<number>();
 
   for (const place of places) {
     const pCode = resolveCountryCodeSync(place);
     if (pCode === code) {
-      matchingPlaces.push({ id: place.id, name: place.name, address: place.address ?? null, lat: place.lat ?? null, lng: place.lng ?? null, trip_id: place.trip_id });
+      matchingPlaces.push({
+        id: place.id,
+        name: place.name,
+        address: place.address ?? null,
+        lat: place.lat ?? null,
+        lng: place.lng ?? null,
+        trip_id: place.trip_id,
+      });
       matchingTripIds.add(place.trip_id);
     }
   }
 
-  const matchingTrips = trips.filter(t => matchingTripIds.has(t.id)).map(t => ({ id: t.id, title: t.title, start_date: t.start_date, end_date: t.end_date }));
+  const matchingTrips = trips
+    .filter((t) => matchingTripIds.has(t.id))
+    .map((t) => ({ id: t.id, title: t.title, start_date: t.start_date, end_date: t.end_date }));
 
-  const isManuallyMarked = !!(db.prepare('SELECT 1 FROM visited_countries WHERE user_id = ? AND country_code = ?').get(userId, code));
+  const isManuallyMarked = !!db
+    .prepare('SELECT 1 FROM visited_countries WHERE user_id = ? AND country_code = ?')
+    .get(userId, code);
   return { places: matchingPlaces, trips: matchingTrips, manually_marked: isManuallyMarked };
 }
 
 // ── Mark / unmark country ───────────────────────────────────────────────────
 
 export function listVisitedCountries(userId: number): { country_code: string; created_at: string }[] {
-  return db.prepare(
-    'SELECT country_code, created_at FROM visited_countries WHERE user_id = ? ORDER BY created_at DESC'
-  ).all(userId) as { country_code: string; created_at: string }[];
+  return db
+    .prepare('SELECT country_code, created_at FROM visited_countries WHERE user_id = ? ORDER BY created_at DESC')
+    .all(userId) as { country_code: string; created_at: string }[];
 }
 
 /** Countries the user explicitly removed, which getStats must not re-derive (#1490). */
 export function getHiddenCountries(userId: number): Set<string> {
-  const rows = db.prepare('SELECT country_code FROM hidden_countries WHERE user_id = ?').all(userId) as { country_code: string }[];
-  return new Set(rows.map(r => r.country_code));
+  const rows = db.prepare('SELECT country_code FROM hidden_countries WHERE user_id = ?').all(userId) as {
+    country_code: string;
+  }[];
+  return new Set(rows.map((r) => r.country_code));
 }
 
 export function markCountryVisited(userId: number, code: string): void {
@@ -785,32 +1116,49 @@ export function unmarkCountryVisited(userId: number, code: string): void {
 
 // ── Mark / unmark region ────────────────────────────────────────────────────
 
-export function listManuallyVisitedRegions(userId: number): { region_code: string; region_name: string; country_code: string }[] {
-  return db.prepare(
-    'SELECT region_code, region_name, country_code FROM visited_regions WHERE user_id = ? ORDER BY created_at DESC'
-  ).all(userId) as { region_code: string; region_name: string; country_code: string }[];
+export function listManuallyVisitedRegions(
+  userId: number,
+): { region_code: string; region_name: string; country_code: string }[] {
+  return db
+    .prepare(
+      'SELECT region_code, region_name, country_code FROM visited_regions WHERE user_id = ? ORDER BY created_at DESC',
+    )
+    .all(userId) as { region_code: string; region_name: string; country_code: string }[];
 }
 
 export function markRegionVisited(userId: number, regionCode: string, regionName: string, countryCode: string): void {
-  db.prepare('INSERT OR IGNORE INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)').run(userId, regionCode, regionName, countryCode);
+  db.prepare(
+    'INSERT OR IGNORE INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)',
+  ).run(userId, regionCode, regionName, countryCode);
   // Auto-mark parent country if not already visited
   db.prepare('INSERT OR IGNORE INTO visited_countries (user_id, country_code) VALUES (?, ?)').run(userId, countryCode);
 }
 
 export function unmarkRegionVisited(userId: number, regionCode: string): void {
-  const region = db.prepare('SELECT country_code FROM visited_regions WHERE user_id = ? AND region_code = ?').get(userId, regionCode) as { country_code: string } | undefined;
+  const region = db
+    .prepare('SELECT country_code FROM visited_regions WHERE user_id = ? AND region_code = ?')
+    .get(userId, regionCode) as { country_code: string } | undefined;
   db.prepare('DELETE FROM visited_regions WHERE user_id = ? AND region_code = ?').run(userId, regionCode);
   if (region) {
-    const remaining = db.prepare('SELECT COUNT(*) as count FROM visited_regions WHERE user_id = ? AND country_code = ?').get(userId, region.country_code) as { count: number };
+    const remaining = db
+      .prepare('SELECT COUNT(*) as count FROM visited_regions WHERE user_id = ? AND country_code = ?')
+      .get(userId, region.country_code) as { count: number };
     if (remaining.count === 0) {
-      db.prepare('DELETE FROM visited_countries WHERE user_id = ? AND country_code = ?').run(userId, region.country_code);
+      db.prepare('DELETE FROM visited_countries WHERE user_id = ? AND country_code = ?').run(
+        userId,
+        region.country_code,
+      );
     }
   }
 }
 
 // ── Sub-national region resolution ────────────────────────────────────────
 
-interface RegionInfo { country_code: string; region_code: string; region_name: string }
+interface RegionInfo {
+  country_code: string;
+  region_code: string;
+  region_name: string;
+}
 
 // Tracks place IDs currently being geocoded in the background to prevent duplicate enqueuing.
 const geocodingInFlight = new Set<number>();
@@ -830,12 +1178,12 @@ async function fetchNominatimAddress(lat: number, lng: number, zoom: number): Pr
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=${zoom}&accept-language=en`,
       {
-        headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
+        headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/liketrek/TREK)' },
         signal: AbortSignal.timeout(10_000),
-      }
+      },
     );
     if (!res.ok) return null;
-    const data = await res.json() as { address?: Record<string, string> };
+    const data = (await res.json()) as { address?: Record<string, string> };
     return data.address ?? {};
   } catch {
     return null;
@@ -847,15 +1195,26 @@ function buildRegionInfo(address: Record<string, string>, preferFinest: boolean)
   // Coarse path (almost every country) lands on the admin-1 level that matches Natural
   // Earth directly; the finest path is used only to rescue codes that are too broad.
   let regionCode = preferFinest
-    ? (address['ISO3166-2-lvl8'] || address['ISO3166-2-lvl7'] || address['ISO3166-2-lvl6'] || address['ISO3166-2-lvl5'] || null)
-    : (address['ISO3166-2-lvl6'] || address['ISO3166-2-lvl5'] || address['ISO3166-2-lvl4'] || null);
+    ? address['ISO3166-2-lvl8'] ||
+      address['ISO3166-2-lvl7'] ||
+      address['ISO3166-2-lvl6'] ||
+      address['ISO3166-2-lvl5'] ||
+      null
+    : address['ISO3166-2-lvl6'] || address['ISO3166-2-lvl5'] || address['ISO3166-2-lvl4'] || null;
   // Normalize: FR-75C → FR-75 (strip trailing letter suffixes for GeoJSON compatibility)
   if (regionCode && /^[A-Z]{2}-\d+[A-Z]$/i.test(regionCode)) {
     regionCode = regionCode.replace(/[A-Z]$/i, '');
   }
   const regionName = preferFinest
-    ? (address.city || address.county || address.state_district || address.borough || address.state || address.province || address.region || null)
-    : (address.state || address.province || address.region || address.county || address.city || null);
+    ? address.city ||
+      address.county ||
+      address.state_district ||
+      address.borough ||
+      address.state ||
+      address.province ||
+      address.region ||
+      null
+    : address.state || address.province || address.region || address.county || address.city || null;
   if (!countryCode || !regionName) return null;
   return {
     country_code: countryCode,
@@ -882,22 +1241,29 @@ async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInf
   return info;
 }
 
-export async function getVisitedRegions(userId: number): Promise<{ regions: Record<string, { code: string; name: string; placeCount: number }[]> }> {
+export async function getVisitedRegions(
+  userId: number,
+): Promise<{ regions: Record<string, { code: string; name: string; placeCount: number }[]> }> {
   const trips = getUserTrips(userId);
-  const tripIds = trips.map(t => t.id);
+  const tripIds = trips.map((t) => t.id);
   const places = getPlacesForTrips(tripIds);
 
   // Check DB cache first
-  const placeIds = places.filter(p => p.lat && p.lng).map(p => p.id);
-  const cached = placeIds.length > 0
-    ? db.prepare(`SELECT * FROM place_regions WHERE place_id IN (${placeIds.map(() => '?').join(',')})`).all(...placeIds) as { place_id: number; country_code: string; region_code: string; region_name: string }[]
-    : [];
-  const cachedMap = new Map(cached.map(c => [c.place_id, c]));
+  const placeIds = places.filter((p) => p.lat && p.lng).map((p) => p.id);
+  const cached =
+    placeIds.length > 0
+      ? (db
+          .prepare(`SELECT * FROM place_regions WHERE place_id IN (${placeIds.map(() => '?').join(',')})`)
+          .all(...placeIds) as { place_id: number; country_code: string; region_code: string; region_name: string }[])
+      : [];
+  const cachedMap = new Map(cached.map((c) => [c.place_id, c]));
 
   // Kick off background geocoding for uncached places; return cached data immediately.
-  const uncached = places.filter(p => p.lat && p.lng && !cachedMap.has(p.id) && !geocodingInFlight.has(p.id));
+  const uncached = places.filter((p) => p.lat && p.lng && !cachedMap.has(p.id) && !geocodingInFlight.has(p.id));
   if (uncached.length > 0) {
-    const insertStmt = db.prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)');
+    const insertStmt = db.prepare(
+      'INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)',
+    );
     for (const p of uncached) geocodingInFlight.add(p.id);
     void (async () => {
       try {
@@ -925,7 +1291,11 @@ export async function getVisitedRegions(userId: number): Promise<{ regions: Reco
     if (existing) {
       existing.placeCount++;
     } else {
-      regionMap[entry.country_code].set(entry.region_code, { code: entry.region_code, name: entry.region_name, placeCount: 1 });
+      regionMap[entry.country_code].set(entry.region_code, {
+        code: entry.region_code,
+        name: entry.region_name,
+        placeCount: 1,
+      });
     }
   }
 
@@ -938,7 +1308,7 @@ export async function getVisitedRegions(userId: number): Promise<{ regions: Reco
   const manualRegions = listManuallyVisitedRegions(userId);
   for (const r of manualRegions) {
     if (!result[r.country_code]) result[r.country_code] = [];
-    if (!result[r.country_code].find(x => x.code === r.region_code)) {
+    if (!result[r.country_code].find((x) => x.code === r.region_code)) {
       result[r.country_code].push({ code: r.region_code, name: r.region_name, placeCount: 0, manuallyMarked: true });
     }
   }
@@ -952,31 +1322,69 @@ export function listBucketList(userId: number) {
   return db.prepare('SELECT * FROM bucket_list WHERE user_id = ? ORDER BY created_at DESC').all(userId);
 }
 
-export function createBucketItem(userId: number, data: { name: string; lat?: number | null; lng?: number | null; country_code?: string | null; notes?: string | null; target_date?: string | null }) {
-  const result = db.prepare('INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-    userId, data.name.trim(), data.lat ?? null, data.lng ?? null, data.country_code ?? null, data.notes ?? null, data.target_date ?? null
-  );
+export function createBucketItem(
+  userId: number,
+  data: {
+    name: string;
+    lat?: number | null;
+    lng?: number | null;
+    country_code?: string | null;
+    notes?: string | null;
+    target_date?: string | null;
+  },
+) {
+  const result = db
+    .prepare(
+      'INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    )
+    .run(
+      userId,
+      data.name.trim(),
+      data.lat ?? null,
+      data.lng ?? null,
+      data.country_code ?? null,
+      data.notes ?? null,
+      data.target_date ?? null,
+    );
   return db.prepare('SELECT * FROM bucket_list WHERE id = ?').get(result.lastInsertRowid);
 }
 
-export function updateBucketItem(userId: number, itemId: string | number, data: { name?: string; notes?: string; lat?: number | null; lng?: number | null; country_code?: string | null; target_date?: string | null }) {
+export function updateBucketItem(
+  userId: number,
+  itemId: string | number,
+  data: {
+    name?: string;
+    notes?: string;
+    lat?: number | null;
+    lng?: number | null;
+    country_code?: string | null;
+    target_date?: string | null;
+  },
+) {
   const item = db.prepare('SELECT * FROM bucket_list WHERE id = ? AND user_id = ?').get(itemId, userId);
   if (!item) return null;
-  db.prepare(`UPDATE bucket_list SET
+  db.prepare(
+    `UPDATE bucket_list SET
     name = COALESCE(?, name),
     notes = CASE WHEN ? THEN ? ELSE notes END,
     lat = CASE WHEN ? THEN ? ELSE lat END,
     lng = CASE WHEN ? THEN ? ELSE lng END,
     country_code = CASE WHEN ? THEN ? ELSE country_code END,
     target_date = CASE WHEN ? THEN ? ELSE target_date END
-    WHERE id = ?`).run(
+    WHERE id = ?`,
+  ).run(
     data.name?.trim() || null,
-    data.notes !== undefined ? 1 : 0, data.notes !== undefined ? (data.notes || null) : null,
-    data.lat !== undefined ? 1 : 0, data.lat !== undefined ? (data.lat || null) : null,
-    data.lng !== undefined ? 1 : 0, data.lng !== undefined ? (data.lng || null) : null,
-    data.country_code !== undefined ? 1 : 0, data.country_code !== undefined ? (data.country_code || null) : null,
-    data.target_date !== undefined ? 1 : 0, data.target_date !== undefined ? (data.target_date || null) : null,
-    itemId
+    data.notes !== undefined ? 1 : 0,
+    data.notes !== undefined ? data.notes || null : null,
+    data.lat !== undefined ? 1 : 0,
+    data.lat !== undefined ? data.lat || null : null,
+    data.lng !== undefined ? 1 : 0,
+    data.lng !== undefined ? data.lng || null : null,
+    data.country_code !== undefined ? 1 : 0,
+    data.country_code !== undefined ? data.country_code || null : null,
+    data.target_date !== undefined ? 1 : 0,
+    data.target_date !== undefined ? data.target_date || null : null,
+    itemId,
   );
   return db.prepare('SELECT * FROM bucket_list WHERE id = ?').get(itemId);
 }
