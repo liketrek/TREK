@@ -495,6 +495,9 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Configurat. Gestiona les credencials a la configuració del connector.',
   'settings.currencyTrip': 'Divisa del viatge',
+  'settings.alwaysShowRoutes': 'Mostra sempre les rutes de reserva',
+  'settings.alwaysShowRoutesHint':
+    'Dibuixa automàticament al mapa la ruta de cada vol, tren i altra reserva — no cal activar-la una per una.',
 };
 
 export default settings;
