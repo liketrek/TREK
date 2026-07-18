@@ -98,6 +98,17 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'Använd Unsplash-foto av {photographer}',
   'dashboard.titleRequired': 'Titel är obligatoriskt',
   'dashboard.endDateError': 'Slutdatumet måste ligga efter startdatumet',
+  'dashboard.dateShiftTitle': 'Nytt startdatum',
+  'dashboard.dateShiftIntro':
+    'Du har ändrat när resan börjar. Hur ska dina planer följa de nya datumen?',
+  'dashboard.dateShiftKeepBookings': 'Behåll bokningar på sina datum',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'Dagsplanerna flyttas med de nya datumen, medan bokningar och boenden ligger kvar på sina ursprungliga datum så länge dessa fortfarande ingår i resan.',
+  'dashboard.dateShiftAll': 'Flytta allt',
+  'dashboard.dateShiftAllDesc':
+    'Hela resplanen flyttas med de nya datumen, inklusive bokningar och boenden.',
+  'dashboard.dateShiftHint':
+    'Tips: om du bara vill flytta en del av resplanen kan du använda "Lägg till dag" i planeraren istället.',
   'dashboard.greeting.morning': 'God morgon,',
   'dashboard.greeting.afternoon': 'God eftermiddag,',
   'dashboard.greeting.evening': 'God kväll,',

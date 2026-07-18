@@ -307,6 +307,14 @@ export function useTripPlanner() {
     }
   }, [tripId])
 
+  // Accommodations live in this hook's local state, so store-level refreshes
+  // (remote trip date change, reconnect hydration) nudge us via this event (#1288).
+  useEffect(() => {
+    const onRefresh = () => loadAccommodations()
+    window.addEventListener('accommodations:refresh', onRefresh)
+    return () => window.removeEventListener('accommodations:refresh', onRefresh)
+  }, [loadAccommodations])
+
   useTripWebSocket(tripId)
 
   // Same filter the places sidebar renders — shared via the store so tab

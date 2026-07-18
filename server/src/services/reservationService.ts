@@ -106,12 +106,14 @@ function resolveDayIdFromTime(
 // the booking visually shifts by the offset (#1288). Re-anchor non-hotel bookings to the
 // day matching their absolute reservation_time — the same derivation create/updateReservation
 // use. Only updates when a matching day exists, so a booking whose date now falls outside
-// the new range is left untouched. Hotels keep their range on the linked day_accommodation.
+// the new range is left untouched. Hotels linked to a day_accommodation are excluded here —
+// resyncAccommodationDays re-anchors the accommodation span and its linked reservation;
+// unlinked dated hotels (e.g. imported ones) re-anchor like any other booking.
 export function resyncReservationDays(tripId: string | number): void {
   const rows = db.prepare(
     `SELECT id, reservation_time, reservation_end_time, day_id, end_day_id
        FROM reservations
-      WHERE trip_id = ? AND type != 'hotel' AND reservation_time IS NOT NULL`,
+      WHERE trip_id = ? AND (type != 'hotel' OR accommodation_id IS NULL) AND reservation_time IS NOT NULL`,
   ).all(tripId) as {
     id: number; reservation_time: string | null; reservation_end_time: string | null;
     day_id: number | null; end_day_id: number | null;

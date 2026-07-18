@@ -92,6 +92,15 @@ const dashboard: TranslationStrings = {
   'dashboard.coverRemoveError': 'Không thể xóa',
   'dashboard.titleRequired': 'Tiêu đề là bắt buộc',
   'dashboard.endDateError': 'Ngày kết thúc phải sau ngày bắt đầu',
+  'dashboard.dateShiftTitle': 'Ngày bắt đầu mới',
+  'dashboard.dateShiftIntro':
+    'Bạn đã thay đổi thời điểm bắt đầu chuyến đi. Các kế hoạch của bạn nên theo ngày mới như thế nào?',
+  'dashboard.dateShiftKeepBookings': 'Giữ đặt chỗ theo ngày ban đầu',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'Kế hoạch theo ngày sẽ dời theo ngày mới, trong khi đặt chỗ và chỗ ở vẫn giữ nguyên ngày ban đầu miễn là những ngày đó vẫn nằm trong chuyến đi.',
+  'dashboard.dateShiftAll': 'Dời tất cả',
+  'dashboard.dateShiftAllDesc': 'Toàn bộ lịch trình sẽ dời theo ngày mới, bao gồm cả đặt chỗ và chỗ ở.',
+  'dashboard.dateShiftHint': 'Mẹo: để chỉ dời một phần lịch trình, hãy dùng "Thêm ngày" trong trình lập kế hoạch.',
   'dashboard.greeting.morning': 'Chào buổi sáng,',
   'dashboard.greeting.afternoon': 'Chào buổi chiều,',
   'dashboard.greeting.evening': 'Buổi tối vui vẻ,',

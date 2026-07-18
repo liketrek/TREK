@@ -80,6 +80,17 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'Użyj zdjęcia z Unsplash autorstwa {photographer}',
   'dashboard.titleRequired': 'Nazwa podróży jest wymagana',
   'dashboard.endDateError': 'Data zakończenia musi być po dacie rozpoczęcia',
+  'dashboard.dateShiftTitle': 'Nowa data rozpoczęcia',
+  'dashboard.dateShiftIntro':
+    'Data rozpoczęcia podróży została zmieniona. Jak plany mają dostosować się do nowych dat?',
+  'dashboard.dateShiftKeepBookings': 'Zachowaj rezerwacje w ich terminach',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'Plany dnia przesuną się wraz z nowymi datami, a rezerwacje i noclegi pozostaną w swoich pierwotnych terminach, o ile nadal mieszczą się one w ramach podróży.',
+  'dashboard.dateShiftAll': 'Przesuń wszystko',
+  'dashboard.dateShiftAllDesc':
+    'Cały plan podróży przesunie się wraz z nowymi datami, w tym rezerwacje i noclegi.',
+  'dashboard.dateShiftHint':
+    'Wskazówka: aby przesunąć tylko część planu podróży, użyj opcji "Dodaj dzień" w planerze.',
   'dashboard.members': 'Współpodróżnicy',
   'dashboard.copyTrip': 'Kopiuj',
   'dashboard.copySuffix': 'kopia',

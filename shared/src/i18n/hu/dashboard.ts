@@ -86,6 +86,16 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': '{photographer} Unsplash-fotójának használata',
   'dashboard.titleRequired': 'A cím megadása kötelező',
   'dashboard.endDateError': 'A záró dátumnak a kezdő dátum után kell lennie',
+  'dashboard.dateShiftTitle': 'Új kezdő dátum',
+  'dashboard.dateShiftIntro': 'Megváltoztattad az út kezdetét. Hogyan kövessék a terveid az új dátumokat?',
+  'dashboard.dateShiftKeepBookings': 'A foglalások maradjanak a saját dátumaikon',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'A napi tervek az új dátumokkal együtt mozognak, míg a foglalások és szállások az eredeti dátumaikon maradnak, amíg azok még az út részei.',
+  'dashboard.dateShiftAll': 'Minden eltolása',
+  'dashboard.dateShiftAllDesc':
+    'A teljes útiterv az új dátumokkal együtt mozog, beleértve a foglalásokat és a szállásokat is.',
+  'dashboard.dateShiftHint':
+    'Tipp: ha csak az útiterv egy részét szeretnéd eltolni, használd inkább a "Nap hozzáadása" funkciót a tervezőben.',
   'dashboard.greeting.morning': 'Jó reggelt,',
   'dashboard.greeting.afternoon': 'Jó napot,',
   'dashboard.greeting.evening': 'Jó estét,',

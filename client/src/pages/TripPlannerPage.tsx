@@ -744,7 +744,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
       <TripFormModal
         isOpen={showTripForm}
         onClose={() => setShowTripForm(false)}
-        onSave={async (data) => { await tripActions.updateTrip(tripId, data); toast.success(t('trip.toast.tripUpdated')) }}
+        onSave={async (data) => { await tripActions.updateTrip(tripId, data); loadAccommodations(); toast.success(t('trip.toast.tripUpdated')) }}
         trip={trip}
         onCoverUpdate={(_, coverUrl) => useTripStore.setState(state => ({ trip: state.trip ? { ...state.trip, cover_image: coverUrl } : state.trip }))}
       />

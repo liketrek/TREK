@@ -88,6 +88,13 @@ export const tripUpdateRequestSchema = z.object({
   description: z.string().nullable().optional(),
   start_date: z.string().nullable().optional(),
   end_date: z.string().nullable().optional(),
+  /**
+   * How day-attached content follows a date-range change (#1288):
+   * 'keep_bookings' (default) — day plans move with the days; dated reservations and
+   * accommodations stay on their absolute dates while those remain inside the trip.
+   * 'shift_all' — the whole itinerary, bookings included, moves with the range.
+   */
+  date_shift_mode: z.enum(['keep_bookings', 'shift_all']).optional(),
   currency: z.string().optional(),
   reminder_days: z.number().optional(),
   day_count: z.number().optional(),

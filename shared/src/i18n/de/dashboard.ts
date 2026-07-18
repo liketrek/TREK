@@ -85,6 +85,16 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'Unsplash-Foto von {photographer} verwenden',
   'dashboard.titleRequired': 'Titel ist erforderlich',
   'dashboard.endDateError': 'Enddatum muss nach dem Startdatum liegen',
+  'dashboard.dateShiftTitle': 'Neues Startdatum',
+  'dashboard.dateShiftIntro':
+    'Du hast den Beginn dieser Reise geändert. Wie sollen deine Pläne den neuen Daten folgen?',
+  'dashboard.dateShiftKeepBookings': 'Buchungen auf ihren Terminen belassen',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'Tagespläne wandern mit den neuen Daten, während Reservierungen und Unterkünfte auf ihren ursprünglichen Terminen bleiben, solange diese noch Teil der Reise sind.',
+  'dashboard.dateShiftAll': 'Alles verschieben',
+  'dashboard.dateShiftAllDesc':
+    'Der gesamte Reiseplan wandert mit den neuen Daten, einschließlich Reservierungen und Unterkünften.',
+  'dashboard.dateShiftHint': 'Tipp: Um nur einen Teil deines Reiseplans zu verschieben, nutze stattdessen "Tag hinzufügen" im Planer.',
   'dashboard.greeting.morning': 'Guten Morgen,',
   'dashboard.greeting.afternoon': 'Guten Tag,',
   'dashboard.greeting.evening': 'Guten Abend,',
