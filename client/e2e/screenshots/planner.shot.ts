@@ -45,7 +45,3 @@ test('bookings', async ({ page, shot }) => {
   await shot.page_('Bookings')
 })
 
-test('collab', async ({ page, shot }) => {
-  await openTab(page, 'Collab')
-  await shot.page_('Collab')
-})
