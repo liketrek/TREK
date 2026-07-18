@@ -1,5 +1,6 @@
 import dns from 'node:dns/promises';
 import { Agent } from 'undici';
+import { embeddedTransitionIpv4 } from './ipv6';
 
 const ALLOW_INTERNAL_NETWORK = process.env.ALLOW_INTERNAL_NETWORK?.toLowerCase() === 'true';
 
@@ -23,6 +24,9 @@ function isAlwaysBlocked(ip: string): boolean {
   if (addr.startsWith('169.254.') || /^fe80:/i.test(addr)) return true;
   // IPv4-mapped loopback / link-local: ::ffff:127.x.x.x, ::ffff:169.254.x.x
   if (/^::ffff:127\./i.test(addr) || /^::ffff:169\.254\./i.test(addr)) return true;
+  // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a hard-blocked IPv4.
+  const embedded = embeddedTransitionIpv4(addr);
+  if (embedded) return isAlwaysBlocked(embedded);
 
   return false;
 }
@@ -43,6 +47,9 @@ function isPrivateNetwork(ip: string): boolean {
   if (/^::ffff:10\./i.test(addr)) return true;
   if (/^::ffff:172\.(1[6-9]|2\d|3[01])\./i.test(addr)) return true;
   if (/^::ffff:192\.168\./i.test(addr)) return true;
+  // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a private IPv4.
+  const embedded = embeddedTransitionIpv4(addr);
+  if (embedded) return isPrivateNetwork(embedded);
 
   return false;
 }
@@ -117,6 +124,11 @@ function isLinkLocal(ip: string): boolean {
   // (100.64.0.0/10), which safeFetchLlm otherwise allows for a LAN model server —
   // so block the specific metadata IPs directly rather than the whole range.
   if (addr === '100.100.100.200' || addr === '100.100.100.100') return true;
+  // NAT64/6to4/Teredo embedding one of the above link-local/metadata IPs — extract
+  // the embedded IPv4 and re-check. A transition address to a public or LAN IPv4
+  // stays allowed (safeFetchLlm deliberately permits private/loopback targets).
+  const embedded = embeddedTransitionIpv4(addr);
+  if (embedded) return isLinkLocal(embedded);
   return false;
 }
 

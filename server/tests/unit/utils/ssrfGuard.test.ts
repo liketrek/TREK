@@ -145,6 +145,40 @@ describe('checkSsrf', () => {
     });
   });
 
+  // SEC-005 — IPv6 transition addresses (NAT64/6to4/Teredo) must not tunnel past
+  // the guard by embedding a blocked IPv4 target.
+  describe('IPv6 transition addresses (NAT64/6to4/Teredo)', () => {
+    it.each([
+      ['NAT64 → metadata', '64:ff9b::a9fe:a9fe'], // 169.254.169.254
+      ['NAT64 → loopback', '64:ff9b::7f00:1'], // 127.0.0.1
+      ['6to4 → metadata', '2002:a9fe:a9fe::'],
+      ['6to4 → loopback', '2002:7f00:1::'],
+      ['Teredo → metadata', '2001::5601:5601'],
+    ])('blocks %s (%s)', async (_label, ip) => {
+      mockIp(ip);
+      const result = await checkSsrf('http://attacker.example');
+      expect(result.allowed).toBe(false);
+      expect(result.isPrivate).toBe(true);
+    });
+
+    it('blocks a NAT64 address embedding an RFC-1918 target (10.0.0.1)', async () => {
+      mockIp('64:ff9b::a00:1');
+      const result = await checkSsrf('http://attacker.example');
+      expect(result.allowed).toBe(false);
+      expect(result.isPrivate).toBe(true);
+    });
+
+    it.each([
+      ['NAT64 → public 8.8.8.8', '64:ff9b::808:808'],
+      ['6to4 → public 8.8.8.8', '2002:808:808::'],
+    ])('still allows %s — legitimate IPv6→IPv4 egress', async (_label, ip) => {
+      mockIp(ip);
+      const result = await checkSsrf('http://cdn.example');
+      expect(result.allowed).toBe(true);
+      expect(result.isPrivate).toBe(false);
+    });
+  });
+
   describe('internal hostname suffixes', () => {
     it('blocks .local domains', async () => {
       const result = await checkSsrf('http://myserver.local');
@@ -488,6 +522,28 @@ describe('safeFetchLlm', () => {
     await expect(safeFetchLlm('http://model.example/chat')).rejects.toThrow(SsrfBlockedError);
     mockIp('100.100.100.100');
     await expect(safeFetchLlm('http://model.example/chat')).rejects.toThrow(SsrfBlockedError);
+  });
+
+  it.each([
+    ['NAT64 → metadata', '64:ff9b::a9fe:a9fe'],
+    ['6to4 → metadata', '2002:a9fe:a9fe::'],
+    ['Teredo → metadata', '2001::5601:5601'],
+  ])('blocks an IPv6 transition address to the metadata IP: %s', async (_label, ip) => {
+    mockIp(ip);
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+    await expect(safeFetchLlm('http://ollama.evil.example/chat')).rejects.toThrow(SsrfBlockedError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('still allows a NAT64 address to a LAN model server (192.168.1.50)', async () => {
+    // The LLM guard permits private/LAN targets — only link-local/metadata is blocked,
+    // so a NAT64 spelling of a LAN model host must keep working.
+    mockIp('64:ff9b::c0a8:132'); // 192.168.1.50
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+    vi.stubGlobal('fetch', mockFetch);
+    await safeFetchLlm('http://lan-model.example/chat');
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('stops following after the redirect cap', async () => {
