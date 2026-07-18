@@ -4,8 +4,6 @@ Atlas is an interactive world map that shows countries and regions you have visi
 
 > **Admin:** enable Atlas in [Admin-Addons](Admin-Addons).
 
-<!-- TODO: screenshot: world map with visited countries highlighted -->
-
 ![Atlas](assets/Atlas.png)
 
 ## What Atlas is

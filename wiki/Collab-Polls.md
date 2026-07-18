@@ -2,9 +2,7 @@
 
 Create group polls to make decisions collaboratively — where to eat, which hotel, what to do on a free day.
 
-<!-- TODO: screenshot: poll with options and vote counts -->
-
-![Collab Polls](assets/Collab.png)
+![A trip poll with three options and the current vote counts](assets/CollabPolls.png)
 
 ## Where to find it
 

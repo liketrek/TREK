@@ -4,8 +4,6 @@ Vacay is a personal vacation day planner that lives separately from your trip pl
 
 > **Admin:** enable Vacay in [Admin-Addons](Admin-Addons).
 
-<!-- TODO: screenshot: vacation planner calendar view -->
-
 ![Vacay screenshot](assets/Vacay.png)
 
 ## What Vacay is

@@ -2,8 +2,6 @@
 
 The trip planner map shows your places, route lines, transport overlays, and your current location in real time.
 
-<!-- TODO: screenshot: trip map with place markers and route lines -->
-
 ![Trip Planner Map](assets/TripPlannerWithPlane.png)
 
 ## Map renderer

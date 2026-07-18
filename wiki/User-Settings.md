@@ -2,8 +2,6 @@
 
 The Settings page lets you personalise every aspect of TREK — appearance, maps, notifications, offline behaviour, and your account.
 
-<!-- TODO: screenshot: user settings page tabs -->
-
 ## Navigating to Settings
 
 Open the user menu in the top navigation bar and select **Settings**. The page opens on the **General** tab by default.
@@ -70,6 +68,8 @@ Each GL provider keeps its own saved style, so switching between Mapbox GL and M
 **Opening view** — there is no default map center or zoom setting. Every map frames itself on the places it is showing. See [Map-Settings](Map-Settings).
 
 ## Account tab summary
+
+![Settings page on the Account tab, with the settings tab rail on the left and username, email, change-password fields and the two-factor authentication section on the right](assets/SettingsAccount.png)
 
 The Account tab lets you:
 

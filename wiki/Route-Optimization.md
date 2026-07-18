@@ -2,8 +2,6 @@
 
 TREK calculates walking and driving times between your places and can reorder them to minimize total travel distance.
 
-<!-- TODO: screenshot: optimized route displayed on map -->
-
 ![Route Optimization](assets/OptimizeRoute.png)
 
 ## Route calculation

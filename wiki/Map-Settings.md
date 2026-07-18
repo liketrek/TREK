@@ -4,8 +4,6 @@ The Map tab controls which map engine and tile source TREK uses in the Trip Plan
 
 > **Note:** The Atlas view always uses Leaflet regardless of this setting.
 
-<!-- TODO: screenshot: map settings panel with provider selection -->
-
 ![Map Settings](assets/UsrSettingsMap.png)
 
 ## Where to find it

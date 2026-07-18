@@ -2,8 +2,6 @@
 
 The General tab (Settings → General) controls your locale preferences and a few map-related display options. All changes save immediately to your account and persist across devices.
 
-<!-- TODO: screenshot: appearance settings panel -->
-
 ![General Settings](assets/UsrSettings.png)
 
 ## Where to find it

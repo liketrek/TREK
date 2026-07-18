@@ -1,7 +1,5 @@
 # Creating a Trip
 
-<!-- TODO: screenshot: trip creation form with date and cover fields -->
-
 ![Trip creation dialog](assets/TripCreate.png)
 
 ## Opening the Dialog

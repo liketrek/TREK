@@ -2,6 +2,8 @@
 
 Tune how TREK looks — colour mode, accent scheme, readability, and which dashboard widgets you see.
 
+![Settings page on the Appearance tab showing the Light / Dark / Auto colour mode buttons, the eight colour scheme swatches, and the Readability section with transparency, reduce motion and density controls](assets/UsrSettingsAppearance.png)
+
 ## Where to find it
 
 Open **Settings** and select the **Appearance** tab.
