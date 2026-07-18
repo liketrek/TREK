@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>TREK</Name>
-  <Repository>mauriceboe/trek</Repository>
-  <Registry>https://hub.docker.com/r/mauriceboe/trek</Registry>
+  <Repository>iiketrek/TREK</Repository>
+  <Registry>https://hub.docker.com/r/iiketrek/TREK</Registry>
   <Branch>
     <Tag>latest</Tag>
     <TagDescription>Latest stable release</TagDescription>
@@ -14,8 +14,8 @@
   <Overview>TREK is a self-hosted, real-time collaborative travel planner with interactive maps, budgets, bookings, packing lists, file management, and more. Plan trips together with your group — changes sync instantly across all connected users. Includes OIDC/SSO support, dark mode, PWA, and a modular addon system (Vacay, Atlas, Collab, Budget, Packing).</Overview>
   <Category>Productivity: Tools:</Category>
   <WebUI>http://[IP]:[PORT:3000]</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/mauriceboe/TREK/main/unraid-template.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/mauriceboe/TREK/main/docs/trek-icon.png</Icon>
+  <TemplateURL>https://raw.githubusercontent.com/iiketrek/TREK/main/unraid-template.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/iiketrek/TREK/main/docs/trek-icon.png</Icon>
   <ExtraParams/>
   <PostArgs/>
   <DonateText>Support TREK development</DonateText>

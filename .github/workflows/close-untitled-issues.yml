@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   check-title:
-    if: github.repository == 'mauriceboe/TREK'
+    if: github.repository == 'iiketrek/TREK'
     runs-on: ubuntu-latest
     steps:
       - name: Flag or redirect issue

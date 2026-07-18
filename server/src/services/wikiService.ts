@@ -1,5 +1,5 @@
-import path from 'path';
 import { existsSync, promises as fs } from 'fs';
+import path from 'path';
 
 /**
  * In-app Help/Wiki content, sourced from the `wiki/**` directory that ships with
@@ -13,7 +13,7 @@ import { existsSync, promises as fs } from 'fs';
  * GitHub directly either way; images are proxied through /api/help/asset.
  */
 
-const REPO = 'mauriceboe/TREK';
+const REPO = 'iiketrek/TREK';
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO}/main/wiki`;
 const TTL_MS = 60 * 60 * 1000; // remote fallback only: refresh from GitHub at most hourly
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -33,7 +33,9 @@ const WIKI_DIR = process.env.TREK_WIKI_DIR ?? path.join(__dirname, '..', '..', '
 const useLocalWiki = existsSync(path.join(WIKI_DIR, '_Sidebar.md'));
 
 if (!useLocalWiki) {
-  console.warn(`[help] wiki not found at ${WIKI_DIR} — falling back to the GitHub wiki (help may not match this version)`);
+  console.warn(
+    `[help] wiki not found at ${WIKI_DIR} — falling back to the GitHub wiki (help may not match this version)`,
+  );
 }
 
 export class WikiNotFound extends Error {

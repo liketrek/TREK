@@ -66,15 +66,15 @@ Three tag strategies are available:
 
 | Tag | Example | Behavior |
 |---|---|---|
-| `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
-| Major version | `mauriceboe/trek:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/trek:3.0.15` | Exact release; never changes |
+| `latest` | `iiketrek/TREK:latest` | Always the newest release across all major versions |
+| Major version | `iiketrek/TREK:3` | Latest release pinned to that major version |
+| Full version | `iiketrek/TREK:3.0.15` | Exact release; never changes |
 
 The compose file above uses `latest`. To pin, change the `image:` line:
 
 ```yaml
-image: mauriceboe/trek:3        # track major version 3
-image: mauriceboe/trek:3.0.15   # pin to exact release
+image: iiketrek/TREK:3        # track major version 3
+image: iiketrek/TREK:3.0.15   # pin to exact release
 ```
 
 ## Start TREK

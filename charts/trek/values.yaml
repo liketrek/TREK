@@ -1,6 +1,6 @@
 
 image:
-  repository: mauriceboe/trek
+  repository: iiketrek/TREK
   # tag: latest
   pullPolicy: IfNotPresent
 

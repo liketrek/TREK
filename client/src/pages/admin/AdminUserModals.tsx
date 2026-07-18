@@ -336,14 +336,14 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                   }}
                   className="border border-gray-700 bg-gray-900 text-gray-100 dark:bg-gray-950"
                 >
-                  {`docker pull mauriceboe/trek:latest
+                  {`docker pull iiketrek/TREK:latest
 docker stop trek && docker rm trek
 docker run -d --name trek \\
   -p 3000:3000 \\
   -v /opt/trek/data:/app/data \\
   -v /opt/trek/uploads:/app/uploads \\
   --restart unless-stopped \\
-  mauriceboe/trek:latest`}
+  iiketrek/TREK:latest`}
                 </div>
               )}
 

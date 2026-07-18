@@ -27,7 +27,7 @@ import type { NetworkCheck, CheckContext, RegistryEntry, RegistryEntryVersion } 
 import { pass, fail, skip } from './types.js';
 import { REQUIRED_SECTIONS, MIN_PROSE_CHARS, missingSections, placeholders, proseLength, images, undocumentedPermissions } from './readme.js';
 
-export const DEFAULT_REGISTRY = 'mauriceboe/TREK-Plugins';
+export const DEFAULT_REGISTRY = 'iiketrek/TREK-Plugins';
 
 const NATIVE_RE = /(^|\/)[^/]+\.node$|(^|\/)binding\.gyp$|(^|\/)prebuilds?\//i;
 
