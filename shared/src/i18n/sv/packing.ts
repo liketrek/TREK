@@ -47,6 +47,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Väskor',
   'packing.noBag': 'Ej tilldelad',
   'packing.totalWeight': 'Totalvikt',
+  'packing.quantity': 'Antal',
   'packing.bagName': 'Väskans namn...',
   'packing.addBag': 'Lägg till väska',
   'packing.changeCategory': 'Flytta till lista',

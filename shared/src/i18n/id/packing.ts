@@ -48,6 +48,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Tas',
   'packing.noBag': 'Belum ditugaskan',
   'packing.totalWeight': 'Total berat',
+  'packing.quantity': 'Jml',
   'packing.bagName': 'Nama tas...',
   'packing.addBag': 'Tambah tas',
   'packing.changeCategory': 'Pindahkan ke daftar',

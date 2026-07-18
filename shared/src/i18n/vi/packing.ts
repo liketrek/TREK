@@ -48,6 +48,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Túi xách',
   'packing.noBag': 'Chưa được chỉ định',
   'packing.totalWeight': 'Tổng trọng lượng',
+  'packing.quantity': 'SL',
   'packing.bagName': 'Tên túi...',
   'packing.addBag': 'Thêm túi',
   'packing.changeCategory': 'Chuyển sang danh sách',
