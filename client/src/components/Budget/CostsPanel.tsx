@@ -1425,16 +1425,16 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {ticketItems.map((item, itemIdx) => (
                   <div key={item.id} className="bg-surface-secondary border border-edge" style={{ padding: 10, borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px auto', gap: 8, alignItems: 'center' }}>
                       <input
                         type="text"
                         placeholder="Item name"
                         value={item.name}
                         onChange={e => handleUpdateItemName(item.id, e.target.value)}
                         className="bg-surface-input border border-edge text-content"
-                        style={{ flex: 2, padding: '6px 10px', borderRadius: 8, fontSize: 13, border: '1px solid var(--border-color)', outline: 'none' }}
+                        style={{ minWidth: 0, padding: '6px 10px', borderRadius: 8, fontSize: 13, border: '1px solid var(--border-color)', outline: 'none' }}
                       />
-                      <div className="bg-surface-input border border-edge" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 8 }}>
+                      <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 8 }}>
                         <span className="text-content-faint" style={{ fontSize: 12 }}>{sym(currency)}</span>
                         <NumericInput
                           mode="decimal"
