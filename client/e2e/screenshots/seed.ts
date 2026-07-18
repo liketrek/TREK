@@ -110,7 +110,7 @@ async function call<T>(api: APIRequestContext, method: 'post' | 'put' | 'get' | 
 export async function seedDemoData(api: APIRequestContext): Promise<SeedResult> {
   // 1. Addons first — the Collections and Journey guards run ahead of auth, so
   //    every later call to those modules 403s until these are flipped.
-  for (const id of ['collections', 'journey', 'packing', 'budget', 'atlas', 'vacay']) {
+  for (const id of ['collections', 'journey', 'packing', 'budget', 'atlas', 'vacay', 'mcp', 'documents', 'collab']) {
     await call(api, 'put', `/api/admin/addons/${id}`, { enabled: true })
   }
   await call(api, 'put', '/api/admin/bag-tracking', { enabled: true }).catch(() => {})
