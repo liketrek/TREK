@@ -1,0 +1,501 @@
+import { useEffect, useRef, useState } from 'react'
+import { FileText, Hotel, Link2, Plus, Ticket, Users, Utensils } from 'lucide-react'
+import MSheet from '../../../components/MSheet'
+import { useAddonStore } from '../../../../store/addonStore'
+import { useTranslation } from '../../../../i18n'
+import { resolveDayId } from '../../../../utils/formatters'
+import { typeToCostCategory } from '@trek/shared'
+import CustomSelect from '../../../../components/shared/CustomSelect'
+import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
+import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import PlFileAttach from './PlFileAttach'
+import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
+import type { TripPlanner } from '../MTripShell'
+
+export interface MReservationSheetProps {
+  planner: TripPlanner
+  onOpenExpense: (req: BookingExpenseRequest) => void
+}
+
+const TYPE_OPTIONS = [
+  { value: 'hotel', labelKey: 'reservations.type.hotel', Icon: Hotel },
+  { value: 'restaurant', labelKey: 'reservations.type.restaurant', Icon: Utensils },
+  { value: 'event', labelKey: 'reservations.type.event', Icon: Ticket },
+  { value: 'tour', labelKey: 'reservations.type.tour', Icon: Users },
+  { value: 'other', labelKey: 'reservations.type.other', Icon: FileText },
+]
+
+const EMPTY = {
+  title: '', type: 'other', status: 'pending',
+  reservation_time: '', reservation_end_time: '', end_date: '', location: '', confirmation_number: '',
+  notes: '', url: '', place_id: '' as string | number, accommodation_id: '' as string | number,
+  meta_check_in_time: '', meta_check_out_time: '',
+  hotel_place_id: '' as string | number, hotel_start_day: '' as string | number, hotel_end_day: '' as string | number,
+  hotel_address: '',
+}
+
+/**
+ * Add/edit booking sheet — the mobile counterpart of the desktop ReservationModal,
+ * driven by the planner's own editor flags (showReservationModal / editingReservation /
+ * reservationPrefill / bookingForAssignmentId) so every entry point (bookings tab, day
+ * sheet, timeline, import review) opens it unchanged. Saving reuses
+ * planner.handleSaveReservation, which owns the accommodation split, file upload and undo.
+ */
+export default function MReservationSheet({ planner, onOpenExpense }: MReservationSheetProps) {
+  const {
+    t, toast, tripId, days, places, tripAccommodations, selectedDayId,
+    showReservationModal, setShowReservationModal,
+    editingReservation, setEditingReservation, reservationPrefill,
+    bookingForAssignmentId, setBookingForAssignmentId,
+    importReviewActive, advanceImportReview,
+    handleSaveReservation, canUploadFiles, tripActions,
+  } = planner
+  const { locale } = useTranslation()
+
+  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
+
+  const [form, setForm] = useState(EMPTY)
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+  // Ref (not state) so handleSubmit reads the intent set by the same click.
+  const expenseIntentRef = useRef(false)
+  // Open-time snapshot so the sheet content survives the exit animation.
+  const [snap, setSnap] = useState<{ res: typeof editingReservation; assignmentId: number | null }>(
+    { res: null, assignmentId: null },
+  )
+
+  useEffect(() => {
+    if (!showReservationModal) return
+    setSnap({ res: editingReservation, assignmentId: bookingForAssignmentId ?? null })
+    expenseIntentRef.current = false
+    setPendingFiles([])
+
+    const res = editingReservation
+    if (res) {
+      const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
+      const rawEnd = res.reservation_end_time || ''
+      let endDate = '', endTime = rawEnd
+      if (rawEnd.includes('T')) { endDate = rawEnd.split('T')[0]; endTime = rawEnd.split('T')[1]?.slice(0, 5) || '' }
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) { endDate = rawEnd; endTime = '' }
+      const acc = tripAccommodations.find(a => a.id == res.accommodation_id)
+      setForm({
+        ...EMPTY,
+        title: res.title || '', type: res.type || 'other', status: res.status || 'pending',
+        reservation_time: res.reservation_time ? res.reservation_time.slice(0, 16) : '',
+        reservation_end_time: endTime, end_date: endDate,
+        location: res.location || '', confirmation_number: res.confirmation_number || '',
+        notes: res.notes || '', url: res.url || '',
+        place_id: res.place_id || '', accommodation_id: res.accommodation_id || '',
+        meta_check_in_time: meta.check_in_time || '', meta_check_out_time: meta.check_out_time || '',
+        hotel_place_id: acc?.place_id || '', hotel_start_day: acc?.start_day_id || '', hotel_end_day: acc?.end_day_id || '',
+        hotel_address: places.find(p => p.id == acc?.place_id)?.address || res.location || '',
+      })
+    } else if (reservationPrefill) {
+      const pf = reservationPrefill
+      const meta = (pf.metadata && typeof pf.metadata === 'object' ? pf.metadata : {}) as Record<string, string>
+      const rawEnd = typeof pf.reservation_end_time === 'string' ? pf.reservation_end_time : ''
+      let endDate = '', endTime = rawEnd
+      if (rawEnd.includes('T')) { endDate = rawEnd.split('T')[0]; endTime = rawEnd.split('T')[1]?.slice(0, 5) || '' }
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) { endDate = rawEnd; endTime = '' }
+      setForm({
+        ...EMPTY,
+        title: pf.title || '', type: pf.type || 'other', status: pf.status || 'pending',
+        reservation_time: typeof pf.reservation_time === 'string' ? pf.reservation_time.slice(0, 16) : '',
+        reservation_end_time: endTime, end_date: endDate,
+        location: pf.location || '', confirmation_number: pf.confirmation_number || '',
+        notes: pf.notes || '', url: (pf as { url?: string }).url || '',
+        meta_check_in_time: meta.check_in_time || '', meta_check_out_time: meta.check_out_time || '',
+        hotel_start_day: resolveDayId(days, pf._accommodation?.check_in),
+        hotel_end_day: resolveDayId(days, pf._accommodation?.check_out),
+        hotel_address: pf._venue?.address || '',
+      })
+      setPendingFiles(pf._sourceFiles ?? [])
+    } else {
+      setForm(EMPTY)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showReservationModal])
+
+  const res = snap.res
+  const isHotel = form.type === 'hotel'
+  const set = (field: keyof typeof EMPTY, value: string | number) => setForm(prev => ({ ...prev, [field]: value }))
+
+  const isEndBeforeStart = (() => {
+    if (isHotel || !form.end_date || !form.reservation_time) return false
+    const sDate = form.reservation_time.split('T')[0]
+    const sTime = form.reservation_time.split('T')[1] || '00:00'
+    return `${form.end_date}T${form.reservation_end_time || '00:00'}` <= `${sDate}T${sTime}`
+  })()
+
+  const startDate = (form.reservation_time || '').split('T')[0] || ''
+  const startTime = (form.reservation_time || '').split('T')[1] || ''
+
+  const fmtDate = (d?: string | null) =>
+    d ? new Date(`${d.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : undefined
+
+  const placeOptions = [{ value: '', label: '—' }, ...places.map(p => ({ value: p.id, label: p.name }))]
+  const dayOptions = days.map(d => ({
+    value: d.id,
+    label: d.title || t('dayplan.dayN', { n: d.day_number }),
+    badge: fmtDate(d.date),
+  }))
+
+  const handleClose = () => {
+    if (importReviewActive) { advanceImportReview(); return }
+    setShowReservationModal(false)
+    setEditingReservation(null)
+    setBookingForAssignmentId(null)
+  }
+
+  const handleSubmit = async () => {
+    if (!form.title.trim() || isSaving) return
+    if (isEndBeforeStart) { toast.error(t('reservations.validation.endBeforeStart')); return }
+    const withExpense = expenseIntentRef.current
+    expenseIntentRef.current = false
+    setIsSaving(true)
+    try {
+      const metadata: Record<string, string> = {}
+      if (isHotel) {
+        if (form.meta_check_in_time) metadata.check_in_time = form.meta_check_in_time
+        if (form.meta_check_out_time) metadata.check_out_time = form.meta_check_out_time
+      }
+      let combinedEndTime: string = form.reservation_end_time
+      if (form.end_date) {
+        combinedEndTime = form.reservation_end_time ? `${form.end_date}T${form.reservation_end_time}` : form.end_date
+      } else if (form.reservation_end_time && form.reservation_time) {
+        combinedEndTime = `${startDate}T${form.reservation_end_time}`
+      }
+      const saveData: Record<string, unknown> & { title: string } = {
+        title: form.title, type: form.type, status: form.status,
+        reservation_time: isHotel ? null : (form.reservation_time || null),
+        reservation_end_time: isHotel ? null : (combinedEndTime || null),
+        location: isHotel ? form.hotel_address : form.location,
+        confirmation_number: form.confirmation_number,
+        notes: form.notes, url: form.url,
+        assignment_id: (isHotel && !form.accommodation_id) ? null : (snap.assignmentId || null),
+        accommodation_id: isHotel ? (form.accommodation_id || null) : null,
+        place_id: isHotel ? null : (form.place_id || null),
+        metadata: Object.keys(metadata).length > 0 ? metadata : null,
+        endpoints: [], needs_review: false,
+      }
+      if (isHotel && (form.hotel_start_day || form.hotel_end_day)) {
+        saveData.create_accommodation = {
+          place_id: form.hotel_place_id || null,
+          venue: (!form.hotel_place_id && (form.hotel_address || form.title))
+            ? { name: form.title, address: form.hotel_address || null } : null,
+          address: form.hotel_address || null,
+          start_day_id: form.hotel_start_day || form.hotel_end_day,
+          end_day_id: form.hotel_end_day || form.hotel_start_day,
+          check_in: form.meta_check_in_time || null,
+          check_out: form.meta_check_out_time || null,
+          confirmation: form.confirmation_number || null,
+        }
+      }
+      const saved = await handleSaveReservation(saveData as never)
+      if (!res?.id && saved?.id && pendingFiles.length > 0 && canUploadFiles) {
+        for (const file of pendingFiles) {
+          const fd = new FormData()
+          fd.append('file', file)
+          fd.append('reservation_id', String(saved.id))
+          fd.append('description', form.title)
+          await tripActions.addFile(tripId, fd)
+        }
+      }
+      if (withExpense && saved?.id) {
+        onOpenExpense({ prefill: { reservationId: saved.id, name: form.title, category: typeToCostCategory(form.type) } })
+      }
+      if (importReviewActive && saved) advanceImportReview()
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <MSheet
+      open={showReservationModal}
+      onClose={handleClose}
+      material="opaque"
+      ariaLabel={res ? t('reservations.editTitle') : t('reservations.newTitle')}
+    >
+      <FormSheetHeader
+        icon={Ticket}
+        title={res ? t('reservations.editTitle') : t('reservations.newTitle')}
+        onClose={handleClose}
+        closeLabel={t('common.close')}
+      />
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]">
+        {/* BOOKING TYPE */}
+        <Eyebrow className="mb-[6px] mt-2 uppercase">{t('reservations.bookingType')}</Eyebrow>
+        <div className="flex flex-wrap gap-[6px]">
+          {TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => set('type', value)}
+              aria-pressed={form.type === value}
+              className={`flex items-center gap-[5px] rounded-full px-[11px] py-[6px] text-[0.71875rem] font-semibold ${
+                form.type === value
+                  ? 'bg-m-act text-m-actfg'
+                  : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
+              }`}
+            >
+              <Icon size={12} strokeWidth={2} />
+              {t(labelKey)}
+            </button>
+          ))}
+        </div>
+
+        {/* TITLE */}
+        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.titleLabel')} *</Eyebrow>
+        <input
+          type="text"
+          value={form.title}
+          onChange={e => set('title', e.target.value)}
+          placeholder={t('reservations.titlePlaceholder')}
+          className={FIELD_CLS}
+        />
+
+        {!isHotel && (
+          <>
+            <div className="mt-3 flex gap-2">
+              <div className="min-w-0 flex-[1.2]">
+                <Eyebrow className="mb-[5px] uppercase">{t('reservations.date')}</Eyebrow>
+                <CustomDatePicker
+                  value={startDate}
+                  onChange={d => set('reservation_time', d ? (startTime ? `${d}T${startTime}` : d) : '')}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Eyebrow className="mb-[5px] uppercase">{t('reservations.startTime')}</Eyebrow>
+                <CustomTimePicker
+                  value={startTime}
+                  onChange={tm => {
+                    const d = startDate || days.find(dy => dy.id === selectedDayId)?.date || ''
+                    set('reservation_time', tm ? `${d}T${tm}` : d)
+                  }}
+                />
+              </div>
+            </div>
+            <div className="mt-2 flex gap-2">
+              <div className="min-w-0 flex-[1.2]">
+                <Eyebrow className="mb-[5px] uppercase">{t('reservations.endDate')}</Eyebrow>
+                <CustomDatePicker value={form.end_date} onChange={d => set('end_date', d || '')} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Eyebrow className="mb-[5px] uppercase">{t('reservations.endTime')}</Eyebrow>
+                <CustomTimePicker value={form.reservation_end_time} onChange={v => set('reservation_end_time', v)} />
+              </div>
+            </div>
+            {isEndBeforeStart && (
+              <div className="mt-[6px] text-[0.6875rem] text-[color:var(--m-st-danger)]">
+                {t('reservations.validation.endBeforeStart')}
+              </div>
+            )}
+
+            {/* PLACE / ACTIVITY */}
+            <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.meta.linkPlace')}</Eyebrow>
+            <CustomSelect
+              value={form.place_id}
+              onChange={value => {
+                const p = places.find(pl => pl.id === value)
+                setForm(prev => {
+                  const next = { ...prev, place_id: value }
+                  if (value && p) {
+                    if (!prev.title) next.title = p.name
+                    if (!prev.location && p.address) next.location = p.address
+                  }
+                  return next
+                })
+              }}
+              options={placeOptions}
+              placeholder={t('reservations.meta.pickPlace')}
+              searchable
+              size="sm"
+            />
+
+            {/* LOCATION / ADDRESS */}
+            <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.locationAddress')}</Eyebrow>
+            <input
+              type="text"
+              value={form.location}
+              onChange={e => set('location', e.target.value)}
+              placeholder={t('reservations.locationPlaceholder')}
+              className={FIELD_CLS}
+            />
+          </>
+        )}
+
+        {isHotel && (
+          <>
+            <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.meta.hotelPlace')}</Eyebrow>
+            <CustomSelect
+              value={form.hotel_place_id}
+              onChange={value => {
+                const p = places.find(pl => pl.id === value)
+                setForm(prev => {
+                  const next = { ...prev, hotel_place_id: value }
+                  if (value && p) {
+                    if (!prev.title) next.title = p.name
+                    next.hotel_address = p.address || prev.hotel_address
+                  }
+                  return next
+                })
+              }}
+              options={placeOptions}
+              placeholder={t('reservations.meta.pickHotel')}
+              searchable
+              size="sm"
+            />
+
+            <div className="mt-3 flex gap-2">
+              <div className="min-w-0 flex-1">
+                <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.fromDay')}</Eyebrow>
+                <CustomSelect
+                  value={form.hotel_start_day}
+                  onChange={value => setForm(prev => ({
+                    ...prev,
+                    hotel_start_day: value,
+                    hotel_end_day: days.findIndex(d => d.id === value) > days.findIndex(d => d.id === prev.hotel_end_day)
+                      ? value : prev.hotel_end_day,
+                  }))}
+                  options={dayOptions}
+                  placeholder={t('reservations.meta.selectDay')}
+                  size="sm"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.toDay')}</Eyebrow>
+                <CustomSelect
+                  value={form.hotel_end_day}
+                  onChange={value => setForm(prev => ({
+                    ...prev,
+                    hotel_start_day: days.findIndex(d => d.id === value) < days.findIndex(d => d.id === prev.hotel_start_day)
+                      ? value : prev.hotel_start_day,
+                    hotel_end_day: value,
+                  }))}
+                  options={dayOptions}
+                  placeholder={t('reservations.meta.selectDay')}
+                  size="sm"
+                />
+              </div>
+            </div>
+
+            <div className="mt-2 flex gap-2">
+              <div className="min-w-0 flex-1">
+                <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.checkIn')}</Eyebrow>
+                <CustomTimePicker value={form.meta_check_in_time} onChange={v => set('meta_check_in_time', v)} placeholder="15:00" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.checkOut')}</Eyebrow>
+                <CustomTimePicker value={form.meta_check_out_time} onChange={v => set('meta_check_out_time', v)} placeholder="11:00" />
+              </div>
+            </div>
+
+            <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.locationAddress')}</Eyebrow>
+            <input
+              type="text"
+              value={form.hotel_address}
+              onChange={e => set('hotel_address', e.target.value)}
+              placeholder={t('reservations.locationPlaceholder')}
+              className={FIELD_CLS}
+            />
+          </>
+        )}
+
+        {/* BOOKING CODE + STATUS */}
+        <div className="mt-3 flex gap-2">
+          <div className="min-w-0 flex-1">
+            <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
+            <input
+              type="text"
+              value={form.confirmation_number}
+              onChange={e => set('confirmation_number', e.target.value)}
+              placeholder={t('reservations.confirmationPlaceholder')}
+              className={FIELD_CLS}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <Eyebrow className="mb-[5px] uppercase">{t('reservations.status')}</Eyebrow>
+            <div className="flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
+              {(['pending', 'confirmed'] as const).map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => set('status', s)}
+                  className={`flex-1 rounded-full py-[7px] text-[0.71875rem] font-semibold ${
+                    form.status === s ? 'bg-m-act text-m-actfg' : 'text-m-muted'
+                  }`}
+                >
+                  {t(`reservations.${s}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* LINK */}
+        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.urlLabel')}</Eyebrow>
+        <div className="relative">
+          <Link2 size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-m-faint" />
+          <input
+            type="url"
+            value={form.url}
+            onChange={e => set('url', e.target.value)}
+            placeholder={t('reservations.urlPlaceholder')}
+            className={`${FIELD_CLS} pl-[34px]`}
+          />
+        </div>
+
+        {/* NOTES */}
+        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.notes')}</Eyebrow>
+        <textarea
+          value={form.notes}
+          onChange={e => set('notes', e.target.value)}
+          rows={2}
+          placeholder={t('reservations.notesPlaceholder')}
+          className={FIELD_AREA_CLS}
+        />
+
+        {/* FILES */}
+        {canUploadFiles && (
+          <PlFileAttach
+            planner={planner}
+            files={pendingFiles}
+            onAdd={files => setPendingFiles(prev => [...prev, ...files])}
+            onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
+            hideHint
+          />
+        )}
+
+        {/* COSTS */}
+        {isBudgetEnabled && (
+          <>
+            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.costsLabel')}</Eyebrow>
+            <button
+              type="button"
+              onClick={() => { expenseIntentRef.current = true; handleSubmit() }}
+              disabled={!form.title.trim() || isSaving}
+              className="flex w-full items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[11px] text-[0.78125rem] font-semibold text-m-ink disabled:opacity-40"
+            >
+              <Plus size={13} strokeWidth={2.2} />
+              {t('reservations.createExpense')}
+            </button>
+            <div className="mt-[5px] font-geist text-[0.625rem] text-m-faint">{t('reservations.createExpenseHint')}</div>
+          </>
+        )}
+      </div>
+
+      <FormSheetFooter
+        onCancel={handleClose}
+        cancelLabel={t('common.cancel')}
+        onSubmit={handleSubmit}
+        submitLabel={isSaving ? t('common.saving') : res ? t('common.update') : t('common.add')}
+        submitDisabled={!form.title.trim() || isSaving || isEndBeforeStart}
+      />
+    </MSheet>
+  )
+}

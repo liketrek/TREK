@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { ReservationModal } from '../../../../components/Planner/ReservationModal'
-import { TransportModal } from '../../../../components/Planner/TransportModal'
 import TransitJourneyModal from '../../../../components/Planner/TransitJourneyModal'
 import BookingImportModal from '../../../../components/Planner/BookingImportModal'
 import AirTrailImportModal from '../../../../components/Planner/AirTrailImportModal'
 import TripFormModal from '../../../../components/Trips/TripFormModal'
 import TripMembersModal from '../../../../components/Trips/TripMembersModal'
-import { ExpenseModal, type ExpensePrefill } from '../../../../components/Budget/CostsPanel'
+import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
 import { useAuthStore } from '../../../../store/authStore'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { useTripStore } from '../../../../store/tripStore'
@@ -16,6 +14,9 @@ import MDaysSheet from './MDaysSheet'
 import MAccommodationSheet from './MAccommodationSheet'
 import MPlaceSheet from './MPlaceSheet'
 import MPlaceEditSheet from './MPlaceEditSheet'
+import MReservationSheet from './MReservationSheet'
+import MTransportFormSheet from './MTransportFormSheet'
+import MCostSheet from './MCostSheet'
 import MTransportSheet from './MTransportSheet'
 import MBrowseActionsSheet from './MBrowseActionsSheet'
 import MNoteSheet, { type MNoteSheetPayload } from './MNoteSheet'
@@ -51,7 +52,6 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
     else if (req.prefill) setBookingExpense({ editing: null, prefill: req.prefill })
   }
   const costsBase = (displayCurrency || trip?.currency || 'EUR').toUpperCase()
-  const tripHasDates = Boolean(trip?.start_date && trip?.end_date)
 
   return (
     <>
@@ -75,71 +75,9 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
       {/* ── Planner-flag editors (also serve ?create= and the import review) ── */}
       <MPlaceEditSheet planner={planner} />
 
-      <ReservationModal
-        isOpen={planner.showReservationModal}
-        onClose={() => {
-          if (planner.importReviewActive) {
-            planner.advanceImportReview()
-          } else {
-            planner.setShowReservationModal(false)
-            planner.setEditingReservation(null)
-            planner.setBookingForAssignmentId(null)
-          }
-        }}
-        onSave={async (data) => {
-          const r = await planner.handleSaveReservation(data)
-          if (planner.importReviewActive && r) planner.advanceImportReview()
-          return r
-        }}
-        reservation={planner.editingReservation}
-        prefill={planner.reservationPrefill}
-        days={planner.days}
-        places={planner.places}
-        assignments={planner.assignments}
-        selectedDayId={planner.selectedDayId}
-        files={planner.files}
-        onFileUpload={planner.canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined}
-        onFileDelete={(id) => tripActions.deleteFile(tripId, id)}
-        accommodations={planner.tripAccommodations}
-        defaultAssignmentId={planner.bookingForAssignmentId}
-        onOpenExpense={openBookingExpense}
-      />
+      <MReservationSheet planner={planner} onOpenExpense={openBookingExpense} />
 
-      {planner.showTransportModal && (
-        <TransportModal
-          isOpen={planner.showTransportModal}
-          onClose={() => {
-            if (planner.importReviewActive) {
-              planner.advanceImportReview()
-            } else {
-              planner.setShowTransportModal(false)
-              planner.setEditingTransport(null)
-              planner.setTransportModalDayId(null)
-              planner.setTransportModalAutomated(false)
-              planner.setTransitPrefill(null)
-            }
-          }}
-          onSave={async (data) => {
-            const r = await planner.handleSaveTransport(data)
-            if (planner.importReviewActive && r) planner.advanceImportReview()
-            return r
-          }}
-          reservation={planner.editingTransport}
-          prefill={planner.transportPrefill}
-          days={planner.days}
-          selectedDayId={planner.transportModalDayId}
-          files={planner.files}
-          onFileUpload={planner.canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined}
-          onFileDelete={(id) => tripActions.deleteFile(tripId, id)}
-          onOpenExpense={openBookingExpense}
-          places={planner.places}
-          assignments={planner.assignments}
-          accommodations={planner.tripAccommodations}
-          initialAutomated={planner.transportModalAutomated}
-          transitPrefill={planner.transitPrefill}
-          tripHasDates={tripHasDates}
-        />
-      )}
+      <MTransportFormSheet planner={planner} onOpenExpense={openBookingExpense} />
 
       {/* Journey view for a saved public-transit entry (#1065) */}
       {planner.transitJourney && (
@@ -176,7 +114,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
       )}
 
       {bookingExpense && (
-        <ExpenseModal
+        <MCostSheet
           tripId={tripId}
           base={costsBase}
           people={planner.tripMembers}

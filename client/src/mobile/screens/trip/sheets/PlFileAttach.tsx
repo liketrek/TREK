@@ -7,6 +7,8 @@ interface PlFileAttachProps {
   files: File[]
   onAdd: (files: File[]) => void
   onRemove: (index: number) => void
+  /** Hide the "you can also paste…" subline (booking/transport sheets keep it terse). */
+  hideHint?: boolean
 }
 
 /**
@@ -14,7 +16,7 @@ interface PlFileAttachProps {
  * sheet uploads after save. Clipboard paste is handled by the sheet's onPaste
  * so it works from any focused field.
  */
-export default function PlFileAttach({ planner, files, onAdd, onRemove }: PlFileAttachProps) {
+export default function PlFileAttach({ planner, files, onAdd, onRemove, hideHint = false }: PlFileAttachProps) {
   const { t } = planner
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -23,7 +25,7 @@ export default function PlFileAttach({ planner, files, onAdd, onRemove }: PlFile
       <div className="flex items-center gap-[10px]">
         <div className="min-w-0 flex-1">
           <div className="text-[0.78125rem] font-semibold text-m-ink">{t('files.title')}</div>
-          <div className="truncate font-geist text-[0.65625rem] text-m-faint">{t('files.pasteHint')}</div>
+          {!hideHint && <div className="truncate font-geist text-[0.65625rem] text-m-faint">{t('files.pasteHint')}</div>}
         </div>
         <button
           type="button"
