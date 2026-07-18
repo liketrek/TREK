@@ -4,8 +4,6 @@ Collections is a personal, server-wide library of saved places that lives outsid
 
 > **Admin:** enable Collections in [Admin-Addons](Admin-Addons).
 
-<!-- TODO: screenshot: the /collections page with the lists rail, a list hero and the places -->
-
 ![Collections](assets/Collections.png)
 
 ## What Collections is
@@ -23,6 +21,8 @@ The dashboard also gains a **Collections widget** that surfaces your lists as co
 - **Create a list** from the "New list" action in the rail. A list has a name, a colour, an optional cover image (upload your own or search Unsplash), a description and a set of links.
 - **Edit or delete a list** from the **Edit** button in the list's hero (owner only). Deleting a list removes its saved places.
 - **All saved** is a built-in view that unions the places from every list you own or co-own, so you can search and act across your whole library at once.
+
+![A single collection, "Kyoto shortlist", with its coloured hero, Edit and Share actions, the lists rail on the left and three saved places each marked Idea, next to the map](assets/CollectionDetail.png)
 
 ## Place status
 

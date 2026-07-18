@@ -2,6 +2,8 @@
 
 Log flights, trains, car rentals, and cruises with departure and arrival endpoints, times, and transit-specific details.
 
+![Transports tab listing a confirmed flight card with its day range, times, booking code, airport endpoints, airline and flight number](assets/Transports.png)
+
 ## Where to create
 
 Open the **Transports** tab in the trip planner and click **Add**, or open the planner from a day view and use the transport shortcut. Transport records appear in the [Reservations](Reservations-and-Bookings) panel alongside other bookings.

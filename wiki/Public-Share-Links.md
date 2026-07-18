@@ -2,8 +2,6 @@
 
 Share a read-only view of your trip with people who do not have a TREK account. The viewer opens in a browser without logging in.
 
-<!-- TODO: screenshot: share link creation form with permission toggles -->
-
 ![Public share link](assets/Share.png)
 
 ## Creating a share link

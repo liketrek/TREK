@@ -2,8 +2,6 @@
 
 The **Users** tab in the Admin Panel lets you view all registered users, manage their accounts, and create invite links so new people can register without open registration.
 
-<!-- TODO: screenshot: users table with invite form -->
-
 ![Users tab](assets/UsersAndInvites.png)
 
 ## User list

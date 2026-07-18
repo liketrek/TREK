@@ -50,7 +50,7 @@ On login, after each trip-list refresh, and on WebSocket reconnect, TREK runs a 
 
 The **Offline** tab gives you control over what is stored on this device and lets you go offline deliberately.
 
-<!-- TODO: screenshot: Offline tab -->
+![Settings → Offline tab with the Force offline mode switch, the Download for offline use and Re-sync now buttons, per-trip offline storage toggles and the offline cache counters](assets/SettingsOffline.png)
 
 ### Offline mode
 
