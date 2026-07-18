@@ -98,7 +98,7 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=mauriceboe/TREK,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=mauriceboe/trek,push-by-digest=true,name-canonical=true,push=true
           no-cache: true
           build-args: |
             APP_VERSION=${{ needs.version-bump.outputs.version }}
@@ -145,16 +145,16 @@ jobs:
         working-directory: /tmp/digests
         run: |
           VERSION="${{ needs.version-bump.outputs.version }}"
-          mapfile -t digests < <(printf 'mauriceboe/TREK@sha256:%s\n' *)
+          mapfile -t digests < <(printf 'mauriceboe/trek@sha256:%s\n' *)
           MAJOR_TAG="$(echo "$VERSION" | cut -d. -f1)-pre"
           docker buildx imagetools create \
-            -t "mauriceboe/TREK:latest-pre" \
-            -t "mauriceboe/TREK:$MAJOR_TAG" \
-            -t "mauriceboe/TREK:$VERSION" \
+            -t "mauriceboe/trek:latest-pre" \
+            -t "mauriceboe/trek:$MAJOR_TAG" \
+            -t "mauriceboe/trek:$VERSION" \
             "${digests[@]}"
 
       - name: Inspect manifest
-        run: docker buildx imagetools inspect mauriceboe/TREK:latest-pre
+        run: docker buildx imagetools inspect mauriceboe/trek:latest-pre
 
       - name: Push git tag
         run: |
