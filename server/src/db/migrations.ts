@@ -3660,6 +3660,25 @@ function runMigrations(db: Database.Database): void {
         console.warn('[migrations] Non-fatal migration step failed:', err);
       }
     },
+
+    // `place_regions` is a re-derivable Nominatim cache, only ever populated for a place ID
+    // that isn't already cached — so a wrong row, once written, was permanent. Region
+    // resolution now resolves a place's lat/lng directly against the bundled admin1 polygons
+    // (the same ones the client renders) instead of trusting Nominatim's address level, which
+    // could name a subdivision level the bundle doesn't carry (Barcelona's ES-B province vs
+    // the bundle's ES-CT autonomous community) and never highlight. That fix only helps
+    // places re-resolved after it, so clear the cache once and let every place re-resolve on
+    // the next Atlas load. The country_code stored alongside is cleared too, which also drops
+    // the old wrong-country rows a US-state-abbreviation address used to produce.
+    () => {
+      try {
+        db.exec('DELETE FROM place_regions');
+      } catch (err) {
+        // place_regions is created by an earlier migration; tolerate its absence on an
+        // unusual partial DB rather than aborting startup.
+        if (!(err instanceof Error) || !err.message.includes('no such table')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
