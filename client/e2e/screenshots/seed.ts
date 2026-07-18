@@ -107,7 +107,12 @@ async function call<T>(api: APIRequestContext, method: 'post' | 'put' | 'get' | 
   return (await res.json()) as T
 }
 
-export async function seedDemoData(api: APIRequestContext): Promise<SeedResult> {
+export type ContextFactory = (token?: string) => Promise<APIRequestContext>
+
+export async function seedDemoData(
+  api: APIRequestContext,
+  newContext?: ContextFactory,
+): Promise<SeedResult> {
   // 1. Addons first — the Collections and Journey guards run ahead of auth, so
   //    every later call to those modules 403s until these are flipped.
   for (const id of ['collections', 'journey', 'packing', 'budget', 'atlas', 'vacay', 'mcp', 'documents', 'collab']) {
@@ -246,6 +251,76 @@ export async function seedDemoData(api: APIRequestContext): Promise<SeedResult> 
       { title: 'Autumn in Japan', subtitle: 'Momiji season, Tokyo to Kyoto', trip_ids: [tripId] })
     journeyId = 'id' in j ? j.id : j.journey.id
   } catch { /* journey addon unavailable */ }
+
+  // 11b. Collab: chat, notes and polls.
+  //
+  //      Chat is only convincing with more than one voice, and every collab
+  //      write is attributed to the acting user — so messages and votes are
+  //      posted as the members themselves, via their own bearer tokens, not as
+  //      the admin. A single-speaker chat log would misrepresent the feature.
+  //      Each member gets its OWN request context. Logging in through the shared
+  //      one would set the trek_session cookie on it, and extractToken()
+  //      (server/src/middleware/auth.ts:9) reads the cookie BEFORE the
+  //      Authorization header — so every later write, including the admin's,
+  //      would silently be attributed to whoever logged in last.
+  const members: Record<string, APIRequestContext> = {}
+  for (const m of MEMBERS) {
+    if (!newContext) break
+    const anon = await newContext()
+    const res = await anon.post('/api/auth/login', { data: { email: m.email, password: m.password } })
+    if (!res.ok()) { await anon.dispose(); continue }
+    const { token } = (await res.json()) as { token?: string }
+    await anon.dispose()
+    if (token) members[m.username] = await newContext(token)
+  }
+  /** The member's own context, or the admin's as a visible fallback. */
+  const as = (username: string): APIRequestContext => members[username] ?? api
+
+  const collab = `/api/trips/${tripId}/collab`
+
+  for (const n of [
+    { title: 'Rail passes', category: 'Transport', color: '#3b82f6',
+      content: 'The 14-day JR Pass covers the Tokyo–Kyoto legs. Activate it at the airport counter on arrival, not before.' },
+    { title: 'Ryokan etiquette', category: 'Accommodation', color: '#ef4444',
+      content: 'Shoes off at the entrance, yukata for dinner. Dinner is served at 18:30 sharp — being late is genuinely rude.' },
+    { title: 'Rainy-day alternatives', category: 'Ideas', color: '#22c55e',
+      content: 'teamLab Planets, the Kyoto Railway Museum and Nishiki Market all work in bad weather.' },
+  ]) {
+    await api.post(`${collab}/notes`, { data: n }).catch(() => {})
+  }
+
+  const pollRes = await api.post(`${collab}/polls`, {
+    data: {
+      question: 'Which day should we keep free for Nara?',
+      options: ['Wed, Sep 16', 'Thu, Sep 17', 'Sat, Sep 19'],
+      multiple: false,
+    },
+  })
+  if (pollRes.ok()) {
+    const { poll } = (await pollRes.json()) as { poll: { id: number | string } }
+    await api.post(`${collab}/polls/${poll.id}/vote`, { data: { option_index: 1 } }).catch(() => {})
+    await as('mira').post(`${collab}/polls/${poll.id}/vote`, { data: { option_index: 1 } }).catch(() => {})
+    await as('jonas').post(`${collab}/polls/${poll.id}/vote`, { data: { option_index: 2 } }).catch(() => {})
+  }
+  await api.post(`${collab}/polls`, {
+    data: { question: 'Ryokan or city hotel in Hakone?', options: ['Ryokan with onsen', 'City hotel'], multiple: false },
+  }).catch(() => {})
+
+  const conversation: Array<[string, string]> = [
+    ['admin', 'Flights are booked — we land at Haneda 08:25 on the 13th.'],
+    ['mira', 'Nice. Should we go straight to the hotel or drop bags and head out?'],
+    ['jonas', 'Drop bags. I want to be at Senso-ji before the crowds.'],
+    ['admin', "Agreed. I've put it on day 1 with a note to go before 08:00."],
+    ['mira', 'Booked the teamLab slot for the 13th, 14:00. Tickets are in the Files tab.'],
+    ['jonas', 'Do we need to reserve the ryokan dinner separately?'],
+    ['admin', "It's included — kaiseki, 18:30. Added it to the to-dos so we don't forget to confirm."],
+  ]
+  for (const [who, text] of conversation) {
+    const ctx = who === 'admin' ? api : as(who)
+    await ctx.post(`${collab}/messages`, { data: { text } }).catch(() => {})
+  }
+
+  for (const ctx of Object.values(members)) await ctx.dispose()
 
   // 12. Plugins, installed from the community registry.
   //
