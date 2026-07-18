@@ -48,6 +48,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Çantalar',
   'packing.noBag': 'Atanmamış',
   'packing.totalWeight': 'Toplam ağırlık',
+  'packing.quantity': 'Adet',
   'packing.bagName': 'Çanta adı...',
   'packing.addBag': 'Çanta ekle',
   'packing.changeCategory': 'Listeye taşı',
