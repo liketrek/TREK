@@ -216,8 +216,15 @@ export default function MTripShell({
   }
 
   const toggleView = () => {
-    setView(v => (v === 'plan' ? 'map' : 'plan'))
+    const next = view === 'plan' ? 'map' : 'plan'
+    setView(next)
     if (mode === 'browse') setMode('go')
+    // Entering the map: draw the current day's route and frame it — the
+    // BoundsController re-fits to include the polyline once OSRM resolves.
+    if (next === 'map') {
+      planner.setRouteShown(true)
+      if (planner.selectedDayId != null) planner.handleSelectDay(planner.selectedDayId, false)
+    }
   }
 
   const setListsTab = (tab: MTripListsTab) => {
@@ -248,7 +255,11 @@ export default function MTripShell({
 
   const onDayChipTap = (dayId: number) => {
     if (dayId === planner.selectedDayId) openSheet('day', { dayId })
-    else planner.handleSelectDay(dayId, view !== 'map')
+    else {
+      planner.handleSelectDay(dayId, view !== 'map')
+      // In map mode a day tap fits to that day's places AND draws its route.
+      if (view === 'map') planner.setRouteShown(true)
+    }
   }
 
   const packedCount = packingItems.filter(i => i.checked).length
