@@ -107,7 +107,7 @@ Scripts are never prompted; pass --sign.
 Needs git and an authenticated \`gh\`.
 
   --sign [key]      sign the artifact (default key: ~/.trek-plugin/signing.key)
-  --registry o/n    a registry other than iiketrek/TREK-Plugins
+  --registry o/n    a registry other than liketrek/TREK-Plugins
   --notes           release notes
   --draft           open the registry PR as a draft
   --force           overwrite an existing release's artifact. Breaks the sha256 pin for

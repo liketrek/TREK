@@ -12,7 +12,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { readJsonFile } from './json.js';
 
-const DEFAULT_REGISTRY = 'iiketrek/TREK-Plugins';
+const DEFAULT_REGISTRY = 'liketrek/TREK-Plugins';
 
 interface EntryLike {
   id: string; name?: string; authorPublicKey?: string;

@@ -40,9 +40,9 @@ Three tag strategies are available:
 
 | Tag | Example | Behavior |
 |---|---|---|
-| `latest` | `iiketrek/TREK:latest` | Always the newest release across all major versions |
-| Major version | `iiketrek/TREK:3` | Latest release pinned to that major version |
-| Full version | `iiketrek/TREK:3.0.15` | Exact release; never changes |
+| `latest` | `mauriceboe/TREK:latest` | Always the newest release across all major versions |
+| Major version | `mauriceboe/TREK:3` | Latest release pinned to that major version |
+| Full version | `mauriceboe/TREK:3.0.15` | Exact release; never changes |
 
 Use `latest` or a major-version tag (e.g. `3`) if you want automatic updates on redeploy. Use a full version tag (e.g. `3.0.15`) if you want explicit control over which release runs.
 

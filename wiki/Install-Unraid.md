@@ -17,7 +17,7 @@ Docker must be enabled in Unraid (**Settings → Docker → Enable Docker: Yes**
 If the app does not appear, you can install directly from the template URL. In **Docker → Add Container**, paste the template URL:
 
 ```
-https://raw.githubusercontent.com/iiketrek/TREK/main/unraid-template.xml
+https://raw.githubusercontent.com/liketrek/TREK/main/unraid-template.xml
 ```
 
 ## Template Fields

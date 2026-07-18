@@ -13,7 +13,7 @@ import path from 'path';
  * GitHub directly either way; images are proxied through /api/help/asset.
  */
 
-const REPO = 'iiketrek/TREK';
+const REPO = 'liketrek/TREK';
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO}/main/wiki`;
 const TTL_MS = 60 * 60 * 1000; // remote fallback only: refresh from GitHub at most hourly
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;

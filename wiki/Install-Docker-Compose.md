@@ -64,17 +64,17 @@ Uncomment and fill in the OIDC, initial setup, or MCP variables as needed. For a
 
 Three tag strategies are available:
 
-| Tag | Example | Behavior |
-|---|---|---|
-| `latest` | `iiketrek/TREK:latest` | Always the newest release across all major versions |
-| Major version | `iiketrek/TREK:3` | Latest release pinned to that major version |
-| Full version | `iiketrek/TREK:3.0.15` | Exact release; never changes |
+| Tag | Example                  | Behavior |
+|---|--------------------------|---|
+| `latest` | `mauriceboe/TREK:latest` | Always the newest release across all major versions |
+| Major version | `mauriceboe/TREK:3`        | Latest release pinned to that major version |
+| Full version | `mauriceboe/TREK:3.0.15`   | Exact release; never changes |
 
 The compose file above uses `latest`. To pin, change the `image:` line:
 
 ```yaml
-image: iiketrek/TREK:3        # track major version 3
-image: iiketrek/TREK:3.0.15   # pin to exact release
+image: mauriceboe/TREK:3        # track major version 3
+image: mauriceboe/TREK:3.0.15   # pin to exact release
 ```
 
 ## Start TREK

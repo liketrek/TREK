@@ -33,7 +33,7 @@ concurrency:
 
 jobs:
   version-bump:
-    if: github.repository == 'iiketrek/TREK'
+    if: github.repository == 'liketrek/TREK'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.bump.outputs.VERSION }}
@@ -149,7 +149,7 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=iiketrek/TREK,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=mauriceboe/TREK,push-by-digest=true,name-canonical=true,push=true
           no-cache: true
           build-args: |
             APP_VERSION=${{ needs.version-bump.outputs.version }}
@@ -194,16 +194,16 @@ jobs:
         working-directory: /tmp/digests
         run: |
           VERSION="${{ needs.version-bump.outputs.version }}"
-          mapfile -t digests < <(printf 'iiketrek/TREK@sha256:%s\n' *)
+          mapfile -t digests < <(printf 'mauriceboe/TREK@sha256:%s\n' *)
           MAJOR_TAG="$(echo "$VERSION" | cut -d. -f1)"
           docker buildx imagetools create \
-            -t "iiketrek/TREK:latest" \
-            -t "iiketrek/TREK:$MAJOR_TAG" \
-            -t "iiketrek/TREK:$VERSION" \
+            -t "mauriceboe/TREK:latest" \
+            -t "mauriceboe/TREK:$MAJOR_TAG" \
+            -t "mauriceboe/TREK:$VERSION" \
             "${digests[@]}"
 
       - name: Inspect manifest
-        run: docker buildx imagetools inspect iiketrek/TREK:latest
+        run: docker buildx imagetools inspect mauriceboe/TREK:latest
 
   release-helm:
     runs-on: ubuntu-latest

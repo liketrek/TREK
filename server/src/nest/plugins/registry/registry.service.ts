@@ -26,7 +26,7 @@ import semver from 'semver';
 
 const REGISTRY_URL =
   process.env.TREK_PLUGIN_REGISTRY_URL ||
-  'https://raw.githubusercontent.com/iiketrek/TREK-Plugins/main/dist/index.json';
+  'https://raw.githubusercontent.com/liketrek/TREK-Plugins/main/dist/index.json';
 const CACHE_TTL = 30 * 60 * 1000;
 const MANIFEST_MAX_BYTES = 256 * 1024;
 // Sideload upload ceiling — matches the SDK `pack` limit (50 MB) plus zip overhead.
@@ -176,9 +176,7 @@ export class PluginRegistryService {
    * `authorPublicKey` is exposed in full — it is a public key, and the re-trust
    * round-trip compares it exactly (a truncated fingerprint would be a weak check).
    */
-  async browse(
-    force = false,
-  ): Promise<
+  async browse(force = false): Promise<
     Array<
       Omit<RegistryEntry, 'versions'> & {
         latest: string | null;

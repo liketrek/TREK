@@ -1,6 +1,6 @@
 services:
   app:
-    image: iiketrek/TREK:latest
+    image: mauriceboe/TREK:latest
     container_name: trek
     read_only: true
     security_opt:
