@@ -4,7 +4,7 @@ import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
 import { authApi, oauthApi } from '../../../api/client'
 import { ALL_SCOPES } from '../../../api/oauthScopes'
-import ScopeGroupPicker from '../../../components/OAuth/ScopeGroupPicker'
+import MScopeGroupPicker from './MScopeGroupPicker'
 import MSheet from '../../components/MSheet'
 import MToggle from '../../components/MToggle'
 import MChip from '../../components/MChip'
@@ -505,7 +505,7 @@ export default function MSettingsMcp() {
 
               <MSetEyebrow className="mb-[5px] mt-3">{t('settings.oauth.modal.scopes')}</MSetEyebrow>
               <MSetHint className="mb-2 mt-0">{t('settings.oauth.modal.scopesHint')}</MSetHint>
-              <ScopeGroupPicker selected={newScopes} onChange={setNewScopes} />
+              <MScopeGroupPicker selected={newScopes} onChange={setNewScopes} />
 
               <div className="mt-4 flex justify-end gap-2">
                 <MSetButton variant="ghost" onClick={() => setCreateOpen(false)}>

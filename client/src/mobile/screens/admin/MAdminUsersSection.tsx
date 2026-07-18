@@ -1,7 +1,7 @@
 import { Copy, Link2, Trash2, UserPlus } from 'lucide-react'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
-import PermissionsPanel from '../../../components/Admin/PermissionsPanel'
+import MAdminPermissionsPanel from './MAdminPermissionsPanel'
 import MSheet from '../../components/MSheet'
 import MChip from '../../components/MChip'
 import { MAdminButton, MAdminCard, MAdminField, MAdminSheetFrame } from './MAdminUi'
@@ -153,7 +153,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
         )}
       </MAdminCard>
 
-      <PermissionsPanel />
+      <MAdminPermissionsPanel />
 
       {/* Create invite sheet */}
       <MSheet open={showCreateInvite} onClose={() => setShowCreateInvite(false)} ariaLabel={t('admin.invite.create')}>

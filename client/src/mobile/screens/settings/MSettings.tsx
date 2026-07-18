@@ -18,8 +18,8 @@ import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettings } from '../../../pages/settings/useSettings'
 import { usePluginStore } from '../../../store/pluginStore'
-import OfflineTab from '../../../components/Settings/OfflineTab'
-import PluginSettingsTab from '../../../components/Settings/PluginSettingsTab'
+import MSettingsPlugins from './MSettingsPlugins'
+import MSettingsOffline from './MSettingsOffline'
 import MSettingsGeneral from './MSettingsGeneral'
 import MSettingsAppearance from './MSettingsAppearance'
 import MSettingsMap from './MSettingsMap'
@@ -112,9 +112,9 @@ export default function MSettings() {
       {active.id === 'map' && <MSettingsMap />}
       {active.id === 'notifications' && <MSettingsNotifications />}
       {active.id === 'integrations' && hasIntegrations && <MSettingsIntegrations />}
-      {/* Offline and per-plugin settings reuse the existing responsive tabs. */}
-      {active.id === 'plugins' && hasPlugins && <PluginSettingsTab />}
-      {active.id === 'offline' && <OfflineTab />}
+      {/* Per-plugin settings still reuse the existing responsive tab. */}
+      {active.id === 'plugins' && hasPlugins && <MSettingsPlugins />}
+      {active.id === 'offline' && <MSettingsOffline />}
       {active.id === 'account' && <MSettingsAccount />}
       {active.id === 'about' && appVersion && <MSettingsAbout appVersion={appVersion} />}
     </div>

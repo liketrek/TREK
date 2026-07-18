@@ -5,7 +5,8 @@ import { useSettingsStore } from '../../../store/settingsStore'
 import { useToast } from '../../../components/shared/Toast'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
 import type { Settings, DistanceUnit } from '../../../types'
-import { MSetCard, MSetEyebrow, MSetSelectRow, MSetSegments, MSetOnOff, MSetRow } from './MSettingsUi'
+import { MSetCard, MSetEyebrow, MSetSelectRow, MSetSegments, MSetRow } from './MSettingsUi'
+import MToggle from '../../components/MToggle'
 import MSetPickerSheet from './MSetPickerSheet'
 
 /**
@@ -118,11 +119,9 @@ export default function MSettingsGeneral() {
               label={row.label}
               sub={row.sub}
               trailing={
-                <MSetOnOff
-                  on={row.on}
+                <MToggle
+                  checked={row.on}
                   onChange={(on) => save(row.key, row.value(on))}
-                  onLabel={t('settings.on')}
-                  offLabel={t('settings.off')}
                   ariaLabel={row.label}
                 />
               }

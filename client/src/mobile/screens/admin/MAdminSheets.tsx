@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, Trash2 } from 'lucide-react'
 import { adminApi } from '../../../api/client'
 import type { TranslationFn } from '../../../types'
@@ -37,14 +38,20 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
     { value: 'admin', label: t('settings.roleAdmin') },
   ]
 
+  const [showResetPasskeys, setShowResetPasskeys] = useState(false)
+  const [resettingPk, setResettingPk] = useState(false)
+
   const resetPasskeys = async () => {
     if (!editingUser) return
-    if (!confirm(t('admin.passkey.resetConfirm', { name: editingUser.username }))) return
+    setResettingPk(true)
     try {
       const r = await adminApi.resetUserPasskeys(editingUser.id)
       toast.success(t('admin.passkey.resetDone', { count: r.deleted ?? 0 }))
+      setShowResetPasskeys(false)
     } catch {
       toast.error(t('common.error'))
+    } finally {
+      setResettingPk(false)
     }
   }
 
@@ -161,7 +168,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                   {t('admin.passkey.resetHint')}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <MAdminButton variant="ghost" className="text-[color:var(--m-st-danger)]" onClick={resetPasskeys}>
+                  <MAdminButton variant="ghost" className="text-[color:var(--m-st-danger)]" onClick={() => setShowResetPasskeys(true)}>
                     <Fingerprint size={12} strokeWidth={2.2} />
                     {t('admin.passkey.reset')}
                   </MAdminButton>
@@ -231,6 +238,38 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                 {t('admin.update.button')}
               </a>
             )}
+          </div>
+        </MAdminSheetFrame>
+      </MSheet>
+
+      {/* Reset passkeys confirm */}
+      <MSheet open={showResetPasskeys} onClose={() => setShowResetPasskeys(false)} ariaLabel={t('admin.passkey.reset')}>
+        <MAdminSheetFrame
+          title={t('admin.passkey.reset')}
+          onClose={() => setShowResetPasskeys(false)}
+          footer={
+            <>
+              <MAdminButton variant="ghost" disabled={resettingPk} onClick={() => setShowResetPasskeys(false)}>
+                {t('common.cancel')}
+              </MAdminButton>
+              <MAdminButton variant="danger" busy={resettingPk} onClick={resetPasskeys}>
+                {t('admin.passkey.reset')}
+              </MAdminButton>
+            </>
+          }
+        >
+          <div className="flex gap-3">
+            <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[color:color-mix(in_srgb,var(--m-st-danger)_12%,transparent)] text-[color:var(--m-st-danger)]">
+              <Fingerprint size={18} strokeWidth={2.2} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.8125rem] font-bold text-m-ink">
+                {t('admin.passkey.resetConfirm', { name: editingUser?.username ?? '' })}
+              </p>
+              <p className="mt-1 font-geist text-[0.625rem] leading-relaxed text-m-muted">
+                {t('admin.passkey.resetHint')}
+              </p>
+            </div>
           </div>
         </MAdminSheetFrame>
       </MSheet>

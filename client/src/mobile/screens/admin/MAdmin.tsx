@@ -26,16 +26,16 @@ import { adminApi } from '../../../api/client'
 import { useTranslation } from '../../../i18n'
 import { useCountUp } from '../../../hooks/useCountUp'
 import { useAdmin } from '../../../pages/admin/useAdmin'
-import AddonManager from '../../../components/Admin/AddonManager'
-import AdminMcpTokensPanel from '../../../components/Admin/AdminMcpTokensPanel'
-import AdminPluginsPanel from '../../../components/Admin/AdminPluginsPanel'
-import AuditLogPanel from '../../../components/Admin/AuditLogPanel'
-import BackupPanel from '../../../components/Admin/BackupPanel'
-import CategoryManager from '../../../components/Admin/CategoryManager'
-import DefaultUserSettingsTab from '../../../components/Admin/DefaultUserSettingsTab'
-import DevNotificationsPanel from '../../../components/Admin/DevNotificationsPanel'
-import GitHubPanel from '../../../components/Admin/GitHubPanel'
-import PackingTemplateManager from '../../../components/Admin/PackingTemplateManager'
+import MAdminAddonManager from './MAdminAddonManager'
+import MAdminMcpTokensPanel from './MAdminMcpTokensPanel'
+import MAdminPluginsPanel from './MAdminPluginsPanel'
+import MAdminAuditLogPanel from './MAdminAuditLogPanel'
+import MAdminBackupPanel from './MAdminBackupPanel'
+import MAdminCategoryManager from './MAdminCategoryManager'
+import MAdminDefaultUserSettings from './MAdminDefaultUserSettings'
+import MAdminDevNotificationsPanel from './MAdminDevNotificationsPanel'
+import MAdminGitHubPanel from './MAdminGitHubPanel'
+import MAdminPackingTemplateManager from './MAdminPackingTemplateManager'
 import MAdminNotificationsSection from './MAdminNotificationsSection'
 import MAdminSettingsSection from './MAdminSettingsSection'
 import MAdminSheets from './MAdminSheets'
@@ -202,15 +202,15 @@ export default function MAdmin() {
       {activeTab === 'users' && <MAdminUsersSection admin={admin} t={t} locale={locale} />}
       {activeTab === 'settings' && <MAdminSettingsSection admin={admin} t={t} />}
       {activeTab === 'notifications' && <MAdminNotificationsSection admin={admin} t={t} />}
-      {activeTab === 'defaults' && <DefaultUserSettingsTab />}
+      {activeTab === 'defaults' && <MAdminDefaultUserSettings />}
       {activeTab === 'config' && (
         <div className="space-y-4">
-          <PackingTemplateManager />
-          <CategoryManager />
+          <MAdminPackingTemplateManager />
+          <MAdminCategoryManager />
         </div>
       )}
       {activeTab === 'addons' && (
-        <AddonManager
+        <MAdminAddonManager
           bagTrackingEnabled={bagTrackingEnabled}
           onToggleBagTracking={async () => {
             const next = !bagTrackingEnabled
@@ -233,12 +233,12 @@ export default function MAdmin() {
           }}
         />
       )}
-      {activeTab === 'plugins' && <AdminPluginsPanel />}
-      {activeTab === 'mcp-tokens' && <AdminMcpTokensPanel />}
-      {activeTab === 'github' && <GitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} />}
-      {activeTab === 'backup' && <BackupPanel />}
-      {activeTab === 'audit' && <AuditLogPanel serverTimezone={serverTimezone} />}
-      {activeTab === 'dev-notifications' && <DevNotificationsPanel />}
+      {activeTab === 'plugins' && <MAdminPluginsPanel />}
+      {activeTab === 'mcp-tokens' && <MAdminMcpTokensPanel />}
+      {activeTab === 'github' && <MAdminGitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} />}
+      {activeTab === 'backup' && <MAdminBackupPanel />}
+      {activeTab === 'audit' && <MAdminAuditLogPanel serverTimezone={serverTimezone} />}
+      {activeTab === 'dev-notifications' && <MAdminDevNotificationsPanel />}
 
       <MAdminSheets admin={admin} t={t} />
     </div>

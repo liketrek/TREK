@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useAddonStore } from '../../../store/addonStore'
-import PhotoProvidersSection from '../../../components/Settings/PhotoProvidersSection'
-import AirTrailConnectionSection from '../../../components/Settings/AirTrailConnectionSection'
-import LlmConnectionSection from '../../../components/Settings/LlmConnectionSection'
+import MPhotoProvidersSection from './MPhotoProvidersSection'
+import MAirTrailConnectionSection from './MAirTrailConnectionSection'
+import MLlmConnectionSection from './MLlmConnectionSection'
 import MSettingsMcp from './MSettingsMcp'
 
 /**
@@ -23,9 +23,9 @@ export default function MSettingsIntegrations() {
 
   return (
     <>
-      <PhotoProvidersSection />
-      {airtrailEnabled && <AirTrailConnectionSection />}
-      {llmEnabled && <LlmConnectionSection />}
+      <MPhotoProvidersSection />
+      {airtrailEnabled && <MAirTrailConnectionSection />}
+      {llmEnabled && <MLlmConnectionSection />}
       {mcpEnabled && <MSettingsMcp />}
     </>
   )

@@ -64,7 +64,7 @@ function SliderRow({ label, sub, value, onChange }: { label: string; sub?: strin
         step={0.05}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="trek-range"
+        className="m-range"
         style={{ '--fill': `${((value - APPEARANCE_SCALE_MIN) / (APPEARANCE_SCALE_MAX - APPEARANCE_SCALE_MIN)) * 100}%` } as React.CSSProperties}
       />
     </div>
