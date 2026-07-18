@@ -194,8 +194,11 @@ export default function MSheet({
     // m-root on the overlay so the --m-* tokens resolve even when the portal
     // has to fall back to document.body (sheet mounted in the same commit as
     // the shell).
+    // A transparent scrim skips the overlay's opacity animation: an animating
+    // opacity<1 ancestor becomes a backdrop-root that cancels the sheet's own
+    // backdrop-blur (the "liquid glass" frost). The sheet still slides via m-sheet-in.
     <div
-      className={`m-root fixed inset-0 z-[60] ${dimTransparent ? 'bg-transparent' : 'bg-[color:var(--m-dim)]'} ${open ? 'm-fade-in' : 'm-fade-out'}`}
+      className={`m-root fixed inset-0 z-[60] ${dimTransparent ? 'bg-transparent' : `bg-[color:var(--m-dim)] ${open ? 'm-fade-in' : 'm-fade-out'}`}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}

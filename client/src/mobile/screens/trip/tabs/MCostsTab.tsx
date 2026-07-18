@@ -10,7 +10,7 @@ import { useExchangeRates } from '../../../../hooks/useExchangeRates'
 import { useTranslation } from '../../../../i18n'
 import { formatMoney } from '../../../../utils/formatters'
 import { budgetApi } from '../../../../api/client'
-import { ExpenseModal } from '../../../../components/Budget/CostsPanel'
+import MCostSheet from '../sheets/MCostSheet'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import MSheet from '../../../components/MSheet'
@@ -470,9 +470,9 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
 
       {groups.length === 0 && (
         budgetItems.length === 0 ? (
-          <div className="flex flex-col items-center py-6 text-center">
-            <MDancingTrek scene="costs" size={88} className="mb-1" />
-            <p className="font-geist text-[0.6875rem] text-m-faint">{t('costs.emptyText')}</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <MDancingTrek scene="costs" className="mb-2" />
+            <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('costs.emptyText')}</p>
           </div>
         ) : (
           <p className="py-6 text-center font-geist text-[0.6875rem] text-m-faint">{t('costs.noMatch')}</p>
@@ -481,7 +481,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
 
       {/* Add / edit expense — the shared desktop modal (spec §3.9); not rebuilt here. */}
       {expenseModalOpen && (
-        <ExpenseModal
+        <MCostSheet
           tripId={tripId}
           base={base}
           people={tripMembers}

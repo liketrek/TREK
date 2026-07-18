@@ -16,6 +16,7 @@ import { normalizeImageFiles } from '../../../utils/convertHeic'
 import { isVideoFile } from '../../../utils/videoPoster'
 import { getApiErrorMessage } from '../../../types'
 import MSheet from '../../components/MSheet'
+import MDancingTrek from '../../components/MDancingTrek'
 import MListRow from '../../components/MListRow'
 import MJourneyEntryCard from './MJourneyEntryCard'
 import MJourneyEntrySheet from './MJourneyEntrySheet'
@@ -216,9 +217,9 @@ export default function MJourneyDetail() {
       {view === 'gallery' && (
         <div className="absolute inset-0 z-[5] overflow-y-auto bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pt-[calc(var(--m-safe-top,12px)+56px)] pb-[calc(var(--bottom-nav-h,84px)+16px)]">
           {gallery.length === 0 ? (
-            <div className="px-6 py-16 text-center">
-              <p className="text-[0.875rem] font-bold">{t('journey.detail.noPhotos')}</p>
-              <p className="mt-1 font-geist text-[0.71875rem] text-m-muted">{t('journey.detail.noPhotosHint')}</p>
+            <div className="flex min-h-full flex-col items-center justify-center px-8 py-10 text-center">
+              <MDancingTrek scene="journey" className="mb-2" />
+              <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('journey.detail.noPhotos')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">

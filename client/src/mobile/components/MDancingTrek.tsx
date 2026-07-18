@@ -20,6 +20,7 @@ import { useState } from 'react'
  */
 export type TrekScene =
   | 'idle'
+  | 'chat'
   | 'transport'
   | 'bookings'
   | 'guide'
@@ -237,6 +238,17 @@ function SceneBack({ scene }: { scene: TrekScene }) {
             <ellipse cx="74" cy="61.5" rx="9" ry="3.2" fill="currentColor" />
             <rect x="72.7" y="58.6" width="2.6" height="5.8" rx="1.3" fill="var(--m-bg)" />
           </g>
+        </g>
+      )
+    case 'chat':
+      // a speech bubble beside the body with three typing dots pulsing in turn
+      return (
+        <g className="trek-chat">
+          <rect x="60" y="44" width="26" height="15" rx="5.5" fill="currentColor" />
+          <path d="M67 58 L63.5 64 L72 58.5 Z" fill="currentColor" />
+          <circle className="trek-dot" cx="67" cy="51.5" r="1.9" fill="var(--m-bg)" />
+          <circle className="trek-dot trek-d2" cx="73" cy="51.5" r="1.9" fill="var(--m-bg)" />
+          <circle className="trek-dot trek-d3" cx="79" cy="51.5" r="1.9" fill="var(--m-bg)" />
         </g>
       )
     default:

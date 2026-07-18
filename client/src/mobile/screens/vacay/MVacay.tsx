@@ -43,9 +43,6 @@ export default function MVacay() {
     <div className="relative h-full">
       {/* Header */}
       <div className="absolute left-4 right-4 z-[5] flex items-center gap-2 top-[var(--m-safe-top,12px)]">
-        <MIconBtn onClick={v.goBack} ariaLabel={t('common.back')}>
-          <ChevronLeft size={18} strokeWidth={2.2} />
-        </MIconBtn>
         <span className="flex flex-1 items-center justify-between rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] p-1 shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]">
           <button type="button" onClick={v.prevYear} aria-label={t('mobileVacay.prevYear')} className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full">
             <ChevronLeft size={17} strokeWidth={2.2} />

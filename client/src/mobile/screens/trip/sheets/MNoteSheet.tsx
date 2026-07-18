@@ -28,7 +28,7 @@ const DETAIL_MAX = 250
  * chronologically in the timeline), `icon` is one of the shared NOTE_ICONS.
  */
 export default function MNoteSheet({ planner, open, payload, onClose }: MNoteSheetProps) {
-  const { t, toast, tripId, days, selectedDayId, tripActions, language } = planner
+  const { t, toast, tripId, selectedDayId, tripActions } = planner
 
   const [icon, setIcon] = useState('FileText')
   const [title, setTitle] = useState('')
@@ -48,15 +48,6 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
 
   const note = sheetPayload?.note ?? null
   const dayId = sheetPayload?.dayId ?? selectedDayId
-
-  const day = days.find(d => d.id === dayId)
-  const dayLabel = day ? t('planner.dayN', { n: day.day_number ?? days.indexOf(day) + 1 }) : ''
-  const dayDate = day?.date
-    ? new Intl.DateTimeFormat(language, { weekday: 'long', month: 'long', day: 'numeric' }).format(
-        new Date(`${day.date.slice(0, 10)}T00:00:00`),
-      )
-    : ''
-  const daySub = [dayLabel, day?.title || dayDate].filter(Boolean).join(' · ')
 
   const handleSubmit = async () => {
     if (!title.trim() || !dayId || isSaving) return
@@ -101,7 +92,6 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
     <MSheet open={open} onClose={onClose} ariaLabel={note ? t('dayplan.noteEdit') : t('dayplan.noteAdd')}>
       <FormSheetHeader
         title={note ? t('dayplan.noteEdit') : t('dayplan.noteAdd')}
-        subtitle={daySub}
         onClose={onClose}
         closeLabel={t('common.close')}
       />

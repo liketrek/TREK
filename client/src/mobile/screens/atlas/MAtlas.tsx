@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, X } from 'lucide-react'
+import { Star, X } from 'lucide-react'
 import { useAtlas } from '../../../pages/atlas/useAtlas'
 import MIconBtn from '../../components/MIconBtn'
 import MSheet from '../../components/MSheet'
@@ -10,7 +10,6 @@ import MAtlasSearch from './MAtlasSearch'
 import MAtlasCountryPopup from './MAtlasCountryPopup'
 import MAtlasBucketSheet from './MAtlasBucketSheet'
 
-const headerBtnCls = '!bg-[color:var(--m-sheet)] shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]'
 const removeBtnCls = 'mt-4 w-full rounded-full bg-[rgba(214,39,59,.12)] py-[11px] text-center text-[0.8125rem] font-bold text-[color:var(--m-st-danger)]' // theme-lint-disable — fixed status-danger tint
 
 /**
@@ -97,14 +96,20 @@ export default function MAtlas() {
         className="pointer-events-none fixed z-[80] min-w-[120px] rounded-[10px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] px-[14px] py-[10px] text-[0.75rem] text-m-ink shadow-[0_4px_16px_rgba(0,0,0,.18)]"
       />
 
-      {/* Header holds only the back button — search lives on the dock FAB. */}
-      <div className="absolute left-4 right-4 top-[var(--m-safe-top,12px)] z-[5] flex items-center gap-[10px]">
-        <MIconBtn onClick={() => navigate('/dashboard')} ariaLabel={t('common.back')} className={headerBtnCls}>
-          <ChevronLeft size={18} strokeWidth={2.2} />
-        </MIconBtn>
+      {/* Full-width bucket-list button. The bottom nav makes a back button
+          redundant on this main-nav screen, so the header spans the width. */}
+      <div className="absolute left-4 right-4 top-[var(--m-safe-top,12px)] z-[5]">
+        <button
+          type="button"
+          onClick={() => setBucketOpen(true)}
+          className="flex h-[38px] w-full items-center justify-center gap-[6px] rounded-full bg-m-act px-4 font-geist text-[0.75rem] font-bold text-m-actfg shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
+        >
+          <Star size={13} strokeWidth={2.4} />
+          {t('atlas.bucketTab')}
+        </button>
       </div>
 
-      <MAtlasStatsCard stats={stats} bucketCount={bucketList.length} onOpenBucket={() => setBucketOpen(true)} />
+      <MAtlasStatsCard stats={stats} />
 
       <MAtlasSearch
         open={searchOpen}

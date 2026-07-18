@@ -21,6 +21,8 @@ interface MCollAddSheetProps {
   open: boolean
   collectionId: number | null
   collectionName: string
+  /** Pickable target lists — used when opened without a fixed collectionId. */
+  lists: { id: number; name: string; color?: string | null }[]
   categories: Category[]
   onClose: () => void
   onAdded: () => void
@@ -32,7 +34,7 @@ interface MCollAddSheetProps {
  * status / description before saving into the active list (duplicates are
  * reported by the server and surfaced as a toast).
  */
-export default function MCollAddSheet({ open, collectionId, collectionName, categories, onClose, onAdded, t }: MCollAddSheetProps) {
+export default function MCollAddSheet({ open, collectionId, collectionName, lists, categories, onClose, onAdded, t }: MCollAddSheetProps) {
   const { language } = useTranslation()
   const toast = useToast()
   const [query, setQuery] = useState('')
@@ -44,11 +46,19 @@ export default function MCollAddSheet({ open, collectionId, collectionName, cate
   const [status, setStatus] = useState<CollectionStatus>('idea')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
+  const [targetId, setTargetId] = useState<number | null>(collectionId)
 
   useEffect(() => {
     if (open) return
     setQuery(''); setResults([]); setPicked(null); setName(''); setCategoryId(null); setStatus('idea'); setDescription('')
   }, [open])
+
+  // Opened from a specific list → target is fixed; from "All Saved" (no active
+  // list) → default to the sole list if there is one, else pick it in-sheet.
+  useEffect(() => {
+    if (open) setTargetId(collectionId ?? (lists.length === 1 ? lists[0].id : null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, collectionId])
 
   const search = async () => {
     if (!query.trim() || searching) return
@@ -72,11 +82,11 @@ export default function MCollAddSheet({ open, collectionId, collectionName, cate
 
   const save = async () => {
     const cleanName = name.trim()
-    if (!cleanName || collectionId == null || saving) return
+    if (!cleanName || targetId == null || saving) return
     setSaving(true)
     try {
       const res = await collectionsApi.savePlace({
-        collection_id: collectionId,
+        collection_id: targetId,
         name: cleanName,
         address: (picked && str(picked.address)) ?? null,
         lat: (picked && num(picked.lat)) ?? null,
@@ -93,7 +103,7 @@ export default function MCollAddSheet({ open, collectionId, collectionName, cate
       })
       if (res.duplicate) toast.info(t('collections.duplicateWarning'))
       else {
-        toast.success(t('collections.addedToList', { name: collectionName }))
+        toast.success(t('collections.addedToList', { name: lists.find(l => l.id === targetId)?.name ?? collectionName }))
         onAdded()
       }
       onClose()
@@ -110,6 +120,35 @@ export default function MCollAddSheet({ open, collectionId, collectionName, cate
     <MSheet open={open} onClose={onClose} material="opaque" ariaLabel={t('collections.addPlace')}>
       <SheetHeader title={t('collections.addPlace')} onClose={onClose} closeLabel={t('common.close')} />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-[14px]">
+        {/* List picker — only when opened without a fixed target list */}
+        {collectionId == null && (
+          <div className="mb-[14px]">
+            <Eyebrow className="mb-[6px]">{t('collections.pickList').toUpperCase()}</Eyebrow>
+            {lists.length === 0 ? (
+              <p className="font-geist text-[0.6875rem] text-m-muted">{t('collections.noListsYet')}</p>
+            ) : (
+              <div className="flex flex-wrap gap-[6px]">
+                {lists.map(l => {
+                  const on = targetId === l.id
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => setTargetId(l.id)}
+                      aria-pressed={on}
+                      className={`flex items-center gap-[6px] rounded-full px-3 py-2 text-[0.71875rem] font-bold ${
+                        on ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
+                      }`}
+                    >
+                      <span className="h-[8px] w-[8px] flex-none rounded-full" style={{ background: l.color || '#6366F1' }} />
+                      {l.name}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
         {/* Search — picking a result fills the location */}
         <div className="flex items-center gap-2 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] py-1 pl-[13px] pr-[6px]">
           <Search size={15} strokeWidth={2.2} className="flex-none text-m-muted" />
@@ -191,7 +230,7 @@ export default function MCollAddSheet({ open, collectionId, collectionName, cate
       </div>
       <SheetFooter>
         <CancelPill className="ml-auto" onClick={onClose}>{t('common.cancel')}</CancelPill>
-        <PrimaryPill onClick={save} disabled={saving || !name.trim()}>
+        <PrimaryPill onClick={save} disabled={saving || !name.trim() || targetId == null}>
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} strokeWidth={2.4} />} {t('common.add')}
         </PrimaryPill>
       </SheetFooter>

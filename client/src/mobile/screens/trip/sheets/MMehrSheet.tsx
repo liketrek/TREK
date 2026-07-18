@@ -53,7 +53,7 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   ]
 
   return (
-    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" ariaLabel={t('mobileTrip.more')}>
+    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" dimTransparent ariaLabel={t('mobileTrip.more')}>
       <div className="overflow-y-auto p-[10px]">
         {gridTabs.length > 0 && (
           <div className="grid grid-cols-2 gap-2">

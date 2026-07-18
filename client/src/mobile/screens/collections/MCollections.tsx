@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  Bookmark, Check, CheckCheck, CheckSquare, ChevronDown, ChevronLeft, Copy, CopyPlus,
+  Bookmark, Check, CheckCheck, CheckSquare, ChevronDown, Copy, CopyPlus,
   FolderInput, Layers, List, Loader2, Map as MapIcon, Pencil, Plus, Search, Share2,
   Tag, Tags, Trash2, X,
 } from 'lucide-react'
@@ -14,7 +14,6 @@ import { ALL_SAVED } from '../../../store/collectionStore'
 import CollectionMap from '../../../components/Collections/CollectionMap'
 import MSheet from '../../components/MSheet'
 import MCollPlaceRow from './MCollPlaceRow'
-import MCollListsDrawer from './MCollListsDrawer'
 import MCollPlaceSheet from './MCollPlaceSheet'
 import MCollAddSheet from './MCollAddSheet'
 import MCollShareSheet from './MCollShareSheet'
@@ -37,14 +36,15 @@ const CHIP_ON = 'border border-transparent bg-m-act text-m-actfg'
 const DROP_PANEL =
   'rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_20px_44px_-18px_rgba(0,0,0,.45)]'
 
-function EmptyNote({ icon, scene, title, text }: { icon?: ReactNode; scene?: TrekScene; title: string; text: string }) {
+function EmptyNote({ icon, scene, title }: { icon?: ReactNode; scene?: TrekScene; title: string }) {
   return (
-    <div className="flex flex-col items-center gap-[6px] px-6 pb-2 pt-10 text-center">
-      {scene
-        ? <MDancingTrek scene={scene} size={88} className="mb-1" />
-        : <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color:var(--m-ic)] text-m-faint">{icon}</span>}
-      <div className="text-[0.84375rem] font-bold text-m-ink">{title}</div>
-      <div className="font-geist text-[0.71875rem] leading-[1.5] text-m-faint">{text}</div>
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-[6px] px-6 text-center">
+      {scene ? (
+        <MDancingTrek scene={scene} className="mb-2" />
+      ) : (
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color:var(--m-ic)] text-m-faint">{icon}</span>
+      )}
+      <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{title}</p>
     </div>
   )
 }
@@ -66,14 +66,16 @@ export default function MCollections() {
   // The bottom-nav "+" hands off via the ?create= contract.
   const [searchParams, setSearchParams] = useSearchParams()
   const createParam = searchParams.get('create')
-  const { activeId, canEdit, setShowAddPlace } = c
+  const { activeId, canEdit, setShowAddPlace, ownedLists } = c
   useEffect(() => {
     if (createParam !== 'place' && createParam !== '1') return
     const next = new URLSearchParams(searchParams)
     next.delete('create')
     setSearchParams(next, { replace: true })
-    if (typeof activeId === 'number' && canEdit) setShowAddPlace(true)
-  }, [createParam, searchParams, setSearchParams, activeId, canEdit, setShowAddPlace])
+    // Open whenever the user can add somewhere: an editable active list, or at
+    // least one owned list to pick as the target in the sheet.
+    if ((typeof activeId === 'number' && canEdit) || ownedLists.length > 0) setShowAddPlace(true)
+  }, [createParam, searchParams, setSearchParams, activeId, canEdit, ownedLists.length, setShowAddPlace])
 
   // Close transient popovers when the active list changes under them.
   useEffect(() => {
@@ -115,7 +117,6 @@ export default function MCollections() {
 
   const openNewList = () => {
     setDrop(false)
-    c.setMobileRailOpen(false)
     c.setEditorTarget('new')
   }
 
@@ -135,9 +136,6 @@ export default function MCollections() {
     <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+12px)] pt-[var(--m-safe-top,12px)]">
       {/* Header: back · list switcher · edit · share */}
       <div className="mb-3 flex items-center gap-2 pt-2">
-        <button type="button" onClick={() => c.navigate('/dashboard')} aria-label={t('common.back')} className={HEADER_CIRCLE}>
-          <ChevronLeft size={18} strokeWidth={2.2} />
-        </button>
         <button
           type="button"
           onClick={() => setDrop(v => !v)}
@@ -195,18 +193,6 @@ export default function MCollections() {
           >
             <Plus size={15} strokeWidth={2.2} /> {t('collections.newList')}
           </button>
-          <button
-            type="button"
-            onClick={() => { setDrop(false); c.setMobileRailOpen(true) }}
-            className="flex w-full items-center gap-[9px] rounded-[11px] px-[10px] py-[11px] text-[0.8125rem] font-bold text-m-muted"
-          >
-            <Bookmark size={15} strokeWidth={2.2} /> {t('collections.picker.allLists')}
-            {c.incomingInvites.length > 0 && (
-              <span className="ml-auto rounded-full bg-m-act px-[7px] py-[1px] font-geist text-[0.625rem] font-bold text-m-actfg">
-                {c.incomingInvites.length}
-              </span>
-            )}
-          </button>
         </div>
       )}
 
@@ -216,7 +202,7 @@ export default function MCollections() {
         </div>
       ) : noLists ? (
         <div className="mt-6">
-          <EmptyNote scene="collections" title={t('collections.empty.firstTitle')} text={t('collections.empty.firstText')} />
+          <EmptyNote scene="collections" title={t('collections.empty.firstTitle')} />
           <div className="mt-4 flex justify-center">
             <PrimaryPill onClick={openNewList}>
               <Bookmark size={14} strokeWidth={2.2} /> {t('collections.newList')}
@@ -416,9 +402,9 @@ export default function MCollections() {
                 <Loader2 size={20} className="animate-spin" />
               </div>
             ) : !hasPlaces ? (
-              <EmptyNote scene="collections" title={t('collections.empty.title')} text={t('collections.empty.text')} />
+              <EmptyNote scene="collections" title={t('collections.empty.title')} />
             ) : c.visiblePlaces.length === 0 ? (
-              <EmptyNote icon={<Search size={19} strokeWidth={1.8} />} title={t('collections.empty.noMatchTitle')} text={t('collections.empty.noMatchText')} />
+              <EmptyNote icon={<Search size={19} strokeWidth={1.8} />} title={t('collections.empty.noMatchTitle')} />
             ) : (
               <div>
                 {c.visiblePlaces.map(p => (
@@ -441,7 +427,7 @@ export default function MCollections() {
           {/* Map view — the real map stack with marker clustering */}
           {c.view === 'map' && (
             c.mappable.length === 0 ? (
-              <EmptyNote icon={<MapIcon size={19} strokeWidth={1.8} />} title={t('collections.empty.noMatchTitle')} text={t('collections.empty.noMatchText')} />
+              <EmptyNote icon={<MapIcon size={19} strokeWidth={1.8} />} title={t('collections.empty.noMatchTitle')} />
             ) : (
               <div className="relative mt-3 h-[440px] overflow-hidden rounded-[20px] border border-[color:var(--m-rowbr)]">
                 <CollectionMap
@@ -458,20 +444,6 @@ export default function MCollections() {
       )}
 
       {/* Sheets */}
-      <MCollListsDrawer
-        open={c.mobileRailOpen}
-        onClose={() => c.setMobileRailOpen(false)}
-        ownedLists={c.ownedLists}
-        sharedLists={c.sharedLists}
-        activeId={c.activeId}
-        incomingInvites={c.incomingInvites}
-        onSelect={id => { c.setMobileRailOpen(false); c.handleSelectList(id) }}
-        onNewList={openNewList}
-        onAcceptInvite={c.handleAcceptInvite}
-        onDeclineInvite={c.handleDeclineInvite}
-        t={t}
-      />
-
       <MCollPlaceSheet
         place={c.selectedPlace}
         canEdit={c.canEdit}
@@ -487,9 +459,10 @@ export default function MCollections() {
       />
 
       <MCollAddSheet
-        open={c.showAddPlace && canAddPlace}
-        collectionId={typeof c.activeId === 'number' ? c.activeId : null}
-        collectionName={c.activeCollection?.name ?? ''}
+        open={c.showAddPlace}
+        collectionId={canAddPlace ? (c.activeId as number) : null}
+        collectionName={canAddPlace ? (c.activeCollection?.name ?? '') : ''}
+        lists={c.ownedLists}
         categories={c.categories}
         onClose={() => c.setShowAddPlace(false)}
         onAdded={c.handlePlaceAdded}

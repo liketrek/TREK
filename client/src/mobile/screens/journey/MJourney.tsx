@@ -1,4 +1,4 @@
-import { ChevronLeft, Plus, NotebookPen, Image, MapPin } from 'lucide-react'
+import { Plus, NotebookPen, Image, MapPin } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useJourney } from '../../../pages/journey/useJourney'
 import type { Journey } from '../../../store/journeyStore'
@@ -32,14 +32,6 @@ export default function MJourney() {
       <div className="fixed left-4 right-4 top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px]">
         <button
           type="button"
-          onClick={() => navigate('/dashboard')}
-          aria-label={t('common.back')}
-          className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
-        >
-          <ChevronLeft size={18} strokeWidth={2.2} />
-        </button>
-        <button
-          type="button"
           onClick={() => openCreateModal()}
           className="flex h-[38px] flex-1 items-center justify-center gap-[6px] whitespace-nowrap rounded-full bg-m-act px-[15px] text-[0.78125rem] font-bold text-m-actfg"
         >
@@ -54,10 +46,9 @@ export default function MJourney() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
           </div>
         ) : list.length === 0 ? (
-          <div className="flex flex-col items-center px-6 py-16 text-center">
-            <MDancingTrek scene="journey" size={96} className="mb-2" />
-            <p className="text-[0.875rem] font-bold">{t('journey.frontpage.createNew')}</p>
-            <p className="mt-1 font-geist text-[0.71875rem] text-m-muted">{t('journey.frontpage.createNewSub')}</p>
+          <div className="flex min-h-full flex-1 flex-col items-center justify-center px-6 py-10 text-center">
+            <MDancingTrek scene="journey" className="mb-2" />
+            <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('journey.frontpage.createNew')}</p>
           </div>
         ) : (
           <>

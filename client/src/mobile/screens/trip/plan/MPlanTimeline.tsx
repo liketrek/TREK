@@ -127,9 +127,9 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         })}
 
         {tl.rows.length === 0 && !editing && (
-          <div className="flex flex-col items-center py-8 text-center">
-            <MDancingTrek scene="guide" size={84} className="mb-1" />
-            <p className="font-geist text-[0.75rem] text-m-muted">{t('dayplan.emptyDay')}</p>
+          <div className="flex min-h-full flex-1 flex-col items-center justify-center py-8 text-center">
+            <MDancingTrek scene="guide" className="mb-2" />
+            <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('dayplan.emptyDay')}</p>
           </div>
         )}
 

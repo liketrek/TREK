@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import {
   ChevronLeft, FileDown, List, Map as MapIcon, MoreHorizontal, PackageCheck,
-  Plane, Plus, Rows3, Ticket, TrainFront, Trash2, Upload, Wallet, X,
+  Plane, Plus, Rows3, Ticket, TrainFront, Trash2, Upload, Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTripPlanner } from '../../../pages/tripPlanner/useTripPlanner'
@@ -438,10 +438,6 @@ export default function MTripShell({
             className="backdrop-blur-[24px] backdrop-saturate-[1.7]"
           >
             {view === 'plan' ? <MapIcon size={18} strokeWidth={2} /> : <List size={18} strokeWidth={2} />}
-          </MIconBtn>
-        ) : trTab === 'collab' ? (
-          <MIconBtn ariaLabel={t('common.back')} onClick={() => setTrTab('plan')} className="backdrop-blur-[24px] backdrop-saturate-[1.7]">
-            <X size={16} strokeWidth={2.2} />
           </MIconBtn>
         ) : (
           <span className="w-[38px] flex-none" />

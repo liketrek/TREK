@@ -381,7 +381,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
 
       {/* ── Categories + items (spec §4.4) ── */}
       {trueEmpty ? (
-        <div className="flex flex-col items-center px-8 pt-16 text-center">
+        <div className="flex min-h-[60vh] flex-col items-center justify-center px-8 py-10 text-center">
           <MDancingTrek scene="packing" className="mb-2" />
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('packing.emptyTitle')}</p>
         </div>
@@ -422,7 +422,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         ))
       )}
 
-      {canEdit && editMode && !trueEmpty && (
+      {canEdit && (editMode || trueEmpty) && (
         addingCategory ? (
           <div className="mt-[10px] flex gap-2">
             <input

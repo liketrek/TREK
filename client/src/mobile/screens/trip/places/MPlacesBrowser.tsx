@@ -269,14 +269,14 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
         {/* ── Place list ── */}
         {filtered.length === 0 ? (
           filter === 'unplanned' && !search && categoryFilters.size === 0 ? (
-            <div className="flex flex-col items-center py-8 text-center">
-              <MDancingTrek scene="idle" mood="happy" size={84} className="mb-1" />
-              <p className="font-geist text-[0.71875rem] text-m-faint">{t('places.allPlanned')}</p>
+            <div className="flex min-h-[60vh] flex-col items-center justify-center px-8 py-10 text-center">
+              <MDancingTrek scene="idle" mood="happy" className="mb-2" />
+              <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('places.allPlanned')}</p>
             </div>
           ) : (
-            <div className="flex flex-col items-center py-8 text-center">
-              <MDancingTrek scene="search" size={84} className="mb-1" />
-              <p className="font-geist text-[0.71875rem] text-m-faint">{t('places.noneFound')}</p>
+            <div className="flex min-h-[60vh] flex-col items-center justify-center px-8 py-10 text-center">
+              <MDancingTrek scene="search" className="mb-2" />
+              <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('places.noneFound')}</p>
             </div>
           )
         ) : (

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom'
-import { ArrowUp, ChevronUp, Loader2, MessageCircle, Reply, Trash2 } from 'lucide-react'
+import { ArrowUp, ChevronUp, Loader2, Reply, Trash2 } from 'lucide-react'
+import MDancingTrek from '../../../components/MDancingTrek'
 import { collabApi } from '../../../../api/client'
 import { addListener, removeListener } from '../../../../api/websocket'
 import { useAuthStore } from '../../../../store/authStore'
@@ -205,12 +206,9 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
           <Loader2 size={22} strokeWidth={2} className="animate-spin text-m-faint" />
         </div>
       ) : messages.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-          <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:var(--m-ic)] text-m-faint">
-            <MessageCircle size={24} strokeWidth={1.8} />
-          </span>
+        <div className="flex flex-1 flex-col items-center justify-center px-8 py-10 text-center">
+          <MDancingTrek scene="chat" className="mb-2" />
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('collab.chat.empty')}</p>
-          <p className="mt-1 max-w-[220px] font-geist text-[0.71875rem] text-m-faint">{t('collab.chat.emptyDesc')}</p>
         </div>
       ) : (
         <div ref={scrollRef} onScroll={checkAtBottom} className="mt-3 min-h-0 flex-1 overflow-y-auto">

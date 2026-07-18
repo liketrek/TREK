@@ -42,7 +42,7 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
   if (sections.length === 0) {
     return (
       <TabScroller>
-        <div className="flex flex-col items-center px-8 pt-14 text-center">
+        <div className="flex min-h-full flex-col items-center justify-center px-8 py-10 text-center">
           <MDancingTrek scene="transport" className="mb-2" />
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('mobileTrip.transportsEmpty')}</p>
         </div>

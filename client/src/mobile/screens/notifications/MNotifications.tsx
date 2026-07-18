@@ -74,10 +74,9 @@ export default function MNotifications() {
               <Spinner size={24} />
             </div>
           ) : displayed.length === 0 ? (
-            <div className="flex flex-col items-center gap-1 px-4 py-14 text-center">
-              <MDancingTrek scene="notifications" size={96} className="mb-1" />
-              <p className="mt-2 text-[0.84375rem] font-semibold text-m-ink">{t('notifications.empty')}</p>
-              <p className="font-geist text-[0.65625rem] text-m-muted">{t('notifications.emptyDescription')}</p>
+            <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-10 text-center">
+              <MDancingTrek scene="notifications" className="mb-2" />
+              <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('notifications.empty')}</p>
             </div>
           ) : (
             displayed.map(n => <MNotificationRow key={n.id} notification={n} />)

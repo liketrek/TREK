@@ -209,18 +209,18 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
           <button
             type="button"
             onClick={() => setFormTarget('new')}
-            className="flex-none whitespace-nowrap rounded-full bg-m-act px-[14px] py-[7px] font-geist text-[0.71875rem] font-bold text-m-actfg"
+            className="flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full bg-m-act px-[15px] py-[8px] font-geist text-[0.75rem] font-bold text-m-actfg"
           >
+            <Plus size={13} strokeWidth={2.4} />
             {t('collab.notes.new')}
           </button>
         )}
       </div>
 
       {sorted.length === 0 ? (
-        <div className="flex flex-col items-center px-8 pt-16 text-center">
+        <div className="flex min-h-full flex-1 flex-col items-center justify-center px-8 py-10 text-center">
           <MDancingTrek scene="notes" className="mb-2" />
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('collab.notes.empty')}</p>
-          <p className="mt-1 max-w-[220px] font-geist text-[0.71875rem] text-m-faint">{t('collab.notes.emptyDesc')}</p>
         </div>
       ) : (
         sorted.map(note => (

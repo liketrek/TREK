@@ -205,6 +205,7 @@
 }
 /* poll bars staying up, gently rising and settling like live tallies */
 @keyframes trek-bar   { 0%, 100% { transform: scaleY(.78); } 50% { transform: scaleY(1); } }
+@keyframes trek-typing { 0%, 70%, 100% { transform: scale(.5); opacity: .4; } 35% { transform: scale(1); opacity: 1; } }
 /* card / note rocking gently */
 @keyframes trek-ticket { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
 /* a line being written: draws in from the left, holds, then a fresh pass */
@@ -263,6 +264,7 @@
 .trek-pencil   { animation: trek-pencil 1.15s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 .trek-write    { animation: trek-write 3.8s ease-in-out infinite;  transform-box: fill-box; transform-origin: 0% 50%; }
 .trek-bar      { animation: trek-bar 2.6s ease-in-out infinite;    transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-dot      { animation: trek-typing 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 50%; }
 .trek-suitcase { animation: trek-suitcase 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 .trek-handle   { animation: trek-handle 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 .trek-pin      { animation: trek-pin 2.2s ease-in-out infinite;   transform-box: fill-box; transform-origin: 50% 100%; }
@@ -276,6 +278,39 @@
 /* staggered starts for written lines / poll bars / Zzz */
 .trek-d2, .trek-z2 { animation-delay: .5s; }
 .trek-d3, .trek-z3 { animation-delay: 1s; }
+
+/* Mobile range slider — the --m-* twin of the desktop .trek-range. */
+.m-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--m-act) var(--fill, 50%), var(--m-trackoff) var(--fill, 50%));
+  outline: none;
+  cursor: pointer;
+}
+.m-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--m-knob);
+  border: 1px solid var(--m-rowbr);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+  transition: transform .12s ease;
+}
+.m-range::-webkit-slider-thumb:hover { transform: scale(1.1); }
+.m-range::-webkit-slider-thumb:active { transform: scale(1.18); }
+.m-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--m-knob);
+  border: 1px solid var(--m-rowbr);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+}
+.m-range::-moz-range-track { height: 5px; border-radius: 999px; background: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   .trek, .trek-root, .trek-body, .trek-shadow, .trek-eyes, .trek-pupils,
