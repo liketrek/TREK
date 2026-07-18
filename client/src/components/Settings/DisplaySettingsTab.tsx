@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Languages, Map, ChevronDown, Check } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
-import { useSettingsStore } from '../../store/settingsStore'
+import { useSettingsStore, DEFAULT_SETTINGS } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
@@ -12,8 +12,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
   const { settings, updateSetting } = useSettingsStore()
   const { t } = useTranslation()
   const toast = useToast()
-  const [tempUnit, setTempUnit] = useState<string>(settings.temperature_unit || 'celsius')
-  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(settings.distance_unit || 'metric')
+  const [tempUnit, setTempUnit] = useState<string>(settings.temperature_unit || DEFAULT_SETTINGS.temperature_unit)
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(settings.distance_unit || DEFAULT_SETTINGS.distance_unit)
   const [langOpen, setLangOpen] = useState(false)
   const langDropdownRef = useRef<HTMLDivElement | null>(null)
 
@@ -27,11 +27,11 @@ export default function DisplaySettingsTab(): React.ReactElement {
   }, [langOpen])
 
   useEffect(() => {
-    setTempUnit(settings.temperature_unit || 'celsius')
+    setTempUnit(settings.temperature_unit || DEFAULT_SETTINGS.temperature_unit)
   }, [settings.temperature_unit])
 
   useEffect(() => {
-    setDistanceUnit(settings.distance_unit || 'metric')
+    setDistanceUnit(settings.distance_unit || DEFAULT_SETTINGS.distance_unit)
   }, [settings.distance_unit])
 
   return (
