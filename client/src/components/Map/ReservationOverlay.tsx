@@ -371,6 +371,11 @@ export default function ReservationOverlay({ reservations, showConnections, show
 
   const visibleItems = useMemo(() => {
     return items.filter(item => {
+      // A transit journey draws its real rail/bus alignment, not a straight from->to
+      // line, so the endpoint-proximity declutter (which exists to hide tiny no-op
+      // straight connectors) must not suppress it. Otherwise a zoomed-out day — e.g. one
+      // with no other places to tighten the map onto — hides the whole route (#1570).
+      if (item.transitSegs.length > 0) return true
       const fromPx = map.latLngToContainerPoint([item.from.lat, item.from.lng])
       const toPx = map.latLngToContainerPoint([item.to.lat, item.to.lng])
       const minPx = item.type === 'flight' ? 50 : item.type === 'cruise' ? 150 : item.type === 'car' ? 80 : 200

@@ -42,6 +42,22 @@ function carBooking(): Reservation {
   } as unknown as Reservation
 }
 
+// A transit journey whose from/to stations project close together (under the 200px
+// declutter threshold) but which carries real per-leg MOTIS geometry. The encoded
+// polyline decodes to [[48,2],[48.02,2.01],[48.05,2]] at precision 6.
+function transitBooking(withGeometry: boolean): Reservation {
+  return {
+    id: 2, type: 'transit', status: 'confirmed',
+    endpoints: [
+      { role: 'from', sequence: 0, name: 'Stop A', code: null, lat: 48.0, lng: 2.0, timezone: null, local_time: null, local_date: null },
+      { role: 'to', sequence: 1, name: 'Stop B', code: null, lat: 48.05, lng: 2.0, timezone: null, local_time: null, local_date: null },
+    ],
+    metadata: withGeometry
+      ? { transit: { legs: [{ geometry: '__upzA_gayB_af@_pR_ry@~oR', mode: 'BUS', line_color: '#7c3aed' }] } }
+      : { transit: { legs: [{ mode: 'BUS' }] } },
+  } as unknown as Reservation
+}
+
 const opts = { showConnections: true, showStats: false, showEndpointLabels: false }
 
 function lastFeatureCoords(map: ReturnType<typeof fakeMap>) {
@@ -71,6 +87,26 @@ describe('ReservationMapboxOverlay road routes (#1425)', () => {
     const map = fakeMap()
     const overlay = new ReservationMapboxOverlay(map as never, opts, FakeMarker as never)
     overlay.update([carBooking()], { ...opts, showConnections: false }, new Map([[1, [[48, 2], [48.2, 2.3]]]]))
+    const calls = map._source.setData.mock.calls
+    const data = calls[calls.length - 1]?.[0] as { features: unknown[] }
+    expect(data.features).toHaveLength(0)
+  })
+})
+
+describe('ReservationMapboxOverlay transit routes (#1570)', () => {
+  it('draws a transit journey with real geometry even when its stations project close together', () => {
+    const map = fakeMap()
+    const overlay = new ReservationMapboxOverlay(map as never, opts, FakeMarker as never)
+    overlay.update([transitBooking(true)], opts)
+    // Stations are ~50px apart — under the 200px declutter — yet the real per-leg
+    // path (GeoJSON [lng, lat]) is drawn because it carries stored geometry.
+    expect(lastFeatureCoords(map)).toEqual([[2, 48], [2.01, 48.02], [2, 48.05]])
+  })
+
+  it('still declutters a geometry-less transit whose stations project close together', () => {
+    const map = fakeMap()
+    const overlay = new ReservationMapboxOverlay(map as never, opts, FakeMarker as never)
+    overlay.update([transitBooking(false)], opts)
     const calls = map._source.setData.mock.calls
     const data = calls[calls.length - 1]?.[0] as { features: unknown[] }
     expect(data.features).toHaveLength(0)
