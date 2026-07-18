@@ -40,7 +40,7 @@ See [Environment-Variables](Environment-Variables) for the full list.
 |---|---|---|
 | `latest` | `mauriceboe/TREK:latest` | Always the newest release across all major versions |
 | Major version | `mauriceboe/TREK:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/TREK:3.0.15` | Exact release; never changes |
+| Full version | `mauriceboe/TREK:3.4.0` | Exact release; never changes |
 
 Replace `mauriceboe/TREK:latest` in the run command with your chosen tag to pin to a major version or exact release.
 

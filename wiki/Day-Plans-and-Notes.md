@@ -79,6 +79,6 @@ At the top of the Day Plan sidebar:
 - **Expand / Collapse all** — toggles all day sections open or closed at once.
 - **Undo** — reverses the last drag, reorder, or assign action.
 
-Route calculation controls (optimize order, open in Google Maps) appear inside each expanded day section after the place list.
+Route controls (optimize order, open in Google Maps) appear inside each expanded day section after the place list.
 
 **See also:** [Places-and-Search](Places-and-Search) · [Map-Features](Map-Features) · [Route-Optimization](Route-Optimization) · [Weather-Forecasts](Weather-Forecasts) · [Reservations-and-Bookings](Reservations-and-Bookings)

@@ -1,18 +1,18 @@
-# Budget Tracking
+# Costs (Budget Tracking)
 
 Track trip expenses by category, split costs between members, and visualize spending.
 
-> **Renamed to Costs (v3.3.0, #1464):** This feature is now called **Costs** everywhere in the UI — the planner tab reads **Costs** and it is listed as **Costs** in Admin → Addons (its internal addon id stays `budget`). Screenshots and some labels on this page may still say "Budget".
+> **Renamed to Costs (v3.3.0, #1464):** This feature is now called **Costs** everywhere in the UI — the planner tab reads **Costs** and it is listed as **Costs** in Admin → Addons. Its internal addon id stays `budget`, which is why the permission is `budget_edit` and the MCP scopes are `budget:read` / `budget:write`.
 
 <!-- TODO: screenshot: budget summary and expense list -->
 
-![Budget panel](assets/Budget.png)
+![Costs panel](assets/Budget.png)
 
 ## Where to find it
 
-Open the **Budget** tab inside the trip planner. The tab is only visible when the Budget addon is enabled.
+Open the **Costs** tab inside the trip planner. The tab is only visible when the Costs addon is enabled.
 
-> **Admin:** Budget is an addon. Enable it in [Admin-Addons](Admin-Addons).
+> **Admin:** Costs is an addon. Enable it in [Admin-Addons](Admin-Addons).
 
 ![Create Budget](assets/BudgetCreateBudget.gif)
 
@@ -22,7 +22,7 @@ Costs is **multi-currency** (#551). Three settings are involved, and they do dif
 
 - The **trip currency** (Trip → Edit trip) is the trip's accounting base. Every balance and settle-up is calculated in it.
 - Each **expense** carries **its own currency** — pick it in the expense modal and enter what the receipt says (a $100 dinner on a rouble trip is `100 USD`). It is converted into the trip currency at a rate **frozen when you save it**, so a settled debt doesn't reopen when the market moves.
-- Your **display currency** (Settings → Display) converts what you *read* — totals, chart, balances — into one currency. It changes nothing that is stored. Left on **Trip currency** (the default), each trip is shown in its own currency.
+- Your **display currency** (Settings → General) converts what you *read* — totals, chart, balances — into one currency. It changes nothing that is stored. Left on **Trip currency** (the default), each trip is shown in its own currency.
 
 165 currencies are supported, with rates from [Frankfurter](https://frankfurter.dev) (no API key needed). When an item's currency differs from the display currency, the modal shows the converted amount alongside the rate (`1 {from} in {to}`), and the ledger row shows both (`$100.00 → 7 668,71 ₽`).
 
@@ -86,7 +86,7 @@ A recorded payment carries **its own currency** too: settling a rouble debt with
 
 ![Final Settlement](assets/BudgetFinalSettlement.gif)
 
-## Budget summary
+## Costs summary
 
 The right-hand column contains two widgets:
 

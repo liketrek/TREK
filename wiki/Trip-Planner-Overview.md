@@ -37,11 +37,11 @@ The tab bar sits directly below the main navigation bar.
 | **Transports** | Flights, trains, cars, cruises, and buses. |
 | **Reservations** | Hotels, restaurants, events, tours, and other bookings. |
 | **Lists** | Packing list and to-do list. |
-| **Budget** | Budget tracking and expense logging. |
+| **Costs** | Expense tracking, splitting, and settlement. |
 | **Files** | Document manager for receipts, tickets, and other files. |
 | **Collab** | Real-time chat, shared notes, and polls. |
 
-> **Admin:** The **Lists**, **Budget**, **Files**, and **Collab** tabs only appear when the corresponding addon is enabled. See [Admin-Addons](Admin-Addons).
+> **Admin:** The **Lists**, **Costs**, **Files**, and **Collab** tabs only appear when the corresponding addon is enabled. See [Admin-Addons](Admin-Addons).
 
 The active tab is saved in `sessionStorage` per trip, so switching between trips preserves your last position.
 

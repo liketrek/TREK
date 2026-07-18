@@ -20,6 +20,7 @@ The Admin Panel is divided into tabs. Most tabs are always visible; a few appear
 | **Personalization** | Packing templates and place categories | No |
 | **User Defaults** | Default settings applied to new users | No |
 | **Addons** | Enable or disable optional features instance-wide | No |
+| **Plugins** | Install, update, and manage plugins; rescan the plugins folder; review each plugin's capability audit. See [Admin-Plugins](Admin-Plugins) | No |
 | **Settings** | Authentication methods, MFA, allowed file types, API keys, OIDC/SSO configuration, and JWT secret rotation | No |
 | **Notifications** | SMTP, webhook, ntfy, and push notification channel configuration; trip reminder toggle; admin notification preferences | No |
 | **Backup** | Manual and scheduled database backups | No |
