@@ -6,8 +6,6 @@ The audit log records significant actions taken on your TREK instance. Use it to
 
 **Admin Panel → Audit** tab.
 
-<!-- TODO: screenshot: audit log table with action entries -->
-
 ![Audit log](assets/Audit.png)
 
 ## What the log captures

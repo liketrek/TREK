@@ -2,8 +2,6 @@
 
 Link an accommodation to specific check-in and check-out days so it appears for every day you are staying there. Accommodations are a distinct record type backed by the `day_accommodations` table and are separate from regular reservations, though each accommodation automatically creates a linked **Hotel** reservation.
 
-<!-- TODO: screenshot: accommodation list showing check-in/check-out details -->
-
 ## Creating an accommodation
 
 There are two ways to create an accommodation:

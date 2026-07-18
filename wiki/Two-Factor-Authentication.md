@@ -1,7 +1,5 @@
 # Two-Factor Authentication
 
-<!-- TODO: screenshot: 2FA setup QR code screen -->
-
 ![2FA](assets/2FA.png)
 
 ## What it is

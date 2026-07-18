@@ -4,7 +4,7 @@ Track trip expenses by category, split costs between members, and visualize spen
 
 > **Renamed to Costs (v3.3.0, #1464):** This feature is now called **Costs** everywhere in the UI — the planner tab reads **Costs** and it is listed as **Costs** in Admin → Addons. Its internal addon id stays `budget`, which is why the permission is `budget_edit` and the MCP scopes are `budget:read` / `budget:write`.
 
-<!-- TODO: screenshot: budget summary and expense list -->
+![Costs tab of a trip showing the You owe / You're owed / Outstanding / Total trip spend cards above the dated expense list, with the settle-up transfers and per-member balances in the right-hand column](assets/Costs.png)
 
 ![Costs panel](assets/Budget.png)
 
@@ -83,6 +83,8 @@ When multiple members are assigned to expenses and there are outstanding debts b
 Balances are always netted in the **trip currency** and converted to your display currency once, at the end — so they stay stable even when the trip mixes currencies.
 
 A recorded payment carries **its own currency** too: settling a rouble debt with a euro transfer is normal, so the payment modal has a currency picker, and its rate is frozen when you record it. A payment made in another currency shows both amounts in the ledger (`$30.00 → 27,00 €`).
+
+![Add payment dialog with From and To member pickers, an amount field and a currency selector](assets/CostsSettleUp.png)
 
 ![Final Settlement](assets/BudgetFinalSettlement.gif)
 

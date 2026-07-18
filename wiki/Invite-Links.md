@@ -2,8 +2,6 @@
 
 Invite new users to register on your TREK instance, even when open registration is disabled. Invite links work by embedding a short-lived token in the registration URL.
 
-<!-- TODO: screenshot: invite link management form -->
-
 ![Invite Links](assets/UsersAndInvites.png)
 
 ## What invite links do

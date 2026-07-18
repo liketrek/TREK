@@ -2,9 +2,7 @@
 
 The Day Plan sidebar lets you organize places into days, add free-form notes, and manage the order of your itinerary.
 
-<!-- TODO: screenshot: itinerary view with assigned places and day notes -->
-
-![Day Plan](assets/TripPlaner.png)
+![Day Plan](assets/TripPlanner.png)
 
 ## The Day Plan sidebar
 

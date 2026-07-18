@@ -2,8 +2,6 @@
 
 The **GitHub** tab shows the TREK release history fetched from GitHub and provides links to community resources and support options.
 
-<!-- TODO: screenshot: GitHub releases panel with release timeline -->
-
 ![GitHub tab](assets/GithubReleases.png)
 
 ## Support and resources

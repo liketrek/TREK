@@ -1,7 +1,5 @@
 # Trip Members and Sharing
 
-<!-- TODO: screenshot: trip members list with roles and share link form -->
-
 ![Trip Members](assets/Share.png)
 
 ## Opening the Members Panel
