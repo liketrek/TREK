@@ -120,9 +120,10 @@ export async function seedDemoData(
   }
   await call(api, 'put', '/api/admin/bag-tracking', { enabled: true }).catch(() => {})
 
-  // 1b. Units. A fresh instance renders Fahrenheit (settingsStore.ts defaults to
-  //     'fahrenheit' even though DisplaySettingsTab falls back to 'celsius'), which
-  //     looks wrong on documentation for a Japan trip. Pin both units explicitly.
+  // 1b. Units, pinned explicitly so the screenshots don't silently change meaning
+  //     when a default does. They match the current defaults (ba3733da made
+  //     celsius/metric/24h consistent across the store and the settings UI) —
+  //     stating them here keeps the captures reproducible either way.
   await call(api, 'post', '/api/settings/bulk', {
     settings: { temperature_unit: 'celsius', distance_unit: 'metric' },
   })
