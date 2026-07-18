@@ -1,4 +1,5 @@
-import { MapPin, Plus, Search, Star, Trash2, X } from 'lucide-react'
+import { useState } from 'react'
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, MapPin, Plus, Search, Star, Trash2, X } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import { A2_TO_A3 } from '../../../pages/atlas/atlasModel'
@@ -204,12 +205,12 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
               placeholder={t('atlas.bucketNotesPlaceholder')}
               className={inputCls}
             />
-            <input
-              type="month"
+            <MMonthYearField
               value={bucketForm.target_date}
-              onChange={(e) => setBucketForm({ ...bucketForm, target_date: e.target.value })}
-              aria-label={t('atlas.bucketWhen')}
-              className={inputCls}
+              onChange={(v) => setBucketForm({ ...bucketForm, target_date: v })}
+              placeholder={t('atlas.bucketWhen')}
+              language={language}
+              t={t}
             />
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={resetForm} className="flex-1 rounded-full bg-[color:var(--m-ic)] py-[11px] text-[0.8125rem] font-bold text-m-ink">
@@ -237,5 +238,67 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
         )}
       </div>
     </MSheet>
+  )
+}
+
+/** Custom month/year picker replacing the native <input type="month">: a year
+ *  stepper over a 12-month grid, opening upward so it clears the docked sheet. */
+function MMonthYearField({ value, onChange, placeholder, language, t }: {
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  language: string
+  t: AtlasController['t']
+}) {
+  const [open, setOpen] = useState(false)
+  const selYear = value ? Number(value.split('-')[0]) : null
+  const selMonth = value ? Number(value.split('-')[1]) : null
+  const [year, setYear] = useState(selYear ?? new Date().getFullYear())
+
+  const display = selYear
+    ? new Date(selYear, (selMonth ?? 1) - 1).toLocaleDateString(language, { month: 'long', year: 'numeric' })
+    : ''
+
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className={`${inputCls} flex items-center gap-2 text-left`}>
+        <Calendar size={15} strokeWidth={2.2} className="flex-none text-m-muted" />
+        <span className={`min-w-0 flex-1 truncate ${display ? '' : 'text-m-faint'}`}>{display || placeholder}</span>
+        <ChevronDown size={15} strokeWidth={2} className={`flex-none text-m-faint transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 z-10 mb-2 rounded-[16px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] p-3 shadow-[0_12px_30px_-14px_rgba(0,0,0,.4)]">
+          <div className="mb-[10px] flex items-center justify-between">
+            <button type="button" onClick={() => setYear(y => y - 1)} aria-label={t('mobileVacay.prevYear')} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
+              <ChevronLeft size={16} strokeWidth={2.2} />
+            </button>
+            <span className="text-[0.9375rem] font-extrabold tabular-nums text-m-ink">{year}</span>
+            <button type="button" onClick={() => setYear(y => y + 1)} aria-label={t('mobileVacay.nextYear')} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
+              <ChevronRight size={16} strokeWidth={2.2} />
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-[6px]">
+            {Array.from({ length: 12 }, (_, m) => {
+              const on = selYear === year && selMonth === m + 1
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => { onChange(`${year}-${String(m + 1).padStart(2, '0')}`); setOpen(false) }}
+                  className={`rounded-[10px] py-2 text-[0.71875rem] font-bold capitalize ${on ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'}`}
+                >
+                  {new Date(2000, m, 1).toLocaleDateString(language, { month: 'short' })}
+                </button>
+              )
+            })}
+          </div>
+          {value && (
+            <button type="button" onClick={() => { onChange(''); setOpen(false) }} className="mt-[10px] w-full rounded-[10px] py-[7px] text-[0.6875rem] font-bold text-m-muted">
+              {t('common.reset')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

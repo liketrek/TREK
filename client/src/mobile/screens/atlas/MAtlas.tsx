@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Star, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useAtlas } from '../../../pages/atlas/useAtlas'
 import MIconBtn from '../../components/MIconBtn'
 import MSheet from '../../components/MSheet'
@@ -102,9 +102,8 @@ export default function MAtlas() {
         <button
           type="button"
           onClick={() => setBucketOpen(true)}
-          className="flex h-[38px] w-full items-center justify-center gap-[6px] rounded-full bg-m-act px-4 font-geist text-[0.75rem] font-bold text-m-actfg shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
+          className="flex h-[38px] w-full items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-4 text-[0.78125rem] font-bold text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
         >
-          <Star size={13} strokeWidth={2.4} />
           {t('atlas.bucketTab')}
         </button>
       </div>
