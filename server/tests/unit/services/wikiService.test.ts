@@ -57,6 +57,52 @@ describe('wikiService — local wiki on disk', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('rewrites bare relative links, the spelling most wiki pages actually use', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+    const page = await wiki.getWikiPage('Sample');
+
+    // These resolve against the wiki root on GitHub but used to fall through to
+    // HelpPage's external-link branch in-app and open a dead tab.
+    expect(page.markdown).toContain('[Currencies](/help/Currencies)');
+    expect(page.markdown).toContain('[Quick Start](/help/Quick-Start#first-steps)');
+    expect(page.markdown).toContain('[with extension](/help/Home)'); // .md stripped
+  });
+
+  it('leaves links that are already resolvable alone', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+    const page = await wiki.getWikiPage('Sample');
+
+    expect(page.markdown).toContain('[external](https://example.com)');
+    expect(page.markdown).toContain('[absolute](/dashboard)');
+    expect(page.markdown).toContain('[anchor](#section)');
+    expect(page.markdown).toContain('[mail](mailto:hi@example.com)');
+    // Images must not be caught by the link rewriter.
+    expect(page.markdown).toContain('![A picture](/api/help/asset/assets/pic.png)');
+    expect(page.markdown).not.toContain('/help/assets/pic.png');
+  });
+
+  it('leaves code samples alone', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+    const page = await wiki.getWikiPage('Sample');
+
+    // Plugin-Development.md documents `actions[key](ctx)`, which reads as a
+    // markdown link. Rewriting it would corrupt a verbatim snippet.
+    expect(page.markdown).toContain('`actions[key](ctx)`');
+    expect(page.markdown).toContain('`[x](y)`');
+    expect(page.markdown).toContain('const link = [label](Currencies)'); // fenced block
+    expect(page.markdown).not.toContain('/help/ctx');
+    expect(page.markdown).not.toContain('[label](/help/Currencies)');
+  });
+
+  it('does not render a wikilink anchor as visible link text', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+    const page = await wiki.getWikiPage('Sample');
+
+    // `[[Quick Start#first-steps|Quick-Start]]` — the anchor belongs in the href.
+    expect(page.markdown).toContain('[Quick Start](/help/Quick-Start#first-steps)');
+    expect(page.markdown).not.toContain('[Quick Start#first-steps]');
+  });
+
   it('404s an unknown page instead of falling back to GitHub', async () => {
     const wiki = await loadWiki(FIXTURE_WIKI);
 
