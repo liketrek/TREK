@@ -1,7 +1,7 @@
 # Publishing a Plugin
 
 Plugins are distributed from a static registry — the
-[TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins) GitHub repo. There is
+[TREK-Plugins](https://github.com/liketrek/TREK-Plugins) GitHub repo. There is
 no upload server and no account: you host the code in your own public GitHub repo,
 attach a built `plugin.zip` to a release, and list it with a pull request.
 
@@ -217,7 +217,7 @@ The fast path — `submit` does the whole fork/branch/commit/PR dance for you:
 npx trek-plugin-sdk submit --repo you/trek-plugin-flight-tracker --tag v1.0.0
 ```
 
-It forks [TREK-Plugins](https://github.com/mauriceboe/TREK-Plugins) (once),
+It forks [TREK-Plugins](https://github.com/liketrek/TREK-Plugins) (once),
 branches off the current `main`, writes (or, for an update, merges into)
 `registry/plugins/<id>.json`, pushes, and opens the PR — printing its URL. Add
 `--draft` for a draft PR, `--registry <owner/name>` for a mirror. (Requires `gh`,
@@ -227,8 +227,8 @@ authenticated.)
 `registry/plugins/<id>.json`, and open a PR back to `main`. Add **only** that
 file — `dist/` is generated on merge, and CI rejects manual edits to it.
 
-The entry follows [`schema/plugin-entry.schema.json`](https://github.com/mauriceboe/TREK-Plugins/blob/main/schema/plugin-entry.schema.json);
-[`schema/example-entry.json`](https://github.com/mauriceboe/TREK-Plugins/blob/main/schema/example-entry.json)
+The entry follows [`schema/plugin-entry.schema.json`](https://github.com/liketrek/TREK-Plugins/blob/main/schema/plugin-entry.schema.json);
+[`schema/example-entry.json`](https://github.com/liketrek/TREK-Plugins/blob/main/schema/example-entry.json)
 is the canonical shape. `size` is **required** (a common omission), as are
 `commitSha`, `downloadUrl`, `sha256`, `trek`, `apiVersion`, and
 `nativeModules: false` on every version — all of which `trek-plugin entry` fills

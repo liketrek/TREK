@@ -1,7 +1,5 @@
 # Creating a Trip
 
-<!-- TODO: screenshot: trip creation form with date and cover fields -->
-
 ![Trip creation dialog](assets/TripCreate.png)
 
 ## Opening the Dialog
@@ -34,7 +32,7 @@ The trip's currency — its **accounting base**. Every expense in the Costs tab 
 
 Pick the currency you will actually settle up in. It is not a cosmetic label, but it is not a one-way door either: you can change it later from the same dialog (with the `trip_edit` permission), and TREK re-bases the existing expenses so no money moves — see [Currencies → Changing the trip currency](Currencies#changing-the-trip-currency).
 
-> This is **not** the same as the display currency in Settings → Display, which only changes what *you* read. See [Currencies](Currencies).
+> This is **not** the same as the display currency in Settings → General, which only changes what *you* read. See [Currencies](Currencies).
 
 ### Cover Image
 

@@ -50,7 +50,7 @@ export default function VacayMonthCard({
     const w = []
     for (let i = 0; i < cells.length; i += 7) w.push(cells.slice(i, i + 7))
     return w
-  }, [year, month])
+  }, [year, month, weekStart])
 
   const pad = (n) => String(n).padStart(2, '0')
 

@@ -55,6 +55,41 @@ describe('OpenAiCompatibleClient', () => {
   it('throws on non-2xx', async () => {
     mockFetch(() => jsonResponse({ error: 'bad' }, false, 401));
     await expect(new OpenAiCompatibleClient().extract(baseInput)).rejects.toThrow(/401/);
+    expect(safeFetchLlmMock).toHaveBeenCalledTimes(1); // no retry on non-400
+  });
+
+  it('retries once with json_object when the server rejects json_schema (400)', async () => {
+    safeFetchLlmMock
+      .mockResolvedValueOnce(jsonResponse({ error: { message: 'response_format type is unavailable' } }, false, 400))
+      .mockResolvedValueOnce(
+        jsonResponse({ choices: [{ message: { content: '{"reservations":[{"@type":"FlightReservation"}]}' } }] }),
+      );
+    const out = await new OpenAiCompatibleClient().extract(baseInput);
+    expect(out).toEqual([{ '@type': 'FlightReservation' }]);
+    expect(safeFetchLlmMock).toHaveBeenCalledTimes(2);
+
+    const first = JSON.parse((safeFetchLlmMock.mock.calls[0][1] as RequestInit).body as string);
+    const second = JSON.parse((safeFetchLlmMock.mock.calls[1][1] as RequestInit).body as string);
+    expect(first.response_format.type).toBe('json_schema');
+    expect(second.response_format).toEqual({ type: 'json_object' });
+    expect(second.messages).toEqual(first.messages);
+    expect(second.model).toBe(first.model);
+  });
+
+  it('throws when the json_object retry also fails (400 twice)', async () => {
+    safeFetchLlmMock
+      .mockResolvedValueOnce(jsonResponse({ error: 'no json_schema' }, false, 400))
+      .mockResolvedValueOnce(jsonResponse({ error: 'no json_object either' }, false, 400));
+    await expect(new OpenAiCompatibleClient().extract(baseInput)).rejects.toThrow(/400/);
+    expect(safeFetchLlmMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry the NuExtract path on 400', async () => {
+    safeFetchLlmMock.mockResolvedValueOnce(jsonResponse({ error: 'bad' }, false, 400));
+    await expect(
+      new OpenAiCompatibleClient().extract({ ...baseInput, model: 'hf.co/numind/NuExtract-2.0-2B-GGUF:latest' }),
+    ).rejects.toThrow(/400/);
+    expect(safeFetchLlmMock).toHaveBeenCalledTimes(1);
   });
 
   it('sends an image natively as image_url but never a file/pdf part', async () => {

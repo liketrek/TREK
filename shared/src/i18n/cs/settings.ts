@@ -485,6 +485,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Zdroj',
   'settings.pluginActivity.columns.when': 'Kdy',
   'settings.pluginActivity.columns.status': 'Výsledek',
+  'settings.alwaysShowRoutes': 'Vždy zobrazovat trasy rezervací',
+  'settings.alwaysShowRoutesHint': 'Automaticky zobrazí na mapě trasu každého letu, vlaku a jiné rezervace, aniž byste ji museli zapínat jednotlivě.',
 };
 
 export default settings;

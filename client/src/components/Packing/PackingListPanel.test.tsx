@@ -1159,6 +1159,48 @@ describe('PackingListPanel', () => {
     await waitFor(() => expect(applyCalled).toBe(true));
   });
 
+  // #1565: the template used to always land in the shared pool, whichever tab was open.
+  it('FE-COMP-PACKING-061a: applying a template from "My List" sends the personal view', async () => {
+    const user = userEvent.setup();
+    let applyBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/:id/packing/templates', () =>
+        HttpResponse.json({ templates: [{ id: 5, name: 'Beach Trip', item_count: 12 }] })
+      ),
+      http.post('/api/trips/1/packing/apply-template/5', async ({ request }) => {
+        applyBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ items: [], count: 12 });
+      })
+    );
+    render(<PackingListPanel tripId={1} items={[]} />);
+
+    await user.click(await screen.findByText('My list'));
+    await user.click(await screen.findByText('Apply template'));
+    await user.click(await screen.findByText('Beach Trip'));
+
+    await waitFor(() => expect(applyBody).toEqual({ visibility: 'personal' }));
+  });
+
+  it('FE-COMP-PACKING-061b: applying a template from the shared tab sends the common view', async () => {
+    const user = userEvent.setup();
+    let applyBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/:id/packing/templates', () =>
+        HttpResponse.json({ templates: [{ id: 5, name: 'Beach Trip', item_count: 12 }] })
+      ),
+      http.post('/api/trips/1/packing/apply-template/5', async ({ request }) => {
+        applyBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ items: [], count: 12 });
+      })
+    );
+    render(<PackingListPanel tripId={1} items={[]} />);
+
+    await user.click(await screen.findByText('Apply template'));
+    await user.click(await screen.findByText('Beach Trip'));
+
+    await waitFor(() => expect(applyBody).toEqual({ visibility: 'common' }));
+  });
+
   it('FE-COMP-PACKING-062: handleBulkImport calls import API and closes modal', async () => {
     const user = userEvent.setup();
     let importBody: Record<string, unknown> | null = null;

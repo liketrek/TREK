@@ -2,8 +2,6 @@
 
 The **Personalization** tab → **Packing Templates** section lets you create reusable packing list templates that users can apply to any trip.
 
-<!-- TODO: screenshot: packing templates admin list with categories and items -->
-
 ![Packing Template Manager](assets/PackingTemplate.png)
 
 ## What templates are

@@ -21,7 +21,7 @@ ENCRYPTION_KEY=$(openssl rand -hex 32) docker run -d \
   -v ./data:/app/data \
   -v ./uploads:/app/uploads \
   --restart unless-stopped \
-  mauriceboe/trek:latest
+  mauriceboe/TREK:latest
 ```
 
 **Flag breakdown:**

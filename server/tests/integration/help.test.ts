@@ -72,7 +72,7 @@ describe('GET /api/help', () => {
   });
 
   it('serves a wiki image from disk', async () => {
-    const res = await request(app).get('/api/help/asset/assets/TripPlaner.png').expect(200);
+    const res = await request(app).get('/api/help/asset/assets/TripPlanner.png').expect(200);
 
     expect(res.headers['content-type']).toBe('image/png');
     expect(res.headers['cache-control']).toContain('max-age=86400');

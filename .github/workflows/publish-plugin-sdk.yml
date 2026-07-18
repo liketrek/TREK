@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   publish:
-    if: github.repository == 'mauriceboe/TREK'
+    if: github.repository == 'liketrek/TREK'
     runs-on: ubuntu-latest
     defaults:
       run:

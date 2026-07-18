@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   check-title:
-    if: github.repository == 'mauriceboe/TREK'
+    if: github.repository == 'liketrek/TREK'
     runs-on: ubuntu-latest
     steps:
       - name: Flag or redirect issue
@@ -77,7 +77,7 @@ jobs:
                 body: [
                   '## Wrong place for feature requests',
                   '',
-                  'Feature requests should be submitted in [Discussions](https://github.com/mauriceboe/TREK/discussions/new?category=feature-requests), not as issues.',
+                  'Feature requests should be submitted in [Discussions](https://github.com/liketrek/TREK/discussions/new?category=feature-requests), not as issues.',
                   '',
                   'This issue has been closed. Feel free to re-submit your idea in the right place!',
                 ].join('\n'),

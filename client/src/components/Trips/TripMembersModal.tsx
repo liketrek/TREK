@@ -290,6 +290,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
   const { t } = useTranslation()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
+  const loadBudgetItems = useTripStore((s) => s.loadBudgetItems)
   const canManageMembers = can('member_manage', trip)
   const canManageShare = can('share_manage', trip)
 
@@ -387,6 +388,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
     try {
       await tripsApi.deleteGuest(tripId, userId)
       await loadMembers(true)
+      await loadBudgetItems(tripId)
       toast.success(t('members.guestRemoved'))
     } catch {
       toast.error(t('members.removeError'))

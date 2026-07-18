@@ -726,7 +726,7 @@ describe('pack + entry (publishing automation)', () => {
     const out = path.join(tmp, 'plugin.zip');
     const packed = packPluginDir(koffi, out);
     const entry = buildEntry({
-      dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out,
       commit: 'a'.repeat(40), now: '2026-07-04T00:00:00.000Z',
     });
     expect(entry.id).toBe('koffi');
@@ -741,7 +741,7 @@ describe('pack + entry (publishing automation)', () => {
     // "requires 3.2.0+" and considered the plugin compatible.
     expect(v.trek).toBe('>=3.2.0 <4.0.0');
     expect(v).not.toHaveProperty('minTrekVersion');
-    expect(v.downloadUrl).toBe('https://github.com/mauriceboe/trek-plugin-koffi/releases/download/v1.0.0/plugin.zip');
+    expect(v.downloadUrl).toBe('https://github.com/mauriceboe/TREK-plugin-koffi/releases/download/v1.0.0/plugin.zip');
     expect(v.nativeModules).toBe(false);
   });
 
@@ -751,7 +751,7 @@ describe('pack + entry (publishing automation)', () => {
     const out = path.join(tmp, 'plugin.zip');
     packPluginDir(koffi, out);
     const entry = buildEntry({
-      dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out,
       commit: 'a'.repeat(40), now: '2026-07-04T00:00:00.000Z',
     });
     expect(entry.icon).toBe('Luggage'); // koffi's trek-plugin.json declares it
@@ -764,7 +764,7 @@ describe('pack + entry (publishing automation)', () => {
       const p = path.join(tmp, `prior-${icon}.json`);
       fs.writeFileSync(p, JSON.stringify({
         id: 'koffi', name: 'Koffi', author: 'TREK', description: 'x',
-        repo: 'mauriceboe/trek-plugin-koffi', type: 'widget', icon,
+        repo: 'mauriceboe/TREK-plugin-koffi', type: 'widget', icon,
         versions: [{ version: '0.9.0', gitTag: 'v0.9.0', commitSha: 'b'.repeat(40), downloadUrl: 'https://x/y.zip', sha256: 'c'.repeat(64), size: 10, apiVersion: 1, nativeModules: false, publishedAt: '2026-01-01T00:00:00.000Z' }],
       }));
       return p;
@@ -772,7 +772,7 @@ describe('pack + entry (publishing automation)', () => {
 
     // koffi's manifest declares Luggage → an author who rebrands sees it in the store
     const rebranded = buildEntry({
-      dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out,
       commit: 'a'.repeat(40), now: '2026-07-04T00:00:00.000Z', mergePath: prior('Coffee'),
     });
     expect(rebranded.icon).toBe('Luggage');
@@ -820,11 +820,11 @@ describe('pack + entry (publishing automation)', () => {
     packPluginDir(koffi, out);
     const existingPath = path.join(tmp, 'koffi.json');
     fs.writeFileSync(existingPath, JSON.stringify({
-      id: 'koffi', name: 'Koffi', author: 'TREK', description: 'x', repo: 'mauriceboe/trek-plugin-koffi', type: 'widget',
+      id: 'koffi', name: 'Koffi', author: 'TREK', description: 'x', repo: 'mauriceboe/TREK-plugin-koffi', type: 'widget',
       versions: [{ version: '0.9.0', gitTag: 'v0.9.0', commitSha: 'b'.repeat(40), downloadUrl: 'https://github.com/x/y/releases/download/v0.9.0/plugin.zip', sha256: 'c'.repeat(64), minTrekVersion: '3.2.0', size: 10, apiVersion: 1, nativeModules: false, publishedAt: '2026-01-01T00:00:00.000Z' }],
     }));
     const merged = buildEntry({
-      dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out,
       commit: 'a'.repeat(40), mergePath: existingPath, now: '2026-07-04T00:00:00.000Z',
     });
     expect(merged.versions.map((v) => v.version)).toEqual(['1.0.0', '0.9.0']);
@@ -868,7 +868,7 @@ describe('sign + keygen (author signatures, TOFU)', () => {
     packPluginDir(koffi, out);
     const keyPath = path.join(tmp, 'k.pem');
     const { publicKey } = generateKeypair(keyPath);
-    const entry = buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: keyPath, now: '2026-07-04T00:00:00.000Z' });
+    const entry = buildEntry({ dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: keyPath, now: '2026-07-04T00:00:00.000Z' });
     expect(entry.authorPublicKey).toBe(publicKey);
     const sig = entry.versions[0].signature;
     expect(sig).toBeTruthy();
@@ -880,12 +880,12 @@ describe('sign + keygen (author signatures, TOFU)', () => {
     packPluginDir(koffi, out);
     const key1 = path.join(tmp, 'k1.pem');
     generateKeypair(key1);
-    const existing = buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: key1, now: '2026-07-04T00:00:00.000Z' });
+    const existing = buildEntry({ dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: key1, now: '2026-07-04T00:00:00.000Z' });
     const existingPath = path.join(tmp, 'koffi.json');
     fs.writeFileSync(existingPath, JSON.stringify({ ...existing, versions: existing.versions.map((v) => ({ ...v, version: '0.9.0', gitTag: 'v0.9.0' })) }));
     const key2 = path.join(tmp, 'k2.pem');
     generateKeypair(key2);
-    expect(() => buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.1.0', zipPath: out, commit: 'a'.repeat(40), mergePath: existingPath, signKeyPath: key2, now: '2026-07-04T00:00:00.000Z' })).toThrow(/differs from the one already published/);
+    expect(() => buildEntry({ dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.1.0', zipPath: out, commit: 'a'.repeat(40), mergePath: existingPath, signKeyPath: key2, now: '2026-07-04T00:00:00.000Z' })).toThrow(/differs from the one already published/);
   });
 });
 

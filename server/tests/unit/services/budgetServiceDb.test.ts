@@ -41,7 +41,8 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
-import { createBudgetItem, updateMembers, toggleMemberPaid, calculateSettlement, rebaseTripCurrency } from '../../../src/services/budgetService';
+import { createBudgetItem, updateBudgetItem, updateMembers, toggleMemberPaid, calculateSettlement, rebaseTripCurrency } from '../../../src/services/budgetService';
+import { createGuest, deleteGuest } from '../../../src/services/tripService';
 
 beforeAll(() => {
   createTables(testDb);
@@ -62,6 +63,87 @@ function paidFlag(itemId: number, memberId: number): number | undefined {
     .get(itemId, memberId) as { paid: number } | undefined;
   return row?.paid;
 }
+
+describe('deleting a member re-splits their expenses (#1553)', () => {
+  function personsOf(itemId: number): number | null {
+    return (testDb.prepare('SELECT persons FROM budget_items WHERE id = ?').get(itemId) as { persons: number | null }).persons;
+  }
+  function memberCount(itemId: number): number {
+    return (testDb.prepare('SELECT COUNT(*) AS count FROM budget_item_members WHERE budget_item_id = ?')
+      .get(itemId) as { count: number }).count;
+  }
+
+  it('BUDGET-SVC-DB-010: re-derives the persons divisor when a guest in the split is deleted', () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const guests = ['G1', 'G2', 'G3'].map(n => createGuest(trip.id, n, owner.id).member);
+    const item = createBudgetItem(trip.id, {
+      name: 'Dinner', total_price: 400,
+      member_ids: [owner.id, ...guests.map(g => g.id)],
+    });
+    expect(personsOf(item.id)).toBe(4);
+
+    deleteGuest(trip.id, guests[0].id);
+    deleteGuest(trip.id, guests[1].id);
+
+    // The member rows cascade with the users row; `persons` is denormalized and has to
+    // be re-derived, or the per-person column keeps dividing by the departed.
+    expect(memberCount(item.id)).toBe(2);
+    expect(personsOf(item.id)).toBe(2);
+  });
+
+  it('BUDGET-SVC-DB-011: leaves a manually entered persons count alone', () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const guest = createGuest(trip.id, 'G1', owner.id).member;
+    // No member rows — `persons` is just a number someone typed.
+    const item = createBudgetItem(trip.id, { name: 'Rental', total_price: 300, persons: 6 });
+
+    deleteGuest(trip.id, guest.id);
+
+    expect(personsOf(item.id)).toBe(6);
+  });
+
+  it('BUDGET-SVC-DB-012: drops the last member to a null divisor rather than zero', () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const guest = createGuest(trip.id, 'G1', owner.id).member;
+    const item = createBudgetItem(trip.id, { name: 'Taxi', total_price: 50, member_ids: [guest.id] });
+
+    deleteGuest(trip.id, guest.id);
+
+    expect(memberCount(item.id)).toBe(0);
+    expect(personsOf(item.id)).toBeNull();
+  });
+
+  it('BUDGET-SVC-DB-013: saves a split from a stale client instead of failing on the users FK', () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const guest = createGuest(trip.id, 'G1', owner.id).member;
+    const item = createBudgetItem(trip.id, { name: 'Dinner', total_price: 200, member_ids: [owner.id, guest.id] });
+
+    deleteGuest(trip.id, guest.id);
+
+    // A client that loaded before the deletion still sends the guest back (#1553).
+    const updated = updateBudgetItem(item.id, trip.id, { member_ids: [owner.id, guest.id] });
+
+    expect(updated!.members.map(m => m.user_id)).toEqual([owner.id]);
+    expect(personsOf(item.id)).toBe(1);
+  });
+
+  it('BUDGET-SVC-DB-014: ignores a deleted member arriving through updateMembers', () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const guest = createGuest(trip.id, 'G1', owner.id).member;
+    const item = createBudgetItem(trip.id, { name: 'Drinks', total_price: 60, member_ids: [owner.id, guest.id] });
+
+    deleteGuest(trip.id, guest.id);
+    const result = updateMembers(item.id, trip.id, [owner.id, guest.id]);
+
+    expect(result!.members.map(m => m.user_id)).toEqual([owner.id]);
+    expect(personsOf(item.id)).toBe(1);
+  });
+});
 
 describe('toggleMemberPaid trip-scoping', () => {
   it('BUDGET-SVC-DB-001: toggles paid for an item that belongs to the given trip', () => {

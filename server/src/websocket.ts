@@ -61,6 +61,13 @@ function setupWebSocket(server: http.Server): void {
 
   wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
     const nws = ws as NomadWebSocket;
+
+    // ws emits protocol violations (malformed frames, reserved close codes such as 1006)
+    // as an 'error' event on the socket; unhandled, Node rethrows it and the process dies.
+    // Must stay above the auth guards below: they close and return early, and a socket that
+    // never gets this listener can still crash the server before it finishes closing.
+    nws.on('error', () => nws.terminate());
+
     // Extract token from query param
     const url = new URL(req.url, 'http://localhost');
     const token = url.searchParams.get('token');

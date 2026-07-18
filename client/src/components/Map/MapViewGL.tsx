@@ -12,6 +12,7 @@ import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings,
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
+import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -928,12 +929,9 @@ export function MapViewGL({
   // `visibleConnectionIds` is driven by the per-reservation toggle in
   // DayPlanSidebar — nothing is rendered until the user enables a
   // booking's route, matching the Leaflet MapView's behaviour.
-  const visibleReservations = useMemo(() => {
-    const set = new Set(visibleConnectionIds || [])
-    // Transit journeys ride the route toggle — they are part of the computed
-    // day route, so hiding the route hides them too (#1065).
-    return reservations.filter(r => (r.type === 'transit' && showTransitRoutes) || set.has(r.id))
-  }, [reservations, visibleConnectionIds, showTransitRoutes])
+  const visibleReservations = useMemo(() => (
+    visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes })
+  ), [reservations, visibleConnectionIds, showTransitRoutes])
   // Real road geometry for car/bus/taxi/bicycle bookings (straight line until it loads/if it fails).
   const transportRoutes = useTransportRoutes(visibleReservations)
 

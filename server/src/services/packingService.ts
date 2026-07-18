@@ -390,7 +390,12 @@ export function listTemplates() {
 
 // ── Apply Template ─────────────────────────────────────────────────────────
 
-export function applyTemplate(tripId: string | number, templateId: string | number) {
+export function applyTemplate(
+  tripId: string | number,
+  templateId: string | number,
+  visibility: 'common' | 'personal' = 'common',
+  ownerId?: number,
+) {
   const templateItems = db.prepare(`
     SELECT ti.name, tc.name as category
     FROM packing_template_items ti
@@ -403,11 +408,13 @@ export function applyTemplate(tripId: string | number, templateId: string | numb
 
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
+  const isPrivate = ownerId != null ? visibilityToPrivate(visibility) : 0;
+  const owner = isPrivate ? ownerId! : null;
 
-  const insert = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, sort_order, updated_at) VALUES (?, ?, 0, ?, ?, CURRENT_TIMESTAMP)');
+  const insert = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, sort_order, is_private, owner_id, updated_at) VALUES (?, ?, 0, ?, ?, ?, ?, CURRENT_TIMESTAMP)');
   const added: any[] = [];
   for (const ti of templateItems) {
-    const result = insert.run(tripId, ti.name, ti.category, sortOrder++);
+    const result = insert.run(tripId, ti.name, ti.category, sortOrder++, isPrivate, owner);
     const item = db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid);
     added.push(item);
   }

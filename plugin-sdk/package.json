@@ -15,14 +15,14 @@
       "url": "https://github.com/jubnl"
     }
   ],
-  "homepage": "https://github.com/mauriceboe/TREK/wiki/Plugin-Development",
+  "homepage": "https://github.com/liketrek/TREK/wiki/Plugin-Development",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mauriceboe/TREK.git",
+    "url": "git+https://github.com/liketrek/TREK.git",
     "directory": "plugin-sdk"
   },
   "bugs": {
-    "url": "https://github.com/mauriceboe/TREK/issues"
+    "url": "https://github.com/liketrek/TREK/issues"
   },
   "engines": {
     "node": ">=18"

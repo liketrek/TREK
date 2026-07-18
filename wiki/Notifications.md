@@ -2,8 +2,6 @@
 
 The Notifications tab (Settings → Notifications) lets you choose which events notify you and through which channels. Each toggle saves immediately.
 
-<!-- TODO: screenshot: notifications panel or bell dropdown -->
-
 ![Notifications tab](assets/NotifSettings.png)
 
 ## Notification channels
@@ -88,6 +86,8 @@ TREK auto-detects the webhook destination and adjusts the payload format:
 Enter your ntfy **topic** and optionally a custom **server URL** (defaults to the server-wide ntfy server set by the admin) and an **access token** for private topics. The token is stored encrypted and displayed as `••••••••` after saving. Use the **Test** button to verify delivery.
 
 ## In-app notification center
+
+![Full-page Notifications inbox with All and Unread filter pills and an empty "No notifications — you're all caught up!" state](assets/NotificationsInbox.png)
 
 The bell icon in the navigation bar shows your unread notification count. Click it to open the notification panel where you can:
 

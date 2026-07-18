@@ -1,146 +1,187 @@
-import { useState, useEffect } from 'react'
-import { Tag, Calendar, ExternalLink, ChevronDown, ChevronUp, Loader2, Heart, Coffee, Bug, Lightbulb, BookOpen } from 'lucide-react'
-import { getLocaleForLanguage, useTranslation } from '../../i18n'
-import apiClient from '../../api/client'
+import {
+  BookOpen,
+  Bug,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Coffee,
+  ExternalLink,
+  Heart,
+  Lightbulb,
+  Loader2,
+  Tag,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import apiClient from '../../api/client';
+import { getLocaleForLanguage, useTranslation } from '../../i18n';
 
-const REPO = 'mauriceboe/TREK'
-const PER_PAGE = 10
+const REPO = 'liketrek/TREK';
+const PER_PAGE = 10;
 
 interface GithubRelease {
-  id: number
-  prerelease: boolean
-  tag_name: string
-  name: string | null
-  body: string | null
-  published_at: string | null
-  created_at: string
-  author: { login: string } | null
-  [key: string]: unknown
+  id: number;
+  prerelease: boolean;
+  tag_name: string;
+  name: string | null;
+  body: string | null;
+  published_at: string | null;
+  created_at: string;
+  author: { login: string } | null;
+  [key: string]: unknown;
 }
 
 export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: boolean }) {
-  const { t, language } = useTranslation()
-  const [releases, setReleases] = useState<GithubRelease[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState<Record<number, boolean>>({})
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
+  const { t, language } = useTranslation();
+  const [releases, setReleases] = useState<GithubRelease[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchReleases = async (pageNum = 1, append = false) => {
     try {
-      const res = await apiClient.get(`/admin/github-releases`, { params: { per_page: PER_PAGE, page: pageNum } })
-      const data = Array.isArray(res.data) ? res.data : []
-      setReleases(prev => append ? [...prev, ...data] : data)
-      setHasMore(data.length === PER_PAGE)
+      const res = await apiClient.get(`/admin/github-releases`, { params: { per_page: PER_PAGE, page: pageNum } });
+      const data = Array.isArray(res.data) ? res.data : [];
+      setReleases((prev) => (append ? [...prev, ...data] : data));
+      setHasMore(data.length === PER_PAGE);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : 'Unknown error');
     }
-  }
+  };
 
   useEffect(() => {
-    setLoading(true)
-    fetchReleases(1).finally(() => setLoading(false))
-  }, [])
+    setLoading(true);
+    fetchReleases(1).finally(() => setLoading(false));
+  }, []);
 
   const handleLoadMore = async () => {
-    const next = page + 1
-    setLoadingMore(true)
-    await fetchReleases(next, true)
-    setPage(next)
-    setLoadingMore(false)
-  }
+    const next = page + 1;
+    setLoadingMore(true);
+    await fetchReleases(next, true);
+    setPage(next);
+    setLoadingMore(false);
+  };
 
   const toggleExpand = (id) => {
-    setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
-  }
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const formatDate = (dateStr) => {
-    const d = new Date(dateStr)
-    return d.toLocaleDateString(getLocaleForLanguage(language), { day: 'numeric', month: 'short', year: 'numeric' })
-  }
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(getLocaleForLanguage(language), { day: 'numeric', month: 'short', year: 'numeric' });
+  };
 
   // Simple markdown-to-html for release notes (handles headers, bold, lists, links)
   const renderBody = (body) => {
-    if (!body) return null
-    const lines = body.split('\n')
-    const elements = []
-    let listItems = []
+    if (!body) return null;
+    const lines = body.split('\n');
+    const elements = [];
+    let listItems = [];
 
     const flushList = () => {
       if (listItems.length > 0) {
         elements.push(
-          <ul key={`ul-${elements.length}`} className="space-y-1 my-2">
+          <ul key={`ul-${elements.length}`} className="my-2 space-y-1">
             {listItems.map((item, i) => (
               <li key={i} className="flex gap-2 text-xs text-content-muted">
-                <span className="mt-1.5 w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'var(--text-faint)' }} />
+                <span
+                  className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full"
+                  style={{ background: 'var(--text-faint)' }}
+                />
                 <span dangerouslySetInnerHTML={{ __html: inlineFormat(item) }} />
               </li>
             ))}
           </ul>
-        )
-        listItems = []
+        );
+        listItems = [];
       }
-    }
+    };
 
-    const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    const escapeHtml = (str) =>
+      str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const inlineFormat = (text) => {
       return escapeHtml(text)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/`(.+?)`/g, '<code style="font-size:11px;padding:1px 4px;border-radius:4px;background:var(--bg-secondary)">$1</code>')
+        .replace(
+          /`(.+?)`/g,
+          '<code style="font-size:11px;padding:1px 4px;border-radius:4px;background:var(--bg-secondary)">$1</code>'
+        )
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => {
-          const safeUrl = url.startsWith('http://') || url.startsWith('https://') ? url : '#'
-          return `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;text-decoration:underline">${label}</a>`
-        })
-    }
+          const safeUrl = url.startsWith('http://') || url.startsWith('https://') ? url : '#';
+          return `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;text-decoration:underline">${label}</a>`;
+        });
+    };
 
     for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed) { flushList(); continue }
+      const trimmed = line.trim();
+      if (!trimmed) {
+        flushList();
+        continue;
+      }
 
       if (trimmed.startsWith('### ')) {
-        flushList()
+        flushList();
         elements.push(
-          <h4 key={elements.length} className="text-xs font-semibold mt-3 mb-1 text-content">
+          <h4 key={elements.length} className="mb-1 mt-3 text-xs font-semibold text-content">
             {trimmed.slice(4)}
           </h4>
-        )
+        );
       } else if (trimmed.startsWith('## ')) {
-        flushList()
+        flushList();
         elements.push(
-          <h3 key={elements.length} className="text-sm font-semibold mt-3 mb-1 text-content">
+          <h3 key={elements.length} className="mb-1 mt-3 text-sm font-semibold text-content">
             {trimmed.slice(3)}
           </h3>
-        )
+        );
       } else if (/^[-*] /.test(trimmed)) {
-        listItems.push(trimmed.slice(2))
+        listItems.push(trimmed.slice(2));
       } else {
-        flushList()
+        flushList();
         elements.push(
-          <p key={elements.length} className="text-xs my-1 text-content-muted"
+          <p
+            key={elements.length}
+            className="my-1 text-xs text-content-muted"
             dangerouslySetInnerHTML={{ __html: inlineFormat(trimmed) }}
           />
-        )
+        );
       }
     }
-    flushList()
-    return elements
-  }
+    flushList();
+    return elements;
+  };
 
   return (
     <div className="space-y-3">
       {/* Support cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <a
           href="https://ko-fi.com/mauriceboe"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] bg-surface-card border-edge no-underline"
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff5e5b'; e.currentTarget.style.boxShadow = '0 0 0 1px #ff5e5b22' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
+          className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#ff5e5b';
+            e.currentTarget.style.boxShadow = '0 0 0 1px #ff5e5b22';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-primary)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
         >
-          <div className="bg-[#ff5e5b15]" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div
+            className="bg-[#ff5e5b15]"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
             <Coffee size={20} className="text-[#ff5e5b]" />
           </div>
           <div>
@@ -153,11 +194,28 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
           href="https://buymeacoffee.com/mauriceboe"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] bg-surface-card border-edge no-underline"
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#ffdd00'; e.currentTarget.style.boxShadow = '0 0 0 1px #ffdd0022' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
+          className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#ffdd00';
+            e.currentTarget.style.boxShadow = '0 0 0 1px #ffdd0022';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-primary)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
         >
-          <div className="bg-[#ffdd0015]" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div
+            className="bg-[#ffdd0015]"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
             <Heart size={20} className="text-[#ffdd00]" />
           </div>
           <div>
@@ -170,12 +228,31 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
           href="https://discord.gg/NhZBDSd4qW"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] bg-surface-card border-edge no-underline"
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#5865F2'; e.currentTarget.style.boxShadow = '0 0 0 1px #5865F222' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
+          className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#5865F2';
+            e.currentTarget.style.boxShadow = '0 0 0 1px #5865F222';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-primary)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
         >
-          <div className="bg-[#5865F215]" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+          <div
+            className="bg-[#5865F215]"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#5865F2">
+              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+            </svg>
           </div>
           <div>
             <div className="text-sm font-semibold text-content">Discord</div>
@@ -185,16 +262,33 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
         </a>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <a
-          href="https://github.com/mauriceboe/TREK/issues/new?template=bug_report.yml"
+          href="https://github.com/liketrek/TREK/issues/new?template=bug_report.yml"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] bg-surface-card border-edge no-underline"
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.boxShadow = '0 0 0 1px #ef444422' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
+          className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#ef4444';
+            e.currentTarget.style.boxShadow = '0 0 0 1px #ef444422';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-primary)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
         >
-          <div className="bg-[#ef444415]" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div
+            className="bg-[#ef444415]"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
             <Bug size={20} className="text-[#ef4444]" />
           </div>
           <div>
@@ -204,14 +298,31 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
           <ExternalLink size={14} className="ml-auto flex-shrink-0 text-content-faint" />
         </a>
         <a
-          href="https://github.com/mauriceboe/TREK/discussions/new?category=feature-requests"
+          href="https://github.com/liketrek/TREK/discussions/new?category=feature-requests"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] bg-surface-card border-edge no-underline"
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.boxShadow = '0 0 0 1px #f59e0b22' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
+          className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#f59e0b';
+            e.currentTarget.style.boxShadow = '0 0 0 1px #f59e0b22';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-primary)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
         >
-          <div className="bg-[#f59e0b15]" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div
+            className="bg-[#f59e0b15]"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
             <Lightbulb size={20} className="text-[#f59e0b]" />
           </div>
           <div>
@@ -221,14 +332,31 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
           <ExternalLink size={14} className="ml-auto flex-shrink-0 text-content-faint" />
         </a>
         <a
-          href="https://github.com/mauriceboe/TREK/wiki"
+          href="https://github.com/liketrek/TREK/wiki"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] bg-surface-card border-edge no-underline"
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.boxShadow = '0 0 0 1px #6366f122' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
+          className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#6366f1';
+            e.currentTarget.style.boxShadow = '0 0 0 1px #6366f122';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-primary)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
         >
-          <div className="bg-[#6366f115]" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div
+            className="bg-[#6366f115]"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
             <BookOpen size={20} className="text-[#6366f1]" />
           </div>
           <div>
@@ -241,137 +369,134 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
 
       {/* Loading / Error / Releases */}
       {loading ? (
-        <div className="rounded-xl border overflow-hidden bg-surface-card border-edge">
-          <div className="p-8 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-content-muted" />
+        <div className="overflow-hidden rounded-xl border border-edge bg-surface-card">
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin text-content-muted" />
           </div>
         </div>
       ) : error ? (
-        <div className="rounded-xl border overflow-hidden bg-surface-card border-edge">
+        <div className="overflow-hidden rounded-xl border border-edge bg-surface-card">
           <div className="p-6 text-center">
             <p className="text-sm text-content-muted">{t('admin.github.error')}</p>
-            <p className="text-xs mt-1 text-content-faint">{error}</p>
+            <p className="mt-1 text-xs text-content-faint">{error}</p>
           </div>
         </div>
       ) : (
-      <div className="rounded-xl border overflow-hidden bg-surface-card border-edge">
-        <div className="px-5 py-4 border-b flex items-center justify-between border-edge-secondary">
-          <div>
-            <h2 className="font-semibold text-content">{t('admin.github.title')}</h2>
-            <p className="text-xs mt-0.5 text-content-faint">{t('admin.github.subtitle').replace('{repo}', REPO)}</p>
+        <div className="overflow-hidden rounded-xl border border-edge bg-surface-card">
+          <div className="flex items-center justify-between border-b border-edge-secondary px-5 py-4">
+            <div>
+              <h2 className="font-semibold text-content">{t('admin.github.title')}</h2>
+              <p className="mt-0.5 text-xs text-content-faint">{t('admin.github.subtitle').replace('{repo}', REPO)}</p>
+            </div>
+            <a
+              href={`https://github.com/${REPO}/releases`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-lg bg-surface-secondary px-3 py-1.5 text-xs font-medium text-content-muted transition-colors"
+            >
+              <ExternalLink size={12} />
+              GitHub
+            </a>
           </div>
-          <a
-            href={`https://github.com/${REPO}/releases`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-surface-secondary text-content-muted"
-          >
-            <ExternalLink size={12} />
-            GitHub
-          </a>
-        </div>
 
-        {/* Timeline */}
-        <div className="px-5 py-4">
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-[11px] top-3 bottom-3 w-px" style={{ background: 'var(--border-primary)' }} />
+          {/* Timeline */}
+          <div className="px-5 py-4">
+            <div className="relative">
+              {/* Timeline line */}
+              <div
+                className="absolute bottom-3 left-[11px] top-3 w-px"
+                style={{ background: 'var(--border-primary)' }}
+              />
 
-            <div className="space-y-0">
-              {(isPrerelease ? releases : releases.filter(r => !r.prerelease)).map((release, idx) => {
-                const isLatest = idx === 0
-                const isExpanded = expanded[release.id]
+              <div className="space-y-0">
+                {(isPrerelease ? releases : releases.filter((r) => !r.prerelease)).map((release, idx) => {
+                  const isLatest = idx === 0;
+                  const isExpanded = expanded[release.id];
 
-                return (
-                  <div key={release.id} className="relative pl-8 pb-5">
-                    {/* Timeline dot */}
-                    <div
-                      className="absolute left-0 top-1 w-[23px] h-[23px] rounded-full flex items-center justify-center border-2"
-                      style={{
-                        background: isLatest ? 'var(--text-primary)' : 'var(--bg-card)',
-                        borderColor: isLatest ? 'var(--text-primary)' : 'var(--border-primary)',
-                      }}
-                    >
-                      <Tag size={10} style={{ color: isLatest ? 'var(--bg-card)' : 'var(--text-faint)' }} />
-                    </div>
-
-                    {/* Release content */}
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-content">
-                          {release.tag_name}
-                        </span>
-                        {isLatest && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(34,197,94,0.12)] text-[#16a34a]">
-                            {t('admin.github.latest')}
-                          </span>
-                        )}
-                        {release.prerelease && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.12)] text-[#d97706]">
-                            {t('admin.github.prerelease')}
-                          </span>
-                        )}
+                  return (
+                    <div key={release.id} className="relative pb-5 pl-8">
+                      {/* Timeline dot */}
+                      <div
+                        className="absolute left-0 top-1 flex h-[23px] w-[23px] items-center justify-center rounded-full border-2"
+                        style={{
+                          background: isLatest ? 'var(--text-primary)' : 'var(--bg-card)',
+                          borderColor: isLatest ? 'var(--text-primary)' : 'var(--border-primary)',
+                        }}
+                      >
+                        <Tag size={10} style={{ color: isLatest ? 'var(--bg-card)' : 'var(--text-faint)' }} />
                       </div>
 
-                      {release.name && release.name !== release.tag_name && (
-                        <p className="text-xs font-medium mt-0.5 text-content-muted">
-                          {release.name}
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="flex items-center gap-1 text-[11px] text-content-faint">
-                          <Calendar size={10} />
-                          {formatDate(release.published_at || release.created_at)}
-                        </span>
-                        {release.author && (
-                          <span className="text-[11px] text-content-faint">
-                            {t('admin.github.by')} {release.author.login}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Expandable body */}
-                      {release.body && (
-                        <div className="mt-2">
-                          <button
-                            onClick={() => toggleExpand(release.id)}
-                            className="flex items-center gap-1 text-[11px] font-medium transition-colors text-content-muted"
-                          >
-                            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                            {isExpanded ? t('admin.github.hideDetails') : t('admin.github.showDetails')}
-                          </button>
-
-                          {isExpanded && (
-                            <div className="mt-2 p-3 rounded-lg bg-surface-secondary">
-                              {renderBody(release.body)}
-                            </div>
+                      {/* Release content */}
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-content">{release.tag_name}</span>
+                          {isLatest && (
+                            <span className="rounded-full bg-[rgba(34,197,94,0.12)] px-2 py-0.5 text-[10px] font-semibold text-[#16a34a]">
+                              {t('admin.github.latest')}
+                            </span>
+                          )}
+                          {release.prerelease && (
+                            <span className="rounded-full bg-[rgba(245,158,11,0.12)] px-2 py-0.5 text-[10px] font-semibold text-[#d97706]">
+                              {t('admin.github.prerelease')}
+                            </span>
                           )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
 
-          {/* Load more */}
-          {hasMore && (
-            <div className="text-center pt-2">
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors bg-surface-secondary text-content-muted"
-              >
-                {loadingMore ? <Loader2 size={12} className="animate-spin" /> : <ChevronDown size={12} />}
-                {loadingMore ? t('admin.github.loading') : t('admin.github.loadMore')}
-              </button>
+                        {release.name && release.name !== release.tag_name && (
+                          <p className="mt-0.5 text-xs font-medium text-content-muted">{release.name}</p>
+                        )}
+
+                        <div className="mt-1 flex items-center gap-3">
+                          <span className="flex items-center gap-1 text-[11px] text-content-faint">
+                            <Calendar size={10} />
+                            {formatDate(release.published_at || release.created_at)}
+                          </span>
+                          {release.author && (
+                            <span className="text-[11px] text-content-faint">
+                              {t('admin.github.by')} {release.author.login}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Expandable body */}
+                        {release.body && (
+                          <div className="mt-2">
+                            <button
+                              onClick={() => toggleExpand(release.id)}
+                              className="flex items-center gap-1 text-[11px] font-medium text-content-muted transition-colors"
+                            >
+                              {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                              {isExpanded ? t('admin.github.hideDetails') : t('admin.github.showDetails')}
+                            </button>
+
+                            {isExpanded && (
+                              <div className="mt-2 rounded-lg bg-surface-secondary p-3">{renderBody(release.body)}</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          )}
+
+            {/* Load more */}
+            {hasMore && (
+              <div className="pt-2 text-center">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="inline-flex items-center gap-2 rounded-lg bg-surface-secondary px-4 py-2 text-xs font-medium text-content-muted transition-colors"
+                >
+                  {loadingMore ? <Loader2 size={12} className="animate-spin" /> : <ChevronDown size={12} />}
+                  {loadingMore ? t('admin.github.loading') : t('admin.github.loadMore')}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       )}
     </div>
-  )
+  );
 }

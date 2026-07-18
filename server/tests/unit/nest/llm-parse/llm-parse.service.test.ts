@@ -122,6 +122,14 @@ describe('LlmParseService', () => {
     expect(res.warnings[0]).toMatch(/AI parsing failed/i);
   });
 
+  it('logs the swallowed client error to console.error', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    extract.mockRejectedValue(new Error('boom'));
+    await svc().parse(file('a.txt'), 1);
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('[llm-parse]'), 'boom');
+    spy.mockRestore();
+  });
+
   it('routes the local provider through the extraction router instead of the single-shot client', async () => {
     resolveLlmConfig.mockReturnValue(cfg({ provider: 'local', baseUrl: 'http://ollama:11434/v1', apiKey: 'k' }));
     extractText.mockResolvedValue('Hotel booking');
@@ -157,6 +165,15 @@ describe('LlmParseService', () => {
     const res = await svc().parse(file('a.txt'), 1);
     expect(res.kiItems).toEqual([]);
     expect(res.warnings[0]).toMatch(/AI parsing failed/i);
+  });
+
+  it('logs the swallowed router error to console.error', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local' }));
+    routeExtraction.mockRejectedValue(new Error('ollama down'));
+    await svc().parse(file('a.txt'), 1);
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('[llm-parse]'), 'ollama down');
+    spy.mockRestore();
   });
 
   it('warns when the file cannot be read (text extraction throws)', async () => {

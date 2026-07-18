@@ -2,8 +2,6 @@
 
 The **GitHub** tab shows the TREK release history fetched from GitHub and provides links to community resources and support options.
 
-<!-- TODO: screenshot: GitHub releases panel with release timeline -->
-
 ![GitHub tab](assets/GithubReleases.png)
 
 ## Support and resources
@@ -21,7 +19,7 @@ Six cards at the top of the tab link to external resources:
 
 ## Release timeline
 
-Below the support cards, a chronological timeline lists GitHub releases for the `mauriceboe/TREK` repository. Each entry shows:
+Below the support cards, a chronological timeline lists GitHub releases for the `liketrek/TREK` repository. Each entry shows:
 
 - **Version tag** (e.g., `v2.9.14`)
 - A **Latest** badge on the first (most recent) entry in the displayed list

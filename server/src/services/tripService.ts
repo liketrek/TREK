@@ -6,8 +6,8 @@ import { db, isOwner } from '../db/database';
 import { erasePluginUserData } from './userCleanupService';
 import { emitUserDeleted } from '../plugin-user-lifecycle';
 import { Trip, User } from '../types';
-import { listDays, listAccommodations, addDays } from './dayService';
-import { listBudgetItems } from './budgetService';
+import { listDays, listAccommodations, addDays, resyncAccommodationDays, restampReservationDates } from './dayService';
+import { listBudgetItems, removeUserFromBudgetItems } from './budgetService';
 import { listItems as listPackingItems } from './packingService';
 import { listReservations, loadEndpointsByTrip, resyncReservationDays } from './reservationService';
 import { listNotes as listCollabNotes } from './collabService';
@@ -218,6 +218,7 @@ interface UpdateTripData {
   cover_image?: string;
   reminder_days?: number;
   day_count?: number;
+  date_shift_mode?: 'keep_bookings' | 'shift_all';
 }
 
 export interface UpdateTripResult {
@@ -262,10 +263,30 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
 
   const dayCount = data.day_count ? Math.min(Math.max(Number(data.day_count) || 7, 1), MAX_TRIP_DAYS) : undefined;
   if (newStart !== trip.start_date || newEnd !== trip.end_date || dayCount) {
-    generateDays(tripId, newStart || null, newEnd || null, undefined, dayCount);
-    // generateDays re-dates day rows positionally; re-anchor dated bookings to the day
-    // matching their absolute reservation_time so they don't shift with it (#1288).
-    resyncReservationDays(tripId);
+    db.transaction(() => {
+      // Accommodations have no absolute date columns, so their pre-change dates must be
+      // snapshotted before generateDays re-dates the day rows in place.
+      const prevDateByDayId = new Map(
+        (db.prepare('SELECT id, date FROM days WHERE trip_id = ?').all(tripId) as { id: number; date: string | null }[])
+          .map(d => [d.id, d.date]),
+      );
+      generateDays(tripId, newStart || null, newEnd || null, undefined, dayCount);
+      if (data.date_shift_mode === 'shift_all') {
+        // Explicit "shift everything": bookings stay glued to their (re-dated) day rows,
+        // so re-stamp reservation_time to follow — same rules as reorderDays/insertDay.
+        const newDateByDayId = new Map(
+          (db.prepare('SELECT id, date FROM days WHERE trip_id = ?').all(tripId) as { id: number; date: string | null }[])
+            .map(d => [d.id, d.date]),
+        );
+        restampReservationDates(tripId, prevDateByDayId, newDateByDayId);
+      } else {
+        // Default: generateDays re-dates day rows positionally; re-anchor dated bookings to
+        // the day matching their absolute reservation_time, and accommodations (+ their
+        // linked hotel reservations) to the days now holding their pre-change dates (#1288).
+        resyncReservationDays(tripId);
+        resyncAccommodationDays(tripId, prevDateByDayId);
+      }
+    })();
   }
 
   const changes: Record<string, unknown> = {};
@@ -525,6 +546,9 @@ export function deleteGuest(tripId: string | number, guestUserId: number): boole
   // host-side per-user tables + a durable own-db erasure per granted plugin — exactly
   // like a full account deletion (otherwise a deleted guest's plugin data lingers).
   erasePluginUserData(guestUserId);
+  // Re-split the expenses they were part of before the cascade takes their member
+  // rows away — the divisor is denormalized and cannot follow a foreign key (#1553).
+  removeUserFromBudgetItems(guestUserId);
   // Deleting the guest's users row cascades its membership and every assignment join
   // (trip_members, budget/packing/assignment links) via the ON DELETE foreign keys.
   db.prepare('DELETE FROM users WHERE id = ? AND is_guest = 1').run(guestUserId);

@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useTripStore } from '../../store/tripStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
   CheckSquare, Square, Trash2, Plus, Pencil, Package, GripVertical, UserRound, Users, HandHelping,
+  MoreHorizontal,
 } from 'lucide-react'
 import type { PackingItem, PackingBag } from '../../types'
 import { katColor } from './packingListPanel.helpers'
@@ -41,15 +42,18 @@ interface ArtikelZeileProps {
   }
 }
 
-export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true, tripMembers = [], currentUserId, onSetSharing, onClone, onJoin, onLeave, drag }: ArtikelZeileProps) {
+export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true, tripMembers = [], currentUserId, onSetSharing, onClone, onJoin, onLeave, drag }: ArtikelZeileProps) {
   const isPlaceholder = item.name === PACKING_PLACEHOLDER_NAME
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(isPlaceholder ? '' : item.name)
   const [hovered, setHovered] = useState(false)
   const [showCatPicker, setShowCatPicker] = useState(false)
   const [showBagPicker, setShowBagPicker] = useState(false)
+  const [showItemMenu, setShowItemMenu] = useState(false)
+  const [showMenuCategories, setShowMenuCategories] = useState(false)
   const [bagInlineCreate, setBagInlineCreate] = useState(false)
   const [bagInlineName, setBagInlineName] = useState('')
+  const itemMenuBtnRef = useRef<HTMLButtonElement>(null)
   const { togglePackingItem, updatePackingItem, deletePackingItem } = useTripStore()
   const toast = useToast()
   const { t } = useTranslation()
@@ -80,16 +84,19 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
 
   const handleCatChange = async (cat: string) => {
     setShowCatPicker(false)
+    setShowMenuCategories(false)
+    setShowItemMenu(false)
     if (cat === item.category) return
     try { await updatePackingItem(tripId, item.id, { category: cat }) }
     catch { toast.error(t('common.error')) }
   }
 
   const canDrag = canEdit && !isPlaceholder && !!drag
+  const selectedBag = bags.find(b => b.id === item.bag_id)
 
   return (
     <div
-      className="group"
+      className="group packing-item-row"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setShowCatPicker(false); setShowBagPicker(false) }}
       onDragOver={canDrag ? (e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; drag!.onOver(item.id) }) : undefined}
@@ -162,30 +169,31 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
 
       {/* Sharing badges (#858 three-tier) */}
       {!isPlaceholder && sharedToMe && (
-        <span title={t('packing.takenCareOf', { name: item.owner_username || '' })}
+        <span className="packing-row-badge" title={t('packing.takenCareOf', { name: item.owner_username || '' })}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', padding: '1px 7px', borderRadius: 99 }}>
           <HandHelping size={10} /> {t('packing.takenCareOf', { name: item.owner_username || '' })}
         </span>
       )}
       {!isPlaceholder && sharedByMe && (
-        <span title={recipients.map(r => r.username).join(', ')}
+        <span className="packing-row-badge" title={recipients.map(r => r.username).join(', ')}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-tertiary)', padding: '1px 7px', borderRadius: 99 }}>
           <UserRound size={10} /> {t('packing.sharedWithCount', { count: recipients.length })}
         </span>
       )}
       {!isPlaceholder && broughtBy && (
-        <span title={t('packing.broughtBy', { name: broughtBy })}
+        <span className="packing-row-badge" title={t('packing.broughtBy', { name: broughtBy })}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '1px 4px' }}>
           <Users size={10} /> {broughtBy}{contributors.length > 0 ? ` +${contributors.length}` : ''}
         </span>
       )}
 
-      {/* Quantity */}
-      {canEdit && <QuantityInput value={item.quantity || 1} onSave={qty => updatePackingItem(tripId, item.id, { quantity: qty })} />}
+      <div className="packing-row-inline-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        {/* Quantity */}
+        {canEdit && <QuantityInput value={item.quantity || 1} onSave={qty => updatePackingItem(tripId, item.id, { quantity: qty })} />}
 
-      {/* Weight + Bag (when enabled) */}
-      {bagTrackingEnabled && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        {/* Weight + Bag (when enabled) */}
+        {bagTrackingEnabled && (
+          <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent' }}>
             <NumericInput
               value={item.weight_grams ?? ''}
@@ -205,8 +213,8 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
               onClick={() => canEdit && setShowBagPicker(p => !p)}
               style={{
                 width: 22, height: 22, borderRadius: '50%', cursor: canEdit ? 'pointer' : 'default', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: item.bag_id ? `2.5px solid ${bags.find(b => b.id === item.bag_id)?.color || 'var(--border-primary)'}` : '2px dashed var(--border-primary)',
-                background: item.bag_id ? `${bags.find(b => b.id === item.bag_id)?.color || 'var(--border-primary)'}30` : 'transparent',
+                border: item.bag_id ? `2.5px solid ${selectedBag?.color || 'var(--border-primary)'}` : '2px dashed var(--border-primary)',
+                background: item.bag_id ? `${selectedBag?.color || 'var(--border-primary)'}30` : 'transparent',
               }}
             >
               {!item.bag_id && <Package size={9} className="text-content-faint" />}
@@ -275,11 +283,12 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
               </div>
             )}
           </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
       {canEdit && (
-      <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexShrink: 0 }}>
+      <div className="packing-row-inline-actions" style={{ display: 'flex', gap: 2, alignItems: 'center', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowCatPicker(p => !p)}
@@ -332,6 +341,138 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
         </button>
       </div>
       )}
+
+      {canEdit && (
+        <div className="packing-row-overflow" style={{ display: 'none', flexShrink: 0, position: 'relative' }}>
+          <button
+            ref={itemMenuBtnRef}
+            onClick={() => setShowItemMenu(m => !m)}
+            title={t('common.showMore')}
+            style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', padding: 0 }}
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          {showItemMenu && (() => {
+            const rect = itemMenuBtnRef.current?.getBoundingClientRect()
+            return (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1098 }} onClick={() => { setShowItemMenu(false); setShowMenuCategories(false) }} />
+                <div className="trek-menu-enter" style={{
+                  position: 'fixed',
+                  right: rect ? Math.max(8, window.innerWidth - rect.right) : 8,
+                  top: rect ? rect.bottom + 4 : 0,
+                  zIndex: 1099,
+                  width: 'min(260px, calc(100vw - 16px))',
+                  maxHeight: '70vh',
+                  overflowY: 'auto',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-primary)',
+                  borderRadius: 10,
+                  boxShadow: '0 8px 28px rgba(0,0,0,0.18)',
+                  padding: 6,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 8px' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0 }}>{t('packing.quantity')}</span>
+                    <QuantityInput value={item.quantity || 1} onSave={qty => updatePackingItem(tripId, item.id, { quantity: qty })} />
+                  </div>
+
+                  {bagTrackingEnabled && (
+                    <>
+                      <div style={{ height: 1, background: 'var(--bg-tertiary)', margin: '4px 0' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 8px' }}>
+                        <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0 }}>{t('packing.totalWeight')}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent' }}>
+                          <NumericInput
+                            value={item.weight_grams ?? ''}
+                            readOnly={!canEdit}
+                            onValueChange={async raw => {
+                              const v = raw === '' ? null : parseInt(raw)
+                              try { await updatePackingItem(tripId, item.id, { weight_grams: v }) } catch { toast.error(t('packing.toast.saveError')) }
+                            }}
+                            placeholder="—"
+                            style={{ width: 42, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'right', fontFamily: 'inherit', outline: 'none', color: 'var(--text-secondary)', background: 'transparent', padding: 0 }}
+                          />
+                          <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', userSelect: 'none' }}>g</span>
+                        </div>
+                      </div>
+                      <div style={{ padding: '2px 0' }}>
+                        <OverflowMenuItem icon={<Package size={13} />} label={selectedBag?.name || t('packing.noBag')} onClick={async () => {
+                          if (item.bag_id) {
+                            try { await updatePackingItem(tripId, item.id, { bag_id: null }) } catch { toast.error(t('packing.toast.saveError')) }
+                          }
+                        }} />
+                        {bags.map(b => (
+                          <OverflowMenuItem key={b.id} icon={<span style={{ width: 10, height: 10, borderRadius: '50%', background: b.color, display: 'inline-block' }} />} label={b.name} active={item.bag_id === b.id} onClick={async () => {
+                            setShowItemMenu(false)
+                            try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch { toast.error(t('packing.toast.saveError')) }
+                          }} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  <div style={{ height: 1, background: 'var(--bg-tertiary)', margin: '4px 0' }} />
+                  <OverflowMenuItem icon={<span style={{ width: 9, height: 9, borderRadius: '50%', background: katColor(item.category || t('packing.defaultCategory'), categories), display: 'inline-block' }} />} label={t('packing.changeCategory')} onClick={() => setShowMenuCategories(v => !v)} />
+                  {showMenuCategories && (
+                    <div style={{ padding: '2px 0 4px 18px' }}>
+                      {categories.map(cat => (
+                        <OverflowMenuItem key={cat} icon={<span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(cat, categories), display: 'inline-block' }} />} label={cat} active={cat === (item.category || t('packing.defaultCategory'))} onClick={() => handleCatChange(cat)} />
+                      ))}
+                    </div>
+                  )}
+
+                  {canShare && onClone && onJoin && onLeave && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 8px' }}>
+                      <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', color: 'var(--text-secondary)' }}>{t('packing.share')}</span>
+                      <PackingShareControl
+                        item={item}
+                        tripMembers={tripMembers}
+                        currentUserId={currentUserId}
+                        onSetSharing={onSetSharing!}
+                        onClone={onClone}
+                        onJoin={onJoin}
+                        onLeave={onLeave}
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ height: 1, background: 'var(--bg-tertiary)', margin: '4px 0' }} />
+                  <OverflowMenuItem icon={<Pencil size={13} />} label={t('common.rename')} onClick={() => { setEditing(true); setShowItemMenu(false) }} />
+                  <OverflowMenuItem icon={<Trash2 size={13} />} label={t('common.delete')} danger onClick={() => { setShowItemMenu(false); handleDelete() }} />
+                </div>
+              </>
+            )
+          })()}
+        </div>
+      )}
     </div>
+  )
+}
+
+interface OverflowMenuItemProps {
+  icon: ReactNode
+  label: string
+  onClick: () => void
+  active?: boolean
+  danger?: boolean
+}
+
+function OverflowMenuItem({ icon, label, onClick, active = false, danger = false }: OverflowMenuItemProps) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+        padding: '7px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
+        background: active ? 'var(--bg-tertiary)' : 'none',
+        color: danger ? '#ef4444' : 'var(--text-secondary)',
+        fontFamily: 'inherit', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', textAlign: 'left',
+      }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.background = danger ? '#fef2f2' : 'var(--bg-tertiary)' }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'none' }}
+    >
+      <span style={{ width: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</span>
+      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+    </button>
   )
 }

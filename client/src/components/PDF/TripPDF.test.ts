@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { downloadTripPDF } from './TripPDF'
 import { server } from '../../../tests/helpers/msw/server'
+import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,11 @@ beforeEach(() => {
     http.get('/api/pdf-sections/:tripId', () =>
       HttpResponse.json({ sections: [] })
     ),
+    // Mixed-currency exports fetch FX rates; keep the suite hermetic.
+    http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([])),
   )
+  // The FX cache is module-level and would leak rates between tests in this file.
+  clearExchangeRateCache()
 })
 
 afterEach(() => {
@@ -327,6 +332,63 @@ describe('downloadTripPDF', () => {
     // JPY is a zero-decimal currency (currencyDecimals) and uses its own symbol, not EUR.
     // Note: Intl renders JPY with the fullwidth yen sign (U+FFE5 "￥"), not U+00A5 "¥".
     expect(iframe!.srcdoc).toContain('￥1,500')
+  })
+
+  it('FE-COMP-TRIPPDF-016d: converts foreign-currency prices into the trip currency for day and cover totals (#1561)', async () => {
+    server.use(http.get('https://api.frankfurter.dev/v2/rates', ({ request }) => {
+      expect(new URL(request.url).searchParams.get('base')).toBe('NOK')
+      return HttpResponse.json([{ quote: 'USD', rate: 0.1 }]) // 1 NOK = 0.1 USD
+    }))
+    const mixedArgs = {
+      ...richArgs,
+      trip: { ...richArgs.trip, currency: 'NOK' },
+      assignments: {
+        '10': [
+          { ...assignmentForDay, place: { ...placeWithDetails, currency: 'USD', price: '273' } },
+          { ...assignmentForDay, id: 201, place: { ...placeWithDetails, id: 101, name: 'Museum', currency: null, price: '2500' } },
+        ],
+      } as any,
+    }
+    await downloadTripPDF(mixedArgs)
+    const srcdoc = getIframe()!.srcdoc.replace(/[\u00A0\u202F]/g, ' ')
+    // 2500 NOK + 273 USD / 0.1 = 5230 NOK, marked approximate, in day header AND cover stat.
+    expect(srcdoc).toContain('≈ 5 230,00 kr')
+    expect((srcdoc.match(/≈ 5 230,00 kr/g) || []).length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('FE-COMP-TRIPPDF-016e: falls back to per-currency breakdowns when the FX fetch fails (#1561)', async () => {
+    server.use(http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.error()))
+    const mixedArgs = {
+      ...richArgs,
+      trip: { ...richArgs.trip, currency: 'NOK' },
+      assignments: {
+        '10': [
+          { ...assignmentForDay, place: { ...placeWithDetails, currency: 'USD', price: '2730.27' } },
+          { ...assignmentForDay, id: 201, place: { ...placeWithDetails, id: 101, name: 'Museum', currency: null, price: '2500' } },
+        ],
+      } as any,
+    }
+    // Export still resolves — a dead FX endpoint must never break the PDF.
+    await expect(downloadTripPDF(mixedArgs)).resolves.not.toThrow()
+    const srcdoc = getIframe()!.srcdoc.replace(/[\u00A0\u202F]/g, ' ')
+    // Honest breakdown, base currency first; the USD amount is never NOK-labeled.
+    expect(srcdoc).toContain('2 500,00 kr + $2,730.27')
+    expect(srcdoc).not.toContain('≈')
+    expect(srcdoc).not.toMatch(/5 ?230/)
+  })
+
+  it('FE-COMP-TRIPPDF-016f: an all-same-currency trip makes no FX request', async () => {
+    let fxCalled = false
+    server.use(http.get('https://api.frankfurter.dev/v2/rates', () => {
+      fxCalled = true
+      return HttpResponse.json([])
+    }))
+    await downloadTripPDF({ ...richArgs, trip: { ...richArgs.trip, currency: 'EUR' } })
+    expect(fxCalled).toBe(false)
+    // Totals render exactly as before for the single-currency case.
+    const srcdoc = getIframe()!.srcdoc.replace(/[\u00A0\u202F]/g, ' ')
+    expect(srcdoc).toContain('15,00 €')
+    expect(srcdoc).not.toContain('≈')
   })
 
   it('FE-COMP-TRIPPDF-017: renders trip description on cover', async () => {

@@ -2,8 +2,6 @@
 
 Create categorized packing checklists with member assignments and optional bag tracking.
 
-<!-- TODO: screenshot: packing list with checked items and categories -->
-
 ![Packing Lists](assets/PackingList.png)
 
 ## Where to find it

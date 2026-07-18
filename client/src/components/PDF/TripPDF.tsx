@@ -5,7 +5,8 @@ import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship
 import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
-import { formatMoney, splitReservationDateTime } from '../../utils/formatters'
+import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
+import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 
 function renderLucideIcon(icon:LucideIcon, props = {}) {
@@ -92,9 +93,15 @@ function longDateRange(days, locale) {
   return `${f.toLocaleDateString(locale, { day: 'numeric', month: 'long', timeZone: 'UTC' })} – ${l.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}`
 }
 
-function dayCost(assignments, dayId, locale, currency) {
-  const total = (assignments[String(dayId)] || []).reduce((s, a) => s + (parseFloat(a.place?.price) || 0), 0)
-  return total > 0 ? formatMoney(total, currency, locale) : null
+// Day totals render in the trip's currency; foreign-currency place prices are
+// converted via the pre-fetched rates, or listed per-currency when rates are
+// unavailable (#1561).
+function dayCost(assignments, dayId, locale, tripCurrency, rates) {
+  const entries: MoneyEntry[] = (assignments[String(dayId)] || []).map(a => ({
+    amount: parseFloat(a.place?.price) || 0,
+    currency: a.place?.currency || tripCurrency,
+  }))
+  return formatMoneySum(entries, tripCurrency, locale || 'en', rates)
 }
 
 // Pre-fetch place photos for all assigned places.
@@ -160,8 +167,18 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   const totalAssigned = new Set(
     Object.values(assignments || {}).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
   ).size
-  const totalCost = Object.values(assignments || {})
-    .flatMap(a => a).reduce((s, a) => s + (Number(a.place?.price) || 0), 0)
+  // The PDF is a trip-scoped, shareable document, so totals stay in the trip's
+  // own currency. Rates are resolved ONCE before any HTML is built so the cover
+  // stat and every day header agree; all-same-currency trips skip the FX fetch
+  // entirely (offline export keeps working), and a failed fetch degrades to
+  // per-currency breakdowns instead of mislabeled sums (#1561).
+  const tripCur = (trip?.currency || 'EUR').toUpperCase()
+  const allCostEntries: MoneyEntry[] = Object.values(assignments || {})
+    .flatMap(a => a)
+    .map(a => ({ amount: Number(a.place?.price) || 0, currency: a.place?.currency || tripCur }))
+  const needsFx = allCostEntries.some(e => e.amount > 0 && e.currency.toUpperCase() !== tripCur)
+  const fxRates = needsFx ? await fetchExchangeRates(tripCur) : null
+  const totalCostLabel = formatMoneySum(allCostEntries, tripCur, loc || 'en', fxRates)
 
   // Span helpers for multi-day transport (mirrors DayPlanSidebar logic)
   const pdfGetDayOrder = (d: Day) => d.day_number
@@ -204,7 +221,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   const daysHtml = sorted.map((day, di) => {
     const assigned = assignments[String(day.id)] || []
     const notes = (dayNotes || []).filter(n => n.day_id === day.id)
-    const cost = dayCost(assignments, day.id, loc, trip.currency)
+    const cost = dayCost(assignments, day.id, loc, tripCur, fxRates)
 
     // Reservations for this day (hotel rendered via accommodations block; car middle-phase rendered in sidebar header only)
     const dayReservations = pdfGetTransportForDay(day.id)
@@ -624,8 +641,8 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
         <div class="cover-stat-num">${totalAssigned}</div>
         <div class="cover-stat-lbl">${escHtml(tr('pdf.planned'))}</div>
       </div>
-      ${totalCost > 0 ? `<div>
-        <div class="cover-stat-num">${formatMoney(totalCost, trip.currency, loc)}</div>
+      ${totalCostLabel ? `<div>
+        <div class="cover-stat-num">${totalCostLabel}</div>
         <div class="cover-stat-lbl">${escHtml(tr('pdf.costLabel'))}</div>
       </div>` : ''}
     </div>

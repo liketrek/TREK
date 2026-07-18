@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   version-bump:
-    if: github.repository == 'mauriceboe/TREK'
+    if: github.repository == 'liketrek/TREK'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.bump.outputs.VERSION }}

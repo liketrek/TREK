@@ -125,6 +125,16 @@ describe('listTemplates', () => {
 
 // ── applyTemplate ─────────────────────────────────────────────────────────────
 
+/** A one-category template with the given item names. Returns its id. */
+function seedTemplate(userId: number, itemNames: string[]): number {
+  const templateId = testDb.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)').run('Camping', userId).lastInsertRowid as number;
+  const catId = testDb.prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)').run(templateId, 'Gear', 0).lastInsertRowid as number;
+  itemNames.forEach((name, i) => {
+    testDb.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)').run(catId, name, i);
+  });
+  return templateId;
+}
+
 describe('applyTemplate', () => {
   it('PACK-SVC-003: adds template items to a trip packing list', () => {
     const { user } = createUser(testDb);
@@ -162,6 +172,55 @@ describe('applyTemplate', () => {
     const result = applyTemplate(trip.id, templateId);
 
     expect(result).toBeNull();
+  });
+
+  // #1565: the applied items must land in the view the user is on, not always Common.
+  it('PACK-SVC-046: applies into the personal list when visibility is personal', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const templateId = seedTemplate(user.id, ['Tent']);
+
+    const result = applyTemplate(trip.id, templateId, 'personal', user.id) as any[];
+
+    expect(result[0].is_private).toBe(1);
+    expect(result[0].owner_id).toBe(user.id);
+    expect(listItems(trip.id, user.id).filter((i: any) => i.is_private)).toHaveLength(1);
+  });
+
+  it('PACK-SVC-047: a personally applied template stays hidden from other members', () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb, { username: 'other' });
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, other.id);
+    const templateId = seedTemplate(user.id, ['Tent']);
+
+    applyTemplate(trip.id, templateId, 'personal', user.id);
+
+    expect(listItems(trip.id, other.id)).toHaveLength(0);
+  });
+
+  it('PACK-SVC-048: applies into the common pool by default, leaving items unowned', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const templateId = seedTemplate(user.id, ['Tent']);
+
+    const result = applyTemplate(trip.id, templateId, 'common', user.id) as any[];
+
+    expect(result[0].is_private).toBe(0);
+    // Unowned, so any member may still re-share it (setItemSharing claims a null owner).
+    expect(result[0].owner_id).toBeNull();
+  });
+
+  it('PACK-SVC-049: falls back to common when no owner is given, so items stay visible', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const templateId = seedTemplate(user.id, ['Tent']);
+
+    // A private item with no owner would be invisible to everyone.
+    const result = applyTemplate(trip.id, templateId, 'personal') as any[];
+
+    expect(result[0].is_private).toBe(0);
+    expect(listItems(trip.id, user.id)).toHaveLength(1);
   });
 });
 

@@ -6,6 +6,25 @@ plugins — a static client bundle. TREK runs your server code in an **isolated
 child process** and reaches it only over RPC; the browser part runs in a
 **sandboxed, opaque-origin iframe**. There is no other way in or out.
 
+## Before you start
+
+Two resources sit alongside this page:
+
+- **[Plugin-Skill](https://github.com/liketrek/Plugin-Skill)** — an agent skill
+  that teaches Claude Code and other SKILL.md-compatible coding agents how to
+  build, test and publish a TREK plugin. It covers the same ground as this page,
+  but the agent reads it instead of you. Add it to the repo you build your plugin
+  in and it loads automatically whenever the task touches TREK plugins.
+- **[TREK-Plugins](https://github.com/liketrek/TREK-Plugins)** — the community
+  registry. It is a static index with no server and no account: you list a plugin
+  by opening a pull request that adds one JSON file. Your plugin's code stays in
+  your own repository; the registry only points at it. See
+  [Plugin-Publishing](Plugin-Publishing) for the submission flow and the CI gates.
+
+Neither is required. You can build, install and run a plugin without touching
+either — the registry only matters when you want other people's TREK instances
+to find it.
+
 ## Scaffold
 
 ```bash

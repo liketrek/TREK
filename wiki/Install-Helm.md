@@ -72,7 +72,7 @@ helm install trek trek/trek \
 
 ```yaml
 image:
-  repository: mauriceboe/trek
+  repository: liketrek/TREK
   # tag: latest        # defaults to the chart's appVersion
   pullPolicy: IfNotPresent
 
@@ -188,7 +188,7 @@ helm upgrade trek trek/trek
 
 ## Full Values Reference
 
-See the [`charts/README.md`](https://github.com/mauriceboe/TREK/blob/main/charts/README.md) for all available values.
+See the [`charts/README.md`](https://github.com/liketrek/TREK/blob/main/charts/README.md) for all available values.
 
 ## Next Steps
 

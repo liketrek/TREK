@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { db } from '../db/database';
 import { pluginsDataRoot } from '../nest/plugins/paths';
+import { removeUserFromBudgetItems } from './budgetService';
 
 /**
  * Erase a user's PLUGIN-held data on account deletion. Two parts:
@@ -44,6 +45,7 @@ export function erasePluginUserData(userId: number): void {
 function cleanupUserReferences(userId: number): void {
   db.prepare('UPDATE trip_members SET invited_by = NULL WHERE invited_by = ?').run(userId);
   db.prepare('UPDATE budget_items SET paid_by_user_id = NULL WHERE paid_by_user_id = ?').run(userId);
+  removeUserFromBudgetItems(userId);
   db.prepare('DELETE FROM share_tokens WHERE created_by = ?').run(userId);
   db.prepare('DELETE FROM journey_share_tokens WHERE created_by = ?').run(userId);
   // Owned journeys cascade-delete their entries/contributors/share_tokens/photos via journey_id FKs

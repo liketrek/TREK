@@ -8,11 +8,11 @@ body:
     attributes:
       label: Pre-flight checklist
       options:
-        - label: I have searched [existing issues](https://github.com/mauriceboe/TREK/issues) and this bug has not been reported yet
+        - label: I have searched [existing issues](https://github.com/liketrek/TREK/issues) and this bug has not been reported yet
           required: true
         - label: I am running the latest available version of TREK
           required: true
-        - label: I have read the [Troubleshooting guide](https://github.com/mauriceboe/TREK/wiki/Troubleshooting) and my issue is not covered there
+        - label: I have read the [Troubleshooting guide](https://github.com/liketrek/TREK/wiki/Troubleshooting) and my issue is not covered there
           required: true
 
   - type: input

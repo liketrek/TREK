@@ -2,11 +2,9 @@
 
 The Settings page lets you personalise every aspect of TREK — appearance, maps, notifications, offline behaviour, and your account.
 
-<!-- TODO: screenshot: user settings page tabs -->
-
 ## Navigating to Settings
 
-Open the user menu in the top navigation bar and select **Settings**. The page opens on the **Display** tab by default.
+Open the user menu in the top navigation bar and select **Settings**. The page opens on the **General** tab by default.
 
 If your account requires MFA setup, TREK redirects you directly to the **Account** tab (via `?mfa=required`).
 
@@ -14,25 +12,42 @@ If your account requires MFA setup, TREK redirects you directly to the **Account
 
 | Tab | Purpose | Shown when |
 |-----|---------|------------|
-| Display | Color mode, language, temperature unit, time format, route calculation, booking route labels, and blur booking codes | Always |
-| Map | Map provider (Leaflet or Mapbox GL), tile presets, Mapbox style and token, 3D buildings, high-quality mode, default map center and zoom | Always |
+| General | Currency, language, temperature unit, distance unit, time format, booking route labels, map POI pills, and blur booking codes | Always |
+| Appearance | Color mode, color scheme / accent, readability (transparency, reduce motion, density, text size), and which widgets appear on your dashboard | Always |
+| Map | Map provider (Leaflet, Mapbox GL, or MapLibre GL), tile presets, map style and Mapbox token, 3D buildings, high-quality mode | Always |
 | Notifications | Email, webhook, ntfy, and in-app notification preferences | Always |
 | Integrations | Photo providers (Immich, Synology, etc.) and MCP OAuth clients / API tokens | Only when the Memories or MCP addon is enabled |
+| Plugins | Per-user settings for installed plugins | Only when at least one plugin is installed |
 | Offline | Cached trips, pending changes, re-sync and clear cache | Always |
 | Account | Username, email, password, MFA (TOTP + backup codes), avatar, delete account | Always |
 | About | App version, links to Ko-fi / Buy Me a Coffee / Discord / GitHub (bug reports, feature requests) / Wiki | Only when version metadata is available |
 
-## Display tab
+## General tab
 
-The Display tab controls the following preferences, all saved immediately on change:
+The General tab controls the following preferences, all saved immediately on change. See [Display-Settings](Display-Settings) for the detail.
 
-- **Color mode** — Light, Dark, or Auto (follows the OS setting).
-- **Language** — Displayed as a button grid on desktop and a dropdown on mobile.
+**Language & region**
+
+- **Currency** — your display currency; **Trip currency** (the default) shows each trip in its own. See [Currencies](Currencies).
+- **Language** — displayed as a button grid on desktop and a dropdown on mobile.
 - **Temperature unit** — Celsius (°C) or Fahrenheit (°F).
+- **Distance unit** — Metric (km) or Imperial (mi).
 - **Time format** — 24h (14:30) or 12h (2:30 PM).
-- **Route calculation** — Enable or disable automatic route calculation between places.
-- **Booking route labels** — Show or hide labels on booking routes on the map.
-- **Blur booking codes** — Blur confirmation codes and reference numbers (useful when screen-sharing).
+
+**Travel & map**
+
+- **Booking route labels** — show or hide station / airport names on booking route endpoint markers.
+- **Explore places on the map** — show a POI category pill on the trip map for finding nearby places from OpenStreetMap.
+- **Blur booking codes** — blur confirmation codes and reference numbers (useful when screen-sharing).
+
+## Appearance tab
+
+- **Color mode** — Light, Dark, or Auto (follows your operating system / browser preference).
+- **Color scheme** — a preset accent, or **Custom** with your own light and dark accent colors.
+- **Readability** *(Experimental)* — transparency, reduce motion, density, and text size.
+- **Dashboard widgets** — which widgets appear on the dashboard, independently for desktop and mobile.
+
+See [Appearance-Settings](Appearance-Settings) for the detail.
 
 ## Map tab
 
@@ -44,12 +59,17 @@ The Map tab requires an explicit **Save** action after making changes.
 - **Mapbox GL** (Experimental) — Vector tiles with 3D buildings and terrain. Requires a public Mapbox access token (`pk.*`). Supports built-in style presets (Mapbox Standard, Standard Satellite, Streets, Outdoors, Light, Dark, Satellite, Satellite Streets, Navigation Day, Navigation Night) or a custom `mapbox://styles/USER/ID` URL. Additional options:
   - **3D Buildings & Terrain** — Pitch and real 3D building extrusions (works on every style including satellite).
   - **High Quality Mode** (Experimental) — Antialiasing + globe projection for sharper edges. May impact performance on lower-end devices.
+- **MapLibre GL** — Vector tiles from **OpenFreeMap**, and the reason to pick it over Mapbox GL: **it needs no access token**. Styles are OpenFreeMap Liberty, Bright, and Positron, or any `https://tiles.openfreemap.org/…` style URL. The 3D and high-quality toggles are Mapbox-only and are not shown here.
+
+Each GL provider keeps its own saved style, so switching between Mapbox GL and MapLibre GL never overwrites the other one's choice.
 
 > Atlas always uses Leaflet regardless of the provider setting.
 
-**Default map position** — Set the default latitude, longitude, and zoom level. You can also click directly on the map preview to set the center.
+**Opening view** — there is no default map center or zoom setting. Every map frames itself on the places it is showing. See [Map-Settings](Map-Settings).
 
 ## Account tab summary
+
+![Settings page on the Account tab, with the settings tab rail on the left and username, email, change-password fields and the two-factor authentication section on the right](assets/SettingsAccount.png)
 
 The Account tab lets you:
 
@@ -74,6 +94,7 @@ The Integrations tab is only visible when the **Memories** or **MCP** addon is e
 ## See also
 
 - [Display-Settings](Display-Settings)
+- [Appearance-Settings](Appearance-Settings)
 - [Map-Settings](Map-Settings)
 - [Notifications](Notifications)
 - [Offline-Mode-and-PWA](Offline-Mode-and-PWA)

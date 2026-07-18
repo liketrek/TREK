@@ -2,8 +2,6 @@
 
 The **Addons** tab lets you enable or disable optional features for the entire TREK instance. Toggling an addon affects all users immediately — disabling one hides its UI elements and blocks its API routes instance-wide.
 
-<!-- TODO: screenshot: addon toggle switches in admin panel -->
-
 ![Addon overview](assets/Addons-Overview.png)
 
 ## What addons control
@@ -18,7 +16,7 @@ Addons are grouped into three categories, shown as labeled sections.
 
 Trip addons add per-trip feature panels. They appear in every trip where the addon is enabled.
 
-The default trip addons are: **Lists**, **Budget**, **Documents**, **Collab**, and **Naver List Import** (all enabled by default). The exact list is determined by what is registered in your TREK database.
+The default trip addons are: **Lists**, **Costs**, **Documents**, **Collab**, and **Naver List Import** (all enabled by default). The exact list is determined by what is registered in your TREK database.
 
 **Sub-toggles on trip addons:**
 

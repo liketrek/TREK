@@ -18,6 +18,10 @@ describe('isBlockedIp', () => {
     '::1', '::', 'fe80::1', 'fc00::1', 'fd12:3456::1', '::ffff:127.0.0.1', '::ffff:10.0.0.1',
     // non-canonical IPv6 spellings must be blocked too (canonicalization)
     '0::1', '::ffff:a9fe:a9fe', '::ffff:169.254.169.254', '0:0:0:0:0:0:0:1', 'fD00::1', '::ffff:7f00:1',
+    // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a blocked IPv4
+    '64:ff9b::a9fe:a9fe', '64:ff9b::7f00:1', '64:ff9b::a00:1', // NAT64 → metadata / loopback / 10.x
+    '2002:a9fe:a9fe::', '2002:7f00:1::', // 6to4 → metadata / loopback
+    '2001::5601:5601', // Teredo → 169.254.169.254
   ])('blocks %s', (ip) => {
     expect(isBlockedIp(ip)).toBe(true);
   });
@@ -25,6 +29,8 @@ describe('isBlockedIp', () => {
   it.each([
     '8.8.8.8', '1.1.1.1', '140.82.121.3', '172.15.0.1', '172.32.0.1',
     '100.63.0.1', '100.128.0.1', '2606:4700::1111', '::ffff:8.8.8.8',
+    // transition addresses to a public IPv4 are legitimate egress, not blocked
+    '64:ff9b::808:808', '2002:808:808::',
   ])('allows public %s', (ip) => {
     expect(isBlockedIp(ip)).toBe(false);
   });
