@@ -12,7 +12,7 @@ Back up your data first. Go to Admin Panel → Backups and create a manual backu
 |---|---|---|
 | `latest` | `mauriceboe/TREK:latest` | Always the newest release across all major versions |
 | Major version | `mauriceboe/TREK:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/TREK:3.0.15` | Exact release; never changes |
+| Full version | `mauriceboe/TREK:3.4.0` | Exact release; never changes |
 
 Use `latest` or a major-version tag if you want updates on each redeploy. Use a full version tag for explicit control — update by changing the tag, not by re-pulling.
 
@@ -28,7 +28,7 @@ This pulls the newest matching image and recreates the container with your exist
 
 **Pinned full-version tag:**
 
-Edit `docker-compose.yml`, update the tag in the `image:` line (e.g. `3.0.15` → `3.0.16`), then redeploy:
+Edit `docker-compose.yml`, update the tag in the `image:` line (e.g. `3.4.0` → `3.4.1`), then redeploy:
 
 ```bash
 docker compose up -d
@@ -91,7 +91,7 @@ Open the **Stacks** list, click the TREK stack, then click **Redeploy**.
 
 ![Re-pull image and redeploy switch ticked, with arrows pointing to the switch and the Update button](assets/portainer-force-pull.png)
 
-**Pinned full-version tag** (e.g. `3.0.15`) — edit the stack, update the tag in the `image:` line, then click **Update the stack**. No re-pull switch needed; the tag change forces a fresh pull.
+**Pinned full-version tag** (e.g. `3.4.0`) — edit the stack, update the tag in the `image:` line, then click **Update the stack**. No re-pull switch needed; the tag change forces a fresh pull.
 
 ![Edit stack page with an arrow pointing to the image tag in the compose editor](assets/portainer-update-version.png)
 

@@ -6,7 +6,7 @@ TREK has **three** currency settings, and they answer three different questions.
 |---|---|---|---|
 | **Trip currency** | Trip → Edit trip | *What is this trip's money?* | Stored data — the base every balance is calculated in |
 | **Expense currency** | Costs → expense modal | *What currency did I actually pay in?* | Stored data — that one expense |
-| **Display currency** | Settings → Display | *What currency do I want to read?* | Presentation only — never the stored data |
+| **Display currency** | Settings → General | *What currency do I want to read?* | Presentation only — never the stored data |
 
 The short version: **the trip currency is the accounting base, the expense currency is the receipt, and the display currency is your reading glasses.**
 
@@ -48,7 +48,7 @@ A payment recorded in **Settle Up** also carries its own currency, for the same 
 
 ## Display currency
 
-**Settings → Display → Currency** is a **per-user, presentation-only** preference. It converts what you *read* in the Costs tab — totals, the category chart, balances, the settle-up amounts — into a single currency, so a trip with dollars, yen and roubles in it still adds up to one number you understand.
+**Settings → General → Currency** is a **per-user, presentation-only** preference. It converts what you *read* in the Costs tab — totals, the category chart, balances, the settle-up amounts — into a single currency, so a trip with dollars, yen and roubles in it still adds up to one number you understand.
 
 It never changes what is stored. Two people looking at the same trip can read it in different currencies and both see correct, consistent balances.
 

@@ -15,8 +15,8 @@ The following addons are registered in the system (defined in `server/src/db/see
 | Addon ID | Type | Description |
 |---|---|---|
 | `mcp` | integration | Exposes TREK data and actions through the Model Context Protocol for AI assistant integrations. |
-| `packing` | trip | Packing list management — create templates and lists linked to trips. See [Packing-Lists](Packing-Lists). |
-| `budget` | trip | Trip budget tracking — log expenses, set budgets, and track spending per trip. See [Budget-Tracking](Budget-Tracking). |
+| `packing` | trip | **Lists** — packing lists and to-do tasks for your trips. See [Packing-Lists](Packing-Lists). |
+| `budget` | trip | **Costs** — track and split trip expenses. See [Budget-Tracking](Budget-Tracking). |
 | `documents` | trip | Document and file attachments for trips — store itineraries, visa copies, and other files. See [Documents-and-Files](Documents-and-Files). |
 | `vacay` | global | Personal vacation day planner with a year calendar, holiday packs, and collaborator fusion. See [Vacay](Vacay). |
 | `atlas` | global | Interactive world map showing countries and regions you have visited, plus a bucket list. See [Atlas](Atlas). |

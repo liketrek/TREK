@@ -18,7 +18,7 @@ Addons are grouped into three categories, shown as labeled sections.
 
 Trip addons add per-trip feature panels. They appear in every trip where the addon is enabled.
 
-The default trip addons are: **Lists**, **Budget**, **Documents**, **Collab**, and **Naver List Import** (all enabled by default). The exact list is determined by what is registered in your TREK database.
+The default trip addons are: **Lists**, **Costs**, **Documents**, **Collab**, and **Naver List Import** (all enabled by default). The exact list is determined by what is registered in your TREK database.
 
 **Sub-toggles on trip addons:**
 

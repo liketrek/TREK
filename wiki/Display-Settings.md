@@ -1,20 +1,18 @@
-# Display Settings
+# General Settings
 
-The Display tab (Settings → Display) controls the visual appearance and locale preferences of the app. All changes save immediately to your account and persist across devices.
+The General tab (Settings → General) controls your locale preferences and a few map-related display options. All changes save immediately to your account and persist across devices.
 
 <!-- TODO: screenshot: appearance settings panel -->
 
-![Display Settings](assets/UsrSettings.png)
+![General Settings](assets/UsrSettings.png)
 
-## Color mode
+## Where to find it
 
-Choose between three options:
+Open the user menu in the top navigation bar, select **Settings**, and stay on the **General** tab — it is the tab the page opens on.
 
-| Option | Behaviour |
-|--------|-----------|
-| Light | Always uses the light theme |
-| Dark | Always uses the dark theme |
-| Auto | Follows your operating system / browser preference |
+The tab is split into two sections: **Language & region** (currency, language, temperature, distance, time format) and **Travel & map** (booking route labels, POI pills, blur booking codes).
+
+> Color mode (Light / Dark / Auto) is **not** here — it lives on the **Appearance** tab. See [Appearance-Settings](Appearance-Settings).
 
 ## Currency
 
@@ -44,6 +42,13 @@ Affects the weather widget on trip days.
 | °C Celsius | Metric |
 | °F Fahrenheit | Imperial |
 
+## Distance unit
+
+| Option | Display |
+|--------|---------|
+| km Metric | Kilometres |
+| mi Imperial | Miles |
+
 ## Time format
 
 Affects all time displays throughout the app.
@@ -53,13 +58,13 @@ Affects all time displays throughout the app.
 | 24h | 14:30 |
 | 12h | 2:30 PM |
 
-## Route calculation
-
-Toggles automatic route calculation between places on the trip map. Set to **On** or **Off**.
-
 ## Booking route labels
 
-Shows or hides labels on booking-related route segments on the map. Set to **On** or **Off**.
+Shows or hides station / airport names on the endpoint markers of booking routes on the map. When off, only the icon is shown. Set to **On** or **Off**.
+
+## Explore places on the map
+
+Shows a category pill on the trip map for finding nearby restaurants, hotels and more from OpenStreetMap. Set to **On** or **Off**.
 
 ## Blur booking codes
 
@@ -69,4 +74,5 @@ When enabled, confirmation codes and reference numbers are blurred until you hov
 
 - [Currencies](Currencies)
 - [Languages](Languages)
+- [Appearance-Settings](Appearance-Settings)
 - [User-Settings](User-Settings)
