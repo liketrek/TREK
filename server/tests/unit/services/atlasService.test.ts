@@ -31,7 +31,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation } from '../../helpers/factories';
-import { getStats, getCached, setCache, getCountryFromCoords, getCountryFromAddress, reverseGeocodeCountry, getRegionGeo, getCountryGeo, getCountryPlaces, getVisitedRegions, markCountryVisited, unmarkCountryVisited } from '../../../src/services/atlasService';
+import { getStats, getCached, setCache, getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getRegionGeo, getCountryGeo, getCountryPlaces, getVisitedRegions, markCountryVisited, unmarkCountryVisited } from '../../../src/services/atlasService';
 
 function insertReservationEndpoint(
   db: any,
@@ -314,6 +314,27 @@ describe('getCountryFromCoords', () => {
     expect(getCountryFromCoords(41.9973, 21.4280)).toBe('MK'); // Skopje
     expect(getCountryFromCoords(42.0106, 20.9714)).toBe('MK'); // Tetovo
     expect(getCountryFromCoords(42.6629, 21.1655)).toBe('XK'); // Pristina
+  });
+});
+
+// ── isPointInCountryBox — sanity gate for the address-derived region fallback ──────
+
+describe('isPointInCountryBox', () => {
+  it('ATLAS-SVC-006a: accepts a country whose box genuinely covers the point, even where the exact border excludes it', () => {
+    // Bollendorf-Pont: on the Luxembourg side of the border, but outside LU's exact
+    // simplified polygon (see getCountryFromCoords returning DE for this same point in
+    // atlasService.test.ts's region-resolution tests). The box gate must stay loose
+    // enough to admit this, or the Luxembourg address-fallback fix would regress.
+    expect(isPointInCountryBox('LU', 49.8502458, 6.3576404)).toBe(true);
+  });
+
+  it('ATLAS-SVC-006b: rejects a country whose box is nowhere near the point', () => {
+    // Mid-Atlantic, nowhere close to Japan under any simplification.
+    expect(isPointInCountryBox('JP', 20, -35)).toBe(false);
+  });
+
+  it('ATLAS-SVC-006c: returns false for an unknown/garbage country code', () => {
+    expect(isPointInCountryBox('ZZ', 48.85, 2.35)).toBe(false);
   });
 });
 
@@ -601,6 +622,36 @@ describe('getStats — extended', () => {
 
     expect(stats.lastTrip).toBeNull();
   });
+
+  it('ATLAS-UNIT-027: a US place whose address ends in a state abbreviation resolves to US, not the colliding ISO country', async () => {
+    // getCountryFromAddress()'s "2-letter uppercase last segment = ISO code" heuristic
+    // parses "..., CA" as Canada (a real ISO code), not California. resolveCountryCodeSync
+    // used to try the address FIRST, so a place with coordinates that plainly resolve to the
+    // US via getCountryFromCoords would still get bucketed under Canada. Mirrors the
+    // region-level fix (ATLAS-UNIT-024) at the country level.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'San Francisco Trip' });
+    insertPlaceWithCoords(testDb, trip.id, 'Hotel Pickwick', 37.7830549, -122.4066689, '85 5th St, San Francisco, CA');
+
+    const stats = await getStats(user.id);
+
+    const codes = stats.countries.map((c: any) => c.code);
+    expect(codes).toContain('US');
+    expect(codes).not.toContain('CA');
+  });
+
+  it('ATLAS-UNIT-028: lastTrip.countryCode resolves via coordinates, not a misparsed state-abbreviation address', async () => {
+    // lastTrip.countryCode calls resolveCountryCodeSync directly (not through the
+    // place_regions cache), so this exercises the fix independently of ATLAS-UNIT-027.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Past NY Trip', start_date: '2023-05-01', end_date: '2023-05-10' });
+    insertPlaceWithCoords(testDb, trip.id, 'Imperial Court Hotel', 40.7848394, -73.981643, '307 W 79th Street, New York, NY');
+
+    const stats = await getStats(user.id);
+
+    expect(stats.lastTrip).not.toBeNull();
+    expect(stats.lastTrip!.countryCode).toBe('US');
+  });
 });
 
 // ── getCountryPlaces ─────────────────────────────────────────────────────────
@@ -728,31 +779,167 @@ describe('getVisitedRegions', () => {
     expect(codes).toContain('FR-75');
   });
 
-  it('ATLAS-UNIT-021: GB places resolving to a constituent country are re-resolved to the finer admin-1 code', async () => {
-    vi.useFakeTimers();
-    // A zoom-8 lookup only yields the constituent country (GB-ENG); the zoom-10 lookup
-    // exposes the borough code (GB-MAN) that Natural Earth's polygons actually carry.
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve({
-      ok: true,
-      json: async () => ({
-        address: url.includes('zoom=10')
-          ? { country_code: 'gb', 'ISO3166-2-lvl8': 'GB-MAN', city: 'Manchester', state: 'England', 'ISO3166-2-lvl4': 'GB-ENG' }
-          : { country_code: 'gb', 'ISO3166-2-lvl4': 'GB-ENG', state: 'England' },
-      }),
-    })));
+  it('ATLAS-UNIT-021: a GB place resolves against the bundled admin1 polygon without calling Nominatim', async () => {
+    // The shipped geoBoundaries bundle only carries GB's 4 constituent countries
+    // (England/Scotland/Wales/Northern Ireland) — no county/borough level. Resolving
+    // Old Trafford's coordinates directly against those polygons lands on GB-ENG, the
+    // same feature the client highlights, with no reverse-geocode round trip at all.
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
 
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Manchester Trip' });
     insertPlaceWithCoords(testDb, trip.id, 'Old Trafford', 53.4631, -2.2913);
 
     await getVisitedRegions(user.id);
+    // The background geocode is fire-and-forget; give its microtasks a turn to settle
+    // before reading the now-cached result back.
+    await new Promise(resolve => setTimeout(resolve, 10));
+    const result = await getVisitedRegions(user.id);
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.regions['GB']).toBeDefined();
+    const codes = result.regions['GB'].map((r: any) => r.code);
+    expect(codes).toContain('GB-ENG');
+  });
+
+  it('ATLAS-UNIT-022: a place whose Nominatim region level is finer than the bundle (Spain province vs autonomous community) still resolves to a bundle-matching feature', async () => {
+    // Regression for the Barcelona/Madrid bug: Nominatim's ISO3166-2-lvl6 gives the
+    // *province* (ES-B), but the bundle only has the *autonomous-community* level
+    // (Catalonia). Resolving by coordinates instead of trusting the geocoder's level
+    // guarantees a code the client bundle actually carries.
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Barcelona Trip' });
+    insertPlaceWithCoords(testDb, trip.id, 'Sagrada Familia', 41.4036, 2.1744);
+
+    await getVisitedRegions(user.id);
+    // The background geocode is fire-and-forget; give its microtasks a turn to settle
+    // before reading the now-cached result back.
+    await new Promise(resolve => setTimeout(resolve, 10));
+    const result = await getVisitedRegions(user.id);
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.regions['ES']).toBeDefined();
+    expect(result.regions['ES'][0].code).not.toBe('ES-B');
+  });
+
+  it('ATLAS-UNIT-023: a place address disambiguates a border point the simplified admin0 polygon puts in the wrong country', async () => {
+    // A real Airbnb at Bollendorf-Pont sits on the Luxembourg side of the Sauer river,
+    // but the coordinates alone fall inside Germany's simplified admin0 polygon
+    // (border-simplification slop) — getCountryFromCoords(lat, lng) returns DE, so a
+    // coordinate-only region lookup finds nothing in DE. The place's own stored address
+    // says Luxembourg, so it is retried as a fallback before ever reaching Nominatim.
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Luxembourg Trip' });
+    insertPlaceWithCoords(
+      testDb, trip.id, 'Airbnb - Welcome Home', 49.8502458, 6.3576404,
+      '4 Gruusswiss, Bollendorf-Pont, Distrikt Gréiwemaacher 6555, Luxembourg'
+    );
+
+    await getVisitedRegions(user.id);
+    await new Promise(resolve => setTimeout(resolve, 10));
+    const result = await getVisitedRegions(user.id);
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.regions['LU']).toBeDefined();
+    expect(result.regions['DE']).toBeUndefined();
+  });
+
+  it('ATLAS-UNIT-024: a US place whose address ends in a state abbreviation still resolves by coordinates, ignoring the address', async () => {
+    // getCountryFromAddress() treats any 2-letter uppercase last address segment as an
+    // ISO country code — "...CA" parses as Canada, not California. Trusting the address
+    // FIRST (as ATLAS-UNIT-023 might suggest) would send a San Francisco hotel's region
+    // lookup to Canada and fail to find one, costing a needless Nominatim round trip (or
+    // worse, a wrong match) for every US place whose address ends in a state code.
+    // Coordinates resolve this correctly on their own, so the address must only be
+    // consulted when the coordinate-only lookup finds nothing.
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'San Francisco Trip' });
+    insertPlaceWithCoords(
+      testDb, trip.id, 'Hotel Pickwick', 37.7830549, -122.4066689,
+      '85 5th St, San Francisco, CA'
+    );
+
+    await getVisitedRegions(user.id);
+    await new Promise(resolve => setTimeout(resolve, 10));
+    const result = await getVisitedRegions(user.id);
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.regions['US']).toBeDefined();
+    expect(result.regions['CA']).toBeUndefined();
+  });
+
+  it('ATLAS-UNIT-025: when the bundle-only lookup finds nothing, the Nominatim fallback keeps the coarse GB constituent-country code instead of rescuing to a finer one', async () => {
+    // Mid-Atlantic open ocean — getCountryFromCoords finds no country and there's no
+    // address, so this always falls through to the Nominatim path. That path used to re-query at a
+    // finer zoom for GB and swap in a county/borough code (GB-MAN, GB-LND, …) that targeted
+    // Natural Earth's old, finer GB polygons — the current geoBoundaries bundle only has the
+    // 4 constituent countries, so that rescued code could never match anything and the
+    // region would never highlight. The coarse Nominatim result (GB-ENG) IS a real bundle
+    // feature and must be kept as-is, with a single geocode call (no zoom=10 re-query).
+    vi.useFakeTimers();
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ address: { country_code: 'gb', 'ISO3166-2-lvl4': 'GB-ENG', state: 'England' } }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Middle of the ocean' });
+    insertPlaceWithCoords(testDb, trip.id, 'Buoy', 10, -40);
+
+    await getVisitedRegions(user.id);
     await vi.runAllTimersAsync();
     const result = await getVisitedRegions(user.id);
 
+    expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(result.regions['GB']).toBeDefined();
     const codes = result.regions['GB'].map((r: any) => r.code);
-    expect(codes).toContain('GB-MAN');
-    expect(codes).not.toContain('GB-ENG');
+    expect(codes).toContain('GB-ENG');
+
+    vi.useRealTimers();
+  });
+
+  it('ATLAS-UNIT-026: an address country nowhere near the coordinates is rejected before it can produce a bogus region match', async () => {
+    // Coordinates in the open mid-Atlantic (no country polygon contains them) paired
+    // with a stored address ending in "JP" — getCountryFromAddress()'s 2-letter-uppercase
+    // heuristic returns 'JP' regardless of how implausible that is for these coordinates.
+    // Without a sanity check, getRegionFromCoords('JP', ...) would only return null because
+    // no Japanese region polygon happens to reach the mid-Atlantic — but that's incidental,
+    // not a guarantee, for some other coordinate/bogus-code combination. The admin0 box
+    // gate rejects JP outright (its bounding box is nowhere near these coordinates) so the
+    // address is never even tried against JP's regions, and resolution correctly falls
+    // through to Nominatim instead of risking a wrong match.
+    vi.useFakeTimers();
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ address: {} }), // Nominatim finds nothing here either
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Mid-Atlantic buoy' });
+    // Different coordinates than ATLAS-UNIT-025's mid-Atlantic point — reverseGeocodeRegion's
+    // regionCache is an in-memory Map keyed by rounded lat/lng and persists across tests in
+    // this file, so reusing the same point would silently hit that cached result instead of
+    // exercising this test's fetch/gate path.
+    insertPlaceWithCoords(testDb, trip.id, 'Weather buoy', 20, -35, '123 Nowhere Rd, JP');
+
+    await getVisitedRegions(user.id);
+    await vi.runAllTimersAsync();
+    const result = await getVisitedRegions(user.id);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1); // fell through to Nominatim, not a fabricated JP match
+    expect(result.regions['JP']).toBeUndefined();
 
     vi.useRealTimers();
   });
