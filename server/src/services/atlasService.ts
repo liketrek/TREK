@@ -91,6 +91,13 @@ function getAdmin1Store(): Promise<Map<string, string>> {
 function createFeatureSplitter(onFeature: (text: string) => void): (chunk: string) => void {
   let pending = '';
   let started = false;
+  // Scan progress is carried across chunks so each character is examined exactly once.
+  // A large Feature (e.g. Canada, ~5.5MB) spans hundreds of gunzip chunks; re-scanning the
+  // accumulated partial from the start on every chunk was O(n²) per feature and pushed the
+  // one-time admin1 build past the 15s test timeout under coverage/CI (#1576-followup).
+  let scanning = false;            // currently inside a Feature object?
+  let depth = 0, inStr = false, esc = false;
+  let scanPos = 0, featStart = 0;  // resume point + current feature start, in `pending`
   return (chunk: string) => {
     pending += chunk;
     if (!started) {
@@ -100,26 +107,36 @@ function createFeatureSplitter(onFeature: (text: string) => void): (chunk: strin
       if (br === -1) return;
       pending = pending.slice(br + 1);
       started = true;
+      scanPos = 0;
     }
-    let i = 0, consumed = 0;
     const n = pending.length;
-    while (i < n) {
-      while (i < n && (pending[i] === ' ' || pending[i] === '\n' || pending[i] === '\r' || pending[i] === '\t' || pending[i] === ',')) i++;
-      if (i >= n || pending[i] === ']') break;
-      if (pending[i] !== '{') { i++; continue; }
-      let depth = 0, inStr = false, esc = false, end = -1;
-      for (let j = i; j < n; j++) {
+    while (scanPos < n) {
+      if (!scanning) {
+        const c = pending[scanPos];
+        if (c === ' ' || c === '\n' || c === '\r' || c === '\t' || c === ',') { scanPos++; continue; }
+        if (c === ']') { scanPos = n; break; }
+        if (c !== '{') { scanPos++; continue; }
+        scanning = true; depth = 0; inStr = false; esc = false; featStart = scanPos;
+      }
+      let end = -1;
+      for (let j = scanPos; j < n; j++) {
         const c = pending[j];
         if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; }
         else if (c === '"') inStr = true;
         else if (c === '{') depth++;
-        else if (c === '}') { if (--depth === 0) { end = j + 1; break; } }
+        else if (c === '}') { if (--depth === 0) { end = j + 1; scanPos = j + 1; break; } }
       }
-      if (end === -1) break; // partial feature — wait for the next chunk
-      onFeature(pending.slice(i, end));
-      i = end; consumed = end;
+      if (end === -1) { scanPos = n; break; } // partial feature — resume from n next chunk
+      onFeature(pending.slice(featStart, end));
+      scanning = false;
     }
-    pending = pending.slice(consumed);
+    // Drop the fully-consumed prefix, keeping at most the current partial feature.
+    const keepFrom = scanning ? featStart : scanPos;
+    if (keepFrom > 0) {
+      pending = pending.slice(keepFrom);
+      scanPos -= keepFrom;
+      if (scanning) featStart -= keepFrom;
+    }
   };
 }
 
