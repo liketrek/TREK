@@ -469,16 +469,6 @@ The Atlas map's country and sub-national (province/county) boundaries come from
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
 for full third-party attributions.
 
-## Star History
-
-<a href="https://www.star-history.com/?repos=liketrek%2FTREK&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=liketrek/TREK&type=date&theme=dark&legend=top-left&sealed_token=fZvGh96HlHGgtXL06DYING-4ai8RIbzbRu1B3B4quG_MxxdnIF5n5puh2B7y23S0uV0OjkdLa_w_b0gq6xPoywVEZHjKvtl4WzD6Jc5lAbkXWj6nCJ-gMQ" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=liketrek/TREK&type=date&legend=top-left&sealed_token=fZvGh96HlHGgtXL06DYING-4ai8RIbzbRu1B3B4quG_MxxdnIF5n5puh2B7y23S0uV0OjkdLa_w_b0gq6xPoywVEZHjKvtl4WzD6Jc5lAbkXWj6nCJ-gMQ" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=liketrek/TREK&type=date&legend=top-left&sealed_token=fZvGh96HlHGgtXL06DYING-4ai8RIbzbRu1B3B4quG_MxxdnIF5n5puh2B7y23S0uV0OjkdLa_w_b0gq6xPoywVEZHjKvtl4WzD6Jc5lAbkXWj6nCJ-gMQ" />
- </picture>
-</a>
-
 ## License
 
 TREK is [AGPL v3](LICENSE). Self-host freely for personal or internal company use. If you modify and offer TREK as a network service to third parties, your modifications must be open-sourced under the same licence.
