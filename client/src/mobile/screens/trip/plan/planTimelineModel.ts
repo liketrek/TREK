@@ -1,7 +1,7 @@
 import { Cloud, CloudDrizzle, CloudLightning, CloudRain, CloudSnow, Sun, Wind } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { getDisplayTimeForDay, getSpanPhase, parseTimeToMinutes } from '../../../../utils/dayMerge'
-import { isDayInAccommodationRange } from '../../../../utils/dayOrder'
+import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
 import type { MergedItem } from '../../../../utils/dayMerge'
 import type { TransitLegDisplay } from '../../../../components/Planner/transitDisplay'
 import type { Accommodation, Assignment, Day, DayNote, Reservation, RouteSegment, TranslationFn } from '../../../../types'
@@ -165,6 +165,33 @@ export function hotelChipsForDay(day: Day, days: Day[], accommodations: Accommod
   }
   const rank = { checkout: 0, checkin: 1, stay: 2 }
   return chips.filter(c => c.name).sort((a, b) => rank[a.variant] - rank[b.variant])
+}
+
+export interface HotelLeg { seg: RouteSegment; name: string }
+export interface HotelLegs { top: HotelLeg | null; bottom: HotelLeg | null }
+
+/**
+ * The two accommodation bookend legs of a day: the drive from the day's hotel to
+ * the first stop (top) and from the last stop back to the hotel (bottom). The
+ * route calc already produced these via withHotelBookends — honouring the
+ * optimize-from-accommodation setting and the should-draw gates — so we just
+ * locate the pooled segment that starts (top) / ends (bottom) at the hotel's
+ * coordinates. Its presence is exactly the signal that the leg should be drawn.
+ */
+export function hotelLegsForDay(
+  day: Day,
+  days: Day[],
+  accommodations: Accommodation[],
+  routeSegments: RouteSegment[],
+): HotelLegs {
+  const { morning, evening } = getDayBookendHotels(day, days, accommodations)
+  const legAt = (a: Accommodation | undefined, end: 'from' | 'to'): HotelLeg | null => {
+    if (!a || a.place_lat == null || a.place_lng == null) return null
+    const coord: [number, number] = [a.place_lat, a.place_lng]
+    const seg = routeSegments.find(s => sameCoord(end === 'from' ? s.from : s.to, coord))
+    return seg ? { seg, name: accommodationName(a) } : null
+  }
+  return { top: legAt(morning, 'from'), bottom: legAt(evening, 'to') }
 }
 
 /** The day headline as city pills — a "Tokyo → Kyoto" title becomes two pills with an arrow. */

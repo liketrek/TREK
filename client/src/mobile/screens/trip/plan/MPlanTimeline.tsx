@@ -8,7 +8,7 @@ import { fmtTransitDuration } from '../../../../components/Planner/transitDispla
 import { formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
 import { cityPillsForDay, weatherIconFor } from './planTimelineModel'
-import { ConnRow, NoteRow, PlaceRow, ReorderStack, TransitRow, TransportRow } from './MPlanTimelineRows'
+import { ConnRow, HotelConnRow, NoteRow, PlaceRow, ReorderStack, TransitRow, TransportRow } from './MPlanTimelineRows'
 import MDancingTrek from '../../../components/MDancingTrek'
 import type { MPlanTimelineProps } from '../MTripShell'
 import type { MergedItem } from '../../../../utils/dayMerge'
@@ -65,6 +65,10 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
       >
         {(tl.hotelChips.length > 0 || tl.weatherTemp != null) && (
           <TimelineHeader tl={tl} onOpenDay={() => tl.day && shell.openSheet('day', { dayId: tl.day.id })} />
+        )}
+
+        {tl.hotelLegs.top && (
+          <HotelConnRow seg={tl.hotelLegs.top.seg} name={tl.hotelLegs.top.name} placement="top" />
         )}
 
         {tl.rows.map(row => {
@@ -125,6 +129,10 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
               return <ConnRow key={row.key} seg={row.seg} />
           }
         })}
+
+        {tl.hotelLegs.bottom && (
+          <HotelConnRow seg={tl.hotelLegs.bottom.seg} name={tl.hotelLegs.bottom.name} placement="bottom" />
+        )}
 
         {tl.rows.length === 0 && !editing && (
           <div className="flex min-h-full flex-1 flex-col items-center justify-center py-8 text-center">

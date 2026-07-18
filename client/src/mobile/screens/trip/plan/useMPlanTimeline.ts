@@ -6,8 +6,8 @@ import { getDayBookendHotels } from '../../../../utils/dayOrder'
 import { getDisplayTimeForDay, getMergedItems, getTransportForDay } from '../../../../utils/dayMerge'
 import { dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute'
 import {
-  buildPlanRows, breaksChronology, findUpNext, hotelChipsForDay, itemHasTime,
-  type PlanRow, type TransportEntry,
+  buildPlanRows, breaksChronology, findUpNext, hotelChipsForDay, hotelLegsForDay, itemHasTime,
+  type HotelLegs, type PlanRow, type TransportEntry,
 } from './planTimelineModel'
 import type { TripPlanner } from '../MTripShell'
 import type { WeatherResult } from '@trek/shared'
@@ -69,6 +69,13 @@ export function useMPlanTimeline(planner: TripPlanner) {
     if (!day) return []
     return buildPlanRows({ merged, reservations, routeSegments: connSegments, dayId: day.id })
   }, [day, merged, reservations, connSegments])
+
+  // Accommodation bookend legs (hotel → first stop, last stop → hotel). The
+  // segments already sit in connSegments; hotelLegsForDay picks the two out.
+  const hotelLegs = useMemo<HotelLegs>(
+    () => (day ? hotelLegsForDay(day, days, tripAccommodations, connSegments) : { top: null, bottom: null }),
+    [day, days, tripAccommodations, connSegments],
+  )
 
   const hotelChips = useMemo(
     () => (day ? hotelChipsForDay(day, days, tripAccommodations) : []),
@@ -309,7 +316,7 @@ export function useMPlanTimeline(planner: TripPlanner) {
     : null
 
   return {
-    day, rows, merged, hotelChips, weather, weatherTemp, upNext,
+    day, rows, hotelLegs, merged, hotelChips, weather, weatherTemp, upNext,
     language, timeFormat: settings.time_format,
     openTransitKeys, toggleTransit,
     moveRow, removeAssignment, editAssignment, editTransport, openTransitJourney,

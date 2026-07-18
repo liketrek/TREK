@@ -1,4 +1,4 @@
-import { Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, Ticket, X } from 'lucide-react'
+import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, Ticket, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
@@ -373,6 +373,43 @@ export function ConnRow({ seg }: { seg: RouteSegment }) {
         {seg.drivingText}
       </span>
       <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
+    </div>
+  )
+}
+
+// ── b4b) Accommodation bookend leg (hotel → first stop / last stop → hotel) ──
+
+export function HotelConnRow({ seg, name, placement }: {
+  seg: RouteSegment
+  name: string
+  placement: 'top' | 'bottom'
+}) {
+  const travel = (
+    <div className="flex items-center gap-2 py-px text-[color:var(--m-conn)]">
+      <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
+      <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
+        <Footprints size={10} strokeWidth={2} />
+        {seg.walkingText}
+      </span>
+      <span className="whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
+        · {seg.distanceText} ·
+      </span>
+      <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
+        <Car size={10} strokeWidth={2} />
+        {seg.drivingText}
+      </span>
+      <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
+    </div>
+  )
+  const hotel = (
+    <div className="flex items-center justify-center gap-[5px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-muted">
+      <BedDouble size={11} strokeWidth={2} className="flex-none" />
+      <span className="min-w-0 truncate">{name}</span>
+    </div>
+  )
+  return (
+    <div className="mt-[5px] flex flex-col gap-[3px]">
+      {placement === 'top' ? <>{hotel}{travel}</> : <>{travel}{hotel}</>}
     </div>
   )
 }
