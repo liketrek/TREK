@@ -28,8 +28,9 @@ import {
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
   type MergedItem,
 } from '../../utils/dayMerge'
-import { formatDate, formatTime, dayTotalCost, splitReservationDateTime } from '../../utils/formatters'
+import { formatDate, formatTime, dayTotalCost, formatMoneySum, splitReservationDateTime } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
+import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
 import { MobileAddPlaceButton } from './DayPlanSidebarMobileAddPlaceButton'
@@ -240,6 +241,12 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   }, [selectedAssignmentId, selectedPlaceId])
 
   const currency = trip?.currency || 'EUR'
+  // Cost totals render in the user's display currency (falling back to the
+  // trip's), converting foreign-currency place prices via live FX rates —
+  // same base resolution as BookingCostsSection / the Costs panel (#1561).
+  const displayCurrency = useSettingsStore(s => s.settings.default_currency)
+  const costBase = (displayCurrency || currency).toUpperCase()
+  const { rates: fxRates } = useExchangeRates(costBase)
 
   // Drag-Daten aus dataTransfer, Ref oder window lesen (dataTransfer geht bei Re-Render verloren)
   const getDragData = (e) => {
@@ -969,10 +976,13 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     setDraggingId(null)
   }
 
-  const totalCost = useMemo(() => days.reduce((s, d) => {
-    const da = assignments[String(d.id)] || []
-    return s + da.reduce((s2, a) => s2 + (Number(a.place?.price) || 0), 0)
-  }, 0), [days, assignments])
+  const totalCostLabel = useMemo(() => {
+    const entries = days.flatMap(d => (assignments[String(d.id)] || []).map(a => ({
+      amount: Number(a.place?.price) || 0,
+      currency: a.place?.currency || currency,
+    })))
+    return formatMoneySum(entries, costBase, locale, fxRates)
+  }, [days, assignments, currency, costBase, locale, fxRates])
 
   // Bester verfügbarer Standort für Wetter: zugewiesene Orte zuerst, dann beliebiger Reiseort
   const anyGeoAssignment = Object.values(assignments).flatMap(da => da).find(a => a.place?.lat && a.place?.lng)
@@ -1101,6 +1111,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     initedTransportIds,
     lastAutoScrolledIdRef,
     currency,
+    costBase,
+    fxRates,
     getDragData,
     prevDayCount,
     toggleDay,
@@ -1125,7 +1137,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     handleOptimize,
     handleDropOnDay,
     handleDropOnRow,
-    totalCost,
+    totalCostLabel,
     anyGeoAssignment,
     anyGeoPlace,
     expandedRouteDayIds,
@@ -1268,6 +1280,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     initedTransportIds,
     lastAutoScrolledIdRef,
     currency,
+    costBase,
+    fxRates,
     getDragData,
     prevDayCount,
     toggleDay,
@@ -1292,7 +1306,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     handleOptimize,
     handleDropOnDay,
     handleDropOnRow,
-    totalCost,
+    totalCostLabel,
     anyGeoAssignment,
     anyGeoPlace,
     expandedRouteDayIds,
@@ -1335,7 +1349,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           const isSelected = selectedDayId === day.id
           const isExpanded = expandedDays.has(day.id)
           const da = getDayAssignments(day.id)
-          const cost = dayTotalCost(day.id, assignments, currency)
+          const cost = dayTotalCost(day.id, assignments, costBase, currency, locale, fxRates)
           const formattedDate = formatDate(day.date, locale)
           const loc = da.find(a => a.place?.lat && a.place?.lng)
           // Route tools normally need 2+ stops, but a single located place is still
@@ -2496,7 +2510,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
       />
 
       {/* Budget-Fußzeile */}
-      <DayPlanSidebarFooter totalCost={totalCost} currency={currency} t={t} />
+      <DayPlanSidebarFooter totalCostLabel={totalCostLabel} t={t} />
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
     </div>
   )
