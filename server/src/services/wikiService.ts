@@ -132,16 +132,56 @@ function processMarkdown(md: string): string {
   // markdown renderer would otherwise surface them as raw text.
   let out = md.replace(/<!--[\s\S]*?-->/g, '');
   out = out.replace(/\[\[([^\]]+)\]\]/g, (_m, inner: string) => {
-    const [title, slugRaw] = inner.includes('|') ? inner.split('|') : [inner, inner];
+    const [titleRaw, slugRaw] = inner.includes('|') ? inner.split('|') : [inner, inner];
     const slug = slugRaw.trim().replace(/\s+/g, '-');
-    return `[${title.trim()}](/help/${slug})`;
+    // `[[Plugin Development#talking-to-plugins|Plugin-Development]]` must not
+    // render its anchor as visible link text.
+    const [title, anchor] = titleRaw.includes('#') ? titleRaw.split('#') : [titleRaw, ''];
+    const hash = anchor ? `#${anchor.trim()}` : '';
+    return `[${title.trim()}](/help/${slug}${hash})`;
   });
   out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)([^)]*)\)/g, (m, alt: string, url: string) => {
     if (/^https?:\/\//i.test(url) || url.startsWith('/api/help/asset/')) return m;
     const clean = url.replace(/^\.?\//, '').replace(/^wiki\//, '');
     return `![${alt}](/api/help/asset/${clean})`;
   });
+  // Bare relative links — `[Currencies](Currencies)`, the native GitHub-wiki
+  // spelling and by far the most common in these pages (455 of them across 81
+  // files, against 114 `[[..]]` links). GitHub resolves them against the wiki
+  // root; in-app they used to fall through to HelpPage's external-link branch
+  // and open a dead tab. Rewriting them here fixes every page at once and keeps
+  // the source GitHub-compatible, so contributors can keep writing either form.
+  //
+  // Runs last: `[[..]]` links and images have already become absolute paths by
+  // this point, so the leading-slash guard skips them.
+  out = outsideCode(out, (segment) =>
+    segment.replace(/(^|[^!])\[([^\]]+)\]\(([^)\s]+)\)/g, (m, prefix: string, text: string, url: string) => {
+      if (/^(https?:|mailto:|tel:|#|\/)/i.test(url)) return m;
+      const [pageRaw, anchor] = url.includes('#') ? url.split('#') : [url, ''];
+      const page = pageRaw.replace(/^\.?\//, '').replace(/\.md$/i, '').trim();
+      if (!page || !SLUG_RE.test(page)) return m;
+      return `${prefix}[${text}](/help/${page}${anchor ? `#${anchor}` : ''})`;
+    }),
+  );
   return out;
+}
+
+/**
+ * Apply `fn` to the parts of the markdown that are NOT code, leaving fenced
+ * blocks and inline spans untouched.
+ *
+ * Without this the link rewriter corrupts code samples: Plugin-Development.md
+ * documents `actions[key](ctx)`, which reads as a markdown link and would be
+ * rewritten to `actions[key](/help/ctx)` inside what is supposed to be a
+ * verbatim snippet.
+ */
+function outsideCode(md: string, fn: (segment: string) => string): string {
+  // Alternation order matters: fenced blocks first, so a ``` fence containing
+  // backticks is consumed whole rather than being split by the inline rule.
+  const CODE = /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`)/g;
+  const parts = md.split(CODE);
+  // split() with a capturing group yields [text, code, text, code, …].
+  return parts.map((part, i) => (i % 2 === 1 ? part : fn(part))).join('');
 }
 
 function extractTitle(md: string, fallback: string): string {
