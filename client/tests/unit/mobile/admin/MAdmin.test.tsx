@@ -8,8 +8,9 @@ import MAdmin from '../../../../src/mobile/screens/admin/MAdmin';
 
 // FE-MOB-ADMIN-001 onwards
 
-// The permissions matrix is its own heavy panel — out of scope here.
-vi.mock('../../../../src/components/Admin/PermissionsPanel', () => ({
+// The permissions matrix is its own heavy panel — out of scope here. Mock the
+// mobile panel MAdmin actually renders (it self-loads GET /api/admin/permissions).
+vi.mock('../../../../src/mobile/screens/admin/MAdminPermissionsPanel', () => ({
   default: () => <div data-testid="permissions-panel" />,
 }));
 
