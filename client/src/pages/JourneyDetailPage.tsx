@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { journeyApi } from '../api/client'
 import Navbar from '../components/Layout/Navbar'
@@ -47,6 +48,8 @@ function JourneyDetailPageDesktop() {
     mapEntries, sidebarMapItems, tripDates, isMobile,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
   } = useJourneyDetail()
+
+  const galleryUploadRef = useRef<(() => void) | null>(null)
 
   if (loading || !current) {
     return (
@@ -296,17 +299,27 @@ function JourneyDetailPageDesktop() {
                     </button>
                   ))}
                 </div>
-                {canEditEntries && (!isMobile ? view === 'timeline' : view !== 'gallery') && (
+                {canEditEntries && view === 'timeline' && (
                   <button
                     onClick={() => {
                       const today = new Date().toISOString().split('T')[0]
                       setEditingEntry({ id: 0, journey_id: current.id, author_id: 0, type: 'entry', entry_date: today, visibility: 'private', sort_order: 0, photos: [], created_at: 0, updated_at: 0 } as JourneyEntry)
                     }}
-                    className={`inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5 ${isMobile && view === 'timeline' ? 'hidden' : ''}`}
+                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
                     style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
                   >
                     <Plus size={16} strokeWidth={2.4} />
                     {t('journey.detail.addEntry')}
+                  </button>
+                )}
+                {canEditEntries && view === 'gallery' && (
+                  <button
+                    onClick={() => galleryUploadRef.current?.()}
+                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
+                    style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
+                  >
+                    <Plus size={16} strokeWidth={2.4} />
+                    {t('common.upload')}
                   </button>
                 )}
               </div>
@@ -338,7 +351,7 @@ function JourneyDetailPageDesktop() {
                             </div>
                             <h3 className="text-[14px] font-semibold capitalize" style={{ color: 'var(--vg-ink)' }}>{new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
                           </div>
-                          <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--vg-ink3)' }}><MapPin size={12} /> {entries.length} {t('journey.synced.places')}</span>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.07em]" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink3)' }}><MapPin size={12} /> {entries.length} {t('journey.synced.places')}</span>
                         </div>
 
                         {entries.map((entry, idx) => {
@@ -411,6 +424,7 @@ function JourneyDetailPageDesktop() {
                 style={showMobileGallery ? { paddingTop: 'calc(var(--nav-h, 56px) + 64px)' } : undefined}
               >
                 <GalleryView
+                  onRegisterUpload={(fn) => { galleryUploadRef.current = fn }}
                   entries={current.entries}
                   gallery={current.gallery || []}
                   journeyId={current.id}

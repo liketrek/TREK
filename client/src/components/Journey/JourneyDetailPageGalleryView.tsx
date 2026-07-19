@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { RefreshCw, Camera, Image, Plus, X, Play } from 'lucide-react'
+import { RefreshCw, Camera, Image, X, Play } from 'lucide-react'
 import { normalizeImageFiles } from '../../utils/convertHeic'
 import { isVideoFile } from '../../utils/videoPoster'
 import { useJourneyStore } from '../../store/journeyStore'
@@ -11,7 +11,7 @@ import type { JourneyEntry, GalleryPhoto, JourneyTrip } from '../../store/journe
 import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { ProviderPicker } from './JourneyDetailPageProviderPicker'
 
-export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh }: {
+export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onRegisterUpload }: {
   entries: JourneyEntry[]
   gallery: GalleryPhoto[]
   journeyId: number
@@ -19,6 +19,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
   trips: JourneyTrip[]
   onPhotoClick: (photos: GalleryPhoto[], index: number) => void
   onRefresh: () => void
+  onRegisterUpload?: (fn: () => void) => void
 }) {
   const { t } = useTranslation()
   const [showPicker, setShowPicker] = useState(false)
@@ -61,6 +62,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
   }
 
   const galleryFileRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { onRegisterUpload?.(() => galleryFileRef.current?.click()) }, [onRegisterUpload])
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -119,21 +121,10 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
-          <Camera size={10} /> {allPhotos.length} {t('journey.detail.photos')}
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.07em]" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink3)' }}>
+          <Camera size={11} /> {allPhotos.length} {t('journey.detail.photos')}
         </span>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => galleryFileRef.current?.click()}
-            disabled={galleryUploading}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[11px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-50"
-          >
-            {galleryUploading ? (
-              <><div className="w-3 h-3 border-2 border-white/30 dark:border-zinc-900/30 border-t-white dark:border-t-zinc-900 rounded-full animate-spin" /> {galleryProgress ? t('journey.editor.uploadingProgress', { done: String(galleryProgress.done), total: String(galleryProgress.total) }) : t('journey.editor.uploading')}</>
-            ) : (
-              <><Plus size={12} /> {t('common.upload')}</>
-            )}
-          </button>
           {availableProviders.map(p => (
             <button
               key={p.id}

@@ -92,7 +92,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.settings.title')}</h2>
-          <button onClick={handleClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+          <button onClick={handleClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />
           </button>
         </div>
@@ -150,7 +150,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
             <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.detail.syncedTrips')}</label>
             <div className="flex flex-col gap-1.5">
               {journey.trips.map((trip: any) => (
-                <div key={trip.trip_id} className="flex items-center gap-2.5 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800">
+                <div key={trip.trip_id} className="flex items-center gap-2.5 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800">
                   <div className="w-8 h-8 rounded-md flex-shrink-0" style={{ background: pickGradient(trip.trip_id) }} />
                   <div className="flex-1 min-w-0">
                     <div className="text-[12px] font-medium text-zinc-900 dark:text-white">{trip.title}</div>
@@ -158,7 +158,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
                   </div>
                   <button
                     onClick={() => setUnlinkTarget({ trip_id: trip.trip_id, title: trip.title })}
-                    className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500/20 dark:bg-red-500/15 dark:hover:bg-red-500/25 transition-colors"
+                    className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500/20 dark:bg-red-500/15 dark:hover:bg-red-500/25 transition-colors"
                     title="Unlink trip"
                   >
                     <Trash2 size={14} />
@@ -168,7 +168,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
               {journey.trips.length === 0 && <p className="text-[11px] text-zinc-400">{t('journey.trips.noTripsLinkedSettings')}</p>}
               <button
                 onClick={() => setShowAddTrip(true)}
-                className="w-full mt-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                className="w-full mt-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 dark:hover:text-zinc-300 transition-colors"
               >
                 <Plus size={14} /> {t('journey.trips.addTrip')}
               </button>
@@ -185,7 +185,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
                     {(c.username || '?')[0].toUpperCase()}
                   </div>
                   <div className="flex-1 text-[12px] font-medium text-zinc-900 dark:text-white">{c.username}</div>
-                  <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${c.role === 'owner' ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>{c.role}</span>
+                  <span className="shrink-0 rounded-full font-semibold uppercase" style={{ fontSize: 8.5, letterSpacing: '0.05em', padding: '2px 7px', ...(c.role === 'owner' ? { background: 'var(--vg-ink)', color: 'var(--vg-bg)' } : { background: 'color-mix(in srgb, var(--vg-ink3) 14%, transparent)', color: 'var(--vg-ink2)' }) }}>{c.role}</span>
                   {c.role !== 'owner' && (
                     <button
                       onClick={async () => {
@@ -200,7 +200,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
                       }}
                       aria-label={t('journey.contributors.remove')}
                       title={t('journey.contributors.remove')}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors"
+                      className="w-7 h-7 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors"
                     >
                       <X size={13} />
                     </button>
@@ -209,7 +209,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
               ))}
               <button
                 onClick={onOpenInvite}
-                className="w-full mt-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                className="w-full mt-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 dark:hover:text-zinc-300 transition-colors"
               >
                 <UserPlus size={14} /> {t('journey.contributors.invite')}
               </button>
@@ -232,7 +232,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
             onClick={() => setShowDeleteConfirm(true)}
             aria-label={t('journey.settings.delete')}
             title={t('journey.settings.delete')}
-            className="flex items-center justify-center gap-1.5 h-9 min-w-9 px-2 md:px-2.5 text-[12px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+            className="flex items-center justify-center gap-1.5 h-9 min-w-9 px-3 md:px-3.5 text-[12px] font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
           >
             <Trash2 size={14} />
             <span className="hidden md:inline">{t('journey.settings.delete')}</span>
@@ -242,7 +242,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
             disabled={archiving}
             aria-label={journey.status === 'archived' ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')}
             title={t('journey.settings.endDescription')}
-            className="flex items-center justify-center gap-1.5 h-9 min-w-9 px-2 md:px-2.5 text-[12px] font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg mr-auto disabled:opacity-40"
+            className="flex items-center justify-center gap-1.5 h-9 min-w-9 px-3 md:px-3.5 text-[12px] font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-full mr-auto disabled:opacity-40 transition-colors"
           >
             {journey.status === 'archived' ? <ArchiveRestore size={14} /> : <Archive size={14} />}
             <span className="hidden md:inline">{journey.status === 'archived' ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')}</span>

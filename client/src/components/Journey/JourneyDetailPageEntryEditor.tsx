@@ -403,13 +403,8 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                   }}
                   onFocus={() => { if (locationResults.length > 0) setShowLocationResults(true) }}
                   placeholder={t('journey.editor.searchLocation')}
-                  className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
                 />
-                {locationLat && (
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <MapPin size={13} className="text-zinc-500 dark:text-zinc-400" />
-                  </div>
-                )}
               </div>
               {showLocationResults && locationResults.length > 0 && (
                 <>
