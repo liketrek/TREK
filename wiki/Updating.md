@@ -56,11 +56,11 @@ docker run -d --name trek -p 3000:3000 \
 
 ## Helm (Kubernetes)
 
-> **⚠️ Chart repository moved:** The Helm chart is no longer served at `https://mauriceboe.github.io/TREK` (the project moved from a personal repo to the `liketrek` organization). If your `trek` repo still points to the old URL, switch it before updating:
+> **⚠️ Chart repository moved:** The Helm chart is no longer served at `https://mauriceboe.github.io/TREK` (the project moved from a personal repo to the `liketrek` organization). The canonical chart URL is now `https://chart.liketrek.com` — a custom domain (CNAME) for the GitHub Pages site at `https://liketrek.github.io/TREK`, so it stays stable even if the repository moves again. If your `trek` repo still points to an old URL, switch it before updating:
 >
 > ```bash
 > helm repo remove trek
-> helm repo add trek https://liketrek.github.io/TREK
+> helm repo add trek https://chart.liketrek.com
 > ```
 >
 > You can check which URL you have configured with `helm repo list`. Existing releases are unaffected — only the repo URL changes.

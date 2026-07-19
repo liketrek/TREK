@@ -208,3 +208,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           charts_dir: charts
+          charts_url: https://chart.liketrek.com

@@ -275,7 +275,7 @@ docker compose up -d
 <h2 id="helm-kubernetes">Helm (Kubernetes)</h2>
 
 ```bash
-helm repo add trek https://mauriceboe.github.io/TREK
+helm repo add trek https://chart.liketrek.com
 helm repo update
 helm install trek trek/trek
 ```
