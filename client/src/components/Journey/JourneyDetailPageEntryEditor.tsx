@@ -139,7 +139,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
       <div
         className="absolute inset-0 flex items-end sm:items-center sm:justify-center sm:p-5"
       >
-        <div className="bg-white dark:bg-zinc-900 rounded-t-[24px] sm:rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.2)] sm:max-w-[640px] w-full flex flex-col overflow-hidden h-full sm:h-auto sm:max-h-[90vh]" style={{ paddingBottom: 'var(--bottom-nav-h)' }}>
+        <div className="bg-white dark:bg-zinc-900 rounded-t-[24px] sm:rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.2)] sm:max-w-[1040px] w-full flex flex-col overflow-hidden h-full sm:h-auto sm:max-h-[90vh]" style={{ paddingBottom: 'var(--bottom-nav-h)' }}>
 
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
@@ -149,7 +149,9 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 flex flex-col gap-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-stretch">
+          <div className="flex flex-col gap-4 min-w-0">
           <input
             value={title}
             onChange={e => setTitle(e.target.value)}
@@ -277,7 +279,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
             )}
           </div>
 
-          <div className="shrink-0 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden focus-within:border-zinc-400 dark:focus-within:border-zinc-500">
+          <div className="flex-1 flex flex-col min-h-[220px] border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden focus-within:border-zinc-400 dark:focus-within:border-zinc-500">
             <MarkdownToolbar textareaRef={storyRef} onUpdate={setStory} />
             <textarea
               ref={storyRef}
@@ -286,10 +288,13 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
               placeholder={t('journey.editor.writeStory')}
               rows={6}
               style={{ minHeight: '144px' }}
-              className="w-full px-3 py-2.5 text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none resize-none border-0 shrink-0"
+              className="w-full flex-1 px-3 py-2.5 text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none resize-none border-0"
             />
           </div>
 
+          </div>
+
+          <div className="flex flex-col gap-4 min-w-0">
           {/* Pros & Cons */}
           <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-5">
             <div className="mb-4">
@@ -365,8 +370,6 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
               </div>
             </div>
           </div>
-
-          <div className="h-px bg-zinc-200 dark:bg-zinc-700" />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -480,6 +483,8 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                 )
               })}
             </div>
+          </div>
+          </div>
           </div>
         </div>
 
