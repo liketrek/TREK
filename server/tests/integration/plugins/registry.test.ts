@@ -136,6 +136,23 @@ describe('PluginRegistryService', () => {
     expect(list[0].screenshotUrl).toBe(`https://raw.githubusercontent.com/acme/trek-flight/${'a'.repeat(40)}/docs/screenshot.png`);
   });
 
+  // The registry aggregate now resolves the cover at build time (docs/screenshot.png
+  // else the first resolving README image) and injects screenshotUrl. When present it
+  // must win over the docs/screenshot.png guess — that's what gives entries without a
+  // committed docs/screenshot.png a non-blank card.
+  it('browse prefers a build-injected screenshotUrl over the docs/screenshot.png guess', async () => {
+    const injected = 'https://raw.githubusercontent.com/acme/trek-flight/bbbb/docs/img1.png';
+    (REGISTRY.plugins[0] as { screenshotUrl?: string }).screenshotUrl = injected;
+    try {
+      const [entry] = await svc.browse();
+      expect(entry.screenshotUrl).toBe(injected);
+      const d = await svc.detail('flight-tracker');
+      expect(d.screenshotUrl).toBe(injected);
+    } finally {
+      delete (REGISTRY.plugins[0] as { screenshotUrl?: string }).screenshotUrl;
+    }
+  });
+
   it('detail merges registry metadata with a live manifest preview', async () => {
     safeDownload.mockResolvedValue({
       bytes: Buffer.from(JSON.stringify({
