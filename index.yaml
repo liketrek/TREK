@@ -17,7 +17,7 @@ entries:
     digest: e6ba672d52411e3d094e352f9bfefea0498dd50a5575072dd5697d85578710b5
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.3.0.tgz
+    - https://liketrek.github.io/TREK/trek-3.3.0.tgz
     version: 3.3.0
   - apiVersion: v2
     appVersion: 3.2.2
@@ -26,7 +26,7 @@ entries:
     digest: c4e1a360835b659066f5b9b724e29428a365f676c49b129c0b4636116fc10ee9
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.2.2.tgz
+    - https://liketrek.github.io/TREK/trek-3.2.2.tgz
     version: 3.2.2
   - apiVersion: v2
     appVersion: 3.2.1
@@ -35,7 +35,7 @@ entries:
     digest: 3e3f5e3f1b3099ec3fb37aac43f9a08a6cd2f74b78a8aa2007aba1d0d8aba792
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.2.1.tgz
+    - https://liketrek.github.io/TREK/trek-3.2.1.tgz
     version: 3.2.1
   - apiVersion: v2
     appVersion: 3.2.0
@@ -44,7 +44,7 @@ entries:
     digest: 2d890d849291db5fa0b246f138793ef5692016a064eedc86e03d04ec8b1f8aad
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.2.0.tgz
+    - https://liketrek.github.io/TREK/trek-3.2.0.tgz
     version: 3.2.0
   - apiVersion: v2
     appVersion: 3.1.5
@@ -53,7 +53,7 @@ entries:
     digest: 1ce8a3a03f9fef606a85156f184aa28ac10fc84224314bd89868d8b9c97cbb79
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.1.5.tgz
+    - https://liketrek.github.io/TREK/trek-3.1.5.tgz
     version: 3.1.5
   - apiVersion: v2
     appVersion: 3.1.4
@@ -62,7 +62,7 @@ entries:
     digest: 557ef5e4baa3d103694e61f5918762a1dcead843856a33597664123c114e21eb
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.1.4.tgz
+    - https://liketrek.github.io/TREK/trek-3.1.4.tgz
     version: 3.1.4
   - apiVersion: v2
     appVersion: 3.1.3
@@ -71,7 +71,7 @@ entries:
     digest: 88c93791161544b720e8cb4917234eef5d752a8fdcaa2ea6f96eaa6e070b92b5
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.1.3.tgz
+    - https://liketrek.github.io/TREK/trek-3.1.3.tgz
     version: 3.1.3
   - apiVersion: v2
     appVersion: 3.1.2
@@ -80,7 +80,7 @@ entries:
     digest: abd8d5c1af086d67e57de2ce3c1d4d44edc2f9cb64cd41e1f08f62921de2b1af
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.1.2.tgz
+    - https://liketrek.github.io/TREK/trek-3.1.2.tgz
     version: 3.1.2
   - apiVersion: v2
     appVersion: 3.1.1
@@ -89,7 +89,7 @@ entries:
     digest: 1308d3403aca1592d7f7f439159582a06f755a03a64691ce648394314af7c370
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.1.1.tgz
+    - https://liketrek.github.io/TREK/trek-3.1.1.tgz
     version: 3.1.1
   - apiVersion: v2
     appVersion: 3.1.0
@@ -98,7 +98,7 @@ entries:
     digest: fe609303edd165e95e6f4159128d64e125d017739fa4d63203620dcb23880165
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.1.0.tgz
+    - https://liketrek.github.io/TREK/trek-3.1.0.tgz
     version: 3.1.0
   - apiVersion: v2
     appVersion: 3.0.22
@@ -107,7 +107,7 @@ entries:
     digest: b8f8bc7eb7cb748af54085e6cffa6ee6f3469bbca418d00015d8accf85332d9a
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.22.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.22.tgz
     version: 3.0.22
   - apiVersion: v2
     appVersion: 3.0.21
@@ -116,7 +116,7 @@ entries:
     digest: b5b6669db71f27f4eaede44b88a6b31c0daea917dbf94cedeb88fc324ee19d3a
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.21.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.21.tgz
     version: 3.0.21
   - apiVersion: v2
     appVersion: 3.0.20
@@ -125,7 +125,7 @@ entries:
     digest: 738daac35241850a4002db0e9890fd3df767727f623c2ee47e1f139e84071257
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.20.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.20.tgz
     version: 3.0.20
   - apiVersion: v2
     appVersion: 3.0.19
@@ -134,7 +134,7 @@ entries:
     digest: 8d082ff09f32af6f4f7ccc4272b00ac6cc403daaf5ae983d4003a5cf6f8d142e
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.19.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.19.tgz
     version: 3.0.19
   - apiVersion: v2
     appVersion: 3.0.18
@@ -143,7 +143,7 @@ entries:
     digest: 989ece82e9e27c697e946134006198c8e0f1126a823748a3e7dc34b6c6def52f
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.18.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.18.tgz
     version: 3.0.18
   - apiVersion: v2
     appVersion: 3.0.17
@@ -152,7 +152,7 @@ entries:
     digest: e5882548f05658ad00dca89bce7d4a5ce6fa0cd792b0a8496bc2a61e48483221
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.17.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.17.tgz
     version: 3.0.17
   - apiVersion: v2
     appVersion: 3.0.16
@@ -161,7 +161,7 @@ entries:
     digest: 7b75e83a09c9d146e2bde13456ad77874c8bc0914afb4c64decd1e6b47b7bc00
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.16.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.16.tgz
     version: 3.0.16
   - apiVersion: v2
     appVersion: 3.0.15
@@ -170,7 +170,7 @@ entries:
     digest: e1ca7f81f9609c18fefc4df011b88e8d238ff0335d5b91304fb55317d662c1a4
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.15.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.15.tgz
     version: 3.0.15
   - apiVersion: v2
     appVersion: 3.0.14
@@ -179,7 +179,7 @@ entries:
     digest: 254b21ed1c4d7e8ed67556798a39ec467390121402709a5500344486dcf0f3c7
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.14.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.14.tgz
     version: 3.0.14
   - apiVersion: v2
     appVersion: 3.0.13
@@ -188,7 +188,7 @@ entries:
     digest: 12db9a32ccb0da03ca546c37fc2214be3aef86bdef9e97f84d14cce6b917e52c
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.13.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.13.tgz
     version: 3.0.13
   - apiVersion: v2
     appVersion: 3.0.12
@@ -197,7 +197,7 @@ entries:
     digest: 5be7794a4a97fd9c68d7ac3ca61dc3eecd4ad64e11a0464ae55b1a5b1c71f178
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.12.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.12.tgz
     version: 3.0.12
   - apiVersion: v2
     appVersion: 3.0.11
@@ -206,7 +206,7 @@ entries:
     digest: 3e0ff316d0e1d677c09188ca86aad751bcb3434850c8a06d3bae7657d4f3da72
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.11.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.11.tgz
     version: 3.0.11
   - apiVersion: v2
     appVersion: 3.0.10
@@ -215,7 +215,7 @@ entries:
     digest: db37f8e0e97bc60034c07b3c1dd4183aa70c24977faed6d7f6ae663337249bb9
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.10.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.10.tgz
     version: 3.0.10
   - apiVersion: v2
     appVersion: 3.0.9
@@ -224,7 +224,7 @@ entries:
     digest: 248b141e4d7537bba45d565f8b391245cf01009f226feaac3bc79b542b7ff942
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.9.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.9.tgz
     version: 3.0.9
   - apiVersion: v2
     appVersion: 3.0.8
@@ -233,7 +233,7 @@ entries:
     digest: 1c29c7a1fc6f8186087d081bd67bdc242925d189dd7ea7733eab50cd692a3c46
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.8.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.8.tgz
     version: 3.0.8
   - apiVersion: v2
     appVersion: 3.0.7
@@ -242,7 +242,7 @@ entries:
     digest: 1b0982d797cda5b2b8d44f99efc0085dd65ca2867d1c5278e51b5eb58aa75f97
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.7.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.7.tgz
     version: 3.0.7
   - apiVersion: v2
     appVersion: 3.0.6
@@ -251,7 +251,7 @@ entries:
     digest: 782fab1d93422ac5a59fbafa85b249bf133aa759ae5f5df2a52d2af27c707384
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.6.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.6.tgz
     version: 3.0.6
   - apiVersion: v2
     appVersion: 3.0.5
@@ -260,7 +260,7 @@ entries:
     digest: 28afc1dcd010d98e109d68b8d973d863a8987ad587a63afe7608277c3ff59d4b
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.5.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.5.tgz
     version: 3.0.5
   - apiVersion: v2
     appVersion: 3.0.4
@@ -269,7 +269,7 @@ entries:
     digest: 008a508c1a65b8f26547894cd8d11685246b1f293208a836e6637d56b4e4f5c5
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.4.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.4.tgz
     version: 3.0.4
   - apiVersion: v2
     appVersion: 3.0.3
@@ -278,7 +278,7 @@ entries:
     digest: 850e1ae9ddfa28c4acb78971b214477c99f0d8ed7ff46837738a103c2d4be22a
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.3.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.3.tgz
     version: 3.0.3
   - apiVersion: v2
     appVersion: 3.0.2
@@ -287,7 +287,7 @@ entries:
     digest: 8e58789715ff2dddcb78b78a9f025a9b8201f4dda64f490028752482b7bbb724
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.2.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.2.tgz
     version: 3.0.2
   - apiVersion: v2
     appVersion: 3.0.1
@@ -296,7 +296,7 @@ entries:
     digest: 227a515e07c084b7f100da209fdb026677960b05e1b43679594ea86b056d11a1
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.1.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.1.tgz
     version: 3.0.1
   - apiVersion: v2
     appVersion: 3.0.0
@@ -305,7 +305,7 @@ entries:
     digest: 006122243b712bd93d54a1b27223244514715c2872ba82f3735b635eb47d9805
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-3.0.0.tgz
+    - https://liketrek.github.io/TREK/trek-3.0.0.tgz
     version: 3.0.0
   - apiVersion: v2
     appVersion: 2.9.14
@@ -314,7 +314,7 @@ entries:
     digest: 3af5d8cc8d144295dd222d03534f309fa46d6eebe097c48d6c5c339dcd4318fe
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-2.9.14.tgz
+    - https://liketrek.github.io/TREK/trek-2.9.14.tgz
     version: 2.9.14
   - apiVersion: v2
     appVersion: 2.9.13
@@ -323,7 +323,7 @@ entries:
     digest: d01e3761cf76ec3b3ec7278780631a33b86d50bc94d03642e5612f04b3c2b84b
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-2.9.13.tgz
+    - https://liketrek.github.io/TREK/trek-2.9.13.tgz
     version: 2.9.13
   - apiVersion: v2
     appVersion: 2.9.12
@@ -332,6 +332,6 @@ entries:
     digest: 389603340e43a973eaf97cb5e5c74ebb95a26509185bbea82e3686a83d135ebf
     name: trek
     urls:
-    - https://mauriceboe.github.io/TREK/trek-2.9.12.tgz
+    - https://liketrek.github.io/TREK/trek-2.9.12.tgz
     version: 2.9.12
 generated: "2026-07-18T20:51:41.392730758Z"
