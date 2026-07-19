@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping,
-  LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Save as SaveIcon, Trash2, Upload, UserPlus, Users, UserRound,
+  LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Save as SaveIcon, Trash2, Upload, UserPlus, UserRound,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useAuthStore } from '../../../../store/authStore'
@@ -367,6 +367,46 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         </div>
       )}
 
+      {/* ── Add list — sits directly under the progress card (instead of at the
+           very bottom) so it's reachable without scrolling past every category.
+           Same dashed-pill style as before, just relocated. ── */}
+      {canEdit && (editMode || trueEmpty) && (
+        addingCategory ? (
+          <div className="mt-[10px] flex gap-2">
+            <input
+              type="text"
+              autoFocus
+              value={newCategoryName}
+              onChange={e => setNewCategoryName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') addNewCategory()
+                if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') }
+              }}
+              placeholder={t('packing.newCategoryPlaceholder')}
+              className={`${FIELD_CLS} flex-1`}
+            />
+            <button
+              type="button"
+              onClick={addNewCategory}
+              disabled={!newCategoryName.trim()}
+              aria-label={t('common.add')}
+              className="flex h-10 w-10 flex-none items-center justify-center rounded-[12px] bg-m-act text-m-actfg disabled:opacity-40"
+            >
+              <Check size={15} strokeWidth={2.4} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAddingCategory(true)}
+            className="mt-[10px] flex w-full items-center justify-center gap-[5px] rounded-full border-[1.5px] border-dashed border-[color:var(--m-trackoff)] py-[10px] font-geist text-[0.6875rem] font-semibold text-m-muted"
+          >
+            <Plus size={12} strokeWidth={2.2} />
+            {t('packing.addCategory')}
+          </button>
+        )
+      )}
+
       {/* ── Filters (spec §4.3) ── */}
       {!trueEmpty && (
         <div className="mt-[10px] flex items-center gap-[6px]">
@@ -420,43 +460,6 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
             onCreateBag={createBag}
           />
         ))
-      )}
-
-      {canEdit && (editMode || trueEmpty) && (
-        addingCategory ? (
-          <div className="mt-[10px] flex gap-2">
-            <input
-              type="text"
-              autoFocus
-              value={newCategoryName}
-              onChange={e => setNewCategoryName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') addNewCategory()
-                if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') }
-              }}
-              placeholder={t('packing.newCategoryPlaceholder')}
-              className={`${FIELD_CLS} flex-1`}
-            />
-            <button
-              type="button"
-              onClick={addNewCategory}
-              disabled={!newCategoryName.trim()}
-              aria-label={t('common.add')}
-              className="flex h-10 w-10 flex-none items-center justify-center rounded-[12px] bg-m-act text-m-actfg disabled:opacity-40"
-            >
-              <Check size={15} strokeWidth={2.4} />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setAddingCategory(true)}
-            className="mt-[10px] flex w-full items-center justify-center gap-[5px] rounded-full border-[1.5px] border-dashed border-[color:var(--m-trackoff)] py-[10px] font-geist text-[0.6875rem] font-semibold text-m-muted"
-          >
-            <Plus size={12} strokeWidth={2.2} />
-            {t('packing.addCategory')}
-          </button>
-        )
       )}
 
       <MBagsSheet
@@ -640,7 +643,7 @@ function PackingCategoryCard({
             type="button"
             onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
             aria-label={t('packing.categoryOptions')}
-            className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
+            className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
           >
             <MoreHorizontal size={12} strokeWidth={2} />
           </button>
@@ -774,6 +777,12 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
   const badgeSharedToMe = !!item.is_private && item.owner_id != null && item.owner_id !== currentUserId
   const badgeSharedByMe = !!item.is_private && item.owner_id === currentUserId && recipients.length > 0
   const badgeBroughtBy = !item.is_private && item.owner_username ? item.owner_username : null
+  // Owner is shown as a compact avatar instead of the full username (saves space
+  // on the row). Resolve the picture from the trip members, falling back to the
+  // signed-in user for their own items, then to initials.
+  const me = useAuthStore(s => s.user)
+  const ownerMember = planner.tripMembers.find(m => m.id === item.owner_id)
+  const ownerAvatarUrl = ownerMember?.avatar_url ?? (item.owner_id === me?.id ? me?.avatar_url ?? null : null)
 
   const toggle = () => tripActions.togglePackingItem(tripId, item.id, !item.checked)
 
@@ -798,7 +807,7 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           onClick={toggle}
           aria-label={item.name}
           aria-pressed={!!item.checked}
-          className={`flex h-[19px] w-[19px] flex-none items-center justify-center rounded-[6px] border-[1.5px] ${
+          className={`flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] border-[1.5px] ${
             item.checked ? 'border-m-act bg-m-act text-m-actfg' : 'border-[color:var(--m-rowbr)] text-transparent'
           }`}
         >
@@ -822,9 +831,13 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           </span>
         )}
         {!badgeSharedToMe && !badgeSharedByMe && badgeBroughtBy && (
-          <span className="flex flex-none items-center gap-1 whitespace-nowrap font-geist text-[0.59375rem] font-bold text-m-faint">
-            <Users size={9} strokeWidth={2.2} />
-            {item.owner_username}{contributors.length > 0 ? ` +${contributors.length}` : ''}
+          <span className="flex flex-none items-center gap-[3px]" title={item.owner_username || undefined}>
+            {ownerAvatarUrl
+              ? <img src={ownerAvatarUrl} alt={item.owner_username || ''} className="h-5 w-5 flex-none rounded-full object-cover" />
+              : <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] font-geist text-[0.5625rem] font-bold text-m-muted">{(item.owner_username || '?')[0]?.toUpperCase()}</span>}
+            {contributors.length > 0 && (
+              <span className="font-geist text-[0.59375rem] font-bold text-m-faint">+{contributors.length}</span>
+            )}
           </span>
         )}
 
@@ -854,10 +867,10 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
 
         {editMode && canEdit && (
           <>
-            <button type="button" onClick={onEdit} aria-label={t('common.edit')} className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
+            <button type="button" onClick={onEdit} aria-label={t('common.edit')} className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
               <Pencil size={11} strokeWidth={2} />
             </button>
-            <button type="button" onClick={onDelete} aria-label={t('common.delete')} className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
+            <button type="button" onClick={onDelete} aria-label={t('common.delete')} className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
               <Trash2 size={11} strokeWidth={2} />
             </button>
           </>
