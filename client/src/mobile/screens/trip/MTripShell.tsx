@@ -193,12 +193,17 @@ export default function MTripShell({
   const [openFilesTrashSignal, setOpenFilesTrashSignal] = useState(0)
 
   // The mobile plan is single-day: make sure a day is active once days arrive.
-  // Only seed once so an intentional deselect elsewhere is not fought.
+  // Only seed once so an intentional deselect elsewhere is not fought. When the
+  // trip is currently running, open on today's day instead of day 1 so you don't
+  // have to tap the current day every time; otherwise fall back to the first day.
   const seededDayRef = useRef(false)
   useEffect(() => {
     if (seededDayRef.current || planner.selectedDayId != null || days.length === 0) return
     seededDayRef.current = true
-    planner.tripActions.setSelectedDay(days[0].id)
+    const now = new Date()
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    const todayDay = days.find(d => d.date?.slice(0, 10) === todayStr)
+    planner.tripActions.setSelectedDay((todayDay ?? days[0]).id)
   }, [planner.selectedDayId, days, planner.tripActions])
 
   const trTab = planner.activeTab
