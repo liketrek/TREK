@@ -404,8 +404,8 @@ describe('TransportModal', () => {
 
   it('FE-PLANNER-TRANSMODAL-022: creating shows the Manual/Automated switch; Automated opens the transit search', async () => {
     render(<TransportModal {...defaultProps} places={[]} accommodations={[]} />);
-    expect(screen.getByRole('button', { name: 'Manual transport' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Automated transport' }));
+    expect(screen.getByRole('button', { name: 'Manual' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Automated' }));
     // No day selected in defaultProps (days: []) — the pick-day hint shows.
     expect(screen.getByText(/Pick a day/)).toBeInTheDocument();
     // The manual form is gone in automated mode.
@@ -414,8 +414,8 @@ describe('TransportModal', () => {
 
   it('FE-PLANNER-TRANSMODAL-022b: a trip without start/end dates only offers the manual form', () => {
     render(<TransportModal {...defaultProps} tripHasDates={false} places={[]} accommodations={[]} />);
-    expect(screen.queryByRole('button', { name: 'Automated transport' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Manual transport' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Automated' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Manual' })).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText(/e\.g\. Lufthansa/i)).toBeInTheDocument();
   });
 
@@ -447,7 +447,7 @@ describe('TransportModal', () => {
   it('FE-PLANNER-TRANSMODAL-024: editing shows no Manual/Automated switch', () => {
     const res = buildReservation({ title: 'My Train', type: 'train' });
     render(<TransportModal {...defaultProps} reservation={res} />);
-    expect(screen.queryByRole('button', { name: 'Automated transport' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Automated' })).not.toBeInTheDocument();
   });
 
   // ── Multi-leg trains (#1150) ───────────────────────────────────────────────
