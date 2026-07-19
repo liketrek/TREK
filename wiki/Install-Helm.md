@@ -9,6 +9,16 @@ helm repo add trek https://liketrek.github.io/TREK
 helm repo update
 ```
 
+> **⚠️ Repository moved:** The chart is no longer served at `https://mauriceboe.github.io/TREK` (the project moved from a personal repo to the `liketrek` organization). If you added the repo from the old URL, switch to the new one:
+>
+> ```bash
+> helm repo remove trek
+> helm repo add trek https://liketrek.github.io/TREK
+> helm repo update
+> ```
+>
+> Existing releases keep working — only the repo URL changes; future `helm repo update` / `helm upgrade` runs require the new URL.
+
 ## Basic Install
 
 ```bash

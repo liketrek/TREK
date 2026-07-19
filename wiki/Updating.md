@@ -54,6 +54,28 @@ docker run -d --name trek -p 3000:3000 \
 > docker inspect trek --format '{{json .Mounts}}'
 > ```
 
+## Helm (Kubernetes)
+
+> **⚠️ Chart repository moved:** The Helm chart is no longer served at `https://mauriceboe.github.io/TREK` (the project moved from a personal repo to the `liketrek` organization). If your `trek` repo still points to the old URL, switch it before updating:
+>
+> ```bash
+> helm repo remove trek
+> helm repo add trek https://liketrek.github.io/TREK
+> ```
+>
+> You can check which URL you have configured with `helm repo list`. Existing releases are unaffected — only the repo URL changes.
+
+To update to the newest chart release:
+
+```bash
+helm repo update
+helm upgrade trek trek/trek
+```
+
+Your existing values and PVCs (data, uploads) are preserved. To pin an exact chart version instead, pass `--version <x.y.z>`.
+
+See [Install-Helm](Install-Helm) for the full installation walkthrough and values reference.
+
 ## Database Migrations
 
 TREK runs any pending database migrations automatically at startup. No manual migration steps are required after pulling a new image.
