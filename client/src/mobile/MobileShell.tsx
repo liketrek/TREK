@@ -1,4 +1,5 @@
 import { ReactNode } from 'react'
+import { useMatch } from 'react-router-dom'
 import BottomNav from '../components/Layout/BottomNav'
 import MBottomNav from './components/MBottomNav'
 import MToastHost from './components/MToastHost'
@@ -21,6 +22,12 @@ interface MobileShellProps {
  * pages render unchanged inside.
  */
 export default function MobileShell({ isPhone, children }: MobileShellProps) {
+  // The trip planner (/trips/:id) is a full-screen takeover that ships its own
+  // in-trip dock (MTripShell). The global dock must not render underneath it:
+  // on iOS Safari a position:fixed nav paints THROUGH the trip overlay's higher
+  // stacking context, so the wrong (global) bar shows on top of the trip screen.
+  const inTripPlanner = useMatch('/trips/:id')
+
   if (!isPhone) {
     return (
       <div className="flex flex-col h-dvh md:block md:h-auto">
@@ -33,7 +40,7 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   return (
     <div className="m-root flex h-dvh min-h-dvh flex-col bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink">
       <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-      <MBottomNav />
+      {!inTripPlanner && <MBottomNav />}
       <MToastHost />
       <div id="m-sheet-root" />
     </div>
