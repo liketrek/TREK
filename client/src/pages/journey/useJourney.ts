@@ -21,6 +21,7 @@ export function useJourney() {
 
   const [showCreate, setShowCreate] = useState(false)
   const [newTitle, setNewTitle] = useState('')
+  const [newSubtitle, setNewSubtitle] = useState('')
   const [availableTrips, setAvailableTrips] = useState<any[]>([])
   const [selectedTripIds, setSelectedTripIds] = useState<Set<number>>(new Set())
   const [searchOpen, setSearchOpen] = useState(false)
@@ -69,6 +70,7 @@ export function useJourney() {
   const openCreateModal = async (preSelectedTripId?: number) => {
     setShowCreate(true)
     setNewTitle('')
+    setNewSubtitle('')
     const initial = new Set<number>()
     if (preSelectedTripId) initial.add(preSelectedTripId)
     setSelectedTripIds(initial)
@@ -83,6 +85,7 @@ export function useJourney() {
     try {
       const j = await createJourney({
         title: newTitle.trim(),
+        subtitle: newSubtitle.trim() || undefined,
         trip_ids: [...selectedTripIds],
       })
       setShowCreate(false)
@@ -98,7 +101,7 @@ export function useJourney() {
 
   return {
     navigate, journeys, loading,
-    showCreate, setShowCreate, newTitle, setNewTitle,
+    showCreate, setShowCreate, newTitle, setNewTitle, newSubtitle, setNewSubtitle,
     availableTrips, selectedTripIds, setSelectedTripIds,
     searchOpen, setSearchOpen, searchQuery, setSearchQuery, searchInputRef,
     activeSuggestion, setDismissedSuggestions,

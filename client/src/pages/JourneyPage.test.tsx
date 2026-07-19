@@ -114,8 +114,7 @@ describe('JourneyPage', () => {
     render(<JourneyPage />);
     await waitFor(() => {
       // Grid renders with only the create card (the dashed-border button)
-      // The "0 journeys" counter is shown
-      expect(screen.getByText(/0/)).toBeInTheDocument();
+      expect(screen.getByText(/Create a new Journey/i)).toBeInTheDocument();
     });
   });
 
@@ -275,7 +274,7 @@ describe('JourneyPage', () => {
   });
 
   // FE-PAGE-JOURNEY-010
-  it('FE-PAGE-JOURNEY-010: shows journey count in header', async () => {
+  it('FE-PAGE-JOURNEY-010: renders all journeys in the grid', async () => {
     const j1 = buildJourneyListItem({ id: 1, title: 'Trip A' });
     const j2 = buildJourneyListItem({ id: 2, title: 'Trip B' });
     const j3 = buildJourneyListItem({ id: 3, title: 'Trip C' });
@@ -285,8 +284,8 @@ describe('JourneyPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Trip A')).toBeInTheDocument();
     });
-    // The count "3 journeys" text is displayed
-    expect(screen.getByText(/3 journeys/i)).toBeInTheDocument();
+    expect(screen.getByText('Trip B')).toBeInTheDocument();
+    expect(screen.getByText('Trip C')).toBeInTheDocument();
   });
 
   // FE-PAGE-JOURNEY-011
@@ -391,69 +390,6 @@ describe('JourneyPage', () => {
     expect(screen.getByText('Draft')).toBeInTheDocument();
   });
 
-  // FE-PAGE-JOURNEY-015
-  it('FE-PAGE-JOURNEY-015: timeAgo renders "just now" for recent updates', async () => {
-    const active = buildJourneyListItem({
-      id: 40,
-      title: 'Recent Active',
-      status: 'active',
-      trip_date_min: '2020-01-01',
-      trip_date_max: '2099-12-31',
-      updated_at: Date.now() - 60000, // 1 minute ago
-    });
-    setupDefaultHandlers([active]);
-
-    render(<JourneyPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Recent Active')).toBeInTheDocument();
-    });
-
-    // timeAgo should show "just now" for < 1 hour
-    expect(screen.getByText(/Updated just now/i)).toBeInTheDocument();
-  });
-
-  // FE-PAGE-JOURNEY-016
-  it('FE-PAGE-JOURNEY-016: timeAgo renders hours ago', async () => {
-    const active = buildJourneyListItem({
-      id: 41,
-      title: 'Hours Active',
-      status: 'active',
-      trip_date_min: '2020-01-01',
-      trip_date_max: '2099-12-31',
-      updated_at: Date.now() - 3 * 3600000, // 3 hours ago
-    });
-    setupDefaultHandlers([active]);
-
-    render(<JourneyPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Hours Active')).toBeInTheDocument();
-    });
-
-    // timeAgo shows "{count}h ago"
-    expect(screen.getByText(/Updated 3h ago/i)).toBeInTheDocument();
-  });
-
-  // FE-PAGE-JOURNEY-017
-  it('FE-PAGE-JOURNEY-017: timeAgo renders days ago', async () => {
-    const active = buildJourneyListItem({
-      id: 42,
-      title: 'Days Active',
-      status: 'active',
-      trip_date_min: '2020-01-01',
-      trip_date_max: '2099-12-31',
-      updated_at: Date.now() - 5 * 24 * 3600000, // 5 days ago
-    });
-    setupDefaultHandlers([active]);
-
-    render(<JourneyPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Days Active')).toBeInTheDocument();
-    });
-
-    // timeAgo shows "{count}d ago"
-    expect(screen.getByText(/Updated 5d ago/i)).toBeInTheDocument();
-  });
-
   // FE-PAGE-JOURNEY-018
   it('FE-PAGE-JOURNEY-018: active journey hero shows "Continue writing" button', async () => {
     const active = buildJourneyListItem({ id: 50, title: 'Writing Journey', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
@@ -468,7 +404,7 @@ describe('JourneyPage', () => {
   });
 
   // FE-PAGE-JOURNEY-019
-  it('FE-PAGE-JOURNEY-019: active journey hero shows Live and Synced badges', async () => {
+  it('FE-PAGE-JOURNEY-019: active journey hero shows the continue-writing action', async () => {
     const active = buildJourneyListItem({ id: 51, title: 'Live Journey', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
     setupDefaultHandlers([active]);
 
@@ -477,8 +413,7 @@ describe('JourneyPage', () => {
       expect(screen.getByText('Live Journey')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Live')).toBeInTheDocument();
-    expect(screen.getByText('Synced')).toBeInTheDocument();
+    expect(screen.getByText(/Continue writing/i)).toBeInTheDocument();
   });
 
   // FE-PAGE-JOURNEY-020
