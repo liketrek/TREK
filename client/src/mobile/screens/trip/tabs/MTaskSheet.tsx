@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, Flag, Plus, User } from 'lucide-react'
 import type { TodoCreateItemRequest, TodoUpdateItemRequest } from '@trek/shared'
 import MSheet from '../../../components/MSheet'
+import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import type { TodoItem, TripMember } from '../../../../types'
@@ -231,7 +232,7 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
         </div>
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('todo.detail.dueDate')}</Eyebrow>
-        <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} aria-label={t('todo.detail.dueDate')} className={FIELD_CLS} />
+        <CustomDatePicker value={dueDate} onChange={setDueDate} placeholder={t('todo.detail.dueDate')} />
 
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('todo.detail.assignedTo')}</Eyebrow>
         <div className="flex flex-wrap gap-[6px]">
