@@ -129,6 +129,8 @@ const budget: TranslationStrings = {
   'costs.multiplePayers': 'Han pagat diverses persones',
   'costs.singlePayer': 'Ha pagat una sola persona',
   'costs.payersUnbalanced': 'Els imports dels pagadors han de sumar {amount}',
+  'costs.confirm.deleteTitle': 'Vols eliminar la despesa?',
+  'costs.confirm.deleteBody': '"{name}" quedarà eliminat permanentment.',
 };
 
 export default budget;
