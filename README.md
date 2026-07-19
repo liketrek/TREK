@@ -32,7 +32,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 <br />
 <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL_v3-6B7280?style=flat-square" /></a>
 <a href="https://github.com/liketrek/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/liketrek/TREK?include_prereleases&style=flat-square&color=6B7280" /></a>
-<a href="https://hub.docker.com/r/mauriceboe/TREK"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mauriceboe/TREK?style=flat-square&color=6B7280" /></a>
+<a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mauriceboe/trek?style=flat-square&color=6B7280" /></a>
 <a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/TREK?style=flat-square&color=6B7280" /></a>
 
 </div>
