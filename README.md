@@ -20,7 +20,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 <a href="https://demo.liketrek.com"><img alt="Demo" src="https://img.shields.io/badge/Demo-try-111827?style=for-the-badge" /></a>
 &nbsp;
-<a href="https://hub.docker.com/r/mauriceboe/TREK"><img alt="Docker" src="https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge" /></a>
+<a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker" src="https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge" /></a>
 &nbsp;
 <a href="https://discord.gg/NhZBDSd4qW"><img alt="Discord" src="https://img.shields.io/badge/Discord-join-5865F2?style=for-the-badge" /></a>
 &nbsp;
@@ -176,7 +176,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 ```bash
 ENCRYPTION_KEY=$(openssl rand -hex 32) docker run -d -p 3000:3000 \
   -e ENCRYPTION_KEY=$ENCRYPTION_KEY \
-  -v ./data:/app/data -v ./uploads:/app/uploads mauriceboe/TREK
+  -v ./data:/app/data -v ./uploads:/app/uploads mauriceboe/trek
 ```
 
 Open `http://localhost:3000`. On first boot TREK seeds an admin account — if you set `ADMIN_EMAIL`/`ADMIN_PASSWORD` those are used, otherwise the credentials are printed to the container log (`docker logs trek`).
@@ -217,7 +217,7 @@ Real-time sync via WebSocket (`ws`). Backend on NestJS 11. State with Zustand. A
 ```yaml
 services:
   app:
-    image: mauriceboe/TREK:latest
+    image: mauriceboe/trek:latest
     container_name: trek
     read_only: true
     security_opt:
@@ -305,9 +305,9 @@ docker compose pull && docker compose up -d
 **Docker run** — reuse the original volume paths:
 
 ```bash
-docker pull mauriceboe/TREK
+docker pull mauriceboe/trek
 docker rm -f trek
-docker run -d --name trek -p 3000:3000 -v ./data:/app/data -v ./uploads:/app/uploads --restart unless-stopped mauriceboe/TREK
+docker run -d --name trek -p 3000:3000 -v ./data:/app/data -v ./uploads:/app/uploads --restart unless-stopped mauriceboe/trek
 ```
 
 > Not sure which paths you used? `docker inspect trek --format '{{json .Mounts}}'` before removing the container.

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>TREK</Name>
-  <Repository>mauriceboe/TREK</Repository>
-  <Registry>https://hub.docker.com/r/mauriceboe/TREK</Registry>
+  <Repository>mauriceboe/trek</Repository>
+  <Registry>https://hub.docker.com/r/mauriceboe/trek</Registry>
   <Branch>
     <Tag>latest</Tag>
     <TagDescription>Latest stable release</TagDescription>

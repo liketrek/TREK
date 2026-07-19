@@ -10,9 +10,9 @@ Back up your data first. Go to Admin Panel → Backups and create a manual backu
 
 | Tag | Example | Behavior |
 |---|---|---|
-| `latest` | `mauriceboe/TREK:latest` | Always the newest release across all major versions |
-| Major version | `mauriceboe/TREK:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/TREK:3.4.0` | Exact release; never changes |
+| `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
+| Major version | `mauriceboe/trek:3` | Latest release pinned to that major version |
+| Full version | `mauriceboe/trek:3.4.0` | Exact release; never changes |
 
 Use `latest` or a major-version tag if you want updates on each redeploy. Use a full version tag for explicit control — update by changing the tag, not by re-pulling.
 
@@ -39,14 +39,14 @@ docker compose up -d
 If you started TREK with `docker run`, pull the new image and replace the container:
 
 ```bash
-docker pull mauriceboe/TREK
+docker pull mauriceboe/trek
 docker rm -f trek
 docker run -d --name trek -p 3000:3000 \
   -v ./data:/app/data \
   -v ./uploads:/app/uploads \
   -e ENCRYPTION_KEY=<your-key> \
   --restart unless-stopped \
-  mauriceboe/TREK
+  mauriceboe/trek
 ```
 
 > **Tip:** Not sure which volume paths you used? Check before removing:
