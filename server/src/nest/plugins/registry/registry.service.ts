@@ -76,6 +76,13 @@ export interface RegistryEntry {
   authorPublicKey?: string;
   /** Release-asset downloads across all versions, aggregated by the registry's stats cron. */
   downloadCount?: number | null;
+  /**
+   * Store cover image, resolved at build time by the registry's aggregate step:
+   * docs/screenshot.png at the latest commit, else the first README image that
+   * resolves there. Absent for entries published before this existed — browse
+   * and detail then construct the docs/screenshot.png URL themselves.
+   */
+  screenshotUrl?: string | null;
   versions: RegistryVersion[];
 }
 interface Registry {
@@ -208,7 +215,7 @@ export class PluginRegistryService {
         minTrekVersion: latest?.minTrekVersion ?? null,
         requiredAddons: latest?.requiredAddons ?? [],
         pluginDependencies: latest?.pluginDependencies ?? [],
-        screenshotUrl: latest ? rawFileUrl(p.repo, latest.commitSha, 'docs/screenshot.png') : null,
+        screenshotUrl: p.screenshotUrl ?? (latest ? rawFileUrl(p.repo, latest.commitSha, 'docs/screenshot.png') : null),
         signed: !!p.authorPublicKey && !!latest?.signature,
         authorPublicKey: p.authorPublicKey ?? null,
         ...this.hostCompat(p),
@@ -283,7 +290,7 @@ export class PluginRegistryService {
       publishedAt: latest?.publishedAt ?? null,
       requiredAddons: latest?.requiredAddons ?? [],
       pluginDependencies: latest?.pluginDependencies ?? [],
-      screenshotUrl: latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null,
+      screenshotUrl: entry.screenshotUrl ?? (latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null),
       signed: !!entry.authorPublicKey && !!latest?.signature,
       authorPublicKey: entry.authorPublicKey ?? null,
       ...this.hostCompat(entry),
