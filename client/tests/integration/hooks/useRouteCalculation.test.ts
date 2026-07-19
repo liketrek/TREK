@@ -295,15 +295,16 @@ describe('useRouteCalculation', () => {
     expect(legs).toContainEqual([`${actB.lat},${actB.lng}`, `${hotel.lat},${hotel.lng}`]);
   });
 
-  it('FE-HOOK-ROUTE-015: day-1 with no transport keeps the hotel → first-activity leg', async () => {
-    // Guard against over-suppression: with no arrival transport, the check-in day is a
-    // home-base loop and the hotel → first-stop leg must remain.
-    const actA = buildPlace({ lat: 41.38, lng: 2.17 });
+  it('FE-HOOK-ROUTE-015: day-1 with a first activity timed after check-in keeps the hotel → first-activity leg', async () => {
+    // The check-in day is still a home-base loop when the first activity provably happens
+    // at/after check-in (you dropped your bags first) — the hotel → first-stop leg remains.
+    // Since #1597 the loop needs that time proof; un-timed activities draw no morning leg.
+    const actA = buildPlace({ lat: 41.38, lng: 2.17, place_time: '15:00' });
     const actB = buildPlace({ lat: 41.40, lng: 2.19 });
     const hotel = { lat: 41.39, lng: 2.16 };
     const a1 = buildAssignment({ day_id: 1, order_index: 0, place: actA });
     const a2 = buildAssignment({ day_id: 1, order_index: 1, place: actB });
-    const accommodations = [{ id: 1, start_day_id: 1, end_day_id: 2, place_lat: hotel.lat, place_lng: hotel.lng }];
+    const accommodations = [{ id: 1, start_day_id: 1, end_day_id: 2, check_in: '14:00', place_lat: hotel.lat, place_lng: hotel.lng }];
     const store = { assignments: { '1': [a1, a2] } } as unknown as TripStoreState;
     useTripStore.setState({
       assignments: store.assignments,
@@ -320,6 +321,47 @@ describe('useRouteCalculation', () => {
     const legs = (result.current.route ?? []).map(run => run.map(p => `${p[0]},${p[1]}`));
     expect(legs).toContainEqual([`${hotel.lat},${hotel.lng}`, `${actA.lat},${actA.lng}`]);
     expect(legs).toContainEqual([`${actB.lat},${actB.lng}`, `${hotel.lat},${hotel.lng}`]);
+  });
+
+  it('FE-HOOK-ROUTE-022: #1597 check-in day with an un-timed place and a transport starts at the place, not the hotel', async () => {
+    // Day 1 of a driving holiday: leave "Home" (no time set), cross by tunnel/ferry, and
+    // check into a hotel near the arrival port tonight. The hotel is only reached at the
+    // end of the day, so no hotel → Home leg may be drawn no matter the check-in time —
+    // the route starts at Home and still ends at the hotel.
+    const home = buildPlace({ lat: 52.48, lng: -1.90 });        // un-timed "Home"
+    const dep = { lat: 51.09, lng: 1.12 };                      // Folkestone terminal
+    const arr = { lat: 50.94, lng: 1.81 };                      // Calais terminal
+    const hotel = { lat: 50.95, lng: 1.85 };
+
+    const tunnel = {
+      id: 200, type: 'train', day_id: 1, end_day_id: 1, day_plan_position: 1,
+      endpoints: [
+        { role: 'from', lat: dep.lat, lng: dep.lng },
+        { role: 'to', lat: arr.lat, lng: arr.lng },
+      ],
+    };
+    const a1 = buildAssignment({ day_id: 1, order_index: 0, place: home });
+    const accommodations = [{ id: 1, start_day_id: 1, end_day_id: 2, check_in: '19:00', place_lat: hotel.lat, place_lng: hotel.lng }];
+    const store = { assignments: { '1': [a1] } } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: store.assignments,
+      reservations: [tunnel],
+      days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }],
+    } as any);
+
+    const { result } = renderHook(() =>
+      useRouteCalculation(store, 1, true, 'driving', accommodations as any)
+    );
+
+    await act(async () => {});
+
+    const legs = (result.current.route ?? []).map(run => run.map(p => `${p[0]},${p[1]}`));
+    // No phantom morning bookend [hotel → Home].
+    expect(legs).not.toContainEqual([`${hotel.lat},${hotel.lng}`, `${home.lat},${home.lng}`]);
+    // The day starts at Home and drives to the departure terminal.
+    expect(result.current.route?.[0]?.[0]).toEqual([home.lat, home.lng]);
+    // The evening leg [arrival terminal → hotel] is still drawn.
+    expect(legs).toContainEqual([`${arr.lat},${arr.lng}`, `${hotel.lat},${hotel.lng}`]);
   });
 
   it('FE-HOOK-ROUTE-016: #1297 transfer day with no activities draws the hotel → hotel leg', async () => {
