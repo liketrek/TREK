@@ -386,6 +386,10 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
           to: { ...l.to, name: cleanStop(l.to.name) },
         })),
       }))
+      // MOTIS returns arrive-by results ascending with the deadline-adjacent
+      // connection last (#1479) — flip so the itinerary arriving closest to the
+      // requested time leads the list, mirroring depart-by.
+      if (arriveBy) cleaned.sort((a, b) => Date.parse(b.endTime) - Date.parse(a.endTime))
       setItineraries(cleaned)
     } catch {
       toast.error(t('transit.searchError'))
