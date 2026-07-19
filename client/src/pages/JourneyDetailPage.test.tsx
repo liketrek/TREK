@@ -636,8 +636,8 @@ describe('JourneyDetailPage', () => {
         expect(screen.getAllByText('Venice Visit').length).toBeGreaterThanOrEqual(1);
       });
 
-      // Skeleton card shows "Add Entry" CTA
-      expect(screen.getByText(/Add Entry/)).toBeInTheDocument();
+      // Skeleton card shows "Add Entry" CTA (the view-controls button also shows it)
+      expect(screen.getAllByText(/Add Entry/).length).toBeGreaterThan(0);
     });
   });
 
