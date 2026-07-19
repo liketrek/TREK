@@ -31,7 +31,7 @@ const vacay: TranslationStrings = {
   'vacay.entitlementDays': 'Günler',
   'vacay.used': 'Kullanılmış',
   'vacay.remaining': 'Sol',
-  'vacay.carriedOver': '{yıl} tarihinden itibaren',
+  'vacay.carriedOver': '{year} tarihinden itibaren',
   'vacay.blockWeekends': 'Hafta Sonlarını Engelle',
   'vacay.blockWeekendsHint': 'Hafta sonu günlerinde tatil girişlerini önleyin',
   'vacay.weekendDays': 'Hafta sonu günleri',

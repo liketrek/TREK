@@ -261,7 +261,7 @@ const admin: TranslationStrings = {
     "La teva instància de TREK s'executa en Docker. Per actualitzar a {version}, executa les següents ordres al teu servidor:",
   'admin.update.reloadHint': 'Recarrega la pàgina en uns segons.',
   'admin.update.nonDockerText':
-    'Sembla que estàs executant una instal·lació nativa (no Docker). Segueix la guia de la documentació oficial per actualitzar manualment els binaris i aplicar les migracions de la base de dades.',
+    "Aquesta instància de TREK no s'executa amb Docker. Per actualitzar a {version}, torna a executar el mètode d'instal·lació o actualització que vas fer servir — per exemple, a Proxmox Community Scripts executa l'actualització des de la consola LXC:",
   'admin.update.wikiLink': "Obre la guia d\\'actualització",
   'admin.addons.catalog.memories.name': 'Fotos (Immich)',
   'admin.addons.catalog.memories.description': "Comparteix fotos de viatge a través de la teva instància d'Immich",

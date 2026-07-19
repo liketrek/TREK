@@ -638,12 +638,13 @@ export async function fetchSynologyThumbnailBytes(
 
     const url = _buildSynologyEndpoint(synology_credentials.data.synology_url, params.toString());
     try {
-        const resp = await safeFetch(url);
+        const resp = await safeFetch(url, undefined, { rejectUnauthorized: !synology_credentials.data.synology_skip_ssl });
         if (!resp.ok) return { error: 'Upstream error', status: resp.status };
         const contentType = resp.headers.get('content-type') || 'image/jpeg';
         const bytes = Buffer.from(await resp.arrayBuffer());
         return { bytes, contentType };
-    } catch {
+    } catch (error) {
+        console.error('fetchSynologyThumbnailBytes: upstream fetch failed:', error);
         return { error: 'Proxy error', status: 502 };
     }
 }
@@ -700,6 +701,6 @@ export async function streamSynologyAsset(
     if (passphrase) params.append('passphrase', passphrase);
 
     const url = _buildSynologyEndpoint(synology_credentials.data.synology_url, params.toString());
-    await pipeAsset(url, response, undefined, undefined, 'public, max-age=86400')
+    await pipeAsset(url, response, undefined, undefined, 'public, max-age=86400', { rejectUnauthorized: !synology_credentials.data.synology_skip_ssl })
 }
 
