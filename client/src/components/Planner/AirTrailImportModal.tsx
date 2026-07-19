@@ -142,6 +142,24 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flights, trip?.start_date, trip?.end_date])
 
+  // A chain renders once as a group, at the position of its first listed leg —
+  // its other legs are swallowed wherever else they would appear. Computed per
+  // section up front so a chain straddling the trip range can't leave the other
+  // section holding nothing but its header.
+  const sectionItems = useMemo(() => {
+    const rendered = new Set<string>()
+    const build = (list: AirtrailFlight[]) =>
+      list.flatMap((f): Array<{ key: string; chain?: AirtrailFlight[]; flight?: AirtrailFlight }> => {
+        const chain = chainOf.get(f.id)
+        if (!chain) return [{ key: f.id, flight: f }]
+        const key = chain.map(c => c.id).join('+')
+        if (rendered.has(key)) return []
+        rendered.add(key)
+        return [{ key, chain }]
+      })
+    return { during: build(during), others: build(others) }
+  }, [during, others, chainOf])
+
   const toggle = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev)
@@ -285,24 +303,6 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
       </div>
     )
   }
-
-  // A chain renders once as a group, at the position of its first listed leg —
-  // its other legs are swallowed wherever else they would appear. Computed per
-  // section up front so a chain straddling the trip range can't leave the other
-  // section holding nothing but its header.
-  const sectionItems = useMemo(() => {
-    const rendered = new Set<string>()
-    const build = (list: AirtrailFlight[]) =>
-      list.flatMap((f): Array<{ key: string; chain?: AirtrailFlight[]; flight?: AirtrailFlight }> => {
-        const chain = chainOf.get(f.id)
-        if (!chain) return [{ key: f.id, flight: f }]
-        const key = chain.map(c => c.id).join('+')
-        if (rendered.has(key)) return []
-        rendered.add(key)
-        return [{ key, chain }]
-      })
-    return { during: build(during), others: build(others) }
-  }, [during, others, chainOf])
 
   const renderItem = (item: { chain?: AirtrailFlight[]; flight?: AirtrailFlight }) =>
     item.chain ? renderChain(item.chain) : renderFlight(item.flight!)

@@ -100,6 +100,15 @@ describe('AirTrailImportModal', () => {
     );
   });
 
+  it('FE-PLANNER-AIRTRAIL-011: opens after being mounted closed (#1602)', async () => {
+    // The modal stays mounted with isOpen=false until the AirTrail button is
+    // clicked — every hook must run on the closed renders too, or the open
+    // render throws "Rendered more hooks than during the previous render".
+    const { rerender } = render(<AirTrailImportModal {...defaultProps} isOpen={false} />);
+    rerender(<AirTrailImportModal {...defaultProps} isOpen={true} />);
+    expect(await screen.findByText('Import from AirTrail')).toBeInTheDocument();
+  });
+
   it('FE-PLANNER-AIRTRAIL-004: offers to join a detected connection, on by default', async () => {
     render(<AirTrailImportModal {...defaultProps} />);
     const joinRow = await screen.findByText(/one flight with a layover in HEL/i);
