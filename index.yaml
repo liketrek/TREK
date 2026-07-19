@@ -5,7 +5,7 @@ entries:
     appVersion: 3.4.0
     created: "2026-07-18T20:51:41.393334677Z"
     description: Minimal Helm chart for TREK app
-    digest: 224744158b9473bdf664906ac9e4008918c7ed8c0ea0021893ded7115d51532f
+    digest: 18e5d3762fef7daac458c288f31e9bd6cc16c9d045364a9d846da69e5b924b50
     name: trek
     urls:
     - https://liketrek.github.io/TREK/trek-3.4.0.tgz
