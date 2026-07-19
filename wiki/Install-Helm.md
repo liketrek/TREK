@@ -5,7 +5,7 @@ Deploy TREK on Kubernetes using the official Helm chart.
 ## Add the Chart Repository
 
 ```bash
-helm repo add trek https://mauriceboe.github.io/TREK
+helm repo add trek https://liketrek.github.io/TREK
 helm repo update
 ```
 
