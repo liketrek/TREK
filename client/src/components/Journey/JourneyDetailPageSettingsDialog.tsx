@@ -88,7 +88,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-5 overscroll-none bg-[rgba(9,9,11,0.75)]" onClick={handleClose} onTouchMove={e => { if (e.target === e.currentTarget) e.preventDefault() }}>
-      <div className="bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[480px] w-full max-h-[85vh] md:max-h-[90vh] flex flex-col overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[980px] w-full max-h-[85vh] md:max-h-[90vh] flex flex-col overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.settings.title')}</h2>
@@ -97,8 +97,11 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 flex flex-col gap-5">
-          {/* Cover Image */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 items-start">
+          {/* Left column */}
+          <div className="flex flex-col gap-5 rounded-2xl p-4" style={{ background: 'var(--vg-surf2)', border: '1px solid var(--vg-line)' }}>
+          {/*Cover Image */}
           <div>
             <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.settings.coverImage')}</label>
             <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
@@ -123,7 +126,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400"
+              className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400"
             />
           </div>
 
@@ -134,13 +137,15 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
               value={subtitle}
               onChange={e => setSubtitle(e.target.value)}
               placeholder={t('journey.settings.subtitlePlaceholder')}
-              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400"
+              className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400"
             />
           </div>
 
-          <div className="h-px bg-zinc-200 dark:bg-zinc-700" />
+          </div>
 
-          {/* Synced Trips */}
+          {/* Right column */}
+          <div className="flex flex-col gap-5 rounded-2xl p-4" style={{ background: 'var(--vg-surf2)', border: '1px solid var(--vg-line)' }}>
+          {/*Synced Trips */}
           <div>
             <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.detail.syncedTrips')}</label>
             <div className="flex flex-col gap-1.5">
@@ -211,7 +216,10 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
             </div>
           </div>
 
-          <div className="h-px bg-zinc-200 dark:bg-zinc-700" />
+          </div>
+          </div>
+
+          <div className="h-3" />
 
           {/* Public Share */}
           <JourneyShareSection journeyId={journey.id} />
@@ -239,8 +247,8 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
             {journey.status === 'archived' ? <ArchiveRestore size={14} /> : <Archive size={14} />}
             <span className="hidden md:inline">{journey.status === 'archived' ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')}</span>
           </button>
-          <button onClick={handleClose} className="h-9 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">{t('common.cancel')}</button>
-          <button onClick={handleSave} disabled={saving || !title.trim()} className="h-9 px-3.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40">
+          <button onClick={handleClose} className="h-10 px-4 rounded-full border border-zinc-200 dark:border-zinc-600 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">{t('common.cancel')}</button>
+          <button onClick={handleSave} disabled={saving || !title.trim()} className="h-10 px-5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 transition-colors">
             {saving ? t('common.saving') : t('common.save')}
           </button>
         </div>
