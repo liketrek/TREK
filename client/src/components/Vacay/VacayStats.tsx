@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Briefcase, Pencil } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
 import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
 import type { VacayStat, TranslationFn } from '../../types'
 import { NumericInput } from '../shared/NumericInput'
+import VacayBadge from './VacayBadge'
 
 
 export default function VacayStats() {
@@ -15,18 +16,17 @@ export default function VacayStats() {
   useEffect(() => { loadStats(selectedYear) }, [selectedYear])
 
   return (
-    <div className="rounded-xl border p-3 bg-surface-card border-edge">
-      <div className="flex items-center gap-1.5 mb-3">
-        <Briefcase size={13} className="text-content-faint" />
-        <span className="text-[11px] font-medium uppercase tracking-wider text-content-faint">
+    <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
+      <div className="mb-2.5">
+        <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>
           {t('vacay.entitlement')} {selectedYear}
         </span>
       </div>
 
       {stats.length === 0 ? (
-        <p className="text-[11px] text-center py-3 text-content-faint">{t('vacay.noData')}</p>
+        <p className="text-[11px] text-center py-3" style={{ color: 'var(--vg-ink3)' }}>{t('vacay.noData')}</p>
       ) : (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {stats.map(s => (
             <StatCard
               key={s.user_id}
@@ -73,33 +73,34 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, onSave, t }: StatCardP
     }
   }
 
+  const remainingColor = s.remaining < 0 ? '#ef4444' : s.remaining <= 3 ? '#f59e0b' : '#22c55e'
+  const tileValue = { fontFamily: 'var(--font-subtext)', fontSize: 14, fontWeight: 700, height: 16, lineHeight: '16px' } as const
+
   return (
-    <div className="rounded-lg p-2.5 space-y-2 border border-edge-secondary">
-      <div className="flex items-center gap-2">
+    <div style={{ padding: 10, borderRadius: 14, border: '1px solid var(--vg-line)' }}>
+      <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.person_color }} />
-        <span className="text-xs font-semibold flex-1 truncate text-content">
+        <span className="truncate min-w-0" style={{ fontSize: 13, fontWeight: 700, color: 'var(--vg-ink)' }}>
           {s.person_name}
-          {isMe && <span className="text-content-faint"> ({t('vacay.you')})</span>}
         </span>
-        <span className="text-[10px] tabular-nums text-content-faint">{s.used}/{s.total_available}</span>
+        {isMe && <VacayBadge label={t('vacay.you')} />}
+        <span className="tabular-nums ml-auto" style={{ fontFamily: 'var(--font-subtext)', fontSize: 10.5, color: 'var(--vg-ink3)' }}>{s.used}/{s.total_available}</span>
       </div>
-      <div className="h-1.5 rounded-full overflow-hidden bg-surface-secondary">
+      <div className="overflow-hidden" style={{ height: 6, borderRadius: 99, background: 'var(--vg-surf2)', marginBottom: 7 }}>
         <div
           className="trek-bar-fill h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
           style={{ width: `${pct}%`, backgroundColor: s.person_color }}
         />
       </div>
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-3" style={{ gap: 7 }}>
         {/* Days — editable */}
         <div
-          className={`rounded-md px-2 py-2 group/days border ${canEdit ? 'bg-surface-card border-edge' : 'bg-surface-secondary border-transparent'}`}
-          style={{
-            cursor: canEdit ? 'pointer' : 'default',
-          }}
+          className="group/days"
+          style={{ padding: '6px 9px', borderRadius: 10, background: 'var(--vg-surf2)', cursor: canEdit ? 'pointer' : 'default' }}
           onClick={() => { if (canEdit && !editing) setEditing(true) }}
         >
-          <div className="text-[10px] mb-1 text-content-faint" style={{ height: 14, lineHeight: '14px' }}>
-            {t('vacay.entitlementDays')} {canEdit && !editing && <Pencil size={9} className="inline opacity-0 group-hover/days:opacity-100 transition-opacity text-content-faint" style={{ verticalAlign: 'middle' }} />}
+          <div style={{ fontSize: 10, marginBottom: 2, color: 'var(--vg-ink3)', height: 13, lineHeight: '13px' }}>
+            {t('vacay.entitlementDays')} {canEdit && !editing && <Pencil size={9} className="inline opacity-0 group-hover/days:opacity-100 transition-opacity" style={{ verticalAlign: 'middle', color: 'var(--vg-ink3)' }} />}
           </div>
           {editing ? (
             <NumericInput
@@ -108,28 +109,26 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, onSave, t }: StatCardP
               onBlur={handleSave}
               onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setEditing(false); setLocalDays(s.vacation_days) } }}
               autoFocus
-              className="w-full bg-transparent text-sm font-bold outline-none p-0 m-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none text-content"
-              style={{ height: 18, lineHeight: '18px' }}
+              className="w-full bg-transparent outline-none p-0 m-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              style={{ ...tileValue, color: 'var(--vg-ink)' }}
             />
           ) : (
-            <div className="text-sm font-bold text-content" style={{ height: 18, lineHeight: '18px' }}>{s.vacation_days}</div>
+            <div style={{ ...tileValue, color: 'var(--vg-ink)' }}>{s.vacation_days}</div>
           )}
         </div>
         {/* Used */}
-        <div className="rounded-md px-2 py-2 bg-surface-secondary">
-          <div className="text-[10px] mb-1 text-content-faint" style={{ height: 14, lineHeight: '14px' }}>{t('vacay.used')}</div>
-          <div className="text-sm font-bold text-content" style={{ height: 18, lineHeight: '18px' }}>{s.used}</div>
+        <div style={{ padding: '6px 9px', borderRadius: 10, background: 'var(--vg-surf2)' }}>
+          <div style={{ fontSize: 10, marginBottom: 2, color: 'var(--vg-ink3)', height: 13, lineHeight: '13px' }}>{t('vacay.used')}</div>
+          <div style={{ ...tileValue, color: 'var(--vg-ink)' }}>{s.used}</div>
         </div>
         {/* Remaining */}
-        <div className="rounded-md px-2 py-2 bg-surface-secondary">
-          <div className="text-[10px] mb-1 text-content-faint" style={{ height: 14, lineHeight: '14px' }}>{t('vacay.remaining')}</div>
-          <div className="text-sm font-bold" style={{ color: s.remaining < 0 ? '#ef4444' : s.remaining <= 3 ? '#f59e0b' : '#22c55e', height: 18, lineHeight: '18px' }}>
-            {s.remaining}
-          </div>
+        <div style={{ padding: '6px 9px', borderRadius: 10, background: 'var(--vg-surf2)' }}>
+          <div style={{ fontSize: 10, marginBottom: 2, color: 'var(--vg-ink3)', height: 13, lineHeight: '13px' }}>{t('vacay.remaining')}</div>
+          <div style={{ ...tileValue, color: remainingColor }}>{s.remaining}</div>
         </div>
       </div>
       {s.carried_over > 0 && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.15)]">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.15)]" style={{ marginTop: 10 }}>
           <span className="text-[10px] text-[#d97706]">+{s.carried_over} {t('vacay.carriedOver', { year: selectedYear - 1 })}</span>
         </div>
       )}

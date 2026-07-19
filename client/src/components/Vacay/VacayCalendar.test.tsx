@@ -125,7 +125,8 @@ describe('VacayCalendar', () => {
 
     await user.click(companyBtn)
 
-    expect(companyBtn).toHaveClass('bg-[#d97706]')
+    // Active company mode paints the button amber via inline style (glass facelift).
+    expect(companyBtn.style.background).toMatch(/#d97706|217,\s*119,\s*6/i)
   })
 
   it('FE-COMP-VACAYCALENDAR-006: cell click in vacation mode calls toggleEntry', async () => {

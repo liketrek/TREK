@@ -76,7 +76,7 @@ describe('VacayMonthCard', () => {
     expect(cell.style.cursor).toBe('default')
   })
 
-  it('FE-COMP-VACAYMONTHCARD-007: Company holiday overlay renders', () => {
+  it('FE-COMP-VACAYMONTHCARD-007: Company holiday cell shows amber fill', () => {
     const props = {
       ...baseProps,
       companyHolidaySet: new Set(['2025-01-10']),
@@ -86,13 +86,11 @@ describe('VacayMonthCard', () => {
     // January 10, 2025 is a Friday (not a weekend)
     const daySpan = screen.getByText('10')
     const cell = daySpan.closest('div') as HTMLElement
-    // Company overlay is a direct child div with amber background
-    const overlayDivs = Array.from(cell.querySelectorAll(':scope > div')) as HTMLElement[]
-    const companyOverlay = overlayDivs.find(el => el.className.includes('bg-[rgba(245,158,11'))
-    expect(companyOverlay).toBeTruthy()
+    // Amber fill is applied to the cell background itself (glass facelift).
+    expect(cell.style.background).toMatch(/245,\s*158,\s*11/)
   })
 
-  it('FE-COMP-VACAYMONTHCARD-008: Single vacation entry renders colored overlay', () => {
+  it('FE-COMP-VACAYMONTHCARD-008: Single vacation entry fills the cell with the person colour', () => {
     const props = {
       ...baseProps,
       entryMap: { '2025-01-15': [{ date: '2025-01-15', user_id: 1, person_color: '#6366f1' }] },
@@ -100,12 +98,9 @@ describe('VacayMonthCard', () => {
     render(<VacayMonthCard {...props} />)
     const daySpan = screen.getByText('15')
     const cell = daySpan.closest('div') as HTMLElement
-    // The overlay div should have opacity: 0.4 and a backgroundColor set
-    const overlayDivs = Array.from(cell.querySelectorAll(':scope > div')) as HTMLElement[]
-    const colorOverlay = overlayDivs.find(
-      el => el.style.opacity === '0.4' && el.style.backgroundColor !== '',
-    )
-    expect(colorOverlay).toBeTruthy()
+    // Person colour is the cell background; the day number flips to white.
+    expect(cell.style.background).toMatch(/#6366f1|99,\s*102,\s*241/i)
+    expect(daySpan.style.color).toMatch(/#fff|255,\s*255,\s*255/i)
   })
 
   it('FE-COMP-VACAYMONTHCARD-009: Day number font-weight is bold when entries exist', () => {
@@ -132,6 +127,7 @@ describe('VacayMonthCard', () => {
 
     const getFirstWeekLabels = () =>
       Array.from(container.querySelectorAll('.grid.grid-cols-7')[1].children)
+        .slice(0, 7)
         .map((cell) => cell.textContent?.trim() || '')
 
     // January 1, 2025 is Wednesday: two leading blanks for Monday-first weeks.
@@ -144,7 +140,7 @@ describe('VacayMonthCard', () => {
     expect(getFirstWeekLabels()).toEqual(['', '', '', '1', '2', '3', '4'])
   })
 
-  it('FE-COMP-VACAYMONTHCARD-011: Two vacation entries render gradient overlay', () => {
+  it('FE-COMP-VACAYMONTHCARD-011: Two vacation entries fill the cell with a split gradient', () => {
     const props = {
       ...baseProps,
       entryMap: {
@@ -154,11 +150,8 @@ describe('VacayMonthCard', () => {
     render(<VacayMonthCard {...props} />)
     const daySpan = screen.getByText('15')
     const cell = daySpan.closest('div') as HTMLElement
-    const overlayDivs = Array.from(cell.querySelectorAll(':scope > div')) as HTMLElement[]
-    const gradientOverlay = overlayDivs.find(
-      el => el.style.opacity === '0.4' && el.style.background.includes('linear-gradient'),
-    )
-    expect(gradientOverlay).toBeTruthy()
+    // The split gradient is the cell background itself (glass facelift).
+    expect(cell.style.background).toContain('linear-gradient')
   })
 
   it('FE-COMP-VACAYMONTHCARD-012: Four vacation entries render quadrant overlay', () => {

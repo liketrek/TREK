@@ -59,7 +59,7 @@ describe('VacayStats', () => {
     seedStore(useAuthStore, { user: { id: 1 } })
     seedStore(useVacayStore, { stats: [buildStat({ user_id: 1 })] })
     render(<VacayStats />)
-    expect(screen.getByText(/\(you\)/)).toBeInTheDocument()
+    expect(screen.getByText(/^you$/i)).toBeInTheDocument()
   })
 
   it('FE-COMP-VACAYSTATS-005: Remaining shown in green when > 3', () => {
