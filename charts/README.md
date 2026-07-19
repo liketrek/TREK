@@ -15,7 +15,7 @@ This is a minimal Helm chart for deploying the TREK app.
 A hosted Helm repository is available:
 
 ```sh
-helm repo add trek https://mauriceboe.github.io/TREK
+helm repo add trek https://liketrek.github.io/TREK
 helm repo update
 helm install trek trek/trek
 ```
