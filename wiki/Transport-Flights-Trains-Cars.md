@@ -54,7 +54,7 @@ Once you select an airport, the **timezone** for that airport appears next to th
 
 Departure and arrival fields use the **generic location picker** — search by place name or enter a free-text location. Results come from the maps search service.
 
-If you use **car rentals** instead of a Car, the departure field is labelled **Pickup date/time** and the arrival field is labelled **Return date/time**.
+If you use **car rentals** instead of your own Car, the departure field is labelled **Pickup date/time** and the arrival field is labelled **Return date/time**.
 
 ## Flight-specific fields
 
