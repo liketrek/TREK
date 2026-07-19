@@ -24,7 +24,7 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   createPinnedDispatcher: vi.fn(() => ({})),
 }));
 
-import { getEventText, buildEmailHtml, buildWebhookBody, sendWebhook, sendNtfy, resolveNtfyUrl, type NtfyConfig } from '../../../src/services/notifications';
+import { getEventText, buildEmailHtml, buildWebhookBody, sendWebhook, sendNtfy, resolveNtfyUrl, resolveAdminNtfyUrl, type NtfyConfig } from '../../../src/services/notifications';
 import { checkSsrf } from '../../../src/utils/ssrfGuard';
 import { logError } from '../../../src/services/auditLog';
 
@@ -325,11 +325,16 @@ afterAll(() => vi.unstubAllGlobals());
 describe('resolveNtfyUrl', () => {
   const adminCfg: NtfyConfig = { server: 'https://ntfy.sh', topic: 'admin-topic', token: null };
 
-  it('uses admin server + admin topic when no user config', () => {
-    expect(resolveNtfyUrl(adminCfg, null)).toBe('https://ntfy.sh/admin-topic');
+  it('returns null when no user config, even when admin topic is set (#1608)', () => {
+    expect(resolveNtfyUrl(adminCfg, null)).toBeNull();
   });
 
-  it('uses user topic over admin topic', () => {
+  it('returns null when user config has no topic, even when admin topic is set (#1608)', () => {
+    const user: NtfyConfig = { server: 'https://ntfy.example.com', topic: null, token: null };
+    expect(resolveNtfyUrl(adminCfg, user)).toBeNull();
+  });
+
+  it('uses user topic with admin server fallback', () => {
     const user: NtfyConfig = { server: null, topic: 'my-topic', token: null };
     expect(resolveNtfyUrl(adminCfg, user)).toBe('https://ntfy.sh/my-topic');
   });
@@ -340,18 +345,32 @@ describe('resolveNtfyUrl', () => {
   });
 
   it('strips trailing slash from server', () => {
-    const admin: NtfyConfig = { server: 'https://ntfy.sh/', topic: 'alerts', token: null };
-    expect(resolveNtfyUrl(admin, null)).toBe('https://ntfy.sh/alerts');
-  });
-
-  it('returns null when no topic in admin or user config', () => {
-    const noTopic: NtfyConfig = { server: 'https://ntfy.sh', topic: null, token: null };
-    expect(resolveNtfyUrl(noTopic, null)).toBeNull();
+    const user: NtfyConfig = { server: 'https://ntfy.example.com/', topic: 'alerts', token: null };
+    expect(resolveNtfyUrl(adminCfg, user)).toBe('https://ntfy.example.com/alerts');
   });
 
   it('falls back to https://ntfy.sh when no server configured', () => {
-    const noServer: NtfyConfig = { server: null, topic: 'my-topic', token: null };
-    expect(resolveNtfyUrl(noServer, null)).toBe('https://ntfy.sh/my-topic');
+    const noServer: NtfyConfig = { server: null, topic: null, token: null };
+    const user: NtfyConfig = { server: null, topic: 'my-topic', token: null };
+    expect(resolveNtfyUrl(noServer, user)).toBe('https://ntfy.sh/my-topic');
+  });
+});
+
+describe('resolveAdminNtfyUrl', () => {
+  it('builds URL from admin topic and server', () => {
+    expect(resolveAdminNtfyUrl({ server: 'https://ntfy.example.com', topic: 'admin-topic', token: null })).toBe('https://ntfy.example.com/admin-topic');
+  });
+
+  it('returns null when no admin topic', () => {
+    expect(resolveAdminNtfyUrl({ server: 'https://ntfy.sh', topic: null, token: null })).toBeNull();
+  });
+
+  it('falls back to https://ntfy.sh when no server configured', () => {
+    expect(resolveAdminNtfyUrl({ server: null, topic: 'alerts', token: null })).toBe('https://ntfy.sh/alerts');
+  });
+
+  it('strips trailing slash from server', () => {
+    expect(resolveAdminNtfyUrl({ server: 'https://ntfy.sh/', topic: 'alerts', token: null })).toBe('https://ntfy.sh/alerts');
   });
 });
 

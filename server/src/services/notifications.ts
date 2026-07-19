@@ -492,14 +492,23 @@ export function getAdminNtfyConfig(): NtfyConfig {
 }
 
 /**
- * Resolve the ntfy POST URL from admin base config + user override.
- * Returns null if topic cannot be determined.
+ * Resolve the ntfy POST URL for a per-user send. The topic must come from the
+ * user's own config — the admin topic is reserved for admin-scoped sends
+ * (see resolveAdminNtfyUrl). Only the server falls back to the admin default.
+ * Returns null if the user has no topic.
  */
 export function resolveNtfyUrl(adminCfg: NtfyConfig, userCfg: NtfyConfig | null): string | null {
-  const topic = userCfg?.topic || adminCfg.topic;
+  const topic = userCfg?.topic;
   if (!topic) return null;
   const base = (userCfg?.server || adminCfg.server || 'https://ntfy.sh').replace(/\/+$/, '');
   return `${base}/${encodeURIComponent(topic)}`;
+}
+
+/** Resolve the ntfy POST URL for admin-scoped sends. Returns null if no admin topic. */
+export function resolveAdminNtfyUrl(adminCfg: NtfyConfig): string | null {
+  if (!adminCfg.topic) return null;
+  const base = (adminCfg.server || 'https://ntfy.sh').replace(/\/+$/, '');
+  return `${base}/${encodeURIComponent(adminCfg.topic)}`;
 }
 
 function encodeHeaderValue(value: string): string {
