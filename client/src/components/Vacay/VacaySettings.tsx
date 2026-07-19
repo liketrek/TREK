@@ -40,7 +40,10 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
   const toggle = (key: string) => updatePlan({ [key]: !plan[key] })
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+        {/* ── Column 1 · calendar rules ── */}
+        <div className="rounded-2xl p-5 space-y-4" style={{ border: '1px solid var(--vg-line)', background: 'var(--vg-surf2)' }}>
       {/* Block weekends */}
       <SettingToggle
         icon={CalendarOff}
@@ -125,7 +128,10 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
         value={plan.carry_over_enabled}
         onChange={() => toggle('carry_over_enabled')}
       />
+        </div>
 
+        {/* ── Column 2 · holidays ── */}
+        <div className="rounded-2xl p-5 space-y-4" style={{ border: '1px solid var(--vg-line)', background: 'var(--vg-surf2)' }}>
       {/* Company holidays */}
       <div>
         <SettingToggle
@@ -137,9 +143,9 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
         />
         {plan.company_holidays_enabled && (
           <div className="ml-7 mt-2">
-            <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-surface-secondary">
-              <AlertCircle size={12} className="text-content-faint" />
-              <span className="text-[10px] text-content-faint">{t('vacay.companyHolidaysNoDeduct')}</span>
+            <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md" style={{ background: 'var(--vg-surf)', border: '1px solid var(--vg-line)' }}>
+              <AlertCircle size={12} style={{ color: 'var(--vg-ink3)' }} />
+              <span className="text-[10px]" style={{ color: 'var(--vg-ink3)' }}>{t('vacay.companyHolidaysNoDeduct')}</span>
             </div>
           </div>
         )}
@@ -179,14 +185,17 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
             ) : (
               <button
                 onClick={() => setShowAddForm(true)}
-                className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md transition-colors text-content-muted bg-surface-secondary"
+                className="w-full flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 rounded-xl border border-dashed transition-colors"
+                style={{ borderColor: 'var(--vg-line2)', background: 'var(--vg-surf)', color: 'var(--vg-ink2)' }}
               >
-                <Plus size={12} />
+                <Plus size={13} />
                 {t('vacay.addCalendar')}
               </button>
             )}
           </div>
         )}
+      </div>
+        </div>
       </div>
 
       {/* Dissolve fusion */}
@@ -284,7 +293,7 @@ function CalendarRow({ cal, countries, onUpdate, onDelete }: {
   const [showColorPicker, setShowColorPicker] = useState(false)
 
   return (
-    <div className="flex gap-3 items-start p-3 rounded-xl bg-surface-secondary">
+    <div className="flex gap-3 items-start p-3 rounded-xl" style={{ background: 'var(--vg-surf)', border: '1px solid var(--vg-line)' }}>
       <div style={{ position: 'relative', flexShrink: 0 }}>
         <button
           onClick={() => setShowColorPicker(!showColorPicker)}
@@ -308,7 +317,7 @@ function CalendarRow({ cal, countries, onUpdate, onDelete }: {
           onBlur={() => { const v = localLabel.trim() || null; if (v !== cal.label) onUpdate({ label: v }) }}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
           placeholder={t('vacay.calendarLabel')}
-          style={{ width: '100%', fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+          style={{ width: '100%', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, padding: '8px 14px', borderRadius: 10, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
         />
         <CustomSelect
           value={selectedCountry}
@@ -368,7 +377,7 @@ function AddCalendarForm({ countries, onAdd, onCancel }: {
   const [showColorPicker, setShowColorPicker] = useState(false)
 
   return (
-    <div className="flex gap-3 items-start p-3 rounded-xl border border-dashed border-edge">
+    <div className="flex gap-3 items-start p-3 rounded-xl border border-dashed" style={{ borderColor: 'var(--vg-line2)', background: 'var(--vg-surf)' }}>
       <div style={{ position: 'relative', flexShrink: 0 }}>
         <button
           onClick={() => setShowColorPicker(!showColorPicker)}
@@ -390,7 +399,7 @@ function AddCalendarForm({ countries, onAdd, onCancel }: {
           value={label}
           onChange={e => setLabel(e.target.value)}
           placeholder={t('vacay.calendarLabel')}
-          style={{ width: '100%', fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+          style={{ width: '100%', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, padding: '8px 14px', borderRadius: 10, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
         />
         <CustomSelect
           value={selectedCountry}

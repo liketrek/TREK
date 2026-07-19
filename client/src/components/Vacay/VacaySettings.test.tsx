@@ -138,11 +138,10 @@ describe('VacaySettings', () => {
     })
     render(<VacaySettings onClose={vi.fn()} />)
 
-    // Find and click the add button (has rounded-md class and is in the holidays section)
-    const buttons = screen.getAllByRole('button')
-    const addButton = buttons.find(b => b.className.includes('rounded-md') && b.querySelector('svg'))
+    // Find and click the add button by its accessible name
+    const addButton = screen.getByRole('button', { name: /addCalendar|add calendar/i })
     expect(addButton).toBeDefined()
-    await user.click(addButton!)
+    await user.click(addButton)
 
     // After clicking, the AddCalendarForm should be visible with a label input
     const inputs = screen.getAllByRole('textbox')
@@ -159,9 +158,8 @@ describe('VacaySettings', () => {
     render(<VacaySettings onClose={vi.fn()} />)
 
     // Click the add button to show AddCalendarForm
-    const buttons = screen.getAllByRole('button')
-    const addButton = buttons.find(b => b.className.includes('rounded-md') && b.querySelector('svg'))
-    await user.click(addButton!)
+    const addButton = screen.getByRole('button', { name: /addCalendar|add calendar/i })
+    await user.click(addButton)
 
     // Wait for countries to load (the component fetches them on mount)
     await waitFor(() => {
@@ -360,10 +358,8 @@ describe('VacaySettings', () => {
     render(<VacaySettings onClose={vi.fn()} />)
 
     // Open the form
-    const addButton = screen.getAllByRole('button').find(b =>
-      b.className.includes('rounded-md') && b.querySelector('svg')
-    )
-    await user.click(addButton!)
+    const addButton = screen.getByRole('button', { name: /addCalendar|add calendar/i })
+    await user.click(addButton)
     expect(screen.getAllByRole('textbox').length).toBeGreaterThan(0)
 
     // Click cancel (✕ button)
