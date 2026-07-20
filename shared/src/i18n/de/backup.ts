@@ -108,7 +108,7 @@ const backup: TranslationStrings = {
   'backup.target.testSuccess': 'Verbindung funktioniert — der Bucket ist erreichbar und beschreibbar.',
   'backup.target.testFailed': 'Verbindung fehlgeschlagen: {error}',
   'backup.target.managedByEnv': 'Dieses Ziel wird über BACKUP_S3_*-Umgebungsvariablen konfiguriert und kann hier nicht bearbeitet werden.',
-  'backup.target.uploadOk': 'Backup wurde auf das externe Ziel gespiegelt.',
+  'backup.target.uploadOk': 'Backup erstellt und auf das externe Ziel gespiegelt.',
   'backup.target.uploadFailed': 'Das Backup wurde lokal erstellt, aber das externe Ziel ist fehlgeschlagen: {error}',
 };
 export default backup;

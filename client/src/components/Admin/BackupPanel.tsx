@@ -164,8 +164,18 @@ export default function BackupPanel() {
   const handleCreate = async () => {
     setIsCreating(true)
     try {
-      await backupApi.create()
-      toast.success(t('backup.toast.created'))
+      const res = await backupApi.create()
+      // The server awaits the mirror upload and reports its outcome, so a
+      // target that failed must not be reported as a plain success — the local
+      // backup exists either way, but the off-box copy is the whole point.
+      const remote = res?.backup?.remote
+      if (remote?.attempted && !remote.uploaded) {
+        toast.error(t('backup.target.uploadFailed', { error: remote.error || '' }))
+      } else if (remote?.uploaded) {
+        toast.success(t('backup.target.uploadOk'))
+      } else {
+        toast.success(t('backup.toast.created'))
+      }
       await loadBackups()
     } catch {
       toast.error(t('backup.toast.createError'))

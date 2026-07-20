@@ -119,6 +119,55 @@ describe('BackupPanel', () => {
     })
   })
 
+  // BKP-025: the server awaits the mirror upload and reports it — reporting a
+  // plain success when the off-box copy failed is exactly the misinformation
+  // this feature exists to prevent.
+  it('FE-ADMIN-BKP-025: reports a failed mirror instead of a success toast', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post('/api/backup/create', () => HttpResponse.json({
+        success: true,
+        backup: { filename: 'backup-x.zip', size: 10, remote: { attempted: true, uploaded: false, error: 'Access denied.' } },
+      })),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await waitFor(() => expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument())
+    await user.click(screen.getByTitle('Create Backup'))
+
+    await waitFor(() => expect(screen.getByText(/external target failed/i)).toBeInTheDocument())
+    expect(screen.queryByText('Backup created successfully')).not.toBeInTheDocument()
+  })
+
+  it('FE-ADMIN-BKP-026: confirms the mirror when the upload succeeded', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post('/api/backup/create', () => HttpResponse.json({
+        success: true,
+        backup: { filename: 'backup-x.zip', size: 10, remote: { attempted: true, uploaded: true } },
+      })),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await waitFor(() => expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument())
+    await user.click(screen.getByTitle('Create Backup'))
+
+    await waitFor(() => expect(screen.getByText(/mirrored to the external target/i)).toBeInTheDocument())
+  })
+
+  it('FE-ADMIN-BKP-027: keeps the plain success toast when no target is configured', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post('/api/backup/create', () => HttpResponse.json({
+        success: true,
+        backup: { filename: 'backup-x.zip', size: 10, remote: { attempted: false, uploaded: false } },
+      })),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await waitFor(() => expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument())
+    await user.click(screen.getByTitle('Create Backup'))
+
+    await waitFor(() => expect(screen.getByText('Backup created successfully')).toBeInTheDocument())
+  })
+
   // BKP-006: Restore opens confirmation modal
   it('FE-ADMIN-BKP-006: clicking Restore opens confirmation modal', async () => {
     const user = userEvent.setup()

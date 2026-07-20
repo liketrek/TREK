@@ -108,7 +108,7 @@ const backup: TranslationStrings = {
   'backup.target.testSuccess': 'Connection works — the bucket is reachable and writable.',
   'backup.target.testFailed': 'Connection failed: {error}',
   'backup.target.managedByEnv': 'This target is configured through BACKUP_S3_* environment variables and cannot be edited here.',
-  'backup.target.uploadOk': 'Backup mirrored to the external target.',
+  'backup.target.uploadOk': 'Backup created and mirrored to the external target.',
   'backup.target.uploadFailed': 'The backup was created locally, but the external target failed: {error}',
 };
 export default backup;
