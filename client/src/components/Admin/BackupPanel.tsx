@@ -103,8 +103,9 @@ export default function BackupPanel() {
     setTargetSaving(true)
     try {
       const data = await backupApi.setTarget({
-        type: target.type,
+        local_enabled: target.local_enabled,
         local_path: target.local_path,
+        s3_enabled: target.s3_enabled,
         endpoint: target.endpoint,
         region: target.region,
         bucket: target.bucket,
@@ -618,29 +619,24 @@ export default function BackupPanel() {
           </div>
 
           <fieldset disabled={target.managed_by_env} className="flex flex-col gap-5 disabled:opacity-60">
-            {/* Which storage backend the archive is copied to. */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.backend')}</label>
-              <p className="text-xs text-gray-400 mb-2">{t('backup.target.backendHint')}</p>
-              <div className="flex flex-wrap gap-2">
-                {['none', 'local', 's3'].map(type => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => handleTargetChange('type', type)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                      target.type === type
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-700'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {t(`backup.target.backend.${type}`)}
-                  </button>
-                ))}
+            {/* Local backend — opt-out, so it leads. */}
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-gray-900">{t('backup.target.localTitle')}</span>
+                <p className="text-xs text-gray-500 mt-0.5">{t('backup.target.localHint')}</p>
               </div>
-            </div>
+              <button
+                type="button"
+                onClick={() => handleTargetChange('local_enabled', !target.local_enabled)}
+                className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                style={{ background: target.local_enabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
+              >
+                <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+                  style={{ transform: target.local_enabled ? 'translateX(20px)' : 'translateX(0)' }} />
+              </button>
+            </label>
 
-            {target.type === 'local' && (
+            {target.local_enabled && (
               <div>
                 <label htmlFor="local-path" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.localPath')}</label>
                 <input
@@ -648,14 +644,42 @@ export default function BackupPanel() {
                   type="text"
                   value={target.local_path}
                   onChange={e => handleTargetChange('local_path', e.target.value)}
-                  placeholder="/mnt/nas/trek-backups"
+                  placeholder={target.local_path_default}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
                 />
                 <p className="text-xs text-gray-400 mt-1">{t('backup.target.localPathHint')}</p>
               </div>
             )}
 
-            {target.type === 's3' && (
+            {/* Every backend off would mean building an archive and throwing it
+                away — worth saying before someone finds out the hard way. */}
+            {!target.local_enabled && !target.s3_enabled && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-700">{t('backup.target.noBackend')}</p>
+              </div>
+            )}
+
+            <div className="border-t border-gray-100 pt-5" />
+
+            {/* S3 backend — opt-in. */}
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-gray-900">{t('backup.target.s3Title')}</span>
+                <p className="text-xs text-gray-500 mt-0.5">{t('backup.target.s3Hint')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTargetChange('s3_enabled', !target.s3_enabled)}
+                className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                style={{ background: target.s3_enabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
+              >
+                <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+                  style={{ transform: target.s3_enabled ? 'translateX(20px)' : 'translateX(0)' }} />
+              </button>
+            </label>
+
+            {target.s3_enabled && (
               <>
               <div>
                 <label htmlFor="s3-endpoint" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.endpoint')}</label>
@@ -777,7 +801,7 @@ export default function BackupPanel() {
               <button
                 type="button"
                 onClick={handleSyncTarget}
-                disabled={targetSyncing || target.type === 'none'}
+                disabled={targetSyncing || !target.s3_enabled}
                 title={t('backup.target.syncHint')}
                 className="flex items-center gap-2 border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50"
               >

@@ -134,7 +134,7 @@ describe('BackupPanel', () => {
     await waitFor(() => expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument())
     await user.click(screen.getByTitle('Create Backup'))
 
-    await waitFor(() => expect(screen.getByText(/external target failed/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/a backend failed/i)).toBeInTheDocument())
     expect(screen.queryByText('Backup created successfully')).not.toBeInTheDocument()
   })
 
@@ -150,7 +150,7 @@ describe('BackupPanel', () => {
     await waitFor(() => expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument())
     await user.click(screen.getByTitle('Create Backup'))
 
-    await waitFor(() => expect(screen.getByText(/mirrored to the external target/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/copied to the other backends/i)).toBeInTheDocument())
   })
 
   it('FE-ADMIN-BKP-027: keeps the plain success toast when no target is configured', async () => {
@@ -404,8 +404,10 @@ describe('BackupPanel', () => {
 
   describe('external S3 backup target', () => {
     const storedTarget = {
-      type: 's3',
+      local_enabled: true,
       local_path: '',
+      local_path_default: '/app/data/backups',
+      s3_enabled: true,
       endpoint: 'https://s3.example.test',
       region: 'us-east-1',
       bucket: 'trek-backups',
@@ -430,7 +432,7 @@ describe('BackupPanel', () => {
       )
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('Backup storage')).toBeInTheDocument())
       const secret = screen.getByLabelText('Secret access key') as HTMLInputElement
       expect(secret.value).toBe('••••••••')
       expect(secret.type).toBe('password')
@@ -439,7 +441,7 @@ describe('BackupPanel', () => {
       // server keeps the stored secret instead of overwriting it with dots.
       await user.clear(screen.getByLabelText('Bucket'))
       await user.type(screen.getByLabelText('Bucket'), 'other-bucket')
-      await user.click(screen.getByRole('button', { name: /save target/i }))
+      await user.click(screen.getByRole('button', { name: /save settings/i }))
 
       await waitFor(() => expect(sent).not.toBeNull())
       expect(sent!.secret_access_key).toBe('••••••••')
@@ -453,7 +455,7 @@ describe('BackupPanel', () => {
       )
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByText(/configured through BACKUP_TARGET_TYPE/i)).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText(/configured through BACKUP_LOCAL_/i)).toBeInTheDocument())
       expect(screen.getByLabelText('Bucket')).toBeDisabled()
     })
 
@@ -463,13 +465,13 @@ describe('BackupPanel', () => {
       server.use(http.get('/api/backup/target', () => HttpResponse.json(storedTarget)))
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
-      expect(screen.queryByText(/transmitted unencrypted/i)).not.toBeInTheDocument()
+      await waitFor(() => expect(screen.getByText('Backup storage')).toBeInTheDocument())
+      expect(screen.queryByText(/travel unencrypted/i)).not.toBeInTheDocument()
 
       const label = screen.getByText('Require HTTPS').closest('label') as HTMLElement
       await user.click(label.querySelector('button') as HTMLElement)
 
-      await waitFor(() => expect(screen.getByText(/transmitted unencrypted/i)).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText(/travel unencrypted/i)).toBeInTheDocument())
     })
 
     // BKP-018: a failed probe must surface the reason, not a generic success
@@ -483,7 +485,7 @@ describe('BackupPanel', () => {
       )
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('Backup storage')).toBeInTheDocument())
       await user.click(screen.getByRole('button', { name: /test connection/i }))
 
       await waitFor(() => expect(screen.getByText(/Bucket not found\./i)).toBeInTheDocument())
@@ -537,66 +539,65 @@ describe('BackupPanel', () => {
       server.use(http.get('/api/backup/target', () => HttpResponse.json(storedTarget)))
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('Backup storage')).toBeInTheDocument())
       const warning = screen.getByText(/at-rest encryption key/i)
       expect(warning).toBeInTheDocument()
-      expect(warning.textContent).toMatch(/not encrypted before transmission/i)
+      expect(warning.textContent).toMatch(/never encrypted beforehand/i)
     })
 
-    // BKP-020: picking a backend is the switch now — there is no separate
-    // enable toggle to leave off by accident.
-    it('FE-ADMIN-BKP-020: offers the storage backends and shows S3 fields only for S3', async () => {
+    // BKP-020: the backends are independent — S3 fields follow the S3 switch,
+    // and turning S3 off must not touch the local one.
+    it('FE-ADMIN-BKP-020: shows the S3 fields only while the S3 backend is on', async () => {
       const user = userEvent.setup()
       server.use(http.get('/api/backup/target', () => HttpResponse.json(storedTarget)))
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
-      expect(screen.getByLabelText('Bucket')).toBeInTheDocument()
+      await waitFor(() => expect(screen.getByLabelText('Bucket')).toBeInTheDocument())
+      const s3Toggle = screen.getByText('S3-compatible storage').closest('label') as HTMLElement
+      await user.click(s3Toggle.querySelector('button') as HTMLElement)
 
-      await user.click(screen.getByRole('button', { name: /^directory$/i }))
-      await waitFor(() => expect(screen.getByLabelText('Target directory')).toBeInTheDocument())
-      // S3 credentials are meaningless for a directory target.
-      expect(screen.queryByLabelText('Bucket')).not.toBeInTheDocument()
-
-      await user.click(screen.getByRole('button', { name: /local only/i }))
-      await waitFor(() => expect(screen.queryByLabelText('Target directory')).not.toBeInTheDocument())
+      await waitFor(() => expect(screen.queryByLabelText('Bucket')).not.toBeInTheDocument())
+      // The local backend is untouched by that.
+      expect(screen.getByLabelText('Directory')).toBeInTheDocument()
     })
 
-    it('FE-ADMIN-BKP-021: saves the chosen backend and its directory', async () => {
+    it('FE-ADMIN-BKP-021: saves both switches and the local directory', async () => {
       const user = userEvent.setup()
       let sent: Record<string, unknown> | null = null
       server.use(
-        http.get('/api/backup/target', () => HttpResponse.json({ ...storedTarget, type: 'local', local_path: '' })),
+        http.get('/api/backup/target', () => HttpResponse.json({ ...storedTarget, local_path: '' })),
         http.put('/api/backup/target', async ({ request }) => {
           sent = (await request.json()) as Record<string, unknown>
-          return HttpResponse.json({ ...storedTarget, type: 'local', local_path: '/mnt/nas' })
+          return HttpResponse.json(storedTarget)
         }),
       )
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByLabelText('Target directory')).toBeInTheDocument())
-      await user.type(screen.getByLabelText('Target directory'), '/mnt/nas')
-      await user.click(screen.getByRole('button', { name: /save target/i }))
+      await waitFor(() => expect(screen.getByLabelText('Directory')).toBeInTheDocument())
+      await user.type(screen.getByLabelText('Directory'), '/mnt/archive')
+      await user.click(screen.getByRole('button', { name: /save settings/i }))
 
       await waitFor(() => expect(sent).not.toBeNull())
-      expect(sent!.type).toBe('local')
-      expect(sent!.local_path).toBe('/mnt/nas')
+      expect(sent!.local_enabled).toBe(true)
+      expect(sent!.s3_enabled).toBe(true)
+      expect(sent!.local_path).toBe('/mnt/archive')
     })
 
-    // BKP-028: the backfill button was disabled forever after the switch from
-    // an `enabled` flag to the `type` discriminator — `!undefined` is always true.
-    it('FE-ADMIN-BKP-028: enables the backfill button once a backend is chosen', async () => {
+    // BKP-028: the backfill button was once disabled forever because it tested
+    // a field that no longer existed. It follows the S3 switch now — there is
+    // nothing to back-fill to when the only backend is the local one.
+    it('FE-ADMIN-BKP-028: the backfill button follows the S3 backend switch', async () => {
       const user = userEvent.setup()
       server.use(http.get('/api/backup/target', () => HttpResponse.json(storedTarget)))
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
-      expect(screen.getByRole('button', { name: /upload all existing backups/i })).not.toBeDisabled()
+      await waitFor(() => expect(screen.getByText('Backup storage')).toBeInTheDocument())
+      expect(screen.getByRole('button', { name: /upload existing backups/i })).not.toBeDisabled()
 
-      // ...and only then: with no backend there is nowhere to upload to.
-      await user.click(screen.getByRole('button', { name: /local only/i }))
+      const s3Toggle = screen.getByText('S3-compatible storage').closest('label') as HTMLElement
+      await user.click(s3Toggle.querySelector('button') as HTMLElement)
       await waitFor(() =>
-        expect(screen.getByRole('button', { name: /upload all existing backups/i })).toBeDisabled(),
+        expect(screen.getByRole('button', { name: /upload existing backups/i })).toBeDisabled(),
       )
     })
 
@@ -617,12 +618,12 @@ describe('BackupPanel', () => {
       )
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('Backup storage')).toBeInTheDocument())
       expect((screen.getByLabelText('Endpoint URL') as HTMLInputElement).value).toBe(supabase)
 
       await user.clear(screen.getByLabelText('Bucket'))
       await user.type(screen.getByLabelText('Bucket'), 'trek')
-      await user.click(screen.getByRole('button', { name: /save target/i }))
+      await user.click(screen.getByRole('button', { name: /save settings/i }))
 
       await waitFor(() => expect(sent).not.toBeNull())
       expect(sent!.endpoint).toBe(supabase)
