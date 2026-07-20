@@ -48,6 +48,8 @@ export type VacayAddYearRequest = z.infer<typeof vacayAddYearRequestSchema>;
 export const vacayToggleEntryRequestSchema = z.object({
   date: z.string().min(1),
   target_user_id: z.union([z.number(), z.string()]).optional(),
+  // Half vacation days (#552): 0.5 logs a half day, 1 (or omitted) a full day.
+  fraction: z.union([z.literal(0.5), z.literal(1)]).optional(),
 });
 export type VacayToggleEntryRequest = z.infer<typeof vacayToggleEntryRequestSchema>;
 

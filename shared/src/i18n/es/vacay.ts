@@ -27,6 +27,8 @@ const vacay: TranslationStrings = {
   'vacay.weekend': 'Fin de semana',
   'vacay.modeVacation': 'Vacaciones',
   'vacay.modeCompany': 'Festivo de empresa',
+  'vacay.modeHalf': 'Medio día',
+  'vacay.modeHalfHint': 'Registrar medios días de vacaciones',
   'vacay.entitlement': 'Derecho',
   'vacay.entitlementDays': 'Días',
   'vacay.used': 'Usados',

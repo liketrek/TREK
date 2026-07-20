@@ -28,6 +28,8 @@ const vacay: TranslationStrings = {
   'vacay.weekend': 'Σαββατοκύριακο',
   'vacay.modeVacation': 'Διακοπές',
   'vacay.modeCompany': 'Αργία Εταιρείας',
+  'vacay.modeHalf': 'Μισή μέρα',
+  'vacay.modeHalfHint': 'Καταχώριση μισής ημέρας άδειας',
   'vacay.entitlement': 'Δικαίωμα',
   'vacay.entitlementDays': 'Ημέρες',
   'vacay.used': 'Χρησιμοποιημένες',

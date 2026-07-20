@@ -83,7 +83,7 @@ describe('Vacay e2e (real auth guard + temp SQLite)', () => {
       .set('Cookie', sessionCookie(1)).set('X-Socket-Id', 'sock-7').send({ date: '2026-07-01' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ action: 'added' });
-    expect(svc.toggleEntry).toHaveBeenCalledWith(1, 10, '2026-07-01', 'sock-7');
+    expect(svc.toggleEntry).toHaveBeenCalledWith(1, 10, '2026-07-01', undefined, 'sock-7');
   });
 
   it('400 on entries/toggle without a date', async () => {

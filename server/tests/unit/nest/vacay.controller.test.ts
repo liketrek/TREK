@@ -137,7 +137,13 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
     it('toggles for the caller', () => {
       const toggleEntry = vi.fn().mockReturnValue({ action: 'added' });
       expect(makeController({ ...planBase, toggleEntry }).toggleEntry(user, { date: '2026-07-01' }, 'sock')).toEqual({ action: 'added' });
-      expect(toggleEntry).toHaveBeenCalledWith(1, 10, '2026-07-01', 'sock');
+      expect(toggleEntry).toHaveBeenCalledWith(1, 10, '2026-07-01', undefined, 'sock');
+    });
+
+    it('forwards the half-day fraction (#552)', () => {
+      const toggleEntry = vi.fn().mockReturnValue({ action: 'added', fraction: 0.5 });
+      makeController({ ...planBase, toggleEntry }).toggleEntry(user, { date: '2026-07-01', fraction: 0.5 }, 'sock');
+      expect(toggleEntry).toHaveBeenCalledWith(1, 10, '2026-07-01', 0.5, 'sock');
     });
   });
 

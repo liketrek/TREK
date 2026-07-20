@@ -695,7 +695,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     },
     // --- Vacay write: the plan is the ACTING USER's active plan (resolved host-side);
     // the service broadcasts to plan users itself. ---
-    vacayToggleEntry: (userId, date) => { requireAddon(ADDON_IDS.VACAY, 'vacay'); return vacayToggleEntrySvc(userId, getActivePlanId(userId), date, undefined); },
+    vacayToggleEntry: (userId, date) => { requireAddon(ADDON_IDS.VACAY, 'vacay'); return vacayToggleEntrySvc(userId, getActivePlanId(userId), date, 1, undefined); },
     vacayToggleCompanyHoliday: (userId, date, note) => {
       requireAddon(ADDON_IDS.VACAY, 'vacay');
       return vacayToggleCompanyHolidaySvc(getActivePlanId(userId), date, note, undefined);

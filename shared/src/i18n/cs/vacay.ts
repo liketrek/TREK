@@ -27,6 +27,8 @@ const vacay: TranslationStrings = {
   'vacay.weekend': 'Víkend',
   'vacay.modeVacation': 'Dovolená',
   'vacay.modeCompany': 'Firemní volno',
+  'vacay.modeHalf': 'Půlden',
+  'vacay.modeHalfHint': 'Zapsat půldenní dovolenou',
   'vacay.entitlement': 'Nárok',
   'vacay.entitlementDays': 'Dní',
   'vacay.used': 'Vyčerpáno',

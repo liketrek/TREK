@@ -6,10 +6,13 @@ import { tripsApi } from '../../api/client'
 import VacayMonthCard from './VacayMonthCard'
 import { Building2, MousePointer2 } from 'lucide-react'
 
+type VacayMode = 'vacation' | 'half' | 'company'
+
 export default function VacayCalendar() {
   const { t } = useTranslation()
   const { selectedYear, selectedUserId, entries, companyHolidays, toggleEntry, toggleCompanyHoliday, plan, users, holidays } = useVacayStore()
-  const [companyMode, setCompanyMode] = useState(false)
+  const [mode, setMode] = useState<VacayMode>('vacation')
+  const companyMode = mode === 'company'
   const [tripDates, setTripDates] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -51,19 +54,19 @@ export default function VacayCalendar() {
   }, [entries])
 
   const blockWeekends = plan?.block_weekends !== false
-  const weekendDays: number[] = plan?.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]
+  const weekendDays = useMemo<number[]>(() => (plan?.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]), [plan?.weekend_days])
   const companyHolidaysEnabled = plan?.company_holidays_enabled !== false
 
   const handleCellClick = useCallback(async (dateStr: string) => {
-    if (companyMode) {
+    if (mode === 'company') {
       if (!companyHolidaysEnabled) return
       await toggleCompanyHoliday(dateStr)
       return
     }
     if (blockWeekends && isWeekend(dateStr, weekendDays)) return
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
-    await toggleEntry(dateStr, selectedUserId || undefined)
-  }, [companyMode, toggleEntry, toggleCompanyHoliday, companyHolidaySet, blockWeekends, companyHolidaysEnabled, selectedUserId])
+    await toggleEntry(dateStr, selectedUserId || undefined, mode === 'half' ? 0.5 : 1)
+  }, [mode, toggleEntry, toggleCompanyHoliday, companyHolidaySet, blockWeekends, weekendDays, companyHolidaysEnabled, selectedUserId])
 
   const selectedUser = users.find(u => u.id === selectedUserId)
 
@@ -93,18 +96,28 @@ export default function VacayCalendar() {
       <div className="sticky mt-3 sm:mt-4 flex items-center justify-center px-2" style={{ bottom: 'calc(var(--bottom-nav-h, 0px) + 12px)', zIndex: 61 }}>
         <div className="vg-card flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full">
           <button
-            onClick={() => setCompanyMode(false)}
+            onClick={() => setMode('vacation')}
             className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
-            style={!companyMode
+            style={mode === 'vacation'
               ? { background: 'var(--vg-ink)', color: 'var(--vg-bg)' }
               : { background: 'transparent', color: 'var(--vg-ink2)' }}>
             <MousePointer2 size={13} />
             {selectedUser && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: selectedUser.color }} />}
             {selectedUser ? selectedUser.username : t('vacay.modeVacation')}
           </button>
+          <button
+            onClick={() => setMode('half')}
+            title={t('vacay.modeHalfHint')}
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
+            style={mode === 'half'
+              ? { background: 'var(--vg-ink)', color: 'var(--vg-bg)' }
+              : { background: 'transparent', color: 'var(--vg-ink2)' }}>
+            <span className="text-[13px] font-bold leading-none" aria-hidden>½</span>
+            {t('vacay.modeHalf')}
+          </button>
           {companyHolidaysEnabled && (
             <button
-              onClick={() => setCompanyMode(true)}
+              onClick={() => setMode('company')}
               className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
               style={companyMode
                 ? { background: '#d97706', color: '#fff' }

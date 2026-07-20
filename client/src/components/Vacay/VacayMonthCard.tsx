@@ -101,9 +101,16 @@ export default function VacayMonthCard({
           const isToday = dateStr === todayStr
           const plain = !hasEntries && !holiday && !isCompany
 
+          // Half days (#552) render as a diagonal half-fill so they read as "half"
+          // at a glance; a solo half keeps the number dark for contrast on the
+          // empty triangle, shared cells fall back to a corner ½ marker.
+          const singleHalf = dayEntries.length === 1 && (dayEntries[0].fraction ?? 1) === 0.5
+          const anyHalf = dayEntries.some(e => (e.fraction ?? 1) === 0.5)
+
           // Cell fill — people win, then company, then holiday (keeps each calendar's own colour).
           let background = 'transparent'
-          if (dayEntries.length === 1) background = fill(dayEntries[0].person_color)
+          if (singleHalf) background = `linear-gradient(135deg, ${fill(dayEntries[0].person_color)} 50%, color-mix(in srgb, ${pc(dayEntries[0].person_color)} 12%, transparent) 50%)`
+          else if (dayEntries.length === 1) background = fill(dayEntries[0].person_color)
           else if (dayEntries.length === 2) background = `linear-gradient(135deg, ${fill(dayEntries[0].person_color)} 50%, ${fill(dayEntries[1].person_color)} 50%)`
           else if (dayEntries.length === 0 && isCompany) background = 'rgba(245,158,11,0.22)'
           else if (dayEntries.length === 0 && holiday) background = `color-mix(in srgb, ${holiday.color} 22%, transparent)`
@@ -116,7 +123,8 @@ export default function VacayMonthCard({
             : hasEntries ? `0 3px 8px -3px ${pc(dayEntries[0].person_color)}` : undefined
 
           let numColor = 'var(--vg-ink2)'
-          if (hasEntries) numColor = '#fff'
+          if (singleHalf) numColor = 'var(--vg-ink)'
+          else if (hasEntries) numColor = '#fff'
           else if (holiday) numColor = holiday.color
           else if (weekend) numColor = 'var(--vg-ink3)'
 
@@ -155,6 +163,11 @@ export default function VacayMonthCard({
 
               {tripDates?.has(dateStr) && (
                 <span className="absolute top-1 right-1 w-[5px] h-[5px] rounded-full z-[2] bg-[#3b82f6]" style={{ boxShadow: '0 0 0 1.5px var(--vg-surf)' }} />
+              )}
+
+              {/* Shared cells can't show the diagonal, so flag a half day with a corner ½. */}
+              {anyHalf && !singleHalf && (
+                <span className="absolute bottom-[1px] left-[3px] z-[2] leading-none" style={{ fontSize: 8, fontWeight: 800, color: '#fff' }} aria-hidden>½</span>
               )}
 
               <span className="relative z-[1]" style={{

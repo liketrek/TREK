@@ -27,6 +27,8 @@ const vacay: TranslationStrings = {
   'vacay.weekend': 'Cap de setmana',
   'vacay.modeVacation': 'Vacances',
   'vacay.modeCompany': "Festiu de l'empresa",
+  'vacay.modeHalf': 'Mitja jornada',
+  'vacay.modeHalfHint': 'Registra mitges jornades de vacances',
   'vacay.entitlement': 'Dret',
   'vacay.entitlementDays': 'Dies',
   'vacay.used': 'Utilitzats',

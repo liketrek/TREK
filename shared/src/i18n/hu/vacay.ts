@@ -27,6 +27,8 @@ const vacay: TranslationStrings = {
   'vacay.weekend': 'Hétvége',
   'vacay.modeVacation': 'Szabadság',
   'vacay.modeCompany': 'Céges szabadnap',
+  'vacay.modeHalf': 'Fél nap',
+  'vacay.modeHalfHint': 'Fél szabadnapok rögzítése',
   'vacay.entitlement': 'Szabadságkeret',
   'vacay.entitlementDays': 'nap',
   'vacay.used': 'Felhasznált',

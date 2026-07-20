@@ -61,6 +61,27 @@ const holidayCache = new Map<string, { data: unknown; time: number }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
+// Entitlement helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Vacation days a user has used in a year — the SUM of entry fractions, so a
+ * half day (#552) counts as 0.5 and a full day as 1. Entries predating the
+ * feature have fraction = 1, so this matches the old COUNT(*) for them.
+ */
+function usedDays(userId: number, planId: number, yearPrefix: string): number {
+  const row = db.prepare(
+    'SELECT COALESCE(SUM(fraction), 0) AS used FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date LIKE ?'
+  ).get(userId, planId, yearPrefix) as { used: number };
+  return row.used;
+}
+
+/** Coerce an arbitrary input to a supported entry fraction: half (0.5) or full (1). */
+function normalizeFraction(value: unknown): number {
+  return Number(value) === 0.5 ? 0.5 : 1;
+}
+
+// ---------------------------------------------------------------------------
 // Color palette for auto-assign
 // ---------------------------------------------------------------------------
 
@@ -251,7 +272,7 @@ export async function updatePlan(planId: number, body: UpdatePlanBody, socketId:
       const yr = years[i].year;
       const nextYr = years[i + 1].year;
       for (const u of users) {
-        const used = (db.prepare("SELECT COUNT(*) as count FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date LIKE ?").get(u.id, planId, `${yr}-%`) as { count: number }).count;
+        const used = usedDays(u.id, planId, `${yr}-%`);
         const config = db.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(u.id, planId, yr) as VacayUserYear | undefined;
         const total = (config ? config.vacation_days : 30) + (config ? config.carried_over : 0);
         const carry = Math.max(0, total - used);
@@ -505,7 +526,7 @@ export function addYear(planId: number, year: number, socketId: string | undefin
       if (carryOverEnabled) {
         const prevConfig = db.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(u.id, planId, year - 1) as VacayUserYear | undefined;
         if (prevConfig) {
-          const used = (db.prepare("SELECT COUNT(*) as count FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date LIKE ?").get(u.id, planId, `${year - 1}-%`) as { count: number }).count;
+          const used = usedDays(u.id, planId, `${year - 1}-%`);
           const total = prevConfig.vacation_days + prevConfig.carried_over;
           carriedOver = Math.max(0, total - used);
         }
@@ -536,7 +557,7 @@ export function deleteYear(planId: number, year: number, socketId: string | unde
       if (carryOverEnabled && prevYear) {
         const prevConfig = db.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(u.id, planId, prevYear.year) as VacayUserYear | undefined;
         if (prevConfig) {
-          const used = (db.prepare("SELECT COUNT(*) as count FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date LIKE ?").get(u.id, planId, `${prevYear.year}-%`) as { count: number }).count;
+          const used = usedDays(u.id, planId, `${prevYear.year}-%`);
           const total = prevConfig.vacation_days + prevConfig.carried_over;
           carry = Math.max(0, total - used);
         }
@@ -565,17 +586,24 @@ export function getEntries(planId: number, year: string) {
   return { entries, companyHolidays };
 }
 
-export function toggleEntry(userId: number, planId: number, date: string, socketId: string | undefined): { action: string } {
-  const existing = db.prepare('SELECT id FROM vacay_entries WHERE user_id = ? AND date = ? AND plan_id = ?').get(userId, date, planId) as { id: number } | undefined;
+export function toggleEntry(userId: number, planId: number, date: string, fraction?: unknown, socketId?: string): { action: string; fraction?: number } {
+  const frac = normalizeFraction(fraction);
+  const existing = db.prepare('SELECT id, fraction FROM vacay_entries WHERE user_id = ? AND date = ? AND plan_id = ?').get(userId, date, planId) as { id: number; fraction: number } | undefined;
   if (existing) {
-    db.prepare('DELETE FROM vacay_entries WHERE id = ?').run(existing.id);
+    // Clicking the same kind of day again clears it; clicking the other kind
+    // (full over a half, or vice versa) converts it in place.
+    if (existing.fraction === frac) {
+      db.prepare('DELETE FROM vacay_entries WHERE id = ?').run(existing.id);
+      notifyPlanUsers(planId, socketId);
+      return { action: 'removed' };
+    }
+    db.prepare('UPDATE vacay_entries SET fraction = ? WHERE id = ?').run(frac, existing.id);
     notifyPlanUsers(planId, socketId);
-    return { action: 'removed' };
-  } else {
-    db.prepare('INSERT INTO vacay_entries (plan_id, user_id, date, note) VALUES (?, ?, ?, ?)').run(planId, userId, date, '');
-    notifyPlanUsers(planId, socketId);
-    return { action: 'added' };
+    return { action: 'updated', fraction: frac };
   }
+  db.prepare('INSERT INTO vacay_entries (plan_id, user_id, date, note, fraction) VALUES (?, ?, ?, ?, ?)').run(planId, userId, date, '', frac);
+  notifyPlanUsers(planId, socketId);
+  return { action: 'added', fraction: frac };
 }
 
 export function toggleCompanyHoliday(planId: number, date: string, note: string | undefined, socketId: string | undefined): { action: string } {
@@ -602,7 +630,7 @@ export function getStats(planId: number, year: number) {
   const users = getPlanUsers(planId);
 
   return users.map(u => {
-    const used = (db.prepare("SELECT COUNT(*) as count FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date LIKE ?").get(u.id, planId, `${year}-%`) as { count: number }).count;
+    const used = usedDays(u.id, planId, `${year}-%`);
     const config = db.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(u.id, planId, year) as VacayUserYear | undefined;
     const vacationDays = config ? config.vacation_days : 30;
     const carriedOver = carryOverEnabled ? (config ? config.carried_over : 0) : 0;

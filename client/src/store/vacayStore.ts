@@ -65,7 +65,7 @@ interface VacayApi {
   addYear: (year: number) => Promise<VacayYearsResponse>
   removeYear: (year: number) => Promise<VacayYearsResponse>
   getEntries: (year: number) => Promise<VacayEntriesResponse>
-  toggleEntry: (date: string, targetUserId?: number) => Promise<unknown>
+  toggleEntry: (date: string, targetUserId?: number, fraction?: 0.5 | 1) => Promise<unknown>
   toggleCompanyHoliday: (date: string) => Promise<unknown>
   getStats: (year: number) => Promise<VacayStatsResponse>
   updateStats: (year: number, days: number, targetUserId?: number) => Promise<unknown>
@@ -90,7 +90,7 @@ const api: VacayApi = {
   addYear: (year) => ax.post('/addons/vacay/years', { year } satisfies VacayAddYearRequest).then((r: AxiosResponse) => r.data),
   removeYear: (year) => ax.delete(`/addons/vacay/years/${year}`).then((r: AxiosResponse) => r.data),
   getEntries: (year) => ax.get(`/addons/vacay/entries/${year}`).then((r: AxiosResponse) => r.data),
-  toggleEntry: (date, targetUserId) => ax.post('/addons/vacay/entries/toggle', { date, target_user_id: targetUserId } satisfies VacayToggleEntryRequest).then((r: AxiosResponse) => r.data),
+  toggleEntry: (date, targetUserId, fraction) => ax.post('/addons/vacay/entries/toggle', { date, target_user_id: targetUserId, fraction } satisfies VacayToggleEntryRequest).then((r: AxiosResponse) => r.data),
   toggleCompanyHoliday: (date) => ax.post('/addons/vacay/entries/company-holiday', { date } satisfies VacayCompanyHolidayRequest).then((r: AxiosResponse) => r.data),
   getStats: (year) => ax.get(`/addons/vacay/stats/${year}`).then((r: AxiosResponse) => r.data),
   updateStats: (year, days, targetUserId) => ax.put(`/addons/vacay/stats/${year}`, { vacation_days: days, target_user_id: targetUserId } satisfies VacayUpdateStatsRequest).then((r: AxiosResponse) => r.data),
@@ -131,7 +131,7 @@ interface VacayState {
   addYear: (year: number) => Promise<void>
   removeYear: (year: number) => Promise<void>
   loadEntries: (year?: number) => Promise<void>
-  toggleEntry: (date: string, targetUserId?: number) => Promise<void>
+  toggleEntry: (date: string, targetUserId?: number, fraction?: 0.5 | 1) => Promise<void>
   toggleCompanyHoliday: (date: string) => Promise<void>
   loadStats: (year?: number) => Promise<void>
   updateVacationDays: (year: number, days: number, targetUserId?: number) => Promise<void>
@@ -244,23 +244,26 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     set({ entries: data.entries, companyHolidays: data.companyHolidays })
   },
 
-  toggleEntry: async (date: string, targetUserId?: number) => {
-    // Optimistic: flip the day locally so the cell reacts instantly, then
-    // reconcile with the server (stats are server-computed). Roll back on error.
+  toggleEntry: async (date: string, targetUserId?: number, fraction: 0.5 | 1 = 1) => {
+    // Optimistic: mirror the server's toggle locally so the cell reacts instantly,
+    // then reconcile (stats are server-computed). Same fraction clears the day, a
+    // different one converts it (full ↔ half); an empty day gets the new entry.
     const userId = targetUserId ?? useAuthStore.getState().user?.id
     const prevEntries = get().entries
     const prevStats = get().stats
     if (userId != null) {
-      const has = prevEntries.some(e => e.date === date && e.user_id === userId)
-      if (has) {
+      const existing = prevEntries.find(e => e.date === date && e.user_id === userId)
+      if (existing && (existing.fraction ?? 1) === fraction) {
         set({ entries: prevEntries.filter(e => !(e.date === date && e.user_id === userId)) })
+      } else if (existing) {
+        set({ entries: prevEntries.map(e => (e.date === date && e.user_id === userId ? { ...e, fraction } : e)) })
       } else {
         const u = get().users.find(x => x.id === userId)
-        set({ entries: [...prevEntries, { date, user_id: userId, person_color: u?.color || undefined, person_name: u?.username }] })
+        set({ entries: [...prevEntries, { date, user_id: userId, fraction, person_color: u?.color || undefined, person_name: u?.username }] })
       }
     }
     try {
-      await api.toggleEntry(date, targetUserId)
+      await api.toggleEntry(date, targetUserId, fraction)
       await get().loadEntries()
       await get().loadStats()
     } catch (e) {

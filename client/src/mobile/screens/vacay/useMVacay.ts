@@ -10,7 +10,7 @@ import { FALLBACK_PERSON_COLOR, localDateStr, type DayVisualContext } from './va
 import type { Trip } from '../../../types'
 
 export type MVacayView = 'grid' | 'edit'
-export type MVacayMode = 'vacation' | 'company'
+export type MVacayMode = 'vacation' | 'half' | 'company'
 export type MVacaySheet = 'invite' | 'settings' | null
 
 /**
@@ -130,7 +130,7 @@ export function useMVacay() {
     }
     if (blockWeekends && isWeekend(dateStr, weekendDays)) return
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
-    await toggleEntry(dateStr, selectedUserId || undefined)
+    await toggleEntry(dateStr, selectedUserId || undefined, mode === 'half' ? 0.5 : 1)
   }, [view, mode, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId])
 
   // Entitlement stepper: never below what is already used this year

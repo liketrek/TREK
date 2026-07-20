@@ -229,6 +229,16 @@ export default function MVacay() {
               <span className="h-[9px] w-[9px] rounded-full" style={{ background: v.selectedColor }} />
               {v.selectedUser.username}
             </button>
+            <button
+              type="button"
+              onClick={() => v.setMode('half')}
+              className={`flex items-center gap-[6px] whitespace-nowrap rounded-full px-[14px] py-2 text-[0.78125rem] font-bold ${
+                v.mode === 'half' ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
+              }`}
+            >
+              <span className="text-[0.9375rem] font-extrabold leading-none" aria-hidden>½</span>
+              {t('vacay.modeHalf')}
+            </button>
             {v.companyHolidaysEnabled && (
               <button
                 type="button"

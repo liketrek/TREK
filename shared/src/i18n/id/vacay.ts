@@ -27,6 +27,8 @@ const vacay: TranslationStrings = {
   'vacay.weekend': 'Akhir Pekan',
   'vacay.modeVacation': 'Cuti',
   'vacay.modeCompany': 'Hari Libur Perusahaan',
+  'vacay.modeHalf': 'Setengah hari',
+  'vacay.modeHalfHint': 'Catat setengah hari cuti',
   'vacay.entitlement': 'Jatah Cuti',
   'vacay.entitlementDays': 'Hari',
   'vacay.used': 'Terpakai',
