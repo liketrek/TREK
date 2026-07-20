@@ -57,14 +57,16 @@ openssl rand -hex 32
 
 Copy the output into the `ENCRYPTION_KEY` field before starting the container for the first time. If you skip this, TREK auto-generates a key and saves it to `data/.encryption_key` — your data is still protected, but you should record that file in your backups.
 
-## Backing Up to a Second Location
+## Backup Storage Backends
 
-TREK always keeps the archive in its own `data/backups`. An external target adds a **second** copy; it never replaces
-the local one. Pick the backend in **Admin → Backup → External backup target**, or set `BACKUP_TARGET_TYPE` — see
-[Environment-Variables](Environment-Variables) for every variable.
+Backups are stored by one or more backends, each switched on independently. **Local** is on by default and keeps a copy
+on this machine; **S3** is opt-in and stores an additional copy off-box. Configure them in
+**Admin → Backup → External backup target**, or with `BACKUP_LOCAL_*` / `BACKUP_S3_*` — see
+[Environment-Variables](Environment-Variables).
 
-The **Directory** backend writes to a path inside the container. Where that path actually points — another disk, a NAS mount, a network
-share — is up to you and outside what TREK controls: add a **Path** mapping in the template pointing at a user share or an Unassigned Devices mount.
+`BACKUP_LOCAL_PATH` sets where backups are written (default `data/backups`). Where that path actually points is up to
+you: add a **Path** mapping in the template pointing at a user share or an Unassigned Devices mount.
+
 
 ## After Install
 

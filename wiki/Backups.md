@@ -83,9 +83,8 @@ location. Pick a **storage backend**:
 
 | Backend | What it does |
 |---|---|
-| **Off** | Backups stay in `data/backups` only. The default. |
-| **Directory** | Copies the archive to a second directory. On Docker that is a path inside the container, which you map to wherever the copy should really live. |
-| **S3-compatible** | Any S3 API: AWS S3, MinIO, Garage, Supabase Storage, Backblaze B2, Wasabi… |
+| **Local** | A directory on this machine, `data/backups` by default. **On unless you turn it off** — the default install behaves exactly as it always has. Point it elsewhere to put backups on another disk, or on whatever a volume maps that path to. |
+| **S3-compatible** | Any S3 API: AWS S3, MinIO, Garage, Supabase Storage, Backblaze B2, Wasabi… Opt-in. |
 
 
 ### Setting it up
@@ -150,9 +149,9 @@ The endpoint is checked against TREK's SSRF guard before any request.
 
 ### Configuring it through environment variables
 
-Setting `BACKUP_TARGET_TYPE` (`none`, `local` or `s3`) puts the target under environment control — the accompanying
-values take priority and the admin form becomes read-only, matching how `SMTP_PASS` overrides the stored SMTP password.
-See [Environment-Variables](Environment-Variables) for the full list. Leave it unset to manage the target from the UI.
+Setting any `BACKUP_LOCAL_*` or `BACKUP_S3_*` variable puts the backends under environment control — those values take
+priority and the admin form becomes read-only, matching how `SMTP_PASS` overrides the stored SMTP password. See
+[Environment-Variables](Environment-Variables) for the full list. Leave them unset to manage the backends from the UI.
 
 ## Before updating TREK
 

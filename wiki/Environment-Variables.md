@@ -259,35 +259,33 @@ To get a key: create a free account at [unsplash.com/developers](https://unsplas
 
 ---
 
-## External backup target
+## Backup storage backends
 
-Every backup TREK writes — manual and automatic — can additionally be mirrored to a second location. The local archive
-is always kept; the remote copy is pushed **in addition**, so a failing target never costs you a backup.
+Backups are stored by one or more **storage backends**, each switched on and off independently — which is what makes a
+3-2-1 setup possible. `local` is **opt-out** (on unless you turn it off) and everything else is opt-in, so an install
+that changes nothing behaves exactly as TREK always has.
 
-Configure it in **Admin → Backup → External backup target**, or with these variables. Setting `BACKUP_TARGET_TYPE` puts
-the target under environment control: the values below take priority and the admin form becomes read-only, the same way
-`SMTP_PASS` overrides the stored SMTP password. Leave it unset to manage the target entirely from the UI.
+Configure them in **Admin → Backup → External backup target**, or with these variables. Setting *any* `BACKUP_LOCAL_*`
+or `BACKUP_S3_*` variable puts the backends under environment control: those values take priority and the admin form
+becomes read-only, the same way `SMTP_PASS` overrides the stored SMTP password.
 
-| Variable             | Description                                                                                                              | Default |
-|----------------------|--------------------------------------------------------------------------------------------------------------------------|---------|
-| `BACKUP_TARGET_TYPE` | Storage backend: `none`, `local` or `s3`. **Setting this switches the target to env-managed.** An unrecognised value is ignored. | `none`  |
+### `local` — a directory on this machine
 
-### `local` — a second directory
+| Variable                | Description                                                                                                                                                                 | Default        |
+|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
+| `BACKUP_LOCAL_ENABLED`  | Keep a copy on this machine. Turning it off means backups live **only** at the other enabled backends — the archive is written, handed over, and then removed.               | `true`         |
+| `BACKUP_LOCAL_PATH`     | Directory backups are written to. Must be absolute, and outside `uploads/` — a target there would end up inside the *next* backup, so every run would embed all previous ones. | `data/backups` |
 
-| Variable            | Description                                                                                                                                                                  | Default |
-|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `BACKUP_LOCAL_PATH` | Absolute directory archives are copied to. Must be outside TREK's own `data/` and `uploads/` directories — a target inside `uploads/` would end up inside the *next* backup. | —       |
-
-On the Docker image this is a path **inside the container**; map it to wherever the copy should really live with a
-volume. On a source install it is a plain filesystem path. What that path points at — another disk, a NAS mount, a
-network share — is up to you: TREK writes to a directory and deliberately leaves the mounting to the host, which does
-it better than application code could.
-
+On the Docker image `BACKUP_LOCAL_PATH` is a path **inside the container**; map it to real storage with a volume. On a
+source install it is a plain filesystem path. What it points at — another disk, a NAS mount, a network share — is up to
+you: TREK writes to a directory and deliberately leaves the mounting to the host, which does it better than application
+code could.
 
 ### `s3` — any S3-compatible bucket
 
 | Variable                       | Description                                                                                                                                                                                             | Default     |
-|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| `BACKUP_S3_ENABLED`            | Turn the S3 backend on. Implied when `BACKUP_S3_BUCKET` is set.                                                                                                                                          | `false`     |
 | `BACKUP_S3_BUCKET`             | Target bucket.                                                                                                                                                                                          | —           |
 | `BACKUP_S3_ENDPOINT`           | Endpoint URL, exactly as your provider states it. Leave empty for real AWS S3 (the host is derived from the region). Endpoints that serve the S3 API under a path rather than at the host root are supported and passed through unchanged — e.g. Supabase Storage (`https://<ref>.storage.supabase.co/storage/v1/s3`), or a Ceph RGW / SeaweedFS / Zenko / MinIO behind a reverse proxy or ingress (`https://nas.example.com/s3`). | —           |
 | `BACKUP_S3_REGION`             | Bucket region.                                                                                                                                                                                          | `us-east-1` |
@@ -300,13 +298,13 @@ it better than application code could.
 **Endpoint reachability.** The endpoint host is validated against TREK's SSRF guard before any request. Loopback is
 always blocked, so a MinIO/Garage running beside TREK must be addressed by its container/service name or LAN address —
 never `http://localhost:9000`. Private and LAN addresses additionally require `ALLOW_INTERNAL_NETWORK=true`, exactly as
-for a self-hosted Ollama. Note that the AWS SDK does its own networking and does not route through TREK's DNS-pinned
+for a self-hosted Ollama. Note that S3 requests go out through the platform `fetch` rather than TREK's DNS-pinned
 `safeFetch`, so this is a configuration-time check rather than a TOCTOU-proof guarantee.
 
-**Test connection.** The admin panel's *Test connection* button does more than ping: for S3 it runs `HeadBucket`, then
-writes and deletes a small probe object; for a directory it creates the directory, writes a probe file and removes it.
-A read-only key or a read-only mount therefore fails the test instead of passing it and then breaking every backup
-silently.
+**Test connection.** The admin panel's *Test connection* button probes every enabled backend, and does more than ping:
+for S3 it lists the bucket, then writes and deletes a small probe object; for a directory it creates the directory,
+writes a probe file and removes it. A read-only key or a read-only mount therefore fails the test instead of passing it
+and then breaking every backup silently.
 
 ---
 

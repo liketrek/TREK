@@ -46,14 +46,16 @@ Three tag strategies are available:
 
 Use `latest` or a major-version tag (e.g. `3`) if you want automatic updates on redeploy. Use a full version tag (e.g. `3.4.0`) if you want explicit control over which release runs.
 
-## Backing Up to a Second Location
+## Backup Storage Backends
 
-TREK always keeps the archive in its own `data/backups`. An external target adds a **second** copy; it never replaces
-the local one. Pick the backend in **Admin → Backup → External backup target**, or set `BACKUP_TARGET_TYPE` — see
-[Environment-Variables](Environment-Variables) for every variable.
+Backups are stored by one or more backends, each switched on independently. **Local** is on by default and keeps a copy
+on this machine; **S3** is opt-in and stores an additional copy off-box. Configure them in
+**Admin → Backup → External backup target**, or with `BACKUP_LOCAL_*` / `BACKUP_S3_*` — see
+[Environment-Variables](Environment-Variables).
 
-The **Directory** backend writes to a path inside the container. Where that path actually points — another disk, a NAS mount, a network
-share — is up to you and outside what TREK controls: map it with a volume in the stack, or under **Volumes**.
+`BACKUP_LOCAL_PATH` sets where backups are written (default `data/backups`). Where that path actually points is up to
+you: map it with a volume in the stack, or under **Volumes**.
+
 
 ## Updating
 

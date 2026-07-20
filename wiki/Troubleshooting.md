@@ -356,11 +356,11 @@ If the response is `{}` or `{"error": {...}}`, the key or its restrictions are b
 
 ---
 
-## Backups: the S3 target is ignored / the admin form is read-only
+## Backups: the storage backends are ignored / the admin form is read-only
 
-**Cause:** `BACKUP_TARGET_TYPE` is set in the environment. Environment configuration takes priority and the UI reports it as env-managed, the same way `SMTP_PASS` overrides the stored SMTP password.
+**Cause:** a `BACKUP_LOCAL_*` or `BACKUP_S3_*` variable is set in the environment. Environment configuration takes priority and the UI reports the backends as env-managed, the same way `SMTP_PASS` overrides the stored SMTP password.
 
-**Fix:** Either unset `BACKUP_TARGET_TYPE` and manage the target in Admin → Backup, or keep it and configure the other `BACKUP_*` variables alongside it. See [Environment-Variables](Environment-Variables).
+**Fix:** Either unset every `BACKUP_LOCAL_*` / `BACKUP_S3_*` variable and manage the backends in Admin → Backup, or keep them and configure the rest alongside. See [Environment-Variables](Environment-Variables).
 
 ---
 
@@ -374,17 +374,17 @@ If the response is `{}` or `{"error": {...}}`, the key or its restrictions are b
 
 ## Backups: the target directory is refused
 
-**Cause:** The **Directory** backend rejects any path inside TREK's own `data/` or `uploads/` trees, and rejects relative paths. A target inside `uploads/` would end up inside the *next* backup, so every run would embed all previous runs and the archive would grow without bound.
+**Cause:** The **Local** backend rejects any path inside TREK's `uploads/` tree, and rejects relative paths. A target inside `uploads/` would end up inside the *next* backup, so every run would embed all previous runs and the archive would grow without bound. `data/backups` is fine — it is the default.
 
-**Fix:** Point it at an absolute path outside those directories. On the Docker image this is a path inside the container that you map to real storage with a volume; on a source install it is a plain filesystem path.
+**Fix:** Point it at an absolute path outside `uploads/`. On the Docker image this is a path inside the container that you map to real storage with a volume; on a source install it is a plain filesystem path.
 
 ---
 
-## Backups exist locally but never appear at the external target
+## Backups exist locally but never appear in S3
 
-**Cause:** The storage backend is set to **Local only**, so nothing is mirrored. Filling in the S3 or directory fields does not by itself switch the backend on.
+**Cause:** The S3 backend is switched off. It is opt-in — filling in the bucket and credentials does not by itself enable it.
 
-**Fix:** Pick **S3-compatible** or **Directory** under Admin → Backup → External backup target and save. Backups made *before* that point stay local — use **Upload all existing backups** to push them; archives already at the target are skipped, so it is safe to run more than once.
+**Fix:** Turn on **S3-compatible storage** under Admin → Backup → External backup target and save. Backups made *before* that point stay where they were — use **Upload all existing backups** to push them; archives already in the bucket are skipped, so it is safe to run more than once.
 
 ---
 

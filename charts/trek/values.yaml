@@ -89,18 +89,19 @@ env:
   # Mirror every backup (manual and automatic) to an S3-compatible bucket. The
   # local archive is always kept; the remote copy is pushed in addition, so an
   # unreachable target never costs you a backup.
-  # Setting BACKUP_TARGET_TYPE puts the target under environment control: these
-  # values win and the admin form becomes read-only. Leave unset to configure it
-  # entirely in Admin > Backup.
-  # BACKUP_TARGET_TYPE: ""            # none | local | s3
+  # Setting any BACKUP_LOCAL_*/BACKUP_S3_* value puts the backends under
+  # environment control: they take priority and the admin form becomes
+  # read-only. Leave unset to configure everything in Admin > Backup.
   #
-  # type=local: copy the archive to another directory. That is where a network
-  # share belongs — mount NFS/SMB into the pod (a PVC or a volume with
-  # nfs: {server, path}) and point this at the mount path. Must be outside
-  # TREK's own data/ and uploads/ directories.
-  # BACKUP_LOCAL_PATH: ""             # e.g. /mnt/nas/trek-backups
+  # local: a directory on this machine. Opt-out — on unless disabled.
+  # BACKUP_LOCAL_ENABLED: "true"
+  # Directory backups are written to; defaults to data/backups. Mount a PVC or
+  # an nfs volume into the pod and point this at the mount path. Must be
+  # outside uploads/, or every backup would end up inside the next one.
+  # BACKUP_LOCAL_PATH: ""
   #
-  # type=s3:
+  # s3: any S3-compatible bucket. Opt-in.
+  # BACKUP_S3_ENABLED: "false"
   # BACKUP_S3_BUCKET: ""
   # Endpoint exactly as your provider states it; empty means real AWS S3.
   # Endpoints that serve the S3 API under a path rather than at the host root are
@@ -137,7 +138,7 @@ secretEnv:
   # OIDC client secret — set together with env.OIDC_ISSUER and env.OIDC_CLIENT_ID.
   OIDC_CLIENT_SECRET: ""
   # Secret access key for the external S3-compatible backup target.
-  # Set together with env.BACKUP_TARGET_TYPE=s3 and the other BACKUP_S3_* values.
+  # Set together with env.BACKUP_S3_ENABLED and the other BACKUP_S3_* values.
   # Leave empty to configure the target in Admin > Backup instead, where the
   # secret is encrypted at rest with ENCRYPTION_KEY.
   BACKUP_S3_SECRET_ACCESS_KEY: ""

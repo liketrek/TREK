@@ -26,8 +26,9 @@ services:
 #      - SESSION_DURATION=30d # How long users stay logged in (trek_session JWT + cookie maxAge). Accepts: 1h | 12h | 7d | 30d | 90d. Default: 24h
 #      - SESSION_DURATION_REMEMBER=30d # Session length when "Remember me" is ticked at login: longer-lived JWT + persistent cookie that survives browser restarts. Same format as SESSION_DURATION. Default: 30d
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
-#      - BACKUP_TARGET_TYPE=${BACKUP_TARGET_TYPE:-} # none | local | s3. Mirrors every backup to a second location. Setting this makes the target env-managed (the admin form becomes read-only); leave unset to configure it in Admin > Backup.
-#      - BACKUP_LOCAL_PATH=${BACKUP_LOCAL_PATH:-} # type=local: directory to copy archives to. Mount an NFS/SMB share (see the volumes example below) and point this at the mount point. Must be outside TREK's data/ and uploads/.
+#      - BACKUP_LOCAL_ENABLED=${BACKUP_LOCAL_ENABLED:-true} # Keep a copy on this machine. Off means backups live only at the other enabled backends.
+#      - BACKUP_LOCAL_PATH=${BACKUP_LOCAL_PATH:-} # Directory backups are written to; defaults to data/backups. Map it with a volume to put backups on other storage.
+#      - BACKUP_S3_ENABLED=${BACKUP_S3_ENABLED:-false} # Implied when BACKUP_S3_BUCKET is set.
 #      - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET:-} # type=s3: target bucket.
 #      - BACKUP_S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-} # Endpoint exactly as your provider states it. Empty = real AWS S3. Endpoints serving the S3 API under a path (Supabase Storage, Ceph RGW/SeaweedFS/MinIO behind a proxy) work unchanged.
 #      - BACKUP_S3_REGION=${BACKUP_S3_REGION:-us-east-1}

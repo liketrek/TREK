@@ -91,16 +91,16 @@ PORT=3001
 
 See [Environment-Variables](Environment-Variables) for the full variable reference.
 
-## Backing Up to a Second Location
+## Backup Storage Backends
 
-TREK always keeps the archive in its own `data/backups`. An external target adds a **second** copy; it never replaces
-the local one. Pick the backend in **Admin → Backup → External backup target**, or set `BACKUP_TARGET_TYPE` — see
-[Environment-Variables](Environment-Variables) for every variable.
+Backups are stored by one or more backends, each switched on independently. **Local** is on by default and keeps a copy
+on this machine; **S3** is opt-in and stores an additional copy off-box. Configure them in
+**Admin → Backup → External backup target**, or with `BACKUP_LOCAL_*` / `BACKUP_S3_*` — see
+[Environment-Variables](Environment-Variables).
 
-The **Directory** backend writes to a path. Where that path actually points — another disk, a NAS mount, a network
-share — is up to you and outside what TREK controls. On this install TREK runs from source, so it is a plain filesystem path; set it in
-`/opt/trek/server/.env` and restart with `systemctl restart trek`. Keep it outside `/opt/trek/server/data` and
-`/opt/trek/server/uploads`.
+`BACKUP_LOCAL_PATH` sets where backups are written (default `data/backups`). Where that path actually points is up to
+you: it is a plain filesystem path on this install; set it in `/opt/trek/server/.env` and restart with `systemctl restart trek`.
+
 
 ## Updating
 
