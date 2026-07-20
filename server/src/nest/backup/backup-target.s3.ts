@@ -14,9 +14,16 @@
  * does its own networking and does NOT route through TREK's DNS-pinned
  * `safeFetch`, so this is a config-time and test-time check, not a TOCTOU-proof
  * guarantee: a hostname that resolves to a public IP during validation can
- * resolve elsewhere when the SDK later connects. Full pinning is not reachable
- * through the SDK's transport, and pretending otherwise would be worse than
- * saying so.
+ * resolve elsewhere when the SDK later connects.
+ *
+ * Pinning is reachable — the SDK takes a custom `requestHandler`, and a
+ * NodeHttpHandler's `httpsAgent` passes a `lookup` through to tls.connect — but
+ * doing it properly means resolving and re-pinning per request across multipart
+ * uploads, which is its own security-critical change and deliberately out of
+ * scope here. The route is admin-gated (JwtAuthGuard + AdminGuard), so the URL
+ * comes from someone who could equally set BACKUP_S3_ENDPOINT or
+ * ALLOW_INTERNAL_NETWORK directly; this check earns its place by catching
+ * misconfiguration at Test-Connection time, not by containing that admin.
  */
 import fs from 'node:fs';
 import path from 'node:path';
