@@ -315,6 +315,7 @@ const admin: TranslationStrings = {
     'Thêm cột và hành động vào các chế độ xem chuyến đi (đặt chỗ, địa điểm, ngày)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Thêm điểm đánh dấu vào bản đồ chuyến đi (vd. hiển thị đặt chỗ hoặc POI)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Vẽ tuyến đường, hành lang và khu vực trên bản đồ chuyến đi',
   'admin.plugins.perm.hook:pdf-section-provider': 'Thêm các phần văn bản vào bản xuất PDF của chuyến đi',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Làm nổi bật các quốc gia trên bản đồ thế giới Atlas (vd. danh sách mong muốn hoặc cảnh báo du lịch)',
@@ -433,6 +434,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Cung cấp sự kiện lịch',
   'admin.plugins.cap.placeDetails': 'Làm phong phú địa điểm',
   'admin.plugins.cap.warnings': 'Gắn cờ vấn đề',
+  'admin.plugins.cap.mapLayers': 'Vẽ trên bản đồ',
   'admin.plugins.cap.events': 'Phản hồi hoạt động',
   'admin.plugins.cap.requiresAddon': 'Cần {addon}',
   'admin.plugins.cap.dependsOn': 'Cần {id} {version}',

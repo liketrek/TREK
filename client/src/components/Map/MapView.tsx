@@ -10,6 +10,7 @@ import { mapsApi } from '../../api/client'
 import { getCategoryIcon, CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import ReservationOverlay from './ReservationOverlay'
 import { PluginMapMarkers } from './MapPluginMarkers'
+import { PluginMapLayers } from './MapPluginLayers'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import type { Reservation } from '../../types'
@@ -754,6 +755,7 @@ export const MapView = memo(function MapView({
 
       {poiMarkers}
       <PluginMapMarkers tripId={tripId} />
+      <PluginMapLayers tripId={tripId} />
     </MapContainer>
     {isMobile && <LocationButton
       mode={trackingMode}

@@ -215,6 +215,7 @@ export const PERMISSION_FAMILIES: PermissionFamily[] = [
       { value: 'hook:trip-warning-provider', hint: 'Raise validation warnings on a trip (shown in the planner)' },
       { value: 'hook:table-contributor', hint: 'Add columns to TREK\'s tables' },
       { value: 'hook:map-marker-provider', hint: 'Add your own markers to the map' },
+      { value: 'hook:map-layer-provider', hint: 'Draw routes, corridors and zones on the trip map' },
       { value: 'hook:pdf-section-provider', hint: 'Add a section to the exported trip PDF' },
       { value: 'hook:atlas-layer-provider', hint: 'Add a layer to the Atlas map' },
       { value: 'hook:journal-entry-provider', hint: 'Contribute entries to a journey' },

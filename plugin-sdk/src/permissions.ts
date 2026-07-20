@@ -25,6 +25,7 @@ export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   warningProvider: 'hook:trip-warning-provider',
   tableContributor: 'hook:table-contributor',
   mapMarkerProvider: 'hook:map-marker-provider',
+  mapLayerProvider: 'hook:map-layer-provider',
   pdfSectionProvider: 'hook:pdf-section-provider',
   atlasLayerProvider: 'hook:atlas-layer-provider',
   journalEntryProvider: 'hook:journal-entry-provider',

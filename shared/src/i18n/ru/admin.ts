@@ -318,6 +318,7 @@ const admin: TranslationStrings = {
     'Добавлять столбцы и действия в представления поездки (бронирования, места, дни)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Добавлять маркеры на карту поездки (например, показывать бронирования или POI)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Рисовать маршруты, коридоры и зоны на карте поездки',
   'admin.plugins.perm.hook:pdf-section-provider': 'Добавлять текстовые разделы в PDF-экспорт поездки',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Выделять страны на карте мира в Атласе (например, списки желаний или предупреждения для путешественников)',
@@ -437,6 +438,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Предоставляет события календаря',
   'admin.plugins.cap.placeDetails': 'Обогащает места',
   'admin.plugins.cap.warnings': 'Отмечает проблемы',
+  'admin.plugins.cap.mapLayers': 'Рисует на карте',
   'admin.plugins.cap.events': 'Реагирует на активность',
   'admin.plugins.cap.requiresAddon': 'Требуется {addon}',
   'admin.plugins.cap.dependsOn': 'Нужен {id} {version}',

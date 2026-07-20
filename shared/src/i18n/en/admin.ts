@@ -354,6 +354,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
   'admin.plugins.perm.hook:table-contributor': 'Add columns and actions to trip views (reservations, places, days)',
   'admin.plugins.perm.hook:map-marker-provider': 'Add markers to the trip map (e.g. show bookings or POIs)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Draw routes, corridors and zones on the trip map',
   'admin.plugins.perm.hook:pdf-section-provider': 'Append text sections to the trip PDF export',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Highlight countries on the Atlas world map (e.g. wishlists or travel advisories)',
@@ -471,6 +472,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Provides calendar events',
   'admin.plugins.cap.placeDetails': 'Enriches places',
   'admin.plugins.cap.warnings': 'Flags issues',
+  'admin.plugins.cap.mapLayers': 'Draws on the map',
   'admin.plugins.cap.events': 'Reacts to activity',
   'admin.plugins.cap.requiresAddon': 'Requires {addon}',
   'admin.plugins.cap.dependsOn': 'Needs {id} {version}',

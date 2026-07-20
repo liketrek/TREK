@@ -372,6 +372,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:table-contributor':
     'Lägga till kolumner och åtgärder i rese­vyer (bokningar, platser, dagar)',
   'admin.plugins.perm.hook:map-marker-provider': 'Lägga till markörer på reskartan (t.ex. visa bokningar eller POI:er)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Rita rutter, korridorer och zoner på reskartan',
   'admin.plugins.perm.hook:pdf-section-provider': 'Lägga till textavsnitt i resans PDF-export',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Markera länder på Atlas-världskartan (t.ex. önskelistor eller resevarningar)',
@@ -491,6 +492,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Tillhandahåller kalenderhändelser',
   'admin.plugins.cap.placeDetails': 'Berikar platser',
   'admin.plugins.cap.warnings': 'Flaggar problem',
+  'admin.plugins.cap.mapLayers': 'Ritar på kartan',
   'admin.plugins.cap.events': 'Reagerar på aktivitet',
   'admin.plugins.cap.requiresAddon': 'Kräver {addon}',
   'admin.plugins.cap.dependsOn': 'Kräver {id} {version}',

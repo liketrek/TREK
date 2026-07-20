@@ -362,6 +362,7 @@ const admin: TranslationStrings = {
     'Seyahat görünümlerine sütunlar ve eylemler ekler (rezervasyonlar, yerler, günler)',
   'admin.plugins.perm.hook:map-marker-provider':
     "Seyahat haritasına işaretçiler ekler (ör. rezervasyonları veya POI'leri gösterir)",
+  'admin.plugins.perm.hook:map-layer-provider': 'Seyahat haritasında rotalar, koridorlar ve bölgeler çizer',
   'admin.plugins.perm.hook:pdf-section-provider': 'Seyahat PDF dışa aktarımına metin bölümleri ekler',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Atlas dünya haritasında ülkeleri vurgular (ör. istek listeleri veya seyahat uyarıları)',
@@ -480,6 +481,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Takvim etkinlikleri sağlar',
   'admin.plugins.cap.placeDetails': 'Yerleri zenginleştirir',
   'admin.plugins.cap.warnings': 'Sorunları işaretler',
+  'admin.plugins.cap.mapLayers': 'Haritada çizim yapar',
   'admin.plugins.cap.events': 'Etkinliğe tepki verir',
   'admin.plugins.cap.requiresAddon': '{addon} gerekir',
   'admin.plugins.cap.dependsOn': '{id} {version} gerekir',

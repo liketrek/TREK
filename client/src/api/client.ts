@@ -624,6 +624,28 @@ export interface PluginMapMarker {
   tone: 'default' | 'success' | 'warn' | 'danger'
 }
 
+/** One shape of a plugin map layer (mapLayerProvider hook). Server-normalized:
+ * coordinates range-checked, vertex budget capped, styling clamped to the tone
+ * palette + bounded numerics — never free-form CSS or markup. */
+export interface PluginMapLayerFeature {
+  type: 'polyline' | 'polygon' | 'circle';
+  points?: Array<[number, number]>;
+  center?: [number, number];
+  radiusM?: number;
+  tone: 'default' | 'success' | 'warn' | 'danger';
+  width: number;
+  dash: 'solid' | 'dash' | 'dot';
+  opacity: number;
+  fill: boolean;
+  label?: string;
+}
+
+/** A vector overlay a plugin draws on the trip map (routes, corridors, zones). */
+export interface PluginMapLayer {
+  pluginId: string; id: string; name?: string;
+  features: PluginMapLayerFeature[];
+}
+
 /** A text-only section a pdfSectionProvider plugin appends to the trip PDF export.
  * Server-normalized: counts + lengths are capped, cells are plain strings. */
 export interface PluginPdfSection {
@@ -667,6 +689,10 @@ export const pluginsApi = {
   // (#587). Host-normalized + range-checked; fail-safe (skips slow/failing providers).
   mapMarkers: (tripId: number | string) =>
     apiClient.get(`/map-markers/${tripId}`).then(r => r.data as { markers: PluginMapMarker[] }),
+  // Vector overlays (polylines/polygons/circles) plugins draw on the trip map via
+  // the mapLayerProvider hook. Host-normalized + vertex-budgeted; fail-safe.
+  mapLayers: (tripId: number | string) =>
+    apiClient.get(`/map-layers/${tripId}`).then(r => r.data as { layers: PluginMapLayer[] }),
   // Text-only sections plugins append to the trip PDF export via the
   // pdfSectionProvider hook. Host-normalized (counts + lengths capped); fail-safe.
   pdfSections: (tripId: number | string) =>

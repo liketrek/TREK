@@ -86,6 +86,12 @@ describe('validateManifest', () => {
     expect(r.manifest?.permissions).toEqual(permissions);
   });
 
+  it('accepts hook:map-layer-provider (trip-map vector overlays)', () => {
+    const r = validateManifest({ ...base, permissions: ['hook:map-layer-provider'] });
+    expect(r.errors).toEqual([]);
+    expect(r.ok).toBe(true);
+  });
+
   it('accepts the read-symmetry + broker permissions (collab, file content, trip create, rates)', () => {
     const permissions = ['db:read:collab', 'db:create:trips', 'rates:read', 'db:read:files:content'];
     const r = validateManifest({ ...base, permissions });

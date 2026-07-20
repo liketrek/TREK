@@ -318,6 +318,7 @@ const admin: TranslationStrings = {
     'Aggiungere colonne e azioni alle viste del viaggio (prenotazioni, luoghi, giorni)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Aggiungere indicatori alla mappa del viaggio (es. mostrare prenotazioni o POI)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Disegnare percorsi, corridoi e zone sulla mappa del viaggio',
   'admin.plugins.perm.hook:pdf-section-provider': "Aggiungere sezioni di testo all'esportazione PDF del viaggio",
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Evidenziare paesi sulla mappa del mondo di Atlas (es. liste dei desideri o avvisi di viaggio)',
@@ -436,6 +437,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Fornisce eventi calendario',
   'admin.plugins.cap.placeDetails': 'Arricchisce luoghi',
   'admin.plugins.cap.warnings': 'Segnala problemi',
+  'admin.plugins.cap.mapLayers': 'Disegna sulla mappa',
   'admin.plugins.cap.events': "Reagisce all'attività",
   'admin.plugins.cap.requiresAddon': 'Richiede {addon}',
   'admin.plugins.cap.dependsOn': 'Richiede {id} {version}',

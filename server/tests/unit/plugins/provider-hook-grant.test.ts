@@ -50,6 +50,14 @@ describe('providersOf enforces the hook:* grant', () => {
     expect(s.providersOf('journalEntryProvider')).toEqual(['journal']);
   });
 
+  it('maps mapLayerProvider to hook:map-layer-provider (not the marker grant)', () => {
+    const s = makeSupervisor();
+    put(s, 'layers', 'active', ['mapLayerProvider'], ['hook:map-layer-provider']);
+    // The marker grant must not bleed into the layer hook — they are separate consents.
+    put(s, 'markersOnly', 'active', ['mapLayerProvider'], ['hook:map-marker-provider']);
+    expect(s.providersOf('mapLayerProvider')).toEqual(['layers']);
+  });
+
   it('maps notificationChannel to hook:notification-channel', () => {
     const s = makeSupervisor();
     put(s, 'gotify', 'active', ['notificationChannel'], ['hook:notification-channel']);

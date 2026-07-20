@@ -380,7 +380,7 @@ Both jobs and scheduled tasks run with **no acting user** (trip reads are refuse
 
 ## Contribute native primitives to core views
 
-Six declarative hooks let a plugin push data into TREK's own screens — the host renders and sanitizes everything, so no iframe and no plugin JS on the canvas. Each needs its own `hook:*` permission, runs with the current user bound on a short timeout, and a slow or failing call is skipped (never fatal). The host caps counts and lengths.
+Seven declarative hooks let a plugin push data into TREK's own screens — the host renders and sanitizes everything, so no iframe and no plugin JS on the canvas. Each needs its own `hook:*` permission, runs with the current user bound on a short timeout, and a slow or failing call is skipped (never fatal). The host caps counts and lengths.
 
 ```js
 hooks: {
@@ -392,6 +392,14 @@ hooks: {
   // hook:map-marker-provider — pins on the trip map (#587)
   mapMarkerProvider: { async getMarkers(tripId, ctx) {
     return [{ id: 'm1', lat: 35.62, lng: 139.78, label: 'Teamlab', popupText: 'Opens 10:00' }]
+  } },
+
+  // hook:map-layer-provider — routes/corridors/zones drawn on the trip map
+  mapLayerProvider: { async getLayers(tripId, ctx) {
+    return [{ id: 'route', name: 'Suggested route', features: [
+      { type: 'polyline', points: [[35.62, 139.78], [35.66, 139.70]], tone: 'success', width: 4 },
+      { type: 'circle', center: [35.66, 139.70], radiusM: 1500, dash: 'dash', fill: true, label: 'Reachable on foot' },
+    ] }]
   } },
 
   // hook:pdf-section-provider — text sections appended to the trip PDF export

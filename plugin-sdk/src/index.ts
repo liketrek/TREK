@@ -489,6 +489,34 @@ export interface MapMarkerProvider {
   getMarkers(tripId: number, ctx: PluginContext): Promise<MapMarkerContribution[]>;
 }
 
+/** One shape in a map layer. Declarative only — the host draws it; styling is the
+ * tone palette plus clamped numerics (width 1–8, opacity 0.05–1) and a dash enum. */
+export interface MapLayerFeature {
+  type: 'polyline' | 'polygon' | 'circle';
+  points?: Array<[number, number]>; // [lat,lng] pairs — polyline (≥2) / polygon (≥3)
+  center?: [number, number];        // circle center [lat,lng]
+  radiusM?: number;                 // circle radius in metres (1..2,000,000)
+  tone?: ContributionTone;
+  width?: number;                   // stroke width, clamped 1..8 (default 3)
+  dash?: 'solid' | 'dash' | 'dot';  // stroke style (default solid)
+  opacity?: number;                 // stroke opacity, clamped 0.05..1 (default 0.8)
+  fill?: boolean;                   // polygon/circle: tint the inside (default true)
+  label?: string;                   // short tooltip text (≤80 chars)
+}
+/** A bounded vector overlay the host renders onto the trip map — a computed route,
+ * a reachable-range corridor, a zone. Complements mapMarkerProvider (points). */
+export interface MapLayerContribution {
+  id: string;                 // stable per-layer id (React key / dedupe)
+  name?: string;              // short layer name
+  features: MapLayerFeature[]; // host caps: 4 layers + 150 features + 8000 vertices per plugin
+}
+export interface MapLayerProvider {
+  /** Return layers to overlay on a trip's map. Runs with the current user bound,
+   * on a short timeout; the host caps the vertex budget and skips a failing call.
+   * Needs `hook:map-layer-provider`. */
+  getLayers(tripId: number, ctx: PluginContext): Promise<MapLayerContribution[]>;
+}
+
 /** A text-only section the host appends to a trip's PDF export. Declarative only —
  * plain strings the host lays out and escapes; no markup ever reaches the document. */
 export interface PdfSection {
@@ -604,6 +632,7 @@ export interface PluginDefinition {
     warningProvider?: WarningProvider;
     tableContributor?: TableContributor;
     mapMarkerProvider?: MapMarkerProvider;
+    mapLayerProvider?: MapLayerProvider;
     pdfSectionProvider?: PdfSectionProvider;
     atlasLayerProvider?: AtlasLayerProvider;
     journalEntryProvider?: JournalEntryProvider;
