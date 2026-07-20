@@ -591,6 +591,14 @@ export default function BackupPanel() {
             </div>
           )}
 
+          {/* What actually leaves the box. Stated up front rather than buried in
+              the wiki: the archive carries every secret the instance holds, and
+              nothing encrypts it before transmission yet. */}
+          <div className="flex items-start gap-2 mb-5 p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-amber-700">{t('backup.target.contentWarning')}</p>
+          </div>
+
           <fieldset disabled={target.managed_by_env} className="flex flex-col gap-5 disabled:opacity-60">
             {/* Enable toggle */}
             <label className="flex items-center justify-between gap-4 cursor-pointer">

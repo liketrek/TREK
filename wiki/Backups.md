@@ -19,7 +19,16 @@ A backup is a ZIP archive with these entries:
 | `plugins-data/` | Each installed plugin's own database + files (present only if plugins are installed) |
 | `plugins-code/` | The installed plugin code, so a restore is self-contained (dev-linked plugins are skipped) |
 
-**Not included:** the encryption key. Store your `ENCRYPTION_KEY` separately from the backup ZIP — for example, in a password manager. See [Encryption-Key-Rotation](Encryption-Key-Rotation).
+**The at-rest encryption key is included** whenever `ENCRYPTION_KEY` is *not* set as an environment variable — which is
+the default for most self-hosted installs. TREK bundles `data/.encryption_key` into the archive so the backup is
+self-contained: the database stores SMTP, OIDC, MFA and API-key secrets encrypted with that key, and a restore onto a
+fresh install could not decrypt them otherwise.
+
+> **This makes the backup ZIP as sensitive as the key itself.** Anyone holding the archive holds everything in it in
+> plaintext. Treat it like a password vault export: transfer it over a channel you trust, and think twice before handing
+> it to third-party storage. If you set `ENCRYPTION_KEY` as an environment variable, the key is *not* bundled — the env
+> var is then the source of truth, and you must store it yourself (a password manager) or the backup becomes
+> undecryptable. See [Encryption-Key-Rotation](Encryption-Key-Rotation).
 
 ## Manual backup
 
@@ -77,6 +86,13 @@ Works with AWS S3, MinIO, Garage, Supabase Storage, Backblaze B2, Wasabi and any
 **The local archive is always kept.** The remote copy is pushed *in addition*, so a target that is unreachable at backup
 time costs you the off-box copy, never the backup itself. Failures are logged, written to the audit log, and reported in
 the UI rather than disappearing behind a success message.
+
+> **Know what you are uploading.** A backup archive contains your entire database and every upload, and — unless
+> `ENCRYPTION_KEY` is set as an environment variable — the at-rest encryption key alongside it (see
+> [What a backup contains](#what-a-backup-contains)). TREK uploads the archive as-is; it does not yet encrypt it before
+> transmission. Whoever can read the bucket can read everything in it. Use a private bucket with credentials scoped to
+> it alone, and prefer a provider and jurisdiction you are willing to trust with that. Setting `ENCRYPTION_KEY` as an
+> env var keeps the key out of the archive, but the database contents still travel unencrypted at rest in the bucket.
 
 ### Setting it up
 

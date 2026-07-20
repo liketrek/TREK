@@ -76,6 +76,7 @@ const backup: TranslationStrings = {
   'backup.location.both': 'Auf diesem Server und in S3',
   'backup.location.remoteOnly': 'Nur S3',
   'backup.remoteListError': 'Das externe Backup-Ziel war nicht erreichbar, daher werden nur lokale Backups angezeigt.',
+  'backup.target.contentWarning': 'Ein Backup enthält deine komplette Datenbank, alle Uploads und — sofern ENCRYPTION_KEY nicht als Umgebungsvariable gesetzt ist — den Schlüssel für die Verschlüsselung im Ruhezustand. Es wird unverändert hochgeladen und vor der Übertragung nicht verschlüsselt; wer den Bucket lesen kann, liest also alles. Verwende einen privaten Bucket mit Zugangsdaten, die nur für ihn gelten.',
   'backup.target.title': 'Externes Backup-Ziel',
   'backup.target.description': 'Jedes Backup zusätzlich in einen S3-kompatiblen Bucket spiegeln (AWS S3, MinIO, Garage, Supabase Storage, Backblaze B2, Wasabi). Das lokale Archiv bleibt immer erhalten — die Kopie geht zusätzlich außer Haus.',
   'backup.target.configuredButOff': 'Zugangsdaten sind hinterlegt, aber die Spiegelung ist aus — Backups bleiben nur auf diesem Server. Schalte „Backups nach S3 spiegeln“ ein, um sie außer Haus zu schieben.',

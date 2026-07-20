@@ -449,6 +449,18 @@ describe('BackupPanel', () => {
       await waitFor(() => expect(screen.getByText(/could not be removed/i)).toBeInTheDocument())
     })
 
+    // BKP-024: the archive carries every secret the instance holds, and this PR
+    // is what sends it off-box — the admin must see that before configuring it.
+    it('FE-ADMIN-BKP-024: states what a backup contains before it leaves the server', async () => {
+      server.use(http.get('/api/backup/target', () => HttpResponse.json(storedTarget)))
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      const warning = screen.getByText(/at-rest encryption key/i)
+      expect(warning).toBeInTheDocument()
+      expect(warning.textContent).toMatch(/not encrypted before transmission/i)
+    })
+
     // BKP-020: a fully configured target that is switched off is the quiet
     // failure this feature exists to avoid — say so in the form.
     it('FE-ADMIN-BKP-020: warns when credentials are configured but mirroring is off', async () => {

@@ -75,6 +75,7 @@ const backup: TranslationStrings = {
   'backup.location.both': 'On this server and in S3',
   'backup.location.remoteOnly': 'S3 only',
   'backup.remoteListError': 'The external backup target could not be reached, so only local backups are listed.',
+  'backup.target.contentWarning': 'A backup contains your whole database, every upload, and — unless ENCRYPTION_KEY is set as an environment variable — the at-rest encryption key. It is uploaded as-is and is not encrypted before transmission, so anyone who can read the bucket can read all of it. Use a private bucket with credentials scoped to it alone.',
   'backup.target.title': 'External backup target',
   'backup.target.description': 'Mirror every backup to an S3-compatible bucket (AWS S3, MinIO, Garage, Supabase Storage, Backblaze B2, Wasabi). The local archive is always kept — the copy is pushed off-box in addition.',
   'backup.target.configuredButOff': 'Credentials are configured but mirroring is off — backups stay on this server only. Turn on “Mirror backups to S3” to push them off-box.',
