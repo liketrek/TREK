@@ -65,6 +65,7 @@ export default function LoginPage(): React.ReactElement {
     noRedirect,
     showRegisterOption,
     oidcOnly,
+    authMethod, setAuthMethod,
     handleDemoLogin,
     handleSubmit,
     handlePasskeyLogin,
@@ -774,7 +775,29 @@ export default function LoginPage(): React.ReactElement {
                         : t('login.subtitle')}
                 </p>
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* LDAP / Local toggle */}
+            {appConfig?.ldap_configured && appConfig?.ldap_default_method === 'both' && mode === 'login' && !mfaStep && !passwordChangeStep && (
+              <div style={{ display: 'flex', borderRadius: 10, border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: 4 }}>
+                {(['ldap', 'local'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setAuthMethod(m)}
+                    style={{
+                      flex: 1, padding: '8px 0', border: 'none', cursor: 'pointer',
+                      fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600,
+                      background: authMethod === m ? '#111827' : 'white',
+                      color: authMethod === m ? 'white' : '#6b7280',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}
+                  >
+                    {m === 'ldap' ? t('login.ldap.method') : t('login.local.method')}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {error && (
                     <div
                       style={{

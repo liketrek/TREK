@@ -89,5 +89,10 @@ const login: TranslationStrings = {
   'login.insecureCookie.body':
     'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
   'login.insecureCookie.link': 'Open the Troubleshooting guide',
+  'login.ldap.failed': "فشل مصادقة LDAP. يرجى المحاولة مرة أخرى لاحقاً.",
+  'login.ldap.accessDenied': "تم رفض الوصول. أنت لست عضواً في مجموعة مخولة.",
+  'login.ldap.method': "LDAP",
+  'login.local.method': "محلي",
+  'login.ldap.usernamePlaceholder': "اسم المستخدم",
 };
 export default login;

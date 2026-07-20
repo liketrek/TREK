@@ -89,5 +89,10 @@ const login: TranslationStrings = {
   'login.insecureCookie.body':
     'Bạn đang kết nối qua HTTP thuần, nên trình duyệt loại bỏ cookie phiên bảo mật của TREK — yêu cầu tiếp theo sẽ thất bại với "Access token required". Cách khắc phục: dùng HTTPS, hoặc với máy chủ tại nhà hãy đặt COOKIE_SECURE=false.',
   'login.insecureCookie.link': 'Mở hướng dẫn khắc phục sự cố',
+  'login.ldap.failed': "Xác thực LDAP thất bại. Vui lòng thử lại sau.",
+  'login.ldap.accessDenied': "Truy cập bị từ chối. Bạn không phải thành viên của nhóm được ủy quyền.",
+  'login.ldap.method': "LDAP",
+  'login.local.method': "Cục bộ",
+  'login.ldap.usernamePlaceholder': "tên người dùng",
 };
 export default login;

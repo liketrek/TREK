@@ -22,6 +22,8 @@ interface AppConfig {
   passkey_login?: boolean
   passkey_configured?: boolean
   env_override_oidc_only: boolean
+  ldap_configured?: boolean
+  ldap_default_method?: string
 }
 
 /**
@@ -38,6 +40,7 @@ export function useLogin() {
   const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState<string>('')
   const [rememberMe, setRememberMe] = useState<boolean>(false)
+  const [authMethod, setAuthMethod] = useState<'ldap' | 'local'>('ldap')
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
@@ -154,6 +157,10 @@ export function useLogin() {
         if (config) {
           setAppConfig(config)
           if (!config.has_users) setMode('register')
+          if (config.ldap_configured) {
+            const m = config.ldap_default_method
+            setAuthMethod(m === 'local' ? 'local' : 'ldap')
+          }
           // Skip auto-redirect when config is from cache — network is unreliable
           // and auto-redirecting to the IdP could loop if the proxy changed.
           if (!fromCache && !config.password_login && config.oidc_login && config.oidc_configured && config.has_users && !invite && !noRedirect) {
@@ -263,7 +270,10 @@ export function useLogin() {
         if (password.length < 8) { setError(t('login.passwordMinLength')); setIsLoading(false); return }
         await register(username, email, password, inviteToken || undefined)
       } else {
-        const result = await login(email, password, rememberMe)
+        const loginIdentifier = (appConfig?.ldap_configured && authMethod === 'ldap')
+          ? (email.includes('@') ? email.split('@')[0] : email)
+          : email
+        const result = await login(loginIdentifier, password, rememberMe)
         if ((result as { insecureCookie?: boolean }).insecureCookie) {
           // Credentials were correct, but the secure cookie won't survive plain
           // HTTP — proceeding would just dead-end on "Access token required".
@@ -307,6 +317,7 @@ export function useLogin() {
     showTakeoff, mfaStep, setMfaStep, mfaToken, setMfaToken, mfaCode, setMfaCode,
     passwordChangeStep, newPassword, setNewPassword, confirmPassword, setConfirmPassword,
     noRedirect, showRegisterOption, oidcOnly,
+    authMethod, setAuthMethod,
     handleDemoLogin, handleSubmit, handlePasskeyLogin,
   }
 }

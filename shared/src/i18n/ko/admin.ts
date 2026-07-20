@@ -633,5 +633,10 @@ const admin: TranslationStrings = {
   'admin.invite.tripNone': '여행 없음',
   'admin.invite.tripHint': '새 사용자가 이 링크를 통해 가입하면 해당 여행에 자동으로 추가됩니다.',
   'admin.invite.boundTo': '{trip}에 추가',
+  'admin.ldap.defaultMethod': "LDAP Default Login Method",
+  'admin.ldap.defaultMethodHint': "Controls which login method is pre-selected on the login page.",
+  'admin.ldap.method.ldap': "LDAP only — users log in with their LDAP credentials",
+  'admin.ldap.method.local': "Local only — users log in with their local password",
+  'admin.ldap.method.both': "Both — users can choose between LDAP and local login",
 };
 export default admin;
