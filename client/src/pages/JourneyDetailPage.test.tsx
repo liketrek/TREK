@@ -3759,4 +3759,38 @@ describe('JourneyDetailPage', () => {
       });
     });
   });
+
+  describe('FE-PAGE-JOURNEYDETAIL-153: Contextual external photos', () => {
+    it('shows the External photos tab and searches the selected entry day', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const searches: Array<{ from?: string; to?: string }> = [];
+      server.use(
+        http.get('/api/integrations/memories/:provider/status', () => HttpResponse.json({ connected: true })),
+        http.post('/api/integrations/memories/:provider/search', async ({ request }) => {
+          searches.push(await request.json() as { from?: string; to?: string });
+          return HttpResponse.json({ assets: [{ id: 'context-1', takenAt: '2026-03-15T12:00:00Z', city: 'Rome' }], hasMore: false });
+        }),
+      );
+
+      await renderAndWait();
+      await openEntryEditor(user);
+      await user.click(screen.getByRole('button', { name: /external photos/i }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('journey-external-provider-immich')).toBeInTheDocument();
+      });
+      await user.click(screen.getByTestId('journey-external-provider-immich'));
+      await waitFor(() => expect(screen.getByTestId('journey-provider-picker-embedded')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(/This day|journey\.picker\.day/)).toBeInTheDocument());
+      await waitFor(() => expect(searches.length).toBeGreaterThan(0));
+
+      expect(searches[0].from).toBe(searches[0].to);
+      expect(screen.getByText('This day')).toBeInTheDocument();
+      expect(document.querySelector('img[src*="/api/integrations/memories/"]')).toBeTruthy();
+
+      await user.click(screen.getByText('Trip Period'));
+      await waitFor(() => expect(searches.some(search => search.from === '2026-03-14' && search.to === '2026-03-20')).toBe(true));
+      expect(screen.queryByText(/No trips linked/i)).not.toBeInTheDocument();
+    });
+  });
 });

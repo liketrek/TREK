@@ -462,7 +462,9 @@ function JourneyDetailPageDesktop() {
           entry={editingEntry}
           journeyId={current.id}
           tripDates={tripDates}
+          trips={current.trips}
           galleryPhotos={current.gallery || []}
+          userId={useAuthStore.getState().user?.id || 0}
           onClose={() => setEditingEntry(null)}
           onSave={async (data) => {
             let entryId = editingEntry.id
@@ -476,6 +478,9 @@ function JourneyDetailPageDesktop() {
           }}
           onUploadPhotos={async (entryId, files, cbs) => {
             return await uploadPhotos(entryId, files, cbs)
+          }}
+          onAddProviderPhotos={async (entryId, group) => {
+            await journeyApi.addProviderPhotos(entryId, group.provider, group.assetIds, undefined, group.passphrase, group.mediaTypes)
           }}
           onDone={() => {
             setEditingEntry(null)

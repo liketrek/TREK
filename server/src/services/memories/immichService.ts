@@ -217,6 +217,8 @@ export async function searchPhotos(
         takenAt: a.fileCreatedAt || a.createdAt,
         city: a.exifInfo?.city || null,
         country: a.exifInfo?.country || null,
+        lat: typeof a.exifInfo?.latitude === 'number' ? a.exifInfo.latitude : null,
+        lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
         mediaType: a.type === 'VIDEO' ? 'video' : 'image',
       }));
     return { assets, hasMore: items.length >= size };

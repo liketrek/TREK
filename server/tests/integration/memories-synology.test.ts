@@ -977,7 +977,7 @@ describe('Synology searchSynologyPhotos date range', () => {
                     thumbnail: { cache_key: '201_abc' },
                     address: { city: 'Kyoto', country: 'Japan', state: 'Kyoto' },
                     exif: {},
-                    gps: {},
+                    gps: { latitude: 35.0116, longitude: 135.7681 },
                     resolution: { width: 4000, height: 3000 },
                     orientation: 1,
                     description: null,
@@ -997,6 +997,7 @@ describe('Synology searchSynologyPhotos date range', () => {
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.assets)).toBe(true);
+    expect(res.body.assets[0]).toMatchObject({ lat: 35.0116, lng: 135.7681 });
 
     // Verify date parameters were forwarded in the Synology API request body
     expect(capturedBody).not.toBeNull();

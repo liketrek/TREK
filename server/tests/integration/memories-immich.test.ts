@@ -123,7 +123,7 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
         json: () => Promise.resolve({
           assets: {
             items: [
-              { id: 'asset-search-1', fileCreatedAt: '2024-06-01T10:00:00.000Z', exifInfo: { city: 'Paris', country: 'France' } },
+              { id: 'asset-search-1', fileCreatedAt: '2024-06-01T10:00:00.000Z', exifInfo: { city: 'Paris', country: 'France', latitude: 48.8566, longitude: 2.3522 } },
             ],
           },
         }),
@@ -347,7 +347,7 @@ describe('Immich browse and search', () => {
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.assets)).toBe(true);
-    expect(res.body.assets[0]).toMatchObject({ id: 'asset-search-1', city: 'Paris', country: 'France' });
+    expect(res.body.assets[0]).toMatchObject({ id: 'asset-search-1', city: 'Paris', country: 'France', lat: 48.8566, lng: 2.3522 });
     expect(typeof res.body.hasMore).toBe('boolean');
   });
 
