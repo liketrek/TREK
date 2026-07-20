@@ -462,6 +462,8 @@ works. Add `data-trek-native` to a field to keep the browser default; `multiple`
 | `trek.openExternal(url)` | open an `http(s)` URL in a new tab (the sandbox itself can't) |
 | `trek.onEvent(cb)` | `cb(event, tripId)` for core events on the trip in view — names only, no payloads; refetch via `invoke()`; returns an unsubscribe fn |
 | `trek.resize(px)` | override the auto height (ignored on full pages — see `trek:resize` below) |
+| `trek.geolocation.get()` | one browser position as `{ lat, lng, accuracy, heading, speed, timestamp }` — **needs the `geolocation:read` permission**; rejects with `.code` `forbidden`/`denied`/`timeout`/`unavailable`/`unsupported`. The HOST reads the position (the sandbox never gains the API) and the browser's own site prompt still applies |
+| `trek.geolocation.watch(cb)` | stream positions — `cb(position, error)`; returns an unsubscribe fn. The host keeps ONE GPS watch per frame and force-stops it when the frame closes |
 | `trek.ready()` / `trek.requestContext()` | re-handshake / re-request the context |
 
 **Preview it:** `npx trek-plugin-sdk dev`, then open **`/preview`** — it renders your UI
@@ -497,6 +499,7 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 | `trek:invoke` | `{ requestId, sub, method, body }` | call your own route; resolves as `trek:response` or `trek:error` |
 | `trek:confirm` | `{ requestId, title?, message?, confirmLabel?, cancelLabel?, danger? }` | host-rendered ConfirmDialog; answered as `trek:confirm:result` |
 | `trek:openExternal` | `{ url }` | open an `http(s)` URL in a new `noopener` tab; anything else is dropped |
+| `trek:geolocation` | `{ requestId, action?: 'get'\|'watch'\|'clear' }` | host-brokered browser position (needs `geolocation:read`); answered as `trek:geolocation:result`, watch updates stream as `trek:geolocation:update` |
 
 **Messages TREK sends you:**
 
@@ -507,6 +510,8 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 | `trek:error` | `{ requestId, code, message }` — a failed `trek:invoke` (`code` is the HTTP status or `"error"`) |
 | `trek:confirm:result` | `{ requestId, confirmed }` — the user's answer to your `trek:confirm` |
 | `trek:event` | `{ event, tripId }` — a core event fired on the trip in view; **names only, never payloads** — refetch what you need via `trek:invoke` |
+| `trek:geolocation:result` | `{ requestId, position? \| watching? \| cleared? \| error? }` — the answer to a `trek:geolocation` request (`error` ∈ `forbidden`/`denied`/`timeout`/`unavailable`/`unsupported`) |
+| `trek:geolocation:update` | `{ position? , error? }` — a streamed watch fix (`position` = `{ lat, lng, accuracy, heading, speed, timestamp }`) |
 
 The frame's CSP is locked down per plugin: `default-src 'none'`, own inline
 scripts/styles + the plugin's **own** `/plugin-frame/<id>/` files only (no other

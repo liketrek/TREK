@@ -316,6 +316,8 @@ const admin: TranslationStrings = {
     'Nabízet trasovací profily, podle kterých plánovač počítá trasy dnů (např. trasování pro elektromobily se zastávkami na nabíjení)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Připojovat časové položky k dennímu plánu (zastávky na nabíjení, časové rezervy)',
+  'admin.plugins.perm.geolocation:read':
+    'Zjišťovat vaši aktuální polohu, dokud je otevřené některé z jeho zobrazení (váš prohlížeč se navíc zeptá sám)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Připojovat textové sekce k PDF exportu cesty',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Zvýrazňovat země na mapě světa v Atlasu (např. seznamy přání nebo cestovní upozornění)',
@@ -435,6 +437,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Kreslí na mapě',
   'admin.plugins.cap.routing': 'Nabízí trasování',
   'admin.plugins.cap.daySchedule': 'Doplňuje časy plánu',
+  'admin.plugins.cap.geolocation': 'Čte vaši polohu',
   'admin.plugins.cap.events': 'Reaguje na aktivitu',
   'admin.plugins.cap.requiresAddon': 'Vyžaduje {addon}',
   'admin.plugins.cap.dependsOn': 'Vyžaduje {id} {version}',

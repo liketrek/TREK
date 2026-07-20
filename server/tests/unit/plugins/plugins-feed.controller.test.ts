@@ -61,6 +61,16 @@ describe('PluginsFeedController', () => {
     expect(profiles.every(p => p.label.length <= 40)).toBe(true);
   });
 
+  it('flags geolocation only when the grant is recorded', () => {
+    rows.value = [
+      row({ id: 'granted', granted_permissions: JSON.stringify(['geolocation:read']) }),
+      row({ id: 'ungranted' }),
+    ];
+    const { plugins } = c.list();
+    expect(plugins.find(p => p.id === 'granted')?.geolocation).toBe(true);
+    expect(plugins.find(p => p.id === 'ungranted')?.geolocation).toBeUndefined();
+  });
+
   it('survives malformed JSON blobs without dropping the plugin', () => {
     rows.value = [row({ capabilities: '{not json', granted_permissions: 'also not' })];
     const { plugins } = c.list();

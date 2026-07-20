@@ -255,6 +255,7 @@ export const PERMISSION_FAMILIES: PermissionFamily[] = [
       { value: 'notify:send', hint: 'Send a TREK notification to a user or trip' },
       { value: 'ai:invoke', hint: 'Call the instance\'s configured AI model' },
       { value: 'oauth:client', hint: 'Obtain OAuth access tokens for the user' },
+      { value: 'geolocation:read', hint: 'Ask the host for the browser\'s live position in your frames (browser prompt still applies)' },
     ],
   },
 ];

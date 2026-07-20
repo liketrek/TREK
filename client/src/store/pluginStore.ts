@@ -22,6 +22,9 @@ export interface ActivePlugin {
   /** Routing profiles the planner's route toggle offers (routeProvider hook;
    * the server only sends these when the hook permission is granted). */
   routeProfiles?: Array<{ id: string; label: string; icon?: string }>
+  /** The plugin holds the geolocation:read grant — its frames may ask the host
+   * for the browser position over the bridge. */
+  geolocation?: true
 }
 
 interface PluginState {

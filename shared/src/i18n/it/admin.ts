@@ -323,6 +323,8 @@ const admin: TranslationStrings = {
     'Offrire profili di routing con cui il pianificatore calcola i giorni (es. routing per auto elettriche con soste di ricarica)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Aggiungere voci orarie al piano della giornata (soste di ricarica, margini di sicurezza)',
+  'admin.plugins.perm.geolocation:read':
+    'Richiedere la tua posizione in tempo reale mentre una delle sue viste è aperta (il tuo browser chiederà comunque conferma)',
   'admin.plugins.perm.hook:pdf-section-provider': "Aggiungere sezioni di testo all'esportazione PDF del viaggio",
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Evidenziare paesi sulla mappa del mondo di Atlas (es. liste dei desideri o avvisi di viaggio)',
@@ -444,6 +446,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Disegna sulla mappa',
   'admin.plugins.cap.routing': 'Offre routing',
   'admin.plugins.cap.daySchedule': 'Aggiunge orari al piano',
+  'admin.plugins.cap.geolocation': 'Legge la tua posizione',
   'admin.plugins.cap.events': "Reagisce all'attività",
   'admin.plugins.cap.requiresAddon': 'Richiede {addon}',
   'admin.plugins.cap.dependsOn': 'Richiede {id} {version}',

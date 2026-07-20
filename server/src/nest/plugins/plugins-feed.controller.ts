@@ -22,6 +22,9 @@ interface ActivePlugin {
   settingsUi?: true;
   /** Routing profiles the planner's route toggle offers (routeProvider hook, granted only). */
   routeProfiles?: Array<{ id: string; label: string; icon?: string }>;
+  /** The plugin holds the geolocation:read grant — its frames may request the
+   * browser position over the host bridge (the browser prompt still applies). */
+  geolocation?: true;
 }
 
 @Controller('api/plugins')
@@ -42,6 +45,7 @@ export class PluginsFeedController {
         ...(tripPage ? { tripPage } : {}),
         ...(settingsUiOf(capabilities) ? { settingsUi: true as const } : {}),
         ...(routeProfiles ? { routeProfiles } : {}),
+        ...(hasGrant(granted_permissions, 'geolocation:read') ? { geolocation: true as const } : {}),
       };
     });
     return { plugins };
@@ -67,6 +71,14 @@ function settingsUiOf(capabilities: string): boolean {
   try {
     const c = JSON.parse(capabilities || '{}') as { settingsUi?: unknown };
     return c.settingsUi === true;
+  } catch {
+    return false;
+  }
+}
+
+function hasGrant(granted: string, permission: string): boolean {
+  try {
+    return (JSON.parse(granted || '[]') as unknown[]).includes(permission);
   } catch {
     return false;
   }

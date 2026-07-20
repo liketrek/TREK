@@ -459,6 +459,8 @@ const admin: TranslationStrings = {
     'Oferir perfils de ruta amb què el planificador pot calcular els dies (p. ex. rutes per a cotxe elèctric amb parades de recàrrega)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Afegir entrades horàries al pla del dia (parades de recàrrega, marges de seguretat)',
+  'admin.plugins.perm.geolocation:read':
+    "Consultar la teva ubicació en temps real mentre una de les seves vistes és oberta (el teu navegador també t'ho demanarà)",
   'admin.plugins.updateConsentTitle': 'Aquesta actualització necessita permisos nous',
   'admin.plugins.updateConsentBody':
     "{name} v{version} demana permisos que encara no has concedit. La versió nova està instal·lada, però roman desactivada fins que l'aprovis.",
@@ -562,6 +564,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Dibuixa al mapa',
   'admin.plugins.cap.routing': 'Calcula rutes',
   'admin.plugins.cap.daySchedule': 'Afegeix horaris al pla',
+  'admin.plugins.cap.geolocation': 'Llegeix la teva ubicació',
   'admin.plugins.cap.events': "Reacciona a l'activitat",
   'admin.plugins.cap.requiresAddon': 'Requereix {addon}',
   'admin.plugins.cap.dependsOn': 'Necessita {id} {version}',

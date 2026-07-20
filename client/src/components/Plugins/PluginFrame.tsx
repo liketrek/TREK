@@ -4,6 +4,7 @@ import { useTranslation } from '../../i18n'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTripStore } from '../../store/tripStore'
+import { usePluginStore } from '../../store/pluginStore'
 import { useToast } from '../shared/Toast'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { pluginsApi } from '../../api/client'
@@ -114,6 +115,23 @@ type Inbound =
   | { type: 'trek:invoke'; requestId: string; sub: string; method?: string; body?: unknown }
   | { type: 'trek:confirm'; requestId: string; title?: string; message?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean }
   | { type: 'trek:openExternal'; url?: string }
+  | { type: 'trek:geolocation'; requestId: string; action?: 'get' | 'watch' | 'clear' }
+
+/** The wire shape of a position sent to the frame — plain data, no prototype. */
+function geoPosition(p: GeolocationPosition) {
+  return {
+    lat: p.coords.latitude,
+    lng: p.coords.longitude,
+    accuracy: p.coords.accuracy,
+    heading: p.coords.heading,
+    speed: p.coords.speed,
+    timestamp: p.timestamp,
+  }
+}
+
+function geoErrorCode(e: GeolocationPositionError): 'denied' | 'unavailable' | 'timeout' {
+  return e.code === e.PERMISSION_DENIED ? 'denied' : e.code === e.TIMEOUT ? 'timeout' : 'unavailable'
+}
 
 interface ConfirmRequest {
   requestId: string
@@ -160,6 +178,13 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   // side effects inside a setState updater (StrictMode runs updaters twice).
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null)
   const confirmReqRef = useRef<ConfirmRequest | null>(null)
+  // geolocation:read gate — the feed only flags plugins whose grant is recorded.
+  // Read via ref (like toastRef) so the bridge effect doesn't re-run on store churn.
+  const geoAllowed = usePluginStore((s) => s.getById(pluginId)?.geolocation === true)
+  const geoAllowedRef = useRef(geoAllowed)
+  geoAllowedRef.current = geoAllowed
+  // The single live watchPosition of this frame (id from navigator.geolocation).
+  const geoWatchRef = useRef<number | null>(null)
 
   // opaque frame -> targetOrigin must be '*'. Hoisted so the iframe's onLoad can
   // deliver the context too: the trek:ready handshake alone is racy — if the frame
@@ -280,6 +305,43 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
           }
           break
         }
+        case 'trek:geolocation': {
+          // The sandbox blocks navigator.geolocation inside the frame (deliberately —
+          // no blanket permissions-policy delegation). The HOST reads the position and
+          // posts plain data, gated on the plugin's geolocation:read grant, and the
+          // browser's own site permission prompt still applies on top. Nothing here
+          // reaches the server — the position only travels parent → this frame.
+          if (typeof msg.requestId !== 'string' || !msg.requestId) break
+          const requestId = msg.requestId
+          const fail = (error: string) => post({ type: 'trek:geolocation:result', requestId, error })
+          if (!geoAllowedRef.current) { fail('forbidden'); break }
+          if (!('geolocation' in navigator)) { fail('unsupported'); break }
+          const action = msg.action ?? 'get'
+          if (action === 'clear') {
+            if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
+            post({ type: 'trek:geolocation:result', requestId, cleared: true })
+            break
+          }
+          const geoOpts = { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+          if (action === 'watch') {
+            // One watch per frame — a new request replaces the old one. Confirmed
+            // immediately; positions stream as trek:geolocation:update messages.
+            if (geoWatchRef.current != null) navigator.geolocation.clearWatch(geoWatchRef.current)
+            post({ type: 'trek:geolocation:result', requestId, watching: true })
+            geoWatchRef.current = navigator.geolocation.watchPosition(
+              (p) => { if (loadsRef.current <= 1) post({ type: 'trek:geolocation:update', position: geoPosition(p) }) },
+              (e) => { if (loadsRef.current <= 1) post({ type: 'trek:geolocation:update', error: geoErrorCode(e) }) },
+              geoOpts,
+            )
+            break
+          }
+          navigator.geolocation.getCurrentPosition(
+            (p) => { if (loadsRef.current <= 1) post({ type: 'trek:geolocation:result', requestId, position: geoPosition(p) }) },
+            (e) => { if (loadsRef.current <= 1) fail(geoErrorCode(e)) },
+            geoOpts,
+          )
+          break
+        }
       }
     }
 
@@ -344,6 +406,8 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       window.removeEventListener('message', onMessage)
       themeObserver.disconnect()
       if (wsForward) removeListener(wsForward)
+      // The frame is going away (or re-bridging) — never leave a live GPS watch behind.
+      if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
     }
   }, [pluginId, tripId, fill, navigate, postFrame, buildContext])
 

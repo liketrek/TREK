@@ -4,7 +4,7 @@ import {
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Globe, Image, CalendarDays, Bell,
-  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock,
+  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed,
 } from 'lucide-react'
 import PluginIcon from '../../../components/shared/PluginIcon'
 import { adminApi } from '../../../api/client'
@@ -190,7 +190,7 @@ const PERM_KEYS = [
   'events:subscribe', 'jobs:run',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'hook:map-marker-provider',
-  'hook:map-layer-provider', 'hook:route-provider', 'hook:day-schedule-provider',
+  'hook:map-layer-provider', 'hook:route-provider', 'hook:day-schedule-provider', 'geolocation:read',
   'hook:pdf-section-provider', 'hook:atlas-layer-provider', 'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data', 'http:outbound',
 ]
 
@@ -245,6 +245,7 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
   if (perms.includes('hook:map-layer-provider')) out.push({ icon: Route, label: t('admin.plugins.cap.mapLayers') })
   if (perms.includes('hook:route-provider')) out.push({ icon: Navigation, label: t('admin.plugins.cap.routing') })
   if (perms.includes('hook:day-schedule-provider')) out.push({ icon: Clock, label: t('admin.plugins.cap.daySchedule') })
+  if (perms.includes('geolocation:read')) out.push({ icon: LocateFixed, label: t('admin.plugins.cap.geolocation') })
   if (perms.includes('hook:notification-channel')) out.push({ icon: Bell, label: t('admin.plugins.cap.notificationChannel') })
   if (perms.includes('events:subscribe')) out.push({ icon: Radio, label: t('admin.plugins.cap.events') })
   for (const h of perms.filter(p => p.startsWith('http:outbound:')).map(p => p.slice('http:outbound:'.length)).filter(Boolean)) {

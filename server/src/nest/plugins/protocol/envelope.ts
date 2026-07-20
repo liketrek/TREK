@@ -343,6 +343,13 @@ export const KNOWN_PERMISSIONS = [
   'notify:send',
   'ai:invoke',
   'oauth:client',
+  // Bridge-level permission (no RPC method): the plugin's sandboxed frames may ask
+  // the HOST for the browser's geolocation over postMessage. The host reads the
+  // position and posts plain data into the frame — the sandbox itself never gains
+  // the geolocation API, and the browser's own site permission prompt still
+  // applies. Nothing is sent to the server; the plugin's server code never sees a
+  // position unless its own client ships it through one of its routes.
+  'geolocation:read',
 ] as const;
 
 export function isKnownPermission(p: string): boolean {

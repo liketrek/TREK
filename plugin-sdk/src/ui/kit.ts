@@ -359,6 +359,8 @@ export const TREK_THEME_JS = `(function () {
   var lastCtx = null;
   var pending = {};
   var pendingConfirms = {};
+  var pendingGeo = {};
+  var geoWatchers = [];
   var seq = 0;
   var lastH = -1;
 
@@ -406,6 +408,15 @@ export const TREK_THEME_JS = `(function () {
     } else if (m.type === 'trek:confirm:result') {
       var c = pendingConfirms[m.requestId];
       if (c) { delete pendingConfirms[m.requestId]; c(!!m.confirmed); }
+    } else if (m.type === 'trek:geolocation:result') {
+      var g = pendingGeo[m.requestId];
+      if (g) {
+        delete pendingGeo[m.requestId];
+        if (m.error) { var gerr = new Error('geolocation: ' + m.error); gerr.code = m.error; g.reject(gerr); }
+        else { g.resolve(m.position || m); }
+      }
+    } else if (m.type === 'trek:geolocation:update') {
+      for (var w = 0; w < geoWatchers.length; w++) { try { geoWatchers[w](m.position || null, m.error || null); } catch (e) {} }
     } else if (m.type === 'trek:event') {
       for (var j = 0; j < evtHandlers.length; j++) { try { evtHandlers[j](m.event, m.tripId); } catch (e) {} }
     }
@@ -483,6 +494,38 @@ export const TREK_THEME_JS = `(function () {
         pending[id] = { resolve: resolve, reject: reject };
         send({ type: 'trek:invoke', requestId: id, sub: sub, method: opts.method, body: opts.body });
       });
+    },
+    // Host-brokered browser position (needs the geolocation:read grant; the
+    // browser's own site prompt still applies). get() resolves one position;
+    // watch(cb) streams updates — cb(position, error) — until every returned
+    // unsubscribe ran, which also releases the host's GPS watch.
+    geolocation: {
+      get: function () {
+        var id = 'g' + (++seq);
+        return new Promise(function (resolve, reject) {
+          pendingGeo[id] = { resolve: resolve, reject: reject };
+          send({ type: 'trek:geolocation', requestId: id, action: 'get' });
+        });
+      },
+      watch: function (cb) {
+        geoWatchers.push(cb);
+        if (geoWatchers.length === 1) {
+          var id = 'g' + (++seq);
+          // The start ack resolves silently; a start error (e.g. forbidden) is
+          // surfaced through the callback so watch() itself never throws.
+          pendingGeo[id] = { resolve: function () {}, reject: function (e) { try { cb(null, e && e.code ? e.code : 'unavailable'); } catch (x) {} } };
+          send({ type: 'trek:geolocation', requestId: id, action: 'watch' });
+        }
+        return function () {
+          var i = geoWatchers.indexOf(cb);
+          if (i >= 0) { geoWatchers.splice(i, 1); }
+          if (geoWatchers.length === 0) {
+            var cid = 'g' + (++seq);
+            pendingGeo[cid] = { resolve: function () {}, reject: function () {} };
+            send({ type: 'trek:geolocation', requestId: cid, action: 'clear' });
+          }
+        };
+      }
     }
   };
   window.trek = api;

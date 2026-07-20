@@ -93,6 +93,7 @@ export const KNOWN_PERMISSIONS = [
   'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data',
   'events:subscribe', 'jobs:run', 'http:outbound',
   'weather:read', 'rates:read', 'notify:send', 'ai:invoke', 'oauth:client',
+  'geolocation:read',
 ];
 
 function isKnownPermission(p: string): boolean {
