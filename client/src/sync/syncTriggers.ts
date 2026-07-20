@@ -17,6 +17,8 @@ import { tripSyncManager } from './tripSyncManager'
 import { isEffectivelyOnline, onNetworkModeChange } from './networkMode'
 import { setPreReconnectHook, setRefetchCallback, getActiveTrips } from '../api/websocket'
 import { useTripStore } from '../store/tripStore'
+import { useSettingsStore } from '../store/settingsStore'
+import { useAuthStore } from '../store/authStore'
 
 const PERIODIC_MS = 30_000
 
@@ -24,6 +26,20 @@ let _intervalId: ReturnType<typeof setInterval> | null = null
 let _unsubscribeNetworkMode: (() => void) | null = null
 let _wasEffectivelyOnline = isEffectivelyOnline()
 let _registered = false
+
+/**
+ * User settings are loaded once on the auth transition (App.tsx), with no retry.
+ * If that single GET fails — offline at launch, or a server cold-start racing the
+ * first request — the store stays on built-in DEFAULT_SETTINGS and the user sees
+ * their currency/units/time-format "reset" for the whole session (#1618). Heal it
+ * on the same connectivity triggers that re-hydrate trips: retry until it loads.
+ */
+function ensureSettingsLoaded() {
+  if (!useAuthStore.getState().isAuthenticated) return
+  if (!isEffectivelyOnline()) return
+  if (useSettingsStore.getState().isLoaded) return
+  useSettingsStore.getState().loadSettings().catch(console.error)
+}
 
 /** Pull the latest server state for every open trip into the Zustand store. */
 function rehydrateActiveTrips() {
@@ -44,6 +60,7 @@ function onOnline() {
   // edits from the cache/UI. Stay put until the user lifts the switch (which
   // routes through onNetworkMode → here with the force flag already cleared).
   if (!isEffectivelyOnline()) return
+  ensureSettingsLoaded()
   mutationQueue.flush()
     .catch(console.error)
     .finally(() => {
@@ -55,6 +72,7 @@ function onOnline() {
 /** Tab became visible — flush only; don't trigger a potentially expensive syncAll. */
 function onVisibility() {
   if (!document.hidden && isEffectivelyOnline()) {
+    ensureSettingsLoaded()
     mutationQueue.flush().catch(console.error)
   }
 }
@@ -62,6 +80,7 @@ function onVisibility() {
 /** Periodic heartbeat — drain any lingering pending mutations. */
 function onPeriodic() {
   if (isEffectivelyOnline()) {
+    ensureSettingsLoaded()
     mutationQueue.flush().catch(console.error)
   }
 }

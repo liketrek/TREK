@@ -52,21 +52,34 @@ export const DEFAULT_SETTINGS: Settings = {
   // chosen" (fall back to home + defaults) from an explicitly emptied list.
 }
 
+// De-dupe concurrent loads: the reconnection triggers (online / visibility /
+// periodic) can all fire a retry at once — collapse them into one in-flight GET.
+let _loadInFlight: Promise<void> | null = null
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: { ...DEFAULT_SETTINGS },
   isLoaded: false,
 
   loadSettings: async () => {
-    try {
-      const data = await settingsApi.get()
-      set((state) => ({
-        settings: { ...state.settings, ...data.settings },
-        isLoaded: true,
-      }))
-    } catch (err: unknown) {
-      set({ isLoaded: true })
-      console.error('Failed to load settings:', err)
-    }
+    if (_loadInFlight) return _loadInFlight
+    _loadInFlight = (async () => {
+      try {
+        const data = await settingsApi.get()
+        set((state) => ({
+          settings: { ...state.settings, ...data.settings },
+          isLoaded: true,
+        }))
+      } catch (err: unknown) {
+        // Leave isLoaded false so a transient failure — offline at launch, or a
+        // (docker) server cold-start racing the first request — is retried on
+        // reconnect instead of stranding the user on built-in defaults (wrong
+        // currency/units) for the whole session (#1618).
+        console.error('Failed to load settings:', err)
+      } finally {
+        _loadInFlight = null
+      }
+    })()
+    return _loadInFlight
   },
 
   updateSetting: async (key: keyof Settings, value: Settings[keyof Settings]) => {

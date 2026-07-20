@@ -66,7 +66,7 @@ describe('settingsStore', () => {
   });
 
   describe('FE-SETTINGS-005: loadSettings failure', () => {
-    it('sets isLoaded: true even on API failure (graceful)', async () => {
+    it('leaves isLoaded false on API failure so the load is retried (#1618)', async () => {
       server.use(
         http.get('/api/settings', () =>
           HttpResponse.json({ error: 'Server error' }, { status: 500 })
@@ -74,9 +74,31 @@ describe('settingsStore', () => {
       );
 
       await useSettingsStore.getState().loadSettings();
-      const state = useSettingsStore.getState();
 
+      // A transient failure must NOT be treated as "loaded" — otherwise the store
+      // stays on built-in DEFAULT_SETTINGS (wrong currency/units) for the whole
+      // session with no retry. isLoaded stays false so the reconnect triggers retry.
+      expect(useSettingsStore.getState().isLoaded).toBe(false);
+    });
+
+    it('recovers on a later retry after an initial failure (#1618)', async () => {
+      server.use(
+        http.get('/api/settings', () =>
+          HttpResponse.json({ error: 'Server error' }, { status: 500 })
+        )
+      );
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().isLoaded).toBe(false);
+
+      const settings = buildSettings({ default_currency: 'EUR' });
+      server.use(
+        http.get('/api/settings', () => HttpResponse.json({ settings }))
+      );
+      await useSettingsStore.getState().loadSettings();
+
+      const state = useSettingsStore.getState();
       expect(state.isLoaded).toBe(true);
+      expect(state.settings.default_currency).toBe('EUR');
     });
   });
 
