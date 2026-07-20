@@ -1,34 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, useMatch } from 'react-router-dom'
-import { useAddonStore } from '../../store/addonStore'
-import { usePluginStore } from '../../store/pluginStore'
+import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import {
-  LayoutGrid, CalendarDays, Globe, Compass, Bookmark, ChevronRight, MoreHorizontal, Plus, Search,
-} from 'lucide-react'
+import { ChevronRight, MoreHorizontal, Plus, Search } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { resolvePluginIcon } from '../../components/shared/PluginIcon'
+import { normalizeAppearance } from '@trek/shared'
+import { useNavItems, splitMobileNav } from '../../components/Layout/navItems'
 import MFab from './MFab'
 
-// Only Vacay and Atlas own a dock slot (next to Dashboard). Everything else —
-// Journey, Collections, future global addons, page plugins — lives in the
-// "More" popover, keeping the demo's 2 + FAB + 2 dock geometry.
-const DOCK_ADDONS: Record<string, { icon: LucideIcon; labelKey: string }> = {
-  vacay: { icon: CalendarDays, labelKey: 'admin.addons.catalog.vacay.name' },
-  atlas: { icon: Globe, labelKey: 'admin.addons.catalog.atlas.name' },
-}
-
-// Popover rows carry the demo's addon brand tints on their 40px icon tiles.
-const MORE_ROWS: Record<string, { icon: LucideIcon; labelKey: string; subKey: string; tileCls: string }> = {
+// Journey/Collections keep the demo's addon brand tint + subtitle on their
+// popover tile; every other "More" item falls back to a neutral tile. Keyed by
+// the canonical nav-item id and layered on top of the resolved item.
+const MORE_ROW_STYLE: Record<string, { subKey: string; tileCls: string }> = {
   journey: {
-    icon: Compass,
-    labelKey: 'admin.addons.catalog.journey.name',
     subKey: 'mobileNav.journeySub',
     tileCls: 'bg-[rgba(74,125,219,.16)] text-[#4A7DDB]', // theme-lint-disable — fixed addon brand tint
   },
   collections: {
-    icon: Bookmark,
-    labelKey: 'admin.addons.catalog.collections.name',
     subKey: 'mobileNav.collectionsSub',
     tileCls: 'bg-[rgba(236,72,153,.16)] text-[#EC4899]', // theme-lint-disable — fixed addon brand tint
   },
@@ -89,11 +77,6 @@ function useCreateAction(): { label: string; run: () => void } {
 export default function MBottomNav() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const addons = useAddonStore(s => s.addons)
-  const globalAddons = addons.filter(a => a.type === 'global' && a.enabled)
-  // Page plugins are reachable from the mobile tab bar too, mirroring the desktop
-  // nav pill (Navbar) — otherwise they were only reachable by typing /plugins/:id.
-  const pagePlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'page')
   const location = useLocation()
   const create = useCreateAction()
   const [moreOpen, setMoreOpen] = useState(false)
@@ -101,29 +84,20 @@ export default function MBottomNav() {
   // Close the popover when the route changes underneath it (browser back etc.).
   useEffect(() => setMoreOpen(false), [location.pathname])
 
-  const dockItems: NavItem[] = [
-    { to: '/dashboard', label: t('nav.myTrips'), icon: LayoutGrid },
-    ...Object.keys(DOCK_ADDONS)
-      .filter(id => globalAddons.some(a => a.id === id))
-      .map(id => ({ to: `/${id}`, label: t(DOCK_ADDONS[id].labelKey), icon: DOCK_ADDONS[id].icon })),
-  ]
+  // The dock split + order is user-configurable (Settings → Appearance → Mobile);
+  // an un-customised account falls back to the built-in Dashboard + vacay/atlas
+  // dock with everything else under "More".
+  const navItems = useNavItems()
+  const appearance = useSettingsStore(s => s.settings.appearance)
+  const split = splitMobileNav(navItems, normalizeAppearance(appearance).mobileNav)
 
-  const moreItems: MoreItem[] = [
-    ...globalAddons
-      .filter(a => !DOCK_ADDONS[a.id])
-      .map(a => {
-        const row = MORE_ROWS[a.id]
-        return row
-          ? { to: `/${a.id}`, label: t(row.labelKey), sub: t(row.subKey), icon: row.icon, tileCls: row.tileCls }
-          : { to: `/${a.id}`, label: a.name || a.id, icon: Globe, tileCls: 'bg-[color:var(--m-ic)] text-m-ink' }
-      }),
-    ...pagePlugins.map(p => ({
-      to: `/plugins/${p.id}`,
-      label: p.name,
-      icon: resolvePluginIcon(p.icon),
-      tileCls: 'bg-[color:var(--m-ic)] text-m-ink',
-    })),
-  ]
+  const dockItems: NavItem[] = split.bar
+  const moreItems: MoreItem[] = split.more.map(d => {
+    const style = MORE_ROW_STYLE[d.id]
+    return style
+      ? { to: d.to, label: d.label, sub: t(style.subKey), icon: d.icon, tileCls: style.tileCls }
+      : { to: d.to, label: d.label, icon: d.icon, tileCls: 'bg-[color:var(--m-ic)] text-m-ink' }
+  })
 
   const isActive = (to: string) =>
     to === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(to)

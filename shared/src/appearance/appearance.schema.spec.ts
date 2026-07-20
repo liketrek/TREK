@@ -79,4 +79,29 @@ describe('normalizeAppearance', () => {
     const out = normalizeAppearance({ dashboard: 'nope' });
     expect(out.dashboard).toEqual(DEFAULT_APPEARANCE.dashboard);
   });
+
+  it('defaults a legacy blob without mobileNav to empty bar/more', () => {
+    const out = normalizeAppearance({ schemeId: 'teal' });
+    expect(out.mobileNav).toEqual({ bar: [], more: [] });
+  });
+
+  it('round-trips a valid mobileNav split in order', () => {
+    const out = normalizeAppearance({ mobileNav: { bar: ['vacay', 'atlas'], more: ['journey', 'plugin:foo'] } });
+    expect(out.mobileNav).toEqual({ bar: ['vacay', 'atlas'], more: ['journey', 'plugin:foo'] });
+  });
+
+  it('collapses a bogus mobileNav to the default without throwing', () => {
+    expect(normalizeAppearance({ mobileNav: 'nope' }).mobileNav).toEqual({ bar: [], more: [] });
+    expect(normalizeAppearance({ mobileNav: { bar: 42 } }).mobileNav).toEqual({ bar: [], more: [] });
+  });
+
+  it('strips the pinned dashboard id, de-dupes, and de-overlaps bar/more', () => {
+    const out = normalizeAppearance({
+      mobileNav: { bar: ['dashboard', 'vacay', 'vacay', 'atlas'], more: ['atlas', 'journey', 'journey'] },
+    });
+    // 'dashboard' dropped + 'vacay' de-duped in bar
+    expect(out.mobileNav.bar).toEqual(['vacay', 'atlas']);
+    // 'atlas' already in bar → removed from more; 'journey' de-duped
+    expect(out.mobileNav.more).toEqual(['journey']);
+  });
 });

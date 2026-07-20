@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Eye, LayoutDashboard, Paintbrush, RotateCcw } from 'lucide-react'
+import { Eye, LayoutDashboard, Paintbrush, RotateCcw, Smartphone } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useToast } from '../../../components/shared/Toast'
@@ -14,6 +14,7 @@ import {
 } from '@trek/shared'
 import MToggle from '../../components/MToggle'
 import { MSetCard, MSetEyebrow, MSetSegments, MSetRow } from './MSettingsUi'
+import MMobileNavCustomizer from './MMobileNavCustomizer'
 
 // ── WCAG contrast helpers (custom-accent legibility hint) ────────────────────
 function channelLum(v: number): number {
@@ -243,6 +244,11 @@ export default function MSettingsAppearance() {
             </div>
           </>
         )}
+      </MSetCard>
+
+      <MSetCard title={t('settings.appearance.mobile')} icon={Smartphone} className="mt-3">
+        <MSetEyebrow className="mb-[6px]">{t('settings.appearance.mobileNav')}</MSetEyebrow>
+        <MMobileNavCustomizer value={cfg.mobileNav} onChange={(mn) => update({ mobileNav: mn })} />
       </MSetCard>
 
       <MSetCard
