@@ -36,11 +36,12 @@ const req = { ip: '1.2.3.4', headers: {} } as Request;
 function svc(o: Partial<BackupService> = {}): BackupService {
   return {
     listBackups: vi.fn().mockReturnValue([]),
+    listBackupsMerged: vi.fn().mockResolvedValue({ backups: [] }),
     createBackup: vi.fn(),
     restoreFromZip: vi.fn(),
     getAutoSettings: vi.fn(),
     updateAutoSettings: vi.fn(),
-    deleteBackup: vi.fn(),
+    deleteBackup: vi.fn().mockResolvedValue({ found: true }),
     isValidBackupFilename: vi.fn().mockReturnValue(true),
     backupFilePath: vi.fn().mockReturnValue('/b/x.zip'),
     backupFileExists: vi.fn().mockReturnValue(true),
@@ -81,9 +82,17 @@ describe('AdminGuard (used by BackupController)', () => {
 });
 
 describe('BackupController', () => {
-  it('GET /list returns backups, 500 on error', () => {
-    expect(new BackupController(svc({ listBackups: vi.fn().mockReturnValue([{ filename: 'a.zip' }]) } as Partial<BackupService>)).list()).toEqual({ backups: [{ filename: 'a.zip' }] });
-    expect(thrown(() => new BackupController(svc({ listBackups: vi.fn(() => { throw new Error('io'); }) } as Partial<BackupService>)).list())).toEqual({ status: 500, body: { error: 'Error loading backups' } });
+  it('GET /list returns the merged local+remote list, 500 on error', async () => {
+    const merged = { backups: [{ filename: 'a.zip', local: true, remote: true }] };
+    expect(await new BackupController(svc({ listBackupsMerged: vi.fn().mockResolvedValue(merged) } as Partial<BackupService>)).list()).toEqual(merged);
+    expect(await thrownAsync(() => new BackupController(svc({ listBackupsMerged: vi.fn().mockRejectedValue(new Error('io')) } as Partial<BackupService>)).list())).toEqual({ status: 500, body: { error: 'Error loading backups' } });
+  });
+
+  it('GET /list still answers when the remote target is unreachable', async () => {
+    // Degrading to the local list beats failing: the copies you still have must
+    // stay visible when the bucket is down.
+    const degraded = { backups: [{ filename: 'a.zip', local: true, remote: false }], remoteError: 'bucket down' };
+    expect(await new BackupController(svc({ listBackupsMerged: vi.fn().mockResolvedValue(degraded) } as Partial<BackupService>)).list()).toEqual(degraded);
   });
 
   it('POST /create 429 when rate-limited, else creates + audits', async () => {
@@ -175,12 +184,22 @@ describe('BackupController', () => {
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'backup.auto_settings' }));
   });
 
-  it('DELETE /:filename 400/404, else deletes + audits', () => {
-    expect(thrown(() => new BackupController(svc({ isValidBackupFilename: vi.fn().mockReturnValue(false) })).remove(user, 'x', req))).toEqual({ status: 400, body: { error: 'Invalid filename' } });
-    expect(thrown(() => new BackupController(svc({ backupFileExists: vi.fn().mockReturnValue(false) })).remove(user, 'x.zip', req))).toEqual({ status: 404, body: { error: 'Backup not found' } });
-    const deleteBackup = vi.fn();
-    expect(new BackupController(svc({ deleteBackup } as Partial<BackupService>)).remove(user, 'x.zip', req)).toEqual({ success: true });
+  it('DELETE /:filename 400/404, else deletes + audits', async () => {
+    expect(await thrownAsync(() => new BackupController(svc({ isValidBackupFilename: vi.fn().mockReturnValue(false) })).remove(user, 'x', req))).toEqual({ status: 400, body: { error: 'Invalid filename' } });
+    // 404 now means "in neither place" — a cloud-only archive has no local file
+    // but is still deletable, so the service reports what it found.
+    expect(await thrownAsync(() => new BackupController(svc({ deleteBackup: vi.fn().mockResolvedValue({ found: false }) } as Partial<BackupService>)).remove(user, 'x.zip', req))).toEqual({ status: 404, body: { error: 'Backup not found' } });
+    const deleteBackup = vi.fn().mockResolvedValue({ found: true });
+    expect(await new BackupController(svc({ deleteBackup } as Partial<BackupService>)).remove(user, 'x.zip', req)).toEqual({ success: true, remoteError: undefined });
     expect(deleteBackup).toHaveBeenCalledWith('x.zip');
+  });
+
+  it('DELETE reports a target that refused the remote delete', async () => {
+    // The local copy is gone but the mirrored one is not — silence here would
+    // leave a restorable archive behind after an explicit delete.
+    const deleteBackup = vi.fn().mockResolvedValue({ found: true, remoteError: 'Access denied.' });
+    expect(await new BackupController(svc({ deleteBackup } as Partial<BackupService>)).remove(user, 'x.zip', req))
+      .toEqual({ success: true, remoteError: 'Access denied.' });
   });
 });
 
@@ -203,7 +222,7 @@ describe('BackupService (wrapper)', () => {
     expect(wrapper.updateAutoSettings({ enabled: true })).toEqual({ enabled: true, interval: 'daily', keep_days: 7 });
     expect(backupSvc.updateAutoSettings).toHaveBeenCalledWith({ enabled: true });
 
-    wrapper.deleteBackup('svc.zip');
+    await wrapper.deleteBackup('svc.zip');
     expect(backupSvc.deleteBackup).toHaveBeenCalledWith('svc.zip');
 
     expect(wrapper.isValidBackupFilename('svc.zip')).toBe(true);

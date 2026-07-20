@@ -9,6 +9,7 @@ import { invalidatePermissionsCache } from './permissions';
 import { pluginsCodeRoot, pluginsDataRoot } from '../nest/plugins/paths';
 import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../nest/plugins/plugin-backup';
 import { snapshotAllPluginDataDbs } from '../nest/plugins/host/plugin-data.service';
+import { onBackupWritten, type BackupTargetOutcome } from '../nest/backup/backup-target';
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -139,6 +140,12 @@ export interface BackupInfo {
   size: number;
   sizeText: string;
   created_at: string;
+  /**
+   * Result of mirroring this archive to the external target, when one is
+   * enabled. Only set by createBackup() — listBackups() reports what is on
+   * disk and does not re-probe the target.
+   */
+  remote?: BackupTargetOutcome;
 }
 
 export function listBackups(): BackupInfo[] {
@@ -170,6 +177,7 @@ export async function createBackup(): Promise<BackupInfo> {
   const outputPath = path.join(backupsDir, filename);
   const pdataSnap = path.join(backupsDir, `.plugins-snap-${timestamp}`);
   const dbSnap = path.join(backupsDir, `.travel-snap-${timestamp}.db`);
+  let info: BackupInfo;
 
   try {
     try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}
@@ -271,7 +279,7 @@ export async function createBackup(): Promise<BackupInfo> {
     });
 
     const stat = fs.statSync(outputPath);
-    return {
+    info = {
       filename,
       size: stat.size,
       sizeText: formatSize(stat.size),
@@ -288,6 +296,16 @@ export async function createBackup(): Promise<BackupInfo> {
     fs.rmSync(pdataSnap, { recursive: true, force: true });
     fs.rmSync(dbSnap, { force: true });
   }
+
+  // Hand the finished archive to the shared post-write hook. Deliberately
+  // OUTSIDE the try above: that catch deletes outputPath, and a failing
+  // external target must never take the local archive down with it.
+  //
+  // Awaited rather than fire-and-forget so the response carries the real
+  // outcome. A remote push that failed silently behind a 200 is exactly the
+  // "swallow upstream failure" pattern the admin cannot diagnose.
+  const remote = await onBackupWritten(outputPath);
+  return { ...info, remote };
 }
 
 // ---------------------------------------------------------------------------

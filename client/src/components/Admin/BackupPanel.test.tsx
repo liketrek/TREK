@@ -8,15 +8,21 @@ import { http, HttpResponse } from 'msw'
 import BackupPanel from './BackupPanel'
 import { ToastContainer } from '../shared/Toast'
 
+// The list is merged across disk and the external target, so entries carry
+// where they live. No target configured in most tests: local only.
 const manualBackup = {
   filename: 'backup-2025-01-15.zip',
   created_at: '2025-01-15T10:00:00Z',
   size: 2048000,
+  local: true,
+  remote: false,
 }
 const autoBackup = {
   filename: 'auto-backup-2025-02-01.zip',
   created_at: '2025-02-01T02:00:00Z',
   size: 1024000,
+  local: true,
+  remote: false,
 }
 
 function defaultBackupHandlers() {
@@ -203,8 +209,16 @@ describe('BackupPanel', () => {
   // BKP-010: Delete backup with confirm dialog
   it('FE-ADMIN-BKP-010: deletes backup after confirm and shows success toast', async () => {
     const user = userEvent.setup()
+    // Deleting now refetches instead of filtering local state, so the row only
+    // disappears if the server stops listing it — which is the real contract
+    // now that an archive can also exist at the external target.
+    let deleted = false
     server.use(
-      http.delete('/api/backup/:filename', () => HttpResponse.json({ success: true })),
+      http.delete('/api/backup/:filename', () => {
+        deleted = true
+        return HttpResponse.json({ success: true })
+      }),
+      http.get('/api/backup/list', () => HttpResponse.json({ backups: deleted ? [] : [manualBackup] })),
     )
     render(<><ToastContainer /><BackupPanel /></>)
     await waitFor(() => {
@@ -308,6 +322,178 @@ describe('BackupPanel', () => {
     await user.click(getToggleButton())
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /^save$/i })).not.toBeDisabled()
+    })
+  })
+
+  describe('external S3 backup target', () => {
+    const storedTarget = {
+      enabled: true,
+      endpoint: 'https://s3.example.test',
+      region: 'us-east-1',
+      bucket: 'trek-backups',
+      prefix: 'nightly/',
+      access_key_id: 'AKIA',
+      secret_access_key_set: true,
+      force_path_style: false,
+      require_tls: true,
+      managed_by_env: false,
+    }
+
+    // BKP-015: the stored secret is never delivered to the browser
+    it('FE-ADMIN-BKP-015: shows the secret masked and re-submits the mask untouched', async () => {
+      const user = userEvent.setup()
+      let sent: Record<string, unknown> | null = null
+      server.use(
+        http.get('/api/backup/target', () => HttpResponse.json(storedTarget)),
+        http.put('/api/backup/target', async ({ request }) => {
+          sent = (await request.json()) as Record<string, unknown>
+          return HttpResponse.json(storedTarget)
+        }),
+      )
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      const secret = screen.getByLabelText('Secret access key') as HTMLInputElement
+      expect(secret.value).toBe('••••••••')
+      expect(secret.type).toBe('password')
+
+      // Change something else and save — the mask must go back untouched so the
+      // server keeps the stored secret instead of overwriting it with dots.
+      await user.clear(screen.getByLabelText('Bucket'))
+      await user.type(screen.getByLabelText('Bucket'), 'other-bucket')
+      await user.click(screen.getByRole('button', { name: /save target/i }))
+
+      await waitFor(() => expect(sent).not.toBeNull())
+      expect(sent!.secret_access_key).toBe('••••••••')
+      expect(sent!.bucket).toBe('other-bucket')
+    })
+
+    // BKP-016: env-configured targets are read-only, and say so
+    it('FE-ADMIN-BKP-016: locks the form when the target comes from environment variables', async () => {
+      server.use(
+        http.get('/api/backup/target', () => HttpResponse.json({ ...storedTarget, managed_by_env: true })),
+      )
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText(/configured through BACKUP_S3_/i)).toBeInTheDocument())
+      expect(screen.getByLabelText('Bucket')).toBeDisabled()
+    })
+
+    // BKP-017: turning TLS off must not be quiet about it
+    it('FE-ADMIN-BKP-017: warns when HTTPS is disabled', async () => {
+      const user = userEvent.setup()
+      server.use(http.get('/api/backup/target', () => HttpResponse.json(storedTarget)))
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      expect(screen.queryByText(/transmitted unencrypted/i)).not.toBeInTheDocument()
+
+      const label = screen.getByText('Require HTTPS').closest('label') as HTMLElement
+      await user.click(label.querySelector('button') as HTMLElement)
+
+      await waitFor(() => expect(screen.getByText(/transmitted unencrypted/i)).toBeInTheDocument())
+    })
+
+    // BKP-018: a failed probe must surface the reason, not a generic success
+    it('FE-ADMIN-BKP-018: reports why a connection test failed', async () => {
+      const user = userEvent.setup()
+      server.use(
+        http.get('/api/backup/target', () => HttpResponse.json(storedTarget)),
+        http.post('/api/backup/target/test', () =>
+          HttpResponse.json({ success: false, error: 'Bucket not found.' }),
+        ),
+      )
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      await user.click(screen.getByRole('button', { name: /test connection/i }))
+
+      await waitFor(() => expect(screen.getByText(/Bucket not found\./i)).toBeInTheDocument())
+    })
+
+    // BKP-022: an S3-only archive is still deletable — the server removes
+    // whichever copies exist, so hiding the button strands it in the bucket.
+    it('FE-ADMIN-BKP-022: offers delete and restore for an S3-only backup, but not download', async () => {
+      server.use(
+        http.get('/api/backup/list', () => HttpResponse.json({
+          backups: [{ filename: 'backup-2025-01-15.zip', created_at: '2025-01-15T10:00:00Z', size: 2048000, local: false, remote: true }],
+        })),
+      )
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument())
+      expect(screen.getByText('S3 only')).toBeInTheDocument()
+      expect(screen.getByText('Restore')).toBeInTheDocument()
+      // Download streams the file from disk, and there is no local file.
+      expect(screen.queryByText('Download')).not.toBeInTheDocument()
+      const row = screen.getByText('backup-2025-01-15.zip').closest('div')!.parentElement!.parentElement!
+      expect(row.querySelectorAll('button').length).toBeGreaterThanOrEqual(2)
+    })
+
+    // BKP-023: a delete that only half-succeeded must not read as success
+    it('FE-ADMIN-BKP-023: reports when the mirrored copy could not be removed', async () => {
+      const user = userEvent.setup()
+      server.use(
+        http.get('/api/backup/list', () => HttpResponse.json({
+          backups: [{ filename: 'backup-2025-01-15.zip', created_at: '2025-01-15T10:00:00Z', size: 2048000, local: true, remote: true }],
+        })),
+        http.delete('/api/backup/:filename', () => HttpResponse.json({ success: true, remoteError: 'Access denied.' })),
+      )
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument())
+      const row = screen.getByText('backup-2025-01-15.zip').closest('div')!.parentElement!.parentElement!
+      const buttons = [...row.querySelectorAll('button')]
+      await user.click(buttons[buttons.length - 1])
+
+      await waitFor(() => expect(screen.getByText(/could not be removed/i)).toBeInTheDocument())
+    })
+
+    // BKP-020: a fully configured target that is switched off is the quiet
+    // failure this feature exists to avoid — say so in the form.
+    it('FE-ADMIN-BKP-020: warns when credentials are configured but mirroring is off', async () => {
+      server.use(
+        http.get('/api/backup/target', () => HttpResponse.json({ ...storedTarget, enabled: false })),
+      )
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText(/backups stay on this server only/i)).toBeInTheDocument())
+    })
+
+    it('FE-ADMIN-BKP-021: does not warn once mirroring is on', async () => {
+      server.use(http.get('/api/backup/target', () => HttpResponse.json(storedTarget)))
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      expect(screen.queryByText(/backups stay on this server only/i)).not.toBeInTheDocument()
+    })
+
+    // BKP-019: gateways whose S3 API lives under a path (Supabase Storage,
+    // some Ceph/Garage deployments) must survive the round-trip intact.
+    it('FE-ADMIN-BKP-019: keeps a path-bearing endpoint URL intact when saving', async () => {
+      const user = userEvent.setup()
+      const supabase = 'https://ljdxzzlurgitgiafjvlo.storage.supabase.co/storage/v1/s3'
+      let sent: Record<string, unknown> | null = null
+      server.use(
+        http.get('/api/backup/target', () =>
+          HttpResponse.json({ ...storedTarget, endpoint: supabase, force_path_style: true }),
+        ),
+        http.put('/api/backup/target', async ({ request }) => {
+          sent = (await request.json()) as Record<string, unknown>
+          return HttpResponse.json({ ...storedTarget, endpoint: supabase, force_path_style: true })
+        }),
+      )
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      expect((screen.getByLabelText('Endpoint URL') as HTMLInputElement).value).toBe(supabase)
+
+      await user.clear(screen.getByLabelText('Bucket'))
+      await user.type(screen.getByLabelText('Bucket'), 'trek')
+      await user.click(screen.getByRole('button', { name: /save target/i }))
+
+      await waitFor(() => expect(sent).not.toBeNull())
+      expect(sent!.endpoint).toBe(supabase)
     })
   })
 })

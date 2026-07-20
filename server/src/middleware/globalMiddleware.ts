@@ -167,7 +167,7 @@ export function applyGlobalMiddleware(
   app.use(enforceGlobalMfaPolicy);
 
   // Request logging with sensitive field redaction
-  const SENSITIVE_KEYS = new Set(['password', 'new_password', 'current_password', 'token', 'jwt', 'authorization', 'cookie', 'client_secret', 'mfa_token', 'code', 'smtp_pass']);
+  const SENSITIVE_KEYS = new Set(['password', 'new_password', 'current_password', 'token', 'jwt', 'authorization', 'cookie', 'client_secret', 'mfa_token', 'code', 'smtp_pass', 'secret_access_key']);
   const redact = (value: unknown): unknown => {
     if (!value || typeof value !== 'object') return value;
     if (Array.isArray(value)) return (value as unknown[]).map(redact);

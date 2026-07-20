@@ -85,6 +85,31 @@ env:
   # OVERPASS_TIMEOUT_MS: "12000"
   # Per-endpoint timeout (ms) for Overpass POI requests. Raise it for a slow self-hosted Overpass instance. Defaults to 12000.
 
+  # --- External S3-compatible backup target ---
+  # Mirror every backup (manual and automatic) to an S3-compatible bucket. The
+  # local archive is always kept; the remote copy is pushed in addition, so an
+  # unreachable target never costs you a backup.
+  # Setting BACKUP_S3_BUCKET puts the target under environment control: these
+  # values win and the admin form becomes read-only. Leave unset to configure it
+  # entirely in Admin > Backup.
+  # BACKUP_S3_BUCKET: ""
+  # BACKUP_S3_ENABLED: "true"
+  # Endpoint exactly as your provider states it; empty means real AWS S3.
+  # Endpoints that serve the S3 API under a path rather than at the host root are
+  # supported unchanged — Supabase Storage, or a Ceph RGW / SeaweedFS / MinIO
+  # behind an ingress at e.g. https://nas.example.com/s3.
+  # BACKUP_S3_ENDPOINT: ""
+  # BACKUP_S3_REGION: "us-east-1"
+  # BACKUP_S3_PREFIX: ""
+  # BACKUP_S3_ACCESS_KEY_ID: ""
+  # Required by MinIO, Garage, Supabase Storage and most self-hosted gateways.
+  # BACKUP_S3_FORCE_PATH_STYLE: "false"
+  # Turning this off transmits your database and all uploads unencrypted.
+  # BACKUP_S3_REQUIRE_TLS: "true"
+  # NOTE: loopback is always blocked by the SSRF guard, so an in-cluster MinIO must
+  # be addressed by its Service DNS name, never http://localhost:9000. Cluster-internal
+  # addresses additionally need ALLOW_INTERNAL_NETWORK=true.
+
 
 # Secret environment variables stored in a Kubernetes Secret.
 # JWT_SECRET is managed entirely by the server (auto-generated into the data PVC,
@@ -103,6 +128,11 @@ secretEnv:
   ADMIN_PASSWORD: ""
   # OIDC client secret — set together with env.OIDC_ISSUER and env.OIDC_CLIENT_ID.
   OIDC_CLIENT_SECRET: ""
+  # Secret access key for the external S3-compatible backup target.
+  # Set together with env.BACKUP_S3_BUCKET (and the other BACKUP_S3_* values).
+  # Leave empty to configure the target in Admin > Backup instead, where the
+  # secret is encrypted at rest with ENCRYPTION_KEY.
+  BACKUP_S3_SECRET_ACCESS_KEY: ""
   # Optional Unsplash Access Key for trip-cover and place-image search.
   # Without one, TREK uses Unsplash's unauthenticated endpoint, which some
   # datacenter/VPS IPs (including many Kubernetes clusters) are blocked from.

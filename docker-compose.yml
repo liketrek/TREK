@@ -25,7 +25,15 @@ services:
 #      - DEFAULT_LANGUAGE=en # Default language on the login page for users with no saved preference. Browser/OS language is auto-detected first; this is the fallback. Supported: de, en, es, fr, hu, nl, br, cs, pl, ru, zh, zh-TW, it, ar
 #      - SESSION_DURATION=30d # How long users stay logged in (trek_session JWT + cookie maxAge). Accepts: 1h | 12h | 7d | 30d | 90d. Default: 24h
 #      - SESSION_DURATION_REMEMBER=30d # Session length when "Remember me" is ticked at login: longer-lived JWT + persistent cookie that survives browser restarts. Same format as SESSION_DURATION. Default: 30d
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-} # Comma-separated origins for CORS and email notification links
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
+#      - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET:-} # Mirror every backup to an S3-compatible bucket. Setting this makes the target env-managed (the admin form becomes read-only); leave unset to configure it in Admin > Backup.
+#      - BACKUP_S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-} # Endpoint exactly as your provider states it. Empty = real AWS S3. Endpoints serving the S3 API under a path (Supabase Storage, Ceph RGW/SeaweedFS/MinIO behind a proxy) work unchanged.
+#      - BACKUP_S3_REGION=${BACKUP_S3_REGION:-us-east-1}
+#      - BACKUP_S3_PREFIX=${BACKUP_S3_PREFIX:-} # Optional key prefix, e.g. trek/backups/
+#      - BACKUP_S3_ACCESS_KEY_ID=${BACKUP_S3_ACCESS_KEY_ID:-}
+#      - BACKUP_S3_SECRET_ACCESS_KEY=${BACKUP_S3_SECRET_ACCESS_KEY:-} # Configure via Admin > Backup instead to have it encrypted at rest.
+#      - BACKUP_S3_FORCE_PATH_STYLE=${BACKUP_S3_FORCE_PATH_STYLE:-false} # Required by MinIO, Garage, Supabase Storage and most self-hosted gateways.
+#      - BACKUP_S3_REQUIRE_TLS=${BACKUP_S3_REQUIRE_TLS:-true} # Off = your DB and all uploads travel unencrypted. A sidecar MinIO must be reached by service name; loopback is always blocked. # Comma-separated origins for CORS and email notification links
 #      - FORCE_HTTPS=true # Optional. Enables HTTPS redirect, HSTS, CSP upgrade-insecure-requests, and secure cookies behind a TLS proxy
 #      - HSTS_INCLUDE_SUBDOMAINS=false # When true: adds includeSubDomains to the HSTS header. Only effective when HSTS is active. Leave false if sibling subdomains still run over plain HTTP.
 #      - COOKIE_SECURE=false # Escape hatch: force session cookies over plain HTTP even in production. Not recommended.

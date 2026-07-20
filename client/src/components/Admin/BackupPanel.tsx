@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { backupApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
-import { Download, Trash2, Plus, RefreshCw, RotateCcw, Upload, Clock, Check, HardDrive, AlertTriangle } from 'lucide-react'
+import { Download, Trash2, Plus, RefreshCw, RotateCcw, Upload, Clock, Check, HardDrive, AlertTriangle, Cloud } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { MASKED_SECRET } from '@trek/shared'
 import { useSettingsStore } from '../../store/settingsStore'
 import CustomSelect from '../shared/CustomSelect'
 import { getApiErrorMessage } from '../../types'
@@ -48,6 +49,12 @@ export default function BackupPanel() {
   const [autoSettingsDirty, setAutoSettingsDirty] = useState(false)
   const [serverTimezone, setServerTimezone] = useState('')
   const [restoreConfirm, setRestoreConfirm] = useState(null) // { type: 'file'|'upload', filename, file? }
+  const [target, setTarget] = useState(null)
+  const [targetDirty, setTargetDirty] = useState(false)
+  const [targetSaving, setTargetSaving] = useState(false)
+  const [targetTesting, setTargetTesting] = useState(false)
+  const [targetSyncing, setTargetSyncing] = useState(false)
+  const [remoteListError, setRemoteListError] = useState('')
   const fileInputRef = useRef(null)
   const toast = useToast()
   const { t, language, locale } = useTranslation()
@@ -58,6 +65,7 @@ export default function BackupPanel() {
     try {
       const data = await backupApi.list()
       setBackups(data.backups || [])
+      setRemoteListError(data.remoteError || '')
     } catch {
       toast.error(t('backup.toast.loadError'))
     } finally {
@@ -73,7 +81,85 @@ export default function BackupPanel() {
     } catch {}
   }
 
-  useEffect(() => { loadBackups(); loadAutoSettings() }, [])
+  const loadTarget = async () => {
+    try {
+      const data = await backupApi.getTarget()
+      // The server never sends the secret back; show the mask when one is
+      // stored so an unedited save round-trips it instead of clearing it.
+      setTarget({ ...data, secret_access_key: data.secret_access_key_set ? MASKED_SECRET : '' })
+      setTargetDirty(false)
+    } catch {}
+  }
+
+  useEffect(() => { loadBackups(); loadAutoSettings(); loadTarget() }, [])
+
+  const handleTargetChange = (key, value) => {
+    setTarget(prev => ({ ...prev, [key]: value }))
+    setTargetDirty(true)
+  }
+
+  const handleSaveTarget = async () => {
+    setTargetSaving(true)
+    try {
+      const data = await backupApi.setTarget({
+        enabled: target.enabled,
+        endpoint: target.endpoint,
+        region: target.region,
+        bucket: target.bucket,
+        prefix: target.prefix,
+        access_key_id: target.access_key_id,
+        secret_access_key: target.secret_access_key,
+        force_path_style: target.force_path_style,
+        require_tls: target.require_tls,
+      })
+      setTarget({ ...data, secret_access_key: data.secret_access_key_set ? MASKED_SECRET : '' })
+      setTargetDirty(false)
+      toast.success(t('backup.target.saved'))
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, t('backup.target.saveFailed')))
+    } finally {
+      setTargetSaving(false)
+    }
+  }
+
+  const handleTestTarget = async () => {
+    setTargetTesting(true)
+    try {
+      const res = await backupApi.testTarget()
+      // A probe that reached the bucket but could not clean up answers
+      // success with a warning — surface it rather than a bare "works".
+      if (res.success) {
+        res.error ? toast.error(res.error) : toast.success(t('backup.target.testSuccess'))
+      } else {
+        toast.error(t('backup.target.testFailed', { error: res.error || '' }))
+      }
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, t('backup.target.testFailed', { error: '' })))
+    } finally {
+      setTargetTesting(false)
+    }
+  }
+
+  const handleSyncTarget = async () => {
+    setTargetSyncing(true)
+    try {
+      const res = await backupApi.syncTarget()
+      if (res.total === 0) {
+        toast.success(t('backup.target.syncNothing'))
+      } else if (res.failed > 0) {
+        toast.error(t('backup.target.syncPartial', {
+          uploaded: res.uploaded, skipped: res.skipped, failed: res.failed, error: res.errors[0] || '',
+        }))
+      } else {
+        toast.success(t('backup.target.syncDone', { uploaded: res.uploaded, skipped: res.skipped }))
+      }
+      await loadBackups()
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, t('backup.target.saveFailed')))
+    } finally {
+      setTargetSyncing(false)
+    }
+  }
 
   const handleCreate = async () => {
     setIsCreating(true)
@@ -88,8 +174,12 @@ export default function BackupPanel() {
     }
   }
 
-  const handleRestore = (filename) => {
-    setRestoreConfirm({ type: 'file', filename })
+  const handleRestore = (backup) => {
+    // An S3-only archive has no file on disk — it must be fetched from the
+    // target first, which is a different endpoint.
+    // Explicit `=== false` rather than a truthiness test: an entry without the
+    // flag predates the merged list and was, by definition, a local file.
+    setRestoreConfirm({ type: backup.local === false ? 'remote' : 'file', filename: backup.filename })
   }
 
   const handleUploadRestore = (e) => {
@@ -104,10 +194,10 @@ export default function BackupPanel() {
     const { type, filename, file } = restoreConfirm
     setRestoreConfirm(null)
 
-    if (type === 'file') {
+    if (type === 'file' || type === 'remote') {
       setRestoringFile(filename)
       try {
-        await backupApi.restore(filename)
+        await (type === 'remote' ? backupApi.restoreRemote(filename) : backupApi.restore(filename))
         toast.success(t('backup.toast.restored'))
         setTimeout(() => window.location.reload(), 1500)
       } catch (err: unknown) {
@@ -130,9 +220,15 @@ export default function BackupPanel() {
   const handleDelete = async (filename) => {
     if (!confirm(t('backup.confirm.delete', { name: filename }))) return
     try {
-      await backupApi.delete(filename)
-      toast.success(t('backup.toast.deleted'))
-      setBackups(prev => prev.filter(b => b.filename !== filename))
+      const res = await backupApi.delete(filename)
+      // The local copy is gone but the mirrored one may not be — saying
+      // "deleted" then would leave a restorable archive behind.
+      if (res?.remoteError) {
+        toast.error(t('backup.toast.deletedRemoteFailed', { error: res.remoteError }))
+      } else {
+        toast.success(t('backup.toast.deleted'))
+      }
+      await loadBackups()
     } catch {
       toast.error(t('backup.toast.deleteError'))
     }
@@ -238,6 +334,15 @@ export default function BackupPanel() {
           </div>
         </div>
 
+        {/* The list degrades to local-only when the bucket is unreachable — say
+            so, or the missing cloud badges read as "never uploaded". */}
+        {remoteListError && (
+          <div className="flex items-start gap-2 mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-amber-700">{t('backup.remoteListError')}</p>
+          </div>
+        )}
+
         {isLoading && backups.length === 0 ? (
           <div className="flex items-center justify-center py-12 text-gray-400">
             <div className="w-6 h-6 border-2 border-gray-300 border-t-slate-700 rounded-full animate-spin mr-2" />
@@ -267,6 +372,15 @@ export default function BackupPanel() {
                     {isAuto(backup.filename) && (
                       <span className="text-xs bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-2 py-0.5 whitespace-nowrap">Auto</span>
                     )}
+                    {backup.remote && (
+                      <span
+                        title={backup.local ? t('backup.location.both') : t('backup.location.remoteOnly')}
+                        className="flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-2 py-0.5 whitespace-nowrap"
+                      >
+                        <Cloud className="w-3 h-3" />
+                        {backup.local ? t('backup.location.remote') : t('backup.location.remoteOnly')}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-xs text-gray-400">{formatDate(backup.created_at)}</span>
@@ -274,15 +388,17 @@ export default function BackupPanel() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {backup.local !== false && (
+                    <button
+                      onClick={() => backupApi.download(backup.filename).catch(() => toast.error(t('backup.toast.downloadError')))}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      {t('backup.download')}
+                    </button>
+                  )}
                   <button
-                    onClick={() => backupApi.download(backup.filename).catch(() => toast.error(t('backup.toast.downloadError')))}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    {t('backup.download')}
-                  </button>
-                  <button
-                    onClick={() => handleRestore(backup.filename)}
+                    onClick={() => handleRestore(backup)}
                     disabled={restoringFile === backup.filename}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-50 disabled:opacity-60"
                   >
@@ -292,6 +408,8 @@ export default function BackupPanel() {
                     }
                     {t('backup.restore')}
                   </button>
+                  {/* Always offered: an S3-only archive is deletable too —
+                      the server removes whichever copies exist. */}
                   <button
                     onClick={() => handleDelete(backup.filename)}
                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
@@ -454,6 +572,207 @@ export default function BackupPanel() {
           </div>
         </div>
       </div>
+
+      {/* External S3 backup target */}
+      {target && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Cloud className="w-5 h-5 text-gray-400" />
+            <div>
+              <h2 className="font-semibold text-content">{t('backup.target.title')}</h2>
+              <p className="text-xs mt-1 text-content-muted">{t('backup.target.description')}</p>
+            </div>
+          </div>
+
+          {target.managed_by_env && (
+            <div className="flex items-start gap-2 mb-5 p-3 rounded-lg bg-blue-50 border border-blue-100">
+              <AlertTriangle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-700">{t('backup.target.managedByEnv')}</p>
+            </div>
+          )}
+
+          <fieldset disabled={target.managed_by_env} className="flex flex-col gap-5 disabled:opacity-60">
+            {/* Enable toggle */}
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <span className="text-sm font-medium text-gray-900 min-w-0">{t('backup.target.enabled')}</span>
+              <button
+                type="button"
+                onClick={() => handleTargetChange('enabled', !target.enabled)}
+                className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                style={{ background: target.enabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
+              >
+                <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+                  style={{ transform: target.enabled ? 'translateX(20px)' : 'translateX(0)' }} />
+              </button>
+            </label>
+
+            <div>
+              <label htmlFor="s3-endpoint" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.endpoint')}</label>
+              <input
+                id="s3-endpoint"
+                type="url"
+                value={target.endpoint}
+                onChange={e => handleTargetChange('endpoint', e.target.value)}
+                placeholder="https://s3.example.com"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+              />
+              <p className="text-xs text-gray-400 mt-1">{t('backup.target.endpointHint')}</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="s3-bucket" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.bucket')}</label>
+                <input
+                  id="s3-bucket"
+                  type="text"
+                  value={target.bucket}
+                  onChange={e => handleTargetChange('bucket', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="s3-region" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.region')}</label>
+                <input
+                  id="s3-region"
+                  type="text"
+                  value={target.region}
+                  onChange={e => handleTargetChange('region', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="s3-prefix" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.prefix')}</label>
+              <input
+                id="s3-prefix"
+                type="text"
+                value={target.prefix}
+                onChange={e => handleTargetChange('prefix', e.target.value)}
+                placeholder="trek/backups/"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+              />
+              <p className="text-xs text-gray-400 mt-1">{t('backup.target.prefixHint')}</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="s3-access-key-id" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.accessKeyId')}</label>
+                <input
+                  id="s3-access-key-id"
+                  type="text"
+                  value={target.access_key_id}
+                  onChange={e => handleTargetChange('access_key_id', e.target.value)}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="s3-secret-access-key" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.secretAccessKey')}</label>
+                <input
+                  id="s3-secret-access-key"
+                  type="password"
+                  value={target.secret_access_key}
+                  onChange={e => handleTargetChange('secret_access_key', e.target.value)}
+                  autoComplete="new-password"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+                {target.secret_access_key_set && (
+                  <p className="text-xs text-gray-400 mt-1">{t('backup.target.secretKept')}</p>
+                )}
+              </div>
+            </div>
+
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-gray-900">{t('backup.target.forcePathStyle')}</span>
+                <p className="text-xs text-gray-500 mt-0.5">{t('backup.target.forcePathStyleHint')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTargetChange('force_path_style', !target.force_path_style)}
+                className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                style={{ background: target.force_path_style ? 'var(--text-primary)' : 'var(--border-primary)' }}
+              >
+                <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+                  style={{ transform: target.force_path_style ? 'translateX(20px)' : 'translateX(0)' }} />
+              </button>
+            </label>
+
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <span className="text-sm font-medium text-gray-900 min-w-0">{t('backup.target.requireTls')}</span>
+              <button
+                type="button"
+                onClick={() => handleTargetChange('require_tls', !target.require_tls)}
+                className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                style={{ background: target.require_tls ? 'var(--text-primary)' : 'var(--border-primary)' }}
+              >
+                <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+                  style={{ transform: target.require_tls ? 'translateX(20px)' : 'translateX(0)' }} />
+              </button>
+            </label>
+
+            {/* Filling the form in and testing it successfully does NOT start
+                mirroring — the toggle above does. Without this notice that gap
+                is silent, and the admin only finds out when they need the
+                off-box copy and it was never there. */}
+            {!target.enabled && target.bucket && target.access_key_id && target.secret_access_key_set && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-700">{t('backup.target.configuredButOff')}</p>
+              </div>
+            )}
+
+            {/* Plaintext transport is opt-in and says plainly what it costs. */}
+            {!target.require_tls && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-700">{t('backup.target.requireTlsWarning')}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={handleSyncTarget}
+                disabled={targetSyncing || !target.enabled}
+                title={t('backup.target.syncHint')}
+                className="flex items-center gap-2 border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50"
+              >
+                {targetSyncing
+                  ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  : <Upload className="w-4 h-4" />
+                }
+                {targetSyncing ? t('backup.target.syncing') : t('backup.target.sync')}
+              </button>
+              <button
+                type="button"
+                onClick={handleTestTarget}
+                disabled={targetTesting}
+                className="flex items-center gap-2 border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50"
+              >
+                {targetTesting
+                  ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  : <RefreshCw className="w-4 h-4" />
+                }
+                {targetTesting ? t('backup.target.testing') : t('backup.target.test')}
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveTarget}
+                disabled={targetSaving || !targetDirty}
+                className="flex items-center gap-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-2 rounded-lg hover:bg-slate-900 text-sm font-medium disabled:opacity-50 transition-colors"
+              >
+                {targetSaving
+                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Check className="w-4 h-4" />
+                }
+                {targetSaving ? t('common.saving') : t('backup.target.save')}
+              </button>
+            </div>
+          </fieldset>
+        </div>
+      )}
 
       {/* Restore Warning Modal */}
       {restoreConfirm && (

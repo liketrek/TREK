@@ -24,6 +24,14 @@ import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { writeAudit, getClientIp } from '../../services/auditLog';
 import { getUploadTmpDir, MAX_BACKUP_UPLOAD_SIZE } from '../../services/backupService';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import {
+  s3BackupTargetRequestSchema,
+  type BackupTargetBackfillResult,
+  type ChannelTestResult,
+  type S3BackupTargetRequest,
+  type S3BackupTargetResponse,
+} from '@trek/shared';
 
 const UPLOAD = {
   dest: getUploadTmpDir(),
@@ -49,9 +57,12 @@ export class BackupController {
   constructor(private readonly backup: BackupService) {}
 
   @Get('list')
-  list() {
+  async list() {
     try {
-      return { backups: this.backup.listBackups() };
+      // Merged across disk and the external target. A remote outage degrades to
+      // the local list plus `remoteError` rather than failing the whole call —
+      // an unreachable bucket must never hide the backups you still have.
+      return await this.backup.listBackupsMerged();
     } catch {
       throw new HttpException({ error: 'Error loading backups' }, 500);
     }
@@ -152,16 +163,114 @@ export class BackupController {
     }
   }
 
-  @Delete(':filename')
-  remove(@CurrentUser() user: User, @Param('filename') filename: string, @Req() req: Request) {
+  // --- External S3 backup target -------------------------------------------
+
+  @Get('target')
+  getTarget(): S3BackupTargetResponse {
+    try {
+      return this.backup.readTarget();
+    } catch (err) {
+      console.error('[backup] GET target:', err);
+      throw new HttpException({ error: 'Could not load the backup target' }, 500);
+    }
+  }
+
+  @Put('target')
+  saveTarget(
+    @CurrentUser() user: User,
+    @Body(new ZodValidationPipe(s3BackupTargetRequestSchema)) body: S3BackupTargetRequest,
+    @Req() req: Request,
+  ) {
+    // An env-configured target would silently ignore an edit — say so instead
+    // of accepting a write that cannot take effect.
+    if (this.backup.targetManagedByEnv()) {
+      throw new HttpException(
+        { error: 'The backup target is configured through BACKUP_S3_* environment variables and cannot be edited here.' },
+        409,
+      );
+    }
+    try {
+      this.backup.saveTarget(body);
+    } catch (err) {
+      console.error('[backup] PUT target:', err);
+      throw new HttpException({ error: 'Could not save the backup target' }, 500);
+    }
+    // The secret never reaches the audit log — only whether one was supplied.
+    writeAudit({
+      userId: user.id,
+      action: 'backup.target_settings',
+      ip: getClientIp(req),
+      details: {
+        enabled: body.enabled,
+        bucket: body.bucket,
+        endpoint: body.endpoint,
+        secret_updated: body.secret_access_key !== undefined,
+      },
+    });
+    return this.backup.readTarget();
+  }
+
+  @Post('target/test')
+  @HttpCode(200) // A failed probe is a successful test call reporting failure.
+  async testTarget(@CurrentUser() user: User, @Req() req: Request): Promise<ChannelTestResult> {
+    const result = await this.backup.testTarget();
+    writeAudit({
+      userId: user.id,
+      action: 'backup.target_test',
+      ip: getClientIp(req),
+      details: { success: result.success },
+    });
+    return result;
+  }
+
+  @Post('restore-remote/:filename')
+  @HttpCode(200)
+  async restoreRemote(@CurrentUser() user: User, @Param('filename') filename: string, @Req() req: Request) {
+    // Same filename shape check the local paths use — it is what keeps a crafted
+    // name from escaping the prefix when it becomes an object key.
     if (!this.backup.isValidBackupFilename(filename)) {
       throw new HttpException({ error: 'Invalid filename' }, 400);
     }
-    if (!this.backup.backupFileExists(filename)) {
+    try {
+      const result = await this.backup.restoreFromRemote(filename);
+      if (!result.success) {
+        throw new HttpException({ error: result.error }, result.status || 400);
+      }
+      writeAudit({ userId: user.id, action: 'backup.restore_remote', resource: filename, ip: getClientIp(req) });
+      return { success: true };
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      console.error('[backup] restore-remote:', err);
+      throw new HttpException({ error: 'Error restoring the backup from the external target' }, 500);
+    }
+  }
+
+  @Post('target/sync')
+  @HttpCode(200)
+  async syncTarget(@CurrentUser() user: User, @Req() req: Request): Promise<BackupTargetBackfillResult> {
+    const result = await this.backup.mirrorExistingBackups();
+    writeAudit({
+      userId: user.id,
+      action: 'backup.target_backfill',
+      ip: getClientIp(req),
+      details: { total: result.total, uploaded: result.uploaded, skipped: result.skipped, failed: result.failed },
+    });
+    return result;
+  }
+
+  @Delete(':filename')
+  async remove(@CurrentUser() user: User, @Param('filename') filename: string, @Req() req: Request) {
+    if (!this.backup.isValidBackupFilename(filename)) {
+      throw new HttpException({ error: 'Invalid filename' }, 400);
+    }
+    // An S3-only archive is listed in the UI and must be deletable there too,
+    // so the precondition is "exists in EITHER place" rather than "exists on
+    // disk". deleteBackup removes whichever copies are actually present.
+    const { found, remoteError } = await this.backup.deleteBackup(filename);
+    if (!found) {
       throw new HttpException({ error: 'Backup not found' }, 404);
     }
-    this.backup.deleteBackup(filename);
-    writeAudit({ userId: user.id, action: 'backup.delete', resource: filename, ip: getClientIp(req) });
-    return { success: true };
+    writeAudit({ userId: user.id, action: 'backup.delete', resource: filename, ip: getClientIp(req), details: { remoteError } });
+    return { success: true, remoteError };
   }
 }

@@ -66,6 +66,82 @@ Auto-backup files are named `auto-backup-<timestamp>.zip` (manual backups use `b
 
 After each auto-backup run, **all** backup files (manual and auto) older than `keep_days` are pruned. Set `keep_days` to `0` to disable pruning entirely.
 
+## External backup target (S3-compatible)
+
+A backup that only ever lives on the same volume as the data it protects is one disk failure away from being useless.
+The **External backup target** section of the Backup tab mirrors every backup — manual *and* automatic — to an
+S3-compatible bucket.
+
+Works with AWS S3, MinIO, Garage, Supabase Storage, Backblaze B2, Wasabi and anything else speaking the S3 API.
+
+**The local archive is always kept.** The remote copy is pushed *in addition*, so a target that is unreachable at backup
+time costs you the off-box copy, never the backup itself. Failures are logged, written to the audit log, and reported in
+the UI rather than disappearing behind a success message.
+
+### Setting it up
+
+1. Enter the **endpoint URL**, **bucket**, **region** and optionally a **path prefix** (e.g. `trek/backups/`) to
+   namespace within a shared bucket. Leave the endpoint empty for real AWS S3.
+2. Enter the **access key ID** and **secret access key**. The secret is encrypted at rest with the same
+   `ENCRYPTION_KEY`-derived key as every other stored credential and is never sent back to the browser — it shows as
+   `••••••••` and saving the form unchanged keeps it.
+3. Turn on **path-style addressing** for MinIO, Garage, Supabase Storage and most self-hosted gateways.
+4. Press **Test connection**, then **Save target**.
+
+**Endpoints with a path work as-is.** Plenty of S3 services do not serve the API at the host root — Supabase Storage
+uses `https://<project-ref>.storage.supabase.co/storage/v1/s3`, and any Ceph RGW, SeaweedFS, Zenko or MinIO sitting
+behind a reverse proxy or Kubernetes ingress is typically mounted under a path such as `https://nas.example.com/s3`.
+Paste the endpoint exactly as your provider gives it to you; TREK passes it to the S3 client unchanged instead of
+reducing it to a bare origin.
+
+### The backup list spans both locations
+
+The backup list merges what is on disk with what is at the target. Each entry is
+badged with where it lives — **S3** when both copies exist, **S3 only** when the
+local file is gone. An S3-only archive is fully usable: **Restore** fetches it
+back and runs the same integrity, zip-slip and zip-bomb checks a local restore
+does, and **Delete** removes it from the bucket. Download is local-only, since it
+streams the file from disk.
+
+If the bucket is unreachable the list falls back to local entries and says so,
+rather than hiding backups you still have.
+
+### Uploading the backups you already have
+
+Enabling the target only affects backups made from then on. **Upload all existing
+backups** pushes everything already in `data/backups` to the target. Archives
+already present are skipped rather than re-transferred, so re-running it after an
+interrupted upload is cheap and safe.
+
+### Deleting removes both copies
+
+Deleting a backup in the admin panel removes the local file **and** the mirrored
+copy. If the target refuses the delete, the UI says so instead of reporting plain
+success — otherwise a deleted backup would quietly remain restorable, and keep
+costing storage.
+
+### Test connection checks writes, not just reachability
+
+The button runs `HeadBucket`, then writes and deletes a small probe object. A key with read-only permissions therefore
+**fails** the test rather than passing it and then breaking every subsequent backup silently. If the probe uploads but
+cannot be deleted, the test reports success with a warning: backups will work, remote pruning will not.
+
+### Reaching a self-hosted bucket
+
+The endpoint is checked against TREK's SSRF guard before any request.
+
+- **Loopback is always blocked.** A MinIO or Garage container next to TREK must be addressed by its service name
+  (`http://minio:9000`) or LAN address — never `http://localhost:9000`.
+- **Private/LAN addresses need `ALLOW_INTERNAL_NETWORK=true`**, the same switch a self-hosted Ollama needs.
+- **Plain `http://` requires turning off "Require HTTPS"**, which the UI warns about: backups contain your whole
+  database and every upload.
+
+### Configuring it through environment variables
+
+Setting `BACKUP_S3_BUCKET` puts the target under environment control — the `BACKUP_S3_*` values take priority and the
+admin form becomes read-only, matching how `SMTP_PASS` overrides the stored SMTP password. See
+[Environment-Variables](Environment-Variables) for the full list. Leave them unset to manage the target from the UI.
+
 ## Before updating TREK
 
 Always create a manual backup before updating. See [Updating](Updating).
@@ -81,6 +157,13 @@ The following actions are recorded in the [Audit-Log](Audit-Log):
 | `backup.upload_restore` | Restore from uploaded ZIP |
 | `backup.delete` | Backup deleted |
 | `backup.auto_settings` | Auto-backup settings saved |
+| `backup.target_settings` | External backup target saved (never records the secret key) |
+| `backup.target_test` | External backup target connection tested |
+| `backup.target_backfill` | "Upload all existing backups" run |
+| `backup.target_deleted` | A backup was removed from the external target |
+| `backup.restore_remote` | Restore from an archive held only at the external target |
+| `backup.target_uploaded` | Backup mirrored to the external target |
+| `backup.target_failed` | Mirroring a backup to the external target failed |
 
 ## See also
 

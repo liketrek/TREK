@@ -3,6 +3,7 @@ import archiver from 'archiver';
 import path from 'node:path';
 import fs from 'node:fs';
 import { logInfo, logError } from './services/auditLog';
+import { onBackupWritten } from './nest/backup/backup-target';
 
 const dataDir = path.join(__dirname, '../data');
 const backupsDir = path.join(dataDir, 'backups');
@@ -86,6 +87,12 @@ async function runBackup(): Promise<void> {
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
     return;
   }
+
+  // Same post-write hook the manual builder uses, so an external target mirrors
+  // auto- and manual backups identically. Deliberately OUTSIDE the try above:
+  // that catch deletes outputPath, and a failing external target must never
+  // take the local archive — the actual backup — down with it.
+  await onBackupWritten(outputPath);
 
   const settings = loadSettings();
   if (settings.keep_days > 0) {

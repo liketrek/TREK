@@ -259,6 +259,39 @@ To get a key: create a free account at [unsplash.com/developers](https://unsplas
 
 ---
 
+## External backup target (S3-compatible)
+
+Every backup TREK writes — manual and automatic — can additionally be mirrored to an S3-compatible bucket. The local
+archive is always kept; the remote copy is pushed **in addition**, so a failing target never costs you a backup.
+
+Configure it in **Admin → Backup → External backup target**, or with these variables. Setting `BACKUP_S3_BUCKET` puts
+the target under environment control: the values below take priority and the admin form becomes read-only, the same way
+`SMTP_PASS` overrides the stored SMTP password. Leave them unset to manage the target entirely from the UI.
+
+| Variable                       | Description                                                                                                                                                                                             | Default     |
+|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| `BACKUP_S3_BUCKET`             | Target bucket. **Setting this switches the target to env-managed.**                                                                                                                                     | —           |
+| `BACKUP_S3_ENABLED`            | Set `false` to keep an env-configured target defined but inactive.                                                                                                                                      | `true`      |
+| `BACKUP_S3_ENDPOINT`           | Endpoint URL, exactly as your provider states it. Leave empty for real AWS S3 (the host is derived from the region). Endpoints that serve the S3 API under a path rather than at the host root are supported and passed through unchanged — e.g. Supabase Storage (`https://<ref>.storage.supabase.co/storage/v1/s3`), or a Ceph RGW / SeaweedFS / Zenko / MinIO behind a reverse proxy or ingress (`https://nas.example.com/s3`). | —           |
+| `BACKUP_S3_REGION`             | Bucket region.                                                                                                                                                                                          | `us-east-1` |
+| `BACKUP_S3_PREFIX`             | Optional key prefix, e.g. `trek/backups/`, to namespace within a shared bucket. Leading/trailing slashes are normalised.                                                                                | —           |
+| `BACKUP_S3_ACCESS_KEY_ID`      | Access key ID.                                                                                                                                                                                          | —           |
+| `BACKUP_S3_SECRET_ACCESS_KEY`  | Secret access key. When set through the admin UI instead, it is encrypted at rest with the same `ENCRYPTION_KEY`-derived key as every other stored secret and is never returned to the browser.         | —           |
+| `BACKUP_S3_FORCE_PATH_STYLE`   | Use path-style addressing. Required by MinIO, Garage, Supabase Storage and most self-hosted S3 gateways.                                                                                                | `false`     |
+| `BACKUP_S3_REQUIRE_TLS`        | Refuse a plain-`http://` endpoint. Turning this off transmits your database and all uploads unencrypted.                                                                                                | `true`      |
+
+**Endpoint reachability.** The endpoint host is validated against TREK's SSRF guard before any request. Loopback is
+always blocked, so a MinIO/Garage running beside TREK must be addressed by its container/service name or LAN address —
+never `http://localhost:9000`. Private and LAN addresses additionally require `ALLOW_INTERNAL_NETWORK=true`, exactly as
+for a self-hosted Ollama. Note that the AWS SDK does its own networking and does not route through TREK's DNS-pinned
+`safeFetch`, so this is a configuration-time check rather than a TOCTOU-proof guarantee.
+
+**Test connection.** The admin panel's *Test connection* button does more than ping: it runs `HeadBucket`, then writes
+and deletes a small probe object. A read-only key therefore fails the test instead of passing it and then breaking every
+backup silently.
+
+---
+
 ## Advanced / Tuning
 
 | Variable                  | Description                                                                                                                                                                                                                                                                                                                | Default             |

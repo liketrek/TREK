@@ -4,7 +4,8 @@ import {
   weatherResultSchema, type WeatherResult,
   inAppListResultSchema, type InAppListResult,
   unreadCountResultSchema, type UnreadCountResult,
-  channelTestResultSchema,
+  channelTestResultSchema, type ChannelTestResult,
+  type S3BackupTargetRequest, type S3BackupTargetResponse, type BackupTargetBackfillResult,
   mapsSearchResultSchema, mapsAutocompleteResultSchema, mapsPlaceDetailsResultSchema,
   mapsPlacePhotoResultSchema, mapsReverseResultSchema, mapsResolveUrlResultSchema,
   type NotificationRespondRequest,
@@ -972,6 +973,7 @@ export const backupApi = {
   },
   delete: (filename: string) => apiClient.delete(`/backup/${filename}`).then(r => r.data),
   restore: (filename: string) => apiClient.post(`/backup/restore/${filename}`).then(r => r.data),
+  restoreRemote: (filename: string) => apiClient.post(`/backup/restore-remote/${filename}`).then(r => r.data),
   uploadRestore: (file: File) => {
     const form = new FormData()
     form.append('backup', file)
@@ -979,6 +981,11 @@ export const backupApi = {
   },
   getAutoSettings: () => apiClient.get('/backup/auto-settings').then(r => r.data),
   setAutoSettings: (settings: Record<string, unknown>) => apiClient.put('/backup/auto-settings', settings).then(r => r.data),
+  getTarget: (): Promise<S3BackupTargetResponse> => apiClient.get('/backup/target').then(r => r.data),
+  setTarget: (target: S3BackupTargetRequest): Promise<S3BackupTargetResponse> =>
+    apiClient.put('/backup/target', target).then(r => r.data),
+  testTarget: (): Promise<ChannelTestResult> => apiClient.post('/backup/target/test').then(r => r.data),
+  syncTarget: (): Promise<BackupTargetBackfillResult> => apiClient.post('/backup/target/sync').then(r => r.data),
 }
 
 export const shareApi = {

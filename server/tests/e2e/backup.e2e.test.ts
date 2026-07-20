@@ -18,17 +18,22 @@ const { db } = vi.hoisted(() => {
   tmp.exec('PRAGMA journal_mode = WAL');
   tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0);`);
+  // The external backup target reads its config from app_settings. Without the
+  // table the read throws and the list degrades to "target unreachable", which
+  // is not the state this suite means to exercise.
+  tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
   return { db: tmp };
 });
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
-vi.mock('../../src/services/auditLog', () => ({ writeAudit: vi.fn(), getClientIp: vi.fn(() => '1.2.3.4') }));
+vi.mock('../../src/services/auditLog', () => ({ writeAudit: vi.fn(), getClientIp: vi.fn(() => '1.2.3.4'), logInfo: vi.fn(), logError: vi.fn() }));
 
 const { backupSvc } = vi.hoisted(() => ({
   backupSvc: {
     listBackups: vi.fn(), createBackup: vi.fn(), restoreFromZip: vi.fn(), getAutoSettings: vi.fn(),
     updateAutoSettings: vi.fn(), deleteBackup: vi.fn(), isValidBackupFilename: vi.fn(), backupFilePath: vi.fn(),
     backupFileExists: vi.fn(), checkRateLimit: vi.fn(), getUploadTmpDir: () => '/tmp', BACKUP_RATE_WINDOW: 3600000,
+    formatSize: vi.fn((n: number) => `${n} B`),
     MAX_BACKUP_UPLOAD_SIZE: 1024,
   },
 }));
@@ -82,7 +87,9 @@ describe('Backup e2e (real auth + admin guard + temp SQLite)', () => {
   it('200 list for an admin', async () => {
     const res = await request(server).get('/api/backup/list').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ backups: [{ filename: 'a.zip', size: 1 }] });
+    // The list is merged across disk and the external target now, so every
+    // entry says where it lives. No target is configured here, so: local only.
+    expect(res.body).toEqual({ backups: [{ filename: 'a.zip', size: 1, local: true, remote: false }] });
   });
 
   it('429 when create is rate-limited', async () => {

@@ -71,6 +71,13 @@ Actions are grouped by area below. The **Action key** is the raw value stored in
 | `backup.upload_restore` | Restore from uploaded ZIP |
 | `backup.delete` | Backup deleted |
 | `backup.auto_settings` | Auto-backup schedule saved |
+| `backup.target_settings` | External backup target saved (never records the secret key) |
+| `backup.target_test` | External backup target connection tested |
+| `backup.target_backfill` | "Upload all existing backups" run against the external target |
+| `backup.target_deleted` | A backup was removed from the external target |
+| `backup.restore_remote` | Restore from an archive held only at the external target |
+| `backup.target_uploaded` | Backup mirrored to the external backup target |
+| `backup.target_failed` | Mirroring a backup to the external backup target failed |
 
 ### MCP
 
