@@ -26,11 +26,11 @@ import { writeAudit, getClientIp } from '../../services/auditLog';
 import { getUploadTmpDir, MAX_BACKUP_UPLOAD_SIZE } from '../../services/backupService';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import {
-  s3BackupTargetRequestSchema,
+  backupTargetRequestSchema,
   type BackupTargetBackfillResult,
   type ChannelTestResult,
-  type S3BackupTargetRequest,
-  type S3BackupTargetResponse,
+  type BackupTargetRequest,
+  type BackupTargetResponse,
 } from '@trek/shared';
 
 const UPLOAD = {
@@ -166,7 +166,7 @@ export class BackupController {
   // --- External S3 backup target -------------------------------------------
 
   @Get('target')
-  getTarget(): S3BackupTargetResponse {
+  getTarget(): BackupTargetResponse {
     try {
       return this.backup.readTarget();
     } catch (err) {
@@ -178,14 +178,14 @@ export class BackupController {
   @Put('target')
   saveTarget(
     @CurrentUser() user: User,
-    @Body(new ZodValidationPipe(s3BackupTargetRequestSchema)) body: S3BackupTargetRequest,
+    @Body(new ZodValidationPipe(backupTargetRequestSchema)) body: BackupTargetRequest,
     @Req() req: Request,
   ) {
     // An env-configured target would silently ignore an edit — say so instead
     // of accepting a write that cannot take effect.
     if (this.backup.targetManagedByEnv()) {
       throw new HttpException(
-        { error: 'The backup target is configured through BACKUP_S3_* environment variables and cannot be edited here.' },
+        { error: 'The backup target is configured through BACKUP_TARGET_TYPE and its companion environment variables, and cannot be edited here.' },
         409,
       );
     }
@@ -201,7 +201,7 @@ export class BackupController {
       action: 'backup.target_settings',
       ip: getClientIp(req),
       details: {
-        enabled: body.enabled,
+        type: body.type,
         bucket: body.bucket,
         endpoint: body.endpoint,
         secret_updated: body.secret_access_key !== undefined,

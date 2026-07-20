@@ -31,13 +31,14 @@ import {
   isManagedByEnv,
   isTargetUsable,
   normalizePrefix,
-  readS3TargetForClient,
-  resolveS3Target,
-  saveS3Target,
+  readTargetForClient,
+  resolveTarget,
+  saveTarget,
 } from '../../../src/nest/backup/backup-target.config';
 
 const S3_ENV = [
-  'BACKUP_S3_ENABLED', 'BACKUP_S3_ENDPOINT', 'BACKUP_S3_REGION', 'BACKUP_S3_BUCKET',
+  'BACKUP_TARGET_TYPE', 'BACKUP_LOCAL_PATH',
+  'BACKUP_S3_ENDPOINT', 'BACKUP_S3_REGION', 'BACKUP_S3_BUCKET',
   'BACKUP_S3_PREFIX', 'BACKUP_S3_ACCESS_KEY_ID', 'BACKUP_S3_SECRET_ACCESS_KEY',
   'BACKUP_S3_FORCE_PATH_STYLE', 'BACKUP_S3_REQUIRE_TLS',
 ];
@@ -60,10 +61,10 @@ describe('normalizePrefix', () => {
   });
 });
 
-describe('resolveS3Target — stored settings', () => {
+describe('resolveTarget — stored settings', () => {
   it('defaults to a disabled, empty target on a fresh install', () => {
-    const cfg = resolveS3Target();
-    expect(cfg.enabled).toBe(false);
+    const cfg = resolveTarget();
+    expect(cfg.type).toBe('none');
     expect(cfg.bucket).toBe('');
     expect(cfg.region).toBe('us-east-1');
     expect(cfg.requireTls).toBe(true); // secure default
@@ -72,8 +73,8 @@ describe('resolveS3Target — stored settings', () => {
   });
 
   it('round-trips a saved target and decrypts the secret', () => {
-    saveS3Target({
-      enabled: true,
+    saveTarget({
+      type: 's3',
       endpoint: 'https://s3.example.test',
       bucket: 'trek-backups',
       prefix: '/nightly/',
@@ -82,8 +83,8 @@ describe('resolveS3Target — stored settings', () => {
       force_path_style: true,
     });
 
-    const cfg = resolveS3Target();
-    expect(cfg.enabled).toBe(true);
+    const cfg = resolveTarget();
+    expect(cfg.type).toBe('s3');
     expect(cfg.bucket).toBe('trek-backups');
     expect(cfg.prefix).toBe('nightly/');
     expect(cfg.secretAccessKey).toBe('super-secret');
@@ -92,81 +93,95 @@ describe('resolveS3Target — stored settings', () => {
   });
 
   it('stores the secret encrypted, never in plaintext', () => {
-    saveS3Target({ secret_access_key: 'super-secret' });
+    saveTarget({ secret_access_key: 'super-secret' });
     expect(store.get('backup_s3_secret_access_key')).toBe('enc:v1:super-secret');
   });
 
   it('applies a partial patch without clearing untouched fields', () => {
-    saveS3Target({ bucket: 'a', access_key_id: 'k', secret_access_key: 's' });
-    saveS3Target({ enabled: true });
-    const cfg = resolveS3Target();
+    saveTarget({ bucket: 'a', access_key_id: 'k', secret_access_key: 's' });
+    saveTarget({ type: 's3' });
+    const cfg = resolveTarget();
     expect(cfg.bucket).toBe('a');
     expect(cfg.accessKeyId).toBe('k');
-    expect(cfg.enabled).toBe(true);
+    expect(cfg.type).toBe('s3');
   });
 });
 
-describe('saveS3Target — masked secret round-trip', () => {
+describe('saveTarget — masked secret round-trip', () => {
   it('keeps the stored secret when the client echoes the mask back', () => {
-    saveS3Target({ secret_access_key: 'original' });
+    saveTarget({ secret_access_key: 'original' });
     // This is what a read hands the UI; saving the unedited form returns it.
-    saveS3Target({ bucket: 'b', secret_access_key: '••••••••' });
-    expect(resolveS3Target().secretAccessKey).toBe('original');
-    expect(resolveS3Target().bucket).toBe('b');
+    saveTarget({ bucket: 'b', secret_access_key: '••••••••' });
+    expect(resolveTarget().secretAccessKey).toBe('original');
+    expect(resolveTarget().bucket).toBe('b');
   });
 
   it('clears the secret on an explicit empty string', () => {
-    saveS3Target({ secret_access_key: 'original' });
-    saveS3Target({ secret_access_key: '' });
-    expect(resolveS3Target().secretAccessKey).toBe('');
+    saveTarget({ secret_access_key: 'original' });
+    saveTarget({ secret_access_key: '' });
+    expect(resolveTarget().secretAccessKey).toBe('');
   });
 });
 
-describe('readS3TargetForClient', () => {
+describe('readTargetForClient', () => {
   it('never returns the secret, only whether one is set', () => {
-    saveS3Target({ bucket: 'b', access_key_id: 'k', secret_access_key: 'do-not-leak' });
-    const view = readS3TargetForClient();
+    saveTarget({ bucket: 'b', access_key_id: 'k', secret_access_key: 'do-not-leak' });
+    const view = readTargetForClient();
     expect(view.secret_access_key_set).toBe(true);
     expect(JSON.stringify(view)).not.toContain('do-not-leak');
   });
 
   it('reports secret_access_key_set false when unset', () => {
-    saveS3Target({ bucket: 'b' });
-    expect(readS3TargetForClient().secret_access_key_set).toBe(false);
+    saveTarget({ bucket: 'b' });
+    expect(readTargetForClient().secret_access_key_set).toBe(false);
   });
 });
 
-describe('resolveS3Target — environment precedence', () => {
-  it('is not env-managed until a bucket is set', () => {
+describe('resolveTarget — environment precedence', () => {
+  it('is not env-managed until BACKUP_TARGET_TYPE is set', () => {
     process.env.BACKUP_S3_REGION = 'eu-central-1';
+    process.env.BACKUP_S3_BUCKET = 'b';
     expect(isManagedByEnv()).toBe(false);
   });
 
-  it('lets BACKUP_S3_* win over stored settings', () => {
-    saveS3Target({ enabled: true, bucket: 'stored', access_key_id: 'sk', secret_access_key: 'ss' });
+  it('ignores an unknown type rather than half-applying it', () => {
+    process.env.BACKUP_TARGET_TYPE = 'ftp';
+    expect(isManagedByEnv()).toBe(false);
+    expect(resolveTarget().type).toBe('none');
+  });
+
+  it('lets the environment win over stored settings', () => {
+    saveTarget({ type: 's3', bucket: 'stored', access_key_id: 'sk', secret_access_key: 'ss' });
+    process.env.BACKUP_TARGET_TYPE = 's3';
     process.env.BACKUP_S3_BUCKET = 'from-env';
     process.env.BACKUP_S3_ACCESS_KEY_ID = 'env-key';
     process.env.BACKUP_S3_SECRET_ACCESS_KEY = 'env-secret';
 
-    const cfg = resolveS3Target();
+    const cfg = resolveTarget();
     expect(isManagedByEnv()).toBe(true);
     expect(cfg.bucket).toBe('from-env');
     expect(cfg.accessKeyId).toBe('env-key');
     expect(cfg.secretAccessKey).toBe('env-secret');
-    expect(readS3TargetForClient().managed_by_env).toBe(true);
+    expect(readTargetForClient().managed_by_env).toBe(true);
   });
 
-  it('treats an env-configured bucket as enabled unless explicitly disabled', () => {
-    process.env.BACKUP_S3_BUCKET = 'b';
-    expect(resolveS3Target().enabled).toBe(true);
-    process.env.BACKUP_S3_ENABLED = 'false';
-    expect(resolveS3Target().enabled).toBe(false);
+  it('configures the local backend from the environment too', () => {
+    process.env.BACKUP_TARGET_TYPE = 'local';
+    process.env.BACKUP_LOCAL_PATH = '/mnt/nas/trek';
+    const cfg = resolveTarget();
+    expect(cfg.type).toBe('local');
+    expect(cfg.localPath).toBe('/mnt/nas/trek');
+  });
+
+  it('accepts the type case-insensitively', () => {
+    process.env.BACKUP_TARGET_TYPE = 'S3';
+    expect(resolveTarget().type).toBe('s3');
   });
 
   it('keeps require_tls on by default and honours an explicit opt-out', () => {
-    process.env.BACKUP_S3_BUCKET = 'b';
-    expect(resolveS3Target().requireTls).toBe(true);
+    process.env.BACKUP_TARGET_TYPE = 's3';
+    expect(resolveTarget().requireTls).toBe(true);
     process.env.BACKUP_S3_REQUIRE_TLS = 'false';
-    expect(resolveS3Target().requireTls).toBe(false);
+    expect(resolveTarget().requireTls).toBe(false);
   });
 });

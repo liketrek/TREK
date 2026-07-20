@@ -259,19 +259,36 @@ To get a key: create a free account at [unsplash.com/developers](https://unsplas
 
 ---
 
-## External backup target (S3-compatible)
+## External backup target
 
-Every backup TREK writes — manual and automatic — can additionally be mirrored to an S3-compatible bucket. The local
-archive is always kept; the remote copy is pushed **in addition**, so a failing target never costs you a backup.
+Every backup TREK writes — manual and automatic — can additionally be mirrored to a second location. The local archive
+is always kept; the remote copy is pushed **in addition**, so a failing target never costs you a backup.
 
-Configure it in **Admin → Backup → External backup target**, or with these variables. Setting `BACKUP_S3_BUCKET` puts
+Configure it in **Admin → Backup → External backup target**, or with these variables. Setting `BACKUP_TARGET_TYPE` puts
 the target under environment control: the values below take priority and the admin form becomes read-only, the same way
-`SMTP_PASS` overrides the stored SMTP password. Leave them unset to manage the target entirely from the UI.
+`SMTP_PASS` overrides the stored SMTP password. Leave it unset to manage the target entirely from the UI.
+
+| Variable             | Description                                                                                                              | Default |
+|----------------------|--------------------------------------------------------------------------------------------------------------------------|---------|
+| `BACKUP_TARGET_TYPE` | Storage backend: `none`, `local` or `s3`. **Setting this switches the target to env-managed.** An unrecognised value is ignored. | `none`  |
+
+### `local` — a second directory
+
+| Variable            | Description                                                                                                                                                                  | Default |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `BACKUP_LOCAL_PATH` | Absolute directory archives are copied to. Must be outside TREK's own `data/` and `uploads/` directories — a target inside `uploads/` would end up inside the *next* backup. | —       |
+
+On the Docker image this is a path **inside the container**; map it to wherever the copy should really live with a
+volume. On a source install it is a plain filesystem path. What that path points at — another disk, a NAS mount, a
+network share — is up to you: TREK writes to a directory and deliberately leaves the mounting to the host, which does
+it better than application code could.
+
+
+### `s3` — any S3-compatible bucket
 
 | Variable                       | Description                                                                                                                                                                                             | Default     |
 |--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
-| `BACKUP_S3_BUCKET`             | Target bucket. **Setting this switches the target to env-managed.**                                                                                                                                     | —           |
-| `BACKUP_S3_ENABLED`            | Set `false` to keep an env-configured target defined but inactive.                                                                                                                                      | `true`      |
+| `BACKUP_S3_BUCKET`             | Target bucket.                                                                                                                                                                                          | —           |
 | `BACKUP_S3_ENDPOINT`           | Endpoint URL, exactly as your provider states it. Leave empty for real AWS S3 (the host is derived from the region). Endpoints that serve the S3 API under a path rather than at the host root are supported and passed through unchanged — e.g. Supabase Storage (`https://<ref>.storage.supabase.co/storage/v1/s3`), or a Ceph RGW / SeaweedFS / Zenko / MinIO behind a reverse proxy or ingress (`https://nas.example.com/s3`). | —           |
 | `BACKUP_S3_REGION`             | Bucket region.                                                                                                                                                                                          | `us-east-1` |
 | `BACKUP_S3_PREFIX`             | Optional key prefix, e.g. `trek/backups/`, to namespace within a shared bucket. Leading/trailing slashes are normalised.                                                                                | —           |
@@ -286,9 +303,10 @@ never `http://localhost:9000`. Private and LAN addresses additionally require `A
 for a self-hosted Ollama. Note that the AWS SDK does its own networking and does not route through TREK's DNS-pinned
 `safeFetch`, so this is a configuration-time check rather than a TOCTOU-proof guarantee.
 
-**Test connection.** The admin panel's *Test connection* button does more than ping: it runs `HeadBucket`, then writes
-and deletes a small probe object. A read-only key therefore fails the test instead of passing it and then breaking every
-backup silently.
+**Test connection.** The admin panel's *Test connection* button does more than ping: for S3 it runs `HeadBucket`, then
+writes and deletes a small probe object; for a directory it creates the directory, writes a probe file and removes it.
+A read-only key or a read-only mount therefore fails the test instead of passing it and then breaking every backup
+silently.
 
 ---
 

@@ -19,17 +19,37 @@ export const autoBackupSettingsRequestSchema = z
 export type AutoBackupSettingsRequest = z.infer<typeof autoBackupSettingsRequestSchema>;
 
 /**
- * External S3-compatible backup target (admin-only) for /api/backup/target.
+ * External backup target (admin-only) for /api/backup/target.
  *
  * A single target, stored in the `app_settings` key/value table the same way
- * the SMTP settings are. The secret access key is encrypted at rest and is
- * NEVER returned to the client: reads echo `secret_access_key_set` instead, and
- * a write that sends the mask back means "keep the stored secret".
+ * the SMTP settings are. `type` selects the storage backend:
+ *
+ *   none  — backups stay in data/backups only (the default).
+ *   local — copy the archive to a second directory. On the Docker image that is
+ *           a path inside the container, which the operator maps to wherever
+ *           the copy should really live; on a source install it is just a
+ *           filesystem path. The mapping is outside TREK's control.
+ *   s3    — any S3-compatible bucket (AWS S3, MinIO, Garage, Supabase Storage,
+ *           Backblaze B2, Wasabi…).
+ *
+ * A discriminator rather than an on/off flag so a further backend is a value
+ * here plus a `BackupTarget` implementation — no settings migration, and
+ * nothing at the two backup builders changes.
+ *
+ * The S3 secret access key is encrypted at rest and is NEVER returned to the
+ * client: reads echo `secret_access_key_set` instead, and a write that sends
+ * the mask back means "keep the stored secret".
  */
 export const MASKED_SECRET = '••••••••';
 
-export const s3BackupTargetRequestSchema = z.object({
-  enabled: z.boolean().optional(),
+export const BACKUP_TARGET_TYPES = ['none', 'local', 's3'] as const;
+export const backupTargetTypeSchema = z.enum(BACKUP_TARGET_TYPES);
+export type BackupTargetType = z.infer<typeof backupTargetTypeSchema>;
+
+export const backupTargetRequestSchema = z.object({
+  type: backupTargetTypeSchema.optional(),
+  /** `local`: absolute directory the archive is copied to. */
+  local_path: z.string().optional(),
   endpoint: z.string().optional(),
   region: z.string().optional(),
   bucket: z.string().optional(),
@@ -42,10 +62,11 @@ export const s3BackupTargetRequestSchema = z.object({
   /** Refuse a plain-http endpoint. On by default. */
   require_tls: z.boolean().optional(),
 });
-export type S3BackupTargetRequest = z.infer<typeof s3BackupTargetRequestSchema>;
+export type BackupTargetRequest = z.infer<typeof backupTargetRequestSchema>;
 
-export const s3BackupTargetResponseSchema = z.object({
-  enabled: z.boolean(),
+export const backupTargetResponseSchema = z.object({
+  type: backupTargetTypeSchema,
+  local_path: z.string(),
   endpoint: z.string(),
   region: z.string(),
   bucket: z.string(),
@@ -56,13 +77,14 @@ export const s3BackupTargetResponseSchema = z.object({
   force_path_style: z.boolean(),
   require_tls: z.boolean(),
   /**
-   * True when the target is configured through BACKUP_S3_* environment
-   * variables, which take precedence over the stored values. The admin UI
-   * disables the form in that case rather than pretending an edit would apply.
+   * True when the target is configured through BACKUP_TARGET_TYPE and its
+   * companion environment variables, which take precedence over the stored
+   * values. The admin UI disables the form in that case rather than pretending
+   * an edit would apply.
    */
   managed_by_env: z.boolean(),
 });
-export type S3BackupTargetResponse = z.infer<typeof s3BackupTargetResponseSchema>;
+export type BackupTargetResponse = z.infer<typeof backupTargetResponseSchema>;
 
 /**
  * Result of mirroring the backups already on disk to the target — the

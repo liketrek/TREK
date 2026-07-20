@@ -70,6 +70,15 @@ docker run -d \
 
 Docker creates `trek_data` and `trek_uploads` automatically on first run. Named volumes are easier to manage with `docker volume` commands and work better in some NAS or container-management environments.
 
+## Backing Up to a Second Location
+
+TREK always keeps the archive in its own `data/backups`. An external target adds a **second** copy; it never replaces
+the local one. Pick the backend in **Admin → Backup → External backup target**, or set `BACKUP_TARGET_TYPE` — see
+[Environment-Variables](Environment-Variables) for every variable.
+
+The **Directory** backend writes to a path inside the container. Where that path actually points — another disk, a NAS mount, a network
+share — is up to you and outside what TREK controls: map it with `-v` or a named volume.
+
 ## Health Check
 
 The container exposes a health endpoint at:

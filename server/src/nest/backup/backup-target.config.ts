@@ -1,13 +1,22 @@
 /**
- * Configuration for the external S3-compatible backup target.
+ * Configuration for the external backup target.
  *
  * A single target, stored in the `app_settings` key/value table exactly the way
  * the SMTP settings are (see authService's admin settings) rather than in a
- * dedicated table: one target is all Phase 1 promises, and a `storage_targets`
- * table with named targets is only worth its migration once multiple
- * destinations actually land.
+ * dedicated table: one target is all this slice promises, and a
+ * `storage_targets` table with named targets is only worth its migration once
+ * multiple simultaneous destinations actually land.
  *
- * The secret access key is encrypted at rest with `apiKeyCrypto`, the same
+ * `backup_target_type` selects the backend — `none`, `local` or `s3`. It is a
+ * discriminator rather than an on/off flag so a further backend is a value plus
+ * a BackupTarget implementation, with no settings migration.
+ *
+ * `backup_local_path` is a plain directory. On the Docker image it names a path
+ * inside the container that the operator maps with a volume; on a source
+ * install it is a filesystem path. Where that path actually points is
+ * deliberately not TREK's concern.
+ *
+ * The S3 secret access key is encrypted at rest with `apiKeyCrypto`, the same
  * helper `smtp_pass` and `admin_ntfy_token` use.
  *
  * CRITICAL: `backup_s3_secret_access_key` is listed in
@@ -16,18 +25,25 @@
  * orphans it and the target stops authenticating with no error until the next
  * backup runs.
  *
- * Environment variables (`BACKUP_S3_*`) take precedence over the stored values,
- * matching how `SMTP_PASS` overrides the stored `smtp_pass`. An install that
- * configures the target through env is read-only in the admin UI — the form
- * reports `managed_by_env` rather than accepting an edit that would not apply.
+ * Environment variables take precedence over the stored values, matching how
+ * `SMTP_PASS` overrides the stored `smtp_pass`. An install that sets
+ * BACKUP_TARGET_TYPE is read-only in the admin UI — the form reports
+ * `managed_by_env` rather than accepting an edit that would not apply.
  */
 import { db } from '../../db/database';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../../services/apiKeyCrypto';
-import { MASKED_SECRET, type S3BackupTargetRequest, type S3BackupTargetResponse } from '@trek/shared';
+import {
+  BACKUP_TARGET_TYPES,
+  MASKED_SECRET,
+  type BackupTargetRequest,
+  type BackupTargetResponse,
+  type BackupTargetType,
+} from '@trek/shared';
 
-/** Resolved target, with the secret in plaintext. Server-side use only. */
-export interface S3TargetConfig {
-  enabled: boolean;
+/** Resolved target, with the S3 secret in plaintext. Server-side use only. */
+export interface TargetConfig {
+  type: BackupTargetType;
+  localPath: string;
   endpoint: string;
   region: string;
   bucket: string;
@@ -39,7 +55,8 @@ export interface S3TargetConfig {
 }
 
 const SETTING_KEYS = {
-  enabled: 'backup_s3_enabled',
+  type: 'backup_target_type',
+  localPath: 'backup_local_path',
   endpoint: 'backup_s3_endpoint',
   region: 'backup_s3_region',
   bucket: 'backup_s3_bucket',
@@ -77,26 +94,29 @@ function storedBool(raw: string, fallback: boolean): boolean {
   return raw === 'true' || raw === '1';
 }
 
+function asType(raw: string | undefined): BackupTargetType | null {
+  const v = (raw ?? '').trim().toLowerCase();
+  return (BACKUP_TARGET_TYPES as readonly string[]).includes(v) ? (v as BackupTargetType) : null;
+}
+
 /**
- * True when the target is configured through environment variables. The bucket
- * is the discriminator: a target without one cannot address anything, so an
- * install that sets BACKUP_S3_BUCKET has committed to env-based config.
+ * True when the target is configured through environment variables.
+ * BACKUP_TARGET_TYPE is the discriminator: an operator who sets it has
+ * committed to env-based config for whichever backend it names.
  */
 export function isManagedByEnv(): boolean {
-  return !!process.env.BACKUP_S3_BUCKET?.trim();
+  return asType(process.env.BACKUP_TARGET_TYPE) !== null;
 }
 
 /** Resolve the effective target — env first, then the stored settings. */
-export function resolveS3Target(): S3TargetConfig {
+export function resolveTarget(): TargetConfig {
   if (isManagedByEnv()) {
-    const enabled = envBool(process.env.BACKUP_S3_ENABLED);
     return {
-      // A bucket configured via env is on unless explicitly disabled — an
-      // operator who set the variables meant to use them.
-      enabled: enabled ?? true,
+      type: asType(process.env.BACKUP_TARGET_TYPE)!,
+      localPath: process.env.BACKUP_LOCAL_PATH?.trim() ?? '',
       endpoint: process.env.BACKUP_S3_ENDPOINT?.trim() ?? '',
       region: process.env.BACKUP_S3_REGION?.trim() || 'us-east-1',
-      bucket: process.env.BACKUP_S3_BUCKET!.trim(),
+      bucket: process.env.BACKUP_S3_BUCKET?.trim() ?? '',
       prefix: normalizePrefix(process.env.BACKUP_S3_PREFIX ?? ''),
       accessKeyId: process.env.BACKUP_S3_ACCESS_KEY_ID?.trim() ?? '',
       secretAccessKey: process.env.BACKUP_S3_SECRET_ACCESS_KEY ?? '',
@@ -106,7 +126,8 @@ export function resolveS3Target(): S3TargetConfig {
   }
 
   return {
-    enabled: storedBool(readSetting(SETTING_KEYS.enabled), false),
+    type: asType(readSetting(SETTING_KEYS.type)) ?? 'none',
+    localPath: readSetting(SETTING_KEYS.localPath),
     endpoint: readSetting(SETTING_KEYS.endpoint),
     region: readSetting(SETTING_KEYS.region) || 'us-east-1',
     bucket: readSetting(SETTING_KEYS.bucket),
@@ -122,24 +143,25 @@ export function resolveS3Target(): S3TargetConfig {
 }
 
 /**
- * Normalise a key prefix to `some/path/` (no leading slash, one trailing slash)
- * so object keys concatenate predictably. An empty prefix stays empty.
+ * Normalise an S3 key prefix to `some/path/` (no leading slash, one trailing
+ * slash) so object keys concatenate predictably. An empty prefix stays empty.
  */
 export function normalizePrefix(raw: string): string {
   const trimmed = raw.trim().replace(/^\/+/, '').replace(/\/+$/, '');
   return trimmed === '' ? '' : `${trimmed}/`;
 }
 
-/** True when the target has everything it needs to talk to a bucket. */
-export function isTargetUsable(cfg: S3TargetConfig): boolean {
+/** True when the S3 backend has everything it needs to talk to a bucket. */
+export function isTargetUsable(cfg: TargetConfig): boolean {
   return !!(cfg.bucket && cfg.accessKeyId && cfg.secretAccessKey);
 }
 
 /** The admin-facing view. The secret is reported as set/unset, never returned. */
-export function readS3TargetForClient(): S3BackupTargetResponse {
-  const cfg = resolveS3Target();
+export function readTargetForClient(): BackupTargetResponse {
+  const cfg = resolveTarget();
   return {
-    enabled: cfg.enabled,
+    type: cfg.type,
+    local_path: cfg.localPath,
     endpoint: cfg.endpoint,
     region: cfg.region,
     bucket: cfg.bucket,
@@ -158,10 +180,11 @@ export function readS3TargetForClient(): S3BackupTargetResponse {
  * a read hands the client) means "keep what is stored" — without this, opening
  * the form and pressing save would overwrite the real secret with the mask.
  */
-export function saveS3Target(patch: S3BackupTargetRequest): void {
+export function saveTarget(patch: BackupTargetRequest): void {
   const write: [string, string][] = [];
 
-  if (patch.enabled !== undefined) write.push([SETTING_KEYS.enabled, String(patch.enabled)]);
+  if (patch.type !== undefined) write.push([SETTING_KEYS.type, patch.type]);
+  if (patch.local_path !== undefined) write.push([SETTING_KEYS.localPath, patch.local_path.trim()]);
   if (patch.endpoint !== undefined) write.push([SETTING_KEYS.endpoint, patch.endpoint.trim()]);
   if (patch.region !== undefined) write.push([SETTING_KEYS.region, patch.region.trim()]);
   if (patch.bucket !== undefined) write.push([SETTING_KEYS.bucket, patch.bucket.trim()]);

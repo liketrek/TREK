@@ -89,6 +89,15 @@ Check the logs:
 docker compose logs -f
 ```
 
+## Backing Up to a Second Location
+
+TREK always keeps the archive in its own `data/backups`. An external target adds a **second** copy; it never replaces
+the local one. Pick the backend in **Admin → Backup → External backup target**, or set `BACKUP_TARGET_TYPE` — see
+[Environment-Variables](Environment-Variables) for every variable.
+
+The **Directory** backend writes to a path inside the container. Where that path actually points — another disk, a NAS mount, a network
+share — is up to you and outside what TREK controls: map it with a volume in your compose file.
+
 ## HTTPS and Reverse Proxy
 
 This compose file is designed for deployments where a reverse proxy (nginx, Caddy, Traefik) terminates TLS in front of TREK. To enable HTTPS redirects and secure cookies, uncomment `FORCE_HTTPS=true` and `TRUST_PROXY=1`.

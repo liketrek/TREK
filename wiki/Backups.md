@@ -75,31 +75,24 @@ Auto-backup files are named `auto-backup-<timestamp>.zip` (manual backups use `b
 
 After each auto-backup run, **all** backup files (manual and auto) older than `keep_days` are pruned. Set `keep_days` to `0` to disable pruning entirely.
 
-## External backup target (S3-compatible)
+## External backup target
 
 A backup that only ever lives on the same volume as the data it protects is one disk failure away from being useless.
-The **External backup target** section of the Backup tab mirrors every backup — manual *and* automatic — to an
-S3-compatible bucket.
+The **External backup target** section of the Backup tab mirrors every backup — manual *and* automatic — to a second
+location. Pick a **storage backend**:
 
-Works with AWS S3, MinIO, Garage, Supabase Storage, Backblaze B2, Wasabi and anything else speaking the S3 API.
+| Backend | What it does |
+|---|---|
+| **Off** | Backups stay in `data/backups` only. The default. |
+| **Directory** | Copies the archive to a second directory. On Docker that is a path inside the container, which you map to wherever the copy should really live. |
+| **S3-compatible** | Any S3 API: AWS S3, MinIO, Garage, Supabase Storage, Backblaze B2, Wasabi… |
 
-**The local archive is always kept.** The remote copy is pushed *in addition*, so a target that is unreachable at backup
-time costs you the off-box copy, never the backup itself. Failures are logged, written to the audit log, and reported in
-the UI rather than disappearing behind a success message.
-
-> **Know what you are uploading.** A backup archive contains your entire database and every upload, and — unless
-> `ENCRYPTION_KEY` is set as an environment variable — the at-rest encryption key alongside it (see
-> [What a backup contains](#what-a-backup-contains)). TREK uploads the archive as-is; it does not yet encrypt it before
-> transmission. Whoever can read the bucket can read everything in it. Use a private bucket with credentials scoped to
-> it alone, and prefer a provider and jurisdiction you are willing to trust with that. Setting `ENCRYPTION_KEY` as an
-> env var keeps the key out of the archive, but the database contents still travel unencrypted at rest in the bucket.
-
-![External backup target](assets/BackupTarget.png)
 
 ### Setting it up
 
-1. Enter the **endpoint URL**, **bucket**, **region** and optionally a **path prefix** (e.g. `trek/backups/`) to
-   namespace within a shared bucket. Leave the endpoint empty for real AWS S3.
+1. Pick the **storage backend**. For **Directory**, enter the target directory and you are done. For **S3**, enter the
+   **endpoint URL**, **bucket**, **region** and optionally a **path prefix** (e.g. `trek/backups/`) to namespace within
+   a shared bucket — leave the endpoint empty for real AWS S3.
 2. Enter the **access key ID** and **secret access key**. The secret is encrypted at rest with the same
    `ENCRYPTION_KEY`-derived key as every other stored credential and is never sent back to the browser — it shows as
    `••••••••` and saving the form unchanged keeps it.
@@ -140,9 +133,10 @@ costing storage.
 
 ### Test connection checks writes, not just reachability
 
-The button runs `HeadBucket`, then writes and deletes a small probe object. A key with read-only permissions therefore
-**fails** the test rather than passing it and then breaking every subsequent backup silently. If the probe uploads but
-cannot be deleted, the test reports success with a warning: backups will work, remote pruning will not.
+For S3 the button runs `HeadBucket`, then writes and deletes a small probe object. For a directory it creates the
+directory, writes a probe file and removes it again. A key with read-only permissions — or a share mounted read-only —
+therefore **fails** the test rather than passing it and then breaking every subsequent backup silently. If the probe
+can be written but not removed, the test reports success with a warning: backups will work, pruning will not.
 
 ### Reaching a self-hosted bucket
 
@@ -156,9 +150,9 @@ The endpoint is checked against TREK's SSRF guard before any request.
 
 ### Configuring it through environment variables
 
-Setting `BACKUP_S3_BUCKET` puts the target under environment control — the `BACKUP_S3_*` values take priority and the
-admin form becomes read-only, matching how `SMTP_PASS` overrides the stored SMTP password. See
-[Environment-Variables](Environment-Variables) for the full list. Leave them unset to manage the target from the UI.
+Setting `BACKUP_TARGET_TYPE` (`none`, `local` or `s3`) puts the target under environment control — the accompanying
+values take priority and the admin form becomes read-only, matching how `SMTP_PASS` overrides the stored SMTP password.
+See [Environment-Variables](Environment-Variables) for the full list. Leave it unset to manage the target from the UI.
 
 ## Before updating TREK
 
@@ -182,6 +176,10 @@ The following actions are recorded in the [Audit-Log](Audit-Log):
 | `backup.restore_remote` | Restore from an archive held only at the external target |
 | `backup.target_uploaded` | Backup mirrored to the external target |
 | `backup.target_failed` | Mirroring a backup to the external target failed |
+
+## When something goes wrong
+
+The [Troubleshooting](Troubleshooting) page covers the failures this feature actually produces: TLS handshake errors from path-style addressing, a read-only key passing a naive check, an endpoint refused by the SSRF guard, a target directory inside TREK own data trees, and backups that stay local because no backend was selected.
 
 ## See also
 

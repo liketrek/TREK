@@ -1,11 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Injectable } from '@nestjs/common';
-import type { MergedBackup, S3BackupTargetRequest } from '@trek/shared';
+import type { BackupTargetRequest, MergedBackup } from '@trek/shared';
 import * as svc from '../../services/backupService';
-import { isManagedByEnv, readS3TargetForClient, resolveS3Target, saveS3Target } from './backup-target.config';
-import { testConnection } from './backup-target.s3';
-import { deleteRemoteBackup, fetchRemoteBackup, listRemoteBackups, mirrorExistingBackups, remoteBackupExists } from './backup-target';
+import { isManagedByEnv, readTargetForClient, saveTarget } from './backup-target.config';
+import { deleteRemoteBackup, fetchRemoteBackup, listRemoteBackups, mirrorExistingBackups, remoteBackupExists, testConfiguredTarget } from './backup-target';
 
 /**
  * Thin Nest wrapper around the existing backup service. The zip packing/restore,
@@ -46,16 +45,16 @@ export class BackupService {
 
   // --- External S3 backup target -------------------------------------------
 
-  readTarget() { return readS3TargetForClient(); }
+  readTarget() { return readTargetForClient(); }
   targetManagedByEnv() { return isManagedByEnv(); }
-  saveTarget(patch: S3BackupTargetRequest) { return saveS3Target(patch); }
+  saveTarget(patch: BackupTargetRequest) { return saveTarget(patch); }
 
   /**
    * Probe the stored target. Takes no request body: testing the *saved* config
    * is what the admin needs to know, and it keeps the plaintext secret from
    * having to travel back over the wire to be tested.
    */
-  testTarget() { return testConnection(resolveS3Target()); }
+  testTarget() { return testConfiguredTarget(); }
 
   /**
    * Mirror every archive already in data/backups to the target. Resolving the

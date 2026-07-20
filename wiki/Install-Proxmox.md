@@ -91,6 +91,17 @@ PORT=3001
 
 See [Environment-Variables](Environment-Variables) for the full variable reference.
 
+## Backing Up to a Second Location
+
+TREK always keeps the archive in its own `data/backups`. An external target adds a **second** copy; it never replaces
+the local one. Pick the backend in **Admin → Backup → External backup target**, or set `BACKUP_TARGET_TYPE` — see
+[Environment-Variables](Environment-Variables) for every variable.
+
+The **Directory** backend writes to a path. Where that path actually points — another disk, a NAS mount, a network
+share — is up to you and outside what TREK controls. On this install TREK runs from source, so it is a plain filesystem path; set it in
+`/opt/trek/server/.env` and restart with `systemctl restart trek`. Keep it outside `/opt/trek/server/data` and
+`/opt/trek/server/uploads`.
+
 ## Updating
 
 Run the following command inside the **LXC container** and select **Update** when prompted:
