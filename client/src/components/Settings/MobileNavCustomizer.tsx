@@ -84,10 +84,17 @@ export default function MobileNavCustomizer({
           disabled={zone === 'more' && ed.barFull}
           title={zone === 'bar' ? t('settings.appearance.mobileNav.toMore') : t('settings.appearance.mobileNav.toBar')}
           aria-label={zone === 'bar' ? t('settings.appearance.mobileNav.toMore') : t('settings.appearance.mobileNav.toBar')}
-          style={{ ...cellBtn, width: 'auto', padding: '0 9px', gap: 5, opacity: zone === 'more' && ed.barFull ? 0.35 : 1, cursor: zone === 'more' && ed.barFull ? 'not-allowed' : 'pointer' }}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexShrink: 0,
+            height: 30, minWidth: 96, padding: '0 14px', borderRadius: 8,
+            border: '1px solid var(--border-primary)', background: 'var(--bg-hover)',
+            color: 'var(--text-secondary)', fontFamily: 'inherit',
+            opacity: zone === 'more' && ed.barFull ? 0.4 : 1,
+            cursor: zone === 'more' && ed.barFull ? 'not-allowed' : 'pointer',
+          }}
         >
-          {zone === 'bar' ? <ChevronsDown size={14} strokeWidth={2} /> : <ChevronsUp size={14} strokeWidth={2} />}
-          <span className="text-[11px] font-semibold">{zone === 'bar' ? t('settings.appearance.mobileNav.more') : t('settings.appearance.mobileNav.bar')}</span>
+          {zone === 'bar' ? <ChevronsDown size={15} strokeWidth={2.2} /> : <ChevronsUp size={15} strokeWidth={2.2} />}
+          <span className="text-[13px] font-semibold whitespace-nowrap">{zone === 'bar' ? t('settings.appearance.mobileNav.more') : t('settings.appearance.mobileNav.bar')}</span>
         </button>
 
         <button
