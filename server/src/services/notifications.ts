@@ -513,7 +513,7 @@ export function resolveAdminNtfyUrl(adminCfg: NtfyConfig): string | null {
 
 function encodeHeaderValue(value: string): string {
   for (let i = 0; i < value.length; i++) {
-    if (value.charCodeAt(i) > 0xff) {
+    if (value.charCodeAt(i) > 0x7f) {
       return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
     }
   }
