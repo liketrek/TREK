@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Verwandle deine Reisen in Geschichten, die du nie vergisst',
   'journey.frontpage.createJourney': 'Journey erstellen',
   'journey.frontpage.activeJourney': 'Aktive Journey',
+  'journey.frontpage.latestJourney': 'Neueste Journey',
   'journey.frontpage.allJourneys': 'Alle Journeys',
   'journey.frontpage.journeys': 'Journeys',
   'journey.frontpage.createNew': 'Neue Journey erstellen',

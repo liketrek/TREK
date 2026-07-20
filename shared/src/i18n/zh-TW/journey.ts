@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': '將旅行變成永遠不會忘記的故事',
   'journey.frontpage.createJourney': '建立旅程',
   'journey.frontpage.activeJourney': '進行中的旅程',
+  'journey.frontpage.latestJourney': '最新的旅程',
   'journey.frontpage.allJourneys': '所有旅程',
   'journey.frontpage.journeys': '個旅程',
   'journey.frontpage.createNew': '建立新旅程',

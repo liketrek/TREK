@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': "Turn your trips into stories you'll never forget",
   'journey.frontpage.createJourney': 'Create Journey',
   'journey.frontpage.activeJourney': 'Active Journey',
+  'journey.frontpage.latestJourney': 'Latest Journey',
   'journey.frontpage.allJourneys': 'All Journeys',
   'journey.frontpage.journeys': 'journeys',
   'journey.frontpage.createNew': 'Create a new Journey',

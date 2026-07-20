@@ -49,13 +49,27 @@ export function useJourney() {
 
   const activeSuggestion = suggestions.find(s => !dismissedSuggestions.has(s.id))
 
+  // The frontpage always features one journey as the hero. A journey tied to a
+  // currently-running trip wins; otherwise we fall back to the most recent one
+  // (the list arrives sorted by updated_at DESC, so journeys[0] is the newest).
+  // This guarantees there is always a hero header, and a freshly created or
+  // updated journey — e.g. from an ongoing or more recent trip — takes over.
   const activeJourney = useMemo(() => {
-    if (searchQuery.trim()) return null
-    return journeys.find(j => {
+    if (searchQuery.trim() || journeys.length === 0) return null
+    const live = journeys.find(j => {
       const j2 = j as any
       return computeJourneyLifecycle(j.status, j2.trip_date_min, j2.trip_date_max) === 'live'
-    }) || null
+    })
+    return live ?? journeys[0]
   }, [journeys, searchQuery])
+
+  // Whether the hero is a live (currently-running) journey — drives the eyebrow
+  // label ("Active Journey" vs "Latest Journey").
+  const activeJourneyIsLive = useMemo(() => {
+    if (!activeJourney) return false
+    const j2 = activeJourney as any
+    return computeJourneyLifecycle(activeJourney.status, j2.trip_date_min, j2.trip_date_max) === 'live'
+  }, [activeJourney])
 
   const filteredJourneys = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -105,7 +119,7 @@ export function useJourney() {
     availableTrips, selectedTripIds, setSelectedTripIds,
     searchOpen, setSearchOpen, searchQuery, setSearchQuery, searchInputRef,
     activeSuggestion, setDismissedSuggestions,
-    activeJourney, filteredJourneys,
+    activeJourney, activeJourneyIsLive, filteredJourneys,
     openCreateModal, handleCreate, totalPlaces,
   }
 }

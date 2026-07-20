@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Перетворюйте поїздки на історії, які ви ніколи не забудете',
   'journey.frontpage.createJourney': 'Створити подорож',
   'journey.frontpage.activeJourney': 'Активна подорож',
+  'journey.frontpage.latestJourney': 'Остання подорож',
   'journey.frontpage.allJourneys': 'Усі подорожі',
   'journey.frontpage.journeys': 'подорожей',
   'journey.frontpage.createNew': 'Створити нову подорож',

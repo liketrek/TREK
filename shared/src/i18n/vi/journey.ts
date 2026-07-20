@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Biến chuyến đi của bạn thành những câu chuyện bạn sẽ không bao giờ quên',
   'journey.frontpage.createJourney': 'Tạo hành trình',
   'journey.frontpage.activeJourney': 'Hành trình đang hoạt động',
+  'journey.frontpage.latestJourney': 'Hành trình mới nhất',
   'journey.frontpage.allJourneys': 'Tất cả hành trình',
   'journey.frontpage.journeys': 'cuộc hành trình',
   'journey.frontpage.createNew': 'Tạo một hành trình mới',

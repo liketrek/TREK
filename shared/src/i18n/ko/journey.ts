@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': '여행을 영원히 잊지 못할 이야기로 만드세요',
   'journey.frontpage.createJourney': 'Journey 만들기',
   'journey.frontpage.activeJourney': '활성 Journey',
+  'journey.frontpage.latestJourney': '최근 Journey',
   'journey.frontpage.allJourneys': '모든 Journey',
   'journey.frontpage.journeys': '개 Journey',
   'journey.frontpage.createNew': '새 Journey 만들기',

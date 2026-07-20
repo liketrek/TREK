@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Ubah perjalananmu menjadi kisah yang tak terlupakan',
   'journey.frontpage.createJourney': 'Buat Journey',
   'journey.frontpage.activeJourney': 'Journey Aktif',
+  'journey.frontpage.latestJourney': 'Journey Terbaru',
   'journey.frontpage.allJourneys': 'Semua Journey',
   'journey.frontpage.journeys': 'journey',
   'journey.frontpage.createNew': 'Buat Journey baru',

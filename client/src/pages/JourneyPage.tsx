@@ -37,7 +37,7 @@ function JourneyPageDesktop() {
     availableTrips, selectedTripIds, setSelectedTripIds,
     searchOpen, setSearchOpen, searchQuery, setSearchQuery, searchInputRef,
     activeSuggestion, setDismissedSuggestions,
-    activeJourney, filteredJourneys,
+    activeJourney, activeJourneyIsLive, filteredJourneys,
     openCreateModal, handleCreate, totalPlaces,
   } = useJourney()
 
@@ -151,7 +151,7 @@ function JourneyPageDesktop() {
                       {/* Eyebrow */}
                       <div className="mb-2.5">
                         <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
-                          {t('journey.frontpage.activeJourney')}
+                          {activeJourneyIsLive ? t('journey.frontpage.activeJourney') : t('journey.frontpage.latestJourney')}
                         </span>
                       </div>
 

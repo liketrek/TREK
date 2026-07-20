@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Μετατρέψτε τα ταξίδια σας σε ιστορίες που δεν θα ξεχάσετε ποτέ',
   'journey.frontpage.createJourney': 'Δημιουργία Ταξιδιού',
   'journey.frontpage.activeJourney': 'Ενεργό Ταξίδι',
+  'journey.frontpage.latestJourney': 'Πρόσφατο Ταξίδι',
   'journey.frontpage.allJourneys': 'Όλα τα Ταξίδια',
   'journey.frontpage.journeys': 'ταξίδια',
   'journey.frontpage.createNew': 'Δημιουργία νέου Ταξιδιού',

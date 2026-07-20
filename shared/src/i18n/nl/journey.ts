@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Maak van je reizen verhalen die je nooit vergeet',
   'journey.frontpage.createJourney': 'Reisverslag aanmaken',
   'journey.frontpage.activeJourney': 'Actief reisverslag',
+  'journey.frontpage.latestJourney': 'Laatste reisverslag',
   'journey.frontpage.allJourneys': 'Alle reisverslagen',
   'journey.frontpage.journeys': 'reisverslagen',
   'journey.frontpage.createNew': 'Nieuw reisverslag aanmaken',
