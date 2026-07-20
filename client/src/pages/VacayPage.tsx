@@ -94,14 +94,17 @@ function VacayPageDesktop(): React.ReactElement {
       <VacaySharedCalendars />
 
       {/* Legend */}
-      {(plan?.holidays_enabled || plan?.company_holidays_enabled || plan?.block_weekends || hasVisibleShared) && (
+      {(plan?.holidays_enabled || plan?.school_holidays_enabled || plan?.company_holidays_enabled || plan?.block_weekends || hasVisibleShared) && (
         <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
           <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.legend')}</span>
           <div className="mt-3 flex flex-wrap gap-x-3.5 gap-y-2.5">
-            {plan?.holidays_enabled && (plan?.holiday_calendars ?? []).length === 0 && (
+            {plan?.holidays_enabled && (plan?.holiday_calendars ?? []).filter(cal => (cal.type ?? 'public_holiday') === 'public_holiday').length === 0 && (
               <LegendItem color="#fecaca" label={t('vacay.publicHoliday')} />
             )}
-            {plan?.holidays_enabled && (plan?.holiday_calendars ?? []).map(cal => (
+            {plan?.holidays_enabled && (plan?.holiday_calendars ?? []).filter(cal => (cal.type ?? 'public_holiday') === 'public_holiday').map(cal => (
+              <LegendItem key={cal.id} color={cal.color} label={cal.label || cal.region} />
+            ))}
+            {plan?.school_holidays_enabled && (plan?.holiday_calendars ?? []).filter(cal => cal.type === 'school_holiday').map(cal => (
               <LegendItem key={cal.id} color={cal.color} label={cal.label || cal.region} />
             ))}
             {plan?.company_holidays_enabled && <LegendItem color="#fde68a" label={t('vacay.companyHoliday')} />}

@@ -100,9 +100,11 @@ function baseDayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext
     if (entries.some(e => (e.fraction ?? 1) === 0.5)) visual.half = true
     return visual
   }
-  const holiday = ctx.holidays[dateStr]
-  if (holiday) {
-    return { background: holiday.color, numColor: holidayInk(holiday.color) }
+  const holidayMarkers = ctx.holidays[dateStr]
+  const holidays = Array.isArray(holidayMarkers) ? holidayMarkers : holidayMarkers ? [holidayMarkers] : []
+  const publicHoliday = holidays.find(holiday => (holiday.type ?? 'public_holiday') === 'public_holiday')
+  if (publicHoliday) {
+    return { background: publicHoliday.color, numColor: holidayInk(publicHoliday.color) }
   }
   if (ctx.weekendDays.includes(dayOfWeek)) {
     return { background: 'var(--m-ic)', numColor: 'var(--m-faint)' }

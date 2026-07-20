@@ -305,6 +305,7 @@ function createTables(db: Database.Database): void {
       block_weekends INTEGER DEFAULT 1,
       holidays_enabled INTEGER DEFAULT 0,
       holidays_region TEXT DEFAULT '',
+      school_holidays_enabled INTEGER DEFAULT 0,
       company_holidays_enabled INTEGER DEFAULT 1,
       carry_over_enabled INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -365,6 +366,7 @@ function createTables(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS vacay_holiday_calendars (
       id        INTEGER PRIMARY KEY AUTOINCREMENT,
       plan_id   INTEGER NOT NULL REFERENCES vacay_plans(id) ON DELETE CASCADE,
+      type      TEXT NOT NULL DEFAULT 'public_holiday',
       region    TEXT NOT NULL,
       label     TEXT,
       color     TEXT NOT NULL DEFAULT '#fecaca',

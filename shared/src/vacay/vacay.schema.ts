@@ -18,6 +18,7 @@ const open = z.record(z.string(), z.unknown());
 
 export const vacayAddHolidayCalendarRequestSchema = z.object({
   region: z.string().min(1),
+  type: z.enum(['public_holiday', 'school_holiday']).optional(),
   label: z.string().nullable().optional(),
   color: z.string().optional(),
   sort_order: z.number().optional(),

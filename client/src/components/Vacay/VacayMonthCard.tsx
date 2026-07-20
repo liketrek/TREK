@@ -96,13 +96,16 @@ export default function VacayMonthCard({
           const dateStr = `${year}-${pad(month + 1)}-${pad(day)}`
           const dayOfWeek = new Date(year, month, day).getDay()
           const weekend = weekendDays.includes(dayOfWeek)
-          const holiday = holidays[dateStr]
+          const rawHolidayMarkers = holidays[dateStr]
+          const holidayMarkers = Array.isArray(rawHolidayMarkers) ? rawHolidayMarkers : rawHolidayMarkers ? [rawHolidayMarkers] : []
+          const publicHoliday = holidayMarkers.find(h => (h.type ?? 'public_holiday') === 'public_holiday')
+          const schoolHolidayMarkers = holidayMarkers.filter(h => h.type === 'school_holiday')
           const isCompany = companyHolidaysEnabled && companyHolidaySet.has(dateStr)
           const dayEntries = entryMap[dateStr] || []
           const hasEntries = dayEntries.length > 0
           const isBlocked = (weekend && blockWeekends) || (isCompany && !companyMode)
           const isToday = dateStr === todayStr
-          const plain = !hasEntries && !holiday && !isCompany
+          const plain = !hasEntries && holidayMarkers.length === 0 && !isCompany
 
           // The fill always shows WHO is off (person colour, split for several) — half
           // days keep that fill and get a small corner ½ badge instead, so a half day
@@ -119,7 +122,7 @@ export default function VacayMonthCard({
           if (dayEntries.length === 1) background = fill(dayEntries[0].person_color)
           else if (dayEntries.length === 2) background = `linear-gradient(135deg, ${fill(dayEntries[0].person_color)} 50%, ${fill(dayEntries[1].person_color)} 50%)`
           else if (dayEntries.length === 0 && isCompany) background = 'rgba(245,158,11,0.22)'
-          else if (dayEntries.length === 0 && holiday) background = `color-mix(in srgb, ${holiday.color} 22%, transparent)`
+          else if (dayEntries.length === 0 && publicHoliday) background = `color-mix(in srgb, ${publicHoliday.color} 22%, transparent)`
           // Weekend / settings-blocked days read as inactive: subtle grey fill, like before the facelift.
           else if (weekend && blockWeekends) background = 'color-mix(in srgb, var(--vg-ink3) 7%, transparent)'
 
@@ -133,13 +136,13 @@ export default function VacayMonthCard({
 
           let numColor = 'var(--vg-ink2)'
           if (hasEntries) numColor = '#fff'
-          else if (holiday) numColor = holiday.color
+          else if (publicHoliday) numColor = publicHoliday.color
           else if (weekend) numColor = 'var(--vg-ink3)'
 
           return (
             <div
               key={di}
-              title={holiday ? (holiday.label ? `${holiday.label}: ${holiday.localName}` : holiday.localName) : undefined}
+              title={holidayMarkers.length > 0 ? holidayMarkers.map(holiday => holiday.label ? `${holiday.label}: ${holiday.localName}` : holiday.localName).join('\n') : undefined}
               className="relative flex items-center justify-center transition-colors"
               style={{
                 height: 28,
@@ -184,6 +187,22 @@ export default function VacayMonthCard({
               {anyHalf && (
                 <span className="absolute bottom-1 right-1 w-[5px] h-[5px] rounded-full z-[3] bg-[#f97316]" style={{ boxShadow: '0 0 0 1.5px var(--vg-surf)' }} aria-hidden />
               )}
+
+              {schoolHolidayMarkers.slice(0, 3).map((holiday, idx) => (
+                <span
+                  key={`school-holiday-${idx}`}
+                  className="absolute rounded z-[2]"
+                  style={{
+                    left: 3,
+                    right: 3,
+                    bottom: 2 + idx * 3,
+                    height: 2,
+                    background: holiday.color,
+                    opacity: 0.9,
+                  }}
+                  aria-hidden
+                />
+              ))}
 
               <span className="relative z-[1]" style={{
                 fontFamily: 'var(--font-subtext)',

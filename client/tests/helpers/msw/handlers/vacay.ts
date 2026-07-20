@@ -85,6 +85,17 @@ export const vacayHandlers = [
     ]);
   }),
 
+  http.get('/api/addons/vacay/school-holidays/regions/:country', () => {
+    return HttpResponse.json({
+      groups: [
+        { code: 'NL-NO', shortName: 'NO', name: [{ language: 'EN', text: 'Northern Region' }] },
+        { code: 'NL-MI', shortName: 'MI', name: [{ language: 'EN', text: 'Central Region' }] },
+        { code: 'NL-ZU', shortName: 'ZU', name: [{ language: 'EN', text: 'Southern Region' }] },
+      ],
+      subdivisions: [],
+    });
+  }),
+
   http.put('/api/addons/vacay/color', () => {
     return HttpResponse.json({ success: true });
   }),

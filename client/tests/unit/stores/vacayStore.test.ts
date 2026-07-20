@@ -77,7 +77,8 @@ describe('vacayStore', () => {
 
       expect(Object.keys(state.holidays).length).toBeGreaterThan(0);
       expect(state.holidays['2025-12-25']).toBeDefined();
-      expect(state.holidays['2025-12-25'].name).toBe('Christmas');
+      const christmas = state.holidays['2025-12-25'];
+      expect(Array.isArray(christmas) ? christmas[0].name : christmas.name).toBe('Christmas');
     });
   });
 
@@ -535,6 +536,123 @@ describe('vacayStore', () => {
 
       expect(state.incomingShares[0].hidden).toBe(false);
       expect(state.sharedCalendars[0].hidden).toBe(false);
+    });
+  });
+
+  describe('FE-STORE-VACAY-027: loadHolidays() with national school holiday calendar', () => {
+    it('loads school holidays when the calendar has no subdivision', async () => {
+      useVacayStore.setState({
+        selectedYear: 2026,
+        plan: {
+          id: 1,
+          holidays_enabled: false,
+          school_holidays_enabled: true,
+          holidays_region: null,
+          holiday_calendars: [
+            { id: 1, plan_id: 1, region: 'NL', label: 'Niederlande', color: '#22c55e', sort_order: 0, type: 'school_holiday' },
+          ],
+          block_weekends: false,
+          carry_over_enabled: false,
+          company_holidays_enabled: false,
+        },
+      });
+
+      let requestedUrl = '';
+      server.use(
+        http.get('/api/addons/vacay/school-holidays/:year/:country', ({ request }) => {
+          requestedUrl = request.url;
+          return HttpResponse.json([
+            {
+              id: 'nl-summer-2026',
+              startDate: '2026-07-18',
+              endDate: '2026-08-30',
+              name: [{ language: 'EN', text: 'Summer holidays' }],
+            },
+          ]);
+        })
+      );
+
+      await useVacayStore.getState().loadHolidays(2026);
+      const holidays = useVacayStore.getState().holidays;
+
+      expect(requestedUrl).toContain('/school-holidays/2026/NL');
+      expect(holidays['2026-07-18']).toBeDefined();
+      const summer = holidays['2026-07-18'];
+      expect(Array.isArray(summer) ? summer[0].type : summer.type).toBe('school_holiday');
+    });
+  });
+
+  describe('FE-STORE-VACAY-028: loadHolidays() with school holiday group calendar', () => {
+    it('passes the OpenHolidays group code for regional school holiday zones', async () => {
+      useVacayStore.setState({
+        selectedYear: 2026,
+        plan: {
+          id: 1,
+          holidays_enabled: false,
+          school_holidays_enabled: true,
+          holidays_region: null,
+          holiday_calendars: [
+            { id: 1, plan_id: 1, region: 'NL|group:NL-NO', label: 'Noord', color: '#22c55e', sort_order: 0, type: 'school_holiday' },
+          ],
+          block_weekends: false,
+          carry_over_enabled: false,
+          company_holidays_enabled: false,
+        },
+      });
+
+      let requestedUrl = '';
+      server.use(
+        http.get('/api/addons/vacay/school-holidays/:year/:country', ({ request }) => {
+          requestedUrl = request.url;
+          return HttpResponse.json([
+            {
+              id: 'nl-north-2026',
+              startDate: '2026-07-04',
+              endDate: '2026-08-16',
+              name: [{ language: 'EN', text: 'Summer holidays' }],
+            },
+          ]);
+        })
+      );
+
+      await useVacayStore.getState().loadHolidays(2026);
+
+      expect(requestedUrl).toContain('/school-holidays/2026/NL');
+      expect(requestedUrl).toContain('group=NL-NO');
+      expect(useVacayStore.getState().holidays['2026-07-04']).toBeDefined();
+    });
+  });
+
+  describe('FE-STORE-VACAY-029: loadHolidays() with unsupported school holiday country', () => {
+    it('skips school holiday calendars that are not in the approved whitelist', async () => {
+      useVacayStore.setState({
+        selectedYear: 2026,
+        plan: {
+          id: 1,
+          holidays_enabled: false,
+          school_holidays_enabled: true,
+          holidays_region: null,
+          holiday_calendars: [
+            { id: 1, plan_id: 1, region: 'SE', label: 'Sweden', color: '#22c55e', sort_order: 0, type: 'school_holiday' },
+          ],
+          block_weekends: false,
+          carry_over_enabled: false,
+          company_holidays_enabled: false,
+        },
+      });
+
+      let requested = false;
+      server.use(
+        http.get('/api/addons/vacay/school-holidays/:year/:country', () => {
+          requested = true;
+          return HttpResponse.json([]);
+        })
+      );
+
+      await useVacayStore.getState().loadHolidays(2026);
+
+      expect(requested).toBe(false);
+      expect(useVacayStore.getState().holidays).toEqual({});
     });
   });
 });

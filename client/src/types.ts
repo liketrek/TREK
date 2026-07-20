@@ -264,6 +264,7 @@ export interface WebSocketEvent {
 export interface VacayHolidayCalendar {
   id: number
   plan_id: number
+  type?: 'public_holiday' | 'school_holiday'
   region: string
   label: string | null
   color: string
@@ -273,6 +274,7 @@ export interface VacayHolidayCalendar {
 export interface VacayPlan {
   id: number
   holidays_enabled: boolean
+  school_holidays_enabled?: boolean
   holidays_region: string | null
   holiday_calendars: VacayHolidayCalendar[]
   block_weekends: boolean
@@ -324,10 +326,11 @@ export interface HolidayInfo {
   localName: string
   color: string
   label: string | null
+  type?: 'public_holiday' | 'school_holiday'
 }
 
 export interface HolidaysMap {
-  [date: string]: HolidayInfo
+  [date: string]: HolidayInfo | HolidayInfo[]
 }
 
 // Read-only calendar shares (#444/#667)

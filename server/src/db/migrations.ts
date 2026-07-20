@@ -3727,6 +3727,20 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_vacay_shares_user ON vacay_shares (user_id);');
     },
+
+    // School holidays are a visual Vacay calendar layer. Keep them separate from
+    // public holidays so applyHolidayCalendars never removes vacation entries for
+    // school-break dates.
+    () => {
+      const planCols = db.prepare("PRAGMA table_info('vacay_plans')").all() as Array<{ name: string }>;
+      if (!planCols.some(col => col.name === 'school_holidays_enabled')) {
+        db.exec('ALTER TABLE vacay_plans ADD COLUMN school_holidays_enabled INTEGER DEFAULT 0');
+      }
+      const calendarCols = db.prepare("PRAGMA table_info('vacay_holiday_calendars')").all() as Array<{ name: string }>;
+      if (!calendarCols.some(col => col.name === 'type')) {
+        db.exec("ALTER TABLE vacay_holiday_calendars ADD COLUMN type TEXT NOT NULL DEFAULT 'public_holiday'");
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
