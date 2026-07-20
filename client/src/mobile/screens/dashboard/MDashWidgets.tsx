@@ -11,7 +11,7 @@ import { collectionsApi } from '../../../api/collections'
 import { entityGradient } from '../../../utils/gradients'
 import { CURRENCIES } from '../../../components/Budget/BudgetPanel.constants'
 import { formatTime, splitReservationDateTime } from '../../../utils/formatters'
-import { normalizeAppearance, type Collection } from '@trek/shared'
+import { normalizeAppearance, MOBILE_DASH_TOKENS, type MobileDashToken, type Collection } from '@trek/shared'
 import type { UpcomingReservation } from '../../../pages/dashboard/dashboardModel'
 
 const RES_ICON: Record<string, React.ReactElement> = {
@@ -20,31 +20,57 @@ const RES_ICON: Record<string, React.ReactElement> = {
   restaurant: <Utensils size={14} strokeWidth={2} />,
 }
 
-interface MDashWidgetsProps {
-  upcoming: UpcomingReservation[]
-}
-
 /**
  * Inline dashboard widget panels (currency, collections, timezones, upcoming
- * reservations). Visibility follows the per-device appearance widget config;
- * collections is additionally gated by the admin addon.
+ * reservations) for the mobile dashboard. The blocks are rendered individually
+ * by MDashboard so they can be interleaved with the trip list in a user-chosen
+ * order; this module owns the widget bodies plus the order/visibility helpers.
+ * Visibility follows the per-device appearance widget config; collections is
+ * additionally gated by the admin addon.
  */
-export default function MDashWidgets({ upcoming }: MDashWidgetsProps): React.ReactElement | null {
+
+/** Reconcile a stored mobile-dashboard order: keep known tokens in order, drop
+ *  unknown/duplicate ones, and append any missing tokens in their built-in spot. */
+export function resolveMobileDashOrder(stored: string[] | undefined): MobileDashToken[] {
+  const valid = new Set<string>(MOBILE_DASH_TOKENS)
+  const seen = new Set<string>()
+  const out: MobileDashToken[] = []
+  for (const tok of stored ?? []) {
+    if (valid.has(tok) && !seen.has(tok)) { seen.add(tok); out.push(tok as MobileDashToken) }
+  }
+  for (const tok of MOBILE_DASH_TOKENS) if (!seen.has(tok)) out.push(tok)
+  return out
+}
+
+/** The resolved mobile-dashboard block order from the appearance blob. */
+export function useMobileDashOrder(): MobileDashToken[] {
+  const appearance = useSettingsStore(s => s.settings.appearance)
+  return resolveMobileDashOrder(normalizeAppearance(appearance).dashboard.mobileOrder)
+}
+
+/** Which blocks are currently visible — trips always; widgets per flag (+ addon). */
+export function useMobileDashVisibility(): Record<MobileDashToken, boolean> {
   const appearance = useSettingsStore(s => s.settings.appearance)
   const isAddonEnabled = useAddonStore(s => s.isEnabled)
-  const widgets = normalizeAppearance(appearance).dashboard.mobile
+  const w = normalizeAppearance(appearance).dashboard.mobile
+  return {
+    trips: true,
+    currency: w.currency,
+    collections: isAddonEnabled('collections') && w.collections,
+    timezones: w.timezones,
+    upcomingReservations: w.upcomingReservations,
+  }
+}
 
-  const showCollections = isAddonEnabled('collections') && widgets.collections
-  if (!widgets.currency && !showCollections && !widgets.timezones && !widgets.upcomingReservations) return null
-
-  return (
-    <>
-      {widgets.currency && <MCurrencyWidget />}
-      {showCollections && <MCollectionsWidget />}
-      {widgets.timezones && <MTimezonesWidget />}
-      {widgets.upcomingReservations && <MUpcomingWidget items={upcoming} />}
-    </>
-  )
+/** Render a single mobile dashboard widget block by token (null for 'trips'). */
+export function MobileDashWidget({ id, upcoming }: { id: MobileDashToken; upcoming: UpcomingReservation[] }): React.ReactElement | null {
+  switch (id) {
+    case 'currency': return <MCurrencyWidget />
+    case 'collections': return <MCollectionsWidget />
+    case 'timezones': return <MTimezonesWidget />
+    case 'upcomingReservations': return <MUpcomingWidget items={upcoming} />
+    default: return null
+  }
 }
 
 function WidgetPanel({ icon, title, action, children }: {

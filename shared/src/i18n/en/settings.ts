@@ -437,6 +437,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Pinned',
   'settings.appearance.mobileNav.toMore': 'Move under “More”',
   'settings.appearance.mobileNav.toBar': 'Move into the bar',
+  'settings.appearance.dashOrder': 'Dashboard order',
+  'settings.appearance.dashOrder.hint': 'Reorder how the trip list and widgets stack on your phone dashboard. The featured trip always stays on top.',
+  'settings.appearance.dashOrder.trips': 'Trips',
+  'settings.appearance.dashOrder.hidden': 'Hidden',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

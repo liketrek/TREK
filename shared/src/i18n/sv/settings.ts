@@ -435,6 +435,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fäst',
   'settings.appearance.mobileNav.toMore': 'Flytta under ”Mer”',
   'settings.appearance.mobileNav.toBar': 'Flytta till fältet',
+  'settings.appearance.dashOrder': 'Instrumentpanelens ordning',
+  'settings.appearance.dashOrder.hint': 'Ändra ordningen på hur reselistan och widgetarna staplas på telefonens instrumentpanel. Den utvalda resan ligger alltid överst.',
+  'settings.appearance.dashOrder.trips': 'Resor',
+  'settings.appearance.dashOrder.hidden': 'Dold',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

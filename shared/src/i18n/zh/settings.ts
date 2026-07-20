@@ -409,6 +409,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': '已固定',
   'settings.appearance.mobileNav.toMore': '移到“更多”里',
   'settings.appearance.mobileNav.toBar': '移入导航栏',
+  'settings.appearance.dashOrder': '仪表盘排序',
+  'settings.appearance.dashOrder.hint': '重新排列行程列表和小组件在手机仪表盘上的堆叠顺序。精选行程始终固定在顶部。',
+  'settings.appearance.dashOrder.trips': '行程',
+  'settings.appearance.dashOrder.hidden': '已隐藏',
   'settings.general.languageRegion': '语言与地区',
   'settings.general.travelMap': '旅行与地图',
 

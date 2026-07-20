@@ -410,6 +410,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': '固定',
   'settings.appearance.mobileNav.toMore': '「その他」に移動',
   'settings.appearance.mobileNav.toBar': 'バーに移動',
+  'settings.appearance.dashOrder': 'ダッシュボードの並び順',
+  'settings.appearance.dashOrder.hint': 'スマホのダッシュボードで旅行リストやウィジェットが並ぶ順番を変更できます。注目の旅行は常に一番上に固定されます。',
+  'settings.appearance.dashOrder.trips': '旅行',
+  'settings.appearance.dashOrder.hidden': '非表示',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

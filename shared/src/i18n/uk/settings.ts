@@ -436,6 +436,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Закріплено',
   'settings.appearance.mobileNav.toMore': 'Перемістити під «Ще»',
   'settings.appearance.mobileNav.toBar': 'Перемістити на панель',
+  'settings.appearance.dashOrder': 'Порядок панелі',
+  'settings.appearance.dashOrder.hint': 'Змініть порядок, у якому список подорожей і віджети розташовуються на панелі телефона. Виділена подорож завжди залишається вгорі.',
+  'settings.appearance.dashOrder.trips': 'Подорожі',
+  'settings.appearance.dashOrder.hidden': 'Приховано',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

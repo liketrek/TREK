@@ -421,6 +421,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'مثبَّت',
   'settings.appearance.mobileNav.toMore': 'نقل إلى «المزيد»',
   'settings.appearance.mobileNav.toBar': 'نقل إلى الشريط',
+  'settings.appearance.dashOrder': 'ترتيب لوحة التحكم',
+  'settings.appearance.dashOrder.hint': 'أعد ترتيب تسلسل قائمة الرحلات والأدوات على لوحة تحكم هاتفك. تبقى الرحلة المميّزة دائمًا في الأعلى.',
+  'settings.appearance.dashOrder.trips': 'الرحلات',
+  'settings.appearance.dashOrder.hidden': 'مخفي',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

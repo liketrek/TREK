@@ -438,6 +438,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fixiert',
   'settings.appearance.mobileNav.toMore': 'Unter „Mehr“ verschieben',
   'settings.appearance.mobileNav.toBar': 'In die Leiste verschieben',
+  'settings.appearance.dashOrder': 'Dashboard-Reihenfolge',
+  'settings.appearance.dashOrder.hint': 'Ordne, wie Trip-Liste und Widgets auf deinem Handy-Dashboard gestapelt sind. Der hervorgehobene Trip bleibt immer oben.',
+  'settings.appearance.dashOrder.trips': 'Trips',
+  'settings.appearance.dashOrder.hidden': 'Ausgeblendet',
   'settings.general.languageRegion': 'Sprache & Region',
   'settings.general.travelMap': 'Reise & Karte',
 

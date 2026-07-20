@@ -433,6 +433,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Sabit',
   'settings.appearance.mobileNav.toMore': '“Diğer” altına taşı',
   'settings.appearance.mobileNav.toBar': 'Çubuğa taşı',
+  'settings.appearance.dashOrder': 'Panel sıralaması',
+  'settings.appearance.dashOrder.hint': 'Gezi listesi ve widget’ların telefon panelinizde nasıl sıralanacağını yeniden düzenleyin. Öne çıkan gezi her zaman en üstte kalır.',
+  'settings.appearance.dashOrder.trips': 'Geziler',
+  'settings.appearance.dashOrder.hidden': 'Gizli',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

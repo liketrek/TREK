@@ -434,6 +434,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Disematkan',
   'settings.appearance.mobileNav.toMore': 'Pindahkan ke “Lainnya”',
   'settings.appearance.mobileNav.toBar': 'Pindahkan ke bilah',
+  'settings.appearance.dashOrder': 'Urutan dasbor',
+  'settings.appearance.dashOrder.hint': 'Atur ulang susunan daftar perjalanan dan widget di dasbor ponsel Anda. Perjalanan unggulan selalu berada di atas.',
+  'settings.appearance.dashOrder.trips': 'Perjalanan',
+  'settings.appearance.dashOrder.hidden': 'Tersembunyi',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

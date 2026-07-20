@@ -82,9 +82,16 @@ const DEFAULT_DASHBOARD_MOBILE = {
   timezones: true,
   upcomingReservations: true,
 };
+// Orderable blocks of the MOBILE dashboard: the trip list + the inline widgets.
+// The featured (spotlight) trip is not orderable — it always stays on top.
+export const MOBILE_DASH_TOKENS = ['trips', 'currency', 'collections', 'timezones', 'upcomingReservations'] as const;
+export type MobileDashToken = (typeof MOBILE_DASH_TOKENS)[number];
+
 export const DEFAULT_DASHBOARD_WIDGETS = {
   desktop: DEFAULT_DASHBOARD_DESKTOP,
   mobile: DEFAULT_DASHBOARD_MOBILE,
+  // Ordered mobile blocks; empty = the built-in order (trips first, then widgets).
+  mobileOrder: [] as MobileDashToken[],
 };
 
 const dashboardWidgetsSchema = z
@@ -114,6 +121,9 @@ const dashboardWidgetsSchema = z
       })
       .catch(DEFAULT_DASHBOARD_MOBILE)
       .default(DEFAULT_DASHBOARD_MOBILE),
+    // Per-user order of the mobile dashboard blocks. Empty = built-in order;
+    // unknown/duplicate tokens are reconciled by the renderer at display time.
+    mobileOrder: z.array(z.enum(MOBILE_DASH_TOKENS)).catch([]).default([]),
   })
   .catch(DEFAULT_DASHBOARD_WIDGETS)
   .default(DEFAULT_DASHBOARD_WIDGETS);

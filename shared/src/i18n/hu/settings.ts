@@ -436,6 +436,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Rögzítve',
   'settings.appearance.mobileNav.toMore': 'Áthelyezés a „Továbbiak” alá',
   'settings.appearance.mobileNav.toBar': 'Áthelyezés a sávba',
+  'settings.appearance.dashOrder': 'Irányítópult sorrendje',
+  'settings.appearance.dashOrder.hint': 'Rendezd át, hogyan legyenek egymás alatt az utazáslista és a widgetek a telefon irányítópultján. A kiemelt utazás mindig felül marad.',
+  'settings.appearance.dashOrder.trips': 'Utazások',
+  'settings.appearance.dashOrder.hidden': 'Rejtett',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

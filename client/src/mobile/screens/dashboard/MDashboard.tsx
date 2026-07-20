@@ -23,8 +23,9 @@ import MIconBtn from '../../components/MIconBtn'
 import MSegmented from '../../components/MSegmented'
 import MSheet from '../../components/MSheet'
 import MUserMenu from './MUserMenu'
-import MDashWidgets from './MDashWidgets'
+import { useMobileDashOrder, useMobileDashVisibility, MobileDashWidget } from './MDashWidgets'
 import MNewTripSheet from './MNewTripSheet'
+import type { MobileDashToken } from '@trek/shared'
 
 // Localized short date for the pills; the year only shows when it isn't the
 // current one (same rule as the desktop cards).
@@ -75,6 +76,11 @@ export default function MDashboard(): React.ReactElement {
   const anyPluginActive = usePluginStore(s => s.plugins).length > 0
   const badgesFor = useTripCardBadges(gridTrips.map(trip => trip.id), anyPluginActive)
 
+  // Mobile-only dashboard arrangement: the featured trip stays on top, then the
+  // trip list + widgets render in the user's chosen order (Settings → Appearance).
+  const dashOrder = useMobileDashOrder()
+  const dashVisible = useMobileDashVisibility()
+
   useEffect(() => { if (isAuthenticated) fetchUnreadCount() }, [isAuthenticated, fetchUnreadCount])
 
   const openCreate = () => { setEditingTrip(null); setShowForm(true) }
@@ -116,6 +122,92 @@ export default function MDashboard(): React.ReactElement {
   }
 
   const showEmpty = tripFilter === 'planned' && !spotlight && gridTrips.length === 0 && !isLoading && !loadError
+
+  // One dashboard block by token: 'trips' is the filter row + trip list; the
+  // rest are the inline widgets (rendered only when their toggle is on).
+  const renderBlock = (id: MobileDashToken): React.ReactNode => {
+    if (id !== 'trips') {
+      return dashVisible[id] ? <MobileDashWidget id={id} upcoming={upcoming} /> : null
+    }
+    return (
+      <>
+        <div className="mt-[14px] flex items-center gap-[7px]">
+          <MSegmented<TripFilter>
+            value={tripFilter}
+            onChange={setTripFilter}
+            variant="intrinsic"
+            options={[
+              { value: 'planned', label: t('dashboard.filter.planned') },
+              { value: 'archive', label: t('dashboard.archived') },
+              { value: 'completed', label: t('dashboard.mobile.completed') },
+            ]}
+          />
+          <MIconBtn ariaLabel={t('dashboard.subscribeAllTrips')} size={36} className="ml-auto" onClick={() => setSubOpen(true)}>
+            <CalendarPlus size={15} strokeWidth={2} className="text-m-muted" />
+          </MIconBtn>
+          <button
+            type="button"
+            onClick={toggleViewMode}
+            aria-label={t('dashboard.aria.toggleView')}
+            className={`flex h-9 w-9 flex-none items-center justify-center rounded-full ${
+              viewMode === 'list'
+                ? 'bg-m-act text-m-actfg'
+                : 'border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] text-m-muted'
+            }`}
+          >
+            {viewMode === 'grid' ? <List size={15} strokeWidth={2} /> : <LayoutGrid size={15} strokeWidth={2} />}
+          </button>
+        </div>
+
+        {showEmpty && (
+          <div className="mt-[10px] flex flex-col items-center rounded-[20px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-8 text-center">
+            <MDancingTrek scene="dashboard" size={96} className="mb-2" />
+            <div className="text-[0.9375rem] font-bold">{t('dashboard.emptyTitle')}</div>
+            <div className="mt-1 font-geist text-[0.6875rem] text-m-muted">{t('dashboard.emptyText')}</div>
+            <button
+              type="button"
+              onClick={openCreate}
+              className="mt-4 flex items-center gap-[6px] rounded-full bg-m-act px-4 py-[9px] text-[0.75rem] font-semibold text-m-actfg"
+            >
+              <Plus size={14} strokeWidth={2.4} />
+              {t('dashboard.emptyButton')}
+            </button>
+          </div>
+        )}
+
+        {viewMode === 'grid' ? (
+          <div className="mt-[10px] flex flex-col gap-3">
+            {gridTrips.map(trip => (
+              <MTripGridCard
+                key={trip.id}
+                trip={trip}
+                locale={locale}
+                badge={statusLabel(trip)}
+                pluginBadges={badgesFor(trip.id)}
+                actions={actionsFor(trip, 'grid')}
+                onOpen={() => navigate(`/trips/${trip.id}`)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-[10px] flex flex-col gap-3">
+            {gridTrips.map(trip => (
+              <MTripListCard
+                key={trip.id}
+                trip={trip}
+                locale={locale}
+                t={t}
+                badge={statusLabel(trip)}
+                pluginBadges={badgesFor(trip.id)}
+                actions={actionsFor(trip, 'list')}
+                onOpen={() => navigate(`/trips/${trip.id}`)}
+              />
+            ))}
+          </div>
+        )}
+      </>
+    )
+  }
 
   return (
     <>
@@ -179,83 +271,9 @@ export default function MDashboard(): React.ReactElement {
           />
         )}
 
-        <div className="mt-[14px] flex items-center gap-[7px]">
-          <MSegmented<TripFilter>
-            value={tripFilter}
-            onChange={setTripFilter}
-            variant="intrinsic"
-            options={[
-              { value: 'planned', label: t('dashboard.filter.planned') },
-              { value: 'archive', label: t('dashboard.archived') },
-              { value: 'completed', label: t('dashboard.mobile.completed') },
-            ]}
-          />
-          <MIconBtn ariaLabel={t('dashboard.subscribeAllTrips')} size={36} className="ml-auto" onClick={() => setSubOpen(true)}>
-            <CalendarPlus size={15} strokeWidth={2} className="text-m-muted" />
-          </MIconBtn>
-          <button
-            type="button"
-            onClick={toggleViewMode}
-            aria-label={t('dashboard.aria.toggleView')}
-            className={`flex h-9 w-9 flex-none items-center justify-center rounded-full ${
-              viewMode === 'list'
-                ? 'bg-m-act text-m-actfg'
-                : 'border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] text-m-muted'
-            }`}
-          >
-            {/* Icon shows the layout the tap switches TO, not the current one. */}
-            {viewMode === 'grid' ? <List size={15} strokeWidth={2} /> : <LayoutGrid size={15} strokeWidth={2} />}
-          </button>
-        </div>
-
-        {showEmpty && (
-          <div className="mt-[10px] flex flex-col items-center rounded-[20px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-8 text-center">
-            <MDancingTrek scene="dashboard" size={96} className="mb-2" />
-            <div className="text-[0.9375rem] font-bold">{t('dashboard.emptyTitle')}</div>
-            <div className="mt-1 font-geist text-[0.6875rem] text-m-muted">{t('dashboard.emptyText')}</div>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="mt-4 flex items-center gap-[6px] rounded-full bg-m-act px-4 py-[9px] text-[0.75rem] font-semibold text-m-actfg"
-            >
-              <Plus size={14} strokeWidth={2.4} />
-              {t('dashboard.emptyButton')}
-            </button>
-          </div>
-        )}
-
-        {viewMode === 'grid' ? (
-          <div className="mt-[10px] flex flex-col gap-3">
-            {gridTrips.map(trip => (
-              <MTripGridCard
-                key={trip.id}
-                trip={trip}
-                locale={locale}
-                badge={statusLabel(trip)}
-                pluginBadges={badgesFor(trip.id)}
-                actions={actionsFor(trip, 'grid')}
-                onOpen={() => navigate(`/trips/${trip.id}`)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="mt-[10px] flex flex-col gap-3">
-            {gridTrips.map(trip => (
-              <MTripListCard
-                key={trip.id}
-                trip={trip}
-                locale={locale}
-                t={t}
-                badge={statusLabel(trip)}
-                pluginBadges={badgesFor(trip.id)}
-                actions={actionsFor(trip, 'list')}
-                onOpen={() => navigate(`/trips/${trip.id}`)}
-              />
-            ))}
-          </div>
-        )}
-
-        <MDashWidgets upcoming={upcoming} />
+        {dashOrder.map(id => (
+          <React.Fragment key={id}>{renderBlock(id)}</React.Fragment>
+        ))}
 
         {widgetPlugins.length > 0 && (
           <div className="mt-3 flex flex-col gap-3">

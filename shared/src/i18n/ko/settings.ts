@@ -424,6 +424,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': '고정됨',
   'settings.appearance.mobileNav.toMore': '「더보기」에 넣기',
   'settings.appearance.mobileNav.toBar': '바에 넣기',
+  'settings.appearance.dashOrder': '대시보드 순서',
+  'settings.appearance.dashOrder.hint': '휴대폰 대시보드에서 여행 목록과 위젯이 표시되는 순서를 조정하세요. 대표 여행은 항상 맨 위에 고정됩니다.',
+  'settings.appearance.dashOrder.trips': '여행',
+  'settings.appearance.dashOrder.hidden': '숨김',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

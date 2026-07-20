@@ -413,6 +413,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': '已釘選',
   'settings.appearance.mobileNav.toMore': '移到「更多」',
   'settings.appearance.mobileNav.toBar': '移到導覽列',
+  'settings.appearance.dashOrder': '儀表板排序',
+  'settings.appearance.dashOrder.hint': '重新排列行程清單與小工具在手機儀表板上的堆疊順序。精選行程一律置頂。',
+  'settings.appearance.dashOrder.trips': '行程',
+  'settings.appearance.dashOrder.hidden': '已隱藏',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

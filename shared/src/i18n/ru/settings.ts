@@ -437,6 +437,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Закреплено',
   'settings.appearance.mobileNav.toMore': 'Переместить в меню «Ещё»',
   'settings.appearance.mobileNav.toBar': 'Переместить на панель',
+  'settings.appearance.dashOrder': 'Порядок панели',
+  'settings.appearance.dashOrder.hint': 'Измените порядок, в котором список поездок и виджеты располагаются на панели телефона. Избранная поездка всегда остаётся сверху.',
+  'settings.appearance.dashOrder.trips': 'Поездки',
+  'settings.appearance.dashOrder.hidden': 'Скрыто',
   'settings.general.languageRegion': 'Язык и регион',
   'settings.general.travelMap': 'Карта и путешествия',
 

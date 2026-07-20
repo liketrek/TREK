@@ -438,6 +438,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Đã ghim',
   'settings.appearance.mobileNav.toMore': 'Chuyển vào “Thêm”',
   'settings.appearance.mobileNav.toBar': 'Chuyển lên thanh',
+  'settings.appearance.dashOrder': 'Thứ tự bảng điều khiển',
+  'settings.appearance.dashOrder.hint': 'Sắp xếp lại cách danh sách chuyến đi và các tiện ích xếp chồng trên bảng điều khiển điện thoại. Chuyến đi nổi bật luôn ở trên cùng.',
+  'settings.appearance.dashOrder.trips': 'Chuyến đi',
+  'settings.appearance.dashOrder.hidden': 'Đã ẩn',
   'settings.general.languageRegion': 'Ngôn ngữ & khu vực',
   'settings.general.travelMap': 'Du lịch & bản đồ',
 

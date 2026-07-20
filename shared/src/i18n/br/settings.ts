@@ -436,6 +436,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fixado',
   'settings.appearance.mobileNav.toMore': 'Mover para “Mais”',
   'settings.appearance.mobileNav.toBar': 'Mover para a barra',
+  'settings.appearance.dashOrder': 'Ordem do painel',
+  'settings.appearance.dashOrder.hint': 'Reorganize como a lista de viagens e os widgets se empilham no painel do celular. A viagem em destaque fica sempre no topo.',
+  'settings.appearance.dashOrder.trips': 'Viagens',
+  'settings.appearance.dashOrder.hidden': 'Oculto',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

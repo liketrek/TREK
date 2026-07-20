@@ -446,6 +446,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Καρφιτσωμένο',
   'settings.appearance.mobileNav.toMore': 'Μετακίνηση στο μενού «Περισσότερα»',
   'settings.appearance.mobileNav.toBar': 'Μετακίνηση στη γραμμή',
+  'settings.appearance.dashOrder': 'Σειρά πίνακα',
+  'settings.appearance.dashOrder.hint': 'Αλλάξτε τη σειρά με την οποία στοιβάζονται η λίστα ταξιδιών και τα widget στον πίνακα του κινητού σας. Το προβεβλημένο ταξίδι παραμένει πάντα στην κορυφή.',
+  'settings.appearance.dashOrder.trips': 'Ταξίδια',
+  'settings.appearance.dashOrder.hidden': 'Κρυφό',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

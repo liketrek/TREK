@@ -436,6 +436,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fisso',
   'settings.appearance.mobileNav.toMore': 'Sposta sotto «Altro»',
   'settings.appearance.mobileNav.toBar': 'Sposta nella barra',
+  'settings.appearance.dashOrder': 'Ordine della dashboard',
+  'settings.appearance.dashOrder.hint': 'Riorganizza come si impilano l’elenco dei viaggi e i widget nella dashboard del telefono. Il viaggio in evidenza resta sempre in cima.',
+  'settings.appearance.dashOrder.trips': 'Viaggi',
+  'settings.appearance.dashOrder.hidden': 'Nascosto',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

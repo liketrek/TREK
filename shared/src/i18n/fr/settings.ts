@@ -443,6 +443,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Épinglé',
   'settings.appearance.mobileNav.toMore': 'Déplacer sous « Plus »',
   'settings.appearance.mobileNav.toBar': 'Déplacer dans la barre',
+  'settings.appearance.dashOrder': 'Ordre du tableau de bord',
+  'settings.appearance.dashOrder.hint': 'Réorganisez l’empilement de la liste des voyages et des widgets sur le tableau de bord de votre téléphone. Le voyage en vedette reste toujours en haut.',
+  'settings.appearance.dashOrder.trips': 'Voyages',
+  'settings.appearance.dashOrder.hidden': 'Masqué',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

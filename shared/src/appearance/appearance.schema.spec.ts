@@ -104,4 +104,18 @@ describe('normalizeAppearance', () => {
     // 'atlas' already in bar → removed from more; 'journey' de-duped
     expect(out.mobileNav.more).toEqual(['journey']);
   });
+
+  it('defaults a legacy blob without mobileOrder to an empty order', () => {
+    expect(normalizeAppearance({ schemeId: 'teal' }).dashboard.mobileOrder).toEqual([]);
+  });
+
+  it('round-trips a valid mobile dashboard order', () => {
+    const out = normalizeAppearance({ dashboard: { mobileOrder: ['currency', 'trips', 'timezones'] } });
+    expect(out.dashboard.mobileOrder).toEqual(['currency', 'trips', 'timezones']);
+  });
+
+  it('drops an unknown token / bogus mobileOrder without throwing', () => {
+    expect(normalizeAppearance({ dashboard: { mobileOrder: ['currency', 'nope'] } }).dashboard.mobileOrder).toEqual([]);
+    expect(normalizeAppearance({ dashboard: { mobileOrder: 'x' } }).dashboard.mobileOrder).toEqual([]);
+  });
 });

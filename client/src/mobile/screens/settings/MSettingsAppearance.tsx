@@ -15,6 +15,7 @@ import {
 import MToggle from '../../components/MToggle'
 import { MSetCard, MSetEyebrow, MSetSegments, MSetRow } from './MSettingsUi'
 import MMobileNavCustomizer from './MMobileNavCustomizer'
+import MMobileDashOrder from './MMobileDashOrder'
 
 // ── WCAG contrast helpers (custom-accent legibility hint) ────────────────────
 function channelLum(v: number): number {
@@ -249,6 +250,10 @@ export default function MSettingsAppearance() {
       <MSetCard title={t('settings.appearance.mobile')} icon={Smartphone} className="mt-3">
         <MSetEyebrow className="mb-[6px]">{t('settings.appearance.mobileNav')}</MSetEyebrow>
         <MMobileNavCustomizer value={cfg.mobileNav} onChange={(mn) => update({ mobileNav: mn })} />
+
+        <MSetEyebrow className="mb-[6px] mt-[14px]">{t('settings.appearance.dashOrder')}</MSetEyebrow>
+        <p className="-mt-[2px] mb-2 font-geist text-[0.625rem] leading-relaxed text-m-muted">{t('settings.appearance.dashOrder.hint')}</p>
+        <MMobileDashOrder cfg={cfg} onChange={(order) => update({ dashboard: { ...cfg.dashboard, mobileOrder: order } })} />
       </MSetCard>
 
       <MSetCard

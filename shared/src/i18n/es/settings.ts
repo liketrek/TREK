@@ -437,6 +437,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fijado',
   'settings.appearance.mobileNav.toMore': 'Mover a «Más»',
   'settings.appearance.mobileNav.toBar': 'Mover a la barra',
+  'settings.appearance.dashOrder': 'Orden del panel',
+  'settings.appearance.dashOrder.hint': 'Reordena cómo se apilan la lista de viajes y los widgets en el panel de tu teléfono. El viaje destacado siempre queda arriba.',
+  'settings.appearance.dashOrder.trips': 'Viajes',
+  'settings.appearance.dashOrder.hidden': 'Oculto',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

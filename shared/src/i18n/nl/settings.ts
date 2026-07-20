@@ -437,6 +437,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Vastgezet',
   'settings.appearance.mobileNav.toMore': 'Naar “Meer” verplaatsen',
   'settings.appearance.mobileNav.toBar': 'Naar de balk verplaatsen',
+  'settings.appearance.dashOrder': 'Dashboardvolgorde',
+  'settings.appearance.dashOrder.hint': 'Wijzig de volgorde waarin de reislijst en widgets op je mobiele dashboard worden gestapeld. De uitgelichte reis blijft altijd bovenaan.',
+  'settings.appearance.dashOrder.trips': 'Reizen',
+  'settings.appearance.dashOrder.hidden': 'Verborgen',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

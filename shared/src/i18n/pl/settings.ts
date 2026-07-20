@@ -436,6 +436,10 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Przypięte',
   'settings.appearance.mobileNav.toMore': 'Przenieś do menu „Więcej”',
   'settings.appearance.mobileNav.toBar': 'Przenieś na pasek',
+  'settings.appearance.dashOrder': 'Kolejność panelu',
+  'settings.appearance.dashOrder.hint': 'Zmień kolejność układania listy podróży i widżetów na panelu telefonu. Wyróżniona podróż zawsze pozostaje na górze.',
+  'settings.appearance.dashOrder.trips': 'Podróże',
+  'settings.appearance.dashOrder.hidden': 'Ukryte',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
