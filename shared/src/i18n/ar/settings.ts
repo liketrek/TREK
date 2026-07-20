@@ -421,8 +421,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'مثبَّت',
   'settings.appearance.mobileNav.toMore': 'نقل إلى «المزيد»',
   'settings.appearance.mobileNav.toBar': 'نقل إلى الشريط',
-  'settings.appearance.mobileNav.bar': 'الشريط',
-  'settings.appearance.mobileNav.more': 'المزيد',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

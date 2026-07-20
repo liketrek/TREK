@@ -433,8 +433,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Sabit',
   'settings.appearance.mobileNav.toMore': '“Diğer” altına taşı',
   'settings.appearance.mobileNav.toBar': 'Çubuğa taşı',
-  'settings.appearance.mobileNav.bar': 'Çubuk',
-  'settings.appearance.mobileNav.more': 'Diğer',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

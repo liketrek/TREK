@@ -446,8 +446,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Καρφιτσωμένο',
   'settings.appearance.mobileNav.toMore': 'Μετακίνηση στο μενού «Περισσότερα»',
   'settings.appearance.mobileNav.toBar': 'Μετακίνηση στη γραμμή',
-  'settings.appearance.mobileNav.bar': 'Γραμμή',
-  'settings.appearance.mobileNav.more': 'Περισσότερα',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

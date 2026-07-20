@@ -413,8 +413,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': '已釘選',
   'settings.appearance.mobileNav.toMore': '移到「更多」',
   'settings.appearance.mobileNav.toBar': '移到導覽列',
-  'settings.appearance.mobileNav.bar': '導覽列',
-  'settings.appearance.mobileNav.more': '更多',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

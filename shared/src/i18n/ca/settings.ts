@@ -419,8 +419,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fixat',
   'settings.appearance.mobileNav.toMore': 'Mou-ho sota «Més»',
   'settings.appearance.mobileNav.toBar': 'Mou-ho a la barra',
-  'settings.appearance.mobileNav.bar': 'Barra',
-  'settings.appearance.mobileNav.more': 'Més',
   'settings.general.languageRegion': 'Idioma i regió',
   'settings.general.travelMap': 'Viatge i mapa',
   'settings.offline.cache.title': 'Memòria cau fora de línia',

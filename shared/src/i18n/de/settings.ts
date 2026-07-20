@@ -438,8 +438,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fixiert',
   'settings.appearance.mobileNav.toMore': 'Unter „Mehr“ verschieben',
   'settings.appearance.mobileNav.toBar': 'In die Leiste verschieben',
-  'settings.appearance.mobileNav.bar': 'Leiste',
-  'settings.appearance.mobileNav.more': 'Mehr',
   'settings.general.languageRegion': 'Sprache & Region',
   'settings.general.travelMap': 'Reise & Karte',
 

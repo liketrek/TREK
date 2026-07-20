@@ -424,8 +424,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': '고정됨',
   'settings.appearance.mobileNav.toMore': '「더보기」에 넣기',
   'settings.appearance.mobileNav.toBar': '바에 넣기',
-  'settings.appearance.mobileNav.bar': '바',
-  'settings.appearance.mobileNav.more': '더보기',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

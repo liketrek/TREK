@@ -410,8 +410,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': '固定',
   'settings.appearance.mobileNav.toMore': '「その他」に移動',
   'settings.appearance.mobileNav.toBar': 'バーに移動',
-  'settings.appearance.mobileNav.bar': 'バー',
-  'settings.appearance.mobileNav.more': 'その他',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

@@ -437,8 +437,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fijado',
   'settings.appearance.mobileNav.toMore': 'Mover a «Más»',
   'settings.appearance.mobileNav.toBar': 'Mover a la barra',
-  'settings.appearance.mobileNav.bar': 'Barra',
-  'settings.appearance.mobileNav.more': 'Más',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

@@ -436,8 +436,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fixado',
   'settings.appearance.mobileNav.toMore': 'Mover para “Mais”',
   'settings.appearance.mobileNav.toBar': 'Mover para a barra',
-  'settings.appearance.mobileNav.bar': 'Barra',
-  'settings.appearance.mobileNav.more': 'Mais',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

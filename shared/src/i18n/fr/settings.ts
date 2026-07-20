@@ -443,8 +443,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Épinglé',
   'settings.appearance.mobileNav.toMore': 'Déplacer sous « Plus »',
   'settings.appearance.mobileNav.toBar': 'Déplacer dans la barre',
-  'settings.appearance.mobileNav.bar': 'Barre',
-  'settings.appearance.mobileNav.more': 'Plus',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

@@ -436,8 +436,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Rögzítve',
   'settings.appearance.mobileNav.toMore': 'Áthelyezés a „Továbbiak” alá',
   'settings.appearance.mobileNav.toBar': 'Áthelyezés a sávba',
-  'settings.appearance.mobileNav.bar': 'Sáv',
-  'settings.appearance.mobileNav.more': 'Továbbiak',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

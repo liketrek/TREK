@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Paintbrush, Eye, LayoutDashboard, Sun, Moon, Monitor, RotateCcw, Smartphone } from 'lucide-react'
+import { Paintbrush, Eye, LayoutDashboard, Sun, Moon, Monitor, RotateCcw } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
-import MobileNavCustomizer from './MobileNavCustomizer'
 import { applyAppearance } from '../../theme/applyAppearance'
 import { APPEARANCE_SCHEMES, CUSTOM_ACCENT_PRESETS } from '../../theme/schemes'
 import {
@@ -254,16 +253,6 @@ export default function AppearanceSettingsTab(): React.ReactElement {
             </div>
           </div>
         )}
-      </Section>
-
-      {/* ── Mobile ──────────────────────────────────────────────── */}
-      <Section title={tr('settings.appearance.mobile', 'Mobile')} icon={Smartphone}>
-        <div>
-          <label className="block text-sm font-medium mb-1 text-content-secondary">
-            {tr('settings.appearance.mobileNav', 'Bottom navbar')}
-          </label>
-          <MobileNavCustomizer value={cfg.mobileNav} onChange={(mn) => update({ mobileNav: mn })} />
-        </div>
       </Section>
 
       {/* ── Readability ─────────────────────────────────────────── */}

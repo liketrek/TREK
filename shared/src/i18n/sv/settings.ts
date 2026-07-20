@@ -435,8 +435,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Fäst',
   'settings.appearance.mobileNav.toMore': 'Flytta under ”Mer”',
   'settings.appearance.mobileNav.toBar': 'Flytta till fältet',
-  'settings.appearance.mobileNav.bar': 'Fält',
-  'settings.appearance.mobileNav.more': 'Mer',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

@@ -429,8 +429,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Připnuto',
   'settings.appearance.mobileNav.toMore': 'Přesunout do nabídky „Více“',
   'settings.appearance.mobileNav.toBar': 'Přesunout do lišty',
-  'settings.appearance.mobileNav.bar': 'Lišta',
-  'settings.appearance.mobileNav.more': 'Více',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 

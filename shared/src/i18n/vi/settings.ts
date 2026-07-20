@@ -438,8 +438,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Đã ghim',
   'settings.appearance.mobileNav.toMore': 'Chuyển vào “Thêm”',
   'settings.appearance.mobileNav.toBar': 'Chuyển lên thanh',
-  'settings.appearance.mobileNav.bar': 'Thanh',
-  'settings.appearance.mobileNav.more': 'Thêm',
   'settings.general.languageRegion': 'Ngôn ngữ & khu vực',
   'settings.general.travelMap': 'Du lịch & bản đồ',
 

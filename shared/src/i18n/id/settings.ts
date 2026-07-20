@@ -434,8 +434,6 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.pinned': 'Disematkan',
   'settings.appearance.mobileNav.toMore': 'Pindahkan ke “Lainnya”',
   'settings.appearance.mobileNav.toBar': 'Pindahkan ke bilah',
-  'settings.appearance.mobileNav.bar': 'Bilah',
-  'settings.appearance.mobileNav.more': 'Lainnya',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
