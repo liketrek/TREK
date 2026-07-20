@@ -124,9 +124,13 @@ describe('CollabChat', () => {
     expect(screen.getByPlaceholderText('Type a message...')).toBeInTheDocument();
   });
 
-  it('FE-COMP-CHAT-009: shows hint text in empty state', async () => {
+  it('FE-COMP-CHAT-009: shows guidance in empty state', async () => {
     render(<CollabChat {...defaultProps} />);
-    await screen.findByText(/Share ideas, plans/i);
+    // The empty state now renders the shared EmptyState: a chat-scene mascot
+    // plus the single "Start the conversation" title (the separate hint
+    // paragraph was dropped in the mobile rewrite).
+    await screen.findByText('Start the conversation');
+    expect(document.querySelector('svg.trek--chat')).toBeInTheDocument();
   });
 
   it('FE-COMP-CHAT-010: chat container renders', () => {

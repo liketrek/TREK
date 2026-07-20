@@ -501,16 +501,17 @@ describe('JourneyDetailPage', () => {
       });
     });
 
-    it('shows hint text to add a trip', async () => {
+    it('shows the journey mascot illustration alongside the empty state', async () => {
       setupDefaultHandlers({ entries: [], stats: { entries: 0, photos: 0, places: 0 } });
 
-      render(<JourneyDetailPage />);
+      const { container } = render(<JourneyDetailPage />);
 
       await waitFor(() => {
-        expect(
-          screen.getByText('Add a trip to get started with skeleton entries'),
-        ).toBeInTheDocument();
+        expect(screen.getByText('No entries yet')).toBeInTheDocument();
       });
+      // The shared EmptyState renders the TREK mascot acting out the "journey"
+      // scene instead of a text hint.
+      expect(container.querySelector('.trek--journey')).toBeInTheDocument();
     });
   });
 
