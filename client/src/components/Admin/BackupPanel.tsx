@@ -49,6 +49,7 @@ export default function BackupPanel() {
   const [autoSettingsDirty, setAutoSettingsDirty] = useState(false)
   const [serverTimezone, setServerTimezone] = useState('')
   const [restoreConfirm, setRestoreConfirm] = useState(null) // { type: 'file'|'upload', filename, file? }
+  const [deleteConfirm, setDeleteConfirm] = useState(null) // the backup row awaiting confirmation
   const [target, setTarget] = useState(null)
   const [targetDirty, setTargetDirty] = useState(false)
   const [targetSaving, setTargetSaving] = useState(false)
@@ -102,7 +103,8 @@ export default function BackupPanel() {
     setTargetSaving(true)
     try {
       const data = await backupApi.setTarget({
-        enabled: target.enabled,
+        type: target.type,
+        local_path: target.local_path,
         endpoint: target.endpoint,
         region: target.region,
         bucket: target.bucket,
@@ -227,10 +229,16 @@ export default function BackupPanel() {
     }
   }
 
-  const handleDelete = async (filename) => {
-    if (!confirm(t('backup.confirm.delete', { name: filename }))) return
+  const handleDelete = (backup) => {
+    setDeleteConfirm(backup)
+  }
+
+  const executeDelete = async () => {
+    const backup = deleteConfirm
+    if (!backup) return
+    setDeleteConfirm(null)
     try {
-      const res = await backupApi.delete(filename)
+      const res = await backupApi.delete(backup.filename)
       // The local copy is gone but the mirrored one may not be — saying
       // "deleted" then would leave a restorable archive behind.
       if (res?.remoteError) {
@@ -421,7 +429,7 @@ export default function BackupPanel() {
                   {/* Always offered: an S3-only archive is deletable too —
                       the server removes whichever copies exist. */}
                   <button
-                    onClick={() => handleDelete(backup.filename)}
+                    onClick={() => handleDelete(backup)}
                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -610,150 +618,166 @@ export default function BackupPanel() {
           </div>
 
           <fieldset disabled={target.managed_by_env} className="flex flex-col gap-5 disabled:opacity-60">
-            {/* Enable toggle */}
-            <label className="flex items-center justify-between gap-4 cursor-pointer">
-              <span className="text-sm font-medium text-gray-900 min-w-0">{t('backup.target.enabled')}</span>
-              <button
-                type="button"
-                onClick={() => handleTargetChange('enabled', !target.enabled)}
-                className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                style={{ background: target.enabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
-              >
-                <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-                  style={{ transform: target.enabled ? 'translateX(20px)' : 'translateX(0)' }} />
-              </button>
-            </label>
-
+            {/* Which storage backend the archive is copied to. */}
             <div>
-              <label htmlFor="s3-endpoint" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.endpoint')}</label>
-              <input
-                id="s3-endpoint"
-                type="url"
-                value={target.endpoint}
-                onChange={e => handleTargetChange('endpoint', e.target.value)}
-                placeholder="https://s3.example.com"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-              />
-              <p className="text-xs text-gray-400 mt-1">{t('backup.target.endpointHint')}</p>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.backend')}</label>
+              <p className="text-xs text-gray-400 mb-2">{t('backup.target.backendHint')}</p>
+              <div className="flex flex-wrap gap-2">
+                {['none', 'local', 's3'].map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => handleTargetChange('type', type)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                      target.type === type
+                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-700'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {t(`backup.target.backend.${type}`)}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {target.type === 'local' && (
               <div>
-                <label htmlFor="s3-bucket" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.bucket')}</label>
+                <label htmlFor="local-path" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.localPath')}</label>
                 <input
-                  id="s3-bucket"
+                  id="local-path"
                   type="text"
-                  value={target.bucket}
-                  onChange={e => handleTargetChange('bucket', e.target.value)}
+                  value={target.local_path}
+                  onChange={e => handleTargetChange('local_path', e.target.value)}
+                  placeholder="/mnt/nas/trek-backups"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
                 />
-              </div>
-              <div>
-                <label htmlFor="s3-region" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.region')}</label>
-                <input
-                  id="s3-region"
-                  type="text"
-                  value={target.region}
-                  onChange={e => handleTargetChange('region', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="s3-prefix" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.prefix')}</label>
-              <input
-                id="s3-prefix"
-                type="text"
-                value={target.prefix}
-                onChange={e => handleTargetChange('prefix', e.target.value)}
-                placeholder="trek/backups/"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-              />
-              <p className="text-xs text-gray-400 mt-1">{t('backup.target.prefixHint')}</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="s3-access-key-id" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.accessKeyId')}</label>
-                <input
-                  id="s3-access-key-id"
-                  type="text"
-                  value={target.access_key_id}
-                  onChange={e => handleTargetChange('access_key_id', e.target.value)}
-                  autoComplete="off"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                />
-              </div>
-              <div>
-                <label htmlFor="s3-secret-access-key" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.secretAccessKey')}</label>
-                <input
-                  id="s3-secret-access-key"
-                  type="password"
-                  value={target.secret_access_key}
-                  onChange={e => handleTargetChange('secret_access_key', e.target.value)}
-                  autoComplete="new-password"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                />
-                {target.secret_access_key_set && (
-                  <p className="text-xs text-gray-400 mt-1">{t('backup.target.secretKept')}</p>
-                )}
-              </div>
-            </div>
-
-            <label className="flex items-center justify-between gap-4 cursor-pointer">
-              <div className="min-w-0">
-                <span className="text-sm font-medium text-gray-900">{t('backup.target.forcePathStyle')}</span>
-                <p className="text-xs text-gray-500 mt-0.5">{t('backup.target.forcePathStyleHint')}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleTargetChange('force_path_style', !target.force_path_style)}
-                className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                style={{ background: target.force_path_style ? 'var(--text-primary)' : 'var(--border-primary)' }}
-              >
-                <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-                  style={{ transform: target.force_path_style ? 'translateX(20px)' : 'translateX(0)' }} />
-              </button>
-            </label>
-
-            <label className="flex items-center justify-between gap-4 cursor-pointer">
-              <span className="text-sm font-medium text-gray-900 min-w-0">{t('backup.target.requireTls')}</span>
-              <button
-                type="button"
-                onClick={() => handleTargetChange('require_tls', !target.require_tls)}
-                className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                style={{ background: target.require_tls ? 'var(--text-primary)' : 'var(--border-primary)' }}
-              >
-                <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-                  style={{ transform: target.require_tls ? 'translateX(20px)' : 'translateX(0)' }} />
-              </button>
-            </label>
-
-            {/* Filling the form in and testing it successfully does NOT start
-                mirroring — the toggle above does. Without this notice that gap
-                is silent, and the admin only finds out when they need the
-                off-box copy and it was never there. */}
-            {!target.enabled && target.bucket && target.access_key_id && target.secret_access_key_set && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">{t('backup.target.configuredButOff')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('backup.target.localPathHint')}</p>
               </div>
             )}
 
-            {/* Plaintext transport is opt-in and says plainly what it costs. */}
-            {!target.require_tls && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">{t('backup.target.requireTlsWarning')}</p>
+            {target.type === 's3' && (
+              <>
+              <div>
+                <label htmlFor="s3-endpoint" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.endpoint')}</label>
+                <input
+                  id="s3-endpoint"
+                  type="url"
+                  value={target.endpoint}
+                  onChange={e => handleTargetChange('endpoint', e.target.value)}
+                  placeholder="https://s3.example.com"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+                <p className="text-xs text-gray-400 mt-1">{t('backup.target.endpointHint')}</p>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="s3-bucket" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.bucket')}</label>
+                  <input
+                    id="s3-bucket"
+                    type="text"
+                    value={target.bucket}
+                    onChange={e => handleTargetChange('bucket', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="s3-region" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.region')}</label>
+                  <input
+                    id="s3-region"
+                    type="text"
+                    value={target.region}
+                    onChange={e => handleTargetChange('region', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="s3-prefix" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.prefix')}</label>
+                <input
+                  id="s3-prefix"
+                  type="text"
+                  value={target.prefix}
+                  onChange={e => handleTargetChange('prefix', e.target.value)}
+                  placeholder="trek/backups/"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+                <p className="text-xs text-gray-400 mt-1">{t('backup.target.prefixHint')}</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="s3-access-key-id" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.accessKeyId')}</label>
+                  <input
+                    id="s3-access-key-id"
+                    type="text"
+                    value={target.access_key_id}
+                    onChange={e => handleTargetChange('access_key_id', e.target.value)}
+                    autoComplete="off"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="s3-secret-access-key" className="block text-sm font-medium text-gray-700 mb-2">{t('backup.target.secretAccessKey')}</label>
+                  <input
+                    id="s3-secret-access-key"
+                    type="password"
+                    value={target.secret_access_key}
+                    onChange={e => handleTargetChange('secret_access_key', e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  />
+                  {target.secret_access_key_set && (
+                    <p className="text-xs text-gray-400 mt-1">{t('backup.target.secretKept')}</p>
+                  )}
+                </div>
+              </div>
+
+              <label className="flex items-center justify-between gap-4 cursor-pointer">
+                <div className="min-w-0">
+                  <span className="text-sm font-medium text-gray-900">{t('backup.target.forcePathStyle')}</span>
+                  <p className="text-xs text-gray-500 mt-0.5">{t('backup.target.forcePathStyleHint')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTargetChange('force_path_style', !target.force_path_style)}
+                  className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                  style={{ background: target.force_path_style ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                >
+                  <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+                    style={{ transform: target.force_path_style ? 'translateX(20px)' : 'translateX(0)' }} />
+                </button>
+              </label>
+
+              <label className="flex items-center justify-between gap-4 cursor-pointer">
+                <span className="text-sm font-medium text-gray-900 min-w-0">{t('backup.target.requireTls')}</span>
+                <button
+                  type="button"
+                  onClick={() => handleTargetChange('require_tls', !target.require_tls)}
+                  className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                  style={{ background: target.require_tls ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                >
+                  <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+                    style={{ transform: target.require_tls ? 'translateX(20px)' : 'translateX(0)' }} />
+                </button>
+              </label>
+
+              {/* Plaintext transport is opt-in and says plainly what it costs. */}
+              {!target.require_tls && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-amber-700">{t('backup.target.requireTlsWarning')}</p>
+                </div>
+              )}
+              </>
             )}
 
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
               <button
                 type="button"
                 onClick={handleSyncTarget}
-                disabled={targetSyncing || !target.enabled}
+                disabled={targetSyncing || target.type === 'none'}
                 title={t('backup.target.syncHint')}
                 className="flex items-center gap-2 border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50"
               >
@@ -789,6 +813,72 @@ export default function BackupPanel() {
               </button>
             </div>
           </fieldset>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div
+          className="bg-[rgba(0,0,0,0.5)]"
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 440, borderRadius: 16, overflow: 'hidden' }}
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+          >
+            <div style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="bg-[rgba(255,255,255,0.2)]" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Trash2 size={20} className="text-white" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h3 className="text-white" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700 }}>
+                  {t('backup.deleteConfirmTitle')}
+                </h3>
+                <p className="text-[rgba(255,255,255,0.8)]" style={{ margin: '2px 0 0', fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {deleteConfirm.filename}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ padding: '20px 24px' }}>
+              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.6, margin: 0 }}>
+                {t('backup.deleteWarning')}
+              </p>
+
+              {/* Where the archive lives decides what "delete" actually removes,
+                  so say it rather than leaving the admin to guess. */}
+              <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: 1.5 }}
+                className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
+              >
+                {deleteConfirm.local && deleteConfirm.remote
+                  ? t('backup.deleteScope.both')
+                  : deleteConfirm.remote
+                    ? t('backup.deleteScope.remote')
+                    : t('backup.deleteScope.local')}
+              </div>
+            </div>
+
+            <div style={{ padding: '0 24px 20px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={executeDelete}
+                className="bg-[#dc2626] text-white"
+                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
+                onMouseLeave={e => e.currentTarget.style.background = '#dc2626'}
+              >
+                {t('backup.deleteConfirm')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

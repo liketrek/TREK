@@ -278,12 +278,40 @@ describe('BackupPanel', () => {
     ) as HTMLElement
     expect(trashBtn).toBeTruthy()
     await user.click(trashBtn!)
+    // Deleting is confirmed in a TREK modal now, not a native window.confirm.
+    await waitFor(() => expect(screen.getByText('Delete backup?')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /yes, delete/i }))
     await waitFor(() => {
       expect(screen.getByText('Backup deleted')).toBeInTheDocument()
     })
     await waitFor(() => {
       expect(screen.queryByText('backup-2025-01-15.zip')).not.toBeInTheDocument()
     })
+  })
+
+  // BKP-029: the modal has to name what is actually removed — once the
+  // external target exists, "delete" can mean one copy or two.
+  it('FE-ADMIN-BKP-029: the delete modal names the copies it removes, and cancels cleanly', async () => {
+    const user = userEvent.setup()
+    let deleteCalled = false
+    server.use(
+      http.get('/api/backup/list', () => HttpResponse.json({
+        backups: [{ filename: 'backup-x.zip', created_at: '2025-01-15T10:00:00Z', size: 10, local: false, remote: true }],
+      })),
+      http.delete('/api/backup/:filename', () => { deleteCalled = true; return HttpResponse.json({ success: true }) }),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await waitFor(() => expect(screen.getByText('backup-x.zip')).toBeInTheDocument())
+
+    const trash = Array.from(document.querySelectorAll('button')).find(b => b.querySelector('svg.lucide-trash2'))
+    await user.click(trash)
+    await waitFor(() => expect(screen.getByText('Delete backup?')).toBeInTheDocument())
+    // S3-only: the modal must not claim it also removes a local copy.
+    expect(screen.getByText(/only at the external target/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /cancel/i }))
+    await waitFor(() => expect(screen.queryByText('Delete backup?')).not.toBeInTheDocument())
+    expect(deleteCalled).toBe(false)
   })
 
   // BKP-011: Auto-backup enable toggle shows interval controls
@@ -376,7 +404,8 @@ describe('BackupPanel', () => {
 
   describe('external S3 backup target', () => {
     const storedTarget = {
-      enabled: true,
+      type: 's3',
+      local_path: '',
       endpoint: 'https://s3.example.test',
       region: 'us-east-1',
       bucket: 'trek-backups',
@@ -424,7 +453,7 @@ describe('BackupPanel', () => {
       )
       render(<><ToastContainer /><BackupPanel /></>)
 
-      await waitFor(() => expect(screen.getByText(/configured through BACKUP_S3_/i)).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText(/configured through BACKUP_TARGET_TYPE/i)).toBeInTheDocument())
       expect(screen.getByLabelText('Bucket')).toBeDisabled()
     })
 
@@ -494,6 +523,10 @@ describe('BackupPanel', () => {
       const row = screen.getByText('backup-2025-01-15.zip').closest('div')!.parentElement!.parentElement!
       const buttons = [...row.querySelectorAll('button')]
       await user.click(buttons[buttons.length - 1])
+      await waitFor(() => expect(screen.getByText('Delete backup?')).toBeInTheDocument())
+      // The archive exists in both places, so the modal must say so.
+      expect(screen.getByText(/both copies/i)).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: /yes, delete/i }))
 
       await waitFor(() => expect(screen.getByText(/could not be removed/i)).toBeInTheDocument())
     })
@@ -510,23 +543,61 @@ describe('BackupPanel', () => {
       expect(warning.textContent).toMatch(/not encrypted before transmission/i)
     })
 
-    // BKP-020: a fully configured target that is switched off is the quiet
-    // failure this feature exists to avoid — say so in the form.
-    it('FE-ADMIN-BKP-020: warns when credentials are configured but mirroring is off', async () => {
-      server.use(
-        http.get('/api/backup/target', () => HttpResponse.json({ ...storedTarget, enabled: false })),
-      )
-      render(<><ToastContainer /><BackupPanel /></>)
-
-      await waitFor(() => expect(screen.getByText(/backups stay on this server only/i)).toBeInTheDocument())
-    })
-
-    it('FE-ADMIN-BKP-021: does not warn once mirroring is on', async () => {
+    // BKP-020: picking a backend is the switch now — there is no separate
+    // enable toggle to leave off by accident.
+    it('FE-ADMIN-BKP-020: offers the storage backends and shows S3 fields only for S3', async () => {
+      const user = userEvent.setup()
       server.use(http.get('/api/backup/target', () => HttpResponse.json(storedTarget)))
       render(<><ToastContainer /><BackupPanel /></>)
 
       await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
-      expect(screen.queryByText(/backups stay on this server only/i)).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Bucket')).toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: /^directory$/i }))
+      await waitFor(() => expect(screen.getByLabelText('Target directory')).toBeInTheDocument())
+      // S3 credentials are meaningless for a directory target.
+      expect(screen.queryByLabelText('Bucket')).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: /local only/i }))
+      await waitFor(() => expect(screen.queryByLabelText('Target directory')).not.toBeInTheDocument())
+    })
+
+    it('FE-ADMIN-BKP-021: saves the chosen backend and its directory', async () => {
+      const user = userEvent.setup()
+      let sent: Record<string, unknown> | null = null
+      server.use(
+        http.get('/api/backup/target', () => HttpResponse.json({ ...storedTarget, type: 'local', local_path: '' })),
+        http.put('/api/backup/target', async ({ request }) => {
+          sent = (await request.json()) as Record<string, unknown>
+          return HttpResponse.json({ ...storedTarget, type: 'local', local_path: '/mnt/nas' })
+        }),
+      )
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByLabelText('Target directory')).toBeInTheDocument())
+      await user.type(screen.getByLabelText('Target directory'), '/mnt/nas')
+      await user.click(screen.getByRole('button', { name: /save target/i }))
+
+      await waitFor(() => expect(sent).not.toBeNull())
+      expect(sent!.type).toBe('local')
+      expect(sent!.local_path).toBe('/mnt/nas')
+    })
+
+    // BKP-028: the backfill button was disabled forever after the switch from
+    // an `enabled` flag to the `type` discriminator — `!undefined` is always true.
+    it('FE-ADMIN-BKP-028: enables the backfill button once a backend is chosen', async () => {
+      const user = userEvent.setup()
+      server.use(http.get('/api/backup/target', () => HttpResponse.json(storedTarget)))
+      render(<><ToastContainer /><BackupPanel /></>)
+
+      await waitFor(() => expect(screen.getByText('External backup target')).toBeInTheDocument())
+      expect(screen.getByRole('button', { name: /upload all existing backups/i })).not.toBeDisabled()
+
+      // ...and only then: with no backend there is nowhere to upload to.
+      await user.click(screen.getByRole('button', { name: /local only/i }))
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /upload all existing backups/i })).toBeDisabled(),
+      )
     })
 
     // BKP-019: gateways whose S3 API lives under a path (Supabase Storage,

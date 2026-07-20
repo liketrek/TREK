@@ -5,7 +5,7 @@ import {
   inAppListResultSchema, type InAppListResult,
   unreadCountResultSchema, type UnreadCountResult,
   channelTestResultSchema, type ChannelTestResult,
-  type S3BackupTargetRequest, type S3BackupTargetResponse, type BackupTargetBackfillResult,
+  type BackupTargetRequest, type BackupTargetResponse, type BackupTargetBackfillResult,
   mapsSearchResultSchema, mapsAutocompleteResultSchema, mapsPlaceDetailsResultSchema,
   mapsPlacePhotoResultSchema, mapsReverseResultSchema, mapsResolveUrlResultSchema,
   type NotificationRespondRequest,
@@ -981,8 +981,8 @@ export const backupApi = {
   },
   getAutoSettings: () => apiClient.get('/backup/auto-settings').then(r => r.data),
   setAutoSettings: (settings: Record<string, unknown>) => apiClient.put('/backup/auto-settings', settings).then(r => r.data),
-  getTarget: (): Promise<S3BackupTargetResponse> => apiClient.get('/backup/target').then(r => r.data),
-  setTarget: (target: S3BackupTargetRequest): Promise<S3BackupTargetResponse> =>
+  getTarget: (): Promise<BackupTargetResponse> => apiClient.get('/backup/target').then(r => r.data),
+  setTarget: (target: BackupTargetRequest): Promise<BackupTargetResponse> =>
     apiClient.put('/backup/target', target).then(r => r.data),
   testTarget: (): Promise<ChannelTestResult> => apiClient.post('/backup/target/test').then(r => r.data),
   syncTarget: (): Promise<BackupTargetBackfillResult> => apiClient.post('/backup/target/sync').then(r => r.data),
