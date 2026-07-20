@@ -22,6 +22,13 @@ const { db } = vi.hoisted(() => {
   // table the read throws and the list degrades to "target unreachable", which
   // is not the state this suite means to exercise.
   tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
+  // The local storage backend reads the filesystem directly, so point it at an
+  // temp directory holding one known archive — otherwise this suite would list
+  // whatever backups happen to exist on the machine running it.
+  const os = require('node:os'), nodePath = require('node:path');
+  const emptyDir = require('node:fs').mkdtempSync(nodePath.join(os.tmpdir(), 'trek-e2e-backups-'));
+  tmp.prepare('INSERT INTO app_settings (key, value) VALUES (?, ?)').run('backup_local_path', emptyDir);
+  require('node:fs').writeFileSync(nodePath.join(emptyDir, 'a.zip'), 'x');
   return { db: tmp };
 });
 
@@ -89,7 +96,8 @@ describe('Backup e2e (real auth + admin guard + temp SQLite)', () => {
     expect(res.status).toBe(200);
     // The list is merged across disk and the external target now, so every
     // entry says where it lives. No target is configured here, so: local only.
-    expect(res.body).toEqual({ backups: [{ filename: 'a.zip', size: 1, local: true, remote: false }] });
+    expect(res.body.backups).toHaveLength(1);
+    expect(res.body.backups[0]).toMatchObject({ filename: 'a.zip', local: true, remote: false });
   });
 
   it('429 when create is rate-limited', async () => {

@@ -25,19 +25,16 @@ import type { TargetConfig } from './backup-target.config';
 const PROBE_FILE = '.trek-connection-test';
 
 /**
- * Directories the target must never be, and why.
+ * The one directory a target must never be: uploads/.
  *
- * `data/backups` is where the archive already is — targeting it would make
- * every backup its own copy, so the list would report one file as two and a
- * delete would race itself. `uploads/` is worse: it is *inside* the next
- * backup, so each run would archive every previous archive and the size would
- * compound without bound (the failure mode of #1358).
+ * An archive written there would land inside the *next* backup, so every run
+ * would embed all previous runs and the size would compound without bound
+ * (the failure mode of #1358). data/backups is explicitly fine — it is the
+ * default, and the local backend is what puts backups there in the first
+ * place.
  */
-function forbiddenRoots(): string[] {
-  return [
-    path.resolve(__dirname, '../../../data'),
-    path.resolve(__dirname, '../../../uploads'),
-  ];
+function forbiddenRoot(): string {
+  return path.resolve(__dirname, '../../../uploads');
 }
 
 export interface PathCheck {
@@ -59,13 +56,12 @@ export function validatePath(cfg: TargetConfig): PathCheck {
   }
 
   const resolved = path.resolve(raw);
-  for (const root of forbiddenRoots()) {
-    if (resolved === root || resolved.startsWith(root + path.sep)) {
-      return {
-        ok: false,
-        error: `The target directory must be outside TREK's own data and uploads directories (${root}).`,
-      };
-    }
+  const forbidden = forbiddenRoot();
+  if (resolved === forbidden || resolved.startsWith(forbidden + path.sep)) {
+    return {
+      ok: false,
+      error: `The target directory must be outside TREK's uploads directory (${forbidden}), or every backup would end up inside the next one.`,
+    };
   }
   return { ok: true };
 }

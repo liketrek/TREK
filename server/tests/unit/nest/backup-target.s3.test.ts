@@ -56,8 +56,9 @@ import type { TargetConfig } from '../../../src/nest/backup/backup-target.config
 
 function cfg(over: Partial<TargetConfig> = {}): TargetConfig {
   return {
-    type: 's3',
+    localEnabled: true,
     localPath: '',
+    s3Enabled: true,
     endpoint: 'https://s3.example.test',
     region: 'us-east-1',
     bucket: 'trek-backups',

@@ -8,8 +8,9 @@ import type { TargetConfig } from '../../../src/nest/backup/backup-target.config
 
 function cfg(localPath: string): TargetConfig {
   return {
-    type: 'local',
+    localEnabled: true,
     localPath,
+    s3Enabled: false,
     endpoint: '', region: '', bucket: '', prefix: '',
     accessKeyId: '', secretAccessKey: '', forcePathStyle: false, requireTls: true,
   };
@@ -43,15 +44,18 @@ describe('validatePath', () => {
     expect(res.error).toMatch(/absolute/i);
   });
 
-  it.each([
-    ['the data directory', '../../../data'],
-    ['the backups directory inside it', '../../../data/backups'],
-    ['the uploads directory', '../../../uploads'],
-  ])('refuses %s', (_label, rel) => {
-    const forbidden = path.resolve(__dirname, '../../../src/nest/backup', rel);
+  it('refuses the uploads directory', () => {
+    const forbidden = path.resolve(__dirname, '../../../src/nest/backup', '../../../uploads');
     const res = validatePath(cfg(forbidden));
     expect(res.ok).toBe(false);
-    expect(res.error).toMatch(/outside TREK/i);
+    expect(res.error).toMatch(/uploads/i);
+  });
+
+  it('allows the default backups directory — it is where backups belong', () => {
+    // data/backups is the local backend default; rejecting it would make the
+    // out-of-the-box configuration invalid.
+    const dflt = path.resolve(__dirname, '../../../src/nest/backup', '../../../data/backups');
+    expect(validatePath(cfg(dflt)).ok).toBe(true);
   });
 
   it('refuses a directory nested inside uploads', () => {
@@ -82,11 +86,11 @@ describe('localTarget', () => {
     expect(fs.readdirSync(dest).filter(f => f.endsWith('.part'))).toEqual([]);
   });
 
-  it('refuses to write into TREK\'s own directories', async () => {
-    const forbidden = path.resolve(__dirname, '../../../src/nest/backup', '../../../data/backups');
+  it('refuses to write into the uploads directory', async () => {
+    const forbidden = path.resolve(__dirname, '../../../src/nest/backup', '../../../uploads');
     const res = await localTarget(cfg(forbidden), isBackupName).upload(src);
     expect(res.uploaded).toBe(false);
-    expect(res.error).toMatch(/outside TREK/i);
+    expect(res.error).toMatch(/uploads/i);
   });
 
   it('reports presence and removes again', async () => {

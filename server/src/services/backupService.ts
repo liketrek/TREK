@@ -10,13 +10,28 @@ import { pluginsCodeRoot, pluginsDataRoot } from '../nest/plugins/paths';
 import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../nest/plugins/plugin-backup';
 import { snapshotAllPluginDataDbs } from '../nest/plugins/host/plugin-data.service';
 import { onBackupWritten, type BackupTargetOutcome } from '../nest/backup/backup-target';
+import { defaultLocalPath, resolveTarget } from '../nest/backup/backup-target.config';
 
 // ---------------------------------------------------------------------------
 // Paths
 // ---------------------------------------------------------------------------
 
 const dataDir = path.join(__dirname, '../../data');
-const backupsDir = path.join(dataDir, 'backups');
+/**
+ * Where backups are stored: the local storage backend directory, which
+ * defaults to data/backups. Resolved per call rather than at module load, so
+ * changing it in the admin panel takes effect without a restart.
+ *
+ * Falls back to the default if the config cannot be read — this is called
+ * during boot, before the database is necessarily usable.
+ */
+function backupsDir(): string {
+  try {
+    return resolveTarget().localPath;
+  } catch {
+    return defaultLocalPath();
+  }
+}
 const uploadsDir = path.join(__dirname, '../../uploads');
 
 // Compressed upload cap for restore archives. Defaults to 500 MB, raisable via
@@ -57,7 +72,7 @@ export const MAX_BACKUP_DECOMPRESSED_SIZE = backupDecompressedMb * 1024 * 1024;
 // ---------------------------------------------------------------------------
 
 export function ensureBackupsDir(): void {
-  if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
+  if (!fs.existsSync(backupsDir())) fs.mkdirSync(backupsDir(), { recursive: true });
 }
 
 export function formatSize(bytes: number): string {
@@ -101,11 +116,11 @@ export function isValidBackupFilename(filename: string): boolean {
 }
 
 export function backupFilePath(filename: string): string {
-  return path.join(backupsDir, filename);
+  return path.join(backupsDir(), filename);
 }
 
 export function backupFileExists(filename: string): boolean {
-  return fs.existsSync(path.join(backupsDir, filename));
+  return fs.existsSync(path.join(backupsDir(), filename));
 }
 
 // ---------------------------------------------------------------------------
@@ -150,10 +165,10 @@ export interface BackupInfo {
 
 export function listBackups(): BackupInfo[] {
   ensureBackupsDir();
-  return fs.readdirSync(backupsDir)
+  return fs.readdirSync(backupsDir())
     .filter(f => f.endsWith('.zip'))
     .map(filename => {
-      const filePath = path.join(backupsDir, filename);
+      const filePath = path.join(backupsDir(), filename);
       const stat = fs.statSync(filePath);
       return {
         filename,
@@ -174,9 +189,9 @@ export async function createBackup(): Promise<BackupInfo> {
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `backup-${timestamp}.zip`;
-  const outputPath = path.join(backupsDir, filename);
-  const pdataSnap = path.join(backupsDir, `.plugins-snap-${timestamp}`);
-  const dbSnap = path.join(backupsDir, `.travel-snap-${timestamp}.db`);
+  const outputPath = path.join(backupsDir(), filename);
+  const pdataSnap = path.join(dataDir, `.plugins-snap-${timestamp}`);
+  const dbSnap = path.join(dataDir, `.travel-snap-${timestamp}.db`);
   let info: BackupInfo;
 
   try {
@@ -525,7 +540,7 @@ export function updateAutoSettings(body: Record<string, unknown>): ReturnType<ty
 // ---------------------------------------------------------------------------
 
 export function deleteBackup(filename: string): void {
-  const filePath = path.join(backupsDir, filename);
+  const filePath = path.join(backupsDir(), filename);
   fs.unlinkSync(filePath);
 }
 

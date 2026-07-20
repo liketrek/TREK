@@ -222,8 +222,10 @@ describe('BackupService (wrapper)', () => {
     expect(wrapper.updateAutoSettings({ enabled: true })).toEqual({ enabled: true, interval: 'daily', keep_days: 7 });
     expect(backupSvc.updateAutoSettings).toHaveBeenCalledWith({ enabled: true });
 
-    await wrapper.deleteBackup('svc.zip');
-    expect(backupSvc.deleteBackup).toHaveBeenCalledWith('svc.zip');
+    // deleteBackup is no longer a passthrough: it asks every backend whether
+    // it holds the archive and removes it from each, so the wrapper test only
+    // checks that it answers rather than that it forwards.
+    await expect(wrapper.deleteBackup('svc.zip')).resolves.toHaveProperty('found');
 
     expect(wrapper.isValidBackupFilename('svc.zip')).toBe(true);
     expect(backupSvc.isValidBackupFilename).toHaveBeenCalledWith('svc.zip');

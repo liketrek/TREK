@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import type { BackupTargetRequest, MergedBackup } from '@trek/shared';
 import * as svc from '../../services/backupService';
 import { isManagedByEnv, readTargetForClient, saveTarget } from './backup-target.config';
-import { deleteRemoteBackup, fetchRemoteBackup, listRemoteBackups, mirrorExistingBackups, remoteBackupExists, testConfiguredTarget } from './backup-target';
+import { deleteEverywhere, existsAnywhere, fetchBackup, listAllBackups, mirrorExistingBackups, testConfiguredTargets } from './backup-target';
 
 /**
  * Thin Nest wrapper around the existing backup service. The zip packing/restore,
@@ -24,16 +24,11 @@ export class BackupService {
    * rather than silently leaving a mirrored copy behind.
    */
   async deleteBackup(filename: string): Promise<{ found: boolean; remoteError?: string }> {
-    const localExists = svc.backupFileExists(filename);
-    const remoteExists = await remoteBackupExists(filename);
-    // Neither copy exists — report it rather than answering a cheerful 200 for
-    // a backup that was never there.
-    if (!localExists && !remoteExists) return { found: false };
-
-    if (localExists) svc.deleteBackup(filename);
-    let remoteError: string | undefined;
-    if (remoteExists) ({ error: remoteError } = await deleteRemoteBackup(filename));
-    return { found: true, remoteError };
+    // Report a backup that exists nowhere rather than answering a cheerful 200
+    // for something that was never there.
+    if (!(await existsAnywhere(filename))) return { found: false };
+    const { error } = await deleteEverywhere(filename);
+    return { found: true, remoteError: error };
   }
 
   isValidBackupFilename(filename: string) { return svc.isValidBackupFilename(filename); }
@@ -54,7 +49,7 @@ export class BackupService {
    * is what the admin needs to know, and it keeps the plaintext secret from
    * having to travel back over the wire to be tested.
    */
-  testTarget() { return testConfiguredTarget(); }
+  testTarget() { return testConfiguredTargets(); }
 
   /**
    * Mirror every archive already in data/backups to the target. Resolving the
@@ -75,30 +70,21 @@ export class BackupService {
    * whole point of having pushed it off-box.
    */
   async listBackupsMerged(): Promise<{ backups: MergedBackup[]; remoteError?: string }> {
-    const local = svc.listBackups();
-    const byName = new Map<string, MergedBackup>();
-    for (const b of local) byName.set(b.filename, { ...b, local: true, remote: false });
+    const { backups: merged, error: remoteError } = await listAllBackups(svc.isValidBackupFilename);
 
-    const { backups: remote, error: remoteError } = await listRemoteBackups(svc.isValidBackupFilename);
-    for (const r of remote) {
-      const existing = byName.get(r.filename);
-      if (existing) {
-        existing.remote = true;
-      } else {
-        byName.set(r.filename, {
-          filename: r.filename,
-          size: r.size,
-          sizeText: svc.formatSize(r.size),
-          created_at: r.created_at,
-          local: false,
-          remote: true,
-        });
-      }
-    }
+    const backups: MergedBackup[] = [...merged.values()]
+      .map(({ backup, targets }) => ({
+        filename: backup.filename,
+        size: backup.size,
+        sizeText: svc.formatSize(backup.size),
+        created_at: backup.created_at,
+        local: targets.has('local'),
+        // Anything that is not the local backend is "remote" as far as the list
+        // badge is concerned.
+        remote: [...targets].some(t => t !== 'local'),
+      }))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    const backups = [...byName.values()].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
     return { backups, remoteError };
   }
 
@@ -111,7 +97,7 @@ export class BackupService {
     const tmpPath = path.join(svc.getUploadTmpDir(), `remote-${Date.now()}-${filename}`);
     fs.mkdirSync(path.dirname(tmpPath), { recursive: true });
     try {
-      await fetchRemoteBackup(filename, tmpPath);
+      await fetchBackup(filename, tmpPath);
       return await svc.restoreFromZip(tmpPath);
     } finally {
       try { fs.unlinkSync(tmpPath); } catch { /* already gone */ }

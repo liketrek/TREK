@@ -19,22 +19,20 @@ export const autoBackupSettingsRequestSchema = z
 export type AutoBackupSettingsRequest = z.infer<typeof autoBackupSettingsRequestSchema>;
 
 /**
- * External backup target (admin-only) for /api/backup/target.
+ * Backup storage backends (admin-only) for /api/backup/target.
  *
- * A single target, stored in the `app_settings` key/value table the same way
- * the SMTP settings are. `type` selects the storage backend:
+ * Backends are independent: any number can be active at once, which is what
+ * makes a 3-2-1 setup possible. `local` is opt-out — on unless you turn it off
+ * — and everything else is opt-in.
  *
- *   none  — backups stay in data/backups only (the default).
- *   local — copy the archive to a second directory. On the Docker image that is
- *           a path inside the container, which the operator maps to wherever
- *           the copy should really live; on a source install it is just a
- *           filesystem path. The mapping is outside TREK's control.
- *   s3    — any S3-compatible bucket (AWS S3, MinIO, Garage, Supabase Storage,
- *           Backblaze B2, Wasabi…).
+ *   local — a directory on this machine. The default path is TREK's own
+ *           data/backups; pointing it elsewhere is how you put backups on
+ *           another disk, or on whatever a volume maps that path to.
+ *   s3    — any S3-compatible bucket (AWS S3, MinIO, Garage, Supabase
+ *           Storage, Backblaze B2, Wasabi…).
  *
- * A discriminator rather than an on/off flag so a further backend is a value
- * here plus a `BackupTarget` implementation — no settings migration, and
- * nothing at the two backup builders changes.
+ * A further backend is a pair of settings plus a `BackupTarget`
+ * implementation; nothing at either backup builder changes.
  *
  * The S3 secret access key is encrypted at rest and is NEVER returned to the
  * client: reads echo `secret_access_key_set` instead, and a write that sends
@@ -42,14 +40,12 @@ export type AutoBackupSettingsRequest = z.infer<typeof autoBackupSettingsRequest
  */
 export const MASKED_SECRET = '••••••••';
 
-export const BACKUP_TARGET_TYPES = ['none', 'local', 's3'] as const;
-export const backupTargetTypeSchema = z.enum(BACKUP_TARGET_TYPES);
-export type BackupTargetType = z.infer<typeof backupTargetTypeSchema>;
-
 export const backupTargetRequestSchema = z.object({
-  type: backupTargetTypeSchema.optional(),
-  /** `local`: absolute directory the archive is copied to. */
+  /** Opt-out. Turning it off means backups live only at the other backends. */
+  local_enabled: z.boolean().optional(),
+  /** Absolute directory. Empty means TREK's default data/backups. */
   local_path: z.string().optional(),
+  s3_enabled: z.boolean().optional(),
   endpoint: z.string().optional(),
   region: z.string().optional(),
   bucket: z.string().optional(),
@@ -65,8 +61,11 @@ export const backupTargetRequestSchema = z.object({
 export type BackupTargetRequest = z.infer<typeof backupTargetRequestSchema>;
 
 export const backupTargetResponseSchema = z.object({
-  type: backupTargetTypeSchema,
+  local_enabled: z.boolean(),
   local_path: z.string(),
+  /** The path used when local_path is empty, so the UI can show it. */
+  local_path_default: z.string(),
+  s3_enabled: z.boolean(),
   endpoint: z.string(),
   region: z.string(),
   bucket: z.string(),
@@ -77,10 +76,9 @@ export const backupTargetResponseSchema = z.object({
   force_path_style: z.boolean(),
   require_tls: z.boolean(),
   /**
-   * True when the target is configured through BACKUP_TARGET_TYPE and its
-   * companion environment variables, which take precedence over the stored
-   * values. The admin UI disables the form in that case rather than pretending
-   * an edit would apply.
+   * True when the backends are configured through BACKUP_* environment
+   * variables, which take precedence over the stored values. The admin UI
+   * disables the form in that case rather than pretending an edit would apply.
    */
   managed_by_env: z.boolean(),
 });

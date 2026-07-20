@@ -185,7 +185,7 @@ export class BackupController {
     // of accepting a write that cannot take effect.
     if (this.backup.targetManagedByEnv()) {
       throw new HttpException(
-        { error: 'The backup target is configured through BACKUP_TARGET_TYPE and its companion environment variables, and cannot be edited here.' },
+        { error: 'The storage backends are configured through BACKUP_LOCAL_* / BACKUP_S3_* environment variables and cannot be edited here.' },
         409,
       );
     }
@@ -201,7 +201,8 @@ export class BackupController {
       action: 'backup.target_settings',
       ip: getClientIp(req),
       details: {
-        type: body.type,
+        local_enabled: body.local_enabled,
+        s3_enabled: body.s3_enabled,
         bucket: body.bucket,
         endpoint: body.endpoint,
         secret_updated: body.secret_access_key !== undefined,

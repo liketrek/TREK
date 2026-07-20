@@ -4,9 +4,17 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { logInfo, logError } from './services/auditLog';
 import { onBackupWritten } from './nest/backup/backup-target';
+import { defaultLocalPath, resolveTarget } from './nest/backup/backup-target.config';
 
 const dataDir = path.join(__dirname, '../data');
-const backupsDir = path.join(dataDir, 'backups');
+/** The local storage backend directory; see backupService.backupsDir(). */
+function backupsDir(): string {
+  try {
+    return resolveTarget().localPath;
+  } catch {
+    return defaultLocalPath();
+  }
+}
 const uploadsDir = path.join(__dirname, '../uploads');
 const settingsFile = path.join(dataDir, 'backup-settings.json');
 
@@ -60,11 +68,11 @@ function saveSettings(settings: BackupSettings): void {
 }
 
 async function runBackup(): Promise<void> {
-  if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
+  if (!fs.existsSync(backupsDir())) fs.mkdirSync(backupsDir(), { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `auto-backup-${timestamp}.zip`;
-  const outputPath = path.join(backupsDir, filename);
+  const outputPath = path.join(backupsDir(), filename);
 
   try {
     // Flush WAL to main DB file before archiving
@@ -111,9 +119,9 @@ function autoBackupTimestampMs(filename: string): number | null {
 export function cleanupOldBackups(keepDays: number, now: number = Date.now()): void {
   try {
     const cutoff = now - keepDays * 24 * 60 * 60 * 1000;
-    const files = fs.readdirSync(backupsDir).filter(f => f.startsWith('auto-backup-') && f.endsWith('.zip'));
+    const files = fs.readdirSync(backupsDir()).filter(f => f.startsWith('auto-backup-') && f.endsWith('.zip'));
     for (const file of files) {
-      const filePath = path.join(backupsDir, file);
+      const filePath = path.join(backupsDir(), file);
       const ageMs = autoBackupTimestampMs(file) ?? fs.statSync(filePath).mtimeMs;
       if (ageMs < cutoff) {
         fs.unlinkSync(filePath);

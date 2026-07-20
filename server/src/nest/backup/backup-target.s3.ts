@@ -38,7 +38,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { Agent, fetch as undiciFetch } from 'undici';
 import { checkSsrf } from '../../utils/ssrfGuard';
-import { isTargetUsable, type TargetConfig as S3TargetConfig } from './backup-target.config';
+import { isS3Usable, type TargetConfig as S3TargetConfig } from './backup-target.config';
 
 /** Minimal shape of the s3mini client, so this module stays typed without it. */
 interface S3Client {
@@ -206,7 +206,7 @@ export interface RemoteBackup {
 export function s3Target(cfg: S3TargetConfig, isBackupName: (n: string) => boolean): BackupTarget {
   return {
     id: 's3',
-    isConfigured: () => isTargetUsable(cfg),
+    isConfigured: () => isS3Usable(cfg),
     upload: (zipPath: string) => uploadBackup(zipPath, cfg),
     has: (zipPath: string) => objectExists(zipPath, cfg),
     remove: (filename: string) => deleteRemote(filename, cfg),
@@ -227,7 +227,7 @@ export function s3Target(cfg: S3TargetConfig, isBackupName: (n: string) => boole
  * local archive is already safely on disk.
  */
 export async function uploadBackup(zipPath: string, cfg: S3TargetConfig): Promise<UploadOutcome> {
-  if (!isTargetUsable(cfg)) {
+  if (!isS3Usable(cfg)) {
     return { uploaded: false, error: 'S3 target is incomplete (bucket, access key and secret are required).' };
   }
 
@@ -320,7 +320,7 @@ const PROBE_OBJECT = '.trek-connection-test';
  * backups work — only automatic pruning would not.
  */
 export async function testConnection(cfg: S3TargetConfig): Promise<{ success: boolean; error?: string }> {
-  if (!isTargetUsable(cfg)) {
+  if (!isS3Usable(cfg)) {
     return { success: false, error: 'S3 target is incomplete (bucket, access key and secret are required).' };
   }
 

@@ -1,157 +1,208 @@
 /**
- * Post-write hook for finished backup archives, and the dispatcher that picks
- * the configured storage backend.
+ * Post-write hook for finished backup archives, and the dispatcher over the
+ * configured storage backends.
  *
- * Two builders write zips into data/backups and they have always diverged:
+ * Backends are independent and any number can be active at once, so everything
+ * here fans out: an archive is offered to every enabled backend, the backup
+ * list is the union of what they hold, and a delete removes it from all of
+ * them. `local` is opt-out and everything else opt-in, which means the default
+ * install behaves exactly as it always has.
+ *
+ * Two builders write the archives and they have always diverged:
  * `backupService.createBackup()` packs the full manual archive (DB snapshot,
  * uploads with cache excludes, plugin trees), while `scheduler.runBackup()`
- * packs the simpler `auto-backup-*.zip` on the cron. Mirroring a finished
- * archive to an external target has to apply to both, or manual and automatic
- * backups end up with different off-box coverage.
+ * packs the simpler `auto-backup-*.zip` on the cron. Both call
+ * `onBackupWritten()` once their output stream has closed, so distribution is
+ * written once here instead of twice at the call sites.
  *
- * Both call `onBackupWritten()` once their output stream has closed, so that
- * behaviour is written once here instead of twice at the call sites.
+ * `enabledTargets()` is the single place that knows which backends exist.
  *
- * Everything below talks to a `BackupTarget`, never to S3 or the filesystem
- * directly. `targetFor()` is the single place that knows which backends exist;
- * adding one means adding a case there and a `BackupTargetType` value.
- *
- * The hook is best-effort by contract and never throws: the local archive is
- * already on disk and *is* the backup. A failing external target is logged and
- * audited, and reported back to the caller so the admin UI can surface it —
- * but it never turns a successful local backup into a failed one.
+ * The hook is best-effort by contract and never throws. The archive is already
+ * on disk when it runs, and a backend that fails is logged, audited and
+ * reported to the caller — it never turns a successful backup into a failed
+ * one.
  */
+import fs from 'node:fs';
 import { logError, logInfo, writeAudit } from '../../services/auditLog';
-import { resolveTarget } from './backup-target.config';
+import { isS3Usable, resolveTarget } from './backup-target.config';
 import { localTarget } from './backup-target.local';
 import { s3Target, type BackupTarget, type RemoteBackup } from './backup-target.s3';
 
 /** What happened to the archive after it was written. */
 export interface BackupTargetOutcome {
-  /** True when an external target is configured. */
+  /** True when at least one backend beyond the local one was tried. */
   attempted: boolean;
   uploaded: boolean;
-  /** Present when `attempted` and the upload failed. Safe to show an admin. */
+  /** Present when `attempted` and a backend failed. Safe to show an admin. */
   error?: string;
 }
 
 const NOT_ATTEMPTED: BackupTargetOutcome = { attempted: false, uploaded: false };
 
+/** Used where the caller has no opinion on which filenames count as backups. */
+const ANY_NAME = () => true;
+
 /**
- * The configured backend, or null when the target is off.
+ * Every enabled backend.
  *
  * `isBackupName` is threaded in rather than imported so this module stays free
  * of any dependency on the legacy backup service — which imports the hook from
  * here, and would otherwise form a cycle.
  */
-export function targetFor(isBackupName: (n: string) => boolean): BackupTarget | null {
+export function enabledTargets(isBackupName: (n: string) => boolean = ANY_NAME): BackupTarget[] {
   const cfg = resolveTarget();
-  switch (cfg.type) {
-    case 's3':
-      return s3Target(cfg, isBackupName);
-    case 'local':
-      return localTarget(cfg, isBackupName);
-    default:
-      return null;
-  }
+  const targets: BackupTarget[] = [];
+  if (cfg.localEnabled) targets.push(localTarget(cfg, isBackupName));
+  if (cfg.s3Enabled) targets.push(s3Target(cfg, isBackupName));
+  return targets;
 }
 
 /**
- * Resolve the backend without throwing. Every read path below degrades rather
- * than failing: a broken target must never take down the backup list, and a
- * config read touches the DB.
+ * Backends other than the one the builder already wrote to.
+ *
+ * The archive lands in the local backend's directory to begin with, so
+ * re-copying it onto itself would be pointless work on a multi-gigabyte file.
  */
-function safeTarget(isBackupName: (n: string) => boolean): BackupTarget | null {
+function mirrorTargets(isBackupName: (n: string) => boolean = ANY_NAME): BackupTarget[] {
+  return enabledTargets(isBackupName).filter(t => t.id !== 'local');
+}
+
+/** Resolve backends without throwing; a config read touches the DB. */
+function safeTargets(isBackupName: (n: string) => boolean = ANY_NAME): BackupTarget[] {
   try {
-    return targetFor(isBackupName);
+    return enabledTargets(isBackupName);
   } catch (err: unknown) {
-    logError(`Backup target: could not resolve the configured backend: ${err instanceof Error ? err.message : err}`);
-    return null;
+    logError(`Backup targets: could not resolve the configured backends: ${err instanceof Error ? err.message : err}`);
+    return [];
   }
 }
 
-/** Used where the caller has no opinion on which filenames count as backups. */
-const ANY_NAME = () => true;
-
 /**
- * The archives that exist at the target, or an empty list when none is
- * configured. Never throws: the backup list must still render when the target
- * is unreachable — the local backups are the ones that matter most.
+ * The archives across every enabled backend, keyed by filename.
+ *
+ * Never throws: the backup list must still render when one backend is
+ * unreachable, and losing sight of the copies you still have is the worst
+ * possible response to a network fault.
  */
-export async function listRemoteBackups(
+export async function listAllBackups(
   isBackupName: (n: string) => boolean,
-): Promise<{ backups: RemoteBackup[]; error?: string }> {
-  const target = safeTarget(isBackupName);
-  if (!target || !target.isConfigured()) return { backups: [] };
-  try {
-    return { backups: await target.list() };
-  } catch (err: unknown) {
-    const error = err instanceof Error ? err.message : String(err);
-    logError(`Backup target list failed: ${error}`);
-    return { backups: [], error };
+): Promise<{ backups: Map<string, { backup: RemoteBackup; targets: Set<string> }>; error?: string }> {
+  const merged = new Map<string, { backup: RemoteBackup; targets: Set<string> }>();
+  let error: string | undefined;
+
+  for (const target of safeTargets(isBackupName)) {
+    if (!target.isConfigured()) continue;
+    try {
+      for (const backup of await target.list()) {
+        const existing = merged.get(backup.filename);
+        if (existing) existing.targets.add(target.id);
+        else merged.set(backup.filename, { backup, targets: new Set([target.id]) });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logError(`Backup target ${target.id} list failed: ${message}`);
+      // First failure wins for the UI; the rest are in the log.
+      error ??= message;
+    }
   }
+
+  return { backups: merged, error };
 }
 
 /**
- * Delete an archive from the target.
+ * Delete an archive from every backend that holds it.
  *
- * Called when an admin deletes a backup in the UI: leaving the mirrored copy
- * behind would mean "delete" silently does not delete, and the archive keeps
- * costing storage and staying restorable long after someone chose to remove it.
- *
- * Returns an error string instead of throwing — a target that is unreachable
- * must not fail the local delete, which has already succeeded.
+ * Leaving a copy behind would mean "delete" silently does not delete, and the
+ * archive keeps costing storage and staying restorable long after someone chose
+ * to remove it. Failures are collected rather than thrown: the copies that
+ * could be removed are gone, and the admin needs to know which were not.
  */
-export async function deleteRemoteBackup(filename: string): Promise<{ deleted: boolean; error?: string }> {
-  const target = safeTarget(ANY_NAME);
-  if (!target || !target.isConfigured()) return { deleted: false };
-  try {
-    await target.remove(filename);
-    writeAudit({ userId: null, action: 'backup.target_deleted', resource: filename, details: { target: target.id } });
-    return { deleted: true };
-  } catch (err: unknown) {
-    const error = err instanceof Error ? err.message : String(err);
-    logError(`Backup target delete failed for ${filename}: ${error}`);
-    writeAudit({ userId: null, action: 'backup.target_failed', resource: filename, details: { target: target.id, op: 'delete', error } });
-    return { deleted: false, error };
+export async function deleteEverywhere(filename: string): Promise<{ deleted: string[]; error?: string }> {
+  const deleted: string[] = [];
+  const failures: string[] = [];
+
+  for (const target of safeTargets()) {
+    if (!target.isConfigured()) continue;
+    try {
+      if (!(await target.has(filename))) continue;
+      await target.remove(filename);
+      deleted.push(target.id);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      failures.push(`${target.id}: ${message}`);
+      logError(`Backup target ${target.id} delete failed for ${filename}: ${message}`);
+    }
   }
+
+  if (deleted.length) {
+    writeAudit({ userId: null, action: 'backup.target_deleted', resource: filename, details: { targets: deleted } });
+  }
+  if (failures.length) {
+    writeAudit({ userId: null, action: 'backup.target_failed', resource: filename, details: { op: 'delete', failures } });
+    return { deleted, error: failures.join('; ') };
+  }
+  return { deleted };
+}
+
+/** Whether any backend holds this archive. */
+export async function existsAnywhere(filename: string): Promise<boolean> {
+  for (const target of safeTargets()) {
+    if (!target.isConfigured()) continue;
+    try {
+      if (await target.has(filename)) return true;
+    } catch {
+      // A backend that cannot answer is not evidence of absence, but it is not
+      // evidence of presence either — keep asking the others.
+    }
+  }
+  return false;
 }
 
 /**
- * Whether the target holds this archive. False whenever no target is
- * configured, so callers can treat "no target" and "not there" identically.
+ * Fetch an archive to `destPath` from whichever backend has it.
+ *
+ * Backends are tried in configured order, so the local one wins when it has a
+ * copy — a file copy beats a download.
  */
-export async function remoteBackupExists(filename: string): Promise<boolean> {
-  const target = safeTarget(ANY_NAME);
-  if (!target || !target.isConfigured()) return false;
-  try {
-    return await target.has(filename);
-  } catch {
-    return false;
+export async function fetchBackup(filename: string, destPath: string): Promise<void> {
+  const errors: string[] = [];
+  for (const target of enabledTargets()) {
+    if (!target.isConfigured()) continue;
+    try {
+      if (!(await target.has(filename))) continue;
+      await target.download(filename, destPath);
+      return;
+    } catch (err: unknown) {
+      errors.push(`${target.id}: ${err instanceof Error ? err.message : err}`);
+    }
   }
+  throw new Error(
+    errors.length ? `No backend could provide the backup (${errors.join('; ')}).` : 'No backend holds that backup.',
+  );
 }
 
-/** Fetch a remote archive to `destPath` so it can be restored like a local one. */
-export async function fetchRemoteBackup(filename: string, destPath: string): Promise<void> {
-  const target = targetFor(ANY_NAME);
-  if (!target || !target.isConfigured()) {
-    throw new Error('No external backup target is configured.');
+/** Probe every enabled backend. */
+export async function testConfiguredTargets(): Promise<{ success: boolean; error?: string }> {
+  const targets = safeTargets();
+  if (!targets.length) return { success: false, error: 'No storage backend is enabled.' };
+
+  const problems: string[] = [];
+  let warning: string | undefined;
+  for (const target of targets) {
+    const res = await target.test();
+    if (!res.success) problems.push(`${target.id}: ${res.error ?? 'failed'}`);
+    else if (res.error) warning ??= `${target.id}: ${res.error}`;
   }
-  await target.download(filename, destPath);
+
+  if (problems.length) return { success: false, error: problems.join('; ') };
+  return warning ? { success: true, error: warning } : { success: true };
 }
 
-/** Probe the configured target for the admin "Test connection" button. */
-export async function testConfiguredTarget(): Promise<{ success: boolean; error?: string }> {
-  const target = safeTarget(ANY_NAME);
-  if (!target) return { success: false, error: 'No external backup target is configured.' };
-  return target.test();
-}
-
-/** Result of mirroring the existing on-disk backups to the target. */
+/** Result of copying the existing archives to the backends missing them. */
 export interface BackfillResult {
   total: number;
   uploaded: number;
-  /** Already present at the target — not re-transferred. */
+  /** Already present everywhere it needs to be. */
   skipped: number;
   failed: number;
   /** At most a handful, so a failed run stays readable in a toast. */
@@ -159,11 +210,11 @@ export interface BackfillResult {
 }
 
 /**
- * Push archives that already exist on disk to the target.
+ * Push archives that already exist to the backends that do not have them.
  *
- * Configuring a target is otherwise only forward-looking: everything backed up
- * before that moment stays on the box, which is the opposite of why someone
- * configures off-box backups. This closes that gap.
+ * Enabling a backend is otherwise only forward-looking: everything backed up
+ * before that moment stays where it was, which is the opposite of why someone
+ * adds a second location. This closes that gap.
  *
  * Sequential on purpose. These are multi-gigabyte archives, and saturating the
  * uplink with parallel uploads would starve the running instance for no gain —
@@ -172,80 +223,104 @@ export interface BackfillResult {
 export async function mirrorExistingBackups(zipPaths: string[]): Promise<BackfillResult> {
   const result: BackfillResult = { total: zipPaths.length, uploaded: 0, skipped: 0, failed: 0, errors: [] };
 
-  const target = safeTarget(ANY_NAME);
-  if (!target || !target.isConfigured()) {
+  const targets = mirrorTargets().filter(t => t.isConfigured());
+  if (!targets.length) {
     result.failed = result.total;
-    result.errors.push('No external backup target is configured.');
+    result.errors.push('No storage backend beyond the local one is enabled.');
     return result;
   }
 
   for (const zipPath of zipPaths) {
-    try {
-      if (await target.has(zipPath)) {
-        result.skipped++;
-        continue;
+    let uploadedAny = false;
+    let failedAny = false;
+    let skippedAll = true;
+
+    for (const target of targets) {
+      try {
+        if (await target.has(zipPath)) continue;
+        skippedAll = false;
+        const outcome = await target.upload(zipPath);
+        if (outcome.uploaded) uploadedAny = true;
+        else {
+          failedAny = true;
+          if (result.errors.length < 3) result.errors.push(`${target.id}: ${outcome.error ?? 'upload failed'}`);
+        }
+      } catch (err: unknown) {
+        failedAny = true;
+        skippedAll = false;
+        if (result.errors.length < 3) result.errors.push(`${target.id}: ${err instanceof Error ? err.message : err}`);
       }
-      const outcome = await target.upload(zipPath);
-      if (outcome.uploaded) {
-        result.uploaded++;
-      } else {
-        result.failed++;
-        if (result.errors.length < 3) result.errors.push(outcome.error ?? 'Upload failed.');
-      }
-    } catch (err: unknown) {
-      result.failed++;
-      if (result.errors.length < 3) result.errors.push(err instanceof Error ? err.message : String(err));
     }
+
+    if (failedAny) result.failed++;
+    else if (skippedAll) result.skipped++;
+    else if (uploadedAny) result.uploaded++;
   }
 
-  logInfo(`Backup backfill to ${target.id}: ${result.uploaded} uploaded, ${result.skipped} already present, ${result.failed} failed`);
+  logInfo(`Backup backfill: ${result.uploaded} uploaded, ${result.skipped} already present, ${result.failed} failed`);
   writeAudit({
     userId: null,
     action: result.failed > 0 ? 'backup.target_failed' : 'backup.target_uploaded',
-    details: { target: target.id, backfill: true, uploaded: result.uploaded, skipped: result.skipped, failed: result.failed },
+    details: { backfill: true, uploaded: result.uploaded, skipped: result.skipped, failed: result.failed },
   });
   return result;
 }
 
 export async function onBackupWritten(zipPath: string): Promise<BackupTargetOutcome> {
   try {
-    const target = targetFor(ANY_NAME);
-    if (!target) return NOT_ATTEMPTED;
+    const targets = mirrorTargets();
+    if (!targets.length) return NOT_ATTEMPTED;
 
-    if (!target.isConfigured()) {
-      // Configured-but-incomplete is a real misconfiguration, not a silent
-      // "off" — an admin who picked a backend expects their backups off-box.
-      const error = `The ${target.id} backup target is selected but incomplete. Check its settings.`;
-      logError(`Backup target: ${error}`);
-      writeAudit({ userId: null, action: 'backup.target_failed', resource: zipPath, details: { target: target.id, error } });
-      return { attempted: true, uploaded: false, error };
+    const errors: string[] = [];
+    let uploaded = 0;
+
+    for (const target of targets) {
+      if (!target.isConfigured()) {
+        // Enabled but half-configured is a real misconfiguration, not a silent
+        // "off" — an admin who switched it on expects their backups there.
+        const error = `The ${target.id} backend is enabled but incomplete. Check its settings.`;
+        logError(`Backup target: ${error}`);
+        writeAudit({ userId: null, action: 'backup.target_failed', resource: zipPath, details: { target: target.id, error } });
+        errors.push(error);
+        continue;
+      }
+
+      const result = await target.upload(zipPath);
+      if (result.uploaded) {
+        uploaded++;
+        logInfo(`Backup mirrored to ${target.id}: ${result.key}`);
+        writeAudit({ userId: null, action: 'backup.target_uploaded', resource: result.key, details: { target: target.id } });
+      } else {
+        logError(`Backup target ${target.id} upload failed: ${result.error}`);
+        writeAudit({
+          userId: null,
+          action: 'backup.target_failed',
+          resource: result.key ?? zipPath,
+          details: { target: target.id, error: result.error },
+        });
+        errors.push(`${target.id}: ${result.error ?? 'upload failed'}`);
+      }
     }
 
-    const result = await target.upload(zipPath);
-
-    if (result.uploaded) {
-      logInfo(`Backup mirrored to ${target.id} target: ${result.key}`);
-      writeAudit({
-        userId: null,
-        action: 'backup.target_uploaded',
-        resource: result.key,
-        details: { target: target.id },
-      });
-      return { attempted: true, uploaded: true };
+    // The builder always writes into the local directory, because that is where
+    // it has always written and it is the cheapest place to stage from. If the
+    // local backend is switched off, the archive was only ever a staging copy
+    // and has to go once the other backends have it — but only if at least one
+    // of them actually took it, or turning local off would destroy the backup.
+    if (!resolveTarget().localEnabled && uploaded > 0) {
+      try {
+        fs.rmSync(zipPath, { force: true });
+      } catch (err: unknown) {
+        logError(`Backup target: could not remove the staged local copy: ${err instanceof Error ? err.message : err}`);
+      }
     }
 
-    logError(`Backup target upload failed: ${result.error}`);
-    writeAudit({
-      userId: null,
-      action: 'backup.target_failed',
-      resource: result.key ?? zipPath,
-      details: { target: target.id, error: result.error },
-    });
-    return { attempted: true, uploaded: false, error: result.error };
+    if (errors.length) return { attempted: true, uploaded: uploaded > 0, error: errors.join('; ') };
+    return { attempted: true, uploaded: true };
   } catch (err: unknown) {
-    // Nothing above is expected to throw (target.upload returns its errors), so
+    // Nothing above is expected to throw (upload returns its errors), so
     // reaching here means a config/DB read failed. Still must not propagate:
-    // the local backup succeeded.
+    // the backup itself succeeded.
     const error = err instanceof Error ? err.message : String(err);
     logError(`Backup post-write hook: ${error}`);
     return { attempted: true, uploaded: false, error };

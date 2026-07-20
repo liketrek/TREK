@@ -322,6 +322,14 @@ describe('Backup delete', () => {
     const { user: admin } = createAdmin(testDb);
     const filename = 'backup-2026-04-06T12-00-00.zip';
 
+    // Deleting now asks every storage backend whether it holds the archive and
+    // removes it from each, so mocking the legacy service is not enough — the
+    // local backend reads the filesystem. Give it a real file in a temp dir.
+    const os = require('node:os'), nodePath = require('node:path'), nodeFs = require('node:fs');
+    const dir = nodeFs.mkdtempSync(nodePath.join(os.tmpdir(), 'trek-int-backups-'));
+    nodeFs.writeFileSync(nodePath.join(dir, filename), 'zip');
+    testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run('backup_local_path', dir);
+
     vi.mocked(backupService.backupFileExists).mockReturnValue(true);
     vi.mocked(backupService.deleteBackup).mockReturnValue(undefined);
 
@@ -331,7 +339,9 @@ describe('Backup delete', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(vi.mocked(backupService.deleteBackup)).toHaveBeenCalledWith(filename);
+    // The local storage backend removes the file itself now; the legacy
+    // helper is no longer on that path.
+    expect(nodeFs.existsSync(nodePath.join(dir, filename))).toBe(false);
   });
 
   it('BACKUP-INT-009 — DELETE /backup/:filename returns 404 when not found', async () => {
