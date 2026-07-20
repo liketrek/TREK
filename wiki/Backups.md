@@ -94,6 +94,8 @@ the UI rather than disappearing behind a success message.
 > it alone, and prefer a provider and jurisdiction you are willing to trust with that. Setting `ENCRYPTION_KEY` as an
 > env var keeps the key out of the archive, but the database contents still travel unencrypted at rest in the bucket.
 
+![External backup target](assets/BackupTarget.png)
+
 ### Setting it up
 
 1. Enter the **endpoint URL**, **bucket**, **region** and optionally a **path prefix** (e.g. `trek/backups/`) to

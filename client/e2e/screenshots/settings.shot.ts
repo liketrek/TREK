@@ -94,6 +94,18 @@ test.describe('admin panel', () => {
     await shot.page_('Backup')
   })
 
+  test('external backup target', async ({ page, shot }) => {
+    await openSidebarTab(page, 'Backup')
+    // The section sits below the fold, so a viewport capture would cut it off.
+    // element() scrolls it into view and frames the card on its own.
+    await shot.element(
+      'BackupTarget',
+      // .bg-white narrows to the card itself; a bare .rounded-2xl also matches
+      // the outer admin container that wraps every panel.
+      page.locator('.bg-white.rounded-2xl').filter({ hasText: 'External backup target' }),
+    )
+  })
+
   test('audit log', async ({ page, shot }) => {
     await openSidebarTab(page, 'Audit')
     await shot.page_('Audit')
