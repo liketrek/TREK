@@ -34,6 +34,7 @@ import { useDayNotes } from '../../hooks/useDayNotes'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
+import { usePluginDaySchedule, PluginDayScheduleRow, formatScheduleMinutes } from '../Plugins/PluginDaySchedule'
 import { MobileAddPlaceButton } from './DayPlanSidebarMobileAddPlaceButton'
 import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
 import { DayPlanSidebarNoteModal } from './DayPlanSidebarNoteModal'
@@ -1169,6 +1170,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   // routeProvider plugin declared (keyed 'plugin:<id>/<profile>', labeled by the
   // plugin's manifest). The feed only lists granted providers.
   const activePlugins = usePluginStore(s => s.plugins)
+  // Plugin time contributions in the day plan (dayScheduleProvider hook).
+  const daySchedule = usePluginDaySchedule(S.tripId)
   const routeProfileOptions = useMemo(() => {
     const opts: Array<{ key: string; label: string }> = [
       { key: 'driving', label: 'Driving' },
@@ -1640,6 +1643,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   {hotelLegs[day.id]?.top && (
                     <HotelRouteConnector seg={hotelLegs[day.id]!.top!.seg} name={hotelLegs[day.id]!.top!.name} profile={routeProfile} placement="top" />
                   )}
+                  {daySchedule.byPosition[day.id]?.start.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                   {merged.length === 0 && !dayNoteUi ? (
                     <div
                       onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
@@ -1990,6 +1994,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               </button>
                             )}
                           </div>
+                          {daySchedule.byAssignment[day.id]?.[assignment.id]?.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                           {routeLegs[day.id]?.[assignment.id] && <RouteConnector seg={routeLegs[day.id]![assignment.id]} profile={routeProfile} />}
                           </React.Fragment>
                         )
@@ -2218,6 +2223,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               <TransitItineraryInline legs={transitMeta.legs} t={t} />
                             </div>
                           )}
+                          {daySchedule.byReservation[day.id]?.[res.id]?.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                           {routeLegs[day.id]?.[res.id] && <RouteConnector seg={routeLegs[day.id]![res.id]} profile={routeProfile} />}
                           </React.Fragment>
                         )
@@ -2327,6 +2333,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       )
                     })
                   )}
+                  {daySchedule.byPosition[day.id]?.end.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                   {hotelLegs[day.id]?.bottom && (
                     <HotelRouteConnector seg={hotelLegs[day.id]!.bottom!.seg} name={hotelLegs[day.id]!.bottom!.name} profile={routeProfile} placement="bottom" />
                   )}
@@ -2473,11 +2480,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           })}
                         </div>
                       </div>
-                      {isSelected && routeInfo && (
-                        <div className="text-content-secondary bg-surface-hover" style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 'calc(12px * var(--fs-scale-body, 1))', borderRadius: 8, padding: '5px 10px' }}>
-                          <span>{routeInfo.distance}</span>
-                          <span className="text-content-faint">·</span>
-                          <span>{routeInfo.duration}</span>
+                      {isSelected && (routeInfo || daySchedule.minutesByDay[day.id]) && (
+                        <div className="text-content-secondary bg-surface-hover" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, fontSize: 'calc(12px * var(--fs-scale-body, 1))', borderRadius: 8, padding: '5px 10px' }}>
+                          {routeInfo && <span>{routeInfo.distance}</span>}
+                          {routeInfo && <span className="text-content-faint">·</span>}
+                          {routeInfo && <span>{routeInfo.duration}</span>}
+                          {/* Time plugins contributed to this day (charging, buffers) — the
+                              dayScheduleProvider minutes folded into the footer total. */}
+                          {daySchedule.minutesByDay[day.id] ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              {routeInfo && <span className="text-content-faint">·</span>}
+                              <Zap size={11} strokeWidth={2} />
+                              +{formatScheduleMinutes(daySchedule.minutesByDay[day.id])}
+                            </span>
+                          ) : null}
                         </div>
                       )}
                     </div>

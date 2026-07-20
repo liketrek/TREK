@@ -321,6 +321,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-layer-provider': 'Routes, corridors en zones op de reiskaart tekenen',
   'admin.plugins.perm.hook:route-provider':
     'Routeprofielen aanbieden waarmee de planner dagroutes berekent (bijv. EV-routering met laadstops)',
+  'admin.plugins.perm.hook:day-schedule-provider': 'Tijdsitems aan het dagplan koppelen (laadstops, buffertijden)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Tekstsecties toevoegen aan de PDF-export van de reis',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Landen markeren op de Atlas-wereldkaart (bijv. wensenlijsten of reisadviezen)',
@@ -441,6 +442,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.warnings': 'Signaleert problemen',
   'admin.plugins.cap.mapLayers': 'Tekent op de kaart',
   'admin.plugins.cap.routing': 'Biedt routering aan',
+  'admin.plugins.cap.daySchedule': 'Voegt plantijden toe',
   'admin.plugins.cap.events': 'Reageert op activiteit',
   'admin.plugins.cap.requiresAddon': 'Vereist {addon}',
   'admin.plugins.cap.dependsOn': 'Vereist {id} {version}',

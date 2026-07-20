@@ -465,6 +465,22 @@ hooks: {
 
 The legs must line up 1:1 with the waypoint pairs (TREK rejects the result whole otherwise), `note` shows on the day-plan connector, and via points are drawn as stops on the route line. You have 20 s per request; a throw or timeout simply falls back to straight lines. Pair this with `mapLayerProvider` if you also want corridors/zones, and with `db:write:places` + `db:write:itinerary` if the user should be able to persist charging stops as real places.
 
+To also make the *time plan* reflect your stops, add `hook:day-schedule-provider` and return anchored time rows — they render in the day plan on desktop and mobile, and their minutes count into the day's route-footer total:
+
+```js
+dayScheduleProvider: {
+  async getSchedule(tripId, ctx) {
+    const days = await ctx.trips.getDays(tripId)
+    return days.flatMap((d) => (d.assignments ?? [])
+      .filter((a) => needsCharge(a))
+      .map((a) => ({
+        id: `charge-${a.id}`, dayId: d.id, assignmentId: a.id,
+        minutes: 35, label: 'Charge to 80% nearby', tone: 'warn',
+      })))
+  },
+},
+```
+
 ---
 
 ## Honour account deletion and data export (GDPR)

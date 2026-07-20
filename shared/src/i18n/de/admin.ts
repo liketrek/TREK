@@ -320,6 +320,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-layer-provider': 'Routen, Korridore und Zonen auf der Reisekarte zeichnen',
   'admin.plugins.perm.hook:route-provider':
     'Routing-Profile anbieten, mit denen der Planer Tage berechnet (z. B. E-Auto-Routing mit Ladestopps)',
+  'admin.plugins.perm.hook:day-schedule-provider': 'Zeiteinträge an den Tagesplan anhängen (Ladestopps, Puffer)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Textabschnitte an den PDF-Export einer Reise anhängen',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Länder auf der Atlas-Weltkarte hervorheben (z. B. Wunschlisten oder Reisehinweise)',
@@ -442,6 +443,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.warnings': 'Meldet Probleme',
   'admin.plugins.cap.mapLayers': 'Zeichnet auf der Karte',
   'admin.plugins.cap.routing': 'Bietet Routing an',
+  'admin.plugins.cap.daySchedule': 'Ergänzt Planzeiten',
   'admin.plugins.cap.events': 'Reagiert auf Aktivität',
   'admin.plugins.cap.requiresAddon': 'Benötigt {addon}',
   'admin.plugins.cap.dependsOn': 'Benötigt {id} {version}',

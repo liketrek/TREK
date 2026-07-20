@@ -318,6 +318,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-layer-provider': 'Vẽ tuyến đường, hành lang và khu vực trên bản đồ chuyến đi',
   'admin.plugins.perm.hook:route-provider':
     'Cung cấp các hồ sơ định tuyến để trình lập kế hoạch tính lộ trình cho các ngày (vd. định tuyến xe điện với điểm dừng sạc)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Gắn các mục thời gian vào kế hoạch ngày (điểm dừng sạc, thời gian đệm an ninh)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Thêm các phần văn bản vào bản xuất PDF của chuyến đi',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Làm nổi bật các quốc gia trên bản đồ thế giới Atlas (vd. danh sách mong muốn hoặc cảnh báo du lịch)',
@@ -438,6 +440,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.warnings': 'Gắn cờ vấn đề',
   'admin.plugins.cap.mapLayers': 'Vẽ trên bản đồ',
   'admin.plugins.cap.routing': 'Cung cấp định tuyến',
+  'admin.plugins.cap.daySchedule': 'Thêm giờ kế hoạch',
   'admin.plugins.cap.events': 'Phản hồi hoạt động',
   'admin.plugins.cap.requiresAddon': 'Cần {addon}',
   'admin.plugins.cap.dependsOn': 'Cần {id} {version}',

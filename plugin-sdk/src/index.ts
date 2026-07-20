@@ -564,6 +564,27 @@ export interface RouteProvider {
   getRoute(request: RouteRequest, ctx: PluginContext): Promise<RouteProviderResult>;
 }
 
+/** A time contribution the host renders into the day plan — "35 min charging at
+ * this stop", "45 min security before this flight". Anchored to an assignment or
+ * reservation row (or the start/end of a day); `minutes` also counts into the
+ * day's route-footer total. */
+export interface DayScheduleContribution {
+  id: string;              // stable per-item id (React key / dedupe)
+  dayId: number;           // must be a day of the requested trip
+  assignmentId?: number;   // anchor under this itinerary place row…
+  reservationId?: number;  // …or under this booking row…
+  position?: 'start' | 'end'; // …or at the start/end of the day (default 'end')
+  minutes?: number;        // planned time, 1..1440 — shown and totalled
+  label: string;           // short text (≤120 chars)
+  tone?: ContributionTone;
+}
+export interface DayScheduleProvider {
+  /** Return schedule contributions for a trip's days. Runs with the current user
+   * bound, on a short timeout; the host caps the item count (≤60/plugin) and
+   * skips a failing call. Needs `hook:day-schedule-provider`. */
+  getSchedule(tripId: number, ctx: PluginContext): Promise<DayScheduleContribution[]>;
+}
+
 /** A text-only section the host appends to a trip's PDF export. Declarative only —
  * plain strings the host lays out and escapes; no markup ever reaches the document. */
 export interface PdfSection {
@@ -681,6 +702,7 @@ export interface PluginDefinition {
     mapMarkerProvider?: MapMarkerProvider;
     mapLayerProvider?: MapLayerProvider;
     routeProvider?: RouteProvider;
+    dayScheduleProvider?: DayScheduleProvider;
     pdfSectionProvider?: PdfSectionProvider;
     atlasLayerProvider?: AtlasLayerProvider;
     journalEntryProvider?: JournalEntryProvider;

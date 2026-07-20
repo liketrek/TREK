@@ -337,6 +337,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-layer-provider': '旅行の地図にルート、コリドー、ゾーンを描画',
   'admin.plugins.perm.hook:route-provider':
     'プランナーが日程のルート計算に使えるルーティングプロファイルを提供（例: 充電スポットを経由する EV ルーティング）',
+  'admin.plugins.perm.hook:day-schedule-provider': '日程プランに時間エントリーを追加（充電ストップ、保安検査のバッファ）',
   'admin.plugins.perm.hook:pdf-section-provider': '旅行の PDF エクスポートにテキストセクションを追加',
   'admin.plugins.perm.hook:atlas-layer-provider': 'Atlas の世界地図で国をハイライト（例: ウィッシュリストや渡航情報）',
   'admin.plugins.perm.hook:journal-entry-provider': '日記のエントリーに追加の行（リンク、統計）を提供',
@@ -454,6 +455,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.warnings': '問題を検出',
   'admin.plugins.cap.mapLayers': '地図に描画',
   'admin.plugins.cap.routing': 'ルーティングを提供',
+  'admin.plugins.cap.daySchedule': '予定時刻を追加',
   'admin.plugins.cap.events': 'アクティビティに反応',
   'admin.plugins.cap.requiresAddon': '{addon}が必要',
   'admin.plugins.cap.dependsOn': '{id} {version}が必要',

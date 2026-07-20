@@ -8,7 +8,9 @@ import { fmtTransitDuration } from '../../../../components/Planner/transitDispla
 import { formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
 import { cityPillsForDay, weatherIconFor } from './planTimelineModel'
-import { ConnRow, HotelConnRow, NoteRow, PlaceRow, ReorderStack, TransitRow, TransportRow } from './MPlanTimelineRows'
+import { ConnRow, HotelConnRow, NoteRow, PlaceRow, PlanScheduleRow, ReorderStack, TransitRow, TransportRow } from './MPlanTimelineRows'
+import { usePluginDaySchedule } from '../../../../components/Plugins/PluginDaySchedule'
+import { Fragment } from 'react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import type { MPlanTimelineProps } from '../MTripShell'
 import type { MergedItem } from '../../../../utils/dayMerge'
@@ -29,6 +31,15 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const { t, trip, can } = planner
   const canEdit = can('day_edit', trip)
   const editing = shell.mode === 'edit' && canEdit
+  // Plugin time contributions in the day plan (dayScheduleProvider hook) —
+  // slotted under their anchor rows, same as the desktop sidebar.
+  const daySchedule = usePluginDaySchedule(planner.tripId)
+  const dayId = tl.day?.id
+  const dayScheduleFor = (anchor: 'assignment' | 'reservation', id: number) =>
+    (dayId != null
+      ? (anchor === 'assignment' ? daySchedule.byAssignment[dayId]?.[id] : daySchedule.byReservation[dayId]?.[id])
+      : undefined
+    )?.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)
 
   // Selecting the place is enough — the place inspector sheet opens off the
   // planner's selection, same contract as map marker taps.
@@ -70,50 +81,57 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         {tl.hotelLegs.top && (
           <HotelConnRow seg={tl.hotelLegs.top.seg} name={tl.hotelLegs.top.name} placement="top" />
         )}
+        {dayId != null && daySchedule.byPosition[dayId]?.start.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
 
         {tl.rows.map(row => {
           switch (row.kind) {
             case 'place':
               return (
-                <PlaceRow
-                  key={row.key}
-                  assignment={row.assignment}
-                  fullPlace={tl.fullPlaceOf(row.assignment)}
-                  linkedRes={row.linkedRes}
-                  chrome={chrome}
-                  reorder={reorderFor(row.item)}
-                  onOpen={() => openPlace(row.assignment)}
-                  onEdit={() => tl.editAssignment(row.assignment)}
-                  onRemove={() => tl.removeAssignment(row.assignment)}
-                />
+                <Fragment key={row.key}>
+                  <PlaceRow
+                    assignment={row.assignment}
+                    fullPlace={tl.fullPlaceOf(row.assignment)}
+                    linkedRes={row.linkedRes}
+                    chrome={chrome}
+                    reorder={reorderFor(row.item)}
+                    onOpen={() => openPlace(row.assignment)}
+                    onEdit={() => tl.editAssignment(row.assignment)}
+                    onRemove={() => tl.removeAssignment(row.assignment)}
+                  />
+                  {dayScheduleFor('assignment', row.assignment.id)}
+                </Fragment>
               )
             case 'transport':
               return (
-                <TransportRow
-                  key={row.key}
-                  res={row.res}
-                  dayId={tl.day!.id}
-                  chrome={chrome}
-                  reorder={reorderFor(row.item)}
-                  onOpen={() => {
-                    if (editing) tl.editTransport(row.res)
-                    else shell.openSheet('transport', { reservationId: row.res.id })
-                  }}
-                />
+                <Fragment key={row.key}>
+                  <TransportRow
+                    res={row.res}
+                    dayId={tl.day!.id}
+                    chrome={chrome}
+                    reorder={reorderFor(row.item)}
+                    onOpen={() => {
+                      if (editing) tl.editTransport(row.res)
+                      else shell.openSheet('transport', { reservationId: row.res.id })
+                    }}
+                  />
+                  {dayScheduleFor('reservation', row.res.id)}
+                </Fragment>
               )
             case 'transit':
               return (
-                <TransitRow
-                  key={row.key}
-                  res={row.res}
-                  transit={row.transit}
-                  dayId={tl.day!.id}
-                  open={tl.openTransitKeys.has(row.key)}
-                  chrome={chrome}
-                  reorder={reorderFor(row.item)}
-                  onToggle={() => tl.toggleTransit(row.key)}
-                  onOpenJourney={() => tl.openTransitJourney(row.res)}
-                />
+                <Fragment key={row.key}>
+                  <TransitRow
+                    res={row.res}
+                    transit={row.transit}
+                    dayId={tl.day!.id}
+                    open={tl.openTransitKeys.has(row.key)}
+                    chrome={chrome}
+                    reorder={reorderFor(row.item)}
+                    onToggle={() => tl.toggleTransit(row.key)}
+                    onOpenJourney={() => tl.openTransitJourney(row.res)}
+                  />
+                  {dayScheduleFor('reservation', row.res.id)}
+                </Fragment>
               )
             case 'note':
               return (
@@ -130,6 +148,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
           }
         })}
 
+        {dayId != null && daySchedule.byPosition[dayId]?.end.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
         {tl.hotelLegs.bottom && (
           <HotelConnRow seg={tl.hotelLegs.bottom.seg} name={tl.hotelLegs.bottom.name} placement="bottom" />
         )}

@@ -375,6 +375,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-layer-provider': 'Rita rutter, korridorer och zoner på reskartan',
   'admin.plugins.perm.hook:route-provider':
     'Erbjuda ruttprofiler som planeraren kan beräkna dagar med (t.ex. elbilsrutter med laddstopp)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Lägga till tidsposter i dagsplanen (laddstopp, säkerhetsmarginaler)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Lägga till textavsnitt i resans PDF-export',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Markera länder på Atlas-världskartan (t.ex. önskelistor eller resevarningar)',
@@ -496,6 +498,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.warnings': 'Flaggar problem',
   'admin.plugins.cap.mapLayers': 'Ritar på kartan',
   'admin.plugins.cap.routing': 'Erbjuder ruttplanering',
+  'admin.plugins.cap.daySchedule': 'Lägger till tider i planen',
   'admin.plugins.cap.events': 'Reagerar på aktivitet',
   'admin.plugins.cap.requiresAddon': 'Kräver {addon}',
   'admin.plugins.cap.dependsOn': 'Kräver {id} {version}',

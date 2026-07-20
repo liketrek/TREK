@@ -318,6 +318,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-layer-provider': 'Малювати маршрути, коридори та зони на карті подорожі',
   'admin.plugins.perm.hook:route-provider':
     'Надавати профілі маршрутизації, за якими планувальник будує маршрути днів (наприклад, маршрути для електромобілів із зупинками для заряджання)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Додавати часові записи до плану дня (зупинки для заряджання, буфери часу)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Додавати текстові розділи до PDF-експорту подорожі',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Виділяти країни на карті світу в Атласі (наприклад, списки бажань або попередження для мандрівників)',
@@ -439,6 +441,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.warnings': 'Позначає проблеми',
   'admin.plugins.cap.mapLayers': 'Малює на карті',
   'admin.plugins.cap.routing': 'Пропонує маршрутизацію',
+  'admin.plugins.cap.daySchedule': 'Додає часи до плану',
   'admin.plugins.cap.events': 'Реагує на активність',
   'admin.plugins.cap.requiresAddon': 'Потрібен {addon}',
   'admin.plugins.cap.dependsOn': 'Потрібен {id} {version}',

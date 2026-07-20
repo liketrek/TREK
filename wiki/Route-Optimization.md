@@ -17,6 +17,7 @@ Route segments reset at any transport reservation (flight, train, car, bus, or c
 - Colored line segments connect consecutive places on the map.
 - At zoom level 12 or higher, time pills show the estimated walking and driving time between each pair of consecutive places.
 - When at least two places are on the selected day, total distance and duration are shown in the sidebar footer.
+- Plugins can attach time entries to the day plan (e.g. planned charging time at a stop, a security buffer before a flight). They appear as slim rows under the place or booking they belong to, and their minutes are added to the day's footer total as "+X min".
 
 ## Optimize route
 

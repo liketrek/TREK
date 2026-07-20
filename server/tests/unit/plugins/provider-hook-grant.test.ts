@@ -65,6 +65,13 @@ describe('providersOf enforces the hook:* grant', () => {
     expect(s.providersOf('routeProvider')).toEqual(['ev']);
   });
 
+  it('maps dayScheduleProvider to hook:day-schedule-provider', () => {
+    const s = makeSupervisor();
+    put(s, 'times', 'active', ['dayScheduleProvider'], ['hook:day-schedule-provider']);
+    put(s, 'ungranted', 'active', ['dayScheduleProvider'], ['hook:route-provider']); // wrong grant
+    expect(s.providersOf('dayScheduleProvider')).toEqual(['times']);
+  });
+
   it('maps notificationChannel to hook:notification-channel', () => {
     const s = makeSupervisor();
     put(s, 'gotify', 'active', ['notificationChannel'], ['hook:notification-channel']);

@@ -321,6 +321,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-layer-provider': 'Рисовать маршруты, коридоры и зоны на карте поездки',
   'admin.plugins.perm.hook:route-provider':
     'Предоставлять профили маршрутизации, по которым планировщик строит маршруты дней (например, маршрутизация для электромобилей с остановками для зарядки)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Добавлять записи времени в план дня (остановки для зарядки, запас времени на контроль)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Добавлять текстовые разделы в PDF-экспорт поездки',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Выделять страны на карте мира в Атласе (например, списки желаний или предупреждения для путешественников)',
@@ -442,6 +444,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.warnings': 'Отмечает проблемы',
   'admin.plugins.cap.mapLayers': 'Рисует на карте',
   'admin.plugins.cap.routing': 'Предоставляет маршрутизацию',
+  'admin.plugins.cap.daySchedule': 'Добавляет время в план',
   'admin.plugins.cap.events': 'Реагирует на активность',
   'admin.plugins.cap.requiresAddon': 'Требуется {addon}',
   'admin.plugins.cap.dependsOn': 'Нужен {id} {version}',

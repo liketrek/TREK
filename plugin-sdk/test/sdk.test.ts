@@ -86,8 +86,8 @@ describe('validateManifest', () => {
     expect(r.manifest?.permissions).toEqual(permissions);
   });
 
-  it('accepts hook:map-layer-provider (trip-map vector overlays)', () => {
-    const r = validateManifest({ ...base, permissions: ['hook:map-layer-provider'] });
+  it('accepts hook:map-layer-provider and hook:day-schedule-provider', () => {
+    const r = validateManifest({ ...base, permissions: ['hook:map-layer-provider', 'hook:day-schedule-provider'] });
     expect(r.errors).toEqual([]);
     expect(r.ok).toBe(true);
   });

@@ -105,6 +105,7 @@ const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   mapMarkerProvider: 'hook:map-marker-provider',
   mapLayerProvider: 'hook:map-layer-provider',
   routeProvider: 'hook:route-provider',
+  dayScheduleProvider: 'hook:day-schedule-provider',
   pdfSectionProvider: 'hook:pdf-section-provider',
   atlasLayerProvider: 'hook:atlas-layer-provider',
   journalEntryProvider: 'hook:journal-entry-provider',
