@@ -32,8 +32,9 @@ const ADDON_ICONS: Record<string, LucideIcon> = {
   collections: Bookmark,
 }
 
-/** The bar holds Dashboard + at most this many custom items; the rest go to More. */
-export const MOBILE_NAV_MAX_BAR = 3
+/** The bar holds Dashboard + at most this many custom items; the rest go to More.
+ * Two keeps the dock at 3 destinations (Dashboard + 2) so the More slot still fits. */
+export const MOBILE_NAV_MAX_BAR = 2
 /** The built-in dock next to Dashboard for an un-customised account; everything else starts under More. */
 export const DEFAULT_DOCK_IDS = ['vacay', 'atlas']
 

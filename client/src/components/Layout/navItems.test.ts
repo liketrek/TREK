@@ -48,8 +48,8 @@ describe('splitMobileNav', () => {
 
   it('caps the bar and overflows the excess into More', () => {
     const s = splitMobileNav(items, { bar: ['vacay', 'atlas', 'journey', 'collections'], more: [] })
-    expect(ids(s.bar)).toEqual(['dashboard', 'vacay', 'atlas', 'journey']) // Dashboard + 3
-    expect(ids(s.more)).toEqual(['collections'])
+    expect(ids(s.bar)).toEqual(['dashboard', 'vacay', 'atlas']) // Dashboard + 2
+    expect(ids(s.more)).toEqual(['journey', 'collections'])
   })
 
   it('never lets a stored dashboard id take a bar slot from the pinned one', () => {
