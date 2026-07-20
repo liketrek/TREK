@@ -332,6 +332,62 @@ If the response is `{}` or `{"error": {...}}`, the key or its restrictions are b
 
 ---
 
+## Backups: "Test connection" fails with a TLS handshake error
+
+**Cause:** Path-style addressing is off against a provider that serves its S3 API under a path. Without it the bucket name is prepended as a subdomain — `https://<bucket>.<host>` — and the certificate does not cover that invented name, so the connection dies during the TLS handshake with an opaque OpenSSL message.
+
+**Fix:** Turn on **Use path-style addressing** in Admin → Backup → External backup target, or set `BACKUP_S3_FORCE_PATH_STYLE=true`. It is required for MinIO, Garage, Supabase Storage, Ceph RGW and most self-hosted gateways.
+
+---
+
+## Backups: "invalid content-length header" when uploading to S3
+
+**Cause:** Some S3 endpoints behind a CDN — Supabase Storage behind Cloudflare is the confirmed case — return a response on a *reused* keep-alive connection whose framing Node's HTTP client rejects. The first request in a process succeeds and later ones fail, which makes the fault look intermittent and unrelated to configuration.
+
+**Fix:** Already handled — TREK sends S3 requests over a dispatcher with connection reuse disabled. If you still hit this, you are on an older build; upgrade. The workaround costs one TLS handshake per request, which is irrelevant for the handful of operations a backup performs.
+
+---
+
+## Backups: "Bucket is reachable but not writable"
+
+**Cause:** The credentials can list the bucket but not write to it. A read-only access key passes a naive connectivity check and then fails every backup, which is why TREK's test writes and deletes a probe object instead of only listing.
+
+**Fix:** Grant the key `s3:PutObject` and `s3:DeleteObject` on the bucket — delete is needed for remote pruning. If the test reports success *with* a warning about retention, writes work but deletes do not: backups will run, old ones will not be pruned.
+
+---
+
+## Backups: the S3 target is ignored / the admin form is read-only
+
+**Cause:** `BACKUP_TARGET_TYPE` is set in the environment. Environment configuration takes priority and the UI reports it as env-managed, the same way `SMTP_PASS` overrides the stored SMTP password.
+
+**Fix:** Either unset `BACKUP_TARGET_TYPE` and manage the target in Admin → Backup, or keep it and configure the other `BACKUP_*` variables alongside it. See [Environment-Variables](Environment-Variables).
+
+---
+
+## Backups: a self-hosted MinIO/Garage endpoint is refused
+
+**Cause:** TREK validates the endpoint against its SSRF guard before any request. Loopback is blocked unconditionally, and private/LAN addresses need an explicit opt-in.
+
+**Fix:** Address a container running beside TREK by its **service name** (`http://minio:9000`) or LAN address — never `http://localhost:9000`. For a private or LAN address also set `ALLOW_INTERNAL_NETWORK=true`, the same switch a self-hosted Ollama needs. A plain-`http://` endpoint additionally requires turning off **Require HTTPS**, which transmits your database and all uploads unencrypted.
+
+---
+
+## Backups: the target directory is refused
+
+**Cause:** The **Directory** backend rejects any path inside TREK's own `data/` or `uploads/` trees, and rejects relative paths. A target inside `uploads/` would end up inside the *next* backup, so every run would embed all previous runs and the archive would grow without bound.
+
+**Fix:** Point it at an absolute path outside those directories. On the Docker image this is a path inside the container that you map to real storage with a volume; on a source install it is a plain filesystem path.
+
+---
+
+## Backups exist locally but never appear at the external target
+
+**Cause:** The storage backend is set to **Local only**, so nothing is mirrored. Filling in the S3 or directory fields does not by itself switch the backend on.
+
+**Fix:** Pick **S3-compatible** or **Directory** under Admin → Backup → External backup target and save. Backups made *before* that point stay local — use **Upload all existing backups** to push them; archives already at the target are skipped, so it is safe to run more than once.
+
+---
+
 ## MCP OAuth flow does not initiate / "Connect" redirects but authentication never starts
 
 **Cause:** TREK builds the OAuth 2.1 redirect URI from `APP_URL`. If `APP_URL` is not set, the authorization URL is constructed from a localhost fallback that external clients (Claude.ai, Claude Desktop) cannot reach, so the OAuth handshake never completes.
