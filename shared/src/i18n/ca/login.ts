@@ -92,5 +92,10 @@ const login: TranslationStrings = {
   'login.insecureCookie.body':
     'T\'estàs connectant mitjançant HTTP ordinari, de manera que el teu navegador rebutja la galeta de sessió segura de TREK — la següent petició fallarà amb "Access token required". Solució: utilitza HTTPS, o per a entorns locals (home-lab) defineix COOKIE_SECURE=false.',
   'login.insecureCookie.link': 'Obre la guia de resolució de problemes',
+  'login.ldap.failed': "Error d'autenticació LDAP. Torneu-ho a intentar més tard.",
+  'login.ldap.accessDenied': "Accés denegat. No sou membre d'un grup autoritzat.",
+  'login.ldap.method': "LDAP",
+  'login.local.method': "Local",
+  'login.ldap.usernamePlaceholder': "nom d'usuari",
 };
 export default login;

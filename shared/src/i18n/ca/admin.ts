@@ -581,5 +581,10 @@ const admin: TranslationStrings = {
   'admin.plugins.metaRequires': 'Requereix',
   'admin.plugins.metaReviewed': 'Revisat el',
   'admin.plugins.downloads': 'Baixades',
+  'admin.ldap.defaultMethod': "Mètode d'inici de sessió LDAP predeterminat",
+  'admin.ldap.defaultMethodHint': "Controla quin mètode d'inici de sessió està preseleccionat.",
+  'admin.ldap.method.ldap': "Només LDAP",
+  'admin.ldap.method.local': "Només local",
+  'admin.ldap.method.both': "Tots dos",
 };
 export default admin;

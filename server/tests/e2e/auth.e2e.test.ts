@@ -29,7 +29,7 @@ vi.mock('../../src/services/notifications', () => ({ getAppUrl: () => 'https://x
 
 const { authSvc } = vi.hoisted(() => ({
   authSvc: {
-    getAppConfig: vi.fn(), demoLogin: vi.fn(), validateInviteToken: vi.fn(), registerUser: vi.fn(), loginUser: vi.fn(),
+    getAppConfig: vi.fn(), demoLogin: vi.fn(), validateInviteToken: vi.fn(), registerUser: vi.fn(), loginUser: vi.fn(), ldapLoginUser: vi.fn(),
     requestPasswordReset: vi.fn(), resetPassword: vi.fn(), verifyMfaLogin: vi.fn(), getCurrentUser: vi.fn(),
     changePassword: vi.fn(), deleteAccount: vi.fn(), updateMapsKey: vi.fn(), updateApiKeys: vi.fn(), updateSettings: vi.fn(),
     getSettings: vi.fn(), saveAvatar: vi.fn(), deleteAvatar: vi.fn(), listUsers: vi.fn(), validateKeys: vi.fn(),
@@ -61,7 +61,7 @@ describe('Auth e2e (real auth guard + real cookie service + temp SQLite)', () =>
     app = await build();
     server = app.getHttpServer();
     authSvc.getAppConfig.mockReturnValue({ version: '3' });
-    authSvc.loginUser.mockReturnValue({ token: 'jwt.token.value', user: { id: 1 } });
+    authSvc.ldapLoginUser.mockResolvedValue({ token: 'jwt.token.value', user: { id: 1 } });
     authSvc.getCurrentUser.mockReturnValue({ id: 1, email: 'u@example.test' });
   });
 
@@ -90,7 +90,7 @@ describe('Auth e2e (real auth guard + real cookie service + temp SQLite)', () =>
   });
 
   it('POST /login sets the httpOnly trek_session cookie', async () => {
-    authSvc.loginUser.mockReturnValue({ token: 'jwt.token.value', user: { id: 1 } });
+    authSvc.ldapLoginUser.mockResolvedValue({ token: 'jwt.token.value', user: { id: 1 } });
     const res = await request(server).post('/api/auth/login').send({ email: 'u@example.test', password: 'pw' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ token: 'jwt.token.value', user: { id: 1 } });
@@ -99,7 +99,7 @@ describe('Auth e2e (real auth guard + real cookie service + temp SQLite)', () =>
   }, 10000);
 
   it('POST /login with remember_me sets a persistent cookie (Max-Age present)', async () => {
-    authSvc.loginUser.mockReturnValue({ token: 'jwt.token.value', user: { id: 1 }, remember: true });
+    authSvc.ldapLoginUser.mockResolvedValue({ token: 'jwt.token.value', user: { id: 1 }, remember: true });
     const res = await request(server).post('/api/auth/login').send({ email: 'u@example.test', password: 'pw', remember_me: true });
     expect(res.status).toBe(200);
     const setCookie = res.headers['set-cookie'] as unknown as string[];
@@ -111,7 +111,7 @@ describe('Auth e2e (real auth guard + real cookie service + temp SQLite)', () =>
   }, 10000);
 
   it('POST /login without remember_me sets a session cookie (no Max-Age)', async () => {
-    authSvc.loginUser.mockReturnValue({ token: 'jwt.token.value', user: { id: 1 }, remember: false });
+    authSvc.ldapLoginUser.mockResolvedValue({ token: 'jwt.token.value', user: { id: 1 }, remember: false });
     const res = await request(server).post('/api/auth/login').send({ email: 'u@example.test', password: 'pw' });
     expect(res.status).toBe(200);
     const setCookie = res.headers['set-cookie'] as unknown as string[];

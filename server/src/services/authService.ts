@@ -56,6 +56,7 @@ const ADMIN_SETTINGS_KEYS = [
   'notify_trip_reminder',
   'password_login', 'password_registration', 'oidc_login', 'oidc_registration',
   'passkey_login', 'webauthn_rp_id', 'webauthn_origins',
+  'ldap_default_method',
 ];
 
 const avatarDir = path.join(__dirname, '../../uploads/avatars');
@@ -329,6 +330,8 @@ export function getAppConfig(authenticatedUser: { id: number } | null) {
     is_prerelease: version.includes('-pre.'),
     has_maps_key: hasGoogleKey,
     oidc_configured: oidcConfigured,
+    ldap_configured: !!(process.env.LDAP_URL),
+    ldap_default_method: (db.prepare("SELECT value FROM app_settings WHERE key = 'ldap_default_method'").get() as { value: string } | undefined)?.value || 'both',
     oidc_display_name: oidcConfigured ? (oidcDisplayName || 'SSO') : undefined,
     require_mfa: requireMfaRow?.value === 'true',
     allowed_file_types: (db.prepare("SELECT value FROM app_settings WHERE key = 'allowed_file_types'").get() as { value: string } | undefined)?.value || 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv',
@@ -468,7 +471,7 @@ export function loginUser(body: {
   auditAction?: string;
   auditDetails?: Record<string, unknown>;
 } {
-  if (isOidcOnlyMode()) {
+  if (isOidcOnlyMode() && !process.env.LDAP_URL) {
     return { error: 'Password authentication is disabled. Please sign in with SSO.', status: 403 };
   }
 
@@ -527,6 +530,83 @@ export function loginUser(body: {
     auditUserId: Number(user.id),
     auditAction: 'user.login',
     auditDetails: { email },
+  };
+}
+
+
+// ---------------------------------------------------------------------------
+// LDAP login — async wrapper (FreeIPA / OpenLDAP)
+// ---------------------------------------------------------------------------
+export async function ldapLoginUser(body: {
+  email?: string;
+  password?: string;
+  remember?: boolean;
+}): Promise<ReturnType<typeof loginUser>> {
+  const { getLdapConfig, ldapAuthenticate } = await import('./ldapService');
+
+  if (!getLdapConfig()) {
+    return loginUser(body);
+  }
+
+  const { email: usernameOrEmail, password } = body;
+  if (!usernameOrEmail || !password) {
+    return { error: 'Email and password are required', status: 400 };
+  }
+
+  const username = usernameOrEmail.includes('@')
+    ? usernameOrEmail.split('@')[0]
+    : usernameOrEmail;
+
+  let ldapUser;
+  try {
+    ldapUser = await ldapAuthenticate(username, password);
+  } catch (err) {
+    console.error('[LDAP] Authentication error:', err);
+    return { error: 'LDAP authentication failed', status: 502 };
+  }
+
+  if (!ldapUser) {
+    return loginUser(body);
+  }
+
+  const role = ldapUser.isAdmin ? 'admin' : 'user';
+  let user = db.prepare(
+    'SELECT * FROM users WHERE LOWER(email) = LOWER(?)'
+  ).get(ldapUser.email) as User | undefined;
+
+  if (user) {
+    if (user.role !== role) {
+      db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, user.id);
+      user = { ...user, role } as User;
+    }
+  } else {
+    let uname = ldapUser.uid.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 30) || 'user';
+    const conflict = db.prepare(
+      'SELECT id FROM users WHERE LOWER(username) = LOWER(?)'
+    ).get(uname);
+    if (conflict) uname = uname + '_' + String(Date.now() % 10000);
+
+    const result = db.prepare(
+      'INSERT INTO users (username, email, password_hash, role, first_seen_version, login_count) VALUES (?, ?, ?, ?, ?, 0)'
+    ).run(uname, ldapUser.email, '!ldap', role, process.env.APP_VERSION || '0.0.0');
+
+    user = db.prepare('SELECT * FROM users WHERE id = ?').get(
+      Number(result.lastInsertRowid)
+    ) as User;
+  }
+
+  db.prepare(
+    'UPDATE users SET login_count = login_count + 1, last_login = CURRENT_TIMESTAMP WHERE id = ?'
+  ).run(user.id);
+
+  const token = generateToken(user);
+  const userSafe = stripUserForClient(user) as Record<string, unknown>;
+  return {
+    token,
+    user: { ...userSafe, avatar_url: avatarUrl(user) },
+    auditUserId: Number(user.id),
+    auditAction: 'user.login',
+    auditDetails: { method: 'ldap', username },
   };
 }
 

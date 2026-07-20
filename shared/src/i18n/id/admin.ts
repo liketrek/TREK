@@ -670,5 +670,10 @@ const admin: TranslationStrings = {
   'admin.invite.tripNone': 'Tanpa perjalanan',
   'admin.invite.tripHint': 'Pengguna baru otomatis ditambahkan ke perjalanan ini saat mereka mendaftar melalui tautan.',
   'admin.invite.boundTo': 'menambahkan ke {trip}',
+  'admin.ldap.defaultMethod': "LDAP Default Login Method",
+  'admin.ldap.defaultMethodHint': "Controls which login method is pre-selected on the login page.",
+  'admin.ldap.method.ldap': "LDAP only — users log in with their LDAP credentials",
+  'admin.ldap.method.local': "Local only — users log in with their local password",
+  'admin.ldap.method.both': "Both — users can choose between LDAP and local login",
 };
 export default admin;

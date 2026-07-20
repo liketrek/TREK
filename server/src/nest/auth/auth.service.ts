@@ -27,6 +27,7 @@ export class AuthService {
   validateInviteToken(token: string) { return auth.validateInviteToken(token); }
   registerUser(body: unknown) { return auth.registerUser(body as Parameters<typeof auth.registerUser>[0]); }
   loginUser(body: unknown) { return auth.loginUser(body as Parameters<typeof auth.loginUser>[0]); }
+  ldapLoginUser(body: unknown) { return auth.ldapLoginUser(body as Parameters<typeof auth.ldapLoginUser>[0]); }
   requestPasswordReset(email: string, ip: string) { return auth.requestPasswordReset(email, ip); }
   resetPassword(body: unknown) { return auth.resetPassword(body as Parameters<typeof auth.resetPassword>[0]); }
   verifyMfaLogin(body: unknown) { return auth.verifyMfaLogin(body as Parameters<typeof auth.verifyMfaLogin>[0]); }

@@ -68,6 +68,8 @@ export function useAdmin() {
   // Passkey (WebAuthn) login
   const [passkeyLogin, setPasskeyLogin] = useState<boolean>(false)
   const [passkeyConfigured, setPasskeyConfigured] = useState<boolean>(false)
+  const [ldapConfigured, setLdapConfigured] = useState<boolean>(false)
+  const [ldapDefaultMethod, setLdapDefaultMethod] = useState<string>('both')
   const [webauthnRpId, setWebauthnRpId] = useState<string>('')
   const [webauthnOrigins, setWebauthnOrigins] = useState<string>('')
   const [savingWebauthn, setSavingWebauthn] = useState<boolean>(false)
@@ -156,6 +158,8 @@ export function useAdmin() {
       if (config.require_mfa !== undefined) setRequireMfa(!!config.require_mfa)
       setPasskeyLogin(!!config.passkey_login)
       setPasskeyConfigured(!!config.passkey_configured)
+      setLdapConfigured(!!config.ldap_configured)
+      setLdapDefaultMethod(config.ldap_default_method ?? 'both')
       if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
     } catch (err: unknown) {
       // ignore
@@ -377,6 +381,7 @@ export function useAdmin() {
     envOverrideOidcOnly, setEnvOverrideOidcOnly, oidcConfigured, setOidcConfigured,
     requireMfa, setRequireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
+    ldapConfigured, ldapDefaultMethod, setLdapDefaultMethod,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
     invites, setInvites, inviteTrips, showCreateInvite, setShowCreateInvite, inviteForm, setInviteForm,
     allowedFileTypes, setAllowedFileTypes, savingFileTypes, setSavingFileTypes,
