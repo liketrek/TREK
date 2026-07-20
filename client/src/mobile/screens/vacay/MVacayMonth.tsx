@@ -49,7 +49,7 @@ export default function MVacayMonth({
               <span
                 aria-hidden
                 className={`absolute rounded-full ${
-                  mini ? 'right-[1px] top-[1px] h-[3px] w-[3px]' : 'right-[2px] top-[2px] h-[5px] w-[5px]'
+                  mini ? 'right-[2px] top-[2px] h-[3px] w-[3px]' : 'right-[4px] top-[4px] h-[5px] w-[5px]'
                 }`}
                 style={{ background: tripDotColor }}
               />
@@ -58,7 +58,7 @@ export default function MVacayMonth({
               <span
                 aria-hidden
                 className={`absolute rounded-full ${
-                  mini ? 'right-[1px] bottom-[1px] h-[3px] w-[3px]' : 'right-[2px] bottom-[2px] h-[5px] w-[5px]'
+                  mini ? 'right-[2px] bottom-[2px] h-[3px] w-[3px]' : 'right-[4px] bottom-[4px] h-[5px] w-[5px]'
                 }`}
                 style={{ background: '#f97316' }}
               />
