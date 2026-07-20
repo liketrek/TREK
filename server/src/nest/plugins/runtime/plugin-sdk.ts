@@ -482,6 +482,52 @@ export interface MapLayerProvider {
   getLayers(tripId: number, ctx: PluginContext): Promise<MapLayerContribution[]>;
 }
 
+/** One waypoint of a route request — a located stop of the day being routed. */
+export interface RouteWaypoint {
+  lat: number;
+  lng: number;
+  name?: string;    // the stop's display name, when known
+  placeId?: number; // the TREK place behind this stop, when it is one
+}
+/** What the planner asks a routeProvider to route. */
+export interface RouteRequest {
+  tripId: number;
+  dayId: number | null;   // the selected day, when the request is day-scoped
+  profile: string;        // one of the plugin's declared capabilities.routeProfiles ids
+  waypoints: RouteWaypoint[]; // 2..30 located stops, in visit order
+}
+/** One leg of the returned route — between consecutive request waypoints. */
+export interface RouteLeg {
+  distance: number; // metres
+  duration: number; // seconds (driving + any stop time you fold into the leg)
+  note?: string;    // short text shown on the leg connector (e.g. "25 min charge"), ≤120 chars
+}
+/** An intermediate stop on the returned route (a charging stop, a rest area). */
+export interface RouteViaPoint {
+  lat: number;
+  lng: number;
+  label?: string;        // short marker text, ≤80 chars
+  tone?: ContributionTone;
+  dwellSeconds?: number; // planned time at the stop (0..86400)
+}
+/** A computed route. The host validates it whole: coordinates are range-checked
+ * (≤10000 vertices), legs must be exactly waypoints-1 entries, vias are capped
+ * at 40 — a malformed result is discarded and the planner falls back to straight
+ * lines, like an OSRM outage. */
+export interface RouteProviderResult {
+  coordinates: Array<[number, number]>; // [lat,lng] polyline of the whole route
+  distance: number;                     // metres, whole route
+  duration: number;                     // seconds, whole route
+  legs: RouteLeg[];
+  viaPoints?: RouteViaPoint[];
+}
+export interface RouteProvider {
+  /** Route the given waypoints under one of the plugin's declared profiles.
+   * Runs with the current user bound, on a 20 s timeout (room for an external
+   * solver via declared egress); a failing call falls back to straight lines. */
+  getRoute(request: RouteRequest, ctx: PluginContext): Promise<RouteProviderResult>;
+}
+
 /** A text-only section the host appends to a trip's PDF export. Declarative only —
  * plain strings the host lays out and escapes; no markup ever reaches the document. */
 export interface PdfSection {
@@ -590,6 +636,7 @@ export interface PluginDefinition {
     tableContributor?: TableContributor;
     mapMarkerProvider?: MapMarkerProvider;
     mapLayerProvider?: MapLayerProvider;
+    routeProvider?: RouteProvider;
     pdfSectionProvider?: PdfSectionProvider;
     atlasLayerProvider?: AtlasLayerProvider;
     journalEntryProvider?: JournalEntryProvider;

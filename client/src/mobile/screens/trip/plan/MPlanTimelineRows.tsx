@@ -1,4 +1,4 @@
-import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, Ticket, X } from 'lucide-react'
+import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, Ticket, X, Zap } from 'lucide-react'
 import type { ReactNode } from 'react'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
@@ -372,6 +372,13 @@ export function ConnRow({ seg }: { seg: RouteSegment }) {
         <Car size={10} strokeWidth={2} />
         {seg.drivingText}
       </span>
+      {/* Extra text a plugin route attached to this leg (e.g. "25 min charge"). */}
+      {seg.noteText && (
+        <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
+          <Zap size={10} strokeWidth={2} />
+          {seg.noteText}
+        </span>
+      )}
       <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
     </div>
   )

@@ -58,6 +58,13 @@ describe('providersOf enforces the hook:* grant', () => {
     expect(s.providersOf('mapLayerProvider')).toEqual(['layers']);
   });
 
+  it('maps routeProvider to hook:route-provider', () => {
+    const s = makeSupervisor();
+    put(s, 'ev', 'active', ['routeProvider'], ['hook:route-provider']);
+    put(s, 'ungranted', 'active', ['routeProvider'], ['hook:map-layer-provider']); // wrong grant
+    expect(s.providersOf('routeProvider')).toEqual(['ev']);
+  });
+
   it('maps notificationChannel to hook:notification-channel', () => {
     const s = makeSupervisor();
     put(s, 'gotify', 'active', ['notificationChannel'], ['hook:notification-channel']);

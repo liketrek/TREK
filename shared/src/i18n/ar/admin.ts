@@ -326,6 +326,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:table-contributor': 'إضافة أعمدة وإجراءات إلى عروض الرحلة (الحجوزات، الأماكن، الأيام)',
   'admin.plugins.perm.hook:map-marker-provider': 'إضافة علامات إلى خريطة الرحلة (مثل عرض الحجوزات أو نقاط الاهتمام)',
   'admin.plugins.perm.hook:map-layer-provider': 'رسم مسارات وممرات ومناطق على خريطة الرحلة',
+  'admin.plugins.perm.hook:route-provider':
+    'توفير ملفات تعريف توجيه يحسب بها المخطط مسارات الأيام (مثل توجيه السيارات الكهربائية مع توقفات للشحن)',
   'admin.plugins.perm.hook:pdf-section-provider': 'إضافة أقسام نصية إلى تصدير PDF للرحلة',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'إبراز دول على خريطة أطلس العالمية (مثل قوائم الأمنيات أو تحذيرات السفر)',
@@ -443,6 +445,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.placeDetails': 'يُثري الأماكن',
   'admin.plugins.cap.warnings': 'يرصد المشكلات',
   'admin.plugins.cap.mapLayers': 'يرسم على الخريطة',
+  'admin.plugins.cap.routing': 'يوفّر التوجيه',
   'admin.plugins.cap.events': 'يتفاعل مع النشاط',
   'admin.plugins.cap.requiresAddon': 'يتطلب {addon}',
   'admin.plugins.cap.dependsOn': 'يحتاج إلى {id} {version}',

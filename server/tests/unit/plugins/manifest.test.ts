@@ -113,6 +113,18 @@ describe('parseManifest capabilities', () => {
     expect(pd.capabilities.widget?.slot).toBe('place-detail');
   });
 
+  it('parses routeProfiles (id shape, label cap, icon trim) and rejects malformed ones', () => {
+    const m = parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'ev', label: '  EV  ', icon: 'zap' }] } });
+    expect(m.capabilities.routeProfiles).toEqual([{ id: 'ev', label: 'EV', icon: 'zap' }]);
+    // id must be lowercase kebab, ≤24 chars; label required ≤40; max 3; no duplicates
+    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'EV', label: 'x' }] } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'ev' }] } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'ev', label: 'L'.repeat(41) }] } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'ev', label: 'a' }, { id: 'ev', label: 'b' }] } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [1, 2, 3, 4].map(i => ({ id: `p${i}`, label: 'x' })) } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: 'ev' } })).toThrow(ManifestError);
+  });
+
   it('accepts the day-detail widget slot (mounts in the day panel)', () => {
     const dd = parseManifest({ ...base, capabilities: { widget: { slot: 'day-detail' } } });
     expect(dd.capabilities.widget?.slot).toBe('day-detail');

@@ -312,6 +312,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:table-contributor': 'Přidávat sloupce a akce do zobrazení cesty (rezervace, místa, dny)',
   'admin.plugins.perm.hook:map-marker-provider': 'Přidávat značky na mapu cesty (např. zobrazit rezervace nebo POI)',
   'admin.plugins.perm.hook:map-layer-provider': 'Zakreslovat trasy, koridory a zóny do mapy cesty',
+  'admin.plugins.perm.hook:route-provider':
+    'Nabízet trasovací profily, podle kterých plánovač počítá trasy dnů (např. trasování pro elektromobily se zastávkami na nabíjení)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Připojovat textové sekce k PDF exportu cesty',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Zvýrazňovat země na mapě světa v Atlasu (např. seznamy přání nebo cestovní upozornění)',
@@ -429,6 +431,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.placeDetails': 'Obohacuje místa',
   'admin.plugins.cap.warnings': 'Označuje problémy',
   'admin.plugins.cap.mapLayers': 'Kreslí na mapě',
+  'admin.plugins.cap.routing': 'Nabízí trasování',
   'admin.plugins.cap.events': 'Reaguje na aktivitu',
   'admin.plugins.cap.requiresAddon': 'Vyžaduje {addon}',
   'admin.plugins.cap.dependsOn': 'Vyžaduje {id} {version}',

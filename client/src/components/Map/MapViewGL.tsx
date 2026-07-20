@@ -16,7 +16,7 @@ import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
-import type { Place, Reservation } from '../../types'
+import type { Place, Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
@@ -77,6 +77,8 @@ interface Props {
   // without a trip (CollectionMap), which naturally excludes them — same rule as
   // the Leaflet MapPluginMarkers.
   tripId?: number | string
+  // Charging stops / rest areas a plugin route places on the drawn day route.
+  routeVias?: RouteVia[]
   route?: [number, number][][] | null
   routeSegments?: RouteSegment[]
   selectedPlaceId?: number | null
@@ -254,6 +256,12 @@ function buildPluginLayerData(layers: PluginMapLayer[]) {
   return { type: 'FeatureCollection' as const, features }
 }
 
+function formatViaDwellGl(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.round((seconds % 3600) / 60)
+  return h > 0 ? `${h} h ${m} min` : `${m} min`
+}
+
 // Tone dot for a plugin marker — visual twin of MapPluginMarkers' divIcon.
 function createPluginMarkerElement(tone: PluginMapMarker['tone']): HTMLDivElement {
   const color = PLUGIN_TONE_COLORS[tone] ?? PLUGIN_TONE_COLORS.default
@@ -307,6 +315,7 @@ export function MapViewGL({
   places = [],
   dayPlaces = [],
   tripId,
+  routeVias = [],
   route = null,
   routeSegments = [],
   selectedPlaceId = null,
@@ -387,6 +396,8 @@ export function MapViewGL({
   const [pluginLayers, setPluginLayers] = useState<PluginMapLayer[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pluginMarkersRef = useRef<any[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const routeViaMarkersRef = useRef<any[]>([])
   // Single reusable hover popup for POI markers. Planned places use the
   // cursor-following React tooltip below so they match the Leaflet map.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1065,6 +1076,30 @@ export function MapViewGL({
     if (!src) return
     src.setData(buildPluginLayerData(pluginLayers))
   }, [pluginLayers, mapReady, glProvider])
+
+  // Reconcile the via-point markers of a plugin route (charging stops) — small
+  // tone-ringed dots, popup with label + planned stop time on tap.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    routeViaMarkersRef.current.forEach(m => m.remove())
+    routeViaMarkersRef.current = []
+    for (const v of routeVias) {
+      const el = document.createElement('div')
+      el.style.cssText = 'width:13px;height:13px;cursor:pointer;'
+      const color = PLUGIN_TONE_COLORS[v.tone] ?? PLUGIN_TONE_COLORS.default
+      el.innerHTML = `<span style="display:block;width:13px;height:13px;border-radius:50%;background:#fff;border:3.5px solid ${color};box-shadow:0 1px 4px rgba(0,0,0,0.35);box-sizing:border-box"></span>`
+      if (v.label || v.dwellSeconds != null) {
+        const text = [v.label, v.dwellSeconds != null ? formatViaDwellGl(v.dwellSeconds) : null].filter(Boolean).join(' · ')
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+          popupRef.current?.setLngLat([v.lng, v.lat]).setText(text).addTo(map)
+        })
+      }
+      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([v.lng, v.lat]).addTo(map)
+      routeViaMarkersRef.current.push(m)
+    }
+  }, [routeVias, mapReady, glProvider])
 
   // Reconcile plugin markers (imperative, same lifecycle as the POI markers).
   useEffect(() => {

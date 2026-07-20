@@ -43,6 +43,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         places={planner.mapPlaces}
         dayPlaces={planner.dayPlaces}
         route={planner.route}
+        routeVias={planner.routeVias}
         showTransitRoutes={planner.routeShown}
         routeSegments={planner.routeSegments}
         selectedPlaceId={planner.selectedPlaceId}

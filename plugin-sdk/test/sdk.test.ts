@@ -92,6 +92,23 @@ describe('validateManifest', () => {
     expect(r.ok).toBe(true);
   });
 
+  it('validates capabilities.routeProfiles and ties it to hook:route-provider', () => {
+    const profiles = [{ id: 'ev', label: 'EV' }];
+    const ok = validateManifest({ ...base, permissions: ['hook:route-provider'], capabilities: { routeProfiles: profiles } });
+    expect(ok.errors).toEqual([]);
+    expect(ok.ok).toBe(true);
+    // profiles without the grant are dead buttons — rejected at validate time
+    expect(validateManifest({ ...base, capabilities: { routeProfiles: profiles } }).ok).toBe(false);
+    // id shape, label cap, count cap, duplicates
+    const bad = (routeProfiles: unknown) => validateManifest({ ...base, permissions: ['hook:route-provider'], capabilities: { routeProfiles } }).ok;
+    expect(bad([{ id: 'EV', label: 'x' }])).toBe(false);
+    expect(bad([{ id: 'ev' }])).toBe(false);
+    expect(bad([{ id: 'ev', label: 'L'.repeat(41) }])).toBe(false);
+    expect(bad([{ id: 'ev', label: 'a' }, { id: 'ev', label: 'b' }])).toBe(false);
+    expect(bad([1, 2, 3, 4].map(i => ({ id: `p${i}`, label: 'x' })))).toBe(false);
+    expect(bad('ev')).toBe(false);
+  });
+
   it('accepts the read-symmetry + broker permissions (collab, file content, trip create, rates)', () => {
     const permissions = ['db:read:collab', 'db:create:trips', 'rates:read', 'db:read:files:content'];
     const r = validateManifest({ ...base, permissions });

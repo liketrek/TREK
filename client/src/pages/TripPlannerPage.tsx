@@ -212,7 +212,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     transportModalDayId, setTransportModalDayId,
     transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
     reservationPrefill, transportPrefill, importReviewActive, advanceImportReview,
-    routeShown, setRouteShown, routeProfile, setRouteProfile, fitKey, setFitKey,
+    routeShown, setRouteShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
     visibleConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,
@@ -296,6 +296,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               places={mapPlaces}
               dayPlaces={dayPlaces}
               route={route}
+              routeVias={routeVias}
               showTransitRoutes={routeShown}
               routeSegments={routeSegments}
               selectedPlaceId={selectedPlaceId}

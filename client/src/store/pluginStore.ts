@@ -19,6 +19,9 @@ export interface ActivePlugin {
   tripPage?: { replaces?: string[]; position?: number }
   /** The plugin ships a settings.html the user-settings page frames. */
   settingsUi?: true
+  /** Routing profiles the planner's route toggle offers (routeProvider hook;
+   * the server only sends these when the hook permission is granted). */
+  routeProfiles?: Array<{ id: string; label: string; icon?: string }>
 }
 
 interface PluginState {
@@ -31,6 +34,7 @@ interface PluginState {
   heroWidgets: () => ActivePlugin[]
   tripPages: () => ActivePlugin[]
   placeDetailWidgets: () => ActivePlugin[]
+  routeProviders: () => ActivePlugin[]
 }
 
 export const usePluginStore = create<PluginState>((set, get) => ({
@@ -52,4 +56,5 @@ export const usePluginStore = create<PluginState>((set, get) => ({
   heroWidgets: () => get().plugins.filter((p) => p.type === 'widget' && p.slot === 'hero'),
   tripPages: () => get().plugins.filter((p) => p.type === 'trip-page'),
   placeDetailWidgets: () => get().plugins.filter((p) => p.type === 'widget' && p.slot === 'place-detail'),
+  routeProviders: () => get().plugins.filter((p) => !!p.routeProfiles?.length),
 }))

@@ -8,7 +8,7 @@ TREK calculates walking and driving times between your places and can reorder th
 
 TREK uses **OSRM** (Open Source Routing Machine) to calculate routes between consecutive places in the selected day. No API key is required.
 
-Segment time pills always show both a **driving** time (fetched from OSRM using the driving profile) and a **walking** time (estimated at 5 km/h from the OSRM driving distance). There is no user-selectable routing profile — the driving profile is used for all OSRM requests.
+The route toggle in the day-plan footer offers a **Driving** and a **Walking** profile (each routed on the matching OSRM network). Installed plugins can add further profiles: a plugin with the `routeProvider` hook — for example an e-mobility plugin that plans charging stops — appears as an extra mode next to Driving/Walking. When such a profile is selected, that plugin computes the day's route: its geometry is drawn on the map, planned stops (e.g. chargers) appear as small dots on the line, and the leg connectors show the plugin's travel times plus any note it attaches ("25 min charge"). If the plugin fails or times out, TREK falls back to straight lines exactly as it does on an OSRM outage.
 
 Route segments reset at any transport reservation (flight, train, car, bus, or cruise) between two places — that leg is not driven or walked, so no ground route is drawn across it.
 

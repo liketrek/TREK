@@ -11,6 +11,7 @@ import { PluginPhotosController } from './plugin-photos.controller';
 import { PluginCalendarController } from './plugin-calendar.controller';
 import { MapMarkersController } from './map-markers.controller';
 import { MapLayersController } from './map-layers.controller';
+import { PluginRoutesController } from './plugin-routes.controller';
 import { PluginActivityController } from './plugin-activity.controller';
 import { PdfSectionsController } from './pdf-sections.controller';
 import { AtlasLayersController } from './atlas-layers.controller';
@@ -30,7 +31,7 @@ import { PluginRegistryService } from './registry/registry.service';
  * widget assets at /plugin-frame/:id/*.
  */
 @Module({
-  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, TripCardContributionsController, PluginPhotosController, PluginCalendarController, MapMarkersController, MapLayersController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController],
+  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, TripCardContributionsController, PluginPhotosController, PluginCalendarController, MapMarkersController, MapLayersController, PluginRoutesController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController],
   providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService],
   // Exported so the admin addon-toggle handler can cascade-disable plugins whose
   // required addon was just turned off (#plugins dependencies).

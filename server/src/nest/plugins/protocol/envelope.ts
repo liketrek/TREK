@@ -325,6 +325,7 @@ export const KNOWN_PERMISSIONS = [
   'hook:table-contributor',
   'hook:map-marker-provider',
   'hook:map-layer-provider',
+  'hook:route-provider',
   'hook:pdf-section-provider',
   'hook:atlas-layer-provider',
   'hook:journal-entry-provider',

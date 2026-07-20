@@ -320,6 +320,8 @@ const admin: TranslationStrings = {
     'Añadir columnas y acciones a las vistas del viaje (reservas, lugares, días)',
   'admin.plugins.perm.hook:map-marker-provider': 'Añadir marcadores al mapa del viaje (p. ej. mostrar reservas o POIs)',
   'admin.plugins.perm.hook:map-layer-provider': 'Dibujar rutas, corredores y zonas en el mapa del viaje',
+  'admin.plugins.perm.hook:route-provider':
+    'Ofrecer perfiles de ruta con los que el planificador puede calcular los días (p. ej. rutas para vehículos eléctricos con paradas de carga)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Añadir secciones de texto a la exportación PDF del viaje',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Resaltar países en el mapamundi del Atlas (p. ej. listas de deseos o avisos de viaje)',
@@ -440,6 +442,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.placeDetails': 'Enriquece lugares',
   'admin.plugins.cap.warnings': 'Marca problemas',
   'admin.plugins.cap.mapLayers': 'Dibuja en el mapa',
+  'admin.plugins.cap.routing': 'Ofrece rutas',
   'admin.plugins.cap.events': 'Reacciona a la actividad',
   'admin.plugins.cap.requiresAddon': 'Requiere {addon}',
   'admin.plugins.cap.dependsOn': 'Necesita {id} {version}',

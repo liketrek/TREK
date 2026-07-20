@@ -428,6 +428,45 @@ hooks: {
 
 ---
 
+## Offer a routing profile (EV charging stops)
+
+Declare a profile and implement the `routeProvider` hook — your profile appears in the planner's route toggle next to Driving/Walking, and TREK asks *you* to route the day. Needs `hook:route-provider`; add `http:outbound:<solver-host>` if you call an external routing service.
+
+```json
+"permissions": ["hook:route-provider", "http:outbound:api.example-ev.com"],
+"egress": ["api.example-ev.com"],
+"capabilities": { "routeProfiles": [{ "id": "ev", "label": "EV (charging)" }] }
+```
+
+```js
+hooks: {
+  routeProvider: {
+    async getRoute({ tripId, dayId, profile, waypoints }, ctx) {
+      // waypoints = the day's located stops in visit order (2..30).
+      const plan = await solveEvRoute(waypoints) // your solver / external API
+      return {
+        coordinates: plan.polyline,          // [lat,lng][] for the map line
+        distance: plan.meters,
+        duration: plan.seconds,              // driving + charging
+        legs: waypoints.slice(1).map((_, i) => ({
+          distance: plan.legs[i].meters,
+          duration: plan.legs[i].seconds,
+          note: plan.legs[i].chargeMin ? `${plan.legs[i].chargeMin} min charge` : undefined,
+        })),
+        viaPoints: plan.chargers.map((c) => ({
+          lat: c.lat, lng: c.lng, tone: 'success',
+          label: `${c.name} · to ${c.targetSoc}%`, dwellSeconds: c.chargeMin * 60,
+        })),
+      }
+    },
+  },
+},
+```
+
+The legs must line up 1:1 with the waypoint pairs (TREK rejects the result whole otherwise), `note` shows on the day-plan connector, and via points are drawn as stops on the route line. You have 20 s per request; a throw or timeout simply falls back to straight lines. Pair this with `mapLayerProvider` if you also want corridors/zones, and with `db:write:places` + `db:write:itinerary` if the user should be able to persist charging stops as real places.
+
+---
+
 ## Honour account deletion and data export (GDPR)
 
 **Needs:** `hook:user-data`

@@ -322,6 +322,8 @@ const admin: TranslationStrings = {
     'Ajouter des marqueurs à la carte du voyage (p. ex. afficher réservations ou POIs)',
   'admin.plugins.perm.hook:map-layer-provider':
     'Tracer des itinéraires, des corridors et des zones sur la carte du voyage',
+  'admin.plugins.perm.hook:route-provider':
+    'Proposer des profils de routage avec lesquels le planificateur calcule les itinéraires des jours (p. ex. routage pour véhicule électrique avec arrêts de recharge)',
   'admin.plugins.perm.hook:pdf-section-provider': "Ajouter des sections de texte à l'export PDF du voyage",
   'admin.plugins.perm.hook:atlas-layer-provider':
     "Mettre en évidence des pays sur la carte du monde Atlas (p. ex. listes d'envies ou avis aux voyageurs)",
@@ -443,6 +445,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.placeDetails': 'Enrichit les lieux',
   'admin.plugins.cap.warnings': 'Signale les problèmes',
   'admin.plugins.cap.mapLayers': 'Dessine sur la carte',
+  'admin.plugins.cap.routing': 'Propose des itinéraires',
   'admin.plugins.cap.events': 'Réagit à l’activité',
   'admin.plugins.cap.requiresAddon': 'Nécessite {addon}',
   'admin.plugins.cap.dependsOn': 'Requiert {id} {version}',

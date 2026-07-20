@@ -4,7 +4,7 @@ declare global { interface Window { __dragData: DragDataPayload | null } }
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
-import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon, Bookmark, TramFront } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon, Bookmark, TramFront, Zap } from 'lucide-react'
 import { assignmentsApi, reservationsApi } from '../../api/client'
 import { calculateRoute, calculateRouteWithLegs, optimizeRoute, generateGoogleMapsUrl } from '../Map/RouteCalculator'
 import PlaceAvatar from '../shared/PlaceAvatar'
@@ -19,6 +19,7 @@ import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
+import { usePluginStore } from '../../store/pluginStore'
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { placeToSaveTarget } from '../Collections/saveTarget'
 import { useTranslation } from '../../i18n'
@@ -76,9 +77,9 @@ interface DayPlanSidebarProps {
   onAddReservation: (dayId: number) => void
   onNavigateToFiles?: () => void
   routeShown?: boolean
-  routeProfile?: 'driving' | 'walking'
+  routeProfile?: string
   onToggleRoute?: () => void
-  onSetRouteProfile?: (profile: 'driving' | 'walking') => void
+  onSetRouteProfile?: (profile: string) => void
   onAddPlace?: () => void
   onAddPlaceToDay?: (placeId: number, dayId: number) => void
   onExpandedDaysChange?: (expandedDayIds: Set<number>) => void
@@ -519,10 +520,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       const legsByDay: Record<number, Record<number, RouteSegment>> = {}
       const hotelByDay: Record<number, { top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } }> = {}
 
-      // One cached OSRM call per waypoint pair; shares RouteCalculator's cache.
-      const legBetween = async (a: { lat: number; lng: number }, b: { lat: number; lng: number }): Promise<RouteSegment | undefined> => {
+      // One cached OSRM/plugin call per waypoint pair; shares RouteCalculator's cache.
+      // tripId/dayId ride along for plugin route profiles (the server access-checks them).
+      const legBetween = async (a: { lat: number; lng: number }, b: { lat: number; lng: number }, dayId: number): Promise<RouteSegment | undefined> => {
         try {
-          const r = await calculateRouteWithLegs([a, b], { signal: controller.signal, profile: routeProfile })
+          const r = await calculateRouteWithLegs([a, b], { signal: controller.signal, profile: routeProfile, tripId, dayId })
           return r.legs[0]
         } catch { return undefined }
       }
@@ -532,7 +534,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         const dayLegs: Record<number, RouteSegment> = {}
         for (const run of runs) {
           try {
-            const r = await calculateRouteWithLegs(run.map(p => ({ lat: p.lat, lng: p.lng })), { signal: controller.signal, profile: routeProfile })
+            const r = await calculateRouteWithLegs(run.map(p => ({ lat: p.lat, lng: p.lng })), { signal: controller.signal, profile: routeProfile, tripId, dayId })
             r.legs.forEach((leg, i) => { dayLegs[run[i].id] = leg })
           } catch (err) {
             if (err instanceof Error && err.name === 'AbortError') return
@@ -541,11 +543,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         if (Object.keys(dayLegs).length) legsByDay[dayId] = dayLegs
         const hotel: { top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } } = {}
         if (wantTop) {
-          const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstWay!.lat, lng: firstWay!.lng })
+          const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstWay!.lat, lng: firstWay!.lng }, dayId)
           if (seg) hotel.top = { seg, name: hotelName(startHotel!) }
         }
         if (wantBottom) {
-          const seg = await legBetween({ lat: lastWay!.lat, lng: lastWay!.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number })
+          const seg = await legBetween({ lat: lastWay!.lat, lng: lastWay!.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number }, dayId)
           if (seg) hotel.bottom = { seg, name: hotelName(endHotel!) }
         }
         if (controller.signal.aborted) return
@@ -1163,6 +1165,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   // keeps its own copy, so read it reactively here in the component scope too.
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
+  // Route-profile picker entries: the two built-ins plus every profile an active
+  // routeProvider plugin declared (keyed 'plugin:<id>/<profile>', labeled by the
+  // plugin's manifest). The feed only lists granted providers.
+  const activePlugins = usePluginStore(s => s.plugins)
+  const routeProfileOptions = useMemo(() => {
+    const opts: Array<{ key: string; label: string }> = [
+      { key: 'driving', label: 'Driving' },
+      { key: 'walking', label: 'Walking' },
+    ]
+    for (const p of activePlugins) {
+      for (const prof of p.routeProfiles ?? []) opts.push({ key: `plugin:${p.id}/${prof.id}`, label: prof.label })
+    }
+    return opts
+  }, [activePlugins])
   const {
     tripId,
     trip,
@@ -2436,14 +2452,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           {t('dayplan.optimize')}
                         </button>
                         <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-faint)', flexShrink: 0 }}>
-                          {(['driving', 'walking'] as const).map(p => {
-                            const ModeIcon = p === 'driving' ? Car : Footprints
-                            const active = routeProfile === p
+                          {routeProfileOptions.map(p => {
+                            const ModeIcon = p.key === 'driving' ? Car : p.key === 'walking' ? Footprints : Zap
+                            const active = routeProfile === p.key
                             return (
                               <button
-                                key={p}
-                                onClick={() => onSetRouteProfile?.(p)}
-                                aria-label={p === 'driving' ? 'Driving' : 'Walking'}
+                                key={p.key}
+                                onClick={() => onSetRouteProfile?.(p.key)}
+                                aria-label={p.label}
+                                title={p.label}
                                 className={active ? 'bg-accent text-accent-text' : 'bg-transparent text-content-secondary'}
                                 style={{
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',

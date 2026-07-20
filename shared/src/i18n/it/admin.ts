@@ -319,6 +319,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-marker-provider':
     'Aggiungere indicatori alla mappa del viaggio (es. mostrare prenotazioni o POI)',
   'admin.plugins.perm.hook:map-layer-provider': 'Disegnare percorsi, corridoi e zone sulla mappa del viaggio',
+  'admin.plugins.perm.hook:route-provider':
+    'Offrire profili di routing con cui il pianificatore calcola i giorni (es. routing per auto elettriche con soste di ricarica)',
   'admin.plugins.perm.hook:pdf-section-provider': "Aggiungere sezioni di testo all'esportazione PDF del viaggio",
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Evidenziare paesi sulla mappa del mondo di Atlas (es. liste dei desideri o avvisi di viaggio)',
@@ -438,6 +440,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.placeDetails': 'Arricchisce luoghi',
   'admin.plugins.cap.warnings': 'Segnala problemi',
   'admin.plugins.cap.mapLayers': 'Disegna sulla mappa',
+  'admin.plugins.cap.routing': 'Offre routing',
   'admin.plugins.cap.events': "Reagisce all'attività",
   'admin.plugins.cap.requiresAddon': 'Richiede {addon}',
   'admin.plugins.cap.dependsOn': 'Richiede {id} {version}',

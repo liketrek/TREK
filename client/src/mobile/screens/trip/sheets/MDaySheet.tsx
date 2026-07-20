@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CalendarDays, Car, Footprints, Hotel, Pencil, Plus, RotateCcw,
-  Route as RouteIcon, TramFront,
+  Route as RouteIcon, TramFront, Zap,
 } from 'lucide-react'
 import type { WeatherResult } from '@trek/shared'
 import MSheet from '../../../components/MSheet'
@@ -9,6 +9,7 @@ import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
 import { weatherApi } from '../../../../api/client'
 import { useSettingsStore } from '../../../../store/settingsStore'
+import { usePluginStore } from '../../../../store/pluginStore'
 import { useDayNotes } from '../../../../hooks/useDayNotes'
 import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
@@ -40,6 +41,20 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
   const canEditDays = planner.can('day_edit', planner.trip)
   const canEditReservations = planner.can('reservation_edit', planner.trip)
   const tripHasDates = Boolean(planner.trip?.start_date && planner.trip?.end_date)
+
+  // Route-profile pills: the built-ins plus every profile an active routeProvider
+  // plugin declared (same key format as the desktop picker, 'plugin:<id>/<profile>').
+  const activePlugins = usePluginStore(s => s.plugins)
+  const routeProfileOptions = useMemo(() => {
+    const opts: Array<{ key: string; label: string }> = [
+      { key: 'driving', label: t('mobileTrip.profileDriving') },
+      { key: 'walking', label: t('mobileTrip.profileWalking') },
+    ]
+    for (const p of activePlugins) {
+      for (const prof of p.routeProfiles ?? []) opts.push({ key: `plugin:${p.id}/${prof.id}`, label: prof.label })
+    }
+    return opts
+  }, [activePlugins, t])
 
   const isFahrenheit = useSettingsStore(s => s.settings.temperature_unit) === 'fahrenheit'
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
@@ -277,15 +292,16 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                 )}
                 {routable && (
                   <div className={`flex overflow-hidden rounded-full ${INNER_CLS}`}>
-                    {(['driving', 'walking'] as const).map(p => {
-                      const ProfileIcon = p === 'driving' ? Car : Footprints
-                      const active = planner.routeProfile === p
+                    {routeProfileOptions.map(p => {
+                      const ProfileIcon = p.key === 'driving' ? Car : p.key === 'walking' ? Footprints : Zap
+                      const active = planner.routeProfile === p.key
                       return (
                         <button
-                          key={p}
+                          key={p.key}
                           type="button"
-                          onClick={() => planner.setRouteProfile(p)}
-                          aria-label={p === 'driving' ? t('mobileTrip.profileDriving') : t('mobileTrip.profileWalking')}
+                          onClick={() => planner.setRouteProfile(p.key)}
+                          aria-label={p.label}
+                          title={p.label}
                           aria-pressed={active}
                           className={`flex items-center px-[10px] py-[7px] ${active ? 'bg-m-act text-m-actfg' : 'text-m-muted'}`}
                         >

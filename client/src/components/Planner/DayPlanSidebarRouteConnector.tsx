@@ -1,10 +1,19 @@
-import { Car, Footprints, Hotel } from 'lucide-react'
+import { Car, Footprints, Hotel, Zap } from 'lucide-react'
 import type { RouteSegment } from '../../types'
 
+// Walking gets the foot icon; a plugin route profile ('plugin:…') gets the bolt —
+// its legs carry the profile-true durationText anyway, the icon just signals that
+// the time came from a plugin router (e.g. EV routing with charge time folded in).
+function profileIcon(profile: string) {
+  if (profile === 'walking') return Footprints
+  if (profile.startsWith('plugin:')) return Zap
+  return Car
+}
+
 /** Slim travel-time connector shown between two consecutive located stops in a day. */
-export function RouteConnector({ seg, profile }: { seg: RouteSegment; profile: 'driving' | 'walking' }) {
-  const driving = profile === 'driving'
-  const Icon = driving ? Car : Footprints
+export function RouteConnector({ seg, profile }: { seg: RouteSegment; profile: string }) {
+  const driving = profile !== 'walking'
+  const Icon = profileIcon(profile)
   const line = { flex: 1, height: 1, minHeight: 1, alignSelf: 'center', background: 'var(--border-primary)' }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 14px', fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', lineHeight: 1.2 }}>
@@ -14,6 +23,12 @@ export function RouteConnector({ seg, profile }: { seg: RouteSegment; profile: '
         <span>{seg.durationText ?? (driving ? seg.drivingText : seg.walkingText)}</span>
         <span style={{ opacity: 0.4 }}>·</span>
         <span>{seg.distanceText}</span>
+        {seg.noteText && (
+          <>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span style={{ color: 'var(--text-muted)' }}>{seg.noteText}</span>
+          </>
+        )}
       </div>
       <div style={line} />
     </div>
@@ -33,12 +48,12 @@ export function HotelRouteConnector({
   placement,
 }: {
   seg: RouteSegment
-  profile: 'driving' | 'walking'
+  profile: string
   name: string
   placement: 'top' | 'bottom'
 }) {
-  const driving = profile === 'driving'
-  const Icon = driving ? Car : Footprints
+  const driving = profile !== 'walking'
+  const Icon = profileIcon(profile)
   const line = { flex: 1, height: 1, minHeight: 1, alignSelf: 'center', background: 'var(--border-primary)' }
   const hotelRow = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0 14px', minWidth: 0 }}>
@@ -56,6 +71,12 @@ export function HotelRouteConnector({
         <span>{seg.durationText ?? (driving ? seg.drivingText : seg.walkingText)}</span>
         <span style={{ opacity: 0.4 }}>·</span>
         <span>{seg.distanceText}</span>
+        {seg.noteText && (
+          <>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span style={{ color: 'var(--text-muted)' }}>{seg.noteText}</span>
+          </>
+        )}
       </div>
       <div style={line} />
     </div>

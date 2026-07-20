@@ -646,6 +646,17 @@ export interface PluginMapLayer {
   features: PluginMapLayerFeature[];
 }
 
+/** A route computed by a routeProvider plugin (server-normalized: coordinates
+ * range-checked, legs forced to waypoints-1, vias capped). null = provider failed
+ * or refused — the caller falls back to straight lines like on an OSRM outage. */
+export interface PluginRouteResult {
+  pluginId: string; profile: string;
+  coordinates: Array<[number, number]>;
+  distance: number; duration: number;
+  legs: Array<{ distance: number; duration: number; note?: string }>;
+  viaPoints: Array<{ lat: number; lng: number; label?: string; tone: 'default' | 'success' | 'warn' | 'danger'; dwellSeconds?: number }>;
+}
+
 /** A text-only section a pdfSectionProvider plugin appends to the trip PDF export.
  * Server-normalized: counts + lengths are capped, cells are plain strings. */
 export interface PluginPdfSection {
@@ -693,6 +704,11 @@ export const pluginsApi = {
   // the mapLayerProvider hook. Host-normalized + vertex-budgeted; fail-safe.
   mapLayers: (tripId: number | string) =>
     apiClient.get(`/map-layers/${tripId}`).then(r => r.data as { layers: PluginMapLayer[] }),
+  // Route the given waypoints through ONE routeProvider plugin profile (targeted,
+  // not a fan-out — the user picked this profile in the route toggle). Slow by
+  // design (external solvers): the server allows the plugin 20 s.
+  pluginRoute: (pluginId: string, profileId: string, body: { tripId: number | string; dayId?: number | null; waypoints: Array<{ lat: number; lng: number; name?: string; placeId?: number }> }, opts: { signal?: AbortSignal } = {}) =>
+    apiClient.post(`/plugin-routes/${pluginId}/${profileId}`, body, { timeout: 25000, signal: opts.signal }).then(r => r.data as { route: PluginRouteResult | null }),
   // Text-only sections plugins append to the trip PDF export via the
   // pdfSectionProvider hook. Host-normalized (counts + lengths capped); fail-safe.
   pdfSections: (tripId: number | string) =>

@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTripStore } from '../store/tripStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { calculateRouteWithLegs, withHotelBookends } from '../components/Map/RouteCalculator'
+import { calculateRouteWithLegs, withHotelBookends, type RouteProfileKey } from '../components/Map/RouteCalculator'
 import { getTransportRouteEndpoints } from '../utils/dayMerge'
 import { getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg } from '../utils/dayOrder'
 import type { TripStoreState } from '../store/tripStore'
-import type { RouteSegment, RouteResult, Accommodation } from '../types'
+import type { RouteSegment, RouteResult, RouteVia, Accommodation } from '../types'
 
 const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other']
 
@@ -16,10 +16,12 @@ const NO_ACCOMMODATIONS: Accommodation[] = []
  * day assignments, draws a straight-line route immediately, then upgrades it to real OSRM
  * road geometry with per-segment durations. Aborts in-flight requests when the day changes.
  */
-export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: number | null, enabled: boolean = true, profile: 'driving' | 'walking' | 'cycling' = 'driving', accommodations: Accommodation[] = NO_ACCOMMODATIONS) {
+export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: number | null, enabled: boolean = true, profile: RouteProfileKey = 'driving', accommodations: Accommodation[] = NO_ACCOMMODATIONS) {
   const [route, setRoute] = useState<[number, number][][] | null>(null)
   const [routeInfo, setRouteInfo] = useState<RouteResult | null>(null)
   const [routeSegments, setRouteSegments] = useState<RouteSegment[]>([])
+  // Charging stops / rest areas a plugin route places on the drawn line.
+  const [routeVias, setRouteVias] = useState<RouteVia[]>([])
   const routeAbortRef = useRef<AbortController | null>(null)
   const reservationsForSignature = useTripStore((s) => s.reservations)
   // Draw the day's accommodation bookend legs (hotel → first stop, last stop →
@@ -32,7 +34,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
   const updateRouteForDay = useCallback(async (dayId: number | null) => {
     if (routeAbortRef.current) routeAbortRef.current.abort()
     // Route is manual: only compute when explicitly enabled (the "show route" toggle).
-    if (!dayId || !enabled) { setRoute(null); setRouteSegments([]); return }
+    if (!dayId || !enabled) { setRoute(null); setRouteSegments([]); setRouteVias([]); return }
     // Read directly from store (not a render-phase ref) so callers after optimistic
     // updates or non-optimistic deletes always see the latest assignments.
     const currentAssignments = useTripStore.getState().assignments || {}
@@ -160,32 +162,35 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     const straightLines = (): [number, number][][] =>
       runsWithHotel.map(r => r.map(p => [p.lat, p.lng] as [number, number]))
 
-    if (runsWithHotel.length === 0) { setRoute(null); setRouteSegments([]); return }
+    if (runsWithHotel.length === 0) { setRoute(null); setRouteSegments([]); setRouteVias([]); return }
 
     // Draw straight lines immediately for snappiness, then upgrade to the real
-    // OSRM road geometry.
+    // OSRM (or plugin-provided) road geometry.
     setRoute(straightLines())
 
+    const tripId = useTripStore.getState().trip?.id ?? null
     const controller = new AbortController()
     routeAbortRef.current = controller
     try {
       const polylines: [number, number][][] = []
       const allLegs: RouteSegment[] = []
+      const allVias: RouteVia[] = []
       for (const run of runsWithHotel) {
         try {
-          const r = await calculateRouteWithLegs(run, { signal: controller.signal, profile })
+          const r = await calculateRouteWithLegs(run, { signal: controller.signal, profile, tripId, dayId })
           polylines.push(r.coordinates.length >= 2 ? r.coordinates : run.map(p => [p.lat, p.lng] as [number, number]))
           allLegs.push(...r.legs)
+          if (r.vias) allVias.push(...r.vias)
         } catch (err) {
           if (err instanceof Error && err.name === 'AbortError') throw err
-          // OSRM failed for this run — fall back to a straight line, no times.
+          // Routing failed for this run — fall back to a straight line, no times.
           polylines.push(run.map(p => [p.lat, p.lng] as [number, number]))
         }
       }
-      if (!controller.signal.aborted) { setRoute(polylines); setRouteSegments(allLegs) }
+      if (!controller.signal.aborted) { setRoute(polylines); setRouteSegments(allLegs); setRouteVias(allVias) }
     } catch (err: unknown) {
       // Aborted (day changed) — newer call owns the state. Anything else: keep straight lines.
-      if (!(err instanceof Error) || err.name !== 'AbortError') setRouteSegments([])
+      if (!(err instanceof Error) || err.name !== 'AbortError') { setRouteSegments([]); setRouteVias([]) }
     }
   }, [enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit])
 
@@ -208,10 +213,10 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
   // Recalculate when assignments or transport positions for the SELECTED day change
   const selectedDayAssignments = selectedDayId ? tripStore.assignments?.[String(selectedDayId)] : null
   useEffect(() => {
-    if (!selectedDayId) { setRoute(null); setRouteSegments([]); return }
+    if (!selectedDayId) { setRoute(null); setRouteSegments([]); setRouteVias([]); return }
     updateRouteForDay(selectedDayId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDayId, selectedDayAssignments, transportSignature, enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit])
 
-  return { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay }
+  return { route, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay }
 }
