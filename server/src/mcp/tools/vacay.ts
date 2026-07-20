@@ -253,7 +253,7 @@ export function registerVacayTools(server: McpServer, userId: number, scopes: st
       async ({ date }) => {
         if (isDemoUser(userId)) return demoDenied();
         const planId = getActivePlanId(userId);
-        const result = toggleEntry(userId, planId, date, undefined);
+        const result = toggleEntry(userId, planId, date, 1, undefined);
         return ok(result);
       }
     );

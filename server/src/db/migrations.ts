@@ -3701,6 +3701,14 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_regions_user ON hidden_regions (user_id);');
     },
+    // Half vacation days (#552): a vacay entry can now count as a full day (1) or
+    // a half day (0.5) toward the entitlement. Existing entries default to a full
+    // day, so the entitlement maths are unchanged for everyone already using vacay.
+    // Guarded so re-running the migration tail (e.g. the crosswalk test) is a no-op.
+    () => {
+      const hasFraction = db.prepare("SELECT 1 FROM pragma_table_info('vacay_entries') WHERE name = 'fraction'").get();
+      if (!hasFraction) db.exec('ALTER TABLE vacay_entries ADD COLUMN fraction REAL NOT NULL DEFAULT 1');
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -97,10 +97,10 @@ describe('VacayCalendar', () => {
 
     render(<VacayCalendar />)
 
-    // Only the vacation mode button should be in the toolbar
+    // Vacation + half-day buttons stay; only the company button is hidden.
     const buttons = screen.getAllByRole('button')
     const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
-    expect(toolbarButtons).toHaveLength(1)
+    expect(toolbarButtons).toHaveLength(2)
   })
 
   it('FE-COMP-VACAYCALENDAR-005: switching to company mode highlights company button', async () => {
@@ -120,7 +120,7 @@ describe('VacayCalendar', () => {
 
     const buttons = screen.getAllByRole('button')
     const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
-    // toolbarButtons[0] = vacation mode, toolbarButtons[1] = company mode
+    // toolbarButtons[0] = vacation, [1] = company mode, [2] = half-day toggle
     const companyBtn = toolbarButtons[1]
 
     await user.click(companyBtn)
@@ -149,7 +149,33 @@ describe('VacayCalendar', () => {
     // Click the first month card cell button (month 0 → date '2025-01-01')
     await user.click(screen.getByText('click-0'))
 
-    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42)
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 1)
+  })
+
+  it('FE-COMP-VACAYCALENDAR-006b: half-day mode logs the day as 0.5', async () => {
+    const user = userEvent.setup()
+    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+
+    seedStore(useVacayStore, {
+      selectedYear: 2025,
+      entries: [],
+      companyHolidays: [],
+      holidays: {},
+      plan: { ...basePlan, block_weekends: false, company_holidays_enabled: false },
+      users: [],
+      selectedUserId: 42,
+      toggleEntry,
+    })
+
+    render(<VacayCalendar />)
+
+    // toolbarButtons[0] = vacation, [1] = half day
+    const buttons = screen.getAllByRole('button')
+    const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
+    await user.click(toolbarButtons[1])
+    await user.click(screen.getByText('click-0'))
+
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 0.5)
   })
 
   it('FE-COMP-VACAYCALENDAR-007: cell click on public holiday toggles vacation entry', async () => {
@@ -172,7 +198,7 @@ describe('VacayCalendar', () => {
     // Month 0, button emits '2025-01-01' which is a holiday — should still toggle vacation
     await user.click(screen.getByText('click-0'))
 
-    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', undefined)
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', undefined, 1)
   })
 
   it('FE-COMP-VACAYCALENDAR-008: cell click in company mode calls toggleCompanyHoliday', async () => {

@@ -300,6 +300,9 @@ export interface VacayEntry {
   plan_id?: number
   person_color?: string
   person_name?: string
+  // Portion of a vacation day this entry counts as: 1 = full day, 0.5 = half
+  // day (#552). Absent on legacy entries, which are treated as full days.
+  fraction?: number
 }
 
 // Vacay per-user stats row as returned by getStats

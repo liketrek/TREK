@@ -8,6 +8,8 @@ export interface DayVisual {
   background: string
   numColor: string
   boxShadow?: string
+  // At least one person logged this day as a half day (#552) — the cell shows a ½ badge.
+  half?: boolean
 }
 
 export interface DayVisualContext {
@@ -88,7 +90,12 @@ export function dayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualCont
   const entries = ctx.entryMap[dateStr]
   if (entries && entries.length > 0) {
     const tints = entries.map(e => personTint(e.person_color || FALLBACK_PERSON_COLOR))
-    return { background: tints.length === 1 ? tints[0] : splitBackground(tints), numColor: '#101013' }
+    // The fill still shows WHO is off; half days (#552) keep it and add a corner
+    // dot, so a half day never looks like a two-person split. Only set `half` when
+    // true so full days keep their exact { background, numColor } shape.
+    const visual: DayVisual = { background: tints.length === 1 ? tints[0] : splitBackground(tints), numColor: '#101013' }
+    if (entries.some(e => (e.fraction ?? 1) === 0.5)) visual.half = true
+    return visual
   }
   const holiday = ctx.holidays[dateStr]
   if (holiday) {

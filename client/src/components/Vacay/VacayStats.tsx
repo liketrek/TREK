@@ -7,6 +7,10 @@ import type { VacayStat, TranslationFn } from '../../types'
 import { NumericInput } from '../shared/NumericInput'
 import VacayBadge from './VacayBadge'
 
+// Used/remaining can be fractional once half days (#552) are in play; entry
+// fractions are exact multiples of 0.5, so one decimal is enough and never drifts.
+const fmtDays = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+
 
 export default function VacayStats() {
   const { t } = useTranslation()
@@ -84,7 +88,7 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, onSave, t }: StatCardP
           {s.person_name}
         </span>
         {isMe && <VacayBadge label={t('vacay.you')} />}
-        <span className="tabular-nums ml-auto" style={{ fontFamily: 'var(--font-subtext)', fontSize: 10.5, color: 'var(--vg-ink3)' }}>{s.used}/{s.total_available}</span>
+        <span className="tabular-nums ml-auto" style={{ fontFamily: 'var(--font-subtext)', fontSize: 10.5, color: 'var(--vg-ink3)' }}>{fmtDays(s.used)}/{s.total_available}</span>
       </div>
       <div className="overflow-hidden" style={{ height: 6, borderRadius: 99, background: 'var(--vg-surf2)', marginBottom: 7 }}>
         <div
@@ -119,12 +123,12 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, onSave, t }: StatCardP
         {/* Used */}
         <div style={{ padding: '6px 9px', borderRadius: 10, background: 'var(--vg-surf2)' }}>
           <div style={{ fontSize: 10, marginBottom: 2, color: 'var(--vg-ink3)', height: 13, lineHeight: '13px' }}>{t('vacay.used')}</div>
-          <div style={{ ...tileValue, color: 'var(--vg-ink)' }}>{s.used}</div>
+          <div style={{ ...tileValue, color: 'var(--vg-ink)' }}>{fmtDays(s.used)}</div>
         </div>
         {/* Remaining */}
         <div style={{ padding: '6px 9px', borderRadius: 10, background: 'var(--vg-surf2)' }}>
           <div style={{ fontSize: 10, marginBottom: 2, color: 'var(--vg-ink3)', height: 13, lineHeight: '13px' }}>{t('vacay.remaining')}</div>
-          <div style={{ ...tileValue, color: remainingColor }}>{s.remaining}</div>
+          <div style={{ ...tileValue, color: remainingColor }}>{fmtDays(s.remaining)}</div>
         </div>
       </div>
       {s.carried_over > 0 && (

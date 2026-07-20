@@ -241,6 +241,20 @@ export default function MVacay() {
                 {t('vacay.modeCompany')}
               </button>
             )}
+            {/* Divider — the half-day switch modifies the selected person's logging, it isn't a mode. */}
+            <span className="mx-[1px] h-5 w-px self-center bg-[color:var(--m-shbr)]" aria-hidden />
+            <button
+              type="button"
+              onClick={() => v.setHalfDay(h => !h)}
+              aria-pressed={v.halfDay}
+              aria-label={t('vacay.modeHalf')}
+              title={t('vacay.modeHalfHint')}
+              className={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-[0.9375rem] font-extrabold leading-none ${
+                v.halfDay ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
+              }`}
+            >
+              ½
+            </button>
           </div>
         </div>
       )}

@@ -86,8 +86,8 @@ export class VacayService {
     return svc.getEntries(planId, year);
   }
 
-  toggleEntry(userId: number, planId: number, date: string, socketId: string | undefined) {
-    return svc.toggleEntry(userId, planId, date, socketId);
+  toggleEntry(userId: number, planId: number, date: string, fraction: unknown, socketId: string | undefined) {
+    return svc.toggleEntry(userId, planId, date, fraction, socketId);
   }
 
   toggleCompanyHoliday(planId: number, date: string, note: string | undefined, socketId: string | undefined) {

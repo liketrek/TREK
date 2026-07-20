@@ -527,6 +527,44 @@ describe('toggleEntry', () => {
       .get(user.id, plan.id, '2025-08-02');
     expect(row).toBeUndefined();
   });
+
+  it('VACAY-SVC-033a: logs a half day when fraction is 0.5 (#552)', () => {
+    const { user, plan } = setupUserWithPlan();
+
+    const result = toggleEntry(user.id, plan.id, '2025-08-05', 0.5);
+
+    expect(result).toMatchObject({ action: 'added', fraction: 0.5 });
+    const row = testDb
+      .prepare('SELECT fraction FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date = ?')
+      .get(user.id, plan.id, '2025-08-05') as { fraction: number };
+    expect(row.fraction).toBe(0.5);
+  });
+
+  it('VACAY-SVC-033b: converts a full day into a half day in place (action: updated)', () => {
+    const { user, plan } = setupUserWithPlan();
+
+    toggleEntry(user.id, plan.id, '2025-08-06', 1);
+    const result = toggleEntry(user.id, plan.id, '2025-08-06', 0.5);
+
+    expect(result).toMatchObject({ action: 'updated', fraction: 0.5 });
+    const row = testDb
+      .prepare('SELECT fraction FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date = ?')
+      .get(user.id, plan.id, '2025-08-06') as { fraction: number };
+    expect(row.fraction).toBe(0.5);
+  });
+
+  it('VACAY-SVC-033c: toggling the same half day again clears it (action: removed)', () => {
+    const { user, plan } = setupUserWithPlan();
+
+    toggleEntry(user.id, plan.id, '2025-08-07', 0.5);
+    const result = toggleEntry(user.id, plan.id, '2025-08-07', 0.5);
+
+    expect(result.action).toBe('removed');
+    const row = testDb
+      .prepare('SELECT id FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date = ?')
+      .get(user.id, plan.id, '2025-08-07');
+    expect(row).toBeUndefined();
+  });
 });
 
 // ── toggleCompanyHoliday ──────────────────────────────────────────────────────
@@ -700,6 +738,19 @@ describe('getStats', () => {
 
     expect(stats[0].used).toBe(2);
     expect(stats[0].remaining).toBe(28);
+  });
+
+  it('VACAY-SVC-045a: half days count as 0.5 toward the used total (#552)', () => {
+    const { user, plan } = setupUserWithPlan();
+    const yr = new Date().getFullYear();
+
+    toggleEntry(user.id, plan.id, `${yr}-09-12`, 1);    // full day
+    toggleEntry(user.id, plan.id, `${yr}-09-13`, 0.5);  // half day
+
+    const stats = getStats(plan.id, yr);
+
+    expect(stats[0].used).toBe(1.5);
+    expect(stats[0].remaining).toBe(28.5);
   });
 });
 

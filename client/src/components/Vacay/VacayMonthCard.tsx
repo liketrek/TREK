@@ -12,6 +12,7 @@ interface VacayMonthCardProps {
   companyHolidaysEnabled?: boolean
   entryMap: Record<string, VacayEntry[]>
   onCellClick: (date: string) => void
+  onCellHover?: (date: string | null, el: HTMLElement | null) => void
   companyMode: boolean
   blockWeekends: boolean
   weekendDays?: number[]
@@ -21,7 +22,7 @@ interface VacayMonthCardProps {
 
 export default function VacayMonthCard({
   year, month, holidays, companyHolidaySet, companyHolidaysEnabled = true, entryMap,
-  onCellClick, companyMode, blockWeekends, weekendDays = [0, 6], tripDates, weekStart = 1
+  onCellClick, onCellHover, companyMode, blockWeekends, weekendDays = [0, 6], tripDates, weekStart = 1
 }: VacayMonthCardProps) {
   const { t, locale } = useTranslation()
 
@@ -101,6 +102,11 @@ export default function VacayMonthCard({
           const isToday = dateStr === todayStr
           const plain = !hasEntries && !holiday && !isCompany
 
+          // The fill always shows WHO is off (person colour, split for several) — half
+          // days keep that fill and get a small corner ½ badge instead, so a half day
+          // never collides with the two-person diagonal split (#552).
+          const anyHalf = dayEntries.some(e => (e.fraction ?? 1) === 0.5)
+
           // Cell fill — people win, then company, then holiday (keeps each calendar's own colour).
           let background = 'transparent'
           if (dayEntries.length === 1) background = fill(dayEntries[0].person_color)
@@ -133,8 +139,14 @@ export default function VacayMonthCard({
                 cursor: isBlocked ? 'default' : 'pointer',
               }}
               onClick={() => onCellClick(dateStr)}
-              onMouseEnter={e => { if (!isBlocked && plain) e.currentTarget.style.background = 'var(--vg-surf2)' }}
-              onMouseLeave={e => { if (!isBlocked && plain) e.currentTarget.style.background = background }}
+              onMouseEnter={e => {
+                if (!isBlocked && plain) e.currentTarget.style.background = 'var(--vg-surf2)'
+                if (anyHalf) onCellHover?.(dateStr, e.currentTarget)
+              }}
+              onMouseLeave={e => {
+                if (!isBlocked && plain) e.currentTarget.style.background = background
+                if (anyHalf) onCellHover?.(null, null)
+              }}
             >
               {/* 3+ people: quadrant overlay at full colour (1 & 2 use the cell background). */}
               {dayEntries.length === 3 && (
@@ -155,6 +167,12 @@ export default function VacayMonthCard({
 
               {tripDates?.has(dateStr) && (
                 <span className="absolute top-1 right-1 w-[5px] h-[5px] rounded-full z-[2] bg-[#3b82f6]" style={{ boxShadow: '0 0 0 1.5px var(--vg-surf)' }} />
+              )}
+
+              {/* Half day (#552): a small orange corner dot, mirroring the blue trip dot.
+                  The hover tooltip spells out who is on a half day. */}
+              {anyHalf && (
+                <span className="absolute bottom-1 right-1 w-[5px] h-[5px] rounded-full z-[3] bg-[#f97316]" style={{ boxShadow: '0 0 0 1.5px var(--vg-surf)' }} aria-hidden />
               )}
 
               <span className="relative z-[1]" style={{
