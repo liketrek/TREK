@@ -29,6 +29,7 @@ const vacay: TranslationStrings = {
   'vacay.modeCompany': 'Şirket Tatili',
   'vacay.modeHalf': 'Yarım gün',
   'vacay.modeHalfHint': 'Yarım izin günü ekle',
+  'vacay.fullDay': 'Tam gün',
   'vacay.entitlement': 'Yetki',
   'vacay.entitlementDays': 'Günler',
   'vacay.used': 'Kullanılmış',

@@ -120,8 +120,8 @@ describe('VacayCalendar', () => {
 
     const buttons = screen.getAllByRole('button')
     const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
-    // toolbarButtons[0] = vacation, [1] = half day, [2] = company mode
-    const companyBtn = toolbarButtons[2]
+    // toolbarButtons[0] = vacation, [1] = company mode, [2] = half-day toggle
+    const companyBtn = toolbarButtons[1]
 
     await user.click(companyBtn)
 
@@ -223,7 +223,7 @@ describe('VacayCalendar', () => {
     // Switch to company mode
     const buttons = screen.getAllByRole('button')
     const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
-    const companyBtn = toolbarButtons[2]
+    const companyBtn = toolbarButtons[1]
     await user.click(companyBtn)
 
     // Now click a month card cell
@@ -258,7 +258,7 @@ describe('VacayCalendar', () => {
     // Switch to company mode while it was enabled
     const buttons = screen.getAllByRole('button')
     const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
-    await user.click(toolbarButtons[2]) // company button
+    await user.click(toolbarButtons[1]) // company button
 
     // Now disable company holidays in the store
     seedStore(useVacayStore, {

@@ -12,6 +12,7 @@ interface VacayMonthCardProps {
   companyHolidaysEnabled?: boolean
   entryMap: Record<string, VacayEntry[]>
   onCellClick: (date: string) => void
+  onCellHover?: (date: string | null, el: HTMLElement | null) => void
   companyMode: boolean
   blockWeekends: boolean
   weekendDays?: number[]
@@ -21,7 +22,7 @@ interface VacayMonthCardProps {
 
 export default function VacayMonthCard({
   year, month, holidays, companyHolidaySet, companyHolidaysEnabled = true, entryMap,
-  onCellClick, companyMode, blockWeekends, weekendDays = [0, 6], tripDates, weekStart = 1
+  onCellClick, onCellHover, companyMode, blockWeekends, weekendDays = [0, 6], tripDates, weekStart = 1
 }: VacayMonthCardProps) {
   const { t, locale } = useTranslation()
 
@@ -101,16 +102,14 @@ export default function VacayMonthCard({
           const isToday = dateStr === todayStr
           const plain = !hasEntries && !holiday && !isCompany
 
-          // Half days (#552) render as a diagonal half-fill so they read as "half"
-          // at a glance; a solo half keeps the number dark for contrast on the
-          // empty triangle, shared cells fall back to a corner ½ marker.
-          const singleHalf = dayEntries.length === 1 && (dayEntries[0].fraction ?? 1) === 0.5
+          // The fill always shows WHO is off (person colour, split for several) — half
+          // days keep that fill and get a small corner ½ badge instead, so a half day
+          // never collides with the two-person diagonal split (#552).
           const anyHalf = dayEntries.some(e => (e.fraction ?? 1) === 0.5)
 
           // Cell fill — people win, then company, then holiday (keeps each calendar's own colour).
           let background = 'transparent'
-          if (singleHalf) background = `linear-gradient(135deg, ${fill(dayEntries[0].person_color)} 50%, color-mix(in srgb, ${pc(dayEntries[0].person_color)} 12%, transparent) 50%)`
-          else if (dayEntries.length === 1) background = fill(dayEntries[0].person_color)
+          if (dayEntries.length === 1) background = fill(dayEntries[0].person_color)
           else if (dayEntries.length === 2) background = `linear-gradient(135deg, ${fill(dayEntries[0].person_color)} 50%, ${fill(dayEntries[1].person_color)} 50%)`
           else if (dayEntries.length === 0 && isCompany) background = 'rgba(245,158,11,0.22)'
           else if (dayEntries.length === 0 && holiday) background = `color-mix(in srgb, ${holiday.color} 22%, transparent)`
@@ -123,8 +122,7 @@ export default function VacayMonthCard({
             : hasEntries ? `0 3px 8px -3px ${pc(dayEntries[0].person_color)}` : undefined
 
           let numColor = 'var(--vg-ink2)'
-          if (singleHalf) numColor = 'var(--vg-ink)'
-          else if (hasEntries) numColor = '#fff'
+          if (hasEntries) numColor = '#fff'
           else if (holiday) numColor = holiday.color
           else if (weekend) numColor = 'var(--vg-ink3)'
 
@@ -141,8 +139,14 @@ export default function VacayMonthCard({
                 cursor: isBlocked ? 'default' : 'pointer',
               }}
               onClick={() => onCellClick(dateStr)}
-              onMouseEnter={e => { if (!isBlocked && plain) e.currentTarget.style.background = 'var(--vg-surf2)' }}
-              onMouseLeave={e => { if (!isBlocked && plain) e.currentTarget.style.background = background }}
+              onMouseEnter={e => {
+                if (!isBlocked && plain) e.currentTarget.style.background = 'var(--vg-surf2)'
+                if (anyHalf) onCellHover?.(dateStr, e.currentTarget)
+              }}
+              onMouseLeave={e => {
+                if (!isBlocked && plain) e.currentTarget.style.background = background
+                if (anyHalf) onCellHover?.(null, null)
+              }}
             >
               {/* 3+ people: quadrant overlay at full colour (1 & 2 use the cell background). */}
               {dayEntries.length === 3 && (
@@ -165,9 +169,18 @@ export default function VacayMonthCard({
                 <span className="absolute top-1 right-1 w-[5px] h-[5px] rounded-full z-[2] bg-[#3b82f6]" style={{ boxShadow: '0 0 0 1.5px var(--vg-surf)' }} />
               )}
 
-              {/* Shared cells can't show the diagonal, so flag a half day with a corner ½. */}
-              {anyHalf && !singleHalf && (
-                <span className="absolute bottom-[1px] left-[3px] z-[2] leading-none" style={{ fontSize: 8, fontWeight: 800, color: '#fff' }} aria-hidden>½</span>
+              {/* Half day (#552): a crisp white corner badge sitting on the person fill. */}
+              {anyHalf && (
+                <span
+                  className="absolute z-[3] flex items-center justify-center"
+                  style={{
+                    bottom: 2, right: 2, height: 12, minWidth: 12, padding: '0 2.5px',
+                    borderRadius: 999, background: 'rgba(255,255,255,0.96)', color: '#18181b',
+                    fontSize: 8.5, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em',
+                    boxShadow: '0 1px 2.5px rgba(0,0,0,0.25)',
+                  }}
+                  aria-hidden
+                >½</span>
               )}
 
               <span className="relative z-[1]" style={{

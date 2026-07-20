@@ -8,6 +8,8 @@ export interface DayVisual {
   background: string
   numColor: string
   boxShadow?: string
+  // At least one person logged this day as a half day (#552) — the cell shows a ½ badge.
+  half?: boolean
 }
 
 export interface DayVisualContext {
@@ -88,12 +90,10 @@ export function dayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualCont
   const entries = ctx.entryMap[dateStr]
   if (entries && entries.length > 0) {
     const tints = entries.map(e => personTint(e.person_color || FALLBACK_PERSON_COLOR))
-    // A solo half day (#552) reads as a diagonal half-fill: person tint on one
-    // triangle, neutral surface on the other. The dark ink stays legible on both.
-    if (entries.length === 1 && (entries[0].fraction ?? 1) === 0.5) {
-      return { background: `linear-gradient(135deg, ${tints[0]} 50%, var(--m-ic) 50%)`, numColor: '#101013' }
-    }
-    return { background: tints.length === 1 ? tints[0] : splitBackground(tints), numColor: '#101013' }
+    // The fill still shows WHO is off; half days (#552) keep it and add a ½ badge,
+    // so a half day never looks like a two-person split.
+    const half = entries.some(e => (e.fraction ?? 1) === 0.5)
+    return { background: tints.length === 1 ? tints[0] : splitBackground(tints), numColor: '#101013', half }
   }
   const holiday = ctx.holidays[dateStr]
   if (holiday) {

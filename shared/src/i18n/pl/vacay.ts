@@ -29,6 +29,7 @@ const vacay: TranslationStrings = {
   'vacay.modeCompany': 'Urlop firmowy',
   'vacay.modeHalf': 'Pół dnia',
   'vacay.modeHalfHint': 'Zapisz pół dnia urlopu',
+  'vacay.fullDay': 'Cały dzień',
   'vacay.entitlement': 'Wymiar',
   'vacay.entitlementDays': 'Dni',
   'vacay.used': 'Wykorzystane',

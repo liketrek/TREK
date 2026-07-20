@@ -29,6 +29,7 @@ const vacay: TranslationStrings = {
   'vacay.modeCompany': 'Корпоративный выходной',
   'vacay.modeHalf': 'Полдня',
   'vacay.modeHalfHint': 'Отмечать полдня отпуска',
+  'vacay.fullDay': 'Полный день',
   'vacay.entitlement': 'Право на отпуск',
   'vacay.entitlementDays': 'Дни',
   'vacay.used': 'Использовано',

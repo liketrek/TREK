@@ -29,6 +29,7 @@ const vacay: TranslationStrings = {
   'vacay.modeCompany': 'Företagshelg',
   'vacay.modeHalf': 'Halvdag',
   'vacay.modeHalfHint': 'Registrera halva semesterdagar',
+  'vacay.fullDay': 'Heldag',
   'vacay.entitlement': 'Rättighet',
   'vacay.entitlementDays': 'Dagar',
   'vacay.used': 'Använt',

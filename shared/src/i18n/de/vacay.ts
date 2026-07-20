@@ -29,6 +29,7 @@ const vacay: TranslationStrings = {
   'vacay.modeCompany': 'Betriebsferien',
   'vacay.modeHalf': 'Halbtag',
   'vacay.modeHalfHint': 'Halbe Urlaubstage eintragen',
+  'vacay.fullDay': 'Ganzer Tag',
   'vacay.entitlement': 'Urlaubsanspruch',
   'vacay.entitlementDays': 'Tage',
   'vacay.used': 'Weg',

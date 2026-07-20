@@ -10,7 +10,7 @@ import { FALLBACK_PERSON_COLOR, localDateStr, type DayVisualContext } from './va
 import type { Trip } from '../../../types'
 
 export type MVacayView = 'grid' | 'edit'
-export type MVacayMode = 'vacation' | 'half' | 'company'
+export type MVacayMode = 'vacation' | 'company'
 export type MVacaySheet = 'invite' | 'settings' | null
 
 /**
@@ -37,6 +37,8 @@ export function useMVacay() {
   const [view, setView] = useState<MVacayView>('grid')
   const [month, setMonth] = useState(() => new Date().getMonth())
   const [mode, setMode] = useState<MVacayMode>('vacation')
+  // Half-day modifier: when on, taps log the selected person's day as 0.5 (#552).
+  const [halfDay, setHalfDay] = useState(false)
   const [sheet, setSheet] = useState<MVacaySheet>(null)
   const [tripDates, setTripDates] = useState<Set<string>>(new Set())
 
@@ -130,8 +132,8 @@ export function useMVacay() {
     }
     if (blockWeekends && isWeekend(dateStr, weekendDays)) return
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
-    await toggleEntry(dateStr, selectedUserId || undefined, mode === 'half' ? 0.5 : 1)
-  }, [view, mode, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId])
+    await toggleEntry(dateStr, selectedUserId || undefined, halfDay ? 0.5 : 1)
+  }, [view, mode, halfDay, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId])
 
   // Entitlement stepper: never below what is already used this year
   // (carried-over days cover the difference when used > entitlement).
@@ -172,7 +174,7 @@ export function useMVacay() {
     loading, plan, selectedYear,
     users, isFused, currentUser,
     incomingInvites, acceptInvite, declineInvite,
-    view, month, mode, sheet, setSheet, setMode, setMonth,
+    view, month, mode, halfDay, setHalfDay, sheet, setSheet, setMode, setMonth,
     tripDates, tripDotColor,
     blockWeekends, companyHolidaysEnabled, holidaysEnabled, weekStart, weekendDays,
     dayCtx, monthNamesShort, monthNameLong,

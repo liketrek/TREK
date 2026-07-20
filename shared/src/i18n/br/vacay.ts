@@ -30,6 +30,7 @@ const vacay: TranslationStrings = {
   'vacay.modeCompany': 'Feriado da empresa',
   'vacay.modeHalf': 'Meio dia',
   'vacay.modeHalfHint': 'Registrar meio dia de férias',
+  'vacay.fullDay': 'Dia inteiro',
   'vacay.entitlement': 'Direito',
   'vacay.entitlementDays': 'Dias',
   'vacay.used': 'Usados',

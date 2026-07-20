@@ -4,16 +4,22 @@ import { useTranslation } from '../../i18n'
 import { isWeekend } from './holidays'
 import { tripsApi } from '../../api/client'
 import VacayMonthCard from './VacayMonthCard'
+import type { VacayEntry } from '../../types'
 import { Building2, MousePointer2 } from 'lucide-react'
 
-type VacayMode = 'vacation' | 'half' | 'company'
+type VacayMode = 'vacation' | 'company'
+type HoverTip = { date: string; top: number; left: number }
 
 export default function VacayCalendar() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const { selectedYear, selectedUserId, entries, companyHolidays, toggleEntry, toggleCompanyHoliday, plan, users, holidays } = useVacayStore()
   const [mode, setMode] = useState<VacayMode>('vacation')
+  // Half-day is a per-person modifier on the vacation action, not a mode: with it
+  // on, clicking a day logs (or converts) it as a 0.5 day for the selected person.
+  const [halfDay, setHalfDay] = useState(false)
   const companyMode = mode === 'company'
   const [tripDates, setTripDates] = useState<Set<string>>(new Set())
+  const [tip, setTip] = useState<HoverTip | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -45,7 +51,7 @@ export default function VacayCalendar() {
   }, [companyHolidays])
 
   const entryMap = useMemo(() => {
-    const map = {}
+    const map: Record<string, VacayEntry[]> = {}
     entries.forEach(e => {
       if (!map[e.date]) map[e.date] = []
       map[e.date].push(e)
@@ -65,10 +71,20 @@ export default function VacayCalendar() {
     }
     if (blockWeekends && isWeekend(dateStr, weekendDays)) return
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
-    await toggleEntry(dateStr, selectedUserId || undefined, mode === 'half' ? 0.5 : 1)
-  }, [mode, toggleEntry, toggleCompanyHoliday, companyHolidaySet, blockWeekends, weekendDays, companyHolidaysEnabled, selectedUserId])
+    await toggleEntry(dateStr, selectedUserId || undefined, halfDay ? 0.5 : 1)
+  }, [mode, halfDay, toggleEntry, toggleCompanyHoliday, companyHolidaySet, blockWeekends, weekendDays, companyHolidaysEnabled, selectedUserId])
+
+  // Only half-day cells report a hover, so the tooltip appears exactly when there's
+  // a half day to explain. Fixed-positioned at the root so no card clips it.
+  const handleCellHover = useCallback((dateStr: string | null, el: HTMLElement | null) => {
+    if (!dateStr || !el) { setTip(null); return }
+    const r = el.getBoundingClientRect()
+    setTip({ date: dateStr, top: r.top, left: r.left + r.width / 2 })
+  }, [])
 
   const selectedUser = users.find(u => u.id === selectedUserId)
+  const tipEntries = tip ? entryMap[tip.date] : undefined
+  const tipDate = tip ? new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'long' }).format(new Date(tip.date + 'T00:00:00')) : ''
 
   return (
     <div>
@@ -83,6 +99,7 @@ export default function VacayCalendar() {
             companyHolidaysEnabled={companyHolidaysEnabled}
             entryMap={entryMap}
             onCellClick={handleCellClick}
+            onCellHover={handleCellHover}
             companyMode={companyMode}
             blockWeekends={blockWeekends}
             weekendDays={weekendDays}
@@ -91,6 +108,32 @@ export default function VacayCalendar() {
           />
         ))}
       </div>
+
+      {/* Custom half-day tooltip — who is off on this date and how much. Rendered
+          fixed at the root (not inside a month card) so backdrop-filter stacking
+          contexts can't clip or occlude it. */}
+      {tip && tipEntries && tipEntries.length > 0 && (
+        <div
+          className="vg-card rounded-xl"
+          style={{ position: 'fixed', top: tip.top - 9, left: tip.left, transform: 'translate(-50%, -100%)', zIndex: 80, pointerEvents: 'none' }}
+        >
+          <div style={{ padding: '8px 11px', minWidth: 132 }}>
+            <div className="capitalize" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.02em', color: 'var(--vg-ink3)', marginBottom: 5 }}>{tipDate}</div>
+            {tipEntries.map((e, i) => {
+              const isHalf = (e.fraction ?? 1) === 0.5
+              return (
+                <div key={i} className="flex items-center gap-2" style={{ marginTop: i ? 4 : 0 }}>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: e.person_color || '#6366f1' }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--vg-ink)' }}>{e.person_name}</span>
+                  <span style={{ marginLeft: 'auto', paddingLeft: 12, fontSize: 11, fontWeight: 700, color: isHalf ? 'var(--vg-ink)' : 'var(--vg-ink3)' }}>
+                    {isHalf ? t('vacay.modeHalf') : t('vacay.fullDay')}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Floating toolbar — lift above the mobile bottom nav (z-60). On desktop --bottom-nav-h is 0px. */}
       <div className="sticky mt-3 sm:mt-4 flex items-center justify-center px-2" style={{ bottom: 'calc(var(--bottom-nav-h, 0px) + 12px)', zIndex: 61 }}>
@@ -105,16 +148,6 @@ export default function VacayCalendar() {
             {selectedUser && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: selectedUser.color }} />}
             {selectedUser ? selectedUser.username : t('vacay.modeVacation')}
           </button>
-          <button
-            onClick={() => setMode('half')}
-            title={t('vacay.modeHalfHint')}
-            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
-            style={mode === 'half'
-              ? { background: 'var(--vg-ink)', color: 'var(--vg-bg)' }
-              : { background: 'transparent', color: 'var(--vg-ink2)' }}>
-            <span className="text-[13px] font-bold leading-none" aria-hidden>½</span>
-            {t('vacay.modeHalf')}
-          </button>
           {companyHolidaysEnabled && (
             <button
               onClick={() => setMode('company')}
@@ -126,6 +159,26 @@ export default function VacayCalendar() {
               {t('vacay.modeCompany')}
             </button>
           )}
+
+          {/* Divider — the half-day switch is a modifier, not a mode. */}
+          <span className="w-px self-stretch my-0.5" style={{ background: 'var(--vg-line)' }} aria-hidden />
+
+          <button
+            onClick={() => setHalfDay(v => !v)}
+            title={t('vacay.modeHalfHint')}
+            aria-pressed={halfDay}
+            className="flex items-center gap-1.5 pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
+            style={halfDay
+              ? { background: 'var(--vg-ink)', color: 'var(--vg-bg)' }
+              : { background: 'transparent', color: 'var(--vg-ink3)' }}>
+            <span className="flex items-center justify-center rounded-full shrink-0 transition-colors"
+              style={{
+                width: 15, height: 15, fontSize: 10, fontWeight: 800, lineHeight: 1,
+                background: halfDay ? 'var(--vg-bg)' : 'color-mix(in srgb, var(--vg-ink3) 22%, transparent)',
+                color: halfDay ? 'var(--vg-ink)' : 'var(--vg-ink2)',
+              }} aria-hidden>½</span>
+            {t('vacay.modeHalf')}
+          </button>
         </div>
       </div>
     </div>

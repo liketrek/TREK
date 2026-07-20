@@ -29,6 +29,7 @@ const vacay: TranslationStrings = {
   'vacay.modeCompany': '회사 휴일',
   'vacay.modeHalf': '반차',
   'vacay.modeHalfHint': '반차 등록',
+  'vacay.fullDay': '종일',
   'vacay.entitlement': '휴가 일수',
   'vacay.entitlementDays': '일',
   'vacay.used': '사용',

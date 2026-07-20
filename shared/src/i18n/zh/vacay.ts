@@ -29,6 +29,7 @@ const vacay: TranslationStrings = {
   'vacay.modeCompany': '公司假日',
   'vacay.modeHalf': '半天',
   'vacay.modeHalfHint': '记录半天假期',
+  'vacay.fullDay': '全天',
   'vacay.entitlement': '年假额度',
   'vacay.entitlementDays': '天',
   'vacay.used': '已用',

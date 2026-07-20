@@ -29,6 +29,7 @@ const vacay: TranslationStrings = {
   'vacay.modeCompany': 'Kỳ nghỉ của công ty',
   'vacay.modeHalf': 'Nửa ngày',
   'vacay.modeHalfHint': 'Ghi nửa ngày nghỉ',
+  'vacay.fullDay': 'Cả ngày',
   'vacay.entitlement': 'Quyền lợi',
   'vacay.entitlementDays': 'Ngày',
   'vacay.used': 'Đã dùng',
