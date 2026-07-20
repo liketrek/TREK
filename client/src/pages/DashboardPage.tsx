@@ -7,6 +7,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 import CopyTripDialog from '../components/shared/CopyTripDialog'
 import CustomSelect from '../components/shared/CustomSelect'
 import PlaceAvatar from '../components/shared/PlaceAvatar'
+import EmptyState from '../components/shared/EmptyState'
 import MobileTopBar from '../components/Layout/MobileTopBar'
 import { useDashboard } from './dashboard/useDashboard'
 import {
@@ -220,8 +221,7 @@ function DashboardPageDesktop(): React.ReactElement {
 
               {gridTrips.length === 0 && tripFilter === 'planned' && !isLoading && !loadError && (
                 <div className="trips-empty">
-                  <h4>{t('dashboard.emptyTitle')}</h4>
-                  <p>{t('dashboard.emptyText')}</p>
+                  <EmptyState scene="dashboard" title={t('dashboard.emptyTitle')} />
                 </div>
               )}
 

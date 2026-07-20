@@ -1,6 +1,6 @@
-import { Luggage } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
 import { KategorieGruppe } from './PackingListPanelCategoryGroup'
+import EmptyState from '../shared/EmptyState'
 
 export function PackingList(S: PackingState) {
   const {
@@ -12,11 +12,7 @@ export function PackingList(S: PackingState) {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0 16px' }}>
       {items.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <Luggage size={40} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 10px' }} />
-          <p style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('packing.emptyTitle')}</p>
-          <p style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', margin: 0 }}>{t('packing.emptyHint')}</p>
-        </div>
+        <EmptyState scene="packing" title={t('packing.emptyTitle')} />
       ) : Object.keys(gruppiert).length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-faint)' }}>
           <p style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', margin: 0 }}>{t('packing.emptyFiltered')}</p>

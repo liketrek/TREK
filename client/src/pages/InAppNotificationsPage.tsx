@@ -1,7 +1,8 @@
 import React from 'react'
-import { Bell, CheckCheck, Trash2 } from 'lucide-react'
+import { CheckCheck, Trash2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
+import EmptyState from '../components/shared/EmptyState'
 import { Spinner } from '../components/shared/Spinner'
 import InAppNotificationItem from '../components/Notifications/InAppNotificationItem.tsx'
 import { useInAppNotifications } from './inAppNotifications/useInAppNotifications'
@@ -89,11 +90,7 @@ function InAppNotificationsPageDesktop(): React.ReactElement {
                 <Spinner className="w-6 h-6 border-2 border-slate-200 border-t-current" />
               </div>
             ) : displayed.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-3">
-                <Bell className="w-12 h-12 text-content-faint" />
-                <p className="text-base font-medium text-content-muted">{t('notifications.empty')}</p>
-                <p className="text-sm text-content-faint">{t('notifications.emptyDescription')}</p>
-              </div>
+              <EmptyState scene="notifications" title={t('notifications.empty')} />
             ) : (
               displayed.map(n => (
                 <InAppNotificationItem key={n.id} notification={n} />

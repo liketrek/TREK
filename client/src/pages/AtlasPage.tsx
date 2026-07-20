@@ -3,6 +3,7 @@ import { useTranslation } from '../i18n'
 import Navbar from '../components/Layout/Navbar'
 import apiClient from '../api/client'
 import CustomSelect from '../components/shared/CustomSelect'
+import EmptyState from '../components/shared/EmptyState'
 import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search } from 'lucide-react'
 import type { TranslationFn } from '../types'
 import { A2_TO_A3, countryCodeToFlag, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
@@ -537,11 +538,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
     return (
       <>
         {tabBar}
-        <div className="p-8 text-center">
-          <Globe size={28} className="mx-auto mb-2" style={{ color: tf, opacity: 0.4 }} />
-          <p className="text-sm font-medium" style={{ color: tm }}>{t('atlas.noData')}</p>
-          <p className="text-xs mt-1" style={{ color: tf }}>{t('atlas.noDataHint')}</p>
-        </div>
+        <EmptyState scene="atlas" title={t('atlas.noData')} />
       </>
     )
   }

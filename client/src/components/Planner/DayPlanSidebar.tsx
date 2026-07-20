@@ -9,6 +9,7 @@ import { assignmentsApi, reservationsApi } from '../../api/client'
 import { calculateRoute, calculateRouteWithLegs, optimizeRoute, generateGoogleMapsUrl } from '../Map/RouteCalculator'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import EmptyState from '../shared/EmptyState'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -1633,7 +1634,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         border: dragOverDayId === day.id ? '2px dashed rgba(17,24,39,0.2)' : '2px dashed transparent',
                       }}
                     >
-                      <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('dayplan.emptyDay')}</span>
+                      <EmptyState scene="guide" title={t('dayplan.emptyDay')} />
                     </div>
                   ) : (
                     merged.map((item, idx) => {

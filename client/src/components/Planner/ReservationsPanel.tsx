@@ -8,7 +8,7 @@ import { useTranslation } from '../../i18n'
 import {
   Plane, Hotel, Utensils, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
-  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Download,
+  ExternalLink, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Download,
   TramFront, Footprints, StickyNote,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
@@ -22,6 +22,7 @@ import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginC
 import { usePluginStore, type ActivePlugin } from '../../store/pluginStore'
 import PluginFrame from '../Plugins/PluginFrame'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
+import EmptyState from '../shared/EmptyState'
 
 interface AssignmentLookupEntry {
   dayNumber: number
@@ -834,11 +835,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px 80px' }} className="max-md:!px-4 max-md:!pt-4">
         {total === 0 && reservations.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <BookMarked size={36} className="text-content-faint" style={{ display: 'block', margin: '0 auto 12px' }} />
-            <p className="text-content-secondary" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, margin: '0 0 4px' }}>{t('reservations.empty')}</p>
-            <p className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', margin: 0 }}>{t('reservations.emptyHint')}</p>
-          </div>
+          <EmptyState scene={contributionView === 'transports' ? 'transport' : 'bookings'} title={t('reservations.empty')} />
         ) : total === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <p className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('places.noneFound')}</p>

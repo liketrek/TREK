@@ -7,9 +7,10 @@ import { DAY_COLORS } from '../components/Journey/dayColors'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
 import ContributorInviteDialog from '../components/Journey/ContributorInviteDialog'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
+import EmptyState from '../components/shared/EmptyState'
 import {
   ArrowLeft, MoreHorizontal, Download, List, Grid, MapPin,
-  Plus, BookOpen, ChevronUp, ChevronDown, Eye, EyeOff,
+  Plus, ChevronUp, ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
@@ -328,13 +329,7 @@ function JourneyDetailPageDesktop() {
               {!isMobile && (
                 <div className={`flex flex-col gap-6 pb-24 md:pb-6${view === 'timeline' ? '' : ' hidden'}`}>
                   {sortedDates.length === 0 && (
-                    <div className="text-center py-16">
-                      <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
-                        <BookOpen size={24} className="text-zinc-400" />
-                      </div>
-                      <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-300">No entries yet</p>
-                      <p className="text-[12px] text-zinc-500 mt-1">Add a trip to get started with skeleton entries</p>
-                    </div>
+                    <EmptyState scene="journey" title={t('journey.detail.noEntries')} />
                   )}
 
                   {sortedDates.map((date, dayIdx) => {

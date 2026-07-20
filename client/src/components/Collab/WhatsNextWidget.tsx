@@ -3,7 +3,8 @@ import { avatarSrc } from '../../utils/avatarSrc'
 import { useTripStore } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { MapPin, Clock, Calendar, Users, Sparkles } from 'lucide-react'
+import { MapPin, Clock, Users, Sparkles } from 'lucide-react'
+import EmptyState from '../shared/EmptyState'
 
 function formatTime(timeStr, is12h) {
   if (!timeStr) return ''
@@ -100,11 +101,7 @@ export default function WhatsNextWidget({ tripMembers = [] }: WhatsNextWidgetPro
       {/* List */}
       <div className="chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
         {upcoming.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '48px 20px', textAlign: 'center' }}>
-            <Calendar size={36} color="var(--text-faint)" strokeWidth={1.3} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>{t('collab.whatsNext.empty')}</div>
-            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)' }}>{t('collab.whatsNext.emptyHint')}</div>
-          </div>
+          <EmptyState scene="guide" title={t('collab.whatsNext.empty')} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {upcoming.map((item, idx) => {

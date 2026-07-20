@@ -6,6 +6,7 @@ import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
+import EmptyState from '../shared/EmptyState'
 import ReactDOM from 'react-dom'
 import type { User } from '../../types'
 
@@ -461,11 +462,7 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
       {/* Content */}
       <div className="chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }}>
         {polls.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 20px', textAlign: 'center', height: '100%' }}>
-            <BarChart3 size={36} color="var(--text-faint)" strokeWidth={1.3} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>{t('collab.polls.empty')}</div>
-            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)' }}>{t('collab.polls.emptyHint')}</div>
-          </div>
+          <EmptyState scene="polls" title={t('collab.polls.empty')} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {activePolls.length > 0 && activePolls.map(poll => (

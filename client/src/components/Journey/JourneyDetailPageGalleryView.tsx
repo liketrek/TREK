@@ -10,6 +10,7 @@ import { getApiErrorMessage } from '../../types'
 import type { JourneyEntry, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
 import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { ProviderPicker } from './JourneyDetailPageProviderPicker'
+import EmptyState from '../shared/EmptyState'
 
 export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onRegisterUpload }: {
   entries: JourneyEntry[]
@@ -139,13 +140,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
       </div>
 
       {allPhotos.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
-            <Image size={24} className="text-zinc-400" />
-          </div>
-          <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-300">{t('journey.detail.noPhotos')}</p>
-          <p className="text-[12px] text-zinc-500 mt-1">{t('journey.detail.noPhotosHint')}</p>
-        </div>
+        <EmptyState scene="journey" title={t('journey.detail.noPhotos')} />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 pb-24 md:pb-6">
           {allPhotos.map((photo, i) => (
