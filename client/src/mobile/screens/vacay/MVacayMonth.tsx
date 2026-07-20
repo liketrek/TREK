@@ -54,17 +54,14 @@ export default function MVacayMonth({
                 style={{ background: tripDotColor }}
               />
             )}
-            {visual.half && !mini && (
+            {visual.half && (
               <span
                 aria-hidden
-                className="absolute flex items-center justify-center"
-                style={{
-                  bottom: 2, right: 2, height: 12, minWidth: 12, padding: '0 2px',
-                  borderRadius: 999, background: 'rgba(255,255,255,0.96)', color: '#18181b',
-                  fontSize: 8, fontWeight: 800, lineHeight: 1,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.22)',
-                }}
-              >½</span>
+                className={`absolute rounded-full ${
+                  mini ? 'right-[1px] bottom-[1px] h-[3px] w-[3px]' : 'right-[2px] bottom-[2px] h-[5px] w-[5px]'
+                }`}
+                style={{ background: '#f97316' }}
+              />
             )}
           </button>
         )

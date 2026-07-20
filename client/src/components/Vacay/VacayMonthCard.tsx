@@ -169,18 +169,10 @@ export default function VacayMonthCard({
                 <span className="absolute top-1 right-1 w-[5px] h-[5px] rounded-full z-[2] bg-[#3b82f6]" style={{ boxShadow: '0 0 0 1.5px var(--vg-surf)' }} />
               )}
 
-              {/* Half day (#552): a crisp white corner badge sitting on the person fill. */}
+              {/* Half day (#552): a small orange corner dot, mirroring the blue trip dot.
+                  The hover tooltip spells out who is on a half day. */}
               {anyHalf && (
-                <span
-                  className="absolute z-[3] flex items-center justify-center"
-                  style={{
-                    bottom: 2, right: 2, height: 12, minWidth: 12, padding: '0 2.5px',
-                    borderRadius: 999, background: 'rgba(255,255,255,0.96)', color: '#18181b',
-                    fontSize: 8.5, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em',
-                    boxShadow: '0 1px 2.5px rgba(0,0,0,0.25)',
-                  }}
-                  aria-hidden
-                >½</span>
+                <span className="absolute bottom-1 right-1 w-[5px] h-[5px] rounded-full z-[3] bg-[#f97316]" style={{ boxShadow: '0 0 0 1.5px var(--vg-surf)' }} aria-hidden />
               )}
 
               <span className="relative z-[1]" style={{
