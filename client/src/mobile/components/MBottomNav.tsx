@@ -8,22 +8,7 @@ import { normalizeAppearance } from '@trek/shared'
 import { useNavItems, splitMobileNav } from '../../components/Layout/navItems'
 import MFab from './MFab'
 
-// Journey/Collections keep the demo's addon brand tint + subtitle on their
-// popover tile; every other "More" item falls back to a neutral tile. Keyed by
-// the canonical nav-item id and layered on top of the resolved item.
-const MORE_ROW_STYLE: Record<string, { subKey: string; tileCls: string }> = {
-  journey: {
-    subKey: 'mobileNav.journeySub',
-    tileCls: 'bg-[rgba(74,125,219,.16)] text-[#4A7DDB]', // theme-lint-disable — fixed addon brand tint
-  },
-  collections: {
-    subKey: 'mobileNav.collectionsSub',
-    tileCls: 'bg-[rgba(236,72,153,.16)] text-[#EC4899]', // theme-lint-disable — fixed addon brand tint
-  },
-}
-
 interface NavItem { to: string; label: string; icon: LucideIcon }
-interface MoreItem extends NavItem { sub?: string; tileCls: string }
 
 // The centre "+" means something different per context: inside a trip it adds a
 // place, on the journey list it starts a journey (deliberate deviation from the
@@ -92,12 +77,7 @@ export default function MBottomNav() {
   const split = splitMobileNav(navItems, normalizeAppearance(appearance).mobileNav)
 
   const dockItems: NavItem[] = split.bar
-  const moreItems: MoreItem[] = split.more.map(d => {
-    const style = MORE_ROW_STYLE[d.id]
-    return style
-      ? { to: d.to, label: d.label, sub: t(style.subKey), icon: d.icon, tileCls: style.tileCls }
-      : { to: d.to, label: d.label, icon: d.icon, tileCls: 'bg-[color:var(--m-ic)] text-m-ink' }
-  })
+  const moreItems: NavItem[] = split.more
 
   const isActive = (to: string) =>
     to === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(to)
@@ -148,20 +128,17 @@ export default function MBottomNav() {
             className="absolute left-4 right-4 flex flex-col gap-2 rounded-[26px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[10px] shadow-[0_-8px_40px_-14px_rgba(0,0,0,.45)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+86px)]"
             onClick={e => e.stopPropagation()}
           >
-            {moreItems.map(({ to, label, sub, icon: Icon, tileCls }) => (
+            {moreItems.map(({ to, label, icon: Icon }) => (
               <button
                 key={to}
                 type="button"
                 onClick={() => { setMoreOpen(false); navigate(to) }}
                 className="flex items-center gap-[13px] rounded-[18px] bg-[color:var(--m-ic)] px-4 py-[14px] text-left"
               >
-                <span className={`flex h-10 w-10 flex-none items-center justify-center rounded-xl ${tileCls}`}>
+                <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[color:var(--m-ic)] text-m-ink">
                   <Icon size={20} strokeWidth={2} />
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.9375rem] font-extrabold text-m-ink">{label}</span>
-                  {sub && <span className="mt-[1px] block truncate font-geist text-[0.6875rem] text-m-muted">{sub}</span>}
-                </span>
+                <span className="block min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">{label}</span>
                 <ChevronRight size={17} strokeWidth={2} className="flex-none text-m-faint" />
               </button>
             ))}
