@@ -28,10 +28,10 @@ const DASH_ARRAYS: Record<PluginMapLayerFeature['dash'], string | undefined> = {
   dot: '1, 7',
 }
 
-function pathOptions(f: PluginMapLayerFeature) {
+function pathOptions(f: PluginMapLayerFeature, pane: string | undefined) {
   const color = TONE_COLORS[f.tone] ?? TONE_COLORS.default
   return {
-    pane: PANE,
+    ...(pane ? { pane } : {}),
     color,
     weight: f.width,
     opacity: f.opacity,
@@ -48,14 +48,18 @@ function pathOptions(f: PluginMapLayerFeature) {
 export function PluginMapLayers({ tripId }: { tripId?: number | string }) {
   const map = useMap()
   const [layers, setLayers] = useState<PluginMapLayer[]>([])
-  const [paneReady, setPaneReady] = useState(false)
+  // Whether our dedicated below-overlay pane exists. Pane support is a Leaflet
+  // optimization — if the map has no pane API (e.g. a minimal renderer), the
+  // features still draw, just without the z-index separation, so we don't gate on it.
+  const [hasPane, setHasPane] = useState(false)
 
   useEffect(() => {
+    if (typeof map.getPane !== 'function' || typeof map.createPane !== 'function') return
     if (!map.getPane(PANE)) {
       const pane = map.createPane(PANE)
-      pane.style.zIndex = '399' // under overlayPane (400): core routes/arcs win
+      if (pane) pane.style.zIndex = '399' // under overlayPane (400): core routes/arcs win
     }
-    setPaneReady(true)
+    setHasPane(true)
   }, [map])
 
   useEffect(() => {
@@ -67,7 +71,8 @@ export function PluginMapLayers({ tripId }: { tripId?: number | string }) {
     return () => { alive = false }
   }, [tripId])
 
-  if (!paneReady || layers.length === 0) return null
+  if (layers.length === 0) return null
+  const pane = hasPane ? PANE : undefined
 
   return (
     <>
@@ -75,13 +80,13 @@ export function PluginMapLayers({ tripId }: { tripId?: number | string }) {
         const key = `${layer.pluginId}:${layer.id}:${i}`
         const tooltip = f.label ? <Tooltip sticky>{f.label}</Tooltip> : null
         if (f.type === 'polyline' && f.points) {
-          return <Polyline key={key} positions={f.points} pathOptions={pathOptions(f)}>{tooltip}</Polyline>
+          return <Polyline key={key} positions={f.points} pathOptions={pathOptions(f, pane)}>{tooltip}</Polyline>
         }
         if (f.type === 'polygon' && f.points) {
-          return <Polygon key={key} positions={f.points} pathOptions={pathOptions(f)}>{tooltip}</Polygon>
+          return <Polygon key={key} positions={f.points} pathOptions={pathOptions(f, pane)}>{tooltip}</Polygon>
         }
         if (f.type === 'circle' && f.center && f.radiusM) {
-          return <Circle key={key} center={f.center} radius={f.radiusM} pathOptions={pathOptions(f)}>{tooltip}</Circle>
+          return <Circle key={key} center={f.center} radius={f.radiusM} pathOptions={pathOptions(f, pane)}>{tooltip}</Circle>
         }
         return null
       }))}
