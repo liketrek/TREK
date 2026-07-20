@@ -328,9 +328,16 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
             // immediately; positions stream as trek:geolocation:update messages.
             if (geoWatchRef.current != null) navigator.geolocation.clearWatch(geoWatchRef.current)
             post({ type: 'trek:geolocation:result', requestId, watching: true })
+            // Re-check the grant on every fix, not just at start: if an admin revokes
+            // geolocation:read while the frame stays open, the stream stops at once.
+            const stillAllowed = () => {
+              if (geoAllowedRef.current) return true
+              if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
+              return false
+            }
             geoWatchRef.current = navigator.geolocation.watchPosition(
-              (p) => { if (loadsRef.current <= 1) post({ type: 'trek:geolocation:update', position: geoPosition(p) }) },
-              (e) => { if (loadsRef.current <= 1) post({ type: 'trek:geolocation:update', error: geoErrorCode(e) }) },
+              (p) => { if (loadsRef.current <= 1 && stillAllowed()) post({ type: 'trek:geolocation:update', position: geoPosition(p) }) },
+              (e) => { if (loadsRef.current <= 1 && stillAllowed()) post({ type: 'trek:geolocation:update', error: geoErrorCode(e) }) },
               geoOpts,
             )
             break

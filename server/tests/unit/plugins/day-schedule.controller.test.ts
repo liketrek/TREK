@@ -86,6 +86,12 @@ describe('DayScheduleController', () => {
     expect(out).toHaveLength(60);
   });
 
+  it('bounds work on an all-invalid oversized payload', async () => {
+    const huge = Array.from({ length: 100_000 }, () => ({ id: 's', dayId: 999, label: 'x' })); // foreign day -> all dropped
+    const { c } = controller(() => huge);
+    expect((await c.get('1', req(5))).items).toEqual([]);
+  });
+
   it('skips the day lookup entirely when no provider is active', async () => {
     const { c, runtime } = controller(() => [item()], []);
     expect((await c.get('1', req(5))).items).toEqual([]);

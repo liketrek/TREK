@@ -294,5 +294,21 @@ describe('PluginFrame', () => {
       expect(geo.clearWatch).toHaveBeenCalledWith(7);
       expect(posted.find((m) => m.type === 'trek:geolocation:result' && m.requestId === 'g5')).toMatchObject({ cleared: true });
     });
+
+    it('FE-PLUGINS-FRAME-019: a running watch stops streaming the moment the grant is revoked', () => {
+      let tick: ((p: unknown) => void) | null = null;
+      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => { tick = ok; return 7; });
+      const { iframe, posted } = mount(true);
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g6', action: 'watch' });
+
+      // Admin revokes geolocation:read while the frame stays mounted (re-render
+      // updates the ref the watch callback reads).
+      act(() => grant(false));
+      const before = posted.length;
+      act(() => tick!({ coords: { latitude: 3, longitude: 4, accuracy: 5, heading: null, speed: null }, timestamp: 2 }));
+      // No further position leaks, and the OS watch is released.
+      expect(posted.length).toBe(before);
+      expect(geo.clearWatch).toHaveBeenCalledWith(7);
+    });
   });
 });

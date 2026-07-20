@@ -39,8 +39,13 @@ const MAX_ITEMS = 60; // per provider, across the trip's days
 const MAX_MINUTES = 1440; // a contribution longer than a day is nonsense data
 const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice(0, n);
 
+// Bound the work, not just the output: an all-invalid raw array (no item ever
+// increments out.length) would otherwise be iterated in full. Slice up front, well
+// above any legitimate payload, mirroring the other hooks' length pre-checks.
+const MAX_RAW_ITEMS = 1000;
+
 function normalize(pluginId: string, tripDayIds: ReadonlySet<number>, raw: unknown): DayScheduleItem[] {
-  const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
+  const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>).slice(0, MAX_RAW_ITEMS) : [];
   const out: DayScheduleItem[] = [];
   for (const it of list) {
     if (out.length >= MAX_ITEMS) break;

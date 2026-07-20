@@ -80,8 +80,16 @@ function readPoints(raw: unknown, budget: number): Array<[number, number]> | nul
   return out;
 }
 
+// The normalizer bounds its OUTPUT, but a layer/feature that never validates
+// (truthy id, zero valid features) doesn't advance the output counters, so an
+// oversized raw array would otherwise be iterated in full on the host event loop.
+// Slice the raw list up front — well above any legitimate payload — so the work,
+// not just the result, is bounded (mirrors readPoints' length pre-check).
+const MAX_RAW_LAYERS = 1000;
+const MAX_RAW_FEATURES = 2000;
+
 function normalize(pluginId: string, raw: unknown): MapLayer[] {
-  const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
+  const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>).slice(0, MAX_RAW_LAYERS) : [];
   const out: MapLayer[] = [];
   let features = 0;
   let points = 0;
@@ -91,7 +99,7 @@ function normalize(pluginId: string, raw: unknown): MapLayer[] {
     const id = cap(l.id, 64);
     if (!id) continue;
     const feats: MapLayerFeature[] = [];
-    const rawFeats = Array.isArray(l.features) ? (l.features as Array<Record<string, unknown>>) : [];
+    const rawFeats = Array.isArray(l.features) ? (l.features as Array<Record<string, unknown>>).slice(0, MAX_RAW_FEATURES) : [];
     for (const f of rawFeats) {
       if (features >= MAX_FEATURES || points >= MAX_POINTS) break;
       if (!f || typeof f !== 'object') continue;

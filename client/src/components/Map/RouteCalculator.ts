@@ -258,7 +258,11 @@ export async function calculateRouteWithLegs(
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
   // The cached result carries formatted leg distances, so the active distance unit is
   // part of the key — otherwise switching km↔mi would return stale text (#1300).
-  const cacheKey = `${profile}:${getDistanceUnit()}:${coords}`
+  // A plugin route is trip-/day-specific (it may return different charging stops for
+  // the same coordinates on a different day), so its key includes tripId/dayId;
+  // the built-in OSRM profiles are context-free and leave those out.
+  const pluginScope = profile.startsWith('plugin:') ? `:${tripId ?? ''}:${dayId ?? ''}` : ''
+  const cacheKey = `${profile}:${getDistanceUnit()}:${coords}${pluginScope}`
   const cached = routeCache.get(cacheKey)
   if (cached) return cached
 

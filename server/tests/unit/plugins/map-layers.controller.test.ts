@@ -120,6 +120,14 @@ describe('MapLayersController', () => {
     expect(vertices).toBeLessThanOrEqual(8000);
   });
 
+  it('bounds work on an all-invalid oversized payload (no unbounded iteration)', async () => {
+    // 100k valid-id / zero-feature layers would iterate fully without the raw cap.
+    const huge = Array.from({ length: 100_000 }, () => ({ id: 'x', features: [] }));
+    const { c } = controller(() => huge);
+    const out = (await c.get('1', req(5))).layers;
+    expect(out).toEqual([]); // all dropped (no features), and the scan stayed bounded
+  });
+
   it('drops id-less and empty layers, keeps other providers when one fails', async () => {
     const { c } = controller(
       (id) => (id === 'bad'

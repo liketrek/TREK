@@ -121,10 +121,12 @@ function normalize(pluginId: string, profile: string, waypointCount: number, raw
   }
 
   // Via points are decorative (charging stops on the drawn route) — a bad entry
-  // is dropped individually, it can't invalidate the route.
+  // is dropped individually, it can't invalidate the route. Slice the raw array so
+  // an all-invalid list can't force unbounded iteration (the output is MAX_VIAS,
+  // but only valid entries advance that counter).
   const viaPoints: RouteViaOut[] = [];
   if (Array.isArray(r.viaPoints)) {
-    for (const v of r.viaPoints as Array<Record<string, unknown>>) {
+    for (const v of (r.viaPoints as Array<Record<string, unknown>>).slice(0, MAX_VIAS * 4)) {
       if (viaPoints.length >= MAX_VIAS) break;
       if (!v || typeof v !== 'object' || !validCoord(v.lat, v.lng)) continue;
       const dwell = Number(v.dwellSeconds);
