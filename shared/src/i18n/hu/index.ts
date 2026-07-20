@@ -18,6 +18,14 @@ import login from './login';
 import map from './map';
 import members from './members';
 import memories from './memories';
+import mobileTrip from './mobileTrip';
+import mobileJourney from './mobileJourney';
+import mobileVacay from './mobileVacay';
+import mobileAtlas from './mobileAtlas';
+import mobileNav from './mobileNav';
+import mobileAdmin from './mobileAdmin';
+import mobileSettings from './mobileSettings';
+import mobileCollections from './mobileCollections';
 import nav from './nav';
 import notif from './notif';
 import notifications from './notifications';
@@ -86,5 +94,13 @@ const locale = {
   ...system_notice,
   ...transport,
   ...help,
+  ...mobileTrip,
+  ...mobileJourney,
+  ...mobileVacay,
+  ...mobileAtlas,
+  ...mobileNav,
+  ...mobileAdmin,
+  ...mobileSettings,
+  ...mobileCollections,
 };
 export default locale;

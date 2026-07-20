@@ -10,9 +10,10 @@ import { mapsApi } from '../../api/client'
 import { getCategoryIcon, CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import ReservationOverlay from './ReservationOverlay'
 import { PluginMapMarkers } from './MapPluginMarkers'
+import { PluginMapLayers } from './MapPluginLayers'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
-import type { Reservation } from '../../types'
+import type { Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
@@ -44,6 +45,32 @@ function escAttr(s) {
 }
 
 const iconCache = new Map<string, L.DivIcon>()
+
+// Tone dot for a plugin route's via points (charging stops, rest areas) — smaller
+// than the plugin markers so the day route's own stops stay visually dominant.
+const VIA_TONE_COLORS: Record<string, string> = {
+  default: '#4F46E5', success: '#10b981', warn: '#f59e0b', danger: '#ef4444',
+}
+const viaIconCache = new Map<string, L.DivIcon>()
+function routeViaIcon(tone: string): L.DivIcon {
+  const cached = viaIconCache.get(tone)
+  if (cached) return cached
+  const color = VIA_TONE_COLORS[tone] ?? VIA_TONE_COLORS.default
+  const icon = L.divIcon({
+    className: 'route-via-marker',
+    html: `<span style="display:block;width:13px;height:13px;border-radius:50%;background:#fff;border:3.5px solid ${color};box-shadow:0 1px 4px rgba(0,0,0,0.35);box-sizing:border-box"></span>`,
+    iconSize: [13, 13],
+    iconAnchor: [6.5, 6.5],
+  })
+  viaIconCache.set(tone, icon)
+  return icon
+}
+
+function formatViaDwell(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.round((seconds % 3600) / 60)
+  return h > 0 ? `${h} h ${m} min` : `${m} min`
+}
 
 function createPlaceIcon(place, orderNumbers, isSelected) {
   const cacheKey = `${place.id}:${isSelected}:${place.image_url || ''}:${place.category_color || ''}:${place.category_icon || ''}:${orderNumbers?.join(',') || ''}`
@@ -467,6 +494,7 @@ export const MapView = memo(function MapView({
   onPoiClick,
   onViewportChange,
   tripId,
+  routeVias = [],
 }: any) {
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
@@ -753,7 +781,21 @@ export const MapView = memo(function MapView({
       />
 
       {poiMarkers}
+      {/* Charging stops / rest areas a plugin route places on the drawn day route.
+          Host-vetted data (server-normalized), rendered as plain tone dots. */}
+      {(routeVias as RouteVia[]).map((v, i) => (
+        <Marker key={`route-via-${i}`} position={[v.lat, v.lng]} icon={routeViaIcon(v.tone)} zIndexOffset={800}>
+          {(v.label || v.dwellSeconds != null) && (
+            <Tooltip direction="top" offset={[0, -8]}>
+              {v.label}
+              {v.label && v.dwellSeconds != null ? ' · ' : ''}
+              {v.dwellSeconds != null ? formatViaDwell(v.dwellSeconds) : ''}
+            </Tooltip>
+          )}
+        </Marker>
+      ))}
       <PluginMapMarkers tripId={tripId} />
+      <PluginMapLayers tripId={tripId} />
     </MapContainer>
     {isMobile && <LocationButton
       mode={trackingMode}

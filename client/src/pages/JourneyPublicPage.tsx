@@ -26,6 +26,7 @@ import JourneyMap from '../components/Journey/JourneyMap';
 import MobileEntryView from '../components/Journey/MobileEntryView';
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline';
 import PhotoLightbox from '../components/Journey/PhotoLightbox';
+import EmptyState from '../components/shared/EmptyState';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { useSettingsStore } from '../store/settingsStore';
 import { formatLocationName } from '../utils/formatters';
@@ -146,12 +147,7 @@ export default function JourneyPublicPage() {
   const renderTimeline = () => (
     <div className="flex flex-col gap-6">
       {sortedDates.length === 0 && (
-        <div className="py-16 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-            <BookOpen size={24} className="text-zinc-400" />
-          </div>
-          <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-300">No entries yet</p>
-        </div>
+        <EmptyState scene="journey" title={t('journey.detail.noEntries')} />
       )}
       {sortedDates.map((date, dayIdx) => {
         const dayEntries = groupedEntries.get(date)!;

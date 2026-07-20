@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'Ditandai bintang',
+  'files.link': 'Tautkan',
+  'files.linkTitle': 'Tautkan file',
+  'files.linkEmpty': 'Belum ada tempat atau reservasi untuk ditautkan',
+  'files.menu': 'Opsi lainnya',
+  'files.uploadErrorSize': 'File terlalu besar (maks. 50 MB)',
   'files.title': 'File',
   'files.pageTitle': 'File & Dokumen',
   'files.subtitle': '{count} file untuk {trip}',

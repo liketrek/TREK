@@ -624,6 +624,50 @@ export interface PluginMapMarker {
   tone: 'default' | 'success' | 'warn' | 'danger'
 }
 
+/** One shape of a plugin map layer (mapLayerProvider hook). Server-normalized:
+ * coordinates range-checked, vertex budget capped, styling clamped to the tone
+ * palette + bounded numerics — never free-form CSS or markup. */
+export interface PluginMapLayerFeature {
+  type: 'polyline' | 'polygon' | 'circle';
+  points?: Array<[number, number]>;
+  center?: [number, number];
+  radiusM?: number;
+  tone: 'default' | 'success' | 'warn' | 'danger';
+  width: number;
+  dash: 'solid' | 'dash' | 'dot';
+  opacity: number;
+  fill: boolean;
+  label?: string;
+}
+
+/** A vector overlay a plugin draws on the trip map (routes, corridors, zones). */
+export interface PluginMapLayer {
+  pluginId: string; id: string; name?: string;
+  features: PluginMapLayerFeature[];
+}
+
+/** A time contribution a dayScheduleProvider plugin attaches to the day plan
+ * ("35 min charging at this stop"). Server-normalized: dayIds checked against
+ * the trip, minutes clamped to a day, labels sanitized + capped. */
+export interface PluginDayScheduleItem {
+  pluginId: string; id: string; dayId: number;
+  assignmentId?: number; reservationId?: number;
+  position?: 'start' | 'end';
+  minutes?: number; label: string;
+  tone: 'default' | 'success' | 'warn' | 'danger';
+}
+
+/** A route computed by a routeProvider plugin (server-normalized: coordinates
+ * range-checked, legs forced to waypoints-1, vias capped). null = provider failed
+ * or refused — the caller falls back to straight lines like on an OSRM outage. */
+export interface PluginRouteResult {
+  pluginId: string; profile: string;
+  coordinates: Array<[number, number]>;
+  distance: number; duration: number;
+  legs: Array<{ distance: number; duration: number; note?: string }>;
+  viaPoints: Array<{ lat: number; lng: number; label?: string; tone: 'default' | 'success' | 'warn' | 'danger'; dwellSeconds?: number }>;
+}
+
 /** A text-only section a pdfSectionProvider plugin appends to the trip PDF export.
  * Server-normalized: counts + lengths are capped, cells are plain strings. */
 export interface PluginPdfSection {
@@ -667,6 +711,19 @@ export const pluginsApi = {
   // (#587). Host-normalized + range-checked; fail-safe (skips slow/failing providers).
   mapMarkers: (tripId: number | string) =>
     apiClient.get(`/map-markers/${tripId}`).then(r => r.data as { markers: PluginMapMarker[] }),
+  // Vector overlays (polylines/polygons/circles) plugins draw on the trip map via
+  // the mapLayerProvider hook. Host-normalized + vertex-budgeted; fail-safe.
+  mapLayers: (tripId: number | string) =>
+    apiClient.get(`/map-layers/${tripId}`).then(r => r.data as { layers: PluginMapLayer[] }),
+  // Route the given waypoints through ONE routeProvider plugin profile (targeted,
+  // not a fan-out — the user picked this profile in the route toggle). Slow by
+  // design (external solvers): the server allows the plugin 20 s.
+  pluginRoute: (pluginId: string, profileId: string, body: { tripId: number | string; dayId?: number | null; waypoints: Array<{ lat: number; lng: number; name?: string; placeId?: number }> }, opts: { signal?: AbortSignal } = {}) =>
+    apiClient.post(`/plugin-routes/${pluginId}/${profileId}`, body, { timeout: 25000, signal: opts.signal }).then(r => r.data as { route: PluginRouteResult | null }),
+  // Time contributions plugins attach to the day plan via the dayScheduleProvider
+  // hook (charging stops, security buffers). Host-normalized; fail-safe.
+  daySchedule: (tripId: number | string) =>
+    apiClient.get(`/day-schedule/${tripId}`).then(r => r.data as { items: PluginDayScheduleItem[] }),
   // Text-only sections plugins append to the trip PDF export via the
   // pdfSectionProvider hook. Host-normalized (counts + lengths capped); fail-safe.
   pdfSections: (tripId: number | string) =>

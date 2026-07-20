@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Förvandla dina resor till minnen du aldrig kommer att glömma',
   'journey.frontpage.createJourney': 'Skapa Journey',
   'journey.frontpage.activeJourney': 'Aktiv Journey',
+  'journey.frontpage.latestJourney': 'Senaste Journey',
   'journey.frontpage.allJourneys': 'Alla Journeys',
   'journey.frontpage.journeys': 'journeys',
   'journey.frontpage.createNew': 'Skapa en ny Journey',

@@ -158,6 +158,17 @@ export interface RouteSegment {
   drivingText: string
   distanceText: string
   durationText?: string
+  /** Extra text a plugin route attached to this leg (e.g. "25 min charge"). */
+  noteText?: string
+}
+
+/** An intermediate stop a plugin route places on the drawn line (charging stop, rest area). */
+export interface RouteVia {
+  lat: number
+  lng: number
+  label?: string
+  tone: 'default' | 'success' | 'warn' | 'danger'
+  dwellSeconds?: number
 }
 
 export interface RouteWithLegs {
@@ -165,6 +176,8 @@ export interface RouteWithLegs {
   distance: number
   duration: number
   legs: RouteSegment[]
+  /** Present on plugin-provided routes only. */
+  vias?: RouteVia[]
 }
 
 export interface RouteResult {

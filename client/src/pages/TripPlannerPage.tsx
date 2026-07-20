@@ -8,6 +8,7 @@ import { MapViewAuto as MapView } from '../components/Map/MapViewAuto'
 import { MapCompassPill, type CompassMap } from '../components/Map/MapCompassPill'
 import { getCached, fetchPhoto } from '../services/photoService'
 import DayPlanSidebar from '../components/Planner/DayPlanSidebar'
+import TripLoadingSplash from '../components/shared/TripLoadingSplash'
 import PlacesSidebar from '../components/Planner/PlacesSidebar'
 import PlaceInspector from '../components/Planner/PlaceInspector'
 import DayDetailPanel from '../components/Planner/DayDetailPanel'
@@ -50,6 +51,8 @@ import { ListTodo, Upload, Plus, Trash2, FolderPlus } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import PoiCategoryPill from '../components/Map/PoiCategoryPill'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MTripShell from '../mobile/screens/trip/MTripShell'
 
 function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
   const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
@@ -177,6 +180,14 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
 }
 
 export default function TripPlannerPage(): React.ReactElement | null {
+  // Below md the trip renders as the new mobile shell; the desktop planner is
+  // untouched for tablets and up. Each branch mounts its own useTripPlanner,
+  // so no hook is called conditionally here.
+  const isPhone = useIsPhone()
+  return isPhone ? <MTripShell /> : <TripPlannerPageDesktop />
+}
+
+function TripPlannerPageDesktop(): React.ReactElement | null {
   // Page = wiring container: the entire planner state machine (store, tabs,
   // selection, CRUD handlers with undo, map filters, splash) lives in the hook.
   const {
@@ -201,7 +212,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
     transportModalDayId, setTransportModalDayId,
     transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
     reservationPrefill, transportPrefill, importReviewActive, advanceImportReview,
-    routeShown, setRouteShown, routeProfile, setRouteProfile, fitKey, setFitKey,
+    routeShown, setRouteShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
     visibleConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,
@@ -241,38 +252,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         ...fontStyle,
       }}>
-        <style>{`
-          @keyframes dotPulse {
-            0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-            40% { opacity: 1; transform: scale(1); }
-          }
-          @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
-        <div style={{ marginBottom: 28 }}>
-          <img
-            src={document.documentElement.classList.contains('dark') ? '/icons/trek-loading-light.gif' : '/icons/trek-loading-dark.gif'}
-            alt="Loading"
-            width={64}
-            height={64}
-          />
-        </div>
-        <div className="text-content" style={{ fontSize: 'calc(20px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 6, animation: 'fadeInUp 0.5s ease-out' }}>
-          {trip?.title || 'TREK'}
-        </div>
-        <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 32, animation: 'fadeInUp 0.5s ease-out 0.1s both' }}>
-          {t('trip.loadingPhotos')}
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[0, 1, 2].map(i => (
-            <div key={i} className="bg-content-muted" style={{
-              width: 8, height: 8, borderRadius: '50%',
-              animation: `dotPulse 1.4s ease-in-out ${i * 0.2}s infinite`,
-            }} />
-          ))}
-        </div>
+        <TripLoadingSplash title={trip?.title} />
       </div>
     )
   }
@@ -316,6 +296,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
               places={mapPlaces}
               dayPlaces={dayPlaces}
               route={route}
+              routeVias={routeVias}
               showTransitRoutes={routeShown}
               routeSegments={routeSegments}
               selectedPlaceId={selectedPlaceId}

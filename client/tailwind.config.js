@@ -69,6 +69,32 @@ export default {
         info: { DEFAULT: 'var(--info)', soft: 'var(--info-soft)' },
         // Inverse surface (the near-black/near-white "pill" header pattern).
         inverse: { DEFAULT: 'var(--bg-inverse)', text: 'var(--text-inverse)' },
+        // Mobile rewrite tokens — resolve to the --m-* variables scoped to
+        // .m-root in src/mobile/mobile.css. Only meaningful inside MobileShell.
+        'm-ink': 'var(--m-ink)',
+        'm-muted': 'var(--m-muted)',
+        'm-faint': 'var(--m-faint)',
+        'm-act': 'var(--m-act)',
+        'm-actfg': 'var(--m-actfg)',
+        'm-card': 'var(--m-card)',
+        'm-cbr': 'var(--m-cbr)',
+        'm-inner': 'var(--m-inner)',
+        'm-inbr': 'var(--m-inbr)',
+        'm-glass': 'var(--m-glass)',
+        'm-gbr': 'var(--m-gbr)',
+        'm-sheet': 'var(--m-sheet)',
+        'm-sheetop': 'var(--m-sheetop)',
+        'm-shbr': 'var(--m-shbr)',
+        'm-ic': 'var(--m-ic)',
+        'm-avbr': 'var(--m-avbr)',
+        'm-rowbr': 'var(--m-rowbr)',
+        'm-dim': 'var(--m-dim)',
+        'm-conn': 'var(--m-conn)',
+        'm-trackoff': 'var(--m-trackoff)',
+      },
+      fontFamily: {
+        // Secondary "subtext" face of the mobile design (numbers, eyebrows).
+        geist: ['Geist Sans', 'Poppins', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'day-column': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',

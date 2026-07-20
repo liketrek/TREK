@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { journeyApi } from '../api/client'
 import Navbar from '../components/Layout/Navbar'
@@ -6,9 +7,10 @@ import { DAY_COLORS } from '../components/Journey/dayColors'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
 import ContributorInviteDialog from '../components/Journey/ContributorInviteDialog'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
+import EmptyState from '../components/shared/EmptyState'
 import {
   ArrowLeft, MoreHorizontal, Download, List, Grid, MapPin,
-  Plus, BookOpen, ChevronUp, ChevronDown, Eye, EyeOff,
+  Plus, ChevronUp, ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
@@ -22,8 +24,15 @@ import { GalleryView } from '../components/Journey/JourneyDetailPageGalleryView'
 import { EntryEditor } from '../components/Journey/JourneyDetailPageEntryEditor'
 import { AddTripDialog } from '../components/Journey/JourneyDetailPageAddTripDialog'
 import { JourneySettingsDialog } from '../components/Journey/JourneyDetailPageSettingsDialog'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MJourneyDetail from '../mobile/screens/journey/MJourneyDetail'
 
 export default function JourneyDetailPage() {
+  const isPhone = useIsPhone()
+  return isPhone ? <MJourneyDetail /> : <JourneyDetailPageDesktop />
+}
+
+function JourneyDetailPageDesktop() {
   // Page = wiring container: load + live sync, view state, dialogs, the
   // scroll-synced map and the map/trip-date derivations live in the hook.
   const {
@@ -40,6 +49,8 @@ export default function JourneyDetailPage() {
     mapEntries, sidebarMapItems, tripDates, isMobile,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
   } = useJourneyDetail()
+
+  const galleryUploadRef = useRef<(() => void) | null>(null)
 
   if (loading || !current) {
     return (
@@ -159,7 +170,7 @@ export default function JourneyDetailPage() {
           className={
             isMobile
               ? 'max-w-[1440px] mx-auto px-0 pt-0'
-              : 'flex w-full overflow-hidden'
+              : 'flex w-full max-w-[1800px] mx-auto overflow-hidden'
           }
           style={!isMobile ? { height: 'calc(100dvh - var(--nav-h, 56px))' } : undefined}
         >
@@ -169,28 +180,32 @@ export default function JourneyDetailPage() {
             className={
               isMobile
                 ? ''
-                : 'flex-1 xl:max-w-[50%] overflow-y-auto journey-feed-scroll'
+                : 'flex-1 overflow-y-auto journey-feed-scroll'
             }
           >
             <div className={isMobile ? '' : 'w-full px-8 py-6'}>
 
           {/* Hero card — hidden on mobile gallery/journey views (floating top bar handles branding there) */}
           <div className={`px-4 md:px-0 mb-6 ${isMobileChromeless ? 'hidden' : ''}`}>
-            <div className="rounded-none md:rounded-2xl -mx-4 md:mx-0 overflow-hidden relative p-5 md:p-7" style={{ background: pickGradient(current.id), color: 'white' }}>
+            <div className="rounded-none md:rounded-[28px] -mx-4 md:mx-0 overflow-hidden relative p-5 md:p-7" style={{ background: pickGradient(current.id), color: 'white' }}>
                 {current.cover_image && (
-                  <div className="absolute inset-0 z-[1]">
-                    <img src={`/uploads/${current.cover_image}`} className="w-full h-full object-cover" alt="" />
-                    <div className="absolute inset-0" style={{ background: pickGradient(current.id), opacity: 0.55 }} />
-                  </div>
+                  <>
+                    <div className="absolute inset-0 z-[1]">
+                      <img src={`/uploads/${current.cover_image}`} className="w-full h-full object-cover" alt="" />
+                      <div className="absolute inset-0" style={{ background: pickGradient(current.id), opacity: 0.28 }} />
+                    </div>
+                    {/* Frosted-left depth (own layer so nothing re-rasterizes it) */}
+                    <div className="absolute inset-0 pointer-events-none z-[2]" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', maskImage: 'linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0) 66%)', WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0) 66%)', transform: 'translateZ(0)' }} />
+                  </>
                 )}
-                <div className="absolute inset-0 pointer-events-none z-[2]" style={{ background: 'radial-gradient(circle at 20% 20%, rgba(236,72,153,0.3), transparent 50%), radial-gradient(circle at 80% 80%, rgba(99,102,241,0.3), transparent 50%)' }} />
+                <div className="absolute inset-0 pointer-events-none z-[2]" style={{ background: 'linear-gradient(120deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.1) 45%, transparent 72%), linear-gradient(0deg, rgba(0,0,0,0.42) 0%, transparent 55%)' }} />
 
                 <div className="relative z-[3] flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => navigate('/journey')}
                       aria-label={t('journey.detail.backToJourney')}
-                      className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"
+                      className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"
                     >
                       <ArrowLeft size={14} />
                     </button>
@@ -209,7 +224,7 @@ export default function JourneyDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => { import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current)) }} className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
+                    <button onClick={() => { import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current)) }} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
                     <div className="relative group">
                       <button
                         onClick={async () => {
@@ -217,7 +232,7 @@ export default function JourneyDetailPage() {
                           setHideSkeletons(next)
                           await journeyApi.updatePreferences(current.id, { hide_skeletons: next })
                         }}
-                        className={`w-[34px] h-[34px] rounded-lg backdrop-blur flex items-center justify-center ${hideSkeletons ? 'bg-white/30' : 'bg-white/15 hover:bg-white/25'}`}
+                        className={`w-[34px] h-[34px] rounded-full backdrop-blur flex items-center justify-center ${hideSkeletons ? 'bg-white/30' : 'bg-white/15 hover:bg-white/25'}`}
                       >
                         {hideSkeletons ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
@@ -226,7 +241,7 @@ export default function JourneyDetailPage() {
                       </span>
                     </div>
                     {canEditJourney && (
-                      <button onClick={() => setShowSettings(true)} className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><MoreHorizontal size={14} /></button>
+                      <button onClick={() => setShowSettings(true)} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><MoreHorizontal size={14} /></button>
                     )}
                   </div>
                 </div>
@@ -236,8 +251,8 @@ export default function JourneyDetailPage() {
                   {current.subtitle && <p className="text-[13px] opacity-85">{current.subtitle}</p>}
                 </div>
 
-                <div className="relative z-[3] border-t border-white/15 pt-5 flex items-end justify-between">
-                  <div className="flex gap-8">
+                <div className="relative z-[3]">
+                  <div className="inline-flex items-center gap-7 md:gap-9" style={{ padding: '13px 26px', borderRadius: 18, background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.2)' }}>
                     {[
                       { value: sortedDates.length, label: t('journey.stats.days') },
                       { value: current.stats.places, label: t('journey.stats.places') },
@@ -245,8 +260,8 @@ export default function JourneyDetailPage() {
                       { value: current.stats.photos, label: t('journey.stats.photos') },
                     ].map(s => (
                       <div key={s.label} className="flex flex-col gap-0.5">
-                        <span className="text-[20px] font-bold">{s.value}</span>
-                        <span className="text-[10px] uppercase tracking-[0.08em] opacity-70">{s.label}</span>
+                        <span style={{ fontFamily: 'var(--font-subtext)', fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{s.value}</span>
+                        <span className="uppercase" style={{ fontSize: 9.5, letterSpacing: '0.1em', fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>{s.label}</span>
                       </div>
                     ))}
                   </div>
@@ -261,7 +276,7 @@ export default function JourneyDetailPage() {
             <div>
               {/* View Controls — hidden on mobile (floating top bar has them) */}
               <div className={`flex items-center justify-between mt-5 mb-5 ${isMobileChromeless ? 'hidden' : ''}`}>
-                <div className="flex bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: 'var(--vg-surf2)', border: '1px solid var(--vg-line)' }}>
                   {(isMobile
                     ? [
                         { id: 'timeline' as const, icon: MapPin, label: t('journey.detail.journeyTab') || 'Journey' },
@@ -275,26 +290,37 @@ export default function JourneyDetailPage() {
                     <button
                       key={v.id}
                       onClick={() => setView(v.id)}
-                      className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${
-                        view === v.id
-                          ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                          : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-                      }`}
+                      className="flex items-center gap-1.5 px-3.5 py-[6px] text-[12px] font-semibold rounded-full transition-colors"
+                      style={view === v.id
+                        ? { background: 'var(--vg-ink)', color: 'var(--vg-bg)' }
+                        : { color: 'var(--vg-ink3)' }}
                     >
                       <v.icon size={13} />
                       {v.label}
                     </button>
                   ))}
                 </div>
-                {canEditEntries && (!isMobile ? view === 'timeline' : view !== 'gallery') && (
+                {canEditEntries && view === 'timeline' && (
                   <button
                     onClick={() => {
                       const today = new Date().toISOString().split('T')[0]
                       setEditingEntry({ id: 0, journey_id: current.id, author_id: 0, type: 'entry', entry_date: today, visibility: 'private', sort_order: 0, photos: [], created_at: 0, updated_at: 0 } as JourneyEntry)
                     }}
-                    className={`w-8 h-8 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center hover:bg-zinc-800 dark:hover:bg-zinc-100 ${isMobile && view === 'timeline' ? 'hidden' : ''}`}
+                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
+                    style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
                   >
-                    <Plus size={16} />
+                    <Plus size={16} strokeWidth={2.4} />
+                    {t('journey.detail.addEntry')}
+                  </button>
+                )}
+                {canEditEntries && view === 'gallery' && (
+                  <button
+                    onClick={() => galleryUploadRef.current?.()}
+                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
+                    style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
+                  >
+                    <Plus size={16} strokeWidth={2.4} />
+                    {t('common.upload')}
                   </button>
                 )}
               </div>
@@ -303,13 +329,7 @@ export default function JourneyDetailPage() {
               {!isMobile && (
                 <div className={`flex flex-col gap-6 pb-24 md:pb-6${view === 'timeline' ? '' : ' hidden'}`}>
                   {sortedDates.length === 0 && (
-                    <div className="text-center py-16">
-                      <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
-                        <BookOpen size={24} className="text-zinc-400" />
-                      </div>
-                      <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-300">No entries yet</p>
-                      <p className="text-[12px] text-zinc-500 mt-1">Add a trip to get started with skeleton entries</p>
-                    </div>
+                    <EmptyState scene="journey" title={t('journey.detail.noEntries')} />
                   )}
 
                   {sortedDates.map((date, dayIdx) => {
@@ -319,18 +339,14 @@ export default function JourneyDetailPage() {
 
                     return (
                       <div key={date} className="flex flex-col gap-3 trek-stagger">
-                        <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur border-y md:border border-zinc-200 dark:border-zinc-700 rounded-none md:rounded-xl -mx-4 md:mx-0 px-4 py-3.5 flex items-center justify-between">
+                        <div className="backdrop-blur border-y md:border rounded-none md:rounded-2xl -mx-4 md:mx-0 px-4 py-3 flex items-center justify-between" style={{ background: 'var(--vg-surf)', borderColor: 'var(--vg-line)' }}>
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-bold text-white" style={{ background: DAY_COLORS[dayIdx % DAY_COLORS.length] }}>
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-bold text-white" style={{ background: DAY_COLORS[dayIdx % DAY_COLORS.length], boxShadow: `0 5px 14px -4px ${DAY_COLORS[dayIdx % DAY_COLORS.length]}` }}>
                               {dayIdx + 1}
                             </div>
-                            <div>
-                              <h3 className="text-[14px] font-semibold text-zinc-900 dark:text-white">{new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
-                            </div>
+                            <h3 className="text-[14px] font-semibold capitalize" style={{ color: 'var(--vg-ink)' }}>{new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
                           </div>
-                          <div className="flex items-center gap-3 text-[11px] text-zinc-500">
-                            <span className="flex items-center gap-1"><MapPin size={12} /> {entries.length} {t('journey.synced.places')}</span>
-                          </div>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.07em]" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink3)' }}><MapPin size={12} /> {entries.length} {t('journey.synced.places')}</span>
                         </div>
 
                         {entries.map((entry, idx) => {
@@ -358,7 +374,7 @@ export default function JourneyDetailPage() {
                                     onClick={() => move(-1)}
                                     disabled={idx === 0}
                                     aria-label="Move up"
-                                    className="w-7 h-7 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    className="w-7 h-7 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ChevronUp size={14} />
                                   </button>
@@ -367,7 +383,7 @@ export default function JourneyDetailPage() {
                                     onClick={() => move(1)}
                                     disabled={idx === entries.length - 1}
                                     aria-label="Move down"
-                                    className="w-7 h-7 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    className="w-7 h-7 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ChevronDown size={14} />
                                   </button>
@@ -403,6 +419,7 @@ export default function JourneyDetailPage() {
                 style={showMobileGallery ? { paddingTop: 'calc(var(--nav-h, 56px) + 64px)' } : undefined}
               >
                 <GalleryView
+                  onRegisterUpload={(fn) => { galleryUploadRef.current = fn }}
                   entries={current.entries}
                   gallery={current.gallery || []}
                   journeyId={current.id}
@@ -422,8 +439,8 @@ export default function JourneyDetailPage() {
           {/* RIGHT column on desktop — sticky rounded map (polarsteps-style).
               Hidden on mobile; mobile gets its own chromeless combined view. */}
           {!isMobile && (
-            <aside className="w-[44%] max-w-[760px] min-w-[420px] pt-6 pr-4 pb-4 pl-0">
-              <div className="h-full rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <aside className="w-[44%] max-w-[820px] min-w-[420px] pt-6 pr-4 pb-4 pl-0">
+              <div className="h-full rounded-[22px] overflow-hidden shadow-sm" style={{ border: '1px solid var(--vg-line)' }}>
                 <JourneyMap
                   ref={mapRef}
                   checkins={[]}

@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const budget: TranslationStrings = {
+  'costs.confirm.deleteTitle': 'Törlöd a kiadást?',
+  'costs.confirm.deleteBody': 'A(z) „{name}” véglegesen törlődik.',
   'budget.title': 'Költségvetés',
   'budget.exportCsv': 'CSV exportálás',
   'budget.emptyTitle': 'Még nincs költségvetés létrehozva',

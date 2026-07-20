@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'Đã đánh dấu sao',
+  'files.link': 'Liên kết',
+  'files.linkTitle': 'Liên kết tập tin',
+  'files.linkEmpty': 'Chưa có địa điểm hoặc đặt chỗ nào để liên kết',
+  'files.menu': 'Tùy chọn khác',
+  'files.uploadErrorSize': 'Tệp quá lớn (tối đa 50 MB)',
   'files.uploadErrorType': 'Loại tập tin này không được hỗ trợ',
   'files.title': 'Tập tin',
   'files.pageTitle': 'Tập tin & Tài liệu',

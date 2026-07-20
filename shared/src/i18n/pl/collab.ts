@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': 'Dostęp tylko do odczytu do tego czatu',
+  'collab.chat.messageOptions': 'Opcje wiadomości',
+  'collab.polls.confirmDeleteTitle': 'Usunąć ankietę?',
+  'collab.polls.confirmDeleteBody': 'Ta ankieta zostanie trwale usunięta.',
+  'collab.polls.countdownDaysHours': 'Zostało {d} dni {h} godz.',
+  'collab.polls.countdownHoursMinutes': 'Zostało {h} godz. {m} min',
+  'collab.polls.countdownMinutes': 'Zostało {m} min',
+  'collab.polls.clearDeadline': 'Usuń termin',
   'collab.tabs.chat': 'Czat',
   'collab.tabs.notes': 'Notatki',
   'collab.tabs.polls': 'Ankiety',

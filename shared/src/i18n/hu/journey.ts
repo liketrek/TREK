@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Alakítsd utazásaidat történetekké, amelyeket soha nem felejtesz el',
   'journey.frontpage.createJourney': 'Útinapló létrehozása',
   'journey.frontpage.activeJourney': 'Aktív útinapló',
+  'journey.frontpage.latestJourney': 'Legutóbbi útinapló',
   'journey.frontpage.allJourneys': 'Összes útinapló',
   'journey.frontpage.journeys': 'útinapló',
   'journey.frontpage.createNew': 'Új útinapló létrehozása',

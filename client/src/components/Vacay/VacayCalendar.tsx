@@ -54,7 +54,7 @@ export default function VacayCalendar() {
   const weekendDays: number[] = plan?.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]
   const companyHolidaysEnabled = plan?.company_holidays_enabled !== false
 
-  const handleCellClick = useCallback(async (dateStr) => {
+  const handleCellClick = useCallback(async (dateStr: string) => {
     if (companyMode) {
       if (!companyHolidaysEnabled) return
       await toggleCompanyHoliday(dateStr)
@@ -69,7 +69,7 @@ export default function VacayCalendar() {
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" style={{ paddingBottom: 'calc(var(--bottom-nav-h, 0px) + 80px)' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[18px]" style={{ paddingBottom: 'calc(var(--bottom-nav-h, 0px) + 80px)' }}>
         {Array.from({ length: 12 }, (_, i) => (
           <VacayMonthCard
             key={i}
@@ -91,10 +91,13 @@ export default function VacayCalendar() {
 
       {/* Floating toolbar — lift above the mobile bottom nav (z-60). On desktop --bottom-nav-h is 0px. */}
       <div className="sticky mt-3 sm:mt-4 flex items-center justify-center px-2" style={{ bottom: 'calc(var(--bottom-nav-h, 0px) + 12px)', zIndex: 61 }}>
-        <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border bg-surface-card border-edge" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+        <div className="vg-card flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full">
           <button
             onClick={() => setCompanyMode(false)}
-            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-medium transition-[background-color,color,border-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] border ${!companyMode ? 'bg-content text-surface-card border-transparent' : 'bg-transparent text-content-muted border-edge'}`}>
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
+            style={!companyMode
+              ? { background: 'var(--vg-ink)', color: 'var(--vg-bg)' }
+              : { background: 'transparent', color: 'var(--vg-ink2)' }}>
             <MousePointer2 size={13} />
             {selectedUser && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: selectedUser.color }} />}
             {selectedUser ? selectedUser.username : t('vacay.modeVacation')}
@@ -102,7 +105,10 @@ export default function VacayCalendar() {
           {companyHolidaysEnabled && (
             <button
               onClick={() => setCompanyMode(true)}
-              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-medium transition-[background-color,color,border-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] border ${companyMode ? 'bg-[#d97706] text-[#fff] border-transparent' : 'bg-transparent text-content-muted border-edge'}`}>
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
+              style={companyMode
+                ? { background: '#d97706', color: '#fff' }
+                : { background: 'transparent', color: 'var(--vg-ink2)' }}>
               <Building2 size={13} />
               {t('vacay.modeCompany')}
             </button>

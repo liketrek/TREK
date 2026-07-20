@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': '旅を、忘れられない物語に',
   'journey.frontpage.createJourney': '日記を作成',
   'journey.frontpage.activeJourney': '進行中の日記',
+  'journey.frontpage.latestJourney': '最新の日記',
   'journey.frontpage.allJourneys': 'すべての日記',
   'journey.frontpage.journeys': '日記',
   'journey.frontpage.createNew': '新しい日記を作成',

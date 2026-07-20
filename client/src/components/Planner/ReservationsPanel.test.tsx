@@ -49,9 +49,11 @@ describe('ReservationsPanel', () => {
     expect(els.length).toBeGreaterThan(0);
   });
 
-  it('FE-COMP-RES-004: shows empty hint text', () => {
+  it('FE-COMP-RES-004: shows empty-state mascot illustration', () => {
     render(<ReservationsPanel {...defaultProps} reservations={[]} />);
-    expect(screen.getByText(/Add reservations for flights/i)).toBeInTheDocument();
+    // The mobile rewrite dropped the hint subtitle in favour of the shared
+    // EmptyState mascot; the bookings scene renders the TREK mark svg.
+    expect(document.querySelector('.trek--bookings')).toBeInTheDocument();
   });
 
   it('FE-COMP-RES-005: shows Manual Booking add button', () => {

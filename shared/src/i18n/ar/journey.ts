@@ -99,6 +99,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': "Turn your trips into stories you'll never forget", // en-fallback
   'journey.frontpage.createJourney': 'Create Journey', // en-fallback
   'journey.frontpage.activeJourney': 'Active Journey', // en-fallback
+  'journey.frontpage.latestJourney': 'أحدث رحلة',
   'journey.frontpage.allJourneys': 'All Journeys', // en-fallback
   'journey.frontpage.journeys': 'journeys', // en-fallback
   'journey.frontpage.createNew': 'Create a new Journey', // en-fallback

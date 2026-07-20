@@ -7,6 +7,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 import CopyTripDialog from '../components/shared/CopyTripDialog'
 import CustomSelect from '../components/shared/CustomSelect'
 import PlaceAvatar from '../components/shared/PlaceAvatar'
+import EmptyState from '../components/shared/EmptyState'
 import MobileTopBar from '../components/Layout/MobileTopBar'
 import { useDashboard } from './dashboard/useDashboard'
 import {
@@ -31,6 +32,8 @@ import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAddonStore } from '../store/addonStore'
 import { normalizeAppearance } from '@trek/shared'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MDashboard from '../mobile/screens/dashboard/MDashboard'
 import '../styles/dashboard.css'
 
 const GRADIENTS = [
@@ -106,6 +109,13 @@ function useIsMobile(): boolean {
 }
 
 export default function DashboardPage(): React.ReactElement {
+  // Phones get the mobile screen, everything else the untouched desktop page.
+  // Both branches call hooks of their own, so the split lives above them.
+  const isPhone = useIsPhone()
+  return isPhone ? <MDashboard /> : <DashboardPageDesktop />
+}
+
+function DashboardPageDesktop(): React.ReactElement {
   // Page = wiring container: all state, data loading and mutations live in the
   // useDashboard data hook; this component only renders what it returns.
   const {
@@ -211,8 +221,7 @@ export default function DashboardPage(): React.ReactElement {
 
               {gridTrips.length === 0 && tripFilter === 'planned' && !isLoading && !loadError && (
                 <div className="trips-empty">
-                  <h4>{t('dashboard.emptyTitle')}</h4>
-                  <p>{t('dashboard.emptyText')}</p>
+                  <EmptyState scene="dashboard" title={t('dashboard.emptyTitle')} />
                 </div>
               )}
 

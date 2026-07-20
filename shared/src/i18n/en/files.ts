@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'Starred',
+  'files.link': 'Link',
+  'files.linkTitle': 'Link file',
+  'files.linkEmpty': 'No places or bookings to link yet',
+  'files.menu': 'More options',
+  'files.uploadErrorSize': 'File is too large (max 50 MB)',
   'files.title': 'Files',
   'files.pageTitle': 'Files & Documents',
   'files.subtitle': '{count} files for {trip}',

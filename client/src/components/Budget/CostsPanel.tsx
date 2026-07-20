@@ -21,6 +21,7 @@ import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 import GuestBadge from '../shared/GuestBadge'
 import { NumericInput } from '../shared/NumericInput'
+import EmptyState from '../shared/EmptyState'
 
 export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
   const n = members.length
@@ -467,9 +468,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
           {dayBanner}
           {dayGroups.length === 0 ? (
-            <div className="text-content-faint" style={{ textAlign: 'center', padding: '60px 20px' }}>
-              {search ? t('costs.noMatch') : t('costs.emptyText')}
-            </div>
+            search ? (
+              <div className="text-content-faint" style={{ textAlign: 'center', padding: '60px 20px' }}>
+                {t('costs.noMatch')}
+              </div>
+            ) : (
+              <EmptyState scene="costs" title={t('costs.emptyText')} />
+            )
           ) : dayGroups.map(g => {
             const dtot = g.entries.reduce((a, en) => en.kind === 'expense' ? a + baseTotal(en.e) : a, 0)
             return (

@@ -81,5 +81,9 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Transbords',
   'transit.walkLabel': 'A peu',
   'transit.searchHint': 'Cerca connexions reals i afegeix-les directament al dia — dades via Transitous.',
+  'trip.loadingSteps.pack': 'Fent les maletes...',
+  'trip.loadingSteps.road': 'Sortint de camí...',
+  'trip.loadingSteps.arrive': 'Gairebé hi som...',
+  'trip.toast.tripUpdated': 'Viatge actualitzat',
 };
 export default trip;

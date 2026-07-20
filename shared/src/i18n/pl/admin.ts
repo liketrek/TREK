@@ -313,6 +313,13 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:table-contributor': 'Dodawanie kolumn i akcji do widoków podróży (rezerwacje, miejsca, dni)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Dodawanie znaczników do mapy podróży (np. pokazywanie rezerwacji lub POI)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Rysowanie tras, korytarzy i stref na mapie podróży',
+  'admin.plugins.perm.hook:route-provider':
+    'Udostępnianie profili trasowania, za pomocą których planer wyznacza trasy dni (np. trasowanie aut elektrycznych z postojami na ładowanie)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Dołączanie wpisów czasowych do planu dnia (postoje na ładowanie, bufory czasowe)',
+  'admin.plugins.perm.geolocation:read':
+    'Odczytywanie Twojej aktualnej lokalizacji, gdy otwarty jest któryś z jego widoków (przeglądarka i tak zapyta o zgodę)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Dołączanie sekcji tekstowych do eksportu PDF podróży',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Wyróżnianie krajów na mapie świata Atlasu (np. listy życzeń lub ostrzeżenia dla podróżnych)',
@@ -433,6 +440,10 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Dostarcza wydarzenia kalendarza',
   'admin.plugins.cap.placeDetails': 'Wzbogaca miejsca',
   'admin.plugins.cap.warnings': 'Zgłasza problemy',
+  'admin.plugins.cap.mapLayers': 'Rysuje na mapie',
+  'admin.plugins.cap.routing': 'Oferuje trasowanie',
+  'admin.plugins.cap.daySchedule': 'Uzupełnia czasy planu',
+  'admin.plugins.cap.geolocation': 'Odczytuje Twoją lokalizację',
   'admin.plugins.cap.events': 'Reaguje na aktywność',
   'admin.plugins.cap.requiresAddon': 'Wymaga {addon}',
   'admin.plugins.cap.dependsOn': 'Wymaga {id} {version}',

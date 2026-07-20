@@ -730,7 +730,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                         {wp.airport && (
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <label className={labelClass}>{t('reservations.meta.arrivalTimezone')}</label>
-                            <div className={inputClass} style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'var(--bg-tertiary)' }}>{wp.airport.tz}</div>
+                            <div className={inputClass} style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'var(--bg-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={wp.airport.tz}>{wp.airport.tz}</div>
                           </div>
                         )}
                       </div>
@@ -749,7 +749,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                           {wp.airport && (
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <label className={labelClass}>{t('reservations.meta.departureTimezone')}</label>
-                              <div className={inputClass} style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'var(--bg-tertiary)' }}>{wp.airport.tz}</div>
+                              <div className={inputClass} style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'var(--bg-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={wp.airport.tz}>{wp.airport.tz}</div>
                             </div>
                           )}
                         </div>

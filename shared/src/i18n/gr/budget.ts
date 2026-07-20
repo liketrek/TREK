@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const budget: TranslationStrings = {
+  'costs.confirm.deleteTitle': 'Διαγραφή εξόδου;',
+  'costs.confirm.deleteBody': 'Το "{name}" θα διαγραφεί οριστικά.',
   'budget.title': 'Προϋπολογισμός',
   'budget.exportCsv': 'Εξαγωγή CSV',
   'budget.emptyTitle': 'Δεν έχει δημιουργηθεί προϋπολογισμός ακόμη',

@@ -89,10 +89,11 @@ export const KNOWN_PERMISSIONS = [
   'db:meta',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider',
-  'hook:table-contributor', 'hook:map-marker-provider', 'hook:pdf-section-provider', 'hook:atlas-layer-provider',
+  'hook:table-contributor', 'hook:map-marker-provider', 'hook:map-layer-provider', 'hook:route-provider', 'hook:day-schedule-provider', 'hook:pdf-section-provider', 'hook:atlas-layer-provider',
   'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data',
   'events:subscribe', 'jobs:run', 'http:outbound',
   'weather:read', 'rates:read', 'notify:send', 'ai:invoke', 'oauth:client',
+  'geolocation:read',
 ];
 
 function isKnownPermission(p: string): boolean {
@@ -178,6 +179,7 @@ export function validateManifest(raw: unknown): ValidationResult {
     widget?: { slot?: unknown };
     tripPage?: { replaces?: unknown; position?: unknown };
     notificationChannel?: { title?: unknown; events?: unknown };
+    routeProfiles?: unknown;
     provides?: unknown;
     emits?: unknown;
     settingsUi?: unknown;
@@ -219,6 +221,28 @@ export function validateManifest(raw: unknown): ValidationResult {
         if (typeof e !== 'string' || !CHANNEL_EVENTS.includes(e)) {
           errors.push(`capabilities.notificationChannel.events: "${String(e)}" is not a plugin-deliverable event (${CHANNEL_EVENTS.join(', ')})`);
         }
+      }
+    }
+  }
+  // Mirrors the server's routeProfiles parsing: the planner's route picker shows these,
+  // so they must be well-formed and only exist alongside the routeProvider grant.
+  const routeProfiles = capabilities?.routeProfiles;
+  if (routeProfiles !== undefined) {
+    if (!permissions.includes('hook:route-provider')) {
+      errors.push('capabilities.routeProfiles requires the "hook:route-provider" permission');
+    }
+    if (!Array.isArray(routeProfiles)) errors.push('capabilities.routeProfiles must be an array');
+    else {
+      if (routeProfiles.length > 3) errors.push('capabilities.routeProfiles: at most 3 profiles');
+      const seen = new Set<string>();
+      for (const v of routeProfiles) {
+        const p = (v && typeof v === 'object' ? v : {}) as { id?: unknown; label?: unknown };
+        const id = typeof p.id === 'string' ? p.id : '';
+        if (!/^[a-z][a-z0-9-]{0,23}$/.test(id)) errors.push('capabilities.routeProfiles: id must be lowercase [a-z][a-z0-9-], max 24 chars');
+        else if (seen.has(id)) errors.push(`capabilities.routeProfiles: duplicate id "${id}"`);
+        else seen.add(id);
+        const label = typeof p.label === 'string' ? p.label.trim() : '';
+        if (!label || label.length > 40) errors.push('capabilities.routeProfiles: label is required (max 40 chars)');
       }
     }
   }

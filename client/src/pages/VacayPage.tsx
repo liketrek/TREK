@@ -6,11 +6,18 @@ import VacayCalendar from '../components/Vacay/VacayCalendar'
 import VacayPersons from '../components/Vacay/VacayPersons'
 import VacayStats from '../components/Vacay/VacayStats'
 import VacaySettings from '../components/Vacay/VacaySettings'
-import { Plus, Minus, ChevronLeft, ChevronRight, Settings, CalendarDays, AlertTriangle, Users, Eye, Pencil, Trash2, Unlink, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import { Plus, Minus, ChevronLeft, ChevronRight, Settings, CalendarDays, AlertTriangle, Eye, Pencil, Trash2, Unlink, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import Modal from '../components/shared/Modal'
 import { useVacay } from './vacay/useVacay'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MVacay from '../mobile/screens/vacay/MVacay'
 
 export default function VacayPage(): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <MVacay /> : <VacayPageDesktop />
+}
+
+function VacayPageDesktop(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: vacay store, live sync + UI state live in the hook.
   const {
@@ -23,7 +30,7 @@ export default function VacayPage(): React.ReactElement {
 
   if (loading) {
     return (
-      <PageShell background="var(--bg-primary)" contentClassName="flex items-center justify-center" contentStyle={{ minHeight: 'calc(100vh - var(--nav-h))' }}>
+      <PageShell background="var(--vg-bg)" contentClassName="flex items-center justify-center" contentStyle={{ minHeight: 'calc(100vh - var(--nav-h))' }}>
         <div className="w-8 h-8 border-2 rounded-full animate-spin border-edge border-t-content" />
       </PageShell>
     )
@@ -33,33 +40,40 @@ export default function VacayPage(): React.ReactElement {
   const sidebarContent = (
     <>
       {/* Year Selector */}
-      <div className="rounded-xl border p-3 bg-surface-card border-edge">
-        <div className="flex items-center mb-2">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-content-faint">{t('vacay.year')}</span>
+      <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
+        <div className="mb-3">
+          <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.year')}</span>
         </div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1">
-            <button onClick={handleAddPrevYear} className="p-0.5 rounded transition-colors text-content-faint" title={t('vacay.addPrevYear')}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-0.5">
+            <button onClick={handleAddPrevYear} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--vg-ink3)' }} title={t('vacay.addPrevYear')}>
               <Plus size={14} />
             </button>
-            <button onClick={() => { const idx = years.indexOf(selectedYear); if (idx > 0) setSelectedYear(years[idx - 1]) }} disabled={years.indexOf(selectedYear) <= 0} className="p-1 rounded-lg disabled:opacity-20 transition-colors bg-surface-secondary">
-              <ChevronLeft size={16} className="text-content-muted" />
+            <button onClick={() => { const idx = years.indexOf(selectedYear); if (idx > 0) setSelectedYear(years[idx - 1]) }} disabled={years.indexOf(selectedYear) <= 0} className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-20 transition-colors" style={{ color: 'var(--vg-ink3)' }}>
+              <ChevronLeft size={16} />
             </button>
           </div>
-          <span className="text-xl font-bold tabular-nums text-content">{selectedYear}</span>
-          <div className="flex items-center gap-1">
-            <button onClick={() => { const idx = years.indexOf(selectedYear); if (idx < years.length - 1) setSelectedYear(years[idx + 1]) }} disabled={years.indexOf(selectedYear) >= years.length - 1} className="p-1 rounded-lg disabled:opacity-20 transition-colors bg-surface-secondary">
-              <ChevronRight size={16} className="text-content-muted" />
+          <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 700, color: 'var(--vg-ink)' }}>{selectedYear}</span>
+          <div className="flex items-center gap-0.5">
+            <button onClick={() => { const idx = years.indexOf(selectedYear); if (idx < years.length - 1) setSelectedYear(years[idx + 1]) }} disabled={years.indexOf(selectedYear) >= years.length - 1} className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-20 transition-colors" style={{ color: 'var(--vg-ink3)' }}>
+              <ChevronRight size={16} />
             </button>
-            <button onClick={handleAddNextYear} className="p-0.5 rounded transition-colors text-content-faint" title={t('vacay.addYear')}>
+            <button onClick={handleAddNextYear} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--vg-ink3)' }} title={t('vacay.addYear')}>
               <Plus size={14} />
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-4 gap-1.5">
           {years.map(y => (
             <div key={y} onClick={() => setSelectedYear(y)}
-              className={`group relative py-1.5 rounded-lg text-xs font-medium transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] text-center cursor-pointer ${y === selectedYear ? 'bg-content text-surface-card' : 'bg-surface-secondary text-content-muted'}`}>
+              className="group relative rounded-[9px] text-center cursor-pointer transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
+              style={{
+                padding: '7px 0',
+                fontSize: 12,
+                fontWeight: 600,
+                background: y === selectedYear ? 'var(--vg-ink)' : 'var(--vg-surf2)',
+                color: y === selectedYear ? 'var(--vg-bg)' : 'var(--vg-ink2)',
+              }}>
               {y}
               {years.length > 1 && (
                 <span onClick={e => { e.stopPropagation(); setDeleteYear(y); setShowMobileSidebar(false) }}
@@ -76,9 +90,9 @@ export default function VacayPage(): React.ReactElement {
 
       {/* Legend */}
       {(plan?.holidays_enabled || plan?.company_holidays_enabled || plan?.block_weekends) && (
-        <div className="rounded-xl border p-3 bg-surface-card border-edge">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-content-faint">{t('vacay.legend')}</span>
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5">
+        <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.legend')}</span>
+          <div className="mt-3 flex flex-wrap gap-x-3.5 gap-y-2.5">
             {plan?.holidays_enabled && (plan?.holiday_calendars ?? []).length === 0 && (
               <LegendItem color="#fecaca" label={t('vacay.publicHoliday')} />
             )}
@@ -96,8 +110,8 @@ export default function VacayPage(): React.ReactElement {
   )
 
   return (
-    <PageShell background="var(--bg-primary)">
-        <div className="max-w-[1800px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <PageShell background="var(--vg-bg)">
+        <div className="max-w-[1800px] mx-auto px-3 sm:px-4 lg:px-8 py-4 lg:py-9">
           {/* Mobile + tablet header (filter toggle lives here) */}
           <div className="lg:hidden flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -122,47 +136,18 @@ export default function VacayPage(): React.ReactElement {
             </div>
           </div>
 
-          {/* Desktop header — unified toolbar (sidebar is always visible at this width) */}
-          <div className="hidden lg:block" style={{ marginBottom: 20 }}>
-            <div className="bg-surface-tertiary border border-edge" style={{
-              borderRadius: 18,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-              padding: '14px 16px 14px 22px',
-              display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-            }}>
-              <h2 className="text-content" style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
-                {t('admin.addons.catalog.vacay.name')}
-              </h2>
-              <div className="bg-edge-faint" style={{ width: 1, height: 22, flexShrink: 0 }} />
-              <span className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>
-                {t('vacay.subtitle')}
-              </span>
-              <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="bg-accent text-accent-text"
-                  style={{
-                    appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
-                    flexShrink: 0,
-                    marginLeft: 2,
-                    transition: 'opacity 0.15s ease',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                >
-                  <Settings size={14} strokeWidth={2.5} /> {t('vacay.settings')}
-                </button>
-              </div>
-            </div>
-          </div>
-
           {/* Main layout */}
-          <div className="flex gap-4 items-start">
+          <div className="flex gap-4 lg:gap-7 items-start">
             {/* Desktop Sidebar */}
-            <div className="hidden lg:flex w-[240px] shrink-0 flex-col gap-3 sticky top-[70px]">
+            <div className="hidden lg:flex w-[300px] shrink-0 flex-col gap-[12px] sticky top-[84px]">
               {sidebarContent}
+              <button
+                onClick={() => setShowSettings(true)}
+                className="vg-card flex items-center justify-center gap-2.5 rounded-[18px] transition-transform hover:-translate-y-px"
+                style={{ padding: '13px 16px', fontSize: 14, fontWeight: 600, color: 'var(--vg-ink)', cursor: 'pointer' }}
+              >
+                <Settings size={16} strokeWidth={2.2} /> {t('vacay.settings')}
+              </button>
             </div>
 
             {/* Calendar */}
@@ -185,7 +170,7 @@ export default function VacayPage(): React.ReactElement {
       )}
 
       {/* Settings Modal */}
-      <Modal isOpen={showSettings} onClose={() => setShowSettings(false)} title={t('vacay.settings')} size="md">
+      <Modal isOpen={showSettings} onClose={() => setShowSettings(false)} title={t('vacay.settings')} size="3xl">
         <VacaySettings onClose={() => setShowSettings(false)} />
       </Modal>
 
@@ -275,9 +260,9 @@ function InfoItem({ icon: Icon, text }: { icon: React.ComponentType<{ size?: num
 
 function LegendItem({ color, label }: { color: string; label: string }): React.ReactElement {
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-4 h-3 rounded" style={{ background: color, border: `1px solid ${color}` }} />
-      <span className="text-[11px] text-content-muted">{label}</span>
-    </div>
+    <span className="inline-flex items-center gap-[7px]">
+      <span style={{ width: 18, height: 12, borderRadius: 4, flex: 'none', background: color }} />
+      <span style={{ fontSize: 12, color: 'var(--vg-ink2)' }}>{label}</span>
+    </span>
   )
 }

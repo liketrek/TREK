@@ -50,6 +50,28 @@ describe('providersOf enforces the hook:* grant', () => {
     expect(s.providersOf('journalEntryProvider')).toEqual(['journal']);
   });
 
+  it('maps mapLayerProvider to hook:map-layer-provider (not the marker grant)', () => {
+    const s = makeSupervisor();
+    put(s, 'layers', 'active', ['mapLayerProvider'], ['hook:map-layer-provider']);
+    // The marker grant must not bleed into the layer hook — they are separate consents.
+    put(s, 'markersOnly', 'active', ['mapLayerProvider'], ['hook:map-marker-provider']);
+    expect(s.providersOf('mapLayerProvider')).toEqual(['layers']);
+  });
+
+  it('maps routeProvider to hook:route-provider', () => {
+    const s = makeSupervisor();
+    put(s, 'ev', 'active', ['routeProvider'], ['hook:route-provider']);
+    put(s, 'ungranted', 'active', ['routeProvider'], ['hook:map-layer-provider']); // wrong grant
+    expect(s.providersOf('routeProvider')).toEqual(['ev']);
+  });
+
+  it('maps dayScheduleProvider to hook:day-schedule-provider', () => {
+    const s = makeSupervisor();
+    put(s, 'times', 'active', ['dayScheduleProvider'], ['hook:day-schedule-provider']);
+    put(s, 'ungranted', 'active', ['dayScheduleProvider'], ['hook:route-provider']); // wrong grant
+    expect(s.providersOf('dayScheduleProvider')).toEqual(['times']);
+  });
+
   it('maps notificationChannel to hook:notification-channel', () => {
     const s = makeSupervisor();
     put(s, 'gotify', 'active', ['notificationChannel'], ['hook:notification-channel']);

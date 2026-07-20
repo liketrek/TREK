@@ -322,6 +322,13 @@ const admin: TranslationStrings = {
     'Oszlopok és műveletek hozzáadása az utazási nézetekhez (foglalások, helyek, napok)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Jelölők hozzáadása az utazás térképéhez (pl. foglalások vagy POI-k megjelenítése)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Útvonalak, folyosók és zónák rajzolása az utazás térképére',
+  'admin.plugins.perm.hook:route-provider':
+    'Útvonaltervezési profilok biztosítása, amelyekkel a tervező kiszámítja a napok útvonalát (pl. e-autós útvonaltervezés töltőmegállókkal)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Időbejegyzések hozzáadása a napi tervhez (töltőmegállók, biztonsági ráhagyások)',
+  'admin.plugins.perm.geolocation:read':
+    'Az élő tartózkodási helyed lekérdezése, amíg valamelyik nézete nyitva van (a böngésződ ilyenkor is külön engedélyt kér)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Szöveges szakaszok hozzáfűzése az utazás PDF-exportjához',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Országok kiemelése az Atlas világtérképén (pl. kívánságlisták vagy utazási figyelmeztetések)',
@@ -441,6 +448,10 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Naptáreseményeket biztosít',
   'admin.plugins.cap.placeDetails': 'Helyeket gazdagít',
   'admin.plugins.cap.warnings': 'Problémákat jelez',
+  'admin.plugins.cap.mapLayers': 'Rajzol a térképre',
+  'admin.plugins.cap.routing': 'Útvonaltervezést biztosít',
+  'admin.plugins.cap.daySchedule': 'Időpontokat ad a tervhez',
+  'admin.plugins.cap.geolocation': 'Lekéri a tartózkodási helyedet',
   'admin.plugins.cap.events': 'Reagál a tevékenységre',
   'admin.plugins.cap.requiresAddon': '{addon} szükséges',
   'admin.plugins.cap.dependsOn': '{id} {version} szükséges',

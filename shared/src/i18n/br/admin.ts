@@ -310,6 +310,13 @@ const admin: TranslationStrings = {
     'Adicionar colunas e ações às visualizações da viagem (reservas, locais, dias)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Adicionar marcadores ao mapa da viagem (ex. mostrar reservas ou POIs)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Desenhar rotas, corredores e zonas no mapa da viagem',
+  'admin.plugins.perm.hook:route-provider':
+    'Oferecer perfis de roteamento com os quais o planejador calcula os dias (ex. rotas para carro elétrico com paradas de recarga)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Anexar entradas de horário ao plano do dia (paradas de recarga, margens de segurança)',
+  'admin.plugins.perm.geolocation:read':
+    'Consultar sua localização em tempo real enquanto uma das visualizações dele estiver aberta (seu navegador ainda pedirá permissão)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Anexar seções de texto à exportação em PDF da viagem',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Destacar países no mapa-múndi do Atlas (ex. listas de desejos ou avisos de viagem)',
@@ -429,6 +436,10 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Fornece eventos de calendário',
   'admin.plugins.cap.placeDetails': 'Enriquece locais',
   'admin.plugins.cap.warnings': 'Sinaliza problemas',
+  'admin.plugins.cap.mapLayers': 'Desenha no mapa',
+  'admin.plugins.cap.routing': 'Oferece roteamento',
+  'admin.plugins.cap.daySchedule': 'Adiciona horários ao plano',
+  'admin.plugins.cap.geolocation': 'Lê sua localização',
   'admin.plugins.cap.events': 'Reage a atividades',
   'admin.plugins.cap.requiresAddon': 'Requer {addon}',
   'admin.plugins.cap.dependsOn': 'Requer {id} {version}',

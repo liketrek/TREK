@@ -1,6 +1,7 @@
 // FE-PLUGINS-FRAME-001 to 012
 import { render, cleanup, waitFor, fireEvent, screen, act } from '@testing-library/react';
 import PluginFrame from './PluginFrame';
+import { usePluginStore } from '../../store/pluginStore';
 
 const navigate = vi.fn();
 const toast = { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() };
@@ -222,5 +223,92 @@ describe('PluginFrame', () => {
     // Without the per-plugin reset this would be refused as a "navigated" frame.
     fromFrame(next, { type: 'trek:navigate', to: '/dashboard' });
     expect(navigate).toHaveBeenCalledWith('/dashboard');
+  });
+
+  describe('geolocation bridge (geolocation:read)', () => {
+    const geo = {
+      getCurrentPosition: vi.fn(),
+      watchPosition: vi.fn((..._args: unknown[]) => 7),
+      clearWatch: vi.fn(),
+    };
+    const grant = (granted: boolean) => {
+      usePluginStore.setState({
+        plugins: granted ? [{ id: 'demo', name: 'Demo', type: 'widget', icon: null, geolocation: true }] : [],
+      });
+    };
+    beforeEach(() => {
+      Object.defineProperty(navigator, 'geolocation', { value: geo, configurable: true });
+      geo.getCurrentPosition.mockClear();
+      geo.watchPosition.mockClear();
+      geo.clearWatch.mockClear();
+    });
+    afterEach(() => { grant(false); });
+
+    function mount(granted: boolean) {
+      grant(granted);
+      const { container, unmount } = render(<PluginFrame pluginId="demo" />);
+      const iframe = container.querySelector('iframe')!;
+      const posted: Array<Record<string, unknown>> = [];
+      (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+        posted.push(m as Record<string, unknown>);
+      return { iframe, posted, unmount };
+    }
+
+    it('FE-PLUGINS-FRAME-015: refuses an ungranted plugin without touching the browser API', () => {
+      const { iframe, posted } = mount(false);
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g1' });
+      expect(posted.find((m) => m.type === 'trek:geolocation:result')).toMatchObject({ requestId: 'g1', error: 'forbidden' });
+      expect(geo.getCurrentPosition).not.toHaveBeenCalled();
+    });
+
+    it('FE-PLUGINS-FRAME-016: a granted get posts plain position data into the frame', () => {
+      geo.getCurrentPosition.mockImplementation((ok: (p: unknown) => void) =>
+        ok({ coords: { latitude: 52.5, longitude: 13.4, accuracy: 9, heading: null, speed: null }, timestamp: 1234 }));
+      const { iframe, posted } = mount(true);
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g2' });
+      expect(posted.find((m) => m.type === 'trek:geolocation:result')).toMatchObject({
+        requestId: 'g2',
+        position: { lat: 52.5, lng: 13.4, accuracy: 9, timestamp: 1234 },
+      });
+    });
+
+    it('FE-PLUGINS-FRAME-017: watch streams updates and the GPS watch dies with the frame', () => {
+      let tick: ((p: unknown) => void) | null = null;
+      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => { tick = ok; return 7; });
+      const { iframe, posted, unmount } = mount(true);
+
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g3', action: 'watch' });
+      expect(posted.find((m) => m.type === 'trek:geolocation:result')).toMatchObject({ requestId: 'g3', watching: true });
+      act(() => tick!({ coords: { latitude: 1, longitude: 2, accuracy: 5, heading: null, speed: null }, timestamp: 1 }));
+      expect(posted.find((m) => m.type === 'trek:geolocation:update')).toMatchObject({ position: { lat: 1, lng: 2 } });
+
+      // Unmounting must never leave a live GPS watch behind.
+      unmount();
+      expect(geo.clearWatch).toHaveBeenCalledWith(7);
+    });
+
+    it('FE-PLUGINS-FRAME-018: clear stops the watch on request', () => {
+      const { iframe, posted } = mount(true);
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g4', action: 'watch' });
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g5', action: 'clear' });
+      expect(geo.clearWatch).toHaveBeenCalledWith(7);
+      expect(posted.find((m) => m.type === 'trek:geolocation:result' && m.requestId === 'g5')).toMatchObject({ cleared: true });
+    });
+
+    it('FE-PLUGINS-FRAME-019: a running watch stops streaming the moment the grant is revoked', () => {
+      let tick: ((p: unknown) => void) | null = null;
+      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => { tick = ok; return 7; });
+      const { iframe, posted } = mount(true);
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g6', action: 'watch' });
+
+      // Admin revokes geolocation:read while the frame stays mounted (re-render
+      // updates the ref the watch callback reads).
+      act(() => grant(false));
+      const before = posted.length;
+      act(() => tick!({ coords: { latitude: 3, longitude: 4, accuracy: 5, heading: null, speed: null }, timestamp: 2 }));
+      // No further position leaks, and the OS watch is released.
+      expect(posted.length).toBe(before);
+      expect(geo.clearWatch).toHaveBeenCalledWith(7);
+    });
   });
 });

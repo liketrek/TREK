@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Proměňte své cesty v příběhy, na které nikdy nezapomenete',
   'journey.frontpage.createJourney': 'Vytvořit cestovní deník',
   'journey.frontpage.activeJourney': 'Aktivní cestovní deník',
+  'journey.frontpage.latestJourney': 'Poslední cestovní deník',
   'journey.frontpage.allJourneys': 'Všechny cestovní deníky',
   'journey.frontpage.journeys': 'cestovní deníky',
   'journey.frontpage.createNew': 'Vytvořit nový cestovní deník',

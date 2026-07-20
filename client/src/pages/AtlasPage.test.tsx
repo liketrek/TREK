@@ -369,8 +369,10 @@ describe('AtlasPage', () => {
       render(<AtlasPage />);
 
       await waitFor(() => {
+        // The empty state now renders the shared mascot EmptyState with a single title
+        // (atlas.noData = "No travel data yet"). The old "create a trip and add places"
+        // hint subtitle was dropped in the mobile rewrite, so only the title renders.
         expect(screen.getByText(/no travel data yet/i)).toBeInTheDocument();
-        expect(screen.getByText(/create a trip and add places/i)).toBeInTheDocument();
       });
     });
   });

@@ -1,6 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const todo: TranslationStrings = {
+  'todo.emptyFiltered': '이 필터에 맞는 작업이 없습니다',
   'todo.subtab.packing': '짐 목록',
   'todo.subtab.todo': '할 일',
   'todo.completed': '완료됨',

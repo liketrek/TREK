@@ -354,6 +354,11 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
   'admin.plugins.perm.hook:table-contributor': 'Add columns and actions to trip views (reservations, places, days)',
   'admin.plugins.perm.hook:map-marker-provider': 'Add markers to the trip map (e.g. show bookings or POIs)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Draw routes, corridors and zones on the trip map',
+  'admin.plugins.perm.hook:route-provider': 'Offer routing profiles the planner can route days with (e.g. EV routing with charging stops)',
+  'admin.plugins.perm.hook:day-schedule-provider': 'Attach time entries to the day plan (charging stops, security buffers)',
+  'admin.plugins.perm.geolocation:read':
+    'Ask for your live position while one of its views is open (your browser will still ask first)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Append text sections to the trip PDF export',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Highlight countries on the Atlas world map (e.g. wishlists or travel advisories)',
@@ -471,6 +476,10 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Provides calendar events',
   'admin.plugins.cap.placeDetails': 'Enriches places',
   'admin.plugins.cap.warnings': 'Flags issues',
+  'admin.plugins.cap.mapLayers': 'Draws on the map',
+  'admin.plugins.cap.routing': 'Offers routing',
+  'admin.plugins.cap.daySchedule': 'Adds plan times',
+  'admin.plugins.cap.geolocation': 'Reads your position',
   'admin.plugins.cap.events': 'Reacts to activity',
   'admin.plugins.cap.requiresAddon': 'Requires {addon}',
   'admin.plugins.cap.dependsOn': 'Needs {id} {version}',

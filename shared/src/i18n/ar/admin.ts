@@ -325,6 +325,12 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'إظهار تحذيرات التحقق على الرحلة (تظهر في المخطط)',
   'admin.plugins.perm.hook:table-contributor': 'إضافة أعمدة وإجراءات إلى عروض الرحلة (الحجوزات، الأماكن، الأيام)',
   'admin.plugins.perm.hook:map-marker-provider': 'إضافة علامات إلى خريطة الرحلة (مثل عرض الحجوزات أو نقاط الاهتمام)',
+  'admin.plugins.perm.hook:map-layer-provider': 'رسم مسارات وممرات ومناطق على خريطة الرحلة',
+  'admin.plugins.perm.hook:route-provider':
+    'توفير ملفات تعريف توجيه يحسب بها المخطط مسارات الأيام (مثل توجيه السيارات الكهربائية مع توقفات للشحن)',
+  'admin.plugins.perm.hook:day-schedule-provider': 'إلحاق مدخلات زمنية بخطة اليوم (توقفات للشحن، هوامش احتياطية)',
+  'admin.plugins.perm.geolocation:read':
+    'الاستعلام عن موقعك المباشر ما دامت إحدى واجهاته مفتوحة (سيطلب متصفحك الإذن أيضًا)',
   'admin.plugins.perm.hook:pdf-section-provider': 'إضافة أقسام نصية إلى تصدير PDF للرحلة',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'إبراز دول على خريطة أطلس العالمية (مثل قوائم الأمنيات أو تحذيرات السفر)',
@@ -441,6 +447,10 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'يوفّر أحداث التقويم',
   'admin.plugins.cap.placeDetails': 'يُثري الأماكن',
   'admin.plugins.cap.warnings': 'يرصد المشكلات',
+  'admin.plugins.cap.mapLayers': 'يرسم على الخريطة',
+  'admin.plugins.cap.routing': 'يوفّر التوجيه',
+  'admin.plugins.cap.daySchedule': 'يضيف أوقات الخطة',
+  'admin.plugins.cap.geolocation': 'يقرأ موقعك',
   'admin.plugins.cap.events': 'يتفاعل مع النشاط',
   'admin.plugins.cap.requiresAddon': 'يتطلب {addon}',
   'admin.plugins.cap.dependsOn': 'يحتاج إلى {id} {version}',

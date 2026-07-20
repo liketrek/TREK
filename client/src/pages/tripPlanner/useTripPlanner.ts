@@ -230,9 +230,10 @@ export function useTripPlanner() {
   // The files this import was parsed from, so each reviewed booking can attach its source doc.
   const importSourceFilesRef = useRef<File[]>([])
   // Manual route planning: off by default, toggled from the day-plan footer. Mode
-  // (driving/walking) is per-session and selects which travel time the connectors show.
+  // is per-session and selects which travel time the connectors show — either a
+  // built-in OSRM profile or a plugin route profile ('plugin:<id>/<profile>').
   const [routeShown, setRouteShown] = useState(false)
-  const [routeProfile, setRouteProfile] = useState<'driving' | 'walking'>('driving')
+  const [routeProfile, setRouteProfile] = useState<string>('driving')
   const [fitKey, setFitKey] = useState<number>(0)
   const initialFitTripId = useRef<number | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<'left' | 'right' | null>(null)
@@ -389,7 +390,7 @@ export function useTripPlanner() {
     })
   }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds])
 
-  const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
+  const { route, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
 
   const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {
     tripActions.setSelectedDay(dayId)
@@ -944,7 +945,7 @@ export function useTripPlanner() {
     transportModalDayId, setTransportModalDayId,
     transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
     reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
-    routeShown, setRouteShown, routeProfile, setRouteProfile, fitKey, setFitKey,
+    routeShown, setRouteShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
     visibleConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,
