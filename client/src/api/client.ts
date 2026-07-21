@@ -27,7 +27,7 @@ import {
   type BudgetCreateItemRequest, type BudgetUpdateItemRequest,
   type PackingCreateItemRequest, type PackingUpdateItemRequest, type PackingSetSharingRequest,
   type TodoCreateItemRequest, type TodoUpdateItemRequest,
-  type AssignmentCreateRequest, type AssignmentParticipantsRequest, type AssignmentTimeRequest,
+  type AssignmentCreateRequest, type AssignmentParticipantsRequest, type AssignmentTimeRequest, type AssignmentTransportRequest,
   type PlaceBulkDeleteRequest,
   type PlaceBulkUpdateRequest,
   type DayNoteCreateRequest, type DayNoteUpdateRequest,
@@ -388,6 +388,8 @@ export const daysApi = {
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/days`).then(r => r.data),
   create: (tripId: number | string, data: DayCreateRequest) => apiClient.post(`/trips/${tripId}/days`, data).then(r => r.data),
   update: (tripId: number | string, dayId: number | string, data: DayUpdateRequest) => apiClient.put(`/trips/${tripId}/days/${dayId}`, data).then(r => r.data),
+  // Whole-day default route mode (#1281); per-segment leg modes override it.
+  updateTransport: (tripId: number | string, dayId: number | string, mode: string | null) => apiClient.put(`/trips/${tripId}/days/${dayId}/transport`, { transport_mode: mode }).then(r => r.data),
   delete: (tripId: number | string, dayId: number | string) => apiClient.delete(`/trips/${tripId}/days/${dayId}`).then(r => r.data),
   reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/days/reorder`, { orderedIds } satisfies DayReorderRequest).then(r => r.data),
 }
@@ -443,6 +445,8 @@ export const assignmentsApi = {
   getParticipants: (tripId: number | string, id: number) => apiClient.get(`/trips/${tripId}/assignments/${id}/participants`).then(r => r.data),
   setParticipants: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/assignments/${id}/participants`, { user_ids: userIds } satisfies AssignmentParticipantsRequest).then(r => r.data),
   updateTime: (tripId: number | string, id: number, times: AssignmentTimeRequest) => apiClient.put(`/trips/${tripId}/assignments/${id}/time`, times).then(r => r.data),
+  // Per-segment travel mode (#1281): mode of the leg leaving this stop (null = inherit day default).
+  updateTransport: (tripId: number | string, id: number, mode: string | null) => apiClient.put(`/trips/${tripId}/assignments/${id}/transport`, { transport_mode: mode } satisfies AssignmentTransportRequest).then(r => r.data),
 }
 
 export const packingApi = {

@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import {
   ArrowRight, ArrowUpRight, BedDouble, CalendarRange, ChevronRight, LogIn, LogOut,
   MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2,
+  Car, Footprints, Zap, RotateCcw,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
 import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay'
 import { formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
@@ -31,6 +33,16 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const { t, trip, can } = planner
   const canEdit = can('day_edit', trip)
   const editing = shell.mode === 'edit' && canEdit
+  // Per-segment travel mode (#1281): tap a connector → pick the leg's mode.
+  const legMenu = useContextMenu()
+  const modeIcon = (key: string) => (key === 'walking' ? Footprints : key.startsWith('plugin:') ? Zap : Car)
+  const openLegMenu = (e: MouseEvent, assignmentId: number) => {
+    legMenu.open(e, [
+      ...tl.routeModeOptions.map(o => ({ label: o.label, icon: modeIcon(o.key), onClick: () => tl.setLegMode(assignmentId, o.key) })),
+      { divider: true },
+      { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => tl.setLegMode(assignmentId, null) },
+    ])
+  }
   // Plugin time contributions in the day plan (dayScheduleProvider hook) —
   // slotted under their anchor rows, same as the desktop sidebar.
   const daySchedule = usePluginDaySchedule(planner.tripId)
@@ -64,6 +76,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
 
   return (
     <div className="absolute inset-0">
+      <ContextMenu menu={legMenu.menu} onClose={legMenu.close} />
       {!editing && <UpNextCard tl={tl} t={t} onOpen={openPlace} />}
       {editing && <EditHeader tl={tl} planner={planner} shell={shell} />}
 
@@ -144,7 +157,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                 />
               )
             case 'conn':
-              return <ConnRow key={row.key} seg={row.seg} />
+              return <ConnRow key={row.key} seg={row.seg} onTap={canEdit && row.assignmentId != null ? e => openLegMenu(e, row.assignmentId!) : undefined} />
           }
         })}
 

@@ -26,6 +26,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'Đang tính...',
   'dayplan.route': 'Chỉ đường',
   'dayplan.optimize': 'Tối ưu hóa',
+  'dayplan.transportMode.change': 'Đổi phương tiện',
+  'dayplan.transportMode.useDefault': 'Dùng mặc định của ngày',
   'dayplan.optimized': 'Tuyến đường được tối ưu hóa',
   'dayplan.routeError': 'Không tính được lộ trình',
   'dayplan.toast.needTwoPlaces': 'Cần ít nhất hai địa điểm để tối ưu hóa tuyến đường',

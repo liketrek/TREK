@@ -112,7 +112,9 @@ describe('useRouteCalculation', () => {
     await act(async () => {});
 
     expect(calculateRouteWithLegs).toHaveBeenCalled();
-    expect(result.current.routeSegments).toEqual(MOCK_SEGMENTS);
+    // Each leg is now tagged with the mode it was routed in (#1281); with no
+    // per-segment override or day default, that resolves to the 'driving' default.
+    expect(result.current.routeSegments).toEqual(MOCK_SEGMENTS.map(s => ({ ...s, mode: 'driving' })));
   });
 
   it('FE-HOOK-ROUTE-006: assignments are sorted by order_index before extracting waypoints', async () => {

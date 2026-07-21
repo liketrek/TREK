@@ -17,6 +17,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'Розрахунок...',
   'dayplan.route': 'Маршрут',
   'dayplan.optimize': 'Оптимізувати',
+  'dayplan.transportMode.change': 'Змінити спосіб пересування',
+  'dayplan.transportMode.useDefault': 'Використати типовий для дня',
   'dayplan.optimized': 'Маршрут оптимізовано',
   'dayplan.routeError': 'Не вдалося розрахувати маршрут',
   'dayplan.toast.needTwoPlaces': 'Для оптимизации маршрута нужно минимум два места',

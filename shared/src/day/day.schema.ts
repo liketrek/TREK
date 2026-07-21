@@ -41,6 +41,8 @@ export const daySchema = z.object({
   date: z.string().nullable().optional(),
   title: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  // Whole-day default route mode (#1281); per-segment leg modes override it.
+  default_transport_mode: z.string().nullable().optional(),
   assignments: z.array(assignmentSchema).optional(),
   notes_items: z.array(dayNoteSchema).optional(),
 });
