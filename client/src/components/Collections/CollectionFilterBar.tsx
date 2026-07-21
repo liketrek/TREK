@@ -137,8 +137,8 @@ export default function CollectionFilterBar({
   return (
     <div className="col-filterbar">
       {canAddPlace && (
-        <button type="button" onClick={onAddPlace} className="col-filter-btn col-filter-add">
-          <Plus size={14} /> <span className="col-filter-lbl">{t('collections.addPlace')}</span>
+        <button type="button" onClick={onAddPlace} className="col-filter-btn col-filter-add" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
+          <Plus size={15} />
         </button>
       )}
       <Dropdown current={statusFilter} options={statusOpts} onSelect={k => onStatusFilter(k as StatusFilter)} lead={<Layers size={13} />} />

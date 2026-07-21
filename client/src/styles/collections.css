@@ -286,6 +286,8 @@
 /* ----------------- filter bar (status + category dropdowns) ----------------- */
 .trek-dash .col-filterbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .trek-dash .col-filter { position: relative; }
+/* Icon-only add-place button: square it off so it matches the dropdowns' height. */
+.trek-dash .col-filter-add { padding: 7px; }
 .trek-dash .col-filter-select { margin-left: auto; }
 .trek-dash .col-filter-select.open { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .trek-dash .col-filter-select.open:hover { background: var(--accent); color: var(--accent-text); }
