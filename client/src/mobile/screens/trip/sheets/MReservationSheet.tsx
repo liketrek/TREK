@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FileText, Hotel, Link2, Plus, Ticket, Users, Utensils } from 'lucide-react'
+import { FileText, Hotel, Link2, ParkingSquare, Plus, Ticket, Users, Utensils } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
@@ -23,6 +23,7 @@ const TYPE_OPTIONS = [
   { value: 'restaurant', labelKey: 'reservations.type.restaurant', Icon: Utensils },
   { value: 'event', labelKey: 'reservations.type.event', Icon: Ticket },
   { value: 'tour', labelKey: 'reservations.type.tour', Icon: Users },
+  { value: 'parking', labelKey: 'reservations.type.parking', Icon: ParkingSquare },
   { value: 'other', labelKey: 'reservations.type.other', Icon: FileText },
 ]
 
