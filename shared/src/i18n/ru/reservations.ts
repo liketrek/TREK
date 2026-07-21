@@ -150,6 +150,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'Синхронизировано с AirTrail — изменения синхронизируются в обе стороны.',
   'reservations.airtrail.notSynced': 'Не синхронизировано',
   'reservations.airtrail.notSyncedHint': 'Этот рейс был удалён в AirTrail и больше не синхронизируется.',
+  'reservations.airtrail.layoverHint': 'Импортировано из AirTrail. Многосегментный рейс с пересадкой не имеет одного рейса AirTrail для синхронизации, поэтому остаётся разовым импортом.',
   'reservations.airtrail.loadError': 'Не удалось загрузить ваши рейсы из AirTrail.',
   'reservations.airtrail.imported': 'Импортировано рейсов: {count}',
   'reservations.airtrail.skippedDuplicate': '{count} уже в этой поездке, пропущено',

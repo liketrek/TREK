@@ -150,6 +150,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'AirTrail에서 동기화됨 — 수정 사항이 양방향으로 동기화됩니다.',
   'reservations.airtrail.notSynced': '동기화되지 않음',
   'reservations.airtrail.notSyncedHint': '이 항공편은 AirTrail에서 삭제되어 더 이상 동기화되지 않습니다.',
+  'reservations.airtrail.layoverHint': 'AirTrail에서 가져왔습니다. 경유가 있는 여러 구간 항공편은 동기화할 단일 AirTrail 항공편이 없으므로 일회성 가져오기로 유지됩니다.',
   'reservations.airtrail.loadError': 'AirTrail 항공편을 불러올 수 없습니다.',
   'reservations.airtrail.imported': '{count}개 항공편을 가져왔습니다',
   'reservations.airtrail.skippedDuplicate': '{count}개는 이미 이 여행에 있어 건너뛰었습니다',

@@ -150,6 +150,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'AirTrail と同期済み — 編集は双方向で同期されます。',
   'reservations.airtrail.notSynced': '未同期',
   'reservations.airtrail.notSyncedHint': 'このフライトは AirTrail で削除されたため、同期されなくなりました。',
+  'reservations.airtrail.layoverHint': 'AirTrail からインポートしました。乗り継ぎのある複数区間のフライトは、同期先となる単一の AirTrail フライトがないため、一度限りのインポートのままになります。',
   'reservations.airtrail.loadError': 'AirTrail のフライトを読み込めませんでした。',
   'reservations.airtrail.imported': '{count} 件のフライトをインポートしました',
   'reservations.airtrail.skippedDuplicate': '{count} 件はこの旅行に既に存在するためスキップしました',

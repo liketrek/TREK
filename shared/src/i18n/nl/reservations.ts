@@ -152,6 +152,7 @@ const reservations: TranslationStrings = {
     'Gesynchroniseerd vanuit AirTrail — wijzigingen blijven beide kanten op gesynchroniseerd.',
   'reservations.airtrail.notSynced': 'Niet gesynchroniseerd',
   'reservations.airtrail.notSyncedHint': 'Deze vlucht is in AirTrail verwijderd en wordt niet meer gesynchroniseerd.',
+  'reservations.airtrail.layoverHint': 'Geïmporteerd uit AirTrail. Een vlucht met meerdere trajecten en overstap heeft geen enkele AirTrail-vlucht om mee te synchroniseren en blijft daarom een eenmalige import.',
   'reservations.airtrail.loadError': 'Je AirTrail-vluchten konden niet worden geladen.',
   'reservations.airtrail.imported': '{count} vlucht(en) geïmporteerd',
   'reservations.airtrail.skippedDuplicate': '{count} al in deze reis, overgeslagen',

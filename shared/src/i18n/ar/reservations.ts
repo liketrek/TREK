@@ -150,6 +150,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'متزامن من AirTrail — تبقى التعديلات متزامنة في الاتجاهين.',
   'reservations.airtrail.notSynced': 'غير متزامن',
   'reservations.airtrail.notSyncedHint': 'تمت إزالة هذه الرحلة في AirTrail ولم تعد متزامنة.',
+  'reservations.airtrail.layoverHint': 'تم الاستيراد من AirTrail. الرحلة متعددة المراحل مع توقف لا تقابلها رحلة واحدة في AirTrail للمزامنة معها، لذا تبقى استيرادًا لمرة واحدة.',
   'reservations.airtrail.loadError': 'تعذّر تحميل رحلاتك من AirTrail.',
   'reservations.airtrail.imported': 'تم استيراد {count} رحلة/رحلات',
   'reservations.airtrail.skippedDuplicate': '{count} موجودة بالفعل في هذه الرحلة، تم تخطّيها',

@@ -156,6 +156,7 @@ const reservations: TranslationStrings = {
     'Synchronisé depuis AirTrail — les modifications restent synchronisées dans les deux sens.',
   'reservations.airtrail.notSynced': 'Non synchronisé',
   'reservations.airtrail.notSyncedHint': "Ce vol a été supprimé dans AirTrail et n'est plus synchronisé.",
+  'reservations.airtrail.layoverHint': 'Importé depuis AirTrail. Un vol à plusieurs segments avec escale ne correspond à aucun vol AirTrail unique à synchroniser ; il reste donc un import ponctuel.',
   'reservations.airtrail.loadError': 'Impossible de charger vos vols AirTrail.',
   'reservations.airtrail.imported': '{count} vol(s) importé(s)',
   'reservations.airtrail.skippedDuplicate': '{count} déjà dans ce voyage, ignoré(s)',

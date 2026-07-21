@@ -150,6 +150,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'Синхронізовано з AirTrail — зміни синхронізуються в обидва боки.',
   'reservations.airtrail.notSynced': 'Не синхронізовано',
   'reservations.airtrail.notSyncedHint': 'Цей рейс було видалено в AirTrail і він більше не синхронізується.',
+  'reservations.airtrail.layoverHint': 'Імпортовано з AirTrail. Багатосегментний рейс із пересадкою не має єдиного рейсу AirTrail для синхронізації, тому залишається одноразовим імпортом.',
   'reservations.airtrail.loadError': 'Не вдалося завантажити ваші рейси з AirTrail.',
   'reservations.airtrail.imported': '{count} рейс(ів) імпортовано',
   'reservations.airtrail.skippedDuplicate': '{count} вже в цій подорожі, пропущено',

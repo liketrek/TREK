@@ -152,6 +152,7 @@ const reservations: TranslationStrings = {
     'AirTrail ile senkronize edildi — düzenlemeler iki yönlü olarak senkronize kalır.',
   'reservations.airtrail.notSynced': 'Senkronize değil',
   'reservations.airtrail.notSyncedHint': "Bu uçuş AirTrail'de kaldırıldı ve artık senkronize edilmiyor.",
+  'reservations.airtrail.layoverHint': 'AirTrail\'den içe aktarıldı. Aktarmalı, çok bacaklı bir uçuşun eşitlenecek tek bir AirTrail uçuşu yoktur, bu nedenle tek seferlik içe aktarma olarak kalır.',
   'reservations.airtrail.loadError': 'AirTrail uçuşlarınız yüklenemedi.',
   'reservations.airtrail.imported': '{count} uçuş içe aktarıldı',
   'reservations.airtrail.skippedDuplicate': '{count} zaten bu gezide, atlandı',
