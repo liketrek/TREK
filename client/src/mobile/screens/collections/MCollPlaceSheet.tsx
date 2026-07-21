@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { Check, Copy, ExternalLink, MapPin, Pencil, Trash2, X } from 'lucide-react'
+import { Camera, Check, Copy, ExternalLink, Loader2, MapPin, Pencil, Trash2, X } from 'lucide-react'
 import type { CollectionLabel, CollectionLink, CollectionPlace, CollectionStatus } from '@trek/shared'
 import type { Category, TranslationFn } from '../../../types'
 import { mapsApi } from '../../../api/client'
 import { useToast } from '../../../components/shared/Toast'
+import { normalizeImageFile } from '../../../utils/convertHeic'
 import { getApiErrorMessage } from '../../../types'
 import { normalizeLinkUrl, STATUS_ORDER } from '../../../pages/collections/collectionsModel'
 import MSheet from '../../components/MSheet'
@@ -33,7 +34,8 @@ interface MCollPlaceSheetProps {
   labels: CollectionLabel[]
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[] }) => Promise<void>
+  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null }) => Promise<void>
+  onUploadImage?: (file: File) => Promise<void>
   onCopyToTrip: () => void
   onRemove: () => void
   t: TranslationFn
@@ -46,9 +48,11 @@ interface MCollPlaceSheetProps {
  * description / links.
  */
 export default function MCollPlaceSheet({
-  place, canEdit, canDelete, categories, labels, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
+  place, canEdit, canDelete, categories, labels, onClose, onSetStatus, onSave, onUploadImage, onCopyToTrip, onRemove, t,
 }: MCollPlaceSheetProps) {
   const toast = useToast()
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const [imgBusy, setImgBusy] = useState(false)
   // Hold the last place through the exit animation.
   const [held, setHeld] = useState<CollectionPlace | null>(place)
   if (place && place !== held) setHeld(place)
@@ -110,6 +114,32 @@ export default function MCollPlaceSheet({
   }
 
   const cover = held?.image_url || fetchedPhoto
+
+  const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !held || !onUploadImage) return
+    setImgBusy(true)
+    try {
+      await onUploadImage(await normalizeImageFile(file))
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('places.imageUploadError')))
+    } finally {
+      setImgBusy(false)
+    }
+  }
+
+  const handleImageRemove = async () => {
+    setImgBusy(true)
+    try {
+      await onSave({ image_url: null })
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('places.imageUploadError')))
+    } finally {
+      setImgBusy(false)
+    }
+  }
+
   const assignedLabels = labels.filter(l => (held?.label_ids ?? []).includes(l.id))
   const toggleLabel = (id: number) => setLabelIds(labelIds.includes(id) ? labelIds.filter(x => x !== id) : [...labelIds, id])
 
@@ -144,6 +174,29 @@ export default function MCollPlaceSheet({
             >
               <X size={15} strokeWidth={2.2} />
             </button>
+            {canEdit && onUploadImage && (
+              <div className="absolute left-[14px] top-[14px] z-[1] flex gap-[6px]">
+                <button
+                  type="button"
+                  onClick={() => { if (!imgBusy) imageInputRef.current?.click() }}
+                  aria-label={held.image_url ? t('places.changeImage') : t('places.uploadImage')}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,.4)] text-white" // theme-lint-disable
+                >
+                  {imgBusy ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                </button>
+                {held.image_url && !imgBusy && (
+                  <button
+                    type="button"
+                    onClick={handleImageRemove}
+                    aria-label={t('places.removeImage')}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,.4)] text-white" // theme-lint-disable
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+                <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" className="hidden" onChange={handleImagePick} />
+              </div>
+            )}
             <div className="relative mt-[10px] text-[1.3125rem] font-extrabold text-white">{held.name}</div>
           </div>
 
