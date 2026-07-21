@@ -718,4 +718,18 @@ describe('PlaceInspector', () => {
     }
   });
 
+  // ── Custom thumbnail upload (#1136) ──────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-049: onUploadImage in trip mode renders the upload-capable avatar', () => {
+    render(<PlaceInspector {...defaultProps} onUploadImage={vi.fn()} />);
+    // The place carries no image yet, so the avatar offers "Upload image".
+    expect(screen.getByRole('button', { name: 'Upload image' })).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-050: without onUploadImage the avatar has no upload control', () => {
+    render(<PlaceInspector {...defaultProps} />);
+    expect(screen.queryByRole('button', { name: 'Upload image' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Change image' })).toBeNull();
+  });
+
 });

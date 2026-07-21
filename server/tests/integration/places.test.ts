@@ -1025,3 +1025,44 @@ describe('Delete place — not found', () => {
     expect(res.status).toBe(404);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom place image upload (#1136)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Custom place image upload', () => {
+  const FIXTURE_JPEG = path.join(__dirname, '../fixtures/small-image.jpg');
+  const FIXTURE_PDF = path.join(__dirname, '../fixtures/test.pdf');
+
+  it('PLACE-026 — POST /:id/image stores the upload, then PUT image_url:null clears it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Snap' });
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/places/${place.id}/image`)
+      .set('Cookie', authCookie(user.id))
+      .attach('image', FIXTURE_JPEG);
+    expect(res.status).toBe(200);
+    expect(res.body.place.image_url).toMatch(/^\/uploads\/places\//);
+
+    const cleared = await request(app)
+      .put(`/api/trips/${trip.id}/places/${place.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ image_url: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.place.image_url).toBeNull();
+  });
+
+  it('PLACE-027 — uploading a non-image (PDF) is rejected', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Snap' });
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/places/${place.id}/image`)
+      .set('Cookie', authCookie(user.id))
+      .attach('image', FIXTURE_PDF);
+    expect(res.status).toBe(400);
+  });
+});
