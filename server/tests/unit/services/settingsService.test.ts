@@ -34,6 +34,7 @@ vi.mock('../../../src/config', () => ({
 // Passthrough crypto — value comes back unchanged for most tests
 vi.mock('../../../src/services/apiKeyCrypto', () => ({
   maybe_encrypt_api_key: (v: string) => v,
+  decrypt_api_key: (v: string) => v,
 }));
 
 import { createTables } from '../../../src/db/schema';
@@ -110,6 +111,46 @@ describe('getUserSettings', () => {
     const s = getUserSettings(a.id);
     expect(s).toHaveProperty('key_a');
     expect(s).not.toHaveProperty('key_b');
+  });
+
+  // Admin "user defaults" fall-through (#1634) — a system-wide Mapbox token must
+  // reach a user who left their own token blank.
+  const setAdminDefault = (settingKey: string, value: string) =>
+    testDb.prepare(
+      "INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    ).run(`default_user_setting_${settingKey}`, value);
+
+  it('SET-SVC-020 — new user with no rows inherits the admin default token', () => {
+    const { user } = createUser(testDb);
+    setAdminDefault('mapbox_access_token', 'pk.admin');
+    expect(getUserSettings(user.id).mapbox_access_token).toBe('pk.admin');
+  });
+
+  it('SET-SVC-021 — an empty user token falls through to the admin default', () => {
+    const { user } = createUser(testDb);
+    setAdminDefault('mapbox_access_token', 'pk.admin');
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'mapbox_access_token', '')").run(user.id);
+    expect(getUserSettings(user.id).mapbox_access_token).toBe('pk.admin');
+  });
+
+  it('SET-SVC-022 — a non-empty user token overrides the admin default', () => {
+    const { user } = createUser(testDb);
+    setAdminDefault('mapbox_access_token', 'pk.admin');
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'mapbox_access_token', 'pk.user')").run(user.id);
+    expect(getUserSettings(user.id).mapbox_access_token).toBe('pk.user');
+  });
+
+  it('SET-SVC-023 — an empty value with no admin default stays empty (no regression)', () => {
+    const { user } = createUser(testDb);
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'mapbox_style', '')").run(user.id);
+    expect(getUserSettings(user.id).mapbox_style).toBe('');
+  });
+
+  it('SET-SVC-024 — a non-defaultable empty value is preserved even against a same-named default', () => {
+    const { user } = createUser(testDb);
+    // 'theme' is not a defaultable key: an empty stored value must be returned as-is.
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'theme', '')").run(user.id);
+    expect(getUserSettings(user.id).theme).toBe('');
   });
 });
 

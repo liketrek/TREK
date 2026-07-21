@@ -36,6 +36,8 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
 
 type DefaultableKey = typeof DEFAULTABLE_USER_SETTING_KEYS[number];
 
+const DEFAULTABLE_USER_SETTING_KEY_SET = new Set<string>(DEFAULTABLE_USER_SETTING_KEYS);
+
 const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   temperature_unit: ['fahrenheit', 'celsius'],
   distance_unit: ['metric', 'imperial'],
@@ -132,8 +134,24 @@ export function getUserSettings(userId: number): Record<string, unknown> {
     }
   }
 
-  // Admin defaults fill in only for keys the user hasn't explicitly set
-  return { ...adminDefaults, ...userSettings };
+  // Admin defaults fill in for keys the user hasn't explicitly set. For a
+  // defaultable key an *empty* user value counts as "not set": the client's
+  // Settings save always writes every field (a blank Mapbox token included), so
+  // an empty string would otherwise shadow the admin/system-wide default and the
+  // user could never fall back to it — even after clearing their own value
+  // (#1634). Non-defaultable keys keep their exact stored value.
+  const merged: Record<string, unknown> = { ...adminDefaults };
+  for (const [key, value] of Object.entries(userSettings)) {
+    if (
+      DEFAULTABLE_USER_SETTING_KEY_SET.has(key) &&
+      (value === '' || value === null || value === undefined) &&
+      key in adminDefaults
+    ) {
+      continue; // empty user value → keep the admin default
+    }
+    merged[key] = value;
+  }
+  return merged;
 }
 
 function serializeValue(key: string, value: unknown): string {
