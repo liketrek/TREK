@@ -1,5 +1,6 @@
 import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
 import { isNuExtractModel, buildNuExtractUserText, nuExtractToKiReservations } from './nuextract';
+import { parseLenientJson } from '../lenient-json';
 import { safeFetchLlm } from '../../../utils/ssrfGuard';
 
 // Generous: a local CPU model (Ollama, no GPU) may cold-load several GB and then
@@ -110,27 +111,16 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
   }
 }
 
-/** Strip code fences and JSON.parse; `null` on failure. */
-function parseJson(content: string | undefined | null): unknown {
-  if (!content) return null;
-  const stripped = content.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-  try {
-    return JSON.parse(stripped);
-  } catch {
-    return null;
-  }
-}
-
 /** Parse a NuExtract response and map its flat template output to KiReservation nodes. */
 function parseNuExtract(content: string | undefined | null): Record<string, unknown>[] {
-  return nuExtractToKiReservations(parseJson(content));
+  return nuExtractToKiReservations(parseLenientJson(content));
 }
 
 const USER_TEXT = 'Extract every travel reservation from the following document as schema.org JSON-LD.';
 
-/** Tolerant parse: strip code fences, JSON.parse, pull `reservations`. `[]` on failure. */
+/** Tolerant parse: strip code fences, JSON(5).parse, pull `reservations`. `[]` on failure. */
 function parseReservations(content: string | undefined | null): Record<string, unknown>[] {
-  const parsed = parseJson(content);
+  const parsed = parseLenientJson(content);
   if (Array.isArray(parsed)) return parsed as Record<string, unknown>[];
   if (parsed && typeof parsed === 'object' && Array.isArray((parsed as { reservations?: unknown }).reservations)) {
     return (parsed as { reservations: Record<string, unknown>[] }).reservations;
