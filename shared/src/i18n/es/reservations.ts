@@ -31,6 +31,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'Crucero',
   'reservations.type.event': 'Evento',
   'reservations.type.tour': 'Excursión',
+  'reservations.type.parking': 'Aparcamiento',
   'reservations.type.other': 'Otro',
   'reservations.type.bus': 'Autobús',
   'reservations.type.ferry': 'Ferry',

@@ -10,5 +10,6 @@ export const BOOKING_TYPE_COLOR: Record<string, string> = {
   restaurant: '#ef4444',
   event: '#f59e0b',
   tour: '#10b981',
+  parking: '#2563eb',
   other: '#6b7280',
 }

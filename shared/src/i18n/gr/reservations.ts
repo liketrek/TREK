@@ -60,6 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'Κρουαζιέρα',
   'reservations.type.event': 'Εκδήλωση',
   'reservations.type.tour': 'Περιήγηση',
+  'reservations.type.parking': 'Στάθμευση',
   'reservations.type.other': 'Άλλο',
   'reservations.type.bus': 'Λεωφορείο',
   'reservations.type.ferry': 'Φέρι',

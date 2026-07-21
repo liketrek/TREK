@@ -6,7 +6,7 @@ import { useAddonStore } from '../../store/addonStore'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import AddressInput from './AddressInput'
-import { Hotel, Utensils, Ticket, FileText, Users, Paperclip, X, ExternalLink, Link2 } from 'lucide-react'
+import { Hotel, Utensils, Ticket, FileText, Users, Paperclip, X, ExternalLink, Link2, ParkingSquare } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
@@ -24,6 +24,7 @@ const TYPE_OPTIONS = [
   { value: 'restaurant', labelKey: 'reservations.type.restaurant', Icon: Utensils },
   { value: 'event',      labelKey: 'reservations.type.event',      Icon: Ticket },
   { value: 'tour',       labelKey: 'reservations.type.tour',       Icon: Users },
+  { value: 'parking',    labelKey: 'reservations.type.parking',    Icon: ParkingSquare },
   { value: 'other',      labelKey: 'reservations.type.other',      Icon: FileText },
 ]
 
