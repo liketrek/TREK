@@ -85,4 +85,55 @@ describe('vacayDayModel', () => {
     expect(monthLead(2026, 6, 1)).toBe(2);
     expect(monthLead(2026, 6, 0)).toBe(3);
   });
+
+  it('FE-MOB-VACAY-003: shared calendars draw inset rings on top of the base cell', () => {
+    // Single shared calendar: one 1.5px ring, base cell untouched otherwise.
+    const one = ctx({
+      todayStr: '2026-01-01',
+      sharedMap: { '2026-07-15': [{ color: '#EC4899' }] },
+    });
+    expect(dayVisual('2026-07-15', 3, one)).toEqual({
+      background: 'transparent',
+      numColor: 'var(--m-muted)',
+      boxShadow: 'inset 0 0 0 1.5px #EC4899',
+    });
+
+    // Two calendars: rings step outward in 1.5px increments.
+    const two = ctx({
+      todayStr: '2026-01-01',
+      sharedMap: { '2026-07-15': [{ color: '#EC4899' }, { color: '#2FA9A0' }] },
+    });
+    expect(dayVisual('2026-07-15', 3, two).boxShadow).toBe(
+      'inset 0 0 0 1.5px #EC4899, inset 0 0 0 3px #2FA9A0',
+    );
+
+    // A third calendar is dropped — capped at two so mini cells stay readable.
+    const three = ctx({
+      todayStr: '2026-01-01',
+      sharedMap: { '2026-07-15': [{ color: '#EC4899' }, { color: '#2FA9A0' }, { color: '#F59E0B' }] },
+    });
+    expect(dayVisual('2026-07-15', 3, three).boxShadow).toBe(
+      'inset 0 0 0 1.5px #EC4899, inset 0 0 0 3px #2FA9A0',
+    );
+
+    // On today the shared ring nests inside the today ring.
+    const today = ctx({ sharedMap: { '2026-07-15': [{ color: '#EC4899' }] } });
+    expect(dayVisual('2026-07-15', 3, today).boxShadow).toBe(
+      'inset 0 0 0 1.5px var(--m-ink), inset 0 0 0 3px #EC4899',
+    );
+
+    // No sharedMap (or no marks for the date): visuals stay exactly as before.
+    expect(dayVisual('2026-07-16', 4, ctx({ todayStr: '2026-01-01' }))).toEqual({
+      background: 'transparent',
+      numColor: 'var(--m-muted)',
+    });
+    const otherDate = ctx({
+      todayStr: '2026-01-01',
+      sharedMap: { '2026-07-20': [{ color: '#EC4899' }] },
+    });
+    expect(dayVisual('2026-07-16', 4, otherDate)).toEqual({
+      background: 'transparent',
+      numColor: 'var(--m-muted)',
+    });
+  });
 });

@@ -124,4 +124,28 @@ export const vacayHandlers = [
   http.delete('/api/addons/vacay/plan/holiday-calendars/:id', () => {
     return HttpResponse.json({ success: true });
   }),
+
+  http.get('/api/addons/vacay/shares', () => {
+    return HttpResponse.json({ outgoing: [], incoming: [] });
+  }),
+
+  http.post('/api/addons/vacay/shares', () => {
+    return HttpResponse.json({ success: true });
+  }),
+
+  http.get('/api/addons/vacay/shares/available-users', () => {
+    return HttpResponse.json({ users: [] });
+  }),
+
+  http.get('/api/addons/vacay/shares/calendars/:year', () => {
+    return HttpResponse.json({ calendars: [] });
+  }),
+
+  http.put('/api/addons/vacay/shares/:id', () => {
+    return HttpResponse.json({ success: true });
+  }),
+
+  http.delete('/api/addons/vacay/shares/:id', () => {
+    return HttpResponse.json({ success: true });
+  }),
 ];

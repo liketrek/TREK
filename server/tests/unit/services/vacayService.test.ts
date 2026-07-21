@@ -25,6 +25,8 @@ vi.mock('../../../src/config', () => ({
 }));
 // Mock websocket so notifyPlanUsers doesn't throw
 vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
+// shareCalendar fires a notification after inserting — keep that out of unit scope
+vi.mock('../../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
@@ -53,6 +55,12 @@ import {
   toggleCompanyHoliday,
   getStats,
   applyHolidayCalendars,
+  listShares,
+  shareCalendar,
+  removeShare,
+  setShareHidden,
+  getShareAvailableUsers,
+  getSharedCalendars,
 } from '../../../src/services/vacayService';
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -792,5 +800,271 @@ describe('applyHolidayCalendars', () => {
       .prepare('SELECT * FROM vacay_entries WHERE plan_id = ? AND date = ?')
       .all(plan.id, holidayDate);
     expect(remaining).toHaveLength(0);
+  });
+});
+
+// ── Read-only calendar shares (#444/#667) ─────────────────────────────────────
+
+describe('shareCalendar', () => {
+  it('VACAY-SVC-048: inserts a share row and returns no error', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: target } = createUser(testDb);
+
+    const result = shareCalendar(owner.id, owner.email, target.id);
+
+    expect(result.error).toBeUndefined();
+    const row = testDb
+      .prepare('SELECT * FROM vacay_shares WHERE owner_id = ? AND user_id = ?')
+      .get(owner.id, target.id);
+    expect(row).toBeDefined();
+  });
+
+  it('VACAY-SVC-049: returns 400 when sharing with yourself', () => {
+    const { user: owner } = setupUserWithPlan();
+
+    const result = shareCalendar(owner.id, owner.email, owner.id);
+
+    expect(result).toEqual({ error: 'Cannot share with yourself', status: 400 });
+  });
+
+  it('VACAY-SVC-050: returns 404 when the target user does not exist', () => {
+    const { user: owner } = setupUserWithPlan();
+
+    const result = shareCalendar(owner.id, owner.email, 99999);
+
+    expect(result).toEqual({ error: 'User not found', status: 404 });
+  });
+
+  it('VACAY-SVC-051: returns 400 when the share already exists', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: target } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, target.id);
+
+    const result = shareCalendar(owner.id, owner.email, target.id);
+
+    expect(result).toEqual({ error: 'Already shared', status: 400 });
+  });
+
+  it('VACAY-SVC-052: returns 400 when the target is already a member of the owner plan', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: member } = createUser(testDb);
+    insertMember(plan.id, member.id, 'accepted');
+
+    const result = shareCalendar(owner.id, owner.email, member.id);
+
+    expect(result).toEqual({ error: 'User is already in your calendar', status: 400 });
+  });
+});
+
+describe('listShares', () => {
+  it('VACAY-SVC-053: outgoing rows carry the target user info', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: target } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, target.id);
+
+    const result = listShares(owner.id);
+
+    expect(result.outgoing).toHaveLength(1);
+    expect(result.outgoing[0]).toMatchObject({
+      user_id: target.id,
+      username: target.username,
+    });
+    expect(result.outgoing[0]).not.toHaveProperty('email');
+    expect(result.incoming).toEqual([]);
+  });
+
+  it('VACAY-SVC-054: incoming rows carry the owner info, their color and a boolean hidden flag', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    setUserColor(owner.id, plan.id, '#ef4444', undefined);
+    const { user: viewer } = setupUserWithPlan();
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const result = listShares(viewer.id);
+
+    expect(result.outgoing).toEqual([]);
+    expect(result.incoming).toHaveLength(1);
+    expect(result.incoming[0]).toMatchObject({
+      owner_id: owner.id,
+      username: owner.username,
+      color: '#ef4444',
+      hidden: false,
+    });
+    expect(result.incoming[0]).not.toHaveProperty('email');
+  });
+
+  it('VACAY-SVC-055: remaps colors when two sharing owners sit on the default indigo', () => {
+    const { user: viewer } = setupUserWithPlan(); // viewer's own color is #6366f1
+    const { user: owner1 } = setupUserWithPlan(); // default #6366f1
+    const { user: owner2 } = setupUserWithPlan(); // default #6366f1
+    shareCalendar(owner1.id, owner1.email, viewer.id);
+    shareCalendar(owner2.id, owner2.email, viewer.id);
+
+    const { incoming } = listShares(viewer.id);
+
+    expect(incoming).toHaveLength(2);
+    // Both collide with the viewer's own indigo, so each gets a distinct free preset
+    expect(incoming[0].color).not.toBe('#6366f1');
+    expect(incoming[1].color).not.toBe('#6366f1');
+    expect(incoming[0].color).not.toBe(incoming[1].color);
+  });
+});
+
+describe('removeShare', () => {
+  it('VACAY-SVC-056: the owner can revoke their share', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(owner.id).outgoing[0].id as number;
+
+    expect(removeShare(shareId, owner.id)).toBe(true);
+    const row = testDb.prepare('SELECT id FROM vacay_shares WHERE id = ?').get(shareId);
+    expect(row).toBeUndefined();
+  });
+
+  it('VACAY-SVC-057: the recipient can remove a share they received', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(viewer.id).incoming[0].id;
+
+    expect(removeShare(shareId, viewer.id)).toBe(true);
+  });
+
+  it('VACAY-SVC-058: a third user cannot remove the share, unknown ids return false', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(owner.id).outgoing[0].id as number;
+
+    expect(removeShare(shareId, stranger.id)).toBe(false);
+    const row = testDb.prepare('SELECT id FROM vacay_shares WHERE id = ?').get(shareId);
+    expect(row).toBeDefined();
+
+    expect(removeShare(99999, owner.id)).toBe(false);
+  });
+});
+
+describe('setShareHidden', () => {
+  it('VACAY-SVC-059: the recipient can hide and unhide the shared calendar', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(viewer.id).incoming[0].id;
+
+    expect(setShareHidden(shareId, viewer.id, true)).toBe(true);
+    let row = testDb.prepare('SELECT hidden FROM vacay_shares WHERE id = ?').get(shareId) as { hidden: number };
+    expect(row.hidden).toBe(1);
+    expect(listShares(viewer.id).incoming[0].hidden).toBe(true);
+
+    expect(setShareHidden(shareId, viewer.id, false)).toBe(true);
+    row = testDb.prepare('SELECT hidden FROM vacay_shares WHERE id = ?').get(shareId) as { hidden: number };
+    expect(row.hidden).toBe(0);
+  });
+
+  it('VACAY-SVC-060: the owner cannot toggle the recipient hidden flag', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(owner.id).outgoing[0].id as number;
+
+    expect(setShareHidden(shareId, owner.id, true)).toBe(false);
+    const row = testDb.prepare('SELECT hidden FROM vacay_shares WHERE id = ?').get(shareId) as { hidden: number };
+    expect(row.hidden).toBe(0);
+  });
+});
+
+describe('getShareAvailableUsers', () => {
+  it('VACAY-SVC-061: excludes self, already-shared users and plan members', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: member } = createUser(testDb);
+    insertMember(plan.id, member.id, 'accepted');
+    const { user: shared } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, shared.id);
+    const { user: unrelated } = createUser(testDb);
+
+    const ids = (getShareAvailableUsers(owner.id) as { id: number }[]).map(u => u.id);
+
+    expect(ids).toContain(unrelated.id);
+    expect(ids).not.toContain(owner.id);
+    expect(ids).not.toContain(member.id);
+    expect(ids).not.toContain(shared.id);
+  });
+});
+
+describe('getSharedCalendars', () => {
+  it('VACAY-SVC-062: returns only the owner entries of the shared plan, including fractions', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: member } = createUser(testDb);
+    insertMember(plan.id, member.id, 'accepted');
+    const { user: viewer } = setupUserWithPlan();
+    toggleEntry(owner.id, plan.id, '2025-06-10', 1);
+    toggleEntry(owner.id, plan.id, '2025-06-11', 0.5);
+    toggleEntry(member.id, plan.id, '2025-06-12', 1);
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars).toHaveLength(1);
+    expect(calendars[0].owner_id).toBe(owner.id);
+    expect(calendars[0].owner_name).toBe(owner.username);
+    expect(calendars[0].hidden).toBe(false);
+    expect(calendars[0].entries).toEqual([
+      { date: '2025-06-10', fraction: 1 },
+      { date: '2025-06-11', fraction: 0.5 },
+    ]);
+  });
+
+  it('VACAY-SVC-063: company holidays stay hidden while the owner plan has them disabled', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    testDb.prepare('UPDATE vacay_plans SET company_holidays_enabled = 0 WHERE id = ?').run(plan.id);
+    toggleCompanyHoliday(plan.id, '2025-12-24', 'Christmas Eve', undefined);
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars[0].companyHolidays).toEqual([]);
+  });
+
+  it('VACAY-SVC-064: company holidays appear once the owner plan enables them', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    testDb.prepare('UPDATE vacay_plans SET company_holidays_enabled = 1 WHERE id = ?').run(plan.id);
+    toggleCompanyHoliday(plan.id, '2025-12-24', 'Christmas Eve', undefined);
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars[0].companyHolidays).toEqual([{ date: '2025-12-24' }]);
+  });
+
+  it('VACAY-SVC-065: an owner without any plan yields empty arrays (no lazy creation)', () => {
+    const { user: owner } = createUser(testDb); // never touched vacay — no plan row
+    const { user: viewer } = createUser(testDb);
+    testDb.prepare('INSERT INTO vacay_shares (owner_id, user_id) VALUES (?, ?)').run(owner.id, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars).toHaveLength(1);
+    expect(calendars[0].entries).toEqual([]);
+    expect(calendars[0].companyHolidays).toEqual([]);
+    const plan = testDb.prepare('SELECT id FROM vacay_plans WHERE owner_id = ?').get(owner.id);
+    expect(plan).toBeUndefined();
+  });
+
+  it('VACAY-SVC-066: follows an owner fused into another plan', () => {
+    const { user: host, plan: hostPlan } = setupUserWithPlan();
+    const { user: owner } = createUser(testDb);
+    getOwnPlan(owner.id);
+    insertMember(hostPlan.id, owner.id, 'accepted');
+    const { user: viewer } = createUser(testDb);
+    toggleEntry(owner.id, hostPlan.id, '2025-03-03', 1);
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars).toHaveLength(1);
+    expect(calendars[0].entries).toEqual([{ date: '2025-03-03', fraction: 1 }]);
   });
 });
