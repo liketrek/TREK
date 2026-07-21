@@ -88,5 +88,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Berika platser via Google',
   'places.enrichOnImportHint':
     'Sök upp varje importerad plats för att fylla i bilder, adress och kontaktuppgifter. Använder din Google Maps-nyckel.',
+  'places.uploadImage': 'Ladda upp bild',
+  'places.changeImage': 'Byt bild',
+  'places.removeImage': 'Ta bort bild',
+  'places.imageUploadError': 'Det gick inte att ladda upp bilden',
 };
 export default places;

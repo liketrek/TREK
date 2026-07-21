@@ -88,5 +88,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Εμπλουτισμός τόπων μέσω Google',
   'places.enrichOnImportHint':
     'Αναζητά κάθε εισαγόμενο μέρος για να προσθέσει φωτογραφίες, διεύθυνση και στοιχεία επικοινωνίας. Απαιτεί κλειδί Google Maps.',
+  'places.uploadImage': 'Μεταφόρτωση εικόνας',
+  'places.changeImage': 'Αλλαγή εικόνας',
+  'places.removeImage': 'Αφαίρεση εικόνας',
+  'places.imageUploadError': 'Δεν ήταν δυνατή η μεταφόρτωση της εικόνας',
 };
 export default places;

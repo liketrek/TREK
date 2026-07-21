@@ -54,7 +54,7 @@ export function useCollections() {
     loading, placesLoading,
     loadAll, setActive, refreshActive, loadCollection,
     deleteCollection,
-    setStatus, updatePlace, deletePlace, deleteMany, copyToTrip, clearSelection,
+    setStatus, updatePlace, uploadPlaceImage, deletePlace, deleteMany, copyToTrip, clearSelection,
     moveToList, duplicateToList, setSelectedIds,
     createLabel, updateLabel, deleteLabel, assignLabels,
     acceptInvite, declineInvite,
@@ -383,7 +383,7 @@ export function useCollections() {
     loading, placesLoading,
     // store setters
     setView, setStatusFilter, setCategoryFilter, setLabelFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
-    updatePlace,
+    updatePlace, uploadPlaceImage,
     // labels
     showLabelManager, setShowLabelManager, labelPickerOpen, setLabelPickerOpen,
     handleCreateLabel, handleUpdateLabel, handleDeleteLabel, handleBulkAssignLabels, handleAssignPlaceLabels,

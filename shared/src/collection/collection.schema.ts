@@ -183,6 +183,8 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   tag_ids: z.array(z.number()).optional(),
   // Replace the place's per-collection label assignments (omit to leave unchanged).
   label_ids: z.array(z.number()).optional(),
+  // Custom thumbnail (#1136): null clears it (falls back to the auto-fetched photo).
+  image_url: z.string().nullable().optional(),
 });
 export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateRequestSchema>;
 

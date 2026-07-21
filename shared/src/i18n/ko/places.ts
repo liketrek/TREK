@@ -86,5 +86,9 @@ const places: TranslationStrings = {
   'places.addAnyway': '그래도 추가',
   'places.enrichOnImport': 'Google로 장소 정보 보강',
   'places.enrichOnImportHint': '가져온 각 장소를 검색해 사진, 주소, 연락처를 추가합니다. Google Maps 키가 필요합니다.',
+  'places.uploadImage': '이미지 업로드',
+  'places.changeImage': '이미지 변경',
+  'places.removeImage': '이미지 제거',
+  'places.imageUploadError': '이미지를 업로드할 수 없습니다',
 };
 export default places;

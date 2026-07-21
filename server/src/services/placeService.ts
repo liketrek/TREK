@@ -17,6 +17,7 @@ import { enrichImportedPlaces, type EnrichablePlace } from './placeEnrichment';
 import * as placePhotoCache from './placePhotoCache';
 import { searchUnsplashPhotos, getUnsplashKey } from './unsplashService';
 import { type UpdateConflict, isUpdateConflict } from './conflictResult';
+import { reclaimPlaceImage } from './placeImage';
 
 // Reclaim a deleted place's cached marker photo if nothing else references it.
 // The cache key is the Google place_id, or — for coordinate-only places — the
@@ -255,6 +256,12 @@ export function updatePlace(
     }
   }
 
+  // A custom uploaded thumbnail (#1136) that was just replaced or cleared leaves
+  // an orphan file behind — reclaim it once nothing references it any more.
+  if (image_url !== undefined && image_url !== existingPlace.image_url) {
+    reclaimPlaceImage(existingPlace.image_url);
+  }
+
   return getPlaceWithTags(placeId);
 }
 
@@ -269,6 +276,7 @@ export function deletePlace(tripId: string, placeId: string): boolean {
   if (!place) return false;
   db.prepare('DELETE FROM places WHERE id = ?').run(placeId);
   reclaimPhotoCache(place.google_place_id, place.image_url);
+  reclaimPlaceImage(place.image_url);
   return true;
 }
 
@@ -289,7 +297,10 @@ export function deletePlacesMany(tripId: string, ids: number[]): number[] {
   });
   run(ids);
   // Reclaim after the transaction commits so isReferenced() sees the final place set.
-  for (const row of reclaimable) reclaimPhotoCache(row.google_place_id, row.image_url);
+  for (const row of reclaimable) {
+    reclaimPhotoCache(row.google_place_id, row.image_url);
+    reclaimPlaceImage(row.image_url);
+  }
   return deleted;
 }
 

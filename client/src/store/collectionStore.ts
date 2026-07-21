@@ -55,6 +55,7 @@ interface CollectionState {
 
   setStatus: (placeId: number, status: CollectionStatus) => Promise<void>
   updatePlace: (placeId: number, body: CollectionPlaceUpdateRequest) => Promise<void>
+  uploadPlaceImage: (placeId: number, file: File) => Promise<void>
   deletePlace: (placeId: number) => Promise<void>
   deleteMany: (ids: number[]) => Promise<void>
   copyToTrip: (tripId: number, placeIds: number[], force?: boolean) => Promise<{ copied: number; skipped: { id: number; name: string }[] }>
@@ -227,6 +228,13 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   updatePlace: async (placeId, body) => {
     // The endpoint returns the updated place directly (not wrapped in { place }).
     const updated = await collectionsApi.updatePlace(placeId, body)
+    if (updated) set({ places: get().places.map(p => (p.id === placeId ? updated : p)) })
+  },
+
+  uploadPlaceImage: async (placeId: number, file: File) => {
+    const fd = new FormData()
+    fd.append('image', file)
+    const updated = await collectionsApi.uploadPlaceImage(placeId, fd)
     if (updated) set({ places: get().places.map(p => (p.id === placeId ? updated : p)) })
   },
 

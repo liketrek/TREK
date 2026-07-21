@@ -70,6 +70,8 @@ export const collectionsApi = {
     ax.post(`${base}/places/from-trip-many`, { collection_id: collectionId, source_trip_id: tripId, source_place_ids: placeIds, force }).then((r: AxiosResponse) => r.data),
   updatePlace: (pid: number, body: CollectionPlaceUpdateRequest): Promise<CollectionPlace> =>
     ax.patch(`${base}/places/${pid}`, body satisfies CollectionPlaceUpdateRequest).then((r: AxiosResponse) => r.data),
+  uploadPlaceImage: (pid: number, formData: FormData): Promise<CollectionPlace> =>
+    postMultipart(`${base}/places/${pid}/image`, formData),
   setStatus: (pid: number, status: CollectionStatus): Promise<CollectionPlace> =>
     ax.post(`${base}/places/${pid}/status`, { status }).then((r: AxiosResponse) => r.data),
   deletePlace: (pid: number): Promise<unknown> =>

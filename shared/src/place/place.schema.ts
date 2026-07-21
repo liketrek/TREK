@@ -95,6 +95,9 @@ export const assignmentPlaceSchema = z.object({
   transport_mode: z.string().nullable().optional(),
   google_place_id: z.string().nullable().optional(),
   google_ftid: z.string().nullable().optional(),
+  // Carried on the embedded place so the day-plan thumbnail can auto-fetch an
+  // OSM photo the same way the sidebar/inspector do (#1136 follow-up).
+  osm_id: z.string().nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   category: placeCategorySchema.optional(),

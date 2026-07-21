@@ -56,6 +56,7 @@ export function applyPlatformUploads(app: express.Application): void {
   app.use('/uploads/avatars', express.static(path.join(UPLOADS_DIR, 'avatars')));
   app.use('/uploads/covers', express.static(path.join(UPLOADS_DIR, 'covers')));
   app.use('/uploads/journey', express.static(path.join(UPLOADS_DIR, 'journey')));
+  app.use('/uploads/places', express.static(path.join(UPLOADS_DIR, 'places')));
 
   // Photos require either a valid logged-in session (via JWT with the
   // password_version gate) OR a share token that covers the SPECIFIC

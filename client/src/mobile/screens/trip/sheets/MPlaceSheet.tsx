@@ -1,11 +1,12 @@
 import { useMemo, useRef, useState } from 'react'
 import {
-  Bookmark, ExternalLink, Map as MapIcon, Navigation, Paperclip,
+  Bookmark, Camera, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
   Pencil, Phone, Plus, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation, translateApiError } from '../../../../i18n'
+import { normalizeImageFile } from '../../../../utils/convertHeic'
 import { assignmentsApi } from '../../../../api/client'
 import { useTripStore } from '../../../../store/tripStore'
 import { useAddonStore } from '../../../../store/addonStore'
@@ -39,7 +40,9 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false)
   const [participantPickerOpen, setParticipantPickerOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [imgBusy, setImgBusy] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
 
   const close = () => {
     planner.setSelectedPlaceId(null)
@@ -114,6 +117,32 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     !f.deleted_at && (String(f.place_id) === String(place?.id) || (f.linked_place_ids || []).includes(place?.id ?? -1)),
   )
 
+  const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !place) return
+    setImgBusy(true)
+    try {
+      await planner.tripActions.uploadPlaceImage(planner.tripId, place.id, await normalizeImageFile(file))
+    } catch (err: unknown) {
+      planner.toast.error(translateApiError(t, err, 'places.imageUploadError'))
+    } finally {
+      setImgBusy(false)
+    }
+  }
+
+  const handleImageRemove = async () => {
+    if (!place) return
+    setImgBusy(true)
+    try {
+      await planner.tripActions.updatePlace(planner.tripId, place.id, { image_url: null })
+    } catch (err: unknown) {
+      planner.toast.error(translateApiError(t, err, 'places.imageUploadError'))
+    } finally {
+      setImgBusy(false)
+    }
+  }
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || [])
     if (!selected.length || !place) return
@@ -158,16 +187,46 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
           <div className="flex-none px-[18px] pt-4">
             <div className="flex items-start gap-3">
               <div className="flex flex-none flex-col items-center gap-[5px]">
-                {place.image_url ? (
-                  <div
-                    className="h-[52px] w-[52px] rounded-[16px] border-[1.5px] border-[color:var(--m-avbr)] bg-cover bg-center"
-                    style={{ backgroundImage: `url('${place.image_url}')` }}
-                  />
-                ) : (
-                  <div className="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] border-[1.5px] border-[color:var(--m-avbr)] bg-[color:var(--m-ic)]">
-                    <CatIcon size={20} strokeWidth={1.8} className="text-m-muted" />
-                  </div>
-                )}
+                <div className="relative h-[52px] w-[52px]">
+                  {place.image_url ? (
+                    <div
+                      className="h-[52px] w-[52px] rounded-[16px] border-[1.5px] border-[color:var(--m-avbr)] bg-cover bg-center"
+                      style={{ backgroundImage: `url('${place.image_url}')` }}
+                    />
+                  ) : (
+                    <div className="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] border-[1.5px] border-[color:var(--m-avbr)] bg-[color:var(--m-ic)]">
+                      <CatIcon size={20} strokeWidth={1.8} className="text-m-muted" />
+                    </div>
+                  )}
+                  {canEditPlaces && (
+                    <>
+                      {/* Tap the thumbnail to set a custom image (#1136). */}
+                      <button
+                        type="button"
+                        onClick={() => { if (!imgBusy) imageInputRef.current?.click() }}
+                        aria-label={place.image_url ? t('places.changeImage') : t('places.uploadImage')}
+                        className="absolute inset-0 flex items-center justify-center rounded-[16px]"
+                        style={{ background: imgBusy ? 'rgba(0,0,0,0.45)' : 'transparent' }}
+                      >
+                        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}>
+                          {imgBusy ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
+                        </span>
+                      </button>
+                      {place.image_url && !imgBusy && (
+                        <button
+                          type="button"
+                          onClick={handleImageRemove}
+                          aria-label={t('places.removeImage')}
+                          className="absolute flex items-center justify-center rounded-full"
+                          style={{ top: -5, right: -5, width: 18, height: 18, background: '#ef4444', color: '#fff', border: '2px solid var(--m-sheet)' }}
+                        >
+                          <X size={9} strokeWidth={3} />
+                        </button>
+                      )}
+                      <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" className="hidden" onChange={handleImagePick} />
+                    </>
+                  )}
+                </div>
                 {category && (
                   <span className="flex max-w-[76px] items-center gap-1 rounded-full border border-[color:var(--m-faint)] px-2 py-[2px] font-geist text-[0.625rem] font-semibold text-m-muted">
                     <CatIcon size={10} strokeWidth={2} className="flex-none" />

@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
+import type { Place } from '../types'
 import {
   weatherResultSchema, type WeatherResult,
   inAppListResultSchema, type InAppListResult,
@@ -398,6 +399,11 @@ export const placesApi = {
   update: (tripId: number | string, id: number | string, data: PlaceUpdateRequest) => apiClient.put(`/trips/${tripId}/places/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number | string) => apiClient.delete(`/trips/${tripId}/places/${id}`).then(r => r.data),
   searchImage: (tripId: number | string, id: number | string) => apiClient.get(`/trips/${tripId}/places/${id}/image`).then(r => r.data),
+  uploadImage: (tripId: number | string, id: number | string, file: File) => {
+    const fd = new FormData()
+    fd.append('image', file)
+    return postMultipart<{ place: Place }>(`/trips/${tripId}/places/${id}/image`, fd)
+  },
   importGpx: (tripId: number | string, file: File, opts?: { waypoints?: boolean; routes?: boolean; tracks?: boolean }) => {
     const fd = new FormData()
     fd.append('file', file)

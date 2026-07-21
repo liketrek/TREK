@@ -7,6 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
+import { isCustomPlaceImage } from './placePhoto'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
@@ -150,7 +151,7 @@ function createMarkerElement(place: Place & { category_color?: string; category_
   // to its stacked slot, not to the map viewport.
   wrap.style.cssText = `width:${outer}px;height:${outer}px;cursor:pointer;`
 
-  const hasPhoto = photoUrl && (photoUrl.startsWith('data:') || photoUrl.startsWith('/api/maps/place-photo/'))
+  const hasPhoto = photoUrl && (photoUrl.startsWith('data:') || photoUrl.startsWith('/api/maps/place-photo/') || photoUrl.startsWith('/uploads/'))
   if (hasPhoto) {
     wrap.innerHTML = `
       <div style="
@@ -884,6 +885,10 @@ export function MapViewGL({
     }
 
     for (const place of places) {
+      // A custom uploaded image is shown directly — never auto-fetch a provider
+      // photo for it (that request would 404 for OSM-only places and, worse, the
+      // fetched thumb would shadow the user's own image). (#1136)
+      if (isCustomPlaceImage(place.image_url)) continue
       const cacheKey = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
       if (!cacheKey) continue
       const cached = getCached(cacheKey)
@@ -942,7 +947,8 @@ export function MapViewGL({
       visiblePlaces.forEach(place => {
         const orderNumbers = dayOrderMap[place.id] ?? null
         const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
-        const photoUrl = (pck && photoUrls[pck]) || place.image_url || null
+        // A custom image wins over the auto-fetched thumb; otherwise fall back to it.
+        const photoUrl = isCustomPlaceImage(place.image_url) ? place.image_url! : ((pck && photoUrls[pck]) || place.image_url || null)
         const selected = place.id === selectedPlaceId
         const el = createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
         el.addEventListener('click', (ev) => {

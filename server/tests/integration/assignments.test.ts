@@ -191,6 +191,30 @@ describe('List assignments', () => {
     expect(res.body.assignments).toHaveLength(0);
   });
 
+  it('ASSIGN-003 — the embedded place carries osm_id so the day-plan thumbnail can auto-fetch (#1136)', async () => {
+    const { user } = createUser(testDb);
+    const { trip, day, place } = setupAssignmentFixtures(user.id);
+    testDb.prepare('UPDATE places SET osm_id = ? WHERE id = ?').run('node:42', place.id);
+
+    await request(app)
+      .post(`/api/trips/${trip.id}/days/${day.id}/assignments`)
+      .set('Cookie', authCookie(user.id))
+      .send({ place_id: place.id });
+
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}/days/${day.id}/assignments`)
+      .set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(200);
+    expect(res.body.assignments[0].place.osm_id).toBe('node:42');
+
+    // Also surfaced through the full trip-days bundle (the actual day-plan source).
+    const daysRes = await request(app)
+      .get(`/api/trips/${trip.id}/days`)
+      .set('Cookie', authCookie(user.id));
+    const embedded = daysRes.body.days.find((d: { id: number }) => d.id === day.id).assignments[0].place;
+    expect(embedded.osm_id).toBe('node:42');
+  });
+
   it('ASSIGN-006 — non-member cannot list assignments', async () => {
     const { user: owner } = createUser(testDb);
     const { user: other } = createUser(testDb);

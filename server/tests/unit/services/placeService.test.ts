@@ -56,6 +56,7 @@ import { createUser, createTrip, createPlace, createCategory, createTag } from '
 import path from 'path';
 import fs from 'fs';
 import { listPlaces, createPlace as svcCreatePlace, getPlace, updatePlace, updatePlacesMany, deletePlace, importGpx, importKmlPlaces, importGoogleList, searchPlaceImage } from '../../../src/services/placeService';
+import { PLACE_IMAGES_DIR } from '../../../src/services/placeImage';
 
 const GPX_FIXTURE = path.join(__dirname, '../../fixtures/test.gpx');
 const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
@@ -695,5 +696,72 @@ describe('importKmlPlaces deduplication', () => {
     const result = importKmlPlaces(String(trip.id), kml);
     expect(result.count).toBe(1);
     expect(result.summary.skippedCount).toBe(1);
+  });
+});
+
+// ── Custom place image reclaim (#1136) ──────────────────────────────────────────
+
+describe('custom place image reclaim', () => {
+  function writePlaceImage(name: string): string {
+    fs.mkdirSync(PLACE_IMAGES_DIR, { recursive: true });
+    const filePath = path.join(PLACE_IMAGES_DIR, name);
+    fs.writeFileSync(filePath, 'jpeg-bytes');
+    return filePath;
+  }
+
+  it('PLACE-SVC-046 — replacing image_url unlinks the previous upload once unreferenced', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
+    const fileA = writePlaceImage('svc-replace-a.jpg');
+    testDb.prepare('UPDATE places SET image_url = ? WHERE id = ?').run('/uploads/places/svc-replace-a.jpg', place.id);
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    updatePlace(String(trip.id), String(place.id), { image_url: '/uploads/places/svc-replace-b.jpg' });
+    expect(fs.existsSync(fileA)).toBe(false);
+  });
+
+  it('PLACE-SVC-047 — clearing image_url to null unlinks the previous upload', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
+    const fileA = writePlaceImage('svc-clear.jpg');
+    testDb.prepare('UPDATE places SET image_url = ? WHERE id = ?').run('/uploads/places/svc-clear.jpg', place.id);
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    updatePlace(String(trip.id), String(place.id), { image_url: null } as any);
+    expect(fs.existsSync(fileA)).toBe(false);
+  });
+
+  it('PLACE-SVC-048 — deletePlace unlinks the uploaded image', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
+    const fileA = writePlaceImage('svc-delete.jpg');
+    testDb.prepare('UPDATE places SET image_url = ? WHERE id = ?').run('/uploads/places/svc-delete.jpg', place.id);
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    deletePlace(String(trip.id), String(place.id));
+    expect(fs.existsSync(fileA)).toBe(false);
+  });
+
+  it('PLACE-SVC-049 — a collection_places reference keeps the file when the trip place is deleted', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Shared Photo' }) as any;
+    const fileA = writePlaceImage('svc-shared.jpg');
+    testDb.prepare('UPDATE places SET image_url = ? WHERE id = ?').run('/uploads/places/svc-shared.jpg', place.id);
+    // A saved-place in a collection holds the same uploaded file — the ref-count guard must protect it.
+    const col = testDb.prepare('INSERT INTO collections (owner_id, name) VALUES (?, ?)').run(user.id, 'Saved');
+    testDb.prepare('INSERT INTO collection_places (collection_id, owner_id, name, image_url) VALUES (?, ?, ?, ?)')
+      .run(col.lastInsertRowid, user.id, 'Shared Photo', '/uploads/places/svc-shared.jpg');
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    deletePlace(String(trip.id), String(place.id));
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    // resetTestDb does not clear collections; drop what this test inserted and its file.
+    testDb.exec('DELETE FROM collection_places; DELETE FROM collections;');
+    fs.unlinkSync(fileA);
   });
 });

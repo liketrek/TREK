@@ -3,6 +3,7 @@ import path from 'path';
 import { db, canAccessTrip } from '../db/database';
 import { broadcastToUser } from '../websocket';
 import { checkPermission } from './permissions';
+import { reclaimPlaceImage } from './placeImage';
 import type {
   Collection,
   CollectionDetailResponse,
@@ -528,6 +529,12 @@ export function updatePlace(userId: number, placeId: number, body: import('@trek
   const currentCollection = collectionIdOfPlace(placeId);
   assertCanEdit(userId, currentCollection);
 
+  // Capture the previous thumbnail so a replaced/cleared custom upload (#1136)
+  // can be reclaimed once nothing references it any more.
+  const prevImage = body.image_url !== undefined
+    ? (db.prepare('SELECT image_url FROM collection_places WHERE id = ?').get(placeId) as { image_url: string | null } | undefined)?.image_url ?? null
+    : null;
+
   const updates: string[] = [];
   const params: (string | number | null)[] = [];
   if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
@@ -535,6 +542,7 @@ export function updatePlace(userId: number, placeId: number, body: import('@trek
   if (body.notes !== undefined) { updates.push('notes = ?'); params.push(body.notes ?? null); }
   if (body.status !== undefined) { updates.push('status = ?'); params.push(body.status); }
   if (body.category_id !== undefined) { updates.push('category_id = ?'); params.push(body.category_id ?? null); }
+  if (body.image_url !== undefined) { updates.push('image_url = ?'); params.push(body.image_url ?? null); }
   if (body.links !== undefined) { updates.push('links = ?'); params.push(serializeLinks(body.links)); }
 
   let movedTo: number | null = null;
@@ -561,6 +569,10 @@ export function updatePlace(userId: number, placeId: number, body: import('@trek
   if (movedTo) db.prepare('DELETE FROM collection_place_labels WHERE collection_place_id = ?').run(placeId);
   if (body.label_ids !== undefined) setPlaceLabels(placeId, movedTo ?? currentCollection, body.label_ids);
 
+  if (body.image_url !== undefined && prevImage !== (body.image_url ?? null)) {
+    reclaimPlaceImage(prevImage);
+  }
+
   notifyCollectionUsers(currentCollection, socketId, 'collections:updated');
   if (movedTo) notifyCollectionUsers(movedTo, socketId, 'collections:updated');
   return getPlaceById(placeId);
@@ -577,22 +589,38 @@ export function setStatus(userId: number, placeId: number, status: CollectionSta
 export function deletePlace(userId: number, placeId: number, socketId?: string): void {
   const collectionId = collectionIdOfPlace(placeId);
   assertCanDelete(userId, collectionId);
+  const image = (db.prepare('SELECT image_url FROM collection_places WHERE id = ?').get(placeId) as { image_url: string | null } | undefined)?.image_url ?? null;
   db.prepare('DELETE FROM collection_places WHERE id = ?').run(placeId); // CASCADE drops tags. NO photo-cache reclaim.
+  reclaimPlaceImage(image);
   notifyCollectionUsers(collectionId, socketId, 'collections:updated');
 }
 
 export function deletePlacesMany(userId: number, ids: number[], socketId?: string): number[] {
   const deleted: number[] = [];
   const touched = new Set<number>();
+  const images: (string | null)[] = [];
   for (const id of ids) {
     const collectionId = collectionIdOfPlace(id);
     assertCanDelete(userId, collectionId);
+    images.push((db.prepare('SELECT image_url FROM collection_places WHERE id = ?').get(id) as { image_url: string | null } | undefined)?.image_url ?? null);
     db.prepare('DELETE FROM collection_places WHERE id = ?').run(id);
     deleted.push(id);
     touched.add(collectionId);
   }
+  for (const image of images) reclaimPlaceImage(image);
   touched.forEach(cid => notifyCollectionUsers(cid, socketId, 'collections:updated'));
   return deleted;
+}
+
+/** Set (or clear) a saved place's custom thumbnail, reclaiming the previous upload. */
+export function setPlaceImage(userId: number, placeId: number, imageUrl: string | null, socketId?: string): CollectionPlace {
+  const collectionId = collectionIdOfPlace(placeId);
+  assertCanEdit(userId, collectionId);
+  const prev = (db.prepare('SELECT image_url FROM collection_places WHERE id = ?').get(placeId) as { image_url: string | null } | undefined)?.image_url ?? null;
+  db.prepare('UPDATE collection_places SET image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(imageUrl, placeId);
+  if (prev !== imageUrl) reclaimPlaceImage(prev);
+  notifyCollectionUsers(collectionId, socketId, 'collections:updated');
+  return getPlaceById(placeId);
 }
 
 // ---------------------------------------------------------------------------

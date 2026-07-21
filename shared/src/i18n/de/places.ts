@@ -84,6 +84,10 @@ const places: TranslationStrings = {
   'places.nameRequired': 'Bitte einen Namen eingeben',
   'places.saveError': 'Fehler beim Speichern',
   'places.duplicateExists': "'{name}' ist bereits in dieser Reise.",
+  'places.uploadImage': 'Bild hochladen',
+  'places.changeImage': 'Bild ändern',
+  'places.removeImage': 'Bild entfernen',
+  'places.imageUploadError': 'Bild konnte nicht hochgeladen werden',
   'places.addAnyway': 'Trotzdem hinzufügen',
   'places.enrichOnImport': 'Orte über Google anreichern',
   'places.enrichOnImportHint':

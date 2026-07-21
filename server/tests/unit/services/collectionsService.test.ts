@@ -39,11 +39,14 @@ vi.mock('../../../src/websocket', () => ({ broadcastToUser, broadcast: vi.fn() }
 const notifSend = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../../src/services/notificationService', () => ({ send: notifSend }));
 
+import fs from 'fs';
+import path from 'path';
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { createUser, createTrip, createPlace, createCategory, createTag, addTripMember } from '../../helpers/factories';
 import * as svc from '../../../src/services/collectionsService';
 import { removeIfUnreferenced } from '../../../src/services/placePhotoCache';
+import { PLACE_IMAGES_DIR } from '../../../src/services/placeImage';
 
 function clearCollections() {
   testDb.exec(`
@@ -566,5 +569,48 @@ describe('collection labels', () => {
 
     svc.updatePlace(u.id, p.id, { collection_id: b.id });
     expect(svc.getCollection(u.id, b.id).places.find(x => x.id === p.id)!.label_ids).toEqual([]);
+  });
+});
+
+// ── Custom saved-place image (#1136) ─────────────────────────────────────────
+
+describe('custom saved-place image', () => {
+  function writePlaceImage(name: string): string {
+    fs.mkdirSync(PLACE_IMAGES_DIR, { recursive: true });
+    const filePath = path.join(PLACE_IMAGES_DIR, name);
+    fs.writeFileSync(filePath, 'jpeg-bytes');
+    return filePath;
+  }
+
+  it('COLLECTIONS-SVC-060: updatePlace sets image_url', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Photos' });
+    const p = svc.savePlace(u.id, { collection_id: col.id, name: 'Pic' }).place!;
+    const updated = svc.updatePlace(u.id, p.id, { image_url: '/uploads/places/col-set.jpg' });
+    expect(updated.image_url).toBe('/uploads/places/col-set.jpg');
+  });
+
+  it('COLLECTIONS-SVC-061: setPlaceImage stores the url and reclaims a replaced upload', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Photos' });
+    const p = svc.savePlace(u.id, { collection_id: col.id, name: 'Pic' }).place!;
+    const fileA = writePlaceImage('col-replace-a.jpg');
+    svc.setPlaceImage(u.id, p.id, '/uploads/places/col-replace-a.jpg');
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    const res = svc.setPlaceImage(u.id, p.id, '/uploads/places/col-replace-b.jpg');
+    expect(res.image_url).toBe('/uploads/places/col-replace-b.jpg');
+    expect(fs.existsSync(fileA)).toBe(false);
+  });
+
+  it('COLLECTIONS-SVC-062: deletePlace reclaims the uploaded image when unreferenced', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Photos' });
+    const p = svc.savePlace(u.id, { collection_id: col.id, name: 'Pic', image_url: '/uploads/places/col-delete.jpg' }).place!;
+    const fileA = writePlaceImage('col-delete.jpg');
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    svc.deletePlace(u.id, p.id);
+    expect(fs.existsSync(fileA)).toBe(false);
   });
 });
