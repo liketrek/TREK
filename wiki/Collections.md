@@ -48,6 +48,8 @@ Places can be assigned a **category** from the same admin-defined set used acros
 
 Clicking a saved place opens a detail sheet showing a cover photo (fetched automatically when the place has none of its own), its category, its [labels](#custom-labels), a live status control, a markdown description, and links. Editing the place also lets you assign its labels. From there you can edit the place, **copy it into a trip**, or remove it from the list.
 
+To set your own cover instead of the auto-fetched one, use the camera button on the detail sheet's cover to upload an image (JPG, PNG, GIF or WebP, up to 20 MB); the remove button next to it clears the custom image and restores the automatic default.
+
 ## Filtering and bulk actions
 
 Above the places sit compact filters — by **status**, by **category**, and by [**label**](#custom-labels) — plus a **Select** toggle. In select mode you can:

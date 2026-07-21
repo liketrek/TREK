@@ -53,6 +53,12 @@ Type or paste a `lat, lng` pair (e.g. `48.8566, 2.3522`) into the **Latitude** f
 
 Two inline warnings are shown when editing times: one if the end time is set to a value before or equal to the start time, and one if the times overlap with another place already assigned to the same day.
 
+## Custom place image
+
+By default a place's thumbnail is fetched automatically (from Google/OpenStreetMap when the place was imported or matched, otherwise a category icon). To use your own photo instead, open the place's detail panel and click its round thumbnail — pick an image and it becomes that place's thumbnail everywhere (list, map marker, itinerary, PDF export and shared trips). A small remove button on the thumbnail clears the custom image and restores the automatic default. Accepted formats are JPG, PNG, GIF and WebP (HEIC is converted automatically), up to 20 MB.
+
+The same control is available on saved places in [Collections](Collections#place-detail).
+
 ## Importing multiple places
 
 Drag a `.gpx`, `.kml`, or `.kmz` file onto the Places sidebar to import all waypoints or features at once. You can also import a saved-list share URL using the **Import list** button in the sidebar header — both Google Maps and Naver Maps list URLs are supported.
