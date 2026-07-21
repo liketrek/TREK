@@ -80,6 +80,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Promemoria di viaggio',
   'settings.notifyTodoDue': 'Attività in scadenza',
   'settings.notifyVacayInvite': 'Inviti fusione Vacay',
+  'settings.notifyVacayShare': 'Condivisioni calendario Vacay',
   'settings.notifyPhotosShared': 'Foto condivise (Immich)',
   'settings.notifyCollabMessage': 'Messaggi chat (Collab)',
   'settings.notifyPackingTagged': 'Lista valigia: assegnazioni',
@@ -429,7 +430,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Barra di navigazione inferiore',
-  'settings.appearance.mobileNav.hint': 'Scegli quali elementi appaiono nella barra e quali sotto «Altro». La Dashboard resta sempre per prima.',
+  'settings.appearance.mobileNav.hint':
+    'Scegli quali elementi appaiono nella barra e quali sotto «Altro». La Dashboard resta sempre per prima.',
   'settings.appearance.mobileNav.inBar': 'Nella barra',
   'settings.appearance.mobileNav.underMore': 'Sotto «Altro»',
   'settings.appearance.mobileNav.moreEmpty': 'Ancora niente qui — tutto entra nella barra.',
@@ -437,7 +439,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Sposta sotto «Altro»',
   'settings.appearance.mobileNav.toBar': 'Sposta nella barra',
   'settings.appearance.dashOrder': 'Ordine della dashboard',
-  'settings.appearance.dashOrder.hint': 'Riorganizza come si impilano l’elenco dei viaggi e i widget nella dashboard del telefono. Il viaggio in evidenza resta sempre in cima.',
+  'settings.appearance.dashOrder.hint':
+    'Riorganizza come si impilano l’elenco dei viaggi e i widget nella dashboard del telefono. Il viaggio in evidenza resta sempre in cima.',
   'settings.appearance.dashOrder.trips': 'Viaggi',
   'settings.appearance.dashOrder.hidden': 'Nascosto',
   'settings.general.languageRegion': 'Language & region',
@@ -506,7 +509,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Quando',
   'settings.pluginActivity.columns.status': 'Esito',
   'settings.alwaysShowRoutes': 'Mostra sempre i percorsi delle prenotazioni',
-  'settings.alwaysShowRoutesHint': 'Mostra automaticamente sulla mappa il percorso di ogni volo, treno e altra prenotazione, senza doverlo attivare singolarmente.',
+  'settings.alwaysShowRoutesHint':
+    'Mostra automaticamente sulla mappa il percorso di ogni volo, treno e altra prenotazione, senza doverlo attivare singolarmente.',
 };
 
 export default settings;

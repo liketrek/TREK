@@ -80,6 +80,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Lembretes de viagem',
   'settings.notifyTodoDue': 'Tarefa com vencimento',
   'settings.notifyVacayInvite': 'Convites de fusão Vacay',
+  'settings.notifyVacayShare': 'Compartilhamentos de calendário Vacay',
   'settings.notifyPhotosShared': 'Fotos compartilhadas (Immich)',
   'settings.notifyCollabMessage': 'Mensagens de chat (Colab)',
   'settings.notifyPackingTagged': 'Lista de mala: atribuições',
@@ -429,7 +430,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Barra inferior',
-  'settings.appearance.mobileNav.hint': 'Escolha quais itens aparecem na barra e quais ficam em “Mais”. O Dashboard vem sempre primeiro.',
+  'settings.appearance.mobileNav.hint':
+    'Escolha quais itens aparecem na barra e quais ficam em “Mais”. O Dashboard vem sempre primeiro.',
   'settings.appearance.mobileNav.inBar': 'Na barra',
   'settings.appearance.mobileNav.underMore': 'Em “Mais”',
   'settings.appearance.mobileNav.moreEmpty': 'Nada aqui ainda — tudo cabe na barra.',
@@ -437,7 +439,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Mover para “Mais”',
   'settings.appearance.mobileNav.toBar': 'Mover para a barra',
   'settings.appearance.dashOrder': 'Ordem do painel',
-  'settings.appearance.dashOrder.hint': 'Reorganize como a lista de viagens e os widgets se empilham no painel do celular. A viagem em destaque fica sempre no topo.',
+  'settings.appearance.dashOrder.hint':
+    'Reorganize como a lista de viagens e os widgets se empilham no painel do celular. A viagem em destaque fica sempre no topo.',
   'settings.appearance.dashOrder.trips': 'Viagens',
   'settings.appearance.dashOrder.hidden': 'Oculto',
   'settings.general.languageRegion': 'Language & region',
@@ -506,7 +509,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Quando',
   'settings.pluginActivity.columns.status': 'Resultado',
   'settings.alwaysShowRoutes': 'Sempre mostrar rotas de reserva',
-  'settings.alwaysShowRoutesHint': 'Mostra automaticamente no mapa a rota de cada voo, trem e outra reserva, sem precisar ativar item por item.',
+  'settings.alwaysShowRoutesHint':
+    'Mostra automaticamente no mapa a rota de cada voo, trem e outra reserva, sem precisar ativar item por item.',
 };
 
 export default settings;

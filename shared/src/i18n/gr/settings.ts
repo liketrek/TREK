@@ -86,6 +86,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Υπενθυμίσεις ταξιδιού',
   'settings.notifyTodoDue': 'Εκκρεμότητα λήγει σύντομα',
   'settings.notifyVacayInvite': 'Προσκλήσεις Vacay fusion',
+  'settings.notifyVacayShare': 'Κοινοποιήσεις ημερολογίου Vacay',
   'settings.notifyPhotosShared': 'Κοινόχρηστες φωτογραφίες (Immich)',
   'settings.notifyCollabMessage': 'Μηνύματα συνομιλίας (Collab)',
   'settings.notifyPackingTagged': 'Λίστα πακεταρίσματος: αναθέσεις',
@@ -439,7 +440,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Κάτω γραμμή πλοήγησης',
-  'settings.appearance.mobileNav.hint': 'Επιλέξτε ποια στοιχεία εμφανίζονται στη γραμμή και ποια βρίσκονται στο μενού «Περισσότερα». Ο πίνακας ελέγχου παραμένει πάντα πρώτος.',
+  'settings.appearance.mobileNav.hint':
+    'Επιλέξτε ποια στοιχεία εμφανίζονται στη γραμμή και ποια βρίσκονται στο μενού «Περισσότερα». Ο πίνακας ελέγχου παραμένει πάντα πρώτος.',
   'settings.appearance.mobileNav.inBar': 'Στη γραμμή',
   'settings.appearance.mobileNav.underMore': 'Στο μενού «Περισσότερα»',
   'settings.appearance.mobileNav.moreEmpty': 'Τίποτα εδώ ακόμη — όλα χωρούν στη γραμμή.',
@@ -447,7 +449,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Μετακίνηση στο μενού «Περισσότερα»',
   'settings.appearance.mobileNav.toBar': 'Μετακίνηση στη γραμμή',
   'settings.appearance.dashOrder': 'Σειρά πίνακα',
-  'settings.appearance.dashOrder.hint': 'Αλλάξτε τη σειρά με την οποία στοιβάζονται η λίστα ταξιδιών και τα widget στον πίνακα του κινητού σας. Το προβεβλημένο ταξίδι παραμένει πάντα στην κορυφή.',
+  'settings.appearance.dashOrder.hint':
+    'Αλλάξτε τη σειρά με την οποία στοιβάζονται η λίστα ταξιδιών και τα widget στον πίνακα του κινητού σας. Το προβεβλημένο ταξίδι παραμένει πάντα στην κορυφή.',
   'settings.appearance.dashOrder.trips': 'Ταξίδια',
   'settings.appearance.dashOrder.hidden': 'Κρυφό',
   'settings.general.languageRegion': 'Language & region',
@@ -517,7 +520,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Πότε',
   'settings.pluginActivity.columns.status': 'Αποτέλεσμα',
   'settings.alwaysShowRoutes': 'Πάντα εμφάνιση διαδρομών κράτησης',
-  'settings.alwaysShowRoutesHint': 'Εμφανίζει αυτόματα στον χάρτη τη διαδρομή κάθε πτήσης, τρένου και άλλης κράτησης, χωρίς να χρειάζεται να την ενεργοποιείτε μία προς μία.',
+  'settings.alwaysShowRoutesHint':
+    'Εμφανίζει αυτόματα στον χάρτη τη διαδρομή κάθε πτήσης, τρένου και άλλης κράτησης, χωρίς να χρειάζεται να την ενεργοποιείτε μία προς μία.',
 };
 
 export default settings;

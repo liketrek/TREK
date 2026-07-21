@@ -94,5 +94,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo4': 'Configurações como feriados nacionais e da empresa são compartilhadas.',
   'vacay.fuseInfo5':
     'A fusão pode ser encerrada a qualquer momento por qualquer parte. Suas entradas serão preservadas.',
+  'vacay.sharedCalendars': 'Calendários compartilhados',
+  'vacay.shareCalendar': 'Compartilhar calendário',
+  'vacay.shareCalendarHint':
+    'Permita que outro usuário TREK veja seu calendário de férias. Somente visualização — sem fusão, sem edição.',
+  'vacay.sharedWithYou': 'Compartilhado com você',
+  'vacay.youShareWith': 'Você compartilha com',
+  'vacay.viewOnly': 'somente visualização',
+  'vacay.share': 'Compartilhar',
+  'vacay.shareSent': 'Calendário compartilhado',
+  'vacay.shareFailed': 'Não foi possível compartilhar o calendário',
+  'vacay.stopSharing': 'Parar de compartilhar',
+  'vacay.showInCalendar': 'Mostrar no calendário',
+  'vacay.hideFromCalendar': 'Ocultar do calendário',
+  'vacay.sharedEmpty': 'Mostrem seus calendários um ao outro sem fundi-los.',
+  'vacay.sharedLegend': 'Compartilhado (somente visualização)',
 };
 export default vacay;

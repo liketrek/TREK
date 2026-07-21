@@ -86,6 +86,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Lời nhắc chuyến đi',
   'settings.notifyTodoDue': 'Việc cần làm sắp đến hạn',
   'settings.notifyVacayInvite': 'Lời mời kết hợp Vacay',
+  'settings.notifyVacayShare': 'Chia sẻ lịch Vacay',
   'settings.notifyPhotosShared': 'Ảnh được chia sẻ (Immich)',
   'settings.notifyCollabMessage': 'Tin nhắn trò chuyện (Cộng tác)',
   'settings.notifyPackingTagged': 'Danh sách đóng gói: phân công',
@@ -431,7 +432,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Địa chỉ, nhãn',
   'settings.appearance.experimental': 'Thử nghiệm',
   'settings.appearance.mobileNav': 'Thanh điều hướng dưới',
-  'settings.appearance.mobileNav.hint': 'Chọn mục nào hiển thị trên thanh và mục nào nằm trong “Thêm”. Bảng điều khiển luôn đứng đầu.',
+  'settings.appearance.mobileNav.hint':
+    'Chọn mục nào hiển thị trên thanh và mục nào nằm trong “Thêm”. Bảng điều khiển luôn đứng đầu.',
   'settings.appearance.mobileNav.inBar': 'Trên thanh',
   'settings.appearance.mobileNav.underMore': 'Trong “Thêm”',
   'settings.appearance.mobileNav.moreEmpty': 'Chưa có gì ở đây — mọi mục đều vừa trên thanh.',
@@ -439,7 +441,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Chuyển vào “Thêm”',
   'settings.appearance.mobileNav.toBar': 'Chuyển lên thanh',
   'settings.appearance.dashOrder': 'Thứ tự bảng điều khiển',
-  'settings.appearance.dashOrder.hint': 'Sắp xếp lại cách danh sách chuyến đi và các tiện ích xếp chồng trên bảng điều khiển điện thoại. Chuyến đi nổi bật luôn ở trên cùng.',
+  'settings.appearance.dashOrder.hint':
+    'Sắp xếp lại cách danh sách chuyến đi và các tiện ích xếp chồng trên bảng điều khiển điện thoại. Chuyến đi nổi bật luôn ở trên cùng.',
   'settings.appearance.dashOrder.trips': 'Chuyến đi',
   'settings.appearance.dashOrder.hidden': 'Đã ẩn',
   'settings.general.languageRegion': 'Ngôn ngữ & khu vực',
@@ -508,7 +511,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Thời điểm',
   'settings.pluginActivity.columns.status': 'Kết quả',
   'settings.alwaysShowRoutes': 'Luôn hiển thị tuyến đường đặt chỗ',
-  'settings.alwaysShowRoutesHint': 'Tự động hiển thị trên bản đồ tuyến đường của mỗi chuyến bay, tàu hỏa và đặt chỗ khác, không cần bật riêng từng mục.',
+  'settings.alwaysShowRoutesHint':
+    'Tự động hiển thị trên bản đồ tuyến đường của mỗi chuyến bay, tàu hỏa và đặt chỗ khác, không cần bật riêng từng mục.',
 };
 
 export default settings;

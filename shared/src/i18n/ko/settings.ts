@@ -79,6 +79,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': '여행 리마인더',
   'settings.notifyTodoDue': '할 일 마감 임박',
   'settings.notifyVacayInvite': 'Vacay 퓨전 초대',
+  'settings.notifyVacayShare': 'Vacay 캘린더 공유',
   'settings.notifyPhotosShared': '공유된 사진 (Immich)',
   'settings.notifyCollabMessage': '채팅 메시지 (Collab)',
   'settings.notifyPackingTagged': '짐 목록: 배정',
@@ -417,7 +418,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': '하단 내비게이션 바',
-  'settings.appearance.mobileNav.hint': '바에 표시할 항목과 「더보기」에 넣을 항목을 선택하세요. 대시보드는 항상 맨 앞에 고정됩니다.',
+  'settings.appearance.mobileNav.hint':
+    '바에 표시할 항목과 「더보기」에 넣을 항목을 선택하세요. 대시보드는 항상 맨 앞에 고정됩니다.',
   'settings.appearance.mobileNav.inBar': '바에 표시',
   'settings.appearance.mobileNav.underMore': '「더보기」에 표시',
   'settings.appearance.mobileNav.moreEmpty': '아직 비어 있습니다 — 모든 항목이 바에 들어갑니다.',
@@ -425,7 +427,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': '「더보기」에 넣기',
   'settings.appearance.mobileNav.toBar': '바에 넣기',
   'settings.appearance.dashOrder': '대시보드 순서',
-  'settings.appearance.dashOrder.hint': '휴대폰 대시보드에서 여행 목록과 위젯이 표시되는 순서를 조정하세요. 대표 여행은 항상 맨 위에 고정됩니다.',
+  'settings.appearance.dashOrder.hint':
+    '휴대폰 대시보드에서 여행 목록과 위젯이 표시되는 순서를 조정하세요. 대표 여행은 항상 맨 위에 고정됩니다.',
   'settings.appearance.dashOrder.trips': '여행',
   'settings.appearance.dashOrder.hidden': '숨김',
   'settings.general.languageRegion': 'Language & region',
@@ -494,7 +497,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': '시간',
   'settings.pluginActivity.columns.status': '결과',
   'settings.alwaysShowRoutes': '예약 경로 항상 표시',
-  'settings.alwaysShowRoutesHint': '항공편, 기차 등 모든 예약의 경로를 개별적으로 켤 필요 없이 지도에 자동으로 표시합니다.',
+  'settings.alwaysShowRoutesHint':
+    '항공편, 기차 등 모든 예약의 경로를 개별적으로 켤 필요 없이 지도에 자동으로 표시합니다.',
 };
 
 export default settings;

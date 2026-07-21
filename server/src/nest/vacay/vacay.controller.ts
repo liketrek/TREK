@@ -11,10 +11,12 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { vacayShareUpdateRequestSchema, type VacayShareUpdateRequest } from '@trek/shared';
 import type { User } from '../../types';
 import { VacayService } from './vacay.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
 
 /**
  * /api/addons/vacay — shared vacation-day planner.
@@ -232,6 +234,59 @@ export class VacayController {
       throw new HttpException({ error: 'User not in plan' }, 403);
     }
     this.vacay.updateStats(userId, planId, year, body.vacation_days as number, socketId);
+    return { success: true };
+  }
+
+  @Get('shares')
+  shares(@CurrentUser() user: User) {
+    return this.vacay.listShares(user.id);
+  }
+
+  @Post('shares')
+  @HttpCode(200)
+  share(
+    @CurrentUser() user: User,
+    @Body('user_id') userIdInput?: number | string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    if (!userIdInput) {
+      throw new HttpException({ error: 'user_id required' }, 400);
+    }
+    const result = this.vacay.shareCalendar(user.id, user.email, parseInt(String(userIdInput)), socketId);
+    if (result.error) {
+      throw new HttpException({ error: result.error }, result.status!);
+    }
+    return { success: true };
+  }
+
+  @Get('shares/available-users')
+  shareAvailableUsers(@CurrentUser() user: User) {
+    return { users: this.vacay.getShareAvailableUsers(user.id) };
+  }
+
+  @Get('shares/calendars/:year')
+  sharedCalendars(@CurrentUser() user: User, @Param('year') year: string) {
+    return { calendars: this.vacay.getSharedCalendars(user.id, year) };
+  }
+
+  @Put('shares/:id')
+  updateShare(
+    @CurrentUser() user: User,
+    @Param('id') idParam: string,
+    @Body(new ZodValidationPipe(vacayShareUpdateRequestSchema)) body: VacayShareUpdateRequest,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    if (!this.vacay.setShareHidden(parseInt(idParam), user.id, body.hidden, socketId)) {
+      throw new HttpException({ error: 'Share not found' }, 404);
+    }
+    return { success: true };
+  }
+
+  @Delete('shares/:id')
+  deleteShare(@CurrentUser() user: User, @Param('id') idParam: string, @Headers('x-socket-id') socketId?: string) {
+    if (!this.vacay.removeShare(parseInt(idParam), user.id, socketId)) {
+      throw new HttpException({ error: 'Share not found' }, 404);
+    }
     return { success: true };
   }
 

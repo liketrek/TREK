@@ -170,6 +170,22 @@ export function notifyPlanUsers(planId: number, excludeSid: string | undefined, 
     const members = db.prepare("SELECT user_id FROM vacay_plan_members WHERE plan_id = ? AND status = 'accepted'").all(planId) as { user_id: number }[];
     members.forEach(m => userIds.push(m.user_id));
     userIds.forEach(id => broadcastToUser(id, { type: event }, excludeSid));
+    // Pending-invite events carry nothing a read-only viewer could see; every
+    // other event may change entries, colors or company holidays.
+    if (event !== 'vacay:invite' && event !== 'vacay:declined' && event !== 'vacay:cancelled') {
+      notifyShareViewers(userIds, excludeSid);
+    }
+  } catch { /* websocket not available */ }
+}
+
+export function notifyShareViewers(ownerIds: number[], excludeSid?: string): void {
+  if (ownerIds.length === 0) return;
+  try {
+    const { broadcastToUser } = require('../websocket');
+    const rows = db.prepare(
+      `SELECT DISTINCT user_id FROM vacay_shares WHERE owner_id IN (${ownerIds.map(() => '?').join(',')})`
+    ).all(...ownerIds) as { user_id: number }[];
+    rows.forEach(r => broadcastToUser(r.user_id, { type: 'vacay:shared-update' }, excludeSid));
   } catch { /* websocket not available */ }
 }
 
@@ -487,6 +503,8 @@ export function dissolvePlan(userId: number, socketId: string | undefined): void
     const { broadcastToUser } = require('../websocket');
     allUserIds.filter(id => id !== userId).forEach(id => broadcastToUser(id, { type: 'vacay:dissolved' }));
   } catch { /* */ }
+  // Everyone's entries just moved back to their own plans — refresh read-only viewers.
+  notifyShareViewers(allUserIds, socketId);
 }
 
 // ---------------------------------------------------------------------------
@@ -504,6 +522,195 @@ export function getAvailableUsers(userId: number, planId: number) {
     ))
     ORDER BY u.username
   `).all(userId, planId);
+}
+
+// ---------------------------------------------------------------------------
+// Read-only calendar shares (#444/#667)
+// ---------------------------------------------------------------------------
+//
+// A share lets another user VIEW someone's vacation days without fusing plans:
+// no edit rights, no data migration. The share follows the person (owner_id),
+// not a plan, so it keeps working across fusion and dissolution — viewers see
+// the owner's entries in whatever plan the owner is currently active in.
+
+export interface VacayShare {
+  id: number;
+  owner_id: number;
+  user_id: number;
+  hidden: number;
+  created_at?: string;
+}
+
+/** Like getActivePlan, but never lazily creates a plan for the user. */
+function peekActivePlan(userId: number): VacayPlan | undefined {
+  const membership = db.prepare(`
+    SELECT plan_id FROM vacay_plan_members WHERE user_id = ? AND status = 'accepted'
+  `).get(userId) as { plan_id: number } | undefined;
+  if (membership) {
+    return db.prepare('SELECT * FROM vacay_plans WHERE id = ?').get(membership.plan_id) as VacayPlan | undefined;
+  }
+  return db.prepare('SELECT * FROM vacay_plans WHERE owner_id = ?').get(userId) as VacayPlan | undefined;
+}
+
+/** Colors already taken in the viewer's own calendar (their plan's members). */
+function viewerColors(viewerId: number): Set<string> {
+  const plan = peekActivePlan(viewerId);
+  if (!plan) return new Set(['#6366f1']);
+  const rows = db.prepare('SELECT color FROM vacay_user_colors WHERE plan_id = ?').all(plan.id) as { color: string }[];
+  return new Set(rows.length > 0 ? rows.map(r => r.color) : ['#6366f1']);
+}
+
+/**
+ * Display color for a shared calendar. Starts from the owner's own color, but
+ * remaps to the first free preset when it collides with the viewer's plan
+ * members or an earlier share — otherwise two people on the default indigo
+ * would be indistinguishable in the overlay.
+ */
+function shareDisplayColor(ownerId: number, usedColors: Set<string>): string {
+  const plan = peekActivePlan(ownerId);
+  const row = plan
+    ? db.prepare('SELECT color FROM vacay_user_colors WHERE user_id = ? AND plan_id = ?').get(ownerId, plan.id) as { color: string } | undefined
+    : undefined;
+  let color = row?.color || '#6366f1';
+  if (usedColors.has(color)) {
+    // Preset pool exhausted? Derive a stable per-owner hue instead of colliding.
+    color = COLORS.find(c => !usedColors.has(c)) || `hsl(${Math.round((ownerId * 137.508) % 360)} 65% 60%)`;
+  }
+  usedColors.add(color);
+  return color;
+}
+
+/** Users the viewer already sees in full via their active plan (owner + members). */
+function viewerCoMemberIds(viewerId: number): Set<number> {
+  const plan = peekActivePlan(viewerId);
+  return new Set(plan ? getPlanUsers(plan.id).map(u => u.id) : []);
+}
+
+export function listShares(userId: number) {
+  // Usernames only, like the share picker — emails stay out of the share surface.
+  const outgoing = db.prepare(`
+    SELECT s.id, s.user_id, u.username
+    FROM vacay_shares s JOIN users u ON s.user_id = u.id
+    WHERE s.owner_id = ? ORDER BY s.id
+  `).all(userId) as { id: number; user_id: number; username: string }[];
+  const incomingRows = db.prepare(`
+    SELECT s.id, s.owner_id, s.hidden, u.username
+    FROM vacay_shares s JOIN users u ON s.owner_id = u.id
+    WHERE s.user_id = ? ORDER BY s.id
+  `).all(userId) as { id: number; owner_id: number; hidden: number; username: string }[];
+  // Shares from someone the viewer is meanwhile fused with lie dormant — the
+  // plan already shows that calendar in full. They resume after dissolution.
+  const coMembers = viewerCoMemberIds(userId);
+  const usedColors = viewerColors(userId);
+  const incoming = incomingRows.filter(s => !coMembers.has(s.owner_id)).map(s => ({
+    id: s.id,
+    owner_id: s.owner_id,
+    username: s.username,
+    color: shareDisplayColor(s.owner_id, usedColors),
+    hidden: !!s.hidden,
+  }));
+  return { outgoing, incoming };
+}
+
+export function shareCalendar(ownerId: number, ownerEmail: string, targetUserId: number, socketId?: string): { error?: string; status?: number } {
+  if (targetUserId === ownerId) return { error: 'Cannot share with yourself', status: 400 };
+
+  const targetUser = db.prepare('SELECT id FROM users WHERE id = ?').get(targetUserId);
+  if (!targetUser) return { error: 'User not found', status: 404 };
+
+  const existing = db.prepare('SELECT id FROM vacay_shares WHERE owner_id = ? AND user_id = ?').get(ownerId, targetUserId);
+  if (existing) return { error: 'Already shared', status: 400 };
+
+  // Plan members already see the whole calendar — sharing with them is moot.
+  if (getPlanUsers(getActivePlanId(ownerId)).find(u => u.id === targetUserId)) {
+    return { error: 'User is already in your calendar', status: 400 };
+  }
+
+  db.prepare('INSERT INTO vacay_shares (owner_id, user_id) VALUES (?, ?)').run(ownerId, targetUserId);
+
+  try {
+    const { broadcastToUser } = require('../websocket');
+    broadcastToUser(targetUserId, { type: 'vacay:share', from: { id: ownerId } });
+    // The owner's other devices refresh their outgoing list too.
+    broadcastToUser(ownerId, { type: 'vacay:share', from: { id: ownerId } }, socketId);
+  } catch { /* websocket not available */ }
+
+  import('../services/notificationService').then(({ send }) => {
+    send({ event: 'vacay_share', actorId: ownerId, scope: 'user', targetId: targetUserId, params: { actor: ownerEmail } }).catch(() => {});
+  });
+
+  return {};
+}
+
+export function removeShare(shareId: number, userId: number, socketId?: string): boolean {
+  const share = db.prepare('SELECT * FROM vacay_shares WHERE id = ?').get(shareId) as VacayShare | undefined;
+  // The owner revokes, the viewer removes — both may delete, nobody else.
+  if (!share || (share.owner_id !== userId && share.user_id !== userId)) return false;
+  db.prepare('DELETE FROM vacay_shares WHERE id = ?').run(shareId);
+  try {
+    const { broadcastToUser } = require('../websocket');
+    broadcastToUser(share.owner_id, { type: 'vacay:share-removed' }, socketId);
+    broadcastToUser(share.user_id, { type: 'vacay:share-removed' }, socketId);
+  } catch { /* websocket not available */ }
+  return true;
+}
+
+export function setShareHidden(shareId: number, userId: number, hidden: boolean, socketId?: string): boolean {
+  const share = db.prepare('SELECT * FROM vacay_shares WHERE id = ?').get(shareId) as VacayShare | undefined;
+  if (!share || share.user_id !== userId) return false;
+  db.prepare('UPDATE vacay_shares SET hidden = ? WHERE id = ?').run(hidden ? 1 : 0, shareId);
+  try {
+    // Keep the viewer's other devices in sync; nobody else is affected.
+    const { broadcastToUser } = require('../websocket');
+    broadcastToUser(userId, { type: 'vacay:shared-update' }, socketId);
+  } catch { /* websocket not available */ }
+  return true;
+}
+
+export function getShareAvailableUsers(userId: number) {
+  const planId = getActivePlanId(userId);
+  // Username only — unlike the fusion picker this lists users from other plans
+  // too, so exposing their emails here would widen the instance directory.
+  return db.prepare(`
+    SELECT u.id, u.username FROM users u
+    WHERE u.id != ?
+    AND u.id NOT IN (SELECT user_id FROM vacay_shares WHERE owner_id = ?)
+    AND u.id NOT IN (
+      SELECT owner_id FROM vacay_plans WHERE id = ?
+      UNION
+      SELECT user_id FROM vacay_plan_members WHERE plan_id = ? AND status = 'accepted'
+    )
+    ORDER BY u.username
+  `).all(userId, userId, planId, planId);
+}
+
+export function getSharedCalendars(viewerId: number, year: string) {
+  const shares = db.prepare(`
+    SELECT s.id, s.owner_id, s.hidden, u.username
+    FROM vacay_shares s JOIN users u ON s.owner_id = u.id
+    WHERE s.user_id = ? ORDER BY s.id
+  `).all(viewerId) as { id: number; owner_id: number; hidden: number; username: string }[];
+
+  // Same dormancy rule as listShares: fused co-members are already fully visible.
+  const coMembers = viewerCoMemberIds(viewerId);
+  const usedColors = viewerColors(viewerId);
+  return shares.filter(s => !coMembers.has(s.owner_id)).map(s => {
+    const color = shareDisplayColor(s.owner_id, usedColors);
+    const plan = peekActivePlan(s.owner_id);
+    if (!plan) {
+      return { share_id: s.id, owner_id: s.owner_id, owner_name: s.username, color, hidden: !!s.hidden, entries: [], companyHolidays: [] };
+    }
+    const entries = db.prepare(
+      'SELECT date, fraction FROM vacay_entries WHERE plan_id = ? AND user_id = ? AND date LIKE ? ORDER BY date'
+    ).all(plan.id, s.owner_id, `${year}-%`);
+    // Company holidays are plan-wide context for "when is this person off";
+    // only exposed while the owner has the feature enabled, and dates only —
+    // the note text may be authored by plan members who aren't part of the share.
+    const companyHolidays = plan.company_holidays_enabled
+      ? db.prepare('SELECT date FROM vacay_company_holidays WHERE plan_id = ? AND date LIKE ? ORDER BY date').all(plan.id, `${year}-%`)
+      : [];
+    return { share_id: s.id, owner_id: s.owner_id, owner_name: s.username, color, hidden: !!s.hidden, entries, companyHolidays };
+  });
 }
 
 // ---------------------------------------------------------------------------

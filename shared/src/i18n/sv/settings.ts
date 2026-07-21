@@ -85,6 +85,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Påminnelser inför resan',
   'settings.notifyTodoDue': 'Att göra ska göras snart',
   'settings.notifyVacayInvite': 'Vacay samanslagnings inbjudningar',
+  'settings.notifyVacayShare': 'Vacay kalender delningar',
   'settings.notifyPhotosShared': 'Delade foton (Immich)',
   'settings.notifyCollabMessage': 'Chatt meddelande (Samarbete)',
   'settings.notifyPackingTagged': 'Packningslista: uppgifter',
@@ -428,7 +429,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Nedre navigeringsfält',
-  'settings.appearance.mobileNav.hint': 'Välj vilka objekt som ska visas i fältet och vilka som hamnar under ”Mer”. Dashboard ligger alltid först.',
+  'settings.appearance.mobileNav.hint':
+    'Välj vilka objekt som ska visas i fältet och vilka som hamnar under ”Mer”. Dashboard ligger alltid först.',
   'settings.appearance.mobileNav.inBar': 'I fältet',
   'settings.appearance.mobileNav.underMore': 'Under ”Mer”',
   'settings.appearance.mobileNav.moreEmpty': 'Inget här ännu — allt får plats i fältet.',
@@ -436,7 +438,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Flytta under ”Mer”',
   'settings.appearance.mobileNav.toBar': 'Flytta till fältet',
   'settings.appearance.dashOrder': 'Instrumentpanelens ordning',
-  'settings.appearance.dashOrder.hint': 'Ändra ordningen på hur reselistan och widgetarna staplas på telefonens instrumentpanel. Den utvalda resan ligger alltid överst.',
+  'settings.appearance.dashOrder.hint':
+    'Ändra ordningen på hur reselistan och widgetarna staplas på telefonens instrumentpanel. Den utvalda resan ligger alltid överst.',
   'settings.appearance.dashOrder.trips': 'Resor',
   'settings.appearance.dashOrder.hidden': 'Dold',
   'settings.general.languageRegion': 'Language & region',
@@ -503,7 +506,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'När',
   'settings.pluginActivity.columns.status': 'Resultat',
   'settings.alwaysShowRoutes': 'Visa alltid bokningsrutter',
-  'settings.alwaysShowRoutesHint': 'Visar automatiskt rutten för varje flyg, tåg och annan bokning på kartan, utan att du behöver aktivera det för varje bokning för sig.',
+  'settings.alwaysShowRoutesHint':
+    'Visar automatiskt rutten för varje flyg, tåg och annan bokning på kartan, utan att du behöver aktivera det för varje bokning för sig.',
 };
 
 export default settings;

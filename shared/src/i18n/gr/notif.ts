@@ -15,6 +15,8 @@ const notif: TranslationStrings = {
   'notif.todo_due.text': 'Η εργασία {todo} στο {trip} λήγει στις {due}',
   'notif.vacay_invite.title': 'Πρόσκληση Σύντηξης Vacay',
   'notif.vacay_invite.text': 'Ο/Η {actor} σας προσκάλεσε να συγχωνεύσετε τα σχέδια διακοπών',
+  'notif.vacay_share.title': 'Κοινοποίηση Ημερολογίου Vacay',
+  'notif.vacay_share.text': 'Ο/Η {actor} κοινοποίησε το ημερολόγιο διακοπών του/της σε εσάς',
   'notif.collection_invite.title': 'Πρόσκληση σε συλλογή',
   'notif.collection_invite.text': 'Ο/Η {actor} σας προσκάλεσε σε μια συλλογή',
   'notif.photos_shared.title': 'Κοινοποίηση Φωτογραφιών',

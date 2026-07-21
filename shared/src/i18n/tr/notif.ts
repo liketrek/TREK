@@ -15,6 +15,8 @@ const notif: TranslationStrings = {
   'notif.todo_due.text': '{trip} içindeki {todo} — son tarih: {due}',
   'notif.vacay_invite.title': 'Vacay Birleştirme Daveti',
   'notif.vacay_invite.text': '{actor} tatil planlarını birleştirmeniz için sizi davet etti',
+  'notif.vacay_share.title': 'Vacay Takvimi Paylaşıldı',
+  'notif.vacay_share.text': '{actor} tatil takvimini sizinle paylaştı',
   'notif.collection_invite.title': 'Koleksiyon daveti',
   'notif.collection_invite.text': '{actor} sizi bir koleksiyona davet etti',
   'notif.photos_shared.title': 'Fotoğraflar Paylaşıldı',

@@ -15,6 +15,8 @@ const notif: TranslationStrings = {
   'notif.todo_due.text': '{trip}의 {todo}이(가) {due}에 마감됩니다',
   'notif.vacay_invite.title': 'Vacay 퓨전 초대',
   'notif.vacay_invite.text': '{actor}이(가) 휴가 계획 공유에 초대했습니다',
+  'notif.vacay_share.title': 'Vacay 캘린더 공유됨',
+  'notif.vacay_share.text': '{actor}이(가) 휴가 캘린더를 공유했습니다',
   'notif.collection_invite.title': '컬렉션 초대',
   'notif.collection_invite.text': '{actor}이(가) 컬렉션에 초대했습니다',
   'notif.photos_shared.title': '사진 공유됨',

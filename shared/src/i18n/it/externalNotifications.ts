@@ -28,6 +28,10 @@ const it: NotificationLocale = {
       title: 'Invito Vacay Fusion',
       body: `${p.actor} ti ha invitato a fondere i piani vacanza. Apri TREK per accettare o rifiutare.`,
     }),
+    vacay_share: (p) => ({
+      title: 'Calendario Vacay condiviso',
+      body: `${p.actor} ha condiviso con te il suo calendario ferie. Apri TREK per vederlo.`,
+    }),
     collection_invite: (p) => ({
       title: 'Invito a una raccolta',
       body: `${p.actor} ti ha invitato a condividere una raccolta. Apri TREK per accettare o rifiutare.`,

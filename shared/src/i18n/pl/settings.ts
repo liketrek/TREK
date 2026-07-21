@@ -78,6 +78,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Przypomnienia o podróżach',
   'settings.notifyTodoDue': 'Zadanie z terminem',
   'settings.notifyVacayInvite': 'Zaproszenia do połączenia kalendarzy',
+  'settings.notifyVacayShare': 'Udostępnienia kalendarza Vacay',
   'settings.notifyPhotosShared': 'Udostępnione zdjęcia (Immich)',
   'settings.notifyCollabMessage': 'Wiadomości czatu (Collab)',
   'settings.notifyPackingTagged': 'Lista pakowania: przypisania',
@@ -429,7 +430,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Dolny pasek nawigacji',
-  'settings.appearance.mobileNav.hint': 'Wybierz, które elementy pojawią się na pasku, a które w menu „Więcej”. Dashboard zawsze pozostaje pierwszy.',
+  'settings.appearance.mobileNav.hint':
+    'Wybierz, które elementy pojawią się na pasku, a które w menu „Więcej”. Dashboard zawsze pozostaje pierwszy.',
   'settings.appearance.mobileNav.inBar': 'Na pasku',
   'settings.appearance.mobileNav.underMore': 'W menu „Więcej”',
   'settings.appearance.mobileNav.moreEmpty': 'Nic tu jeszcze nie ma — wszystko mieści się na pasku.',
@@ -437,7 +439,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Przenieś do menu „Więcej”',
   'settings.appearance.mobileNav.toBar': 'Przenieś na pasek',
   'settings.appearance.dashOrder': 'Kolejność panelu',
-  'settings.appearance.dashOrder.hint': 'Zmień kolejność układania listy podróży i widżetów na panelu telefonu. Wyróżniona podróż zawsze pozostaje na górze.',
+  'settings.appearance.dashOrder.hint':
+    'Zmień kolejność układania listy podróży i widżetów na panelu telefonu. Wyróżniona podróż zawsze pozostaje na górze.',
   'settings.appearance.dashOrder.trips': 'Podróże',
   'settings.appearance.dashOrder.hidden': 'Ukryte',
   'settings.general.languageRegion': 'Language & region',
@@ -506,7 +509,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Kiedy',
   'settings.pluginActivity.columns.status': 'Wynik',
   'settings.alwaysShowRoutes': 'Zawsze pokazuj trasy rezerwacji',
-  'settings.alwaysShowRoutesHint': 'Automatycznie pokazuje na mapie trasę każdego lotu, pociągu i innej rezerwacji, bez konieczności włączania jej pojedynczo.',
+  'settings.alwaysShowRoutesHint':
+    'Automatycznie pokazuje na mapie trasę każdego lotu, pociągu i innej rezerwacji, bez konieczności włączania jej pojedynczo.',
 };
 
 export default settings;

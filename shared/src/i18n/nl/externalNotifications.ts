@@ -28,6 +28,10 @@ const nl: NotificationLocale = {
       title: 'Vacay Fusion uitnodiging',
       body: `${p.actor} nodigt je uit om vakantieplannen te fuseren. Open TREK om te accepteren of af te wijzen.`,
     }),
+    vacay_share: (p) => ({
+      title: 'Vacay-kalender gedeeld',
+      body: `${p.actor} heeft zijn/haar vakantiekalender met je gedeeld. Open TREK om deze te bekijken.`,
+    }),
     collection_invite: (p) => ({
       title: 'Collectie-uitnodiging',
       body: `${p.actor} nodigt je uit om een collectie te delen. Open TREK om te accepteren of af te wijzen.`,

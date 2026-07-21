@@ -28,6 +28,10 @@ const ja: NotificationLocale = {
       title: 'Vacay Fusion招待',
       body: `${p.actor}が休暇プランの統合に招待しています。TREKを開いて承認または拒否してください。`,
     }),
+    vacay_share: (p) => ({
+      title: 'Vacayカレンダーが共有されました',
+      body: `${p.actor}が休暇カレンダーを共有しました。TREKを開いて確認してください。`,
+    }),
     collection_invite: (p) => ({
       title: 'コレクション招待',
       body: `${p.actor}がコレクションの共有に招待しています。TREKを開いて承認または拒否してください。`,

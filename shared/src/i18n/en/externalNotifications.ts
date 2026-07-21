@@ -28,6 +28,10 @@ const en: NotificationLocale = {
       title: 'Vacay Fusion Invite',
       body: `${p.actor} invited you to fuse vacation plans. Open TREK to accept or decline.`,
     }),
+    vacay_share: (p) => ({
+      title: 'Vacay Calendar Shared',
+      body: `${p.actor} shared their vacation calendar with you. Open TREK to view it.`,
+    }),
     collection_invite: (p) => ({
       title: 'Collection invite',
       body: `${p.actor} invited you to share a collection. Open TREK to accept or decline.`,

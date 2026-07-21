@@ -3709,6 +3709,24 @@ function runMigrations(db: Database.Database): void {
       const hasFraction = db.prepare("SELECT 1 FROM pragma_table_info('vacay_entries') WHERE name = 'fraction'").get();
       if (!hasFraction) db.exec('ALTER TABLE vacay_entries ADD COLUMN fraction REAL NOT NULL DEFAULT 1');
     },
+    // Read-only vacay calendar sharing (#444/#667): a user can let other users
+    // view their vacation calendar without fusing plans. owner_id is the sharing
+    // user, user_id the viewer; hidden lets the viewer hide the overlay without
+    // removing the share. Follows the person, not the plan, so it survives
+    // fusion and dissolution.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS vacay_shares (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          hidden INTEGER NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (owner_id, user_id)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_vacay_shares_user ON vacay_shares (user_id);');
+    },
   ];
 
   if (currentVersion < migrations.length) {

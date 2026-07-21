@@ -92,5 +92,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo3': 'Kedua pihak dapat menghapus entri dan mengubah jatah cuti.',
   'vacay.fuseInfo4': 'Pengaturan seperti hari libur nasional dan hari libur perusahaan dibagikan bersama.',
   'vacay.fuseInfo5': 'Penggabungan dapat dipisahkan kapan saja oleh salah satu pihak. Entri kamu akan tetap disimpan.',
+  'vacay.sharedCalendars': 'Kalender yang Dibagikan',
+  'vacay.shareCalendar': 'Bagikan kalender',
+  'vacay.shareCalendarHint':
+    'Izinkan pengguna TREK lain melihat kalender cutimu. Hanya lihat — tanpa penggabungan, tanpa pengeditan.',
+  'vacay.sharedWithYou': 'Dibagikan kepadamu',
+  'vacay.youShareWith': 'Kamu berbagi dengan',
+  'vacay.viewOnly': 'hanya lihat',
+  'vacay.share': 'Bagikan',
+  'vacay.shareSent': 'Kalender dibagikan',
+  'vacay.shareFailed': 'Gagal membagikan kalender',
+  'vacay.stopSharing': 'Berhenti berbagi',
+  'vacay.showInCalendar': 'Tampilkan di kalender',
+  'vacay.hideFromCalendar': 'Sembunyikan dari kalender',
+  'vacay.sharedEmpty': 'Saling tunjukkan kalender kalian tanpa menggabungkannya.',
+  'vacay.sharedLegend': 'Dibagikan (hanya lihat)',
 };
 export default vacay;

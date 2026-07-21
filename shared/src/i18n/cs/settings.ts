@@ -77,6 +77,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Připomínky cest',
   'settings.notifyTodoDue': 'Úkol se blíží',
   'settings.notifyVacayInvite': 'Pozvánky k propojení Vacay',
+  'settings.notifyVacayShare': 'Sdílení kalendáře Vacay',
   'settings.notifyPhotosShared': 'Sdílené fotky (Immich)',
   'settings.notifyCollabMessage': 'Zprávy v chatu (Collab)',
   'settings.notifyPackingTagged': 'Seznam balení: přiřazení',
@@ -422,7 +423,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Dolní navigační lišta',
-  'settings.appearance.mobileNav.hint': 'Vyberte, které položky se zobrazí v liště a které budou v nabídce „Více“. Dashboard zůstává vždy na prvním místě.',
+  'settings.appearance.mobileNav.hint':
+    'Vyberte, které položky se zobrazí v liště a které budou v nabídce „Více“. Dashboard zůstává vždy na prvním místě.',
   'settings.appearance.mobileNav.inBar': 'V liště',
   'settings.appearance.mobileNav.underMore': 'V nabídce „Více“',
   'settings.appearance.mobileNav.moreEmpty': 'Zatím tu nic není — vše se vejde do lišty.',
@@ -430,7 +432,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Přesunout do nabídky „Více“',
   'settings.appearance.mobileNav.toBar': 'Přesunout do lišty',
   'settings.appearance.dashOrder': 'Pořadí na nástěnce',
-  'settings.appearance.dashOrder.hint': 'Změňte pořadí, ve kterém se na nástěnce v telefonu řadí seznam cest a widgety. Vybraná cesta zůstává vždy nahoře.',
+  'settings.appearance.dashOrder.hint':
+    'Změňte pořadí, ve kterém se na nástěnce v telefonu řadí seznam cest a widgety. Vybraná cesta zůstává vždy nahoře.',
   'settings.appearance.dashOrder.trips': 'Cesty',
   'settings.appearance.dashOrder.hidden': 'Skryto',
   'settings.general.languageRegion': 'Language & region',
@@ -498,7 +501,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Kdy',
   'settings.pluginActivity.columns.status': 'Výsledek',
   'settings.alwaysShowRoutes': 'Vždy zobrazovat trasy rezervací',
-  'settings.alwaysShowRoutesHint': 'Automaticky zobrazí na mapě trasu každého letu, vlaku a jiné rezervace, aniž byste ji museli zapínat jednotlivě.',
+  'settings.alwaysShowRoutesHint':
+    'Automaticky zobrazí na mapě trasu každého letu, vlaku a jiné rezervace, aniž byste ji museli zapínat jednotlivě.',
 };
 
 export default settings;

@@ -109,4 +109,28 @@ export class VacayService {
   getHolidays(year: string, country: string) {
     return svc.getHolidays(year, country);
   }
+
+  listShares(userId: number) {
+    return svc.listShares(userId);
+  }
+
+  shareCalendar(ownerId: number, ownerEmail: string, targetUserId: number, socketId?: string) {
+    return svc.shareCalendar(ownerId, ownerEmail, targetUserId, socketId);
+  }
+
+  removeShare(shareId: number, userId: number, socketId: string | undefined): boolean {
+    return svc.removeShare(shareId, userId, socketId);
+  }
+
+  setShareHidden(shareId: number, userId: number, hidden: boolean, socketId: string | undefined): boolean {
+    return svc.setShareHidden(shareId, userId, hidden, socketId);
+  }
+
+  getShareAvailableUsers(userId: number) {
+    return svc.getShareAvailableUsers(userId);
+  }
+
+  getSharedCalendars(viewerId: number, year: string) {
+    return svc.getSharedCalendars(viewerId, year);
+  }
 }

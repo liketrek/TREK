@@ -92,5 +92,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo3': 'Beide können Einträge löschen und den Urlaubsanspruch ändern.',
   'vacay.fuseInfo4': 'Einstellungen wie Feiertage und Betriebsferien werden geteilt.',
   'vacay.fuseInfo5': 'Die Fusion kann jederzeit von beiden Seiten aufgelöst werden. Einträge bleiben erhalten.',
+  'vacay.sharedCalendars': 'Geteilte Kalender',
+  'vacay.shareCalendar': 'Kalender teilen',
+  'vacay.shareCalendarHint':
+    'Lass einen anderen TREK-Benutzer deinen Urlaubskalender sehen. Nur ansehen — keine Fusion, kein Bearbeiten.',
+  'vacay.sharedWithYou': 'Mit dir geteilt',
+  'vacay.youShareWith': 'Du teilst mit',
+  'vacay.viewOnly': 'nur ansehen',
+  'vacay.share': 'Teilen',
+  'vacay.shareSent': 'Kalender geteilt',
+  'vacay.shareFailed': 'Kalender konnte nicht geteilt werden',
+  'vacay.stopSharing': 'Nicht mehr teilen',
+  'vacay.showInCalendar': 'Im Kalender anzeigen',
+  'vacay.hideFromCalendar': 'Im Kalender ausblenden',
+  'vacay.sharedEmpty': 'Zeigt euch gegenseitig eure Kalender, ohne sie zu fusionieren.',
+  'vacay.sharedLegend': 'Geteilt (nur ansehen)',
 };
 export default vacay;

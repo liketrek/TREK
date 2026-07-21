@@ -93,5 +93,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo4': 'Ustawienia, takie jak święta państwowe i urlopy firmowe, są współdzielone.',
   'vacay.fuseInfo5':
     'Połączenie może zostać rozwiązane w dowolnym momencie przez każdą ze stron. Twoje wpisy zostaną zachowane.',
+  'vacay.sharedCalendars': 'Udostępnione kalendarze',
+  'vacay.shareCalendar': 'Udostępnij kalendarz',
+  'vacay.shareCalendarHint':
+    'Pozwól innemu użytkownikowi TREK zobaczyć Twój kalendarz urlopów. Tylko podgląd — bez łączenia i bez edycji.',
+  'vacay.sharedWithYou': 'Udostępnione Tobie',
+  'vacay.youShareWith': 'Udostępniasz dla',
+  'vacay.viewOnly': 'tylko podgląd',
+  'vacay.share': 'Udostępnij',
+  'vacay.shareSent': 'Kalendarz został udostępniony',
+  'vacay.shareFailed': 'Nie udało się udostępnić kalendarza',
+  'vacay.stopSharing': 'Przestań udostępniać',
+  'vacay.showInCalendar': 'Pokaż w kalendarzu',
+  'vacay.hideFromCalendar': 'Ukryj w kalendarzu',
+  'vacay.sharedEmpty': 'Pokażcie sobie nawzajem swoje kalendarze bez ich łączenia.',
+  'vacay.sharedLegend': 'Udostępnione (tylko podgląd)',
 };
 export default vacay;

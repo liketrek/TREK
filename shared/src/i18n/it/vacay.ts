@@ -94,5 +94,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo4': 'Le impostazioni come festività pubbliche e ferie aziendali sono condivise.',
   'vacay.fuseInfo5':
     "L'unione può essere sciolta in qualsiasi momento da una delle due parti. Le tue voci verranno preservate.",
+  'vacay.sharedCalendars': 'Calendari condivisi',
+  'vacay.shareCalendar': 'Condividi calendario',
+  'vacay.shareCalendarHint':
+    'Consenti a un altro utente TREK di vedere il tuo calendario ferie. Sola visualizzazione — nessuna unione, nessuna modifica.',
+  'vacay.sharedWithYou': 'Condivisi con te',
+  'vacay.youShareWith': 'Condividi con',
+  'vacay.viewOnly': 'sola visualizzazione',
+  'vacay.share': 'Condividi',
+  'vacay.shareSent': 'Calendario condiviso',
+  'vacay.shareFailed': 'Impossibile condividere il calendario',
+  'vacay.stopSharing': 'Interrompi condivisione',
+  'vacay.showInCalendar': 'Mostra nel calendario',
+  'vacay.hideFromCalendar': 'Nascondi dal calendario',
+  'vacay.sharedEmpty': 'Mostratevi i calendari a vicenda senza unirli.',
+  'vacay.sharedLegend': 'Condiviso (sola visualizzazione)',
 };
 export default vacay;

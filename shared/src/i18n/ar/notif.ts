@@ -15,6 +15,8 @@ const notif: TranslationStrings = {
   'notif.todo_due.text': '{todo} في {trip} مستحقة في {due}',
   'notif.vacay_invite.title': 'دعوة دمج الإجازة',
   'notif.vacay_invite.text': '{actor} يدعوك لدمج خطط الإجازة',
+  'notif.vacay_share.title': 'تمت مشاركة تقويم Vacay',
+  'notif.vacay_share.text': '{actor} شارك تقويم إجازاته معك',
   'notif.collection_invite.title': 'دعوة إلى مجموعة',
   'notif.collection_invite.text': '{actor} يدعوك لمشاركة مجموعة',
   'notif.photos_shared.title': 'تمت مشاركة الصور',
