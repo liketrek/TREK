@@ -107,6 +107,10 @@ Requires `vacay:read` or `vacay:write` scope.
 | `delete_holiday_calendar` | Remove a holiday calendar from the vacation plan. |
 | `list_holiday_countries` | List countries available for public holiday calendars. |
 | `list_holidays` | List public holidays for a country and year. |
+| `list_vacay_shares` | List read-only calendar shares — who you share your calendar with, and which calendars are shared with you. |
+| `share_vacay_calendar` | Share the current user's vacation calendar with another user (view only, no merge). |
+| `unshare_vacay_calendar` | Remove a read-only calendar share — revoke one you shared, or remove a calendar shared with you. |
+| `get_shared_vacay_calendars` | Get the read-only calendars shared with the current user for a year (entries and company holidays per sharer). |
 
 ### Journey _(Journey addon required)_
 

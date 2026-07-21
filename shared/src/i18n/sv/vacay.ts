@@ -92,5 +92,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo3': 'Båda parter kan radera poster och ändra semesterrättigheter.',
   'vacay.fuseInfo4': 'Inställningar som allmänna helgdagar och företagshelgdagar delas.',
   'vacay.fuseInfo5': 'Sammanslagningen kan när som helst upphävas av endera parten. Dina uppgifter kommer att bevaras.',
+  'vacay.sharedCalendars': 'Delade kalendrar',
+  'vacay.shareCalendar': 'Dela kalender',
+  'vacay.shareCalendarHint':
+    'Låt en annan TREK användare se din semesterkalender. Endast visning — ingen sammanslagning, ingen redigering.',
+  'vacay.sharedWithYou': 'Delas med dig',
+  'vacay.youShareWith': 'Du delar med',
+  'vacay.viewOnly': 'endast visning',
+  'vacay.share': 'Dela',
+  'vacay.shareSent': 'Kalendern har delats',
+  'vacay.shareFailed': 'Kunde inte dela kalendern',
+  'vacay.stopSharing': 'Sluta dela',
+  'vacay.showInCalendar': 'Visa i kalendern',
+  'vacay.hideFromCalendar': 'Dölj från kalendern',
+  'vacay.sharedEmpty': 'Visa varandra era kalendrar utan att slå samman dem.',
+  'vacay.sharedLegend': 'Delad (endast visning)',
 };
 export default vacay;

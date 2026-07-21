@@ -1,4 +1,4 @@
-import { Building2, ChevronLeft, ChevronRight, Eye, Minus, PenLine, Pencil, Plus, Settings2, ShieldCheck, Trash2, Unlink, UserPlus } from 'lucide-react'
+import { Building2, ChevronLeft, ChevronRight, Eye, Minus, PenLine, Pencil, Plus, Settings2, Share2, ShieldCheck, Trash2, Unlink, UserPlus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
@@ -8,6 +8,7 @@ import { useMVacay } from './useMVacay'
 import MVacayMonth from './MVacayMonth'
 import MVacayInviteSheet from './MVacayInviteSheet'
 import MVacaySettingsSheet from './MVacaySettingsSheet'
+import MVacayShareSheet from './MVacayShareSheet'
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
 
 const WEEKDAY_KEYS_MONDAY = ['vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat', 'vacay.sun'] as const
@@ -45,6 +46,9 @@ export default function MVacay() {
       <div className="absolute left-4 right-4 z-[5] flex items-center gap-2 top-[var(--m-safe-top,12px)]">
         <MIconBtn onClick={() => v.setSheet('invite')} ariaLabel={t('vacay.inviteUser')}>
           <UserPlus size={16} strokeWidth={2} className="text-m-muted" />
+        </MIconBtn>
+        <MIconBtn onClick={() => v.setSheet('share')} ariaLabel={t('vacay.sharedCalendars')}>
+          <Share2 size={16} strokeWidth={2} className="text-m-muted" />
         </MIconBtn>
         <span className="flex flex-1 items-center justify-between rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] p-1 shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]">
           <button type="button" onClick={v.prevYear} aria-label={t('mobileVacay.prevYear')} className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full">
@@ -135,6 +139,22 @@ export default function MVacay() {
               </button>
             )
           })}
+          {/* Shared read-only calendars: tap toggles that person's ring overlay. */}
+          {v.incomingShares.map(s => (
+            <button
+              key={`share-${s.id}`}
+              type="button"
+              onClick={() => v.toggleShareHidden(s.id, !s.hidden)}
+              aria-pressed={!s.hidden}
+              className="box-border inline-flex min-w-0 flex-[1_1_calc(25%-6px)] items-center justify-center gap-1 rounded-full px-1 py-1 font-geist text-[0.625rem] font-bold"
+              style={s.hidden
+                ? { background: 'var(--m-sheetop)', border: '1px solid var(--m-rowbr)', color: 'var(--m-faint)', opacity: 0.7 }
+                : { background: `${s.color}1f`, border: `1px solid ${s.color}`, color: 'var(--m-ink)' }}
+            >
+              <span className="h-[9px] w-[9px] flex-none rounded-[3px]" style={{ border: `2px solid ${s.color}` }} />
+              <span className="truncate">{s.username}</span>
+            </button>
+          ))}
           {v.companyHolidaysEnabled && (
             <LegendChip color="#F5D9A6" label={t('mobileVacay.companyLegend')} />
           )}
@@ -280,6 +300,7 @@ export default function MVacay() {
       {/* Sheets */}
       <MVacayInviteSheet open={v.sheet === 'invite'} onClose={() => v.setSheet(null)} />
       <MVacaySettingsSheet open={v.sheet === 'settings'} onClose={() => v.setSheet(null)} />
+      <MVacayShareSheet open={v.sheet === 'share'} onClose={() => v.setSheet(null)} />
       <MVacayIncomingInvite
         invites={v.incomingInvites}
         onAccept={v.acceptInvite}

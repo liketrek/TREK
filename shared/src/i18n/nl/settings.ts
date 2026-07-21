@@ -79,6 +79,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Reisherinneringen',
   'settings.notifyTodoDue': 'Taak verloopt',
   'settings.notifyVacayInvite': 'Vacay-fusieuitnodigingen',
+  'settings.notifyVacayShare': 'Gedeelde Vacay-kalenders',
   'settings.notifyPhotosShared': "Gedeelde foto's (Immich)",
   'settings.notifyCollabMessage': 'Chatberichten (Collab)',
   'settings.notifyPackingTagged': 'Inpaklijst: toewijzingen',
@@ -430,7 +431,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Onderste navigatiebalk',
-  'settings.appearance.mobileNav.hint': 'Kies welke items in de balk verschijnen en welke onder “Meer” staan. Dashboard staat altijd vooraan.',
+  'settings.appearance.mobileNav.hint':
+    'Kies welke items in de balk verschijnen en welke onder “Meer” staan. Dashboard staat altijd vooraan.',
   'settings.appearance.mobileNav.inBar': 'In de balk',
   'settings.appearance.mobileNav.underMore': 'Onder “Meer”',
   'settings.appearance.mobileNav.moreEmpty': 'Nog niets hier — alles past in de balk.',
@@ -438,7 +440,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Naar “Meer” verplaatsen',
   'settings.appearance.mobileNav.toBar': 'Naar de balk verplaatsen',
   'settings.appearance.dashOrder': 'Dashboardvolgorde',
-  'settings.appearance.dashOrder.hint': 'Wijzig de volgorde waarin de reislijst en widgets op je mobiele dashboard worden gestapeld. De uitgelichte reis blijft altijd bovenaan.',
+  'settings.appearance.dashOrder.hint':
+    'Wijzig de volgorde waarin de reislijst en widgets op je mobiele dashboard worden gestapeld. De uitgelichte reis blijft altijd bovenaan.',
   'settings.appearance.dashOrder.trips': 'Reizen',
   'settings.appearance.dashOrder.hidden': 'Verborgen',
   'settings.general.languageRegion': 'Language & region',
@@ -507,7 +510,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Wanneer',
   'settings.pluginActivity.columns.status': 'Resultaat',
   'settings.alwaysShowRoutes': 'Boekingsroutes altijd tonen',
-  'settings.alwaysShowRoutesHint': 'Toont automatisch de route van elke vlucht, trein en andere boeking op de kaart, zonder dat u dit per boeking hoeft in te schakelen.',
+  'settings.alwaysShowRoutesHint':
+    'Toont automatisch de route van elke vlucht, trein en andere boeking op de kaart, zonder dat u dit per boeking hoeft in te schakelen.',
 };
 
 export default settings;

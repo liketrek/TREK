@@ -28,6 +28,10 @@ const id: NotificationLocale = {
       title: 'Undangan Penggabungan Vacay',
       body: `${p.actor} mengundang Anda untuk menggabungkan rencana liburan. Buka TREK untuk menerima atau menolak.`,
     }),
+    vacay_share: (p) => ({
+      title: 'Kalender Vacay Dibagikan',
+      body: `${p.actor} membagikan kalender cutinya dengan Anda. Buka TREK untuk melihatnya.`,
+    }),
     collection_invite: (p) => ({
       title: 'Undangan koleksi',
       body: `${p.actor} mengundang Anda untuk berbagi koleksi. Buka TREK untuk menerima atau menolak.`,

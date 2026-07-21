@@ -28,6 +28,10 @@ const cs: NotificationLocale = {
       title: 'Pozvánka Vacay Fusion',
       body: `${p.actor} vás pozval ke spojení dovolenkových plánů. Otevřete TREK pro přijetí nebo odmítnutí.`,
     }),
+    vacay_share: (p) => ({
+      title: 'Kalendář Vacay sdílen',
+      body: `${p.actor} s vámi sdílel svůj kalendář dovolených. Otevřete TREK pro zobrazení.`,
+    }),
     collection_invite: (p) => ({
       title: 'Pozvánka do sbírky',
       body: `${p.actor} vás pozval ke sdílení sbírky. Otevřete TREK pro přijetí nebo odmítnutí.`,

@@ -79,6 +79,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Нагадування про поїздку',
   'settings.notifyTodoDue': 'Завдання до терміну',
   'settings.notifyVacayInvite': "Запрошення об'єднання Vacay",
+  'settings.notifyVacayShare': 'Спільний доступ до календарів Vacay',
   'settings.notifyPhotosShared': 'Спільні фото (Immich)',
   'settings.notifyCollabMessage': 'Повідомлення чату (Collab)',
   'settings.notifyPackingTagged': 'Список речей: призначення',
@@ -429,7 +430,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Нижня панель навігації',
-  'settings.appearance.mobileNav.hint': 'Виберіть, які елементи показувати на панелі, а які — під «Ще». «Головна» завжди залишається першою.',
+  'settings.appearance.mobileNav.hint':
+    'Виберіть, які елементи показувати на панелі, а які — під «Ще». «Головна» завжди залишається першою.',
   'settings.appearance.mobileNav.inBar': 'На панелі',
   'settings.appearance.mobileNav.underMore': 'Під «Ще»',
   'settings.appearance.mobileNav.moreEmpty': 'Поки що порожньо — усе вміщається на панелі.',
@@ -437,7 +439,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Перемістити під «Ще»',
   'settings.appearance.mobileNav.toBar': 'Перемістити на панель',
   'settings.appearance.dashOrder': 'Порядок панелі',
-  'settings.appearance.dashOrder.hint': 'Змініть порядок, у якому список подорожей і віджети розташовуються на панелі телефона. Виділена подорож завжди залишається вгорі.',
+  'settings.appearance.dashOrder.hint':
+    'Змініть порядок, у якому список подорожей і віджети розташовуються на панелі телефона. Виділена подорож завжди залишається вгорі.',
   'settings.appearance.dashOrder.trips': 'Подорожі',
   'settings.appearance.dashOrder.hidden': 'Приховано',
   'settings.general.languageRegion': 'Language & region',
@@ -506,7 +509,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Коли',
   'settings.pluginActivity.columns.status': 'Результат',
   'settings.alwaysShowRoutes': 'Завжди показувати маршрути бронювань',
-  'settings.alwaysShowRoutesHint': 'Автоматично показує на карті маршрут для кожного рейсу, поїзда та іншого бронювання — без потреби вмикати це окремо для кожного елемента.',
+  'settings.alwaysShowRoutesHint':
+    'Автоматично показує на карті маршрут для кожного рейсу, поїзда та іншого бронювання — без потреби вмикати це окремо для кожного елемента.',
 };
 
 export default settings;

@@ -77,6 +77,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'تذكيرات الرحلات',
   'settings.notifyTodoDue': 'مهمة مستحقة',
   'settings.notifyVacayInvite': 'دعوات دمج الإجازات',
+  'settings.notifyVacayShare': 'مشاركات تقويم Vacay',
   'settings.notifyPhotosShared': 'صور مشتركة (Immich)',
   'settings.notifyCollabMessage': 'رسائل الدردشة (Collab)',
   'settings.notifyPackingTagged': 'قائمة الأمتعة: التعيينات',
@@ -414,7 +415,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'شريط التنقّل السفلي',
-  'settings.appearance.mobileNav.hint': 'اختَر العناصر التي تظهر في الشريط وتلك التي توضَع ضمن «المزيد». تبقى لوحة التحكّم دائماً في المقدّمة.',
+  'settings.appearance.mobileNav.hint':
+    'اختَر العناصر التي تظهر في الشريط وتلك التي توضَع ضمن «المزيد». تبقى لوحة التحكّم دائماً في المقدّمة.',
   'settings.appearance.mobileNav.inBar': 'في الشريط',
   'settings.appearance.mobileNav.underMore': 'ضمن «المزيد»',
   'settings.appearance.mobileNav.moreEmpty': 'لا شيء هنا بعد — كل العناصر تتّسع في الشريط.',
@@ -422,7 +424,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'نقل إلى «المزيد»',
   'settings.appearance.mobileNav.toBar': 'نقل إلى الشريط',
   'settings.appearance.dashOrder': 'ترتيب لوحة التحكم',
-  'settings.appearance.dashOrder.hint': 'أعد ترتيب تسلسل قائمة الرحلات والأدوات على لوحة تحكم هاتفك. تبقى الرحلة المميّزة دائمًا في الأعلى.',
+  'settings.appearance.dashOrder.hint':
+    'أعد ترتيب تسلسل قائمة الرحلات والأدوات على لوحة تحكم هاتفك. تبقى الرحلة المميّزة دائمًا في الأعلى.',
   'settings.appearance.dashOrder.trips': 'الرحلات',
   'settings.appearance.dashOrder.hidden': 'مخفي',
   'settings.general.languageRegion': 'Language & region',
@@ -490,7 +493,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'الوقت',
   'settings.pluginActivity.columns.status': 'النتيجة',
   'settings.alwaysShowRoutes': 'إظهار مسارات الحجوزات دائمًا',
-  'settings.alwaysShowRoutesHint': 'يعرض تلقائيًا مسار كل رحلة طيران وقطار وحجز آخر على الخريطة، دون الحاجة إلى تفعيله لكل عنصر على حدة.',
+  'settings.alwaysShowRoutesHint':
+    'يعرض تلقائيًا مسار كل رحلة طيران وقطار وحجز آخر على الخريطة، دون الحاجة إلى تفعيله لكل عنصر على حدة.',
 };
 
 export default settings;

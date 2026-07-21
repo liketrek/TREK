@@ -44,6 +44,7 @@ The following events are configurable in user settings:
 | `booking_change` | A booking was added, updated, or removed in a trip you're part of |
 | `trip_reminder` | Reminder before a trip starts |
 | `vacay_invite` | You were invited to fuse vacation plans |
+| `vacay_share` | Someone shared their vacation calendar with you (view only) |
 | `photos_shared` | Photos were shared with a trip |
 | `collab_message` | A new message in a collaborative trip |
 | `packing_tagged` | You were assigned to a packing category in a trip |

@@ -63,6 +63,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Recordatoris de viatge',
   'settings.notifyTodoDue': 'Tasca propera',
   'settings.notifyVacayInvite': 'Invitacions de fusió Vacay',
+  'settings.notifyVacayShare': 'Comparticions de calendari Vacay',
   'settings.notifyPhotosShared': 'Fotos compartides (Immich)',
   'settings.notifyCollabMessage': 'Missatges de xat (Col·laboració)',
   'settings.notifyPackingTagged': "Llista d'equipatge: assignacions",
@@ -412,7 +413,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Adreces, etiquetes',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Barra de navegació inferior',
-  'settings.appearance.mobileNav.hint': 'Tria quins elements apareixen a la barra i quins queden sota «Més». El tauler sempre queda primer.',
+  'settings.appearance.mobileNav.hint':
+    'Tria quins elements apareixen a la barra i quins queden sota «Més». El tauler sempre queda primer.',
   'settings.appearance.mobileNav.inBar': 'A la barra',
   'settings.appearance.mobileNav.underMore': 'Sota «Més»',
   'settings.appearance.mobileNav.moreEmpty': 'Encara no hi ha res — tot cap a la barra.',
@@ -420,7 +422,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Mou-ho sota «Més»',
   'settings.appearance.mobileNav.toBar': 'Mou-ho a la barra',
   'settings.appearance.dashOrder': 'Ordre del tauler',
-  'settings.appearance.dashOrder.hint': 'Reordena com s’apilen la llista de viatges i els ginys al tauler del mòbil. El viatge destacat sempre es manté a dalt.',
+  'settings.appearance.dashOrder.hint':
+    'Reordena com s’apilen la llista de viatges i els ginys al tauler del mòbil. El viatge destacat sempre es manté a dalt.',
   'settings.appearance.dashOrder.trips': 'Viatges',
   'settings.appearance.dashOrder.hidden': 'Ocult',
   'settings.general.languageRegion': 'Idioma i regió',

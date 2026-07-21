@@ -65,6 +65,18 @@ export const vacayUpdateStatsRequestSchema = z.object({
 });
 export type VacayUpdateStatsRequest = z.infer<typeof vacayUpdateStatsRequestSchema>;
 
+// Read-only calendar sharing (#444/#667): grant another user view access to
+// your vacation calendar without fusing plans.
+export const vacayShareRequestSchema = z.object({
+  user_id: z.union([z.number(), z.string()]),
+});
+export type VacayShareRequest = z.infer<typeof vacayShareRequestSchema>;
+
+export const vacayShareUpdateRequestSchema = z.object({
+  hidden: z.boolean(),
+});
+export type VacayShareUpdateRequest = z.infer<typeof vacayShareUpdateRequestSchema>;
+
 /** Plan / entries / stats payloads are wide and DB-derived; kept open. */
 export const vacayPlanDataSchema = open;
 export type VacayPlanData = z.infer<typeof vacayPlanDataSchema>;

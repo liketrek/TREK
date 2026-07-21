@@ -9,10 +9,11 @@ import { Building2, MousePointer2 } from 'lucide-react'
 
 type VacayMode = 'vacation' | 'company'
 type HoverTip = { date: string; top: number; left: number }
+export type SharedDayMark = { color: string; name: string; fraction?: number; company?: boolean }
 
 export default function VacayCalendar() {
   const { t, locale } = useTranslation()
-  const { selectedYear, selectedUserId, entries, companyHolidays, toggleEntry, toggleCompanyHoliday, plan, users, holidays } = useVacayStore()
+  const { selectedYear, selectedUserId, entries, companyHolidays, toggleEntry, toggleCompanyHoliday, plan, users, holidays, sharedCalendars } = useVacayStore()
   const [mode, setMode] = useState<VacayMode>('vacation')
   // Half-day is a per-person modifier on the vacation action, not a mode: with it
   // on, clicking a day logs (or converts) it as a 0.5 day for the selected person.
@@ -59,6 +60,24 @@ export default function VacayCalendar() {
     return map
   }, [entries])
 
+  // Shared read-only calendars (#444/#667) render as colored rings, not fills,
+  // so they never mix into the members' split logic — merged stays merged,
+  // shared stays a distinct overlay.
+  const sharedMap = useMemo(() => {
+    const map: Record<string, SharedDayMark[]> = {}
+    sharedCalendars.filter(c => !c.hidden).forEach(cal => {
+      cal.entries.forEach(e => {
+        if (!map[e.date]) map[e.date] = []
+        map[e.date].push({ color: cal.color, name: cal.owner_name, fraction: e.fraction })
+      })
+      cal.companyHolidays.forEach(h => {
+        if (!map[h.date]) map[h.date] = []
+        map[h.date].push({ color: cal.color, name: cal.owner_name, company: true })
+      })
+    })
+    return map
+  }, [sharedCalendars])
+
   const blockWeekends = plan?.block_weekends !== false
   const weekendDays = useMemo<number[]>(() => (plan?.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]), [plan?.weekend_days])
   const companyHolidaysEnabled = plan?.company_holidays_enabled !== false
@@ -74,8 +93,9 @@ export default function VacayCalendar() {
     await toggleEntry(dateStr, selectedUserId || undefined, halfDay ? 0.5 : 1)
   }, [mode, halfDay, toggleEntry, toggleCompanyHoliday, companyHolidaySet, blockWeekends, weekendDays, companyHolidaysEnabled, selectedUserId])
 
-  // Only half-day cells report a hover, so the tooltip appears exactly when there's
-  // a half day to explain. Fixed-positioned at the root so no card clips it.
+  // Cells with a half day or a shared overlay report a hover, so the tooltip
+  // appears exactly when there's something to explain. Fixed-positioned at the
+  // root so no card clips it.
   const handleCellHover = useCallback((dateStr: string | null, el: HTMLElement | null) => {
     if (!dateStr || !el) { setTip(null); return }
     const r = el.getBoundingClientRect()
@@ -84,6 +104,7 @@ export default function VacayCalendar() {
 
   const selectedUser = users.find(u => u.id === selectedUserId)
   const tipEntries = tip ? entryMap[tip.date] : undefined
+  const tipShared = tip ? sharedMap[tip.date] : undefined
   const tipDate = tip ? new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'long' }).format(new Date(tip.date + 'T00:00:00')) : ''
 
   return (
@@ -98,6 +119,7 @@ export default function VacayCalendar() {
             companyHolidaySet={companyHolidaySet}
             companyHolidaysEnabled={companyHolidaysEnabled}
             entryMap={entryMap}
+            sharedMap={sharedMap}
             onCellClick={handleCellClick}
             onCellHover={handleCellHover}
             companyMode={companyMode}
@@ -109,17 +131,18 @@ export default function VacayCalendar() {
         ))}
       </div>
 
-      {/* Custom half-day tooltip — who is off on this date and how much. Rendered
-          fixed at the root (not inside a month card) so backdrop-filter stacking
-          contexts can't clip or occlude it. */}
-      {tip && tipEntries && tipEntries.length > 0 && (
+      {/* Custom day tooltip — who is off on this date and how much (own members
+          with half days, plus shared read-only calendars). Rendered fixed at the
+          root (not inside a month card) so backdrop-filter stacking contexts
+          can't clip or occlude it. */}
+      {tip && ((tipEntries && tipEntries.length > 0) || (tipShared && tipShared.length > 0)) && (
         <div
           className="vg-card rounded-xl"
           style={{ position: 'fixed', top: tip.top - 9, left: tip.left, transform: 'translate(-50%, -100%)', zIndex: 80, pointerEvents: 'none' }}
         >
           <div style={{ padding: '8px 11px', minWidth: 132 }}>
             <div className="capitalize" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.02em', color: 'var(--vg-ink3)', marginBottom: 5 }}>{tipDate}</div>
-            {tipEntries.map((e, i) => {
+            {(tipEntries ?? []).map((e, i) => {
               const isHalf = (e.fraction ?? 1) === 0.5
               return (
                 <div key={i} className="flex items-center gap-2" style={{ marginTop: i ? 4 : 0 }}>
@@ -131,6 +154,16 @@ export default function VacayCalendar() {
                 </div>
               )
             })}
+            {/* Shared calendars: ring dot instead of a filled one, like the grid. */}
+            {(tipShared ?? []).map((m, i) => (
+              <div key={`s${i}`} className="flex items-center gap-2" style={{ marginTop: (tipEntries?.length || i) ? 4 : 0 }}>
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ border: `2px solid ${m.color}` }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--vg-ink)' }}>{m.name}</span>
+                <span style={{ marginLeft: 'auto', paddingLeft: 12, fontSize: 11, fontWeight: 700, color: 'var(--vg-ink3)' }}>
+                  {m.company ? t('vacay.companyHoliday') : (m.fraction ?? 1) === 0.5 ? t('vacay.modeHalf') : t('vacay.fullDay')}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}

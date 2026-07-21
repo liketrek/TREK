@@ -15,6 +15,8 @@ const notif: TranslationStrings = {
   'notif.todo_due.text': '{todo} ({trip}) határideje: {due}',
   'notif.vacay_invite.title': 'Vacay Fusion meghívó',
   'notif.vacay_invite.text': '{actor} meghívott a nyaralási tervek összevonásához',
+  'notif.vacay_share.title': 'Vacay naptár megosztva',
+  'notif.vacay_share.text': '{actor} megosztotta veled a szabadságnaptárát',
   'notif.collection_invite.title': 'Gyűjtemény meghívó',
   'notif.collection_invite.text': '{actor} meghívott egy gyűjteménybe',
   'notif.photos_shared.title': 'Fotók megosztva',

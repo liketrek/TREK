@@ -92,5 +92,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo3': 'Her iki taraf da girişleri silebilir ve tatil haklarını değiştirebilir.',
   'vacay.fuseInfo4': 'Resmi tatiller ve şirket tatilleri gibi ayarlar paylaşılır.',
   'vacay.fuseInfo5': 'Birleşme her iki tarafça da herhangi bir zamanda feshedilebilir. Girişleriniz korunacaktır.',
+  'vacay.sharedCalendars': 'Paylaşılan Takvimler',
+  'vacay.shareCalendar': 'Takvimi paylaş',
+  'vacay.shareCalendarHint':
+    'Başka bir TREK kullanıcısının tatil takviminizi görmesine izin verin. Yalnızca görüntüleme — birleştirme ve düzenleme yok.',
+  'vacay.sharedWithYou': 'Sizinle paylaşılanlar',
+  'vacay.youShareWith': 'Sizin paylaştıklarınız',
+  'vacay.viewOnly': 'yalnızca görüntüleme',
+  'vacay.share': 'Paylaş',
+  'vacay.shareSent': 'Takvim paylaşıldı',
+  'vacay.shareFailed': 'Takvim paylaşılamadı',
+  'vacay.stopSharing': 'Paylaşımı durdur',
+  'vacay.showInCalendar': 'Takvimde göster',
+  'vacay.hideFromCalendar': 'Takvimden gizle',
+  'vacay.sharedEmpty': 'Takvimlerinizi birleştirmeden birbirinize gösterin.',
+  'vacay.sharedLegend': 'Paylaşılan (yalnızca görüntüleme)',
 };
 export default vacay;

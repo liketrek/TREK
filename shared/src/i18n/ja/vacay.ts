@@ -92,5 +92,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo3': '双方が予定の削除や付与日数の変更を行えます。',
   'vacay.fuseInfo4': '祝日や会社休日などの設定は共有されます。',
   'vacay.fuseInfo5': '統合はいつでも解除できます。データは保持されます。',
+  'vacay.sharedCalendars': '共有カレンダー',
+  'vacay.shareCalendar': 'カレンダーを共有',
+  'vacay.shareCalendarHint':
+    '他のTREKユーザーに休暇カレンダーを見せることができます。閲覧のみ — 統合も編集もできません。',
+  'vacay.sharedWithYou': '共有されたカレンダー',
+  'vacay.youShareWith': '共有中の相手',
+  'vacay.viewOnly': '閲覧のみ',
+  'vacay.share': '共有',
+  'vacay.shareSent': 'カレンダーを共有しました',
+  'vacay.shareFailed': 'カレンダーを共有できませんでした',
+  'vacay.stopSharing': '共有を停止',
+  'vacay.showInCalendar': 'カレンダーに表示',
+  'vacay.hideFromCalendar': 'カレンダーから非表示',
+  'vacay.sharedEmpty': '統合せずにお互いのカレンダーを見せ合えます。',
+  'vacay.sharedLegend': '共有（閲覧のみ）',
 };
 export default vacay;

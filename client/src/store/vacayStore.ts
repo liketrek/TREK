@@ -2,11 +2,14 @@ import { create } from 'zustand'
 import apiClient from '../api/client'
 import { useAuthStore } from './authStore'
 import type { AxiosResponse } from 'axios'
-import type { VacayPlan, VacayUser, VacayEntry, VacayStat, HolidaysMap, HolidayInfo, VacayHolidayCalendar } from '../types'
+import type {
+  VacayPlan, VacayUser, VacayEntry, VacayStat, HolidaysMap, HolidayInfo, VacayHolidayCalendar,
+  VacayShareOutgoing, VacayShareIncoming, SharedVacayCalendar,
+} from '../types'
 import type {
   VacaySetColorRequest, VacayInviteRequest, VacayInviteActionRequest,
   VacayAddYearRequest, VacayToggleEntryRequest, VacayCompanyHolidayRequest,
-  VacayUpdateStatsRequest,
+  VacayUpdateStatsRequest, VacayShareRequest, VacayShareUpdateRequest,
 } from '@trek/shared'
 
 const ax = apiClient
@@ -74,6 +77,12 @@ interface VacayApi {
   addHolidayCalendar: (data: { region: string; color?: string; label?: string | null }) => Promise<{ calendar: VacayHolidayCalendar }>
   updateHolidayCalendar: (id: number, data: { region?: string; color?: string; label?: string | null }) => Promise<{ calendar: VacayHolidayCalendar }>
   deleteHolidayCalendar: (id: number) => Promise<unknown>
+  getShares: () => Promise<{ outgoing: VacayShareOutgoing[]; incoming: VacayShareIncoming[] }>
+  share: (userId: number) => Promise<unknown>
+  removeShare: (shareId: number) => Promise<unknown>
+  updateShare: (shareId: number, hidden: boolean) => Promise<unknown>
+  shareAvailableUsers: () => Promise<{ users: VacayUser[] }>
+  getSharedCalendars: (year: number) => Promise<{ calendars: SharedVacayCalendar[] }>
 }
 
 const api: VacayApi = {
@@ -99,6 +108,12 @@ const api: VacayApi = {
   addHolidayCalendar: (data) => ax.post('/addons/vacay/plan/holiday-calendars', data).then((r: AxiosResponse) => r.data),
   updateHolidayCalendar: (id, data) => ax.put(`/addons/vacay/plan/holiday-calendars/${id}`, data).then((r: AxiosResponse) => r.data),
   deleteHolidayCalendar: (id) => ax.delete(`/addons/vacay/plan/holiday-calendars/${id}`).then((r: AxiosResponse) => r.data),
+  getShares: () => ax.get('/addons/vacay/shares').then((r: AxiosResponse) => r.data),
+  share: (userId) => ax.post('/addons/vacay/shares', { user_id: userId } satisfies VacayShareRequest).then((r: AxiosResponse) => r.data),
+  removeShare: (shareId) => ax.delete(`/addons/vacay/shares/${shareId}`).then((r: AxiosResponse) => r.data),
+  updateShare: (shareId, hidden) => ax.put(`/addons/vacay/shares/${shareId}`, { hidden } satisfies VacayShareUpdateRequest).then((r: AxiosResponse) => r.data),
+  shareAvailableUsers: () => ax.get('/addons/vacay/shares/available-users').then((r: AxiosResponse) => r.data),
+  getSharedCalendars: (year) => ax.get(`/addons/vacay/shares/calendars/${year}`).then((r: AxiosResponse) => r.data),
 }
 
 interface VacayState {
@@ -116,6 +131,9 @@ interface VacayState {
   selectedUserId: number | null
   holidays: HolidaysMap
   loading: boolean
+  outgoingShares: VacayShareOutgoing[]
+  incomingShares: VacayShareIncoming[]
+  sharedCalendars: SharedVacayCalendar[]
 
   setSelectedYear: (year: number) => void
   setSelectedUserId: (id: number | null) => void
@@ -139,6 +157,11 @@ interface VacayState {
   addHolidayCalendar: (data: { region: string; color?: string; label?: string | null }) => Promise<void>
   updateHolidayCalendar: (id: number, data: { region?: string; color?: string; label?: string | null }) => Promise<void>
   deleteHolidayCalendar: (id: number) => Promise<void>
+  loadShares: () => Promise<void>
+  loadSharedCalendars: (year?: number) => Promise<void>
+  shareWith: (userId: number) => Promise<void>
+  removeShare: (shareId: number) => Promise<void>
+  setShareHidden: (shareId: number, hidden: boolean) => Promise<void>
   loadAll: () => Promise<void>
 }
 
@@ -157,6 +180,9 @@ export const useVacayStore = create<VacayState>((set, get) => ({
   selectedUserId: null,
   holidays: {},
   loading: false,
+  outgoingShares: [],
+  incomingShares: [],
+  sharedCalendars: [],
 
   setSelectedYear: (year: number) => set({ selectedYear: year }),
   setSelectedUserId: (id: number | null) => set({ selectedUserId: id }),
@@ -347,6 +373,44 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     await get().loadHolidays()
   },
 
+  loadShares: async () => {
+    const data = await api.getShares()
+    set({ outgoingShares: data.outgoing, incomingShares: data.incoming })
+  },
+
+  loadSharedCalendars: async (year?: number) => {
+    const y = year || get().selectedYear
+    const data = await api.getSharedCalendars(y)
+    set({ sharedCalendars: data.calendars })
+  },
+
+  shareWith: async (userId: number) => {
+    await api.share(userId)
+    await get().loadShares()
+  },
+
+  removeShare: async (shareId: number) => {
+    await api.removeShare(shareId)
+    await get().loadShares()
+    await get().loadSharedCalendars()
+  },
+
+  setShareHidden: async (shareId: number, hidden: boolean) => {
+    // Optimistic: the eye toggle should feel instant; reconcile via refetch.
+    const prevIncoming = get().incomingShares
+    const prevCalendars = get().sharedCalendars
+    set({
+      incomingShares: prevIncoming.map(s => (s.id === shareId ? { ...s, hidden } : s)),
+      sharedCalendars: prevCalendars.map(c => (c.share_id === shareId ? { ...c, hidden } : c)),
+    })
+    try {
+      await api.updateShare(shareId, hidden)
+    } catch (e) {
+      set({ incomingShares: prevIncoming, sharedCalendars: prevCalendars })
+      throw e
+    }
+  },
+
   loadAll: async () => {
     set({ loading: true })
     try {
@@ -356,6 +420,8 @@ export const useVacayStore = create<VacayState>((set, get) => ({
       await get().loadEntries(year)
       await get().loadStats(year)
       await get().loadHolidays(year)
+      await get().loadShares()
+      await get().loadSharedCalendars(year)
     } finally {
       set({ loading: false })
     }

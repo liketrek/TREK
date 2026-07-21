@@ -76,6 +76,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': '旅行提醒',
   'settings.notifyTodoDue': '待辦事項即將到期',
   'settings.notifyVacayInvite': 'Vacay 融合邀請',
+  'settings.notifyVacayShare': 'Vacay 日曆共享',
   'settings.notifyPhotosShared': '共享照片 (Immich)',
   'settings.notifyCollabMessage': '聊天訊息 (Collab)',
   'settings.notifyPackingTagged': '行李清單：分配',

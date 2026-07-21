@@ -11,6 +11,7 @@ import {
   getStats as getVacayStats, updateStats as updateVacayStats,
   addHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar,
   getCountries as getHolidayCountries, getHolidays,
+  listShares, shareCalendar, removeShare, getSharedCalendars,
 } from '../../services/vacayService';
 import { isAddonEnabled } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
@@ -395,6 +396,69 @@ export function registerVacayTools(server: McpServer, userId: number, scopes: st
         const result = await getHolidays(String(year), country);
         if (result.error) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
         return ok({ holidays: result.data });
+      }
+    );
+
+    if (R) server.registerTool(
+      'list_vacay_shares',
+      {
+        description: 'List read-only calendar shares: who the current user shares their vacation calendar with, and which calendars are shared with them.',
+        inputSchema: {},
+        annotations: TOOL_ANNOTATIONS_READONLY,
+      },
+      async () => {
+        return ok(listShares(userId));
+      }
+    );
+
+    if (W) server.registerTool(
+      'share_vacay_calendar',
+      {
+        description: "Share the current user's vacation calendar with another user (view only, no merge).",
+        inputSchema: {
+          targetUserId: z.number().int().positive(),
+        },
+        annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+      },
+      async ({ targetUserId }) => {
+        if (isDemoUser(userId)) return demoDenied();
+        const me = getCurrentUser(userId);
+        if (!me) return { content: [{ type: 'text' as const, text: 'User not found.' }], isError: true };
+        const result = shareCalendar(userId, me.email, targetUserId);
+        if (result.error) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
+        return ok({ success: true });
+      }
+    );
+
+    if (W) server.registerTool(
+      'unshare_vacay_calendar',
+      {
+        description: 'Remove a read-only calendar share the current user is part of (revoke as owner, or remove a calendar shared with them).',
+        inputSchema: {
+          shareId: z.number().int().positive(),
+        },
+        annotations: TOOL_ANNOTATIONS_DELETE,
+      },
+      async ({ shareId }) => {
+        if (isDemoUser(userId)) return demoDenied();
+        if (!removeShare(shareId, userId, undefined)) {
+          return { content: [{ type: 'text' as const, text: 'Share not found.' }], isError: true };
+        }
+        return ok({ success: true });
+      }
+    );
+
+    if (R) server.registerTool(
+      'get_shared_vacay_calendars',
+      {
+        description: 'Get the read-only vacation calendars shared with the current user for a year (entries and company holidays per sharer).',
+        inputSchema: {
+          year: z.number().int(),
+        },
+        annotations: TOOL_ANNOTATIONS_READONLY,
+      },
+      async ({ year }) => {
+        return ok({ calendars: getSharedCalendars(userId, String(year)) });
       }
     );
   }

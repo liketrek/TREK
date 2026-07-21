@@ -94,5 +94,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo4': 'Ρυθμίσεις όπως δημόσιες αργίες και αργίες εταιρείας μοιράζονται.',
   'vacay.fuseInfo5':
     'Η συγχώνευση μπορεί να διαλυθεί ανά πάσα στιγμή από οποιοδήποτε μέρος. Οι καταχωρήσεις σας θα διατηρηθούν.',
+  'vacay.sharedCalendars': 'Κοινόχρηστα Ημερολόγια',
+  'vacay.shareCalendar': 'Κοινοποίηση ημερολογίου',
+  'vacay.shareCalendarHint':
+    'Επιτρέψτε σε έναν άλλο χρήστη TREK να βλέπει το ημερολόγιο διακοπών σας. Μόνο προβολή — χωρίς συγχώνευση, χωρίς επεξεργασία.',
+  'vacay.sharedWithYou': 'Κοινοποιήθηκαν σε εσάς',
+  'vacay.youShareWith': 'Κοινοποιείτε σε',
+  'vacay.viewOnly': 'μόνο προβολή',
+  'vacay.share': 'Κοινοποίηση',
+  'vacay.shareSent': 'Το ημερολόγιο κοινοποιήθηκε',
+  'vacay.shareFailed': 'Δεν ήταν δυνατή η κοινοποίηση του ημερολογίου',
+  'vacay.stopSharing': 'Διακοπή κοινοποίησης',
+  'vacay.showInCalendar': 'Εμφάνιση στο ημερολόγιο',
+  'vacay.hideFromCalendar': 'Απόκρυψη από το ημερολόγιο',
+  'vacay.sharedEmpty': 'Δείξτε ο ένας στον άλλο τα ημερολόγιά σας χωρίς να τα συγχωνεύσετε.',
+  'vacay.sharedLegend': 'Κοινόχρηστο (μόνο προβολή)',
 };
 export default vacay;

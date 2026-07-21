@@ -178,4 +178,65 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
         expect(r).toEqual({ status: 502, body: { error: 'upstream down' } }));
     });
   });
+
+  describe('read-only shares', () => {
+    it('GET /shares delegates listShares', () => {
+      const listShares = vi.fn().mockReturnValue({ outgoing: [{ id: 1 }], incoming: [] });
+      expect(makeController({ listShares }).shares(user)).toEqual({ outgoing: [{ id: 1 }], incoming: [] });
+      expect(listShares).toHaveBeenCalledWith(1);
+    });
+
+    it('400 when user_id missing on share', () => {
+      return thrown(() => makeController({}).share(user, undefined)).then((r) =>
+        expect(r).toEqual({ status: 400, body: { error: 'user_id required' } }));
+    });
+
+    it('maps a shareCalendar error to its status', () => {
+      const shareCalendar = vi.fn().mockReturnValue({ error: 'Already shared', status: 400 });
+      return thrown(() => makeController({ shareCalendar }).share(user, 2)).then((r) =>
+        expect(r).toEqual({ status: 400, body: { error: 'Already shared' } }));
+    });
+
+    it('shares a calendar (user_id coerced to a number, socket id forwarded)', () => {
+      const shareCalendar = vi.fn().mockReturnValue({});
+      expect(makeController({ shareCalendar }).share(user, '2', 'sock-1')).toEqual({ success: true });
+      expect(shareCalendar).toHaveBeenCalledWith(1, 'u@example.test', 2, 'sock-1');
+    });
+
+    it('GET /shares/available-users wraps the user list', () => {
+      const getShareAvailableUsers = vi.fn().mockReturnValue([{ id: 3 }]);
+      expect(makeController({ getShareAvailableUsers }).shareAvailableUsers(user)).toEqual({ users: [{ id: 3 }] });
+      expect(getShareAvailableUsers).toHaveBeenCalledWith(1);
+    });
+
+    it('GET /shares/calendars/:year wraps the calendars', () => {
+      const getSharedCalendars = vi.fn().mockReturnValue([{ share_id: 4 }]);
+      expect(makeController({ getSharedCalendars }).sharedCalendars(user, '2026')).toEqual({ calendars: [{ share_id: 4 }] });
+      expect(getSharedCalendars).toHaveBeenCalledWith(1, '2026');
+    });
+
+    it('PUT /shares/:id forwards the socket id and the hidden flag', () => {
+      const setShareHidden = vi.fn().mockReturnValue(true);
+      expect(makeController({ setShareHidden }).updateShare(user, '7', { hidden: true }, 'sock-1')).toEqual({ success: true });
+      expect(setShareHidden).toHaveBeenCalledWith(7, 1, true, 'sock-1');
+    });
+
+    it('404 on PUT when the share is not toggleable by the caller', () => {
+      const setShareHidden = vi.fn().mockReturnValue(false);
+      return thrown(() => makeController({ setShareHidden }).updateShare(user, '9', { hidden: true })).then((r) =>
+        expect(r).toEqual({ status: 404, body: { error: 'Share not found' } }));
+    });
+
+    it('DELETE /shares/:id forwards the socket id', () => {
+      const removeShare = vi.fn().mockReturnValue(true);
+      expect(makeController({ removeShare }).deleteShare(user, '7', 'sock-1')).toEqual({ success: true });
+      expect(removeShare).toHaveBeenCalledWith(7, 1, 'sock-1');
+    });
+
+    it('404 on DELETE of a foreign share', () => {
+      const removeShare = vi.fn().mockReturnValue(false);
+      return thrown(() => makeController({ removeShare }).deleteShare(user, '9')).then((r) =>
+        expect(r).toEqual({ status: 404, body: { error: 'Share not found' } }));
+    });
+  });
 });

@@ -92,5 +92,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo3': '양측 모두 항목을 삭제하고 휴가 일수를 변경할 수 있습니다.',
   'vacay.fuseInfo4': '공휴일 및 회사 휴일 등의 설정이 공유됩니다.',
   'vacay.fuseInfo5': '어느 쪽이든 언제든지 퓨전을 해제할 수 있습니다. 항목은 보존됩니다.',
+  'vacay.sharedCalendars': '공유된 캘린더',
+  'vacay.shareCalendar': '캘린더 공유',
+  'vacay.shareCalendarHint':
+    '다른 TREK 사용자가 내 휴가 캘린더를 볼 수 있게 합니다. 보기 전용 — 퓨전이나 편집은 불가능합니다.',
+  'vacay.sharedWithYou': '나에게 공유됨',
+  'vacay.youShareWith': '내가 공유하는 대상',
+  'vacay.viewOnly': '보기 전용',
+  'vacay.share': '공유',
+  'vacay.shareSent': '캘린더가 공유되었습니다',
+  'vacay.shareFailed': '캘린더 공유 실패',
+  'vacay.stopSharing': '공유 중지',
+  'vacay.showInCalendar': '캘린더에 표시',
+  'vacay.hideFromCalendar': '캘린더에서 숨기기',
+  'vacay.sharedEmpty': '캘린더를 합치지 않고 서로에게 보여주세요.',
+  'vacay.sharedLegend': '공유됨 (보기 전용)',
 };
 export default vacay;

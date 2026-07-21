@@ -330,6 +330,31 @@ export interface HolidaysMap {
   [date: string]: HolidayInfo
 }
 
+// Read-only calendar shares (#444/#667)
+export interface VacayShareOutgoing {
+  id: number
+  user_id: number
+  username: string
+}
+
+export interface VacayShareIncoming {
+  id: number
+  owner_id: number
+  username: string
+  color: string
+  hidden: boolean
+}
+
+export interface SharedVacayCalendar {
+  share_id: number
+  owner_id: number
+  owner_name: string
+  color: string
+  hidden: boolean
+  entries: { date: string; fraction?: number }[]
+  companyHolidays: { date: string; note?: string }[]
+}
+
 // API error shape from axios
 export interface ApiError {
   response?: {

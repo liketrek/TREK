@@ -4,6 +4,7 @@ import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
 import VacayCalendar from '../components/Vacay/VacayCalendar'
 import VacayPersons from '../components/Vacay/VacayPersons'
+import VacaySharedCalendars from '../components/Vacay/VacaySharedCalendars'
 import VacayStats from '../components/Vacay/VacayStats'
 import VacaySettings from '../components/Vacay/VacaySettings'
 import { Plus, Minus, ChevronLeft, ChevronRight, Settings, CalendarDays, AlertTriangle, Eye, Pencil, Trash2, Unlink, ShieldCheck, SlidersHorizontal } from 'lucide-react'
@@ -22,11 +23,13 @@ function VacayPageDesktop(): React.ReactElement {
   // Page = wiring container: vacay store, live sync + UI state live in the hook.
   const {
     years, selectedYear, setSelectedYear, removeYear, loading,
-    incomingInvites, acceptInvite, declineInvite, plan,
+    incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars,
     showSettings, setShowSettings, deleteYear, setDeleteYear,
     showMobileSidebar, setShowMobileSidebar,
     handleAddNextYear, handleAddPrevYear,
   } = useVacay()
+
+  const hasVisibleShared = sharedCalendars.some(c => !c.hidden)
 
   if (loading) {
     return (
@@ -88,8 +91,10 @@ function VacayPageDesktop(): React.ReactElement {
 
       <VacayPersons />
 
+      <VacaySharedCalendars />
+
       {/* Legend */}
-      {(plan?.holidays_enabled || plan?.company_holidays_enabled || plan?.block_weekends) && (
+      {(plan?.holidays_enabled || plan?.company_holidays_enabled || plan?.block_weekends || hasVisibleShared) && (
         <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
           <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.legend')}</span>
           <div className="mt-3 flex flex-wrap gap-x-3.5 gap-y-2.5">
@@ -101,6 +106,7 @@ function VacayPageDesktop(): React.ReactElement {
             ))}
             {plan?.company_holidays_enabled && <LegendItem color="#fde68a" label={t('vacay.companyHoliday')} />}
             {plan?.block_weekends && <LegendItem color="#e5e7eb" label={t('vacay.weekend')} />}
+            {hasVisibleShared && <LegendItem ring label={t('vacay.sharedLegend')} />}
           </div>
         </div>
       )}
@@ -258,10 +264,13 @@ function InfoItem({ icon: Icon, text }: { icon: React.ComponentType<{ size?: num
   )
 }
 
-function LegendItem({ color, label }: { color: string; label: string }): React.ReactElement {
+function LegendItem({ color, label, ring }: { color?: string; label: string; ring?: boolean }): React.ReactElement {
   return (
     <span className="inline-flex items-center gap-[7px]">
-      <span style={{ width: 18, height: 12, borderRadius: 4, flex: 'none', background: color }} />
+      {/* Shared calendars render as rings in the grid, so the legend swatch does too. */}
+      {ring
+        ? <span style={{ width: 18, height: 12, borderRadius: 4, flex: 'none', border: '2px solid var(--vg-ink2)' }} />
+        : <span style={{ width: 18, height: 12, borderRadius: 4, flex: 'none', background: color }} />}
       <span style={{ fontSize: 12, color: 'var(--vg-ink2)' }}>{label}</span>
     </span>
   )

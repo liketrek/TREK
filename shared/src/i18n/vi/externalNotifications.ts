@@ -28,6 +28,10 @@ const en: NotificationLocale = {
       title: 'Lời mời kết hợp kì nghỉ',
       body: `${p.actor} đã mời bạn kết hợp kế hoạch kỳ nghỉ. Mở TREK để chấp nhận hoặc từ chối.`,
     }),
+    vacay_share: (p) => ({
+      title: 'Đã chia sẻ lịch Vacay',
+      body: `${p.actor} đã chia sẻ lịch nghỉ phép của họ với bạn. Mở TREK để xem.`,
+    }),
     collection_invite: (p) => ({
       title: 'Lời mời bộ sưu tập',
       body: `${p.actor} đã mời bạn chia sẻ một bộ sưu tập. Mở TREK để chấp nhận hoặc từ chối.`,

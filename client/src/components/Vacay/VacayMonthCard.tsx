@@ -11,6 +11,8 @@ interface VacayMonthCardProps {
   companyHolidaySet: Set<string>
   companyHolidaysEnabled?: boolean
   entryMap: Record<string, VacayEntry[]>
+  // Shared read-only calendars per date (#444/#667) — rendered as rings, not fills.
+  sharedMap?: Record<string, { color: string }[]>
   onCellClick: (date: string) => void
   onCellHover?: (date: string | null, el: HTMLElement | null) => void
   companyMode: boolean
@@ -21,7 +23,7 @@ interface VacayMonthCardProps {
 }
 
 export default function VacayMonthCard({
-  year, month, holidays, companyHolidaySet, companyHolidaysEnabled = true, entryMap,
+  year, month, holidays, companyHolidaySet, companyHolidaysEnabled = true, entryMap, sharedMap,
   onCellClick, onCellHover, companyMode, blockWeekends, weekendDays = [0, 6], tripDates, weekStart = 1
 }: VacayMonthCardProps) {
   const { t, locale } = useTranslation()
@@ -107,6 +109,11 @@ export default function VacayMonthCard({
           // never collides with the two-person diagonal split (#552).
           const anyHalf = dayEntries.some(e => (e.fraction ?? 1) === 0.5)
 
+          // Shared calendars mark the day with an inset ring per person (capped at
+          // two — the tooltip lists everyone), keeping them visually apart from the
+          // filled member days.
+          const sharedColors = [...new Set((sharedMap?.[dateStr] || []).map(m => m.color))].slice(0, 2)
+
           // Cell fill — people win, then company, then holiday (keeps each calendar's own colour).
           let background = 'transparent'
           if (dayEntries.length === 1) background = fill(dayEntries[0].person_color)
@@ -116,10 +123,13 @@ export default function VacayMonthCard({
           // Weekend / settings-blocked days read as inactive: subtle grey fill, like before the facelift.
           else if (weekend && blockWeekends) background = 'color-mix(in srgb, var(--vg-ink3) 7%, transparent)'
 
-          // Ring — today's inset outline beats the entry drop-shadow.
-          const boxShadow = isToday
-            ? 'inset 0 0 0 2px var(--vg-ink)'
-            : hasEntries ? `0 3px 8px -3px ${pc(dayEntries[0].person_color)}` : undefined
+          // Rings — today's inset outline first, then one ring per shared calendar
+          // nested inside it; the entry drop-shadow stays as an outer glow.
+          const shadows: string[] = []
+          if (isToday) shadows.push('inset 0 0 0 2px var(--vg-ink)')
+          sharedColors.forEach((c, i) => shadows.push(`inset 0 0 0 ${(isToday ? 2 : 0) + (i + 1) * 2}px ${c}`))
+          if (!isToday && hasEntries) shadows.push(`0 3px 8px -3px ${pc(dayEntries[0].person_color)}`)
+          const boxShadow = shadows.length > 0 ? shadows.join(', ') : undefined
 
           let numColor = 'var(--vg-ink2)'
           if (hasEntries) numColor = '#fff'
@@ -141,11 +151,11 @@ export default function VacayMonthCard({
               onClick={() => onCellClick(dateStr)}
               onMouseEnter={e => {
                 if (!isBlocked && plain) e.currentTarget.style.background = 'var(--vg-surf2)'
-                if (anyHalf) onCellHover?.(dateStr, e.currentTarget)
+                if (anyHalf || sharedColors.length > 0) onCellHover?.(dateStr, e.currentTarget)
               }}
               onMouseLeave={e => {
                 if (!isBlocked && plain) e.currentTarget.style.background = background
-                if (anyHalf) onCellHover?.(null, null)
+                if (anyHalf || sharedColors.length > 0) onCellHover?.(null, null)
               }}
             >
               {/* 3+ people: quadrant overlay at full colour (1 & 2 use the cell background). */}

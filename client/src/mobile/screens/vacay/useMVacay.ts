@@ -4,14 +4,15 @@ import { useVacay } from '../../../pages/vacay/useVacay'
 import { useVacayStore } from '../../../store/vacayStore'
 import { useAuthStore } from '../../../store/authStore'
 import { useTranslation } from '../../../i18n'
+import { useToast } from '../../../components/shared/Toast'
 import { tripsApi } from '../../../api/client'
 import { isWeekend } from '../../../components/Vacay/holidays'
 import { FALLBACK_PERSON_COLOR, localDateStr, type DayVisualContext } from './vacayDayModel'
-import type { Trip } from '../../../types'
+import { getApiErrorMessage, type Trip } from '../../../types'
 
 export type MVacayView = 'grid' | 'edit'
 export type MVacayMode = 'vacation' | 'company'
-export type MVacaySheet = 'invite' | 'settings' | null
+export type MVacaySheet = 'invite' | 'settings' | 'share' | null
 
 /**
  * Screen state of the mobile Vacay experience. Data loading, WebSocket sync
@@ -20,7 +21,8 @@ export type MVacaySheet = 'invite' | 'settings' | null
  * mode, sheets) plus the derived per-day render context.
  */
 export function useMVacay() {
-  const { locale } = useTranslation()
+  const { t, locale } = useTranslation()
+  const toast = useToast()
   const navigate = useNavigate()
   const {
     years, selectedYear, setSelectedYear, loading,
@@ -31,6 +33,7 @@ export function useMVacay() {
     entries, companyHolidays, stats, users, holidays,
     selectedUserId, setSelectedUserId, isFused,
     toggleEntry, toggleCompanyHoliday, updateVacationDays,
+    incomingShares, sharedCalendars, setShareHidden,
   } = useVacayStore()
   const currentUser = useAuthStore(s => s.user)
 
@@ -95,9 +98,23 @@ export function useMVacay() {
     return localDateStr(d.getFullYear(), d.getMonth(), d.getDate())
   }, [])
 
+  // Shared read-only calendars (#444/#667) overlay as rings; hidden ones stay out.
+  const sharedMap = useMemo(() => {
+    const map: Record<string, { color: string }[]> = {}
+    sharedCalendars.filter(c => !c.hidden).forEach(cal => {
+      const push = (date: string) => {
+        if (!map[date]) map[date] = []
+        map[date].push({ color: cal.color })
+      }
+      cal.entries.forEach(e => push(e.date))
+      cal.companyHolidays.forEach(h => push(h.date))
+    })
+    return map
+  }, [sharedCalendars])
+
   const dayCtx = useMemo<DayVisualContext>(() => ({
-    todayStr, entryMap, companyHolidaySet, companyHolidaysEnabled, holidays, weekendDays,
-  }), [todayStr, entryMap, companyHolidaySet, companyHolidaysEnabled, holidays, weekendDays])
+    todayStr, entryMap, companyHolidaySet, companyHolidaysEnabled, holidays, weekendDays, sharedMap,
+  }), [todayStr, entryMap, companyHolidaySet, companyHolidaysEnabled, holidays, weekendDays, sharedMap])
 
   const monthNamesShort = useMemo(() => {
     const fmt = new Intl.DateTimeFormat(locale, { month: 'short' })
@@ -112,6 +129,12 @@ export function useMVacay() {
   const selectedUser = users.find(u => u.id === selectedUserId)
   const selectedColor = selectedUser?.color || FALLBACK_PERSON_COLOR
   const selectedStat = stats.find(s => s.user_id === selectedUserId)
+
+  // Shared-chip tap: the optimistic hide toggle rolls back on server errors —
+  // tell the user instead of letting the chip snap back silently.
+  const toggleShareHidden = useCallback((shareId: number, hidden: boolean) => {
+    setShareHidden(shareId, hidden).catch((err: unknown) => toast.error(getApiErrorMessage(err, t('vacay.shareFailed'))))
+  }, [setShareHidden, toast, t])
 
   // Fusion: logging for each other — any fused member is selectable.
   const selectPerson = useCallback((id: number) => {
@@ -174,6 +197,7 @@ export function useMVacay() {
     loading, plan, selectedYear,
     users, isFused, currentUser,
     incomingInvites, acceptInvite, declineInvite,
+    incomingShares, toggleShareHidden,
     view, month, mode, halfDay, setHalfDay, sheet, setSheet, setMode, setMonth,
     tripDates, tripDotColor,
     blockWeekends, companyHolidaysEnabled, holidaysEnabled, weekStart, weekendDays,

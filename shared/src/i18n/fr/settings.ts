@@ -81,6 +81,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Rappels de voyage',
   'settings.notifyTodoDue': 'Tâche à échéance',
   'settings.notifyVacayInvite': 'Invitations de fusion Vacay',
+  'settings.notifyVacayShare': 'Partages de calendrier Vacay',
   'settings.notifyPhotosShared': 'Photos partagées (Immich)',
   'settings.notifyCollabMessage': 'Messages de chat (Collab)',
   'settings.notifyPackingTagged': 'Liste de bagages : attributions',
@@ -436,7 +437,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Barre de navigation',
-  'settings.appearance.mobileNav.hint': 'Choisissez les éléments à afficher dans la barre et ceux à placer sous « Plus ». Le tableau de bord reste toujours en premier.',
+  'settings.appearance.mobileNav.hint':
+    'Choisissez les éléments à afficher dans la barre et ceux à placer sous « Plus ». Le tableau de bord reste toujours en premier.',
   'settings.appearance.mobileNav.inBar': 'Dans la barre',
   'settings.appearance.mobileNav.underMore': 'Sous « Plus »',
   'settings.appearance.mobileNav.moreEmpty': 'Rien ici pour l’instant — tout tient dans la barre.',
@@ -444,7 +446,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Déplacer sous « Plus »',
   'settings.appearance.mobileNav.toBar': 'Déplacer dans la barre',
   'settings.appearance.dashOrder': 'Ordre du tableau de bord',
-  'settings.appearance.dashOrder.hint': 'Réorganisez l’empilement de la liste des voyages et des widgets sur le tableau de bord de votre téléphone. Le voyage en vedette reste toujours en haut.',
+  'settings.appearance.dashOrder.hint':
+    'Réorganisez l’empilement de la liste des voyages et des widgets sur le tableau de bord de votre téléphone. Le voyage en vedette reste toujours en haut.',
   'settings.appearance.dashOrder.trips': 'Voyages',
   'settings.appearance.dashOrder.hidden': 'Masqué',
   'settings.general.languageRegion': 'Language & region',
@@ -514,7 +517,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Quand',
   'settings.pluginActivity.columns.status': 'Résultat',
   'settings.alwaysShowRoutes': 'Toujours afficher les itinéraires de réservation',
-  'settings.alwaysShowRoutesHint': 'Affiche automatiquement sur la carte l\'itinéraire de chaque vol, trajet en train et autre réservation, sans avoir à l\'activer un par un.',
+  'settings.alwaysShowRoutesHint':
+    "Affiche automatiquement sur la carte l'itinéraire de chaque vol, trajet en train et autre réservation, sans avoir à l'activer un par un.",
 };
 
 export default settings;

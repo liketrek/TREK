@@ -57,6 +57,9 @@ vi.mock('../../../src/services/vacayService', async (importOriginal) => {
   };
 });
 
+// share_vacay_calendar fires a user notification after inserting; stub it out
+vi.mock('../../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
+
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
@@ -453,6 +456,122 @@ describe('Tool: list_holidays', () => {
       const result = await h.client.callTool({ name: 'list_holidays', arguments: { country: 'US', year: 2025 } });
       const data = parseToolResult(result) as any;
       expect(data.holidays).toBeDefined();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// list_vacay_shares
+// ---------------------------------------------------------------------------
+
+describe('Tool: list_vacay_shares', () => {
+  it('returns outgoing and incoming shares', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'share_vacay_calendar', arguments: { targetUserId: other.id } });
+      const result = await h.client.callTool({ name: 'list_vacay_shares', arguments: {} });
+      const data = parseToolResult(result) as any;
+      expect(Array.isArray(data.outgoing)).toBe(true);
+      expect(Array.isArray(data.incoming)).toBe(true);
+      expect(data.outgoing).toHaveLength(1);
+      expect(data.outgoing[0].user_id).toBe(other.id);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// share_vacay_calendar
+// ---------------------------------------------------------------------------
+
+describe('Tool: share_vacay_calendar', () => {
+  it('creates a share and returns success', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'share_vacay_calendar', arguments: { targetUserId: other.id } });
+      const data = parseToolResult(result) as any;
+      expect(data.success).toBe(true);
+      const row = testDb.prepare('SELECT id FROM vacay_shares WHERE owner_id = ? AND user_id = ?').get(user.id, other.id);
+      expect(row).toBeDefined();
+    });
+  });
+
+  it('errors when sharing with yourself', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'share_vacay_calendar', arguments: { targetUserId: user.id } });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const { user: other } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'share_vacay_calendar', arguments: { targetUserId: other.id } });
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// unshare_vacay_calendar
+// ---------------------------------------------------------------------------
+
+describe('Tool: unshare_vacay_calendar', () => {
+  it('removes an existing share and returns success', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'share_vacay_calendar', arguments: { targetUserId: other.id } });
+      const shareId = (testDb.prepare('SELECT id FROM vacay_shares WHERE owner_id = ?').get(user.id) as any).id;
+
+      const result = await h.client.callTool({ name: 'unshare_vacay_calendar', arguments: { shareId } });
+      const data = parseToolResult(result) as any;
+      expect(data.success).toBe(true);
+      expect(testDb.prepare('SELECT id FROM vacay_shares WHERE id = ?').get(shareId)).toBeUndefined();
+    });
+  });
+
+  it('errors when the share does not exist', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'unshare_vacay_calendar', arguments: { shareId: 99999 } });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'unshare_vacay_calendar', arguments: { shareId: 1 } });
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// get_shared_vacay_calendars
+// ---------------------------------------------------------------------------
+
+describe('Tool: get_shared_vacay_calendars', () => {
+  it('returns the sharer entries for the viewer', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: viewer } = createUser(testDb);
+    await withHarness(owner.id, async (h) => {
+      await h.client.callTool({ name: 'toggle_vacay_entry', arguments: { date: '2025-06-15' } });
+      await h.client.callTool({ name: 'share_vacay_calendar', arguments: { targetUserId: viewer.id } });
+    });
+    await withHarness(viewer.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_shared_vacay_calendars', arguments: { year: 2025 } });
+      const data = parseToolResult(result) as any;
+      expect(Array.isArray(data.calendars)).toBe(true);
+      expect(data.calendars).toHaveLength(1);
+      expect(data.calendars[0].owner_id).toBe(owner.id);
+      expect(data.calendars[0].entries.map((e: any) => e.date)).toContain('2025-06-15');
     });
   });
 });

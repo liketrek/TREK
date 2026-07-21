@@ -28,6 +28,10 @@ const hu: NotificationLocale = {
       title: 'Vacay Fusion meghívó',
       body: `${p.actor} meghívott a nyaralási tervek összevonásához. Nyissa meg a TREK-et az elfogadáshoz vagy elutasításhoz.`,
     }),
+    vacay_share: (p) => ({
+      title: 'Vacay naptár megosztva',
+      body: `${p.actor} megosztotta veled a szabadságnaptárát. Nyissa meg a TREK-et a megtekintéshez.`,
+    }),
     collection_invite: (p) => ({
       title: 'Gyűjtemény meghívó',
       body: `${p.actor} meghívott egy gyűjtemény megosztására. Nyissa meg a TREK-et az elfogadáshoz vagy elutasításhoz.`,

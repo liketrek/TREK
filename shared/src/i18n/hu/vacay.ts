@@ -92,5 +92,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo3': 'Mindkét fél törölhet bejegyzéseket és módosíthatja a szabadságkeretet.',
   'vacay.fuseInfo4': 'A beállítások, mint ünnepnapok és céges szabadnapok, közösen érvényesek.',
   'vacay.fuseInfo5': 'Az összevonás bármikor feloldható bármelyik fél által. A bejegyzések megmaradnak.',
+  'vacay.sharedCalendars': 'Megosztott naptárak',
+  'vacay.shareCalendar': 'Naptár megosztása',
+  'vacay.shareCalendarHint':
+    'Engedd, hogy egy másik TREK felhasználó lássa a szabadságnaptáradat. Csak megtekintés — nincs összevonás, nincs szerkesztés.',
+  'vacay.sharedWithYou': 'Veled megosztva',
+  'vacay.youShareWith': 'Te megosztod',
+  'vacay.viewOnly': 'csak megtekintés',
+  'vacay.share': 'Megosztás',
+  'vacay.shareSent': 'Naptár megosztva',
+  'vacay.shareFailed': 'Nem sikerült megosztani a naptárat',
+  'vacay.stopSharing': 'Megosztás leállítása',
+  'vacay.showInCalendar': 'Megjelenítés a naptárban',
+  'vacay.hideFromCalendar': 'Elrejtés a naptárból',
+  'vacay.sharedEmpty': 'Mutassátok meg egymásnak a naptáraitokat összevonás nélkül.',
+  'vacay.sharedLegend': 'Megosztott (csak megtekintés)',
 };
 export default vacay;

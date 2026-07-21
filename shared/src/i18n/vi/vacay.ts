@@ -93,5 +93,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo4': 'Các cài đặt như ngày nghỉ lễ và ngày nghỉ của công ty đều được chia sẻ.',
   'vacay.fuseInfo5':
     'Sự hợp nhất có thể được giải thể bất cứ lúc nào bởi một trong hai bên. Các mục của bạn sẽ được bảo tồn.',
+  'vacay.sharedCalendars': 'Lịch được chia sẻ',
+  'vacay.shareCalendar': 'Chia sẻ lịch',
+  'vacay.shareCalendarHint':
+    'Cho phép người dùng TREK khác xem lịch nghỉ phép của bạn. Chỉ xem — không hợp nhất, không chỉnh sửa.',
+  'vacay.sharedWithYou': 'Được chia sẻ với bạn',
+  'vacay.youShareWith': 'Bạn chia sẻ với',
+  'vacay.viewOnly': 'chỉ xem',
+  'vacay.share': 'Chia sẻ',
+  'vacay.shareSent': 'Đã chia sẻ lịch',
+  'vacay.shareFailed': 'Không thể chia sẻ lịch',
+  'vacay.stopSharing': 'Ngừng chia sẻ',
+  'vacay.showInCalendar': 'Hiển thị trong lịch',
+  'vacay.hideFromCalendar': 'Ẩn khỏi lịch',
+  'vacay.sharedEmpty': 'Cho nhau xem lịch của mình mà không cần hợp nhất chúng.',
+  'vacay.sharedLegend': 'Được chia sẻ (chỉ xem)',
 };
 export default vacay;

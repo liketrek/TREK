@@ -91,6 +91,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Trip reminders',
   'settings.notifyTodoDue': 'Todo due soon',
   'settings.notifyVacayInvite': 'Vacay fusion invitations',
+  'settings.notifyVacayShare': 'Vacay calendar shares',
   'settings.notifyPhotosShared': 'Shared photos (Immich)',
   'settings.notifyCollabMessage': 'Chat messages (Collab)',
   'settings.notifyPackingTagged': 'Packing list: assignments',
@@ -430,7 +431,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
   'settings.appearance.mobileNav': 'Bottom navbar',
-  'settings.appearance.mobileNav.hint': 'Choose which items appear in the bar and which sit under “More”. Dashboard always stays first.',
+  'settings.appearance.mobileNav.hint':
+    'Choose which items appear in the bar and which sit under “More”. Dashboard always stays first.',
   'settings.appearance.mobileNav.inBar': 'In the bar',
   'settings.appearance.mobileNav.underMore': 'Under “More”',
   'settings.appearance.mobileNav.moreEmpty': 'Nothing here yet — everything fits in the bar.',
@@ -438,7 +440,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Move under “More”',
   'settings.appearance.mobileNav.toBar': 'Move into the bar',
   'settings.appearance.dashOrder': 'Dashboard order',
-  'settings.appearance.dashOrder.hint': 'Reorder how the trip list and widgets stack on your phone dashboard. The featured trip always stays on top.',
+  'settings.appearance.dashOrder.hint':
+    'Reorder how the trip list and widgets stack on your phone dashboard. The featured trip always stays on top.',
   'settings.appearance.dashOrder.trips': 'Trips',
   'settings.appearance.dashOrder.hidden': 'Hidden',
   'settings.general.languageRegion': 'Language & region',
@@ -496,7 +499,8 @@ const settings: TranslationStrings = {
   'settings.offline.banner.failed': 'Failed to sync: {count}',
   'settings.offline.banner.conflicts': 'Conflicts: {count}',
   'settings.alwaysShowRoutes': 'Always show booking routes',
-  'settings.alwaysShowRoutesHint': 'Automatically draw the route for every flight, train and other booking on the map — no need to switch it on per item.',
+  'settings.alwaysShowRoutesHint':
+    'Automatically draw the route for every flight, train and other booking on the map — no need to switch it on per item.',
 };
 
 export default settings;

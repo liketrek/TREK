@@ -92,5 +92,20 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo3': 'Obě strany mohou měnit nároky na dovolenou.',
   'vacay.fuseInfo4': 'Nastavení (svátky, firemní volno) jsou sdílená.',
   'vacay.fuseInfo5': 'Propojení lze kdykoli zrušit bez ztráty dat.',
+  'vacay.sharedCalendars': 'Sdílené kalendáře',
+  'vacay.shareCalendar': 'Sdílet kalendář',
+  'vacay.shareCalendarHint':
+    'Umožněte jinému uživateli TREK vidět váš kalendář dovolených. Pouze pro čtení — žádné propojení, žádné úpravy.',
+  'vacay.sharedWithYou': 'Sdíleno s vámi',
+  'vacay.youShareWith': 'Sdílíte s',
+  'vacay.viewOnly': 'pouze pro čtení',
+  'vacay.share': 'Sdílet',
+  'vacay.shareSent': 'Kalendář sdílen',
+  'vacay.shareFailed': 'Nepodařilo se sdílet kalendář',
+  'vacay.stopSharing': 'Ukončit sdílení',
+  'vacay.showInCalendar': 'Zobrazit v kalendáři',
+  'vacay.hideFromCalendar': 'Skrýt z kalendáře',
+  'vacay.sharedEmpty': 'Ukažte si navzájem své kalendáře, aniž byste je propojili.',
+  'vacay.sharedLegend': 'Sdílené (pouze pro čtení)',
 };
 export default vacay;

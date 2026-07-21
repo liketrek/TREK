@@ -19,6 +19,9 @@ export interface DayVisualContext {
   companyHolidaysEnabled: boolean
   holidays: HolidaysMap
   weekendDays: number[]
+  // Shared read-only calendars per date (#444/#667) — drawn as inset rings on
+  // top of whatever the cell shows, never as fills.
+  sharedMap?: Record<string, { color: string }[]>
 }
 
 function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
@@ -80,7 +83,7 @@ export function splitBackground(colors: string[]): string {
  * plain. Logged and company cells keep hard dark inks — the pastels are
  * theme-independent surfaces.
  */
-export function dayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext): DayVisual {
+function baseDayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext): DayVisual {
   if (dateStr === ctx.todayStr) {
     return { background: 'transparent', numColor: 'var(--m-ink)', boxShadow: 'inset 0 0 0 1.5px var(--m-ink)' }
   }
@@ -105,6 +108,20 @@ export function dayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualCont
     return { background: 'var(--m-ic)', numColor: 'var(--m-faint)' }
   }
   return { background: 'transparent', numColor: 'var(--m-muted)' }
+}
+
+export function dayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext): DayVisual {
+  const visual = baseDayVisual(dateStr, dayOfWeek, ctx)
+  // Shared calendars (#444/#667) draw inset rings over the base cell — capped at
+  // two so tiny mini-grid cells stay readable. Nested inside the today ring.
+  const rings = [...new Set((ctx.sharedMap?.[dateStr] || []).map(m => m.color))].slice(0, 2)
+  if (rings.length > 0) {
+    const shadows = visual.boxShadow ? [visual.boxShadow] : []
+    const base = visual.boxShadow ? 1.5 : 0
+    rings.forEach((c, i) => shadows.push(`inset 0 0 0 ${base + (i + 1) * 1.5}px ${c}`))
+    visual.boxShadow = shadows.join(', ')
+  }
+  return visual
 }
 
 /** Empty leading cells before the 1st, honoring the configured week start. */

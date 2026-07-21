@@ -401,4 +401,140 @@ describe('vacayStore', () => {
       expect(holidays['2025-12-25']).toBeDefined();
     });
   });
+
+  describe('FE-STORE-VACAY-022: loadShares()', () => {
+    it('stores outgoing and incoming shares', async () => {
+      server.use(
+        http.get('/api/addons/vacay/shares', () =>
+          HttpResponse.json({
+            outgoing: [{ id: 1, user_id: 2, username: 'Bob' }],
+            incoming: [{ id: 2, owner_id: 3, username: 'Carol', color: '#ec4899', hidden: false }],
+          })
+        )
+      );
+
+      await useVacayStore.getState().loadShares();
+      const state = useVacayStore.getState();
+
+      expect(state.outgoingShares.length).toBe(1);
+      expect(state.outgoingShares[0].username).toBe('Bob');
+      expect(state.incomingShares.length).toBe(1);
+      expect(state.incomingShares[0].hidden).toBe(false);
+    });
+  });
+
+  describe('FE-STORE-VACAY-023: loadSharedCalendars() uses selectedYear when no year arg', () => {
+    it('requests the selected year and stores the calendars', async () => {
+      useVacayStore.setState({ selectedYear: 2025 });
+
+      let requestedYear: string | undefined;
+      server.use(
+        http.get('/api/addons/vacay/shares/calendars/:year', ({ params }) => {
+          requestedYear = params.year as string;
+          return HttpResponse.json({
+            calendars: [{
+              share_id: 2,
+              owner_id: 3,
+              owner_name: 'Carol',
+              color: '#ec4899',
+              hidden: false,
+              entries: [{ date: '2025-06-15', fraction: 1 }],
+              companyHolidays: [],
+            }],
+          });
+        })
+      );
+
+      await useVacayStore.getState().loadSharedCalendars();
+      const state = useVacayStore.getState();
+
+      expect(requestedYear).toBe('2025');
+      expect(state.sharedCalendars.length).toBe(1);
+      expect(state.sharedCalendars[0].owner_name).toBe('Carol');
+    });
+  });
+
+  describe('FE-STORE-VACAY-024: shareWith()', () => {
+    it('posts the user id and reloads shares', async () => {
+      let postedUserId: number | undefined;
+      server.use(
+        http.post('/api/addons/vacay/shares', async ({ request }) => {
+          const body = await request.json() as { user_id: number };
+          postedUserId = body.user_id;
+          return HttpResponse.json({ success: true });
+        }),
+        http.get('/api/addons/vacay/shares', () =>
+          HttpResponse.json({
+            outgoing: [{ id: 1, user_id: 5, username: 'Eve' }],
+            incoming: [],
+          })
+        )
+      );
+
+      await useVacayStore.getState().shareWith(5);
+      const state = useVacayStore.getState();
+
+      expect(postedUserId).toBe(5);
+      expect(state.outgoingShares.length).toBe(1);
+    });
+  });
+
+  describe('FE-STORE-VACAY-025: removeShare()', () => {
+    it('deletes the share and reloads shares and shared calendars', async () => {
+      useVacayStore.setState({
+        selectedYear: 2025,
+        outgoingShares: [{ id: 1, user_id: 5, username: 'Eve' }],
+      });
+
+      let deletedId: string | undefined;
+      server.use(
+        http.delete('/api/addons/vacay/shares/:id', ({ params }) => {
+          deletedId = params.id as string;
+          return HttpResponse.json({ success: true });
+        })
+      );
+
+      await useVacayStore.getState().removeShare(1);
+      const state = useVacayStore.getState();
+
+      expect(deletedId).toBe('1');
+      // Default MSW handlers return empty lists after the delete
+      expect(state.outgoingShares).toEqual([]);
+      expect(state.sharedCalendars).toEqual([]);
+    });
+  });
+
+  describe('FE-STORE-VACAY-026: setShareHidden()', () => {
+    it('optimistically toggles hidden on the share and its calendar', async () => {
+      useVacayStore.setState({
+        incomingShares: [{ id: 2, owner_id: 3, username: 'Carol', color: '#ec4899', hidden: false }],
+        sharedCalendars: [{ share_id: 2, owner_id: 3, owner_name: 'Carol', color: '#ec4899', hidden: false, entries: [], companyHolidays: [] }],
+      });
+
+      await useVacayStore.getState().setShareHidden(2, true);
+      const state = useVacayStore.getState();
+
+      expect(state.incomingShares[0].hidden).toBe(true);
+      expect(state.sharedCalendars[0].hidden).toBe(true);
+    });
+
+    it('rolls back the optimistic toggle when the API call fails', async () => {
+      useVacayStore.setState({
+        incomingShares: [{ id: 2, owner_id: 3, username: 'Carol', color: '#ec4899', hidden: false }],
+        sharedCalendars: [{ share_id: 2, owner_id: 3, owner_name: 'Carol', color: '#ec4899', hidden: false, entries: [], companyHolidays: [] }],
+      });
+
+      server.use(
+        http.put('/api/addons/vacay/shares/:id', () =>
+          HttpResponse.json({ error: 'Share not found' }, { status: 404 })
+        )
+      );
+
+      await expect(useVacayStore.getState().setShareHidden(2, true)).rejects.toThrow();
+      const state = useVacayStore.getState();
+
+      expect(state.incomingShares[0].hidden).toBe(false);
+      expect(state.sharedCalendars[0].hidden).toBe(false);
+    });
+  });
 });

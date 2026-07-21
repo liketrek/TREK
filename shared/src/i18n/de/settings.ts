@@ -81,6 +81,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Trip-Erinnerungen',
   'settings.notifyTodoDue': 'Aufgabe bald fällig',
   'settings.notifyVacayInvite': 'Vacay Fusion-Einladungen',
+  'settings.notifyVacayShare': 'Vacay Kalender-Freigaben',
   'settings.notifyPhotosShared': 'Geteilte Fotos (Immich)',
   'settings.notifyCollabMessage': 'Chat-Nachrichten (Collab)',
   'settings.notifyPackingTagged': 'Packliste: Zuweisungen',
@@ -431,7 +432,8 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'Adressen, Labels',
   'settings.appearance.experimental': 'Experimentell',
   'settings.appearance.mobileNav': 'Untere Navigationsleiste',
-  'settings.appearance.mobileNav.hint': 'Lege fest, welche Punkte in der Leiste erscheinen und welche unter „Mehr“ liegen. Das Dashboard bleibt immer an erster Stelle.',
+  'settings.appearance.mobileNav.hint':
+    'Lege fest, welche Punkte in der Leiste erscheinen und welche unter „Mehr“ liegen. Das Dashboard bleibt immer an erster Stelle.',
   'settings.appearance.mobileNav.inBar': 'In der Leiste',
   'settings.appearance.mobileNav.underMore': 'Unter „Mehr“',
   'settings.appearance.mobileNav.moreEmpty': 'Noch nichts hier – alles passt in die Leiste.',
@@ -439,7 +441,8 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'Unter „Mehr“ verschieben',
   'settings.appearance.mobileNav.toBar': 'In die Leiste verschieben',
   'settings.appearance.dashOrder': 'Dashboard-Reihenfolge',
-  'settings.appearance.dashOrder.hint': 'Ordne, wie Trip-Liste und Widgets auf deinem Handy-Dashboard gestapelt sind. Der hervorgehobene Trip bleibt immer oben.',
+  'settings.appearance.dashOrder.hint':
+    'Ordne, wie Trip-Liste und Widgets auf deinem Handy-Dashboard gestapelt sind. Der hervorgehobene Trip bleibt immer oben.',
   'settings.appearance.dashOrder.trips': 'Trips',
   'settings.appearance.dashOrder.hidden': 'Ausgeblendet',
   'settings.general.languageRegion': 'Sprache & Region',
@@ -509,7 +512,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Zeitpunkt',
   'settings.pluginActivity.columns.status': 'Ergebnis',
   'settings.alwaysShowRoutes': 'Buchungsrouten immer anzeigen',
-  'settings.alwaysShowRoutesHint': 'Zeigt die Route für jeden Flug, jede Zugfahrt und jede andere Buchung automatisch auf der Karte an – ohne sie einzeln aktivieren zu müssen.',
+  'settings.alwaysShowRoutesHint':
+    'Zeigt die Route für jeden Flug, jede Zugfahrt und jede andere Buchung automatisch auf der Karte an – ohne sie einzeln aktivieren zu müssen.',
 };
 
 export default settings;
