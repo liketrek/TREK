@@ -50,15 +50,15 @@ export function useCollections() {
   const store = useCollectionStore()
   const {
     collections, activeId, places, members, labels, incomingInvites,
-    view, statusFilter, categoryFilter, labelFilter, search, selectedPlaceId, selectMode, selectedIds,
+    view, statusFilter, categoryFilter, ratingFilter, labelFilter, search, selectedPlaceId, selectMode, selectedIds,
     loading, placesLoading,
     loadAll, setActive, refreshActive, loadCollection,
     deleteCollection,
-    setStatus, updatePlace, uploadPlaceImage, deletePlace, deleteMany, copyToTrip, clearSelection,
+    setStatus, updatePlace, uploadPlaceImage, ratePlace, deletePlace, deleteMany, copyToTrip, clearSelection,
     moveToList, duplicateToList, setSelectedIds,
     createLabel, updateLabel, deleteLabel, assignLabels,
     acceptInvite, declineInvite,
-    setView, setStatusFilter, setCategoryFilter, setLabelFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
+    setView, setStatusFilter, setCategoryFilter, setRatingFilter, setLabelFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
   } = store
 
   // ── Page-local UI state ─────────────────────────────────────────────
@@ -167,8 +167,8 @@ export function useCollections() {
 
   // Labels are per-collection, so never apply them on the "All saved" union.
   const visiblePlaces = useMemo(
-    () => sortPlaces(filterPlaces(places, statusFilter, search, categoryFilter, isAllSaved ? [] : labelFilter)),
-    [places, statusFilter, search, categoryFilter, isAllSaved, labelFilter],
+    () => sortPlaces(filterPlaces(places, statusFilter, search, categoryFilter, isAllSaved ? [] : labelFilter, ratingFilter)),
+    [places, statusFilter, search, categoryFilter, isAllSaved, labelFilter, ratingFilter],
   )
   // Categories actually present in this list, for the category filter dropdown.
   const categoryOptions = useMemo(() => presentCategories(places), [places])
@@ -220,6 +220,14 @@ export function useCollections() {
       toast.error(getApiErrorMessage(err, t('common.error')))
     }
   }, [deletePlace, toast, t])
+
+  const handleRatePlace = useCallback(async (placeId: number, rating: number | null) => {
+    try {
+      await ratePlace(placeId, rating)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    }
+  }, [ratePlace, toast, t])
 
   const handleDeleteSelected = useCallback(async () => {
     if (selectedIds.length === 0) return
@@ -378,11 +386,11 @@ export function useCollections() {
     myRole, canEdit, canDelete,
     canShare, shareMemberCount,
     activeId, places, visiblePlaces, mappable, members, incomingInvites, counts,
-    view, statusFilter, categoryFilter, categoryOptions, search, selectedPlaceId, selectMode, selectedIds,
+    view, statusFilter, categoryFilter, categoryOptions, ratingFilter, search, selectedPlaceId, selectMode, selectedIds,
     labels, labelFilter, labelOptions,
     loading, placesLoading,
     // store setters
-    setView, setStatusFilter, setCategoryFilter, setLabelFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
+    setView, setStatusFilter, setCategoryFilter, setRatingFilter, setLabelFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
     updatePlace, uploadPlaceImage,
     // labels
     showLabelManager, setShowLabelManager, labelPickerOpen, setLabelPickerOpen,
@@ -399,7 +407,7 @@ export function useCollections() {
     copyIds, openCopyForSelectedPlace, openCopyForSelection, closeCopy, handleCopyToTrip,
     // handlers
     handleSelectList, handleDeleteList,
-    handleStatusChange, handleDeletePlace, handleDeleteSelected,
+    handleStatusChange, handleRatePlace, handleDeletePlace, handleDeleteSelected,
     handleAcceptInvite, handleDeclineInvite,
     allVisibleSelected, handleSelectAll,
     listPickerMode, setListPickerMode, handleMoveToList, handleDuplicateToList,

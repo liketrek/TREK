@@ -12,6 +12,7 @@ import { getCategoryIcon } from '../shared/categoryIcons'
 import { STATUS_META, STATUS_ORDER, normalizeLinkUrl } from '../../pages/collections/collectionsModel'
 import { useToast } from '../shared/Toast'
 import { Tooltip } from '../shared/Tooltip'
+import PlaceRating from '../shared/StarRating'
 import { normalizeImageFile } from '../../utils/convertHeic'
 import { getApiErrorMessage } from '../../types'
 
@@ -35,6 +36,8 @@ interface CollectionPlaceDetailProps {
   onUploadImage?: (file: File) => Promise<void>
   onCopyToTrip: () => void
   onRemove: () => void
+  /** Cast/clear the current user's star vote (#1435); every member may vote. */
+  onRate?: (rating: number | null) => Promise<void> | void
   t: TranslationFn
 }
 
@@ -62,7 +65,7 @@ function StatusSegment({ status, onSet, t }: { status: CollectionStatus; onSet: 
  * is an always-live segmented control (auto-saves).
  */
 export default function CollectionPlaceDetail({
-  place, canEdit, canDelete, categories, labels, anchorRect, onClose, onSetStatus, onSave, onUploadImage, onCopyToTrip, onRemove, t,
+  place, canEdit, canDelete, categories, labels, anchorRect, onClose, onSetStatus, onSave, onUploadImage, onCopyToTrip, onRemove, onRate, t,
 }: CollectionPlaceDetailProps): React.ReactElement {
   const toast = useToast()
   const [editing, setEditing] = useState(false)
@@ -207,6 +210,13 @@ export default function CollectionPlaceDetail({
 
         {/* Status — live for editors, read-only for viewers */}
         <StatusSegment status={place.status} onSet={canEdit ? onSetStatus : () => {}} t={t} />
+
+        {/* Collaborative rating (#1435) — every member votes; the average shows. */}
+        {onRate && (
+          <div style={{ padding: '2px 0' }}>
+            <PlaceRating ratings={place.ratings ?? []} ratingAvg={place.rating_avg} onRate={onRate} />
+          </div>
+        )}
 
         {editing ? (
           <div className="col-detail-edit">

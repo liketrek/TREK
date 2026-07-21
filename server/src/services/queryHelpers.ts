@@ -37,6 +37,40 @@ function loadTagsByPlaceIds(placeIds: number[], { compact }: { compact?: boolean
   return tagsByPlaceId;
 }
 
+export interface PlaceRatingRow {
+  user_id: number;
+  username: string;
+  avatar: string | null;
+  rating: number;
+}
+
+/** Batch-load collaborative ratings (#1435) for multiple places in one query, indexed by place ID. */
+function loadRatingsByPlaceIds(placeIds: number[]): Record<number, PlaceRatingRow[]> {
+  const ratingsByPlaceId: Record<number, PlaceRatingRow[]> = {};
+  if (placeIds.length > 0) {
+    const rows = db.prepare(`
+      SELECT pr.place_id, pr.user_id, u.username, u.avatar, pr.rating FROM place_ratings pr
+      JOIN users u ON pr.user_id = u.id
+      WHERE pr.place_id IN (${placeIds.map(() => '?').join(',')})
+      ORDER BY pr.created_at
+    `).all(...placeIds) as (PlaceRatingRow & { place_id: number })[];
+    for (const { place_id, ...rest } of rows) {
+      if (!ratingsByPlaceId[place_id]) ratingsByPlaceId[place_id] = [];
+      ratingsByPlaceId[place_id].push(rest);
+    }
+  }
+  return ratingsByPlaceId;
+}
+
+/** avg/count aggregate for a place's rating rows. */
+function ratingAggregate(ratings: PlaceRatingRow[] | undefined) {
+  const rows = ratings || [];
+  return {
+    rating_avg: rows.length > 0 ? rows.reduce((s, r) => s + r.rating, 0) / rows.length : null,
+    rating_count: rows.length,
+  };
+}
+
 /** Batch-load participants for multiple day-assignments in a single query, indexed by assignment ID. */
 function loadParticipantsByAssignmentIds(assignmentIds: number[]): Record<number, Participant[]> {
   const participantsByAssignment: Record<number, Participant[]> = {};
@@ -95,4 +129,4 @@ function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[], parti
   };
 }
 
-export { loadTagsByPlaceIds, loadParticipantsByAssignmentIds, formatAssignmentWithPlace };
+export { loadTagsByPlaceIds, loadParticipantsByAssignmentIds, formatAssignmentWithPlace, loadRatingsByPlaceIds, ratingAggregate };

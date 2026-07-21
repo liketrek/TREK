@@ -13,6 +13,7 @@ import { useAddonStore } from '../../../../store/addonStore'
 import { useSaveToCollectionStore } from '../../../../store/saveToCollectionStore'
 import { collectionTargetFromPlace } from '../lib/collectionTarget'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
+import PlaceRating from '../../../../components/shared/StarRating'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import { openFile } from '../../../../utils/fileDownload'
 import { getGoogleMapsUrlForPlace } from '../../../../components/Planner/placeGoogleMaps'
@@ -168,6 +169,16 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     openSavePicker(collectionTargetFromPlace(place))
   }
 
+  // Collaborative rating (#1435): every trip member casts their own star vote.
+  const handleRate = async (rating: number | null) => {
+    if (!place) return
+    try {
+      await planner.tripActions.ratePlace(planner.tripId, place.id, rating)
+    } catch (err: unknown) {
+      planner.toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+    }
+  }
+
   const showOnMap = () => {
     close()
     if (shell.trTab !== 'plan') shell.setTrTab('plan')
@@ -258,6 +269,11 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 {place.phone}
               </a>
             )}
+
+            {/* Collaborative rating (#1435) — tap a star to cast/clear your vote. */}
+            <div className={`mt-[10px] rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
+              <PlaceRating ratings={place.ratings ?? []} ratingAvg={place.rating_avg} onRate={handleRate} size={18} />
+            </div>
 
             {place.description && (
               <div className={`mt-[10px] rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>

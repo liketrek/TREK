@@ -404,6 +404,10 @@ export const placesApi = {
     fd.append('image', file)
     return postMultipart<{ place: Place }>(`/trips/${tripId}/places/${id}/image`, fd)
   },
+  rate: (tripId: number | string, id: number | string, rating: number | null): Promise<{ place: Place }> =>
+    rating === null
+      ? apiClient.delete(`/trips/${tripId}/places/${id}/rating`).then(r => r.data)
+      : apiClient.put(`/trips/${tripId}/places/${id}/rating`, { rating }).then(r => r.data),
   importGpx: (tripId: number | string, file: File, opts?: { waypoints?: boolean; routes?: boolean; tracks?: boolean }) => {
     const fd = new FormData()
     fd.append('file', file)

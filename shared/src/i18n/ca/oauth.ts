@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': 'Viatges',
   'oauth.scope.group.places': 'Llocs',
+  'oauth.scope.group.collections': 'Col·leccions',
   'oauth.scope.group.atlas': 'Atles',
   'oauth.scope.group.packing': 'Equipatge',
   'oauth.scope.group.todos': 'Tasques',
@@ -26,6 +27,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': 'Llegeix llocs, assignacions de dies, etiquetes i categories',
   'oauth.scope.places:write.label': 'Gestiona els llocs',
   'oauth.scope.places:write.description': 'Crea, actualitza i elimina llocs, assignacions i etiquetes',
+  'oauth.scope.collections:read.label': 'Mostra les col·leccions',
+  'oauth.scope.collections:read.description': 'Llegeix les col·leccions de llocs desats, els seus llocs, valoracions, etiquetes i membres',
+  'oauth.scope.collections:write.label': 'Gestiona les col·leccions',
+  'oauth.scope.collections:write.description': 'Crea i edita col·leccions; desa, valora, etiqueta i copia llocs, i comparteix llistes',
   'oauth.scope.atlas:read.label': "Mostra l'Atles",
   'oauth.scope.atlas:read.description': 'Llegeix països visitats, regions i llista de desitjos',
   'oauth.scope.atlas:write.label': "Gestiona l'Atles",

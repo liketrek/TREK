@@ -11,6 +11,7 @@ import { normalizeImageFile } from '../../../utils/convertHeic'
 import { getApiErrorMessage } from '../../../types'
 import { normalizeLinkUrl, STATUS_ORDER } from '../../../pages/collections/collectionsModel'
 import MSheet from '../../components/MSheet'
+import PlaceRating from '../../../components/shared/StarRating'
 import MCollCategoryPicker from './MCollCategoryPicker'
 import MCollLinksEditor from './MCollLinksEditor'
 import { STATUS_SPEC } from './collectionsMobileModel'
@@ -38,6 +39,8 @@ interface MCollPlaceSheetProps {
   onUploadImage?: (file: File) => Promise<void>
   onCopyToTrip: () => void
   onRemove: () => void
+  /** Cast/clear the current user's star vote (#1435); every member may vote. */
+  onRate?: (rating: number | null) => Promise<void> | void
   t: TranslationFn
 }
 
@@ -48,7 +51,7 @@ interface MCollPlaceSheetProps {
  * description / links.
  */
 export default function MCollPlaceSheet({
-  place, canEdit, canDelete, categories, labels, onClose, onSetStatus, onSave, onUploadImage, onCopyToTrip, onRemove, t,
+  place, canEdit, canDelete, categories, labels, onClose, onSetStatus, onSave, onUploadImage, onCopyToTrip, onRemove, onRate, t,
 }: MCollPlaceSheetProps) {
   const toast = useToast()
   const imageInputRef = useRef<HTMLInputElement | null>(null)
@@ -230,6 +233,13 @@ export default function MCollPlaceSheet({
                 )
               })}
             </div>
+
+            {/* Collaborative rating (#1435) — tap a star to cast/clear your vote. */}
+            {onRate && (
+              <div className="mt-3">
+                <PlaceRating ratings={held.ratings ?? []} ratingAvg={held.rating_avg} onRate={onRate} size={18} />
+              </div>
+            )}
 
             {editing ? (
               <>

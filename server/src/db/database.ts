@@ -96,6 +96,9 @@ interface PlaceWithCategory extends Place {
 interface PlaceWithTags extends Place {
   category: { id: number; name: string; color: string; icon: string } | null;
   tags: Tag[];
+  ratings: { user_id: number; username: string; avatar: string | null; rating: number }[];
+  rating_avg: number | null;
+  rating_count: number;
 }
 
 function getPlaceWithTags(placeId: number | string): PlaceWithTags | null {
@@ -114,6 +117,14 @@ function getPlaceWithTags(placeId: number | string): PlaceWithTags | null {
     WHERE pt.place_id = ?
   `).all(placeId) as Tag[];
 
+  // Collaborative ratings (#1435): every voter with username/avatar for the
+  // who-voted tooltip; the displayed value is the average.
+  const ratings = db.prepare(`
+    SELECT pr.user_id, u.username, u.avatar, pr.rating FROM place_ratings pr
+    JOIN users u ON pr.user_id = u.id
+    WHERE pr.place_id = ? ORDER BY pr.created_at
+  `).all(placeId) as { user_id: number; username: string; avatar: string | null; rating: number }[];
+
   return {
     ...place,
     category: place.category_id ? {
@@ -123,6 +134,9 @@ function getPlaceWithTags(placeId: number | string): PlaceWithTags | null {
       icon: place.category_icon!,
     } : null,
     tags,
+    ratings,
+    rating_avg: ratings.length > 0 ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length : null,
+    rating_count: ratings.length,
   };
 }
 

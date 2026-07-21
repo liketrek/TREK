@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Check, Layers, Tag, Tags, CheckSquare } from 'lucide-react'
+import { ChevronDown, Check, Layers, Tag, Tags, CheckSquare, Star } from 'lucide-react'
 import type { StatusFilter } from '../../store/collectionStore'
 import type { TranslationFn } from '../../types'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -67,8 +67,10 @@ interface CollectionFilterBarProps {
   counts: Record<StatusFilter, number>
   categoryFilter: number | 'all'
   categoryOptions: CategoryOption[]
+  ratingFilter: number | 'all'
   onStatusFilter: (f: StatusFilter) => void
   onCategoryFilter: (f: number | 'all') => void
+  onRatingFilter: (f: number | 'all') => void
   // Per-collection labels (hidden on the "All saved" union).
   showLabels: boolean
   labelOptions: LabelOption[]
@@ -88,7 +90,7 @@ interface CollectionFilterBarProps {
  * Custom compact dropdowns so they barely take any space.
  */
 export default function CollectionFilterBar({
-  statusFilter, counts, categoryFilter, categoryOptions, onStatusFilter, onCategoryFilter,
+  statusFilter, counts, categoryFilter, categoryOptions, ratingFilter, onStatusFilter, onCategoryFilter, onRatingFilter,
   showLabels, labelOptions, labelFilter, onLabelFilter, canManageLabels, onManageLabels,
   showSelect, selectMode, onToggleSelect, t,
 }: CollectionFilterBarProps): React.ReactElement {
@@ -109,12 +111,23 @@ export default function CollectionFilterBar({
     }),
   ]
 
+  // Minimum-average-rating filter (#1435): All, then ≥5…≥1 stars.
+  const ratingOpts: Opt[] = [
+    { key: 'all', label: t('common.all') },
+    ...[5, 4, 3, 2, 1].map(n => ({
+      key: n,
+      label: `${n}+`,
+      icon: <Star size={13} color="#facc15" fill="#facc15" />,
+    })),
+  ]
+
   return (
     <div className="col-filterbar">
       <Dropdown current={statusFilter} options={statusOpts} onSelect={k => onStatusFilter(k as StatusFilter)} lead={<Layers size={13} />} />
       {categoryOptions.length > 0 && (
         <Dropdown current={categoryFilter} options={catOpts} onSelect={k => onCategoryFilter(k as number | 'all')} lead={<Tag size={13} />} />
       )}
+      <Dropdown current={ratingFilter} options={ratingOpts} onSelect={k => onRatingFilter(k as number | 'all')} lead={<Star size={13} />} />
       {showSelect && (
         <button type="button" onClick={onToggleSelect} className={`col-filter-btn col-filter-select${selectMode ? ' open' : ''}`} aria-pressed={selectMode}>
           <CheckSquare size={14} /> <span className="col-filter-lbl">{t('collections.select')}</span>

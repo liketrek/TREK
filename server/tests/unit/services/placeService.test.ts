@@ -55,7 +55,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createPlace, createCategory, createTag } from '../../helpers/factories';
 import path from 'path';
 import fs from 'fs';
-import { listPlaces, createPlace as svcCreatePlace, getPlace, updatePlace, updatePlacesMany, deletePlace, importGpx, importKmlPlaces, importGoogleList, searchPlaceImage } from '../../../src/services/placeService';
+import { listPlaces, createPlace as svcCreatePlace, getPlace, updatePlace, updatePlacesMany, deletePlace, importGpx, importKmlPlaces, importGoogleList, searchPlaceImage, ratePlace } from '../../../src/services/placeService';
 import { PLACE_IMAGES_DIR } from '../../../src/services/placeImage';
 
 const GPX_FIXTURE = path.join(__dirname, '../../fixtures/test.gpx');
@@ -763,5 +763,35 @@ describe('custom place image reclaim', () => {
     // resetTestDb does not clear collections; drop what this test inserted and its file.
     testDb.exec('DELETE FROM collection_places; DELETE FROM collections;');
     fs.unlinkSync(fileA);
+  });
+
+  // ── Collaborative ratings (#1435) ──────────────────────────────────────────
+  it('PLACE-SVC-050 — ratePlace stores one vote per user, replaces on re-vote, clears with null', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Rated' }) as { id: number };
+
+    ratePlace(String(trip.id), String(place.id), user.id, 5);
+    let rows = testDb.prepare('SELECT rating FROM place_ratings WHERE place_id = ? AND user_id = ?').all(place.id, user.id) as { rating: number }[];
+    expect(rows).toEqual([{ rating: 5 }]);
+
+    ratePlace(String(trip.id), String(place.id), user.id, 2); // re-vote replaces via the UNIQUE upsert
+    rows = testDb.prepare('SELECT rating FROM place_ratings WHERE place_id = ? AND user_id = ?').all(place.id, user.id) as { rating: number }[];
+    expect(rows).toEqual([{ rating: 2 }]);
+
+    ratePlace(String(trip.id), String(place.id), user.id, null); // clear
+    const count = testDb.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ?').get(place.id) as { n: number };
+    expect(count.n).toBe(0);
+  });
+
+  it('PLACE-SVC-051 — ratePlace returns null and writes nothing when the place is not in the trip', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, otherTrip.id, { name: 'Elsewhere' }) as { id: number };
+
+    expect(ratePlace(String(trip.id), String(place.id), user.id, 4)).toBeNull();
+    const count = testDb.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ?').get(place.id) as { n: number };
+    expect(count.n).toBe(0);
   });
 });

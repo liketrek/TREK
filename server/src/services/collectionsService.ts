@@ -171,12 +171,32 @@ function loadLabelIdsByPlaceIds(placeIds: number[]): Record<number, number[]> {
   return out;
 }
 
+/** Per-voter rating rows (#1435), batched (mirrors loadTagsByCollectionPlaceIds). */
+function loadRatingsByCollectionPlaceIds(placeIds: number[]): Record<number, { user_id: number; username: string; avatar: string | null; rating: number }[]> {
+  const out: Record<number, { user_id: number; username: string; avatar: string | null; rating: number }[]> = {};
+  if (placeIds.length === 0) return out;
+  const rows = db.prepare(`
+    SELECT cpr.collection_place_id AS pid, cpr.user_id, u.username, u.avatar, cpr.rating
+    FROM collection_place_ratings cpr
+    JOIN users u ON u.id = cpr.user_id
+    WHERE cpr.collection_place_id IN (${placeIds.map(() => '?').join(',')})
+    ORDER BY cpr.created_at
+  `).all(...placeIds) as { pid: number; user_id: number; username: string; avatar: string | null; rating: number }[];
+  for (const { pid, ...rest } of rows) {
+    if (!out[pid]) out[pid] = [];
+    out[pid].push(rest);
+  }
+  return out;
+}
+
 function hydratePlaces(rows: PlaceRow[]): CollectionPlace[] {
   const ids = rows.map(r => r.id);
   const tagsByPlace = loadTagsByCollectionPlaceIds(ids);
   const labelsByPlace = loadLabelIdsByPlaceIds(ids);
+  const ratingsByPlace = loadRatingsByCollectionPlaceIds(ids);
   return rows.map(r => {
     const { category_name, category_color, category_icon, ...rest } = r;
+    const ratings = ratingsByPlace[r.id] || [];
     return {
       ...rest,
       links: parseLinks((r as { links?: unknown }).links),
@@ -185,6 +205,9 @@ function hydratePlaces(rows: PlaceRow[]): CollectionPlace[] {
         : undefined,
       tags: tagsByPlace[r.id] || [],
       label_ids: labelsByPlace[r.id] || [],
+      ratings,
+      rating_avg: ratings.length > 0 ? ratings.reduce((s, x) => s + x.rating, 0) / ratings.length : null,
+      rating_count: ratings.length,
     } as CollectionPlace;
   });
 }
@@ -419,6 +442,28 @@ function attachTags(collectionPlaceId: number, tagIds: number[] | undefined): vo
   for (const tid of tagIds) stmt.run(collectionPlaceId, tid);
 }
 
+/** Owner + accepted members — the users whose votes may live in this list. */
+function collectionMemberIds(collectionId: number): Set<number> {
+  const ids = new Set<number>([ownerOf(collectionId)]);
+  const rows = db.prepare("SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'accepted'").all(collectionId) as { user_id: number }[];
+  rows.forEach(r => ids.add(r.user_id));
+  return ids;
+}
+
+/**
+ * Carry star votes (#1435) from a trip place into a freshly saved collection
+ * place. Only votes by members of the target collection come along (the saver
+ * is always a member) — other trip members' opinions stay in the trip.
+ */
+function copyTripRatings(sourcePlaceId: number, collectionPlaceId: number, collectionId: number): void {
+  const eligible = collectionMemberIds(collectionId);
+  const rows = db.prepare('SELECT user_id, rating FROM place_ratings WHERE place_id = ?').all(sourcePlaceId) as { user_id: number; rating: number }[];
+  const ins = db.prepare('INSERT OR IGNORE INTO collection_place_ratings (collection_place_id, user_id, rating) VALUES (?, ?, ?)');
+  for (const r of rows) {
+    if (eligible.has(r.user_id)) ins.run(collectionPlaceId, r.user_id, r.rating);
+  }
+}
+
 export function savePlace(userId: number, body: CollectionSavePlaceRequest, socketId?: string): CollectionSaveResult {
   assertCanEdit(userId, body.collection_id);
 
@@ -446,6 +491,18 @@ export function savePlace(userId: number, body: CollectionSavePlaceRequest, sock
 
   const placeId = Number(result.lastInsertRowid);
   attachTags(placeId, body.tag_ids);
+  // Carry trip ratings ONLY when the caller can actually see the source place.
+  // source_place_id/source_trip_id are raw client input, so verify trip access +
+  // that the place lives in that trip before reading place_ratings — otherwise a
+  // member could harvest co-members' votes on places in trips they cannot access
+  // (mirrors the canAccessTrip gate in saveFromTripPlace).
+  if (
+    body.source_place_id && body.source_trip_id &&
+    canAccessTrip(body.source_trip_id, userId) &&
+    db.prepare('SELECT 1 FROM places WHERE id = ? AND trip_id = ?').get(body.source_place_id, body.source_trip_id)
+  ) {
+    copyTripRatings(body.source_place_id, placeId, body.collection_id);
+  }
   notifyCollectionUsers(body.collection_id, socketId, 'collections:updated');
   return { place: getPlaceById(placeId) };
 }
@@ -511,7 +568,7 @@ export function saveFromTripPlaces(
       skipped.push({ id: placeId, name });
       continue;
     }
-    insert.run(
+    const res = insert.run(
       collectionId, ownerId, userId,
       name, (p.description as string | null) ?? null, lat, lng, (p.address as string | null) ?? null,
       (p.category_id as number | null) ?? null, (p.price as number | null) ?? null, (p.currency as string | null) ?? null, (p.notes as string | null) ?? null,
@@ -519,6 +576,7 @@ export function saveFromTripPlaces(
       (p.osm_id as string | null) ?? null, (p.website as string | null) ?? null, (p.phone as string | null) ?? null,
       tripId, placeId,
     );
+    copyTripRatings(placeId, Number(res.lastInsertRowid), collectionId);
     copied++;
   }
   if (copied > 0) notifyCollectionUsers(collectionId, undefined, 'collections:updated');
@@ -586,6 +644,26 @@ export function setStatus(userId: number, placeId: number, status: CollectionSta
   return getPlaceById(placeId);
 }
 
+/**
+ * Set (1-5) or clear (null) the user's own star vote on a saved place (#1435).
+ * Gated on assertAccess, not assertCanEdit — a vote is the member's personal
+ * opinion, so read-only viewers get to cast one too.
+ */
+export function setRating(userId: number, placeId: number, rating: number | null, socketId?: string): CollectionPlace {
+  const collectionId = collectionIdOfPlace(placeId);
+  assertAccess(userId, collectionId);
+  if (rating === null) {
+    db.prepare('DELETE FROM collection_place_ratings WHERE collection_place_id = ? AND user_id = ?').run(placeId, userId);
+  } else {
+    db.prepare(`
+      INSERT INTO collection_place_ratings (collection_place_id, user_id, rating) VALUES (?, ?, ?)
+      ON CONFLICT(collection_place_id, user_id) DO UPDATE SET rating = excluded.rating
+    `).run(placeId, userId, rating);
+  }
+  notifyCollectionUsers(collectionId, socketId, 'collections:updated');
+  return getPlaceById(placeId);
+}
+
 export function deletePlace(userId: number, placeId: number, socketId?: string): void {
   const collectionId = collectionIdOfPlace(placeId);
   assertCanDelete(userId, collectionId);
@@ -635,6 +713,14 @@ export function copyToTrip(userId: number, body: CollectionCopyToTripRequest): {
     httpError(403, 'Not allowed to edit this trip');
   }
 
+  // Votes only travel for users who are members of THIS trip (owner + members),
+  // so copying never surfaces a collection member with no tie to the trip.
+  // Symmetric with copyTripRatings' collection-member filter (#1435).
+  const tripMemberIds = new Set<number>([trip.user_id]);
+  for (const r of db.prepare('SELECT user_id FROM trip_members WHERE trip_id = ?').all(body.trip_id) as { user_id: number }[]) {
+    tripMemberIds.add(r.user_id);
+  }
+
   // Visibility on every SOURCE place — no cross-user exfiltration via copy.
   const sources: Array<{ id: number; name: string; description: string | null; lat: number | null; lng: number | null;
     address: string | null; category_id: number | null; price: number | null; currency: string | null;
@@ -665,6 +751,7 @@ export function copyToTrip(userId: number, body: CollectionCopyToTripRequest): {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertTag = db.prepare('INSERT OR IGNORE INTO place_tags (place_id, tag_id) VALUES (?, ?)');
+  const insertRating = db.prepare('INSERT OR IGNORE INTO place_ratings (place_id, user_id, rating) VALUES (?, ?, ?)');
 
   let copied = 0;
   const skipped: { id: number; name: string }[] = [];
@@ -680,6 +767,11 @@ export function copyToTrip(userId: number, body: CollectionCopyToTripRequest): {
     const newPlaceId = Number(res.lastInsertRowid);
     const tagIds = db.prepare('SELECT tag_id FROM collection_place_tags WHERE collection_place_id = ?').all(s.id) as { tag_id: number }[];
     for (const t of tagIds) insertTag.run(newPlaceId, t.tag_id);
+    // Ratings travel into the trip too (#1435), but only for trip members — a
+    // collection voter who isn't on the trip stays out of it. Trip members keep
+    // voting there; nothing is mirrored back.
+    const votes = db.prepare('SELECT user_id, rating FROM collection_place_ratings WHERE collection_place_id = ?').all(s.id) as { user_id: number; rating: number }[];
+    for (const v of votes) if (tripMemberIds.has(v.user_id)) insertRating.run(newPlaceId, v.user_id, v.rating);
 
     if (s.name) dedup.names.add(s.name.trim().toLowerCase());
     else if (s.lat != null && s.lng != null) dedup.coords.push({ lat: s.lat, lng: s.lng });

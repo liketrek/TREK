@@ -54,12 +54,15 @@ export function filterPlaces(
   search: string,
   categoryFilter: number | 'all' = 'all',
   labelFilter: number[] = [],
+  ratingFilter: number | 'all' = 'all',
 ): CollectionPlace[] {
   const q = search.trim().toLowerCase()
   return places.filter(p => {
     if (!p) return false
     if (statusFilter !== 'all' && p.status !== statusFilter) return false
     if (categoryFilter !== 'all' && (p.category_id ?? null) !== categoryFilter) return false
+    // Minimum-average-stars filter (#1435): unrated places drop out once a floor is set.
+    if (ratingFilter !== 'all' && (p.rating_avg == null || p.rating_avg < ratingFilter)) return false
     if (labelFilter.length && !labelFilter.some(id => (p.label_ids ?? []).includes(id))) return false
     if (!q) return true
     return (
