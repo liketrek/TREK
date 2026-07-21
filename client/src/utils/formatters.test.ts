@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { splitReservationDateTime, resolveDayId, formatMoney, formatMoneySum, currencyDecimals } from './formatters'
+import { splitReservationDateTime, resolveDayId, formatMoney, formatMoneySum, currencyDecimals, localizeAmountInput } from './formatters'
 import { CURRENCIES, SYMBOLS, currenciesWith } from '../components/Budget/BudgetPanel.constants'
 import type { Day } from '../types'
 
@@ -23,6 +23,20 @@ describe('resolveDayId', () => {
     expect(resolveDayId(days, null)).toBe('')
     expect(resolveDayId(days, 'not a date')).toBe('')
     expect(resolveDayId([], '2026-05-04')).toBe('')
+  })
+})
+
+describe('localizeAmountInput (#1624)', () => {
+  it('shows the amount with the currency comma separator so the field matches the list', () => {
+    expect(localizeAmountInput('12.5', 'EUR')).toBe('12,5')
+    expect(localizeAmountInput('0.00', 'EUR')).toBe('0,00')
+  })
+  it('keeps the dot for dot-separator currencies', () => {
+    expect(localizeAmountInput('12.5', 'USD')).toBe('12.5')
+  })
+  it('passes an empty/nullish value through unchanged', () => {
+    expect(localizeAmountInput('', 'EUR')).toBe('')
+    expect(localizeAmountInput(null, 'EUR')).toBe('')
   })
 })
 
