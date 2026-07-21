@@ -11,6 +11,7 @@ import { entityGradient } from '../../utils/gradients'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { STATUS_META, STATUS_ORDER, normalizeLinkUrl } from '../../pages/collections/collectionsModel'
 import { useToast } from '../shared/Toast'
+import { Tooltip } from '../shared/Tooltip'
 import { normalizeImageFile } from '../../utils/convertHeic'
 import { getApiErrorMessage } from '../../types'
 
@@ -164,25 +165,27 @@ export default function CollectionPlaceDetail({
         <button type="button" className="col-detail-close" onClick={onClose} aria-label={t('common.close')}><X size={16} /></button>
         {canEdit && onUploadImage && (
           <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 6, zIndex: 2 }}>
-            <button
-              type="button"
-              onClick={() => { if (!imgBusy) coverInputRef.current?.click() }}
-              aria-label={place.image_url ? t('places.changeImage') : t('places.uploadImage')}
-              title={place.image_url ? t('places.changeImage') : t('places.uploadImage')}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', cursor: imgBusy ? 'default' : 'pointer', background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
-            >
-              {imgBusy ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
-            </button>
-            {place.image_url && !imgBusy && (
+            <Tooltip label={place.image_url ? t('places.changeImage') : t('places.uploadImage')} placement="bottom">
               <button
                 type="button"
-                onClick={handleImageRemove}
-                aria-label={t('places.removeImage')}
-                title={t('places.removeImage')}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
+                onClick={() => { if (!imgBusy) coverInputRef.current?.click() }}
+                aria-label={place.image_url ? t('places.changeImage') : t('places.uploadImage')}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', cursor: imgBusy ? 'default' : 'pointer', background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
               >
-                <Trash2 size={15} />
+                {imgBusy ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
               </button>
+            </Tooltip>
+            {place.image_url && !imgBusy && (
+              <Tooltip label={t('places.removeImage')} placement="bottom">
+                <button
+                  type="button"
+                  onClick={handleImageRemove}
+                  aria-label={t('places.removeImage')}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </Tooltip>
             )}
             <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" style={{ display: 'none' }} onChange={handleCoverPick} />
           </div>
