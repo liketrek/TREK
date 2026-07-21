@@ -281,7 +281,6 @@
 .trek-dash .col-labelchip.on { color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 16%, transparent); border-color: color-mix(in oklch, var(--label, var(--accent)) 42%, transparent); }
 .trek-dash .col-labelchip.on .col-labelchip-dot { background: var(--label, var(--accent)); }
 .trek-dash .col-labelchip.static { cursor: default; color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 14%, transparent); border-color: transparent; }
-.trek-dash .col-labelchip-manage { color: var(--ink-3); border-style: dashed; }
 .trek-dash .col-detail-labels { display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 10px; }
 
 /* ----------------- filter bar (status + category dropdowns) ----------------- */
