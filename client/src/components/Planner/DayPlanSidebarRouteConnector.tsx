@@ -12,8 +12,10 @@ function profileIcon(profile: string) {
 
 /** Slim travel-time connector shown between two consecutive located stops in a day. */
 export function RouteConnector({ seg, profile }: { seg: RouteSegment; profile: string }) {
-  const driving = profile !== 'walking'
-  const Icon = profileIcon(profile)
+  // The leg's own mode (#1281) wins over the day-wide fallback for icon + text.
+  const effProfile = seg.mode ?? profile
+  const driving = effProfile !== 'walking'
+  const Icon = profileIcon(effProfile)
   const line = { flex: 1, height: 1, minHeight: 1, alignSelf: 'center', background: 'var(--border-primary)' }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 14px', fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', lineHeight: 1.2 }}>
@@ -52,8 +54,9 @@ export function HotelRouteConnector({
   name: string
   placement: 'top' | 'bottom'
 }) {
-  const driving = profile !== 'walking'
-  const Icon = profileIcon(profile)
+  const effProfile = seg.mode ?? profile
+  const driving = effProfile !== 'walking'
+  const Icon = profileIcon(effProfile)
   const line = { flex: 1, height: 1, minHeight: 1, alignSelf: 'center', background: 'var(--border-primary)' }
   const hotelRow = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0 14px', minWidth: 0 }}>

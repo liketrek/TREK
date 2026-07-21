@@ -23,6 +23,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'جارٍ الحساب...',
   'dayplan.route': 'المسار',
   'dayplan.optimize': 'تحسين',
+  'dayplan.transportMode.change': 'تغيير وسيلة النقل',
+  'dayplan.transportMode.useDefault': 'استخدام إعداد اليوم الافتراضي',
   'dayplan.optimized': 'تم تحسين المسار',
   'dayplan.routeError': 'فشل حساب المسار',
   'dayplan.toast.needTwoPlaces': 'يلزم مكانان على الأقل لتحسين المسار',

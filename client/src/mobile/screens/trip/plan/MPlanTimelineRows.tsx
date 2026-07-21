@@ -1,5 +1,5 @@
 import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, Ticket, X, Zap } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { ReactNode, MouseEvent } from 'react'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
@@ -359,20 +359,20 @@ export function TransitRow({ res, transit, dayId, open, chrome, reorder, onToggl
 
 // ── b4) Walk/drive connector between two located places ─────────────────────
 
-export function ConnRow({ seg }: { seg: RouteSegment }) {
-  return (
-    <div className="mt-[5px] flex items-center gap-2 py-px text-[color:var(--m-conn)]">
+export function ConnRow({ seg, onTap }: { seg: RouteSegment; onTap?: (e: MouseEvent) => void }) {
+  // The leg's chosen mode (#1281) drives the icon + duration; tap to change it.
+  const mode = seg.mode
+  const Icon = mode === 'walking' ? Footprints : mode?.startsWith('plugin:') ? Zap : Car
+  const durationText = seg.durationText ?? (mode === 'walking' ? seg.walkingText : seg.drivingText)
+  const inner = (
+    <>
       <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
       <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
-        <Footprints size={10} strokeWidth={2} />
-        {seg.walkingText}
+        <Icon size={10} strokeWidth={2} />
+        {durationText}
       </span>
       <span className="whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
-        · {seg.distanceText} ·
-      </span>
-      <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
-        <Car size={10} strokeWidth={2} />
-        {seg.drivingText}
+        · {seg.distanceText}
       </span>
       {/* Extra text a plugin route attached to this leg (e.g. "25 min charge"). */}
       {seg.noteText && (
@@ -382,8 +382,12 @@ export function ConnRow({ seg }: { seg: RouteSegment }) {
         </span>
       )}
       <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
-    </div>
+    </>
   )
+  const cls = 'mt-[5px] flex w-full items-center gap-2 py-px text-[color:var(--m-conn)]'
+  return onTap
+    ? <button type="button" onClick={onTap} className={cls}>{inner}</button>
+    : <div className={cls}>{inner}</div>
 }
 
 // ── b4a) Plugin schedule contribution ("35 min charging at this stop") ───────

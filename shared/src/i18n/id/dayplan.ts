@@ -24,6 +24,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'Menghitung...',
   'dayplan.route': 'Rute',
   'dayplan.optimize': 'Optimalkan',
+  'dayplan.transportMode.change': 'Ubah moda transportasi',
+  'dayplan.transportMode.useDefault': 'Gunakan bawaan hari',
   'dayplan.optimized': 'Rute dioptimalkan',
   'dayplan.routeError': 'Gagal menghitung rute',
   'dayplan.toast.needTwoPlaces': 'Diperlukan minimal dua tempat untuk optimasi rute',

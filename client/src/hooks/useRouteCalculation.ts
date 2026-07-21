@@ -24,6 +24,11 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
   const [routeVias, setRouteVias] = useState<RouteVia[]>([])
   const routeAbortRef = useRef<AbortController | null>(null)
   const reservationsForSignature = useTripStore((s) => s.reservations)
+  // Recompute when the selected day's whole-day default mode changes (#1281) —
+  // including a remote collaborator's change, which arrives as day:updated and only
+  // touches state.days (otherwise not an effect dependency, so the map/mobile
+  // connectors would stay in the old mode while the sidebar already switched).
+  const selectedDayDefaultMode = useTripStore((s) => (selectedDayId ? s.days?.find(d => d.id === selectedDayId)?.default_transport_mode ?? null : null))
   // Draw the day's accommodation bookend legs (hotel → first stop, last stop →
   // hotel) unless the user turned the setting off — same gate as the sidebar.
   const optimizeFromAccommodation = useSettingsStore((s) => s.settings.optimize_from_accommodation)
@@ -68,11 +73,13 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
 
     // Build a unified list of places + transports sorted by effective position.
     type Entry =
-      | { kind: 'place'; lat: number; lng: number; pos: number; time: string | null }
+      | { kind: 'place'; lat: number; lng: number; pos: number; time: string | null; mode: string | null }
       | { kind: 'transport'; from: { lat: number; lng: number } | null; to: { lat: number; lng: number } | null; pos: number }
     const entries: Entry[] = [
       ...da.filter(a => a.place?.lat && a.place?.lng).map(a => ({
         kind: 'place' as const, lat: a.place.lat!, lng: a.place.lng!, pos: a.order_index, time: a.place?.place_time ?? null,
+        // Per-segment travel mode (#1281): mode of the leg leaving this place.
+        mode: (a as { leg_transport_mode?: string | null }).leg_transport_mode ?? null,
       })),
       ...dayTransports.map(r => {
         const { from, to } = getTransportRouteEndpoints(r, dayId)
@@ -95,12 +102,12 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     // back-to-back transports (e.g. two flights on one day) would otherwise pair the
     // first's arrival point with the second's departure point into a phantom
     // [airport → airport] road route — that is the flight itself, not a drive (#1394).
-    const runs: { lat: number; lng: number }[][] = []
-    let currentRun: { lat: number; lng: number }[] = []
+    const runs: { lat: number; lng: number; mode?: string | null }[][] = []
+    let currentRun: { lat: number; lng: number; mode?: string | null }[] = []
     let runHasPlace = false
     for (const entry of entries) {
       if (entry.kind === 'place') {
-        currentRun.push({ lat: entry.lat, lng: entry.lng })
+        currentRun.push({ lat: entry.lat, lng: entry.lng, mode: entry.mode })
         runHasPlace = true
       } else if (entry.from || entry.to) {
         if (entry.from) currentRun.push(entry.from)
@@ -140,7 +147,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       e ? { isPlace: e.kind === 'place', time: e.kind === 'place' ? e.time : null } : undefined
     const drawMorning = !!bookends && !!day && shouldDrawMorningLeg(bookends, day, edgeInfo(firstStop))
     const drawEvening = !!bookends && !!day && shouldDrawEveningLeg(bookends, day, edgeInfo(lastStop))
-    const runsWithHotel = withHotelBookends(
+    const runsWithHotel: { lat: number; lng: number; mode?: string | null }[][] = withHotelBookends(
       runs,
       flatPts[0],
       flatPts[flatPts.length - 1],
@@ -171,28 +178,48 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     const tripId = useTripStore.getState().trip?.id ?? null
     const controller = new AbortController()
     routeAbortRef.current = controller
+    // Per-leg routing (#1281): each leg uses its origin's saved mode, else the
+    // day's default, else the live picker profile. Legs are concatenated back into
+    // one polyline per run, and each segment is tagged with the mode it drew in so
+    // the connector shows the matching icon and duration.
+    const dayDefaultMode = day?.default_transport_mode || profile
     try {
       const polylines: [number, number][][] = []
       const allLegs: RouteSegment[] = []
       const allVias: RouteVia[] = []
       for (const run of runsWithHotel) {
-        try {
-          const r = await calculateRouteWithLegs(run, { signal: controller.signal, profile, tripId, dayId })
-          polylines.push(r.coordinates.length >= 2 ? r.coordinates : run.map(p => [p.lat, p.lng] as [number, number]))
-          allLegs.push(...r.legs)
-          if (r.vias) allVias.push(...r.vias)
-        } catch (err) {
-          if (err instanceof Error && err.name === 'AbortError') throw err
-          // Routing failed for this run — fall back to a straight line, no times.
-          polylines.push(run.map(p => [p.lat, p.lng] as [number, number]))
+        const polyline: [number, number][] = []
+        // Append a leg's coordinates, dropping the point shared with the previous
+        // leg so concatenated legs don't leave a duplicate at each junction.
+        const pushCoords = (coords: [number, number][]) => {
+          for (const c of coords) {
+            const last = polyline[polyline.length - 1]
+            if (last && last[0] === c[0] && last[1] === c[1]) continue
+            polyline.push(c)
+          }
         }
+        for (let i = 0; i < run.length - 1; i++) {
+          const mode = run[i].mode || dayDefaultMode
+          const straight = (): [number, number][] => [[run[i].lat, run[i].lng], [run[i + 1].lat, run[i + 1].lng]]
+          try {
+            const r = await calculateRouteWithLegs([{ lat: run[i].lat, lng: run[i].lng }, { lat: run[i + 1].lat, lng: run[i + 1].lng }], { signal: controller.signal, profile: mode, tripId, dayId })
+            pushCoords(r.coordinates.length >= 2 ? r.coordinates : straight())
+            if (r.legs[0]) allLegs.push({ ...r.legs[0], mode })
+            if (r.vias) allVias.push(...r.vias)
+          } catch (err) {
+            if (err instanceof Error && err.name === 'AbortError') throw err
+            // Routing failed for this leg — fall back to a straight line, no times.
+            pushCoords(straight())
+          }
+        }
+        if (polyline.length >= 2) polylines.push(polyline)
       }
       if (!controller.signal.aborted) { setRoute(polylines); setRouteSegments(allLegs); setRouteVias(allVias) }
     } catch (err: unknown) {
       // Aborted (day changed) — newer call owns the state. Anything else: keep straight lines.
       if (!(err instanceof Error) || err.name !== 'AbortError') { setRouteSegments([]); setRouteVias([]) }
     }
-  }, [enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit])
+  }, [enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit, selectedDayDefaultMode])
 
   // Stable signature for transport reservations on the selected day — changes when a transport
   // is added, removed, or repositioned, ensuring route recalc fires even on transport-only reorders.
@@ -216,7 +243,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     if (!selectedDayId) { setRoute(null); setRouteSegments([]); setRouteVias([]); return }
     updateRouteForDay(selectedDayId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDayId, selectedDayAssignments, transportSignature, enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit])
+  }, [selectedDayId, selectedDayAssignments, transportSignature, enabled, profile, accommodations, optimizeFromAccommodation, distanceUnit, selectedDayDefaultMode])
 
   return { route, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay }
 }
