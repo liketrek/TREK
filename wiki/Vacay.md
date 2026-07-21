@@ -50,9 +50,21 @@ To invite someone, click the **+** icon in the **Persons** panel in the sidebar,
 
 To undo a fusion, open Settings and use the **Dissolve** action. Each user's logged entries return to their own separate plan.
 
+## Sharing your calendar (view only)
+
+Fusion merges two plans into one — everyone can edit everything. If you only want someone to *see* when you are off (different employers, different company holidays, separate allowances), share your calendar instead.
+
+Sharing is one-directional and read-only:
+
+- Click the share icon in the **Shared Calendars** panel in the sidebar, pick a user, and share. No acceptance step is needed — the recipient gets a notification and can remove the calendar from their list at any time.
+- Calendars shared with you appear in the same panel. Each one overlays the grid as a coloured **ring** around the sharer's days off (vacation days, half days and their plan's company holidays), clearly distinct from the filled cells of your own plan. Hover a ringed day to see who is off and how much.
+- The eye toggle hides or shows a shared calendar without removing the share; **Stop sharing** revokes a calendar you shared out.
+
+Shared calendars never grant edit rights, keep both users' settings and allowances separate, and work independently of fusion — you can be fused with one person and share with others at the same time.
+
 ## Live sync
 
-Changes — logged days, settings updates, fusions, invites — sync in real time to all fused collaborators via WebSocket events (`vacay:update`, `vacay:settings`, `vacay:invite`, `vacay:accepted`, `vacay:declined`, `vacay:cancelled`, `vacay:dissolved`). You do not need to refresh the page.
+Changes — logged days, settings updates, fusions, invites — sync in real time to all fused collaborators via WebSocket events (`vacay:update`, `vacay:settings`, `vacay:invite`, `vacay:accepted`, `vacay:declined`, `vacay:cancelled`, `vacay:dissolved`). Read-only shares push their own events (`vacay:share`, `vacay:share-removed`, `vacay:shared-update`), so shared overlays update live too. You do not need to refresh the page.
 
 ## See also
 

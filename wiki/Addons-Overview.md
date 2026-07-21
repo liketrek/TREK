@@ -18,7 +18,7 @@ The following addons are registered in the system (defined in `server/src/db/see
 | `packing` | trip | **Lists** — packing lists and to-do tasks for your trips. See [Packing-Lists](Packing-Lists). |
 | `budget` | trip | **Costs** — track and split trip expenses. See [Budget-Tracking](Budget-Tracking). |
 | `documents` | trip | Document and file attachments for trips — store itineraries, visa copies, and other files. See [Documents-and-Files](Documents-and-Files). |
-| `vacay` | global | Personal vacation day planner with a year calendar, holiday packs, and collaborator fusion. See [Vacay](Vacay). |
+| `vacay` | global | Personal vacation day planner with a year calendar, holiday packs, collaborator fusion, and read-only calendar sharing. See [Vacay](Vacay). |
 | `atlas` | global | Interactive world map showing countries and regions you have visited, plus a bucket list. See [Atlas](Atlas). |
 | `collab` | trip | Notes, polls, and live chat for trip collaboration. See [Real-Time-Collaboration](Real-Time-Collaboration). |
 | `journey` | global | Trip tracking and travel journal — check-ins, photos, and daily stories. See [Journey-Journal](Journey-Journal). |
