@@ -1,4 +1,5 @@
 import { placeRepo } from '../../repo/placeRepo'
+import { placesApi } from '../../api/client'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Place, Assignment } from '../../types'
@@ -11,9 +12,31 @@ export interface PlacesSlice {
   refreshPlaces: (tripId: number | string) => Promise<void>
   addPlace: (tripId: number | string, placeData: Partial<Place> & { name: string }) => Promise<Place>
   updatePlace: (tripId: number | string, placeId: number, placeData: Partial<Place>) => Promise<Place>
+  uploadPlaceImage: (tripId: number | string, placeId: number, file: File) => Promise<Place>
   deletePlace: (tripId: number | string, placeId: number) => Promise<void>
   deletePlacesMany: (tripId: number | string, placeIds: number[]) => Promise<void>
   updatePlacesMany: (tripId: number | string, placeIds: number[], patch: Partial<Place>) => Promise<void>
+}
+
+/** Replace a place in the pool and in every day-assignment that embeds it,
+ *  preserving the assignment's own times (mirrors updatePlace's reconciliation). */
+function applyUpdatedPlace(set: SetState, placeId: number, place: Place): void {
+  set(state => {
+    const updatedAssignments = { ...state.assignments }
+    let changed = false
+    for (const [dayId, items] of Object.entries(state.assignments)) {
+      if (items.some((a: Assignment) => a.place?.id === placeId)) {
+        updatedAssignments[dayId] = items.map((a: Assignment) =>
+          a.place?.id === placeId ? { ...a, place: { ...place, place_time: a.place.place_time, end_time: a.place.end_time } } : a
+        )
+        changed = true
+      }
+    }
+    return {
+      places: state.places.map(p => p.id === placeId ? place : p),
+      ...(changed ? { assignments: updatedAssignments } : {}),
+    }
+  })
 }
 
 export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => ({
@@ -39,25 +62,22 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
   updatePlace: async (tripId, placeId, placeData) => {
     try {
       const data = await placeRepo.update(tripId, placeId, placeData as Record<string, unknown>)
-      set(state => {
-        const updatedAssignments = { ...state.assignments }
-        let changed = false
-        for (const [dayId, items] of Object.entries(state.assignments)) {
-          if (items.some((a: Assignment) => a.place?.id === placeId)) {
-            updatedAssignments[dayId] = items.map((a: Assignment) =>
-              a.place?.id === placeId ? { ...a, place: { ...data.place, place_time: a.place.place_time, end_time: a.place.end_time } } : a
-            )
-            changed = true
-          }
-        }
-        return {
-          places: state.places.map(p => p.id === placeId ? data.place : p),
-          ...(changed ? { assignments: updatedAssignments } : {}),
-        }
-      })
+      applyUpdatedPlace(set, placeId, data.place)
       return data.place
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error updating place'))
+    }
+  },
+
+  uploadPlaceImage: async (tripId, placeId, file) => {
+    // Uploads are online-only (binary multipart), so they bypass the offline repo.
+    // The server broadcast is echo-suppressed for us, so apply the returned place.
+    try {
+      const data = await placesApi.uploadImage(tripId, placeId, file)
+      applyUpdatedPlace(set, placeId, data.place)
+      return data.place
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, 'Error uploading image'))
     }
   },
 

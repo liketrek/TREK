@@ -295,6 +295,7 @@ function CollectionsPageDesktop(): React.ReactElement {
             onClose={c.handleCloseDetail}
             onSetStatus={c.handleDetailStatus}
             onSave={patch => c.updatePlace(c.selectedPlace!.id, patch)}
+            onUploadImage={file => c.uploadPlaceImage(c.selectedPlace!.id, file)}
             onCopyToTrip={c.openCopyForSelectedPlace}
             onRemove={c.handleDetailRemove}
             t={t}
