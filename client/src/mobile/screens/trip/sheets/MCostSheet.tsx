@@ -9,7 +9,7 @@ import { useTranslation } from '../../../../i18n'
 import { useToast } from '../../../../components/shared/Toast'
 import { useTripStore } from '../../../../store/tripStore'
 import { useExchangeRates } from '../../../../hooks/useExchangeRates'
-import { formatMoney } from '../../../../utils/formatters'
+import { formatMoney, localizeAmountInput } from '../../../../utils/formatters'
 import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
 import { calculateTicketShares, splitEqualShares, type TicketItem, type ExpensePrefill } from '../../../../components/Budget/CostsPanel'
@@ -350,8 +350,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           <span className="text-[0.84375rem] font-medium text-m-faint">{sym(currency)}</span>
           <NumericInput
             mode="decimal"
-            placeholder="0.00"
-            value={isTicketMode ? ticketInfo.total.toFixed(2) : total}
+            placeholder={localizeAmountInput('0.00', currency)}
+            value={localizeAmountInput(isTicketMode ? ticketInfo.total.toFixed(2) : total, currency)}
             onValueChange={onTotalChange}
             disabled={isTicketMode}
             className="min-w-0 flex-1 border-0 bg-transparent text-[0.84375rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums] placeholder:text-m-faint"
@@ -443,8 +443,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                         <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
                         <NumericInput
                           mode="decimal"
-                          placeholder="0.00"
-                          value={payerAmounts[p.id] || ''}
+                          placeholder={localizeAmountInput('0.00', currency)}
+                          value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
                           onValueChange={v => onPayerAmountChange(p.id, v)}
                           className="w-full border-0 bg-transparent py-[7px] text-right text-[0.8125rem] font-semibold text-m-ink outline-none"
                         />
@@ -497,8 +497,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                     <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
                     <NumericInput
                       mode="decimal"
-                      placeholder="0.00"
-                      value={item.price}
+                      placeholder={localizeAmountInput('0.00', currency)}
+                      value={localizeAmountInput(item.price, currency)}
                       onValueChange={v => handleUpdateItemPrice(item.id, v)}
                       className="w-full border-0 bg-transparent py-[7px] text-right text-[0.8125rem] font-semibold text-m-ink outline-none"
                     />
@@ -575,8 +575,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                         <input
                           type="text"
                           inputMode="decimal"
-                          placeholder={(placeholderShares[p.id] || 0).toFixed(2)}
-                          value={customAmounts[p.id] || ''}
+                          placeholder={localizeAmountInput((placeholderShares[p.id] || 0).toFixed(2), currency)}
+                          value={localizeAmountInput(customAmounts[p.id] || '', currency)}
                           onChange={e => handleCustomAmountChange(p.id, e.target.value)}
                           className="w-full border-0 bg-transparent py-[7px] text-right text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
                         />

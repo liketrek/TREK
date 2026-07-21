@@ -108,12 +108,12 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Add expense' }))
     await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    const nums = () => screen.getAllByPlaceholderText('0.00') as HTMLInputElement[]
+    const nums = () => screen.getAllByPlaceholderText('0,00') as HTMLInputElement[]
     await user.type(nums()[0], '100') // total = 100
 
     await user.click(screen.getByRole('button', { name: /Custom/i }))
 
-    const customInputs = screen.getAllByPlaceholderText('50.00')
+    const customInputs = screen.getAllByPlaceholderText('50,00')
     await user.type(customInputs[0], '30')
     await user.type(customInputs[1], '70')
 
@@ -146,7 +146,7 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Add expense' }))
     await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'AirTags')
-    await user.type(screen.getAllByPlaceholderText('0.00')[0], '39,99') // comma → normalized to 39.99
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '39,99') // comma → normalized to 39.99
 
     const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
     await user.click(addBtns[addBtns.length - 1]) // footer submit
@@ -203,7 +203,7 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Add expense' }))
     await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Hotel')
-    await user.type(screen.getAllByPlaceholderText('0.00')[0], '120') // total only, paid on-site later
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '120') // total only, paid on-site later
 
     // Deselect everyone — the cost is recorded without a split (the bug: this was blocked).
     // The participant toggles are buttons; the same names also appear as plain text in
@@ -292,14 +292,14 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Add expense' }))
     await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    await user.type(screen.getAllByPlaceholderText('0.00')[0], '90')
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90')
 
     await user.click(screen.getByRole('button', { name: 'Multiple people paid' }))
 
     // Alice (me) is seeded as the sole payer; including Bob rebalances to 45/45.
     await user.click(screen.getAllByTestId('payer-toggle')[1])
     expect(screen.getAllByTestId('payer-amount').map(i => (i as HTMLInputElement).value))
-      .toEqual(['45.00', '45.00'])
+      .toEqual(['45,00', '45,00'])
 
     const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
     await user.click(addBtns[addBtns.length - 1])
@@ -330,7 +330,7 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Add expense' }))
     await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    await user.type(screen.getAllByPlaceholderText('0.00')[0], '90')
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90')
     await user.click(screen.getByRole('button', { name: 'Multiple people paid' }))
     await user.click(screen.getAllByTestId('payer-toggle')[1])
 
@@ -435,7 +435,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     await user.click(addBtn)
 
     const itemNames = screen.getAllByPlaceholderText('Item name')
-    const itemPrices = screen.getAllByPlaceholderText('0.00')
+    const itemPrices = screen.getAllByPlaceholderText('0,00')
     
     await user.type(itemNames[0], 'Apples')
     await user.type(itemPrices[1], '10')
@@ -448,7 +448,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     await user.type(itemNames[2], 'Milk')
     await user.type(itemPrices[3], '40')
 
-    expect(screen.getByDisplayValue('100.00')).toBeDisabled()
+    expect(screen.getByDisplayValue('100,00')).toBeDisabled()
 
     expect(screen.getByText('Individual Shares Summary')).toBeInTheDocument()
     expect(screen.getByText(/75\.00/)).toBeInTheDocument()
