@@ -21,6 +21,9 @@ import { PlacesService } from './places.service';
 import { isUpdateConflict } from '../../services/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { PLACE_IMAGE_UPLOAD } from '../common/place-image-upload';
+import { placeImageUrl } from '../../services/placeImage';
+import { isDemoEmail } from '../../services/demo';
 
 const STRING_LIMITS: Record<string, number> = { name: 200, description: 2000, address: 500, notes: 2000 };
 const UPLOAD = { storage: memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } };
@@ -263,6 +266,36 @@ export class PlacesController {
     if (!place) {
       throw new HttpException({ error: 'Place not found' }, 404);
     }
+    return { place };
+  }
+
+  @Post(':id/image')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('image', PLACE_IMAGE_UPLOAD))
+  uploadImage(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (process.env.DEMO_MODE?.toLowerCase() === 'true' && isDemoEmail(user.email)) {
+      throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+    }
+    if (!file) {
+      throw new HttpException({ error: 'No image uploaded' }, 400);
+    }
+    // Reuse the existing image_url slot (the top-precedence thumbnail source); the
+    // update path reclaims any previously uploaded file it replaces.
+    const result = this.places.update(tripId, id, { image_url: placeImageUrl(file.filename) } as never);
+    if (!result || isUpdateConflict(result)) {
+      throw new HttpException({ error: 'Place not found' }, 404);
+    }
+    const place = result;
+    this.places.broadcast(tripId, 'place:updated', { place }, socketId);
+    this.places.onUpdated(place.id);
     return { place };
   }
 
