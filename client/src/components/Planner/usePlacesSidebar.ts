@@ -155,6 +155,8 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const categoryFilters = useTripStore((s) => s.placesCategoryFilter)
   const setCategoryFilters = useTripStore((s) => s.setPlacesCategoryFilter)
   const [selectMode, setSelectMode] = useState(false)
+  // Star sort (#1435): list-only toggle, so it stays local (the map keeps its order).
+  const [ratingSort, setRatingSort] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[] | null>(null)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
@@ -196,18 +198,26 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     Object.values(assignments).flatMap(da => da.map(a => a.place?.id).filter(Boolean))
   ), [assignments])
 
-  const filtered = useMemo(() => places.filter(p => {
-    if (filter === 'unplanned' && plannedIds.has(p.id)) return false
-    if (filter === 'tracks' && !p.route_geometry) return false
-    if (categoryFilters.size > 0) {
-      if (p.category_id == null) {
-        if (!categoryFilters.has('uncategorized')) return false
-      } else if (!categoryFilters.has(String(p.category_id))) return false
+  const filtered = useMemo(() => {
+    const list = places.filter(p => {
+      if (filter === 'unplanned' && plannedIds.has(p.id)) return false
+      if (filter === 'tracks' && !p.route_geometry) return false
+      if (categoryFilters.size > 0) {
+        if (p.category_id == null) {
+          if (!categoryFilters.has('uncategorized')) return false
+        } else if (!categoryFilters.has(String(p.category_id))) return false
+      }
+      if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
+          !(p.address || '').toLowerCase().includes(search.toLowerCase())) return false
+      return true
+    })
+    // Star sort (#1435): highest average first, unrated places at the end;
+    // ties keep the list's original order (stable sort).
+    if (ratingSort) {
+      return [...list].sort((a, b) => (b.rating_avg ?? -1) - (a.rating_avg ?? -1))
     }
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
-        !(p.address || '').toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  }), [places, filter, categoryFilters, search, plannedIds])
+    return list
+  }, [places, filter, categoryFilters, search, plannedIds, ratingSort])
 
   const registerPlaceRow = useCallback((placeId: number, element: HTMLDivElement | null) => {
     if (element) {
@@ -267,6 +277,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     listImportEnrich, setListImportEnrich, canEnrichImport,
     availableListImportProviders, hasMultipleListImportProviders, handleListImport,
     search, setSearch, filter, setFilter, categoryFilters, setCategoryFilters,
+    ratingSort, setRatingSort,
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
     categoryPickerOpen, setCategoryPickerOpen,
     saveToListOpen, setSaveToListOpen, collectionsEnabled, tripId,

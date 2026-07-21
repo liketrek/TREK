@@ -38,6 +38,15 @@ export type PlaceCategory = z.infer<typeof placeCategorySchema>;
  * projection and `tags` array. Numbers (lat/lng/price) are SQLite REAL, ids are
  * INTEGER; provider-derived columns are nullable.
  */
+// One member's star vote on a place (#1435), with display info for the tooltip.
+export const placeRatingVoteSchema = z.object({
+  user_id: z.number(),
+  username: z.string(),
+  avatar: z.string().nullable().optional(),
+  rating: z.number(),
+});
+export type PlaceRatingVote = z.infer<typeof placeRatingVoteSchema>;
+
 export const placeSchema = z.object({
   id: z.number(),
   trip_id: z.number(),
@@ -68,6 +77,11 @@ export const placeSchema = z.object({
   updated_at: z.string().optional(),
   category: placeCategorySchema.optional(),
   tags: z.array(tagSchema.partial()).optional(),
+  // Collaborative ratings (#1435): every member's vote (for the who-voted
+  // tooltip) plus the aggregate the UI displays.
+  ratings: z.array(placeRatingVoteSchema).optional(),
+  rating_avg: z.number().nullable().optional(),
+  rating_count: z.number().optional(),
 });
 export type Place = z.infer<typeof placeSchema>;
 
@@ -110,6 +124,12 @@ export type PlaceCreateRequest = z.infer<typeof placeCreateRequestSchema>;
 
 export const placeUpdateRequestSchema = open;
 export type PlaceUpdateRequest = z.infer<typeof placeUpdateRequestSchema>;
+
+// Collaborative ratings (#1435): one 1-5 star vote per user and place.
+export const placeRatingRequestSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+});
+export type PlaceRatingRequest = z.infer<typeof placeRatingRequestSchema>;
 
 export const placeBulkDeleteRequestSchema = z.object({
   ids: z.array(z.number()),

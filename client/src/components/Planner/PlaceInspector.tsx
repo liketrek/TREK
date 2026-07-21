@@ -7,6 +7,7 @@ import remarkBreaks from 'remark-breaks'
 import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
+import PlaceRating from '../shared/StarRating'
 import GuestBadge from '../shared/GuestBadge'
 import StatusBadge from '../Collections/StatusBadge'
 import { mapsApi, pluginsApi } from '../../api/client'
@@ -131,6 +132,8 @@ interface PlaceInspectorProps {
   onUpdatePlace?: (placeId: number, data: Partial<Place>) => void
   /** Upload a custom thumbnail (#1136); enables the click-to-change avatar in trip mode. */
   onUploadImage?: (placeId: number, file: File) => Promise<void>
+  /** Cast/clear the current user's star vote (#1435); enables the rating row. */
+  onRate?: (placeId: number, rating: number | null) => Promise<void> | void
   leftWidth?: number
   rightWidth?: number
   // ── Collection-mode props ──
@@ -144,7 +147,7 @@ export default function PlaceInspector({
   place, categories, mode = 'trip', days = [], selectedDayId = null, selectedAssignmentId = null,
   assignments = {}, reservations = [],
   onClose, onEdit, onDelete, onAssignToDay, onRemoveAssignment,
-  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace, onUploadImage,
+  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace, onUploadImage, onRate,
   leftWidth = 0, rightWidth = 0,
   collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList,
 }: PlaceInspectorProps) {
@@ -340,6 +343,17 @@ export default function PlaceInspector({
               <Chip icon={<Banknote size={12} />} text={formatMoney(Number(place.price) || 0, place.currency || tripCurrency || 'EUR', locale)} color="#059669" bg="#ecfdf5" />
             )}
           </div>
+
+          {/* Collaborative rating (#1435) — every member's own vote, shown as the average. */}
+          {mode === 'trip' && onRate && (
+            <div className="bg-surface-hover" style={{ borderRadius: 10, padding: '8px 12px' }}>
+              <PlaceRating
+                ratings={place.ratings ?? []}
+                ratingAvg={place.rating_avg}
+                onRate={rating => onRate(place.id, rating)}
+              />
+            </div>
+          )}
 
           {/* Telefon */}
           {(place.phone || googleDetails?.phone) && (

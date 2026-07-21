@@ -614,3 +614,138 @@ describe('custom saved-place image', () => {
     expect(fs.existsSync(fileA)).toBe(false);
   });
 });
+
+// ── Collaborative ratings (#1435) ────────────────────────────────────────────
+
+describe('collaborative ratings (#1435)', () => {
+  it('COLLECTIONS-SVC-070: setRating stores a vote, updates it, and clears with null', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Rate' });
+    const p = svc.savePlace(u.id, { collection_id: col.id, name: 'Louvre' }).place!;
+
+    let updated = svc.setRating(u.id, p.id, 5);
+    expect(updated.rating_avg).toBe(5);
+    expect(updated.rating_count).toBe(1);
+    expect(updated.ratings?.find(r => r.user_id === u.id)?.rating).toBe(5);
+
+    updated = svc.setRating(u.id, p.id, 3); // same user re-votes → replaces, not appends
+    expect(updated.rating_avg).toBe(3);
+    expect(updated.rating_count).toBe(1);
+
+    updated = svc.setRating(u.id, p.id, null); // clear
+    expect(updated.rating_avg).toBeNull();
+    expect(updated.rating_count).toBe(0);
+  });
+
+  it('COLLECTIONS-SVC-071: every accepted member may vote; the value is the average', () => {
+    const owner = createUser(testDb).user;
+    const member = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Shared rate' });
+    // A viewer (read-only) member — still allowed to cast a personal vote.
+    testDb.prepare("INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, 'accepted', 'viewer')").run(col.id, member.id);
+    const p = svc.savePlace(owner.id, { collection_id: col.id, name: 'Notre-Dame' }).place!;
+
+    svc.setRating(owner.id, p.id, 5);
+    const updated = svc.setRating(member.id, p.id, 2);
+    expect(updated.rating_count).toBe(2);
+    expect(updated.rating_avg).toBe(3.5);
+  });
+
+  it('COLLECTIONS-SVC-072: a non-member cannot rate', () => {
+    const owner = createUser(testDb).user;
+    const outsider = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Private rate' });
+    const p = svc.savePlace(owner.id, { collection_id: col.id, name: 'Secret' }).place!;
+    expect(() => svc.setRating(outsider.id, p.id, 4)).toThrow();
+  });
+
+  it('COLLECTIONS-SVC-073: saving a trip place copies only the saver + shared-member votes', () => {
+    const owner = createUser(testDb).user;
+    const shared = createUser(testDb).user;   // member of BOTH the trip and the collection
+    const tripOnly = createUser(testDb).user; // member of the trip only
+    const col = svc.createCollection(owner.id, { name: 'From trip rated' });
+    testDb.prepare("INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, 'accepted', 'editor')").run(col.id, shared.id);
+
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, shared.id);
+    addTripMember(testDb, trip.id, tripOnly.id);
+    const place = createPlace(testDb, trip.id, { name: 'Colosseum' });
+    const ins = testDb.prepare('INSERT INTO place_ratings (place_id, user_id, rating) VALUES (?, ?, ?)');
+    ins.run(place.id, owner.id, 5);
+    ins.run(place.id, shared.id, 4);
+    ins.run(place.id, tripOnly.id, 1);
+
+    const saved = svc.savePlace(owner.id, {
+      collection_id: col.id, name: 'Colosseum', source_trip_id: trip.id, source_place_id: place.id,
+    }).place!;
+
+    const votes = testDb.prepare('SELECT user_id, rating FROM collection_place_ratings WHERE collection_place_id = ?').all(saved.id) as { user_id: number; rating: number }[];
+    const voterIds = votes.map(v => v.user_id).sort((a, b) => a - b);
+    expect(voterIds).toEqual([owner.id, shared.id].sort((a, b) => a - b));
+    expect(votes.find(v => v.user_id === tripOnly.id)).toBeUndefined();
+  });
+
+  it('COLLECTIONS-SVC-074: copying a saved place into a trip carries its ratings along', () => {
+    const owner = createUser(testDb).user;
+    const member = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Copyable' });
+    testDb.prepare("INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, 'accepted', 'editor')").run(col.id, member.id);
+    const cp = svc.savePlace(owner.id, { collection_id: col.id, name: 'Trevi' }).place!;
+    svc.setRating(owner.id, cp.id, 5);
+    svc.setRating(member.id, cp.id, 3);
+
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id); // member is on the trip, so their vote carries
+    const res = svc.copyToTrip(owner.id, { trip_id: trip.id, place_ids: [cp.id] });
+    expect(res.copied).toBe(1);
+
+    const newPlace = testDb.prepare('SELECT id FROM places WHERE trip_id = ? ORDER BY id DESC LIMIT 1').get(trip.id) as { id: number };
+    const votes = testDb.prepare('SELECT user_id, rating FROM place_ratings WHERE place_id = ?').all(newPlace.id) as { user_id: number; rating: number }[];
+    expect(votes).toHaveLength(2);
+    expect(votes.find(v => v.user_id === owner.id)?.rating).toBe(5);
+    expect(votes.find(v => v.user_id === member.id)?.rating).toBe(3);
+  });
+
+  it('COLLECTIONS-SVC-075: savePlace does NOT harvest ratings from a source place the caller cannot access', () => {
+    const attacker = createUser(testDb).user;
+    const victim = createUser(testDb).user;
+    const col = svc.createCollection(attacker.id, { name: 'Harvest attempt' });
+    // The victim is a member of the attacker's collection (so they'd be "eligible").
+    testDb.prepare("INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, 'accepted', 'editor')").run(col.id, victim.id);
+    // A PRIVATE trip the attacker is not on, with the victim's vote on a place.
+    const privateTrip = createTrip(testDb, victim.id);
+    const secret = createPlace(testDb, privateTrip.id, { name: 'Secret spot' });
+    testDb.prepare('INSERT INTO place_ratings (place_id, user_id, rating) VALUES (?, ?, ?)').run(secret.id, victim.id, 5);
+
+    const saved = svc.savePlace(attacker.id, {
+      collection_id: col.id, name: 'x', source_trip_id: privateTrip.id, source_place_id: secret.id,
+    }).place!;
+
+    const stolen = testDb.prepare('SELECT * FROM collection_place_ratings WHERE collection_place_id = ?').all(saved.id);
+    expect(stolen).toHaveLength(0); // no access to the source trip → nothing copied
+  });
+
+  it('COLLECTIONS-SVC-076: copyToTrip carries only votes from members of the target trip', () => {
+    const owner = createUser(testDb).user;
+    const inTrip = createUser(testDb).user;    // collection member AND trip member
+    const notInTrip = createUser(testDb).user; // collection member only
+    const col = svc.createCollection(owner.id, { name: 'Mixed membership' });
+    for (const u of [inTrip, notInTrip]) {
+      testDb.prepare("INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, 'accepted', 'editor')").run(col.id, u.id);
+    }
+    const cp = svc.savePlace(owner.id, { collection_id: col.id, name: 'Pantheon' }).place!;
+    svc.setRating(owner.id, cp.id, 5);
+    svc.setRating(inTrip.id, cp.id, 4);
+    svc.setRating(notInTrip.id, cp.id, 1);
+
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, inTrip.id);
+    svc.copyToTrip(owner.id, { trip_id: trip.id, place_ids: [cp.id] });
+
+    const newPlace = testDb.prepare('SELECT id FROM places WHERE trip_id = ? ORDER BY id DESC LIMIT 1').get(trip.id) as { id: number };
+    const ids = (testDb.prepare('SELECT user_id FROM place_ratings WHERE place_id = ?').all(newPlace.id) as { user_id: number }[])
+      .map(v => v.user_id).sort((a, b) => a - b);
+    expect(ids).toEqual([owner.id, inTrip.id].sort((a, b) => a - b));
+    expect(ids).not.toContain(notInTrip.id);
+  });
+});

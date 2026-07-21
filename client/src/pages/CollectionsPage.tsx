@@ -102,8 +102,10 @@ function CollectionsPageDesktop(): React.ReactElement {
       counts={c.counts}
       categoryFilter={c.categoryFilter}
       categoryOptions={c.categoryOptions}
+      ratingFilter={c.ratingFilter}
       onStatusFilter={c.setStatusFilter}
       onCategoryFilter={c.setCategoryFilter}
+      onRatingFilter={c.setRatingFilter}
       showLabels={isRealList}
       labelOptions={c.labelOptions}
       labelFilter={c.labelFilter}
@@ -298,6 +300,7 @@ function CollectionsPageDesktop(): React.ReactElement {
             onUploadImage={file => c.uploadPlaceImage(c.selectedPlace!.id, file)}
             onCopyToTrip={c.openCopyForSelectedPlace}
             onRemove={c.handleDetailRemove}
+            onRate={r => c.handleRatePlace(c.selectedPlace!.id, r)}
             t={t}
           />
         )}

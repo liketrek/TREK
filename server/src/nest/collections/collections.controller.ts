@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -37,6 +38,7 @@ import {
   collectionSaveFromTripManyRequestSchema,
   collectionPlaceUpdateRequestSchema,
   collectionSetStatusRequestSchema,
+  placeRatingRequestSchema,
   collectionCopyToTripRequestSchema,
   collectionInviteRequestSchema,
   collectionInviteActionRequestSchema,
@@ -56,6 +58,7 @@ import {
   type CollectionSaveFromTripManyRequest,
   type CollectionPlaceUpdateRequest,
   type CollectionSetStatusRequest,
+  type PlaceRatingRequest,
   type CollectionCopyToTripRequest,
   type CollectionInviteRequest,
   type CollectionInviteActionRequest,
@@ -166,6 +169,21 @@ export class CollectionsController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     return this.collections.setStatus(user.id, Number(pid), body.status, socketId);
+  }
+
+  @Put('places/:pid/rating')
+  setRating(
+    @CurrentUser() user: User,
+    @Param('pid') pid: string,
+    @Body(new ZodValidationPipe(placeRatingRequestSchema)) body: PlaceRatingRequest,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.setRating(user.id, Number(pid), body.rating, socketId);
+  }
+
+  @Delete('places/:pid/rating')
+  clearRating(@CurrentUser() user: User, @Param('pid') pid: string, @Headers('x-socket-id') socketId?: string) {
+    return this.collections.setRating(user.id, Number(pid), null, socketId);
   }
 
   @Post('places/:pid/image')

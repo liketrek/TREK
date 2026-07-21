@@ -74,6 +74,10 @@ export const collectionsApi = {
     postMultipart(`${base}/places/${pid}/image`, formData),
   setStatus: (pid: number, status: CollectionStatus): Promise<CollectionPlace> =>
     ax.post(`${base}/places/${pid}/status`, { status }).then((r: AxiosResponse) => r.data),
+  ratePlace: (pid: number, rating: number | null): Promise<CollectionPlace> =>
+    rating === null
+      ? ax.delete(`${base}/places/${pid}/rating`).then((r: AxiosResponse) => r.data)
+      : ax.put(`${base}/places/${pid}/rating`, { rating }).then((r: AxiosResponse) => r.data),
   deletePlace: (pid: number): Promise<unknown> =>
     ax.delete(`${base}/places/${pid}`).then((r: AxiosResponse) => r.data),
   deleteMany: (ids: number[]): Promise<unknown> =>

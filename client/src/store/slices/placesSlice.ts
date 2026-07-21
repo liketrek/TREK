@@ -13,6 +13,7 @@ export interface PlacesSlice {
   addPlace: (tripId: number | string, placeData: Partial<Place> & { name: string }) => Promise<Place>
   updatePlace: (tripId: number | string, placeId: number, placeData: Partial<Place>) => Promise<Place>
   uploadPlaceImage: (tripId: number | string, placeId: number, file: File) => Promise<Place>
+  ratePlace: (tripId: number | string, placeId: number, rating: number | null) => Promise<Place>
   deletePlace: (tripId: number | string, placeId: number) => Promise<void>
   deletePlacesMany: (tripId: number | string, placeIds: number[]) => Promise<void>
   updatePlacesMany: (tripId: number | string, placeIds: number[], patch: Partial<Place>) => Promise<void>
@@ -78,6 +79,18 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
       return data.place
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error uploading image'))
+    }
+  },
+
+  ratePlace: async (tripId, placeId, rating) => {
+    // Casts (or clears, rating null) the current user's own star vote (#1435)
+    // and applies the returned place with the fresh average.
+    try {
+      const data = await placesApi.rate(tripId, placeId, rating)
+      applyUpdatedPlace(set, placeId, data.place)
+      return data.place
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, 'Error rating place'))
     }
   },
 

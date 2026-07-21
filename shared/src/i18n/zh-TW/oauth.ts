@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': '行程',
   'oauth.scope.group.places': '地點',
+  'oauth.scope.group.collections': '收藏集',
   'oauth.scope.group.atlas': 'Atlas',
   'oauth.scope.group.packing': '行李',
   'oauth.scope.group.todos': '待辦事項',
@@ -26,6 +27,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': '讀取地點、每日指派、標籤及類別',
   'oauth.scope.places:write.label': '管理地點',
   'oauth.scope.places:write.description': '建立、更新及刪除地點、指派及標籤',
+  'oauth.scope.collections:read.label': '檢視收藏集',
+  'oauth.scope.collections:read.description': '讀取地點收藏集及其中的地點、評分、標籤與成員',
+  'oauth.scope.collections:write.label': '管理收藏集',
+  'oauth.scope.collections:write.description': '建立/編輯收藏集，儲存、評分、標記及複製地點，並分享清單',
   'oauth.scope.atlas:read.label': '檢視 Atlas',
   'oauth.scope.atlas:read.description': '讀取已造訪的國家、地區及願望清單',
   'oauth.scope.atlas:write.label': '管理 Atlas',

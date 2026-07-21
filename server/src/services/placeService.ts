@@ -1,7 +1,7 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import unzipper from 'unzipper';
 import { db, getPlaceWithTags } from '../db/database';
-import { loadTagsByPlaceIds } from './queryHelpers';
+import { loadTagsByPlaceIds, loadRatingsByPlaceIds, ratingAggregate } from './queryHelpers';
 import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../utils/ssrfGuard';
 import { Place } from '../types';
 import {
@@ -97,6 +97,7 @@ export function listPlaces(
 
   const placeIds = places.map(p => p.id);
   const tagsByPlaceId = loadTagsByPlaceIds(placeIds);
+  const ratingsByPlaceId = loadRatingsByPlaceIds(placeIds);
 
   return places.map(p => ({
     ...p,
@@ -107,6 +108,8 @@ export function listPlaces(
       icon: p.category_icon,
     } : null,
     tags: tagsByPlaceId[p.id] || [],
+    ratings: ratingsByPlaceId[p.id] || [],
+    ...ratingAggregate(ratingsByPlaceId[p.id]),
   }));
 }
 
@@ -993,4 +996,28 @@ export async function searchPlaceImage(tripId: string, placeId: string, userId: 
   if (!place) return { error: 'Place not found', status: 404 };
 
   return searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, getUnsplashKey(userId));
+}
+
+// ---------------------------------------------------------------------------
+// Collaborative ratings (#1435)
+// ---------------------------------------------------------------------------
+
+/**
+ * Set (rating 1-5) or clear (rating null) the user's own vote on a trip place.
+ * Ratings live in their own table so voting never bumps places.updated_at —
+ * a vote must not 409 another member's offline edit. Returns the refreshed
+ * place (with the new aggregate) or null when the place isn't in the trip.
+ */
+export function ratePlace(tripId: string, placeId: string, userId: number, rating: number | null): ReturnType<typeof getPlaceWithTags> | null {
+  const place = db.prepare('SELECT id FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId);
+  if (!place) return null;
+  if (rating === null) {
+    db.prepare('DELETE FROM place_ratings WHERE place_id = ? AND user_id = ?').run(placeId, userId);
+  } else {
+    db.prepare(`
+      INSERT INTO place_ratings (place_id, user_id, rating) VALUES (?, ?, ?)
+      ON CONFLICT(place_id, user_id) DO UPDATE SET rating = excluded.rating
+    `).run(placeId, userId, rating);
+  }
+  return getPlaceWithTags(placeId);
 }

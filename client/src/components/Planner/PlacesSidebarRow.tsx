@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus, Check, Route } from 'lucide-react'
+import { Plus, Check, Route, Star } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import type { Place, Category } from '../../types'
@@ -89,6 +89,13 @@ export const MemoPlaceRow = React.memo(function MemoPlaceRow({
           <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
             {place.name}
           </span>
+          {/* Average member rating (#1435). */}
+          {(place.rating_count ?? 0) > 0 && place.rating_avg != null && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+              <Star size={9} color="#facc15" fill="#facc15" />
+              {(Math.round(place.rating_avg * 10) / 10).toLocaleString()}
+            </span>
+          )}
         </div>
         {(place.description || place.address || cat?.name) && (
           <div style={{ marginTop: 2 }}>
