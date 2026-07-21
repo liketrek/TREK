@@ -6,6 +6,7 @@ import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag,
 import type { CollectionPlace, CollectionStatus, CollectionLink, CollectionLabel } from '@trek/shared'
 import type { Category, TranslationFn } from '../../types'
 import MarkdownToolbar from '../Journey/MarkdownToolbar'
+import { NumericInput } from '../shared/NumericInput'
 import { mapsApi } from '../../api/client'
 import { entityGradient } from '../../utils/gradients'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -31,7 +32,7 @@ interface CollectionPlaceDetailProps {
   anchorRect?: { left: number; width: number } | null
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null }) => Promise<void>
+  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; lat?: number | null; lng?: number | null }) => Promise<void>
   /** Upload a custom cover image (#1136); enables the cover change/remove controls. */
   onUploadImage?: (file: File) => Promise<void>
   onCopyToTrip: () => void
@@ -76,6 +77,8 @@ export default function CollectionPlaceDetail({
   const [description, setDescription] = useState(place.description ?? '')
   const [links, setLinks] = useState<CollectionLink[]>(place.links ?? [])
   const [labelIds, setLabelIds] = useState<number[]>(place.label_ids ?? [])
+  const [lat, setLat] = useState(place.lat != null ? String(place.lat) : '')
+  const [lng, setLng] = useState(place.lng != null ? String(place.lng) : '')
   const [saving, setSaving] = useState(false)
   // A higher-res photo pulled from the maps provider when the place has none of
   // its own — the list avatar's little thumbnail is too low-res for the cover.
@@ -90,6 +93,8 @@ export default function CollectionPlaceDetail({
     setDescription(place.description ?? '')
     setLinks(place.links ?? [])
     setLabelIds(place.label_ids ?? [])
+    setLat(place.lat != null ? String(place.lat) : '')
+    setLng(place.lng != null ? String(place.lng) : '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id])
 
@@ -136,14 +141,21 @@ export default function CollectionPlaceDetail({
 
   const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
   const toggleLabel = (id: number) => setLabelIds(labelIds.includes(id) ? labelIds.filter(x => x !== id) : [...labelIds, id])
-  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []); setLabelIds(place.label_ids ?? []) }
+  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []); setLabelIds(place.label_ids ?? []); setLat(place.lat != null ? String(place.lat) : ''); setLng(place.lng != null ? String(place.lng) : '') }
+  const coordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData('text').trim()
+    const match = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/)
+    if (match) { e.preventDefault(); setLat(match[1]); setLng(match[2]) }
+  }
   const assignedLabels = labels.filter(l => (place.label_ids ?? []).includes(l.id))
 
   const save = async () => {
     const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
+    const latNum = lat.trim() ? Number(lat) : NaN
+    const lngNum = lng.trim() ? Number(lng) : NaN
     setSaving(true)
     try {
-      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds })
+      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds, lat: Number.isFinite(latNum) ? latNum : null, lng: Number.isFinite(lngNum) ? lngNum : null })
       setEditing(false)
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('common.error')))
@@ -234,6 +246,14 @@ export default function CollectionPlaceDetail({
                     </button>
                   )
                 })}
+              </div>
+            </div>
+            {/* Coordinates */}
+            <div className="col-detail-field">
+              <div className="col-detail-label"><MapPin size={12} /> {t('collections.coordinates')}</div>
+              <div className="col-detail-link-row">
+                <NumericInput mode="signed" value={lat} onValueChange={setLat} onPaste={coordPaste} placeholder={t('places.formLat')} className="col-detail-input flex-1" />
+                <NumericInput mode="signed" value={lng} onValueChange={setLng} placeholder={t('places.formLng')} className="col-detail-input flex-1" />
               </div>
             </div>
             {/* Labels */}

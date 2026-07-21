@@ -103,9 +103,13 @@ function CollectionsPageDesktop(): React.ReactElement {
       categoryFilter={c.categoryFilter}
       categoryOptions={c.categoryOptions}
       ratingFilter={c.ratingFilter}
+      sortMode={c.sortMode}
       onStatusFilter={c.setStatusFilter}
       onCategoryFilter={c.setCategoryFilter}
       onRatingFilter={c.setRatingFilter}
+      onSortMode={c.setSortMode}
+      canAddPlace={canAddPlace}
+      onAddPlace={() => c.setShowAddPlace(true)}
       showLabels={isRealList}
       labelOptions={c.labelOptions}
       labelFilter={c.labelFilter}
@@ -131,7 +135,16 @@ function CollectionsPageDesktop(): React.ReactElement {
   if (c.placesLoading && !hasPlaces) {
     body = <div className="col-loading"><div className="col-spinner" /></div>
   } else if (!hasPlaces) {
-    body = <EmptyState scene="collections" title={t('collections.empty.title')} />
+    body = (
+      <div className="flex flex-col items-center">
+        <EmptyState scene="collections" title={t('collections.empty.title')} className={canAddPlace ? 'pb-4' : undefined} />
+        {canAddPlace && (
+          <button type="button" onClick={() => c.setShowAddPlace(true)} className="col-cta">
+            <Plus size={16} /> {t('collections.addPlace')}
+          </button>
+        )}
+      </div>
+    )
   } else if (desktopSplit) {
     body = (
       <div className={`col-split${c.view === 'map' ? ' map-full' : ''}`}>
@@ -195,7 +208,7 @@ function CollectionsPageDesktop(): React.ReactElement {
                   />
                 </div>
 
-                {(!mapOverlay || canAddPlace) && (
+                {!mapOverlay && (
                   <div className="col-toolbar">
                     <button type="button" className="col-rail-toggle" onClick={() => c.setMobileRailOpen(true)}>
                       <Bookmark size={15} /> {t('collections.title')}
@@ -209,11 +222,6 @@ function CollectionsPageDesktop(): React.ReactElement {
                           <MapIcon size={16} />
                         </button>
                       </div>
-                    )}
-                    {canAddPlace && (
-                      <button type="button" onClick={() => c.setShowAddPlace(true)} className="col-iconbtn" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
-                        <Plus size={16} />
-                      </button>
                     )}
                     <div className="col-toolbar-spacer" />
                     {!mapOverlay && (

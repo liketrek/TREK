@@ -50,7 +50,7 @@ export function useCollections() {
   const store = useCollectionStore()
   const {
     collections, activeId, places, members, labels, incomingInvites,
-    view, statusFilter, categoryFilter, ratingFilter, labelFilter, search, selectedPlaceId, selectMode, selectedIds,
+    view, statusFilter, categoryFilter, ratingFilter, labelFilter, sortMode, search, selectedPlaceId, selectMode, selectedIds,
     loading, placesLoading,
     loadAll, setActive, refreshActive, loadCollection,
     deleteCollection,
@@ -58,7 +58,7 @@ export function useCollections() {
     moveToList, duplicateToList, setSelectedIds,
     createLabel, updateLabel, deleteLabel, assignLabels,
     acceptInvite, declineInvite,
-    setView, setStatusFilter, setCategoryFilter, setRatingFilter, setLabelFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
+    setView, setStatusFilter, setCategoryFilter, setRatingFilter, setLabelFilter, setSortMode, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
   } = store
 
   // ── Page-local UI state ─────────────────────────────────────────────
@@ -167,8 +167,8 @@ export function useCollections() {
 
   // Labels are per-collection, so never apply them on the "All saved" union.
   const visiblePlaces = useMemo(
-    () => sortPlaces(filterPlaces(places, statusFilter, search, categoryFilter, isAllSaved ? [] : labelFilter, ratingFilter)),
-    [places, statusFilter, search, categoryFilter, isAllSaved, labelFilter, ratingFilter],
+    () => sortPlaces(filterPlaces(places, statusFilter, search, categoryFilter, isAllSaved ? [] : labelFilter, ratingFilter), sortMode),
+    [places, statusFilter, search, categoryFilter, isAllSaved, labelFilter, ratingFilter, sortMode],
   )
   // Categories actually present in this list, for the category filter dropdown.
   const categoryOptions = useMemo(() => presentCategories(places), [places])
@@ -386,11 +386,11 @@ export function useCollections() {
     myRole, canEdit, canDelete,
     canShare, shareMemberCount,
     activeId, places, visiblePlaces, mappable, members, incomingInvites, counts,
-    view, statusFilter, categoryFilter, categoryOptions, ratingFilter, search, selectedPlaceId, selectMode, selectedIds,
+    view, statusFilter, categoryFilter, categoryOptions, ratingFilter, sortMode, search, selectedPlaceId, selectMode, selectedIds,
     labels, labelFilter, labelOptions,
     loading, placesLoading,
     // store setters
-    setView, setStatusFilter, setCategoryFilter, setRatingFilter, setLabelFilter, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
+    setView, setStatusFilter, setCategoryFilter, setRatingFilter, setLabelFilter, setSortMode, setSearch, setSelectedPlaceId, setSelectMode, toggleSelect,
     updatePlace, uploadPlaceImage,
     // labels
     showLabelManager, setShowLabelManager, labelPickerOpen, setLabelPickerOpen,

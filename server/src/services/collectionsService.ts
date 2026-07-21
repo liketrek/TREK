@@ -598,6 +598,8 @@ export function updatePlace(userId: number, placeId: number, body: import('@trek
   if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
   if (body.description !== undefined) { updates.push('description = ?'); params.push(body.description ?? null); }
   if (body.notes !== undefined) { updates.push('notes = ?'); params.push(body.notes ?? null); }
+  if (body.lat !== undefined) { updates.push('lat = ?'); params.push(body.lat ?? null); }
+  if (body.lng !== undefined) { updates.push('lng = ?'); params.push(body.lng ?? null); }
   if (body.status !== undefined) { updates.push('status = ?'); params.push(body.status); }
   if (body.category_id !== undefined) { updates.push('category_id = ?'); params.push(body.category_id ?? null); }
   if (body.image_url !== undefined) { updates.push('image_url = ?'); params.push(body.image_url ?? null); }
