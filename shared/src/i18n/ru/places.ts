@@ -88,5 +88,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Обогатить места через Google',
   'places.enrichOnImportHint':
     'Находит каждое импортированное место и добавляет фото, адрес и контакты. Требуется ключ Google Maps.',
+  'places.uploadImage': 'Загрузить изображение',
+  'places.changeImage': 'Изменить изображение',
+  'places.removeImage': 'Удалить изображение',
+  'places.imageUploadError': 'Не удалось загрузить изображение',
 };
 export default places;

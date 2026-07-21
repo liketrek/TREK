@@ -88,5 +88,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Làm phong phú các địa điểm thông qua Google',
   'places.enrichOnImportHint':
     'Tra cứu từng địa điểm đã nhập để điền ảnh, địa chỉ và thông tin liên hệ. Sử dụng khóa Google Maps của bạn.',
+  'places.uploadImage': 'Tải ảnh lên',
+  'places.changeImage': 'Đổi ảnh',
+  'places.removeImage': 'Xóa ảnh',
+  'places.imageUploadError': 'Không thể tải ảnh lên',
 };
 export default places;

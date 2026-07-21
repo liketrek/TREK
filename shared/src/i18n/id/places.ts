@@ -87,5 +87,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Perkaya tempat via Google',
   'places.enrichOnImportHint':
     'Mencari setiap tempat yang diimpor untuk menambahkan foto, alamat, dan kontak. Memerlukan kunci Google Maps.',
+  'places.uploadImage': 'Unggah gambar',
+  'places.changeImage': 'Ganti gambar',
+  'places.removeImage': 'Hapus gambar',
+  'places.imageUploadError': 'Tidak dapat mengunggah gambar',
 };
 export default places;

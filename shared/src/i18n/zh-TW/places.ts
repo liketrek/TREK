@@ -84,5 +84,9 @@ const places: TranslationStrings = {
   'places.addAnyway': '仍要新增',
   'places.enrichOnImport': '透過 Google 豐富地點資訊',
   'places.enrichOnImportHint': '查詢每個匯入的地點以補上照片、地址與聯絡資訊。需要 Google Maps 金鑰。',
+  'places.uploadImage': '上傳圖片',
+  'places.changeImage': '變更圖片',
+  'places.removeImage': '移除圖片',
+  'places.imageUploadError': '無法上傳圖片',
 };
 export default places;

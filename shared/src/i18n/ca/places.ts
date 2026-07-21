@@ -89,5 +89,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Enriquir llocs mitjançant Google',
   'places.enrichOnImportHint':
     "Obté automàticament adreces, puntuacions i horaris d'obertura des de Google en importar.",
+  'places.uploadImage': 'Puja una imatge',
+  'places.changeImage': 'Canvia la imatge',
+  'places.removeImage': 'Elimina la imatge',
+  'places.imageUploadError': "No s'ha pogut pujar la imatge",
 };
 export default places;
