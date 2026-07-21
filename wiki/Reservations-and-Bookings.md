@@ -10,7 +10,7 @@ Open your trip in the planner and select the **Reservations** tab. The panel lis
 
 ## Reservation types
 
-TREK supports nine reservation types:
+TREK supports ten reservation types:
 
 | Type | How to create |
 |------|--------------|
@@ -22,6 +22,7 @@ TREK supports nine reservation types:
 | Restaurant | Add button in Reservations panel |
 | Event | Add button in Reservations panel |
 | Tour | Add button in Reservations panel |
+| Parking | Add button in Reservations panel — a fixed-location booking (e.g. airport parking) |
 | Other | Add button in Reservations panel |
 
 Transport types (Flight, Train, Car, Cruise) are created through the dedicated Transport modal, where you can enter endpoint and transit-specific fields. All other types are created directly from the Reservations panel.
@@ -61,7 +62,7 @@ Each card displays:
 
 Click **Add** (or the + button) in the Reservations panel. Fill in the form:
 
-1. **Type** — choose Hotel, Restaurant, Event, Tour, or Other
+1. **Type** — choose Hotel, Restaurant, Event, Tour, Parking, or Other
 2. **Title** — required
 3. **Link to day-plan assignment** — optional; search across all days and places, grouped by day. Not available for Hotel type
 4. **Start date and time** — not shown for Hotel type
