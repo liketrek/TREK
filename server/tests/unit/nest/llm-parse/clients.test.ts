@@ -47,6 +47,23 @@ describe('OpenAiCompatibleClient', () => {
     expect(out).toEqual([{ '@type': 'TrainReservation' }]);
   });
 
+  it('tolerates single-quoted, non-strict JSON output (Gemini, #1638)', async () => {
+    mockFetch(() =>
+      jsonResponse({
+        choices: [
+          {
+            message: {
+              content:
+                "[{ '@type': 'LodgingReservation', checkinTime: '2026-08-28T00:00:00', price: 146.25, }]",
+            },
+          },
+        ],
+      }),
+    );
+    const out = await new OpenAiCompatibleClient().extract(baseInput);
+    expect(out).toEqual([{ '@type': 'LodgingReservation', checkinTime: '2026-08-28T00:00:00', price: 146.25 }]);
+  });
+
   it('returns [] on malformed content', async () => {
     mockFetch(() => jsonResponse({ choices: [{ message: { content: 'not json' } }] }));
     expect(await new OpenAiCompatibleClient().extract(baseInput)).toEqual([]);
