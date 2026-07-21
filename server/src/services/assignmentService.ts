@@ -40,6 +40,7 @@ export function getAssignmentWithPlace(assignmentId: number | bigint) {
     notes: a.notes,
     assignment_time: a.assignment_time ?? null,
     assignment_end_time: a.assignment_end_time ?? null,
+    leg_transport_mode: a.leg_transport_mode ?? null,
     participants,
     created_at: a.created_at,
     place: {
@@ -198,6 +199,17 @@ export function updateTime(id: string | number, placeTime: string | null, endTim
     }
   }
 
+  return getAssignmentWithPlace(Number(id));
+}
+
+/**
+ * Set the travel mode of the leg leaving this stop (#1281). null clears the
+ * override so the leg falls back to the day's default_transport_mode. This is
+ * sticky by design: changing the whole-day default never touches a leg that
+ * carries its own explicit mode.
+ */
+export function setLegTransportMode(id: string | number, mode: string | null) {
+  db.prepare('UPDATE day_assignments SET leg_transport_mode = ? WHERE id = ?').run(mode ?? null, id);
   return getAssignmentWithPlace(Number(id));
 }
 

@@ -3754,6 +3754,23 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_collection_place_ratings_place ON collection_place_ratings (collection_place_id);');
     },
+    // Per-segment travel mode (#1281): the day-plan route can use a different
+    // transport mode for each leg. leg_transport_mode on an assignment is the mode
+    // of the leg LEAVING that stop (NULL = inherit the day default); days gains a
+    // persisted default_transport_mode so the whole-day choice survives a reload.
+    // Both nullable → existing itineraries keep today's single-mode behaviour.
+    () => {
+      try {
+        db.exec('ALTER TABLE day_assignments ADD COLUMN leg_transport_mode TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+      try {
+        db.exec('ALTER TABLE days ADD COLUMN default_transport_mode TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -172,6 +172,24 @@ export class AssignmentOpsController {
     return { assignment };
   }
 
+  @Put(':id/transport')
+  transport(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body() body: { transport_mode?: string | null },
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = requireTrip(this.assignments, tripId, user);
+    requireEdit(this.assignments, trip, user);
+    if (!this.assignments.getAssignmentForTrip(id, tripId)) {
+      throw new HttpException({ error: 'Assignment not found' }, 404);
+    }
+    const assignment = this.assignments.setLegTransportMode(id, body.transport_mode ?? null);
+    this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
+    return { assignment };
+  }
+
   @Put(':id/participants')
   setParticipants(
     @CurrentUser() user: User,

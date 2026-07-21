@@ -48,6 +48,7 @@ export interface Day {
   date?: string | null;
   notes?: string | null;
   title?: string | null;
+  default_transport_mode?: string | null;
 }
 
 export interface Place {
@@ -107,6 +108,7 @@ export interface DayAssignment {
   reservation_datetime?: string | null;
   assignment_time?: string | null;
   assignment_end_time?: string | null;
+  leg_transport_mode?: string | null;
   created_at?: string;
 }
 

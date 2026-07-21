@@ -155,6 +155,17 @@ export function updateDay(id: string | number, current: Day, fields: { notes?: s
   return { ...updatedDay, assignments: getAssignmentsForDay(id) };
 }
 
+/**
+ * Set the whole-day default route mode (#1281). Its own endpoint so it can't wipe
+ * notes/title the way the general day update would, and symmetric with the
+ * per-leg assignment transport setter. Per-segment leg modes still override it.
+ */
+export function setDefaultTransportMode(id: string | number, mode: string | null) {
+  db.prepare('UPDATE days SET default_transport_mode = ? WHERE id = ?').run(mode ?? null, id);
+  const updatedDay = db.prepare('SELECT * FROM days WHERE id = ?').get(id) as Day;
+  return { ...updatedDay, assignments: getAssignmentsForDay(id) };
+}
+
 export function deleteDay(id: string | number) {
   db.prepare('DELETE FROM days WHERE id = ?').run(id);
 }
