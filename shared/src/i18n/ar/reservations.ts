@@ -58,6 +58,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'رحلة بحرية',
   'reservations.type.event': 'فعالية',
   'reservations.type.tour': 'جولة',
+  'reservations.type.parking': 'موقف سيارات',
   'reservations.type.other': 'أخرى',
   'reservations.type.bus': 'حافلة',
   'reservations.type.ferry': 'عبّارة',

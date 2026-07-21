@@ -59,6 +59,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'Kapal Pesiar',
   'reservations.type.event': 'Acara',
   'reservations.type.tour': 'Tur',
+  'reservations.type.parking': 'Parkir',
   'reservations.type.other': 'Lainnya',
   'reservations.type.bus': 'Bus',
   'reservations.type.ferry': 'Feri',

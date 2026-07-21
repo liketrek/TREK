@@ -58,6 +58,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'クルーズ',
   'reservations.type.event': 'イベント',
   'reservations.type.tour': 'ツアー',
+  'reservations.type.parking': '駐車場',
   'reservations.type.other': 'その他',
   'reservations.type.bus': 'バス',
   'reservations.type.ferry': 'フェリー',
