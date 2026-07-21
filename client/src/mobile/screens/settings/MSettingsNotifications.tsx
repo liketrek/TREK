@@ -38,6 +38,7 @@ const EVENT_LABEL_KEYS: Record<string, string> = {
   trip_reminder: 'settings.notifyTripReminder',
   todo_due: 'settings.notifyTodoDue',
   vacay_invite: 'settings.notifyVacayInvite',
+  vacay_share: 'settings.notifyVacayShare',
   photos_shared: 'settings.notifyPhotosShared',
   collab_message: 'settings.notifyCollabMessage',
   packing_tagged: 'settings.notifyPackingTagged',
