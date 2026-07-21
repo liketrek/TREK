@@ -151,6 +151,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'Synkroniserat från AirTrail – ändringarna synkroniseras åt båda hållen.',
   'reservations.airtrail.notSynced': 'Ej synkroniserad',
   'reservations.airtrail.notSyncedHint': 'Denna flygning har tagits bort i AirTrail och synkroniseras inte längre.',
+  'reservations.airtrail.layoverHint': 'Importerad från AirTrail. En flerdelad flygning med mellanlandning har ingen enskild AirTrail-flygning att synkronisera mot och förblir därför en engångsimport.',
   'reservations.airtrail.loadError': 'Det gick inte att hämta dina AirTrail-flygningar.',
   'reservations.airtrail.imported': '{count} flygning(ar) importerades',
   'reservations.airtrail.skippedDuplicate': '{count} redan under den här resan, hoppade över',

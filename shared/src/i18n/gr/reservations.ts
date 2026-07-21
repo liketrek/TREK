@@ -154,6 +154,7 @@ const reservations: TranslationStrings = {
     'Συγχρονισμένο από το AirTrail — οι αλλαγές συγχρονίζονται και προς τις δύο κατευθύνσεις.',
   'reservations.airtrail.notSynced': 'Μη συγχρονισμένο',
   'reservations.airtrail.notSyncedHint': 'Αυτή η πτήση αφαιρέθηκε στο AirTrail και δεν συγχρονίζεται πλέον.',
+  'reservations.airtrail.layoverHint': 'Εισαγωγή από το AirTrail. Μια πτήση πολλαπλών σκελών με ενδιάμεση στάση δεν αντιστοιχεί σε μία μόνο πτήση του AirTrail για συγχρονισμό, γι’ αυτό παραμένει εφάπαξ εισαγωγή.',
   'reservations.airtrail.loadError': 'Δεν ήταν δυνατή η φόρτωση των πτήσεών σας από το AirTrail.',
   'reservations.airtrail.imported': '{count} πτήση/πτήσεις εισήχθησαν',
   'reservations.airtrail.skippedDuplicate': '{count} υπάρχουν ήδη σε αυτό το ταξίδι, παραλείφθηκαν',

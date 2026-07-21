@@ -150,6 +150,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'Tersinkron dari AirTrail — perubahan tetap sinkron di kedua arah.',
   'reservations.airtrail.notSynced': 'Tidak tersinkron',
   'reservations.airtrail.notSyncedHint': 'Penerbangan ini telah dihapus di AirTrail dan tidak lagi tersinkron.',
+  'reservations.airtrail.layoverHint': 'Diimpor dari AirTrail. Penerbangan multi-segmen dengan transit tidak memiliki satu penerbangan AirTrail untuk disinkronkan, sehingga tetap menjadi impor sekali saja.',
   'reservations.airtrail.loadError': 'Tidak dapat memuat penerbangan AirTrail-mu.',
   'reservations.airtrail.imported': '{count} penerbangan diimpor',
   'reservations.airtrail.skippedDuplicate': '{count} sudah ada di perjalanan ini, dilewati',

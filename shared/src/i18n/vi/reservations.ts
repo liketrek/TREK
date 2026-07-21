@@ -153,6 +153,7 @@ const reservations: TranslationStrings = {
     'Đã đồng bộ hóa từ AirTrail — các chỉnh sửa vẫn được đồng bộ hóa theo cả hai cách.',
   'reservations.airtrail.notSynced': 'Chưa được đồng bộ hóa',
   'reservations.airtrail.notSyncedHint': 'Chuyến bay này đã bị xóa trong AirTrail và không còn đồng bộ hóa nữa.',
+  'reservations.airtrail.layoverHint': 'Đã nhập từ AirTrail. Chuyến bay nhiều chặng có điểm nối chuyến không có một chuyến bay AirTrail duy nhất để đồng bộ, nên vẫn là bản nhập một lần.',
   'reservations.airtrail.loadError': 'Không thể tải chuyến bay AirTrail của bạn.',
   'reservations.airtrail.imported': '{count} chuyến bay đã nhập',
   'reservations.airtrail.skippedDuplicate': '{count} đã tham gia chuyến đi này, đã bỏ qua',

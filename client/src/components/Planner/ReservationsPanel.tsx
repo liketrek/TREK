@@ -97,6 +97,16 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   const typeInfo = getType(r.type)
   const TypeIcon = typeInfo.Icon
   const confirmed = r.status === 'confirmed'
+  // A multi-leg AirTrail import is detached from sync *by design* — AirTrail has
+  // no single flight to round-trip a layover chain to, so it's created with
+  // sync_enabled=0 (#1535). Distinguish it from a flight that was removed
+  // upstream so the badge doesn't falsely claim it "was removed in AirTrail" (#1646).
+  const airtrailMultiLeg = r.external_source === 'airtrail' && !r.sync_enabled && (() => {
+    try {
+      const m = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
+      return Array.isArray(m?.legs) && m.legs.length > 1
+    } catch { return false }
+  })()
   const attachedFiles = files.filter(f => f.reservation_id === r.id || (f.linked_reservation_ids || []).includes(r.id))
   const linked = r.assignment_id ? assignmentLookup[r.assignment_id] : null
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -196,12 +206,12 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           ) : null}
           {r.external_source === 'airtrail' ? (
             <span
-              className={r.sync_enabled ? 'text-[#2563eb] bg-[rgba(59,130,246,0.12)]' : 'text-content-faint bg-surface-tertiary'}
+              className={r.sync_enabled || airtrailMultiLeg ? 'text-[#2563eb] bg-[rgba(59,130,246,0.12)]' : 'text-content-faint bg-surface-tertiary'}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, padding: '3px 8px', borderRadius: 6 }}
-              title={r.sync_enabled ? t('reservations.airtrail.syncedHint') : t('reservations.airtrail.notSyncedHint')}
+              title={r.sync_enabled ? t('reservations.airtrail.syncedHint') : airtrailMultiLeg ? t('reservations.airtrail.layoverHint') : t('reservations.airtrail.notSyncedHint')}
             >
               <Plane size={11} />
-              {r.sync_enabled ? t('reservations.airtrail.synced') : t('reservations.airtrail.notSynced')}
+              {r.sync_enabled || airtrailMultiLeg ? t('reservations.airtrail.synced') : t('reservations.airtrail.notSynced')}
             </span>
           ) : null}
         </div>

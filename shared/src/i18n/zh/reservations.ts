@@ -149,6 +149,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': '已从 AirTrail 同步——编辑会双向保持同步。',
   'reservations.airtrail.notSynced': '未同步',
   'reservations.airtrail.notSyncedHint': '此航班已在 AirTrail 中删除，不再同步。',
+  'reservations.airtrail.layoverHint': '从 AirTrail 导入。含中转的多段航班没有对应的单个 AirTrail 航班可供同步，因此保留为一次性导入。',
   'reservations.airtrail.loadError': '无法加载您的 AirTrail 航班。',
   'reservations.airtrail.imported': '已导入 {count} 个航班',
   'reservations.airtrail.skippedDuplicate': '{count} 个已在此行程中，已跳过',

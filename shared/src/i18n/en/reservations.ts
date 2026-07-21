@@ -151,6 +151,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'Synced from AirTrail — edits stay in sync both ways.',
   'reservations.airtrail.notSynced': 'Not synced',
   'reservations.airtrail.notSyncedHint': 'This flight was removed in AirTrail and no longer syncs.',
+  'reservations.airtrail.layoverHint': 'Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.',
   'reservations.airtrail.loadError': 'Could not load your AirTrail flights.',
   'reservations.airtrail.imported': '{count} flight(s) imported',
   'reservations.airtrail.skippedDuplicate': '{count} already in this trip, skipped',
