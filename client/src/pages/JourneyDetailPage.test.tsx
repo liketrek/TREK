@@ -3792,5 +3792,62 @@ describe('JourneyDetailPage', () => {
       await waitFor(() => expect(searches.some(search => search.from === '2026-03-14' && search.to === '2026-03-20')).toBe(true));
       expect(screen.queryByText(/No trips linked/i)).not.toBeInTheDocument();
     });
+
+    it('does not create a duplicate when provider-photo attachment fails after creating the entry', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      let createCalls = 0;
+      let updateCalls = 0;
+      let providerCalls = 0;
+
+      server.use(
+        http.get('/api/integrations/memories/:provider/status', () => HttpResponse.json({ connected: true })),
+        http.post('/api/integrations/memories/:provider/search', () => HttpResponse.json({
+          assets: [{ id: 'context-1', takenAt: '2026-03-15T12:00:00Z', city: 'Rome' }],
+          hasMore: false,
+        })),
+        http.post('/api/journeys/1/entries', () => {
+          createCalls++;
+          return HttpResponse.json({
+            id: 88, journey_id: 1, author_id: 1, type: 'entry',
+            entry_date: '2026-03-15', title: null, story: null, location_name: null,
+            location_lat: null, location_lng: null, mood: null, weather: null,
+            tags: [], pros_cons: null, visibility: 'private', sort_order: 0,
+            entry_time: null, photos: [], created_at: now, updated_at: now,
+          });
+        }),
+        http.patch('/api/journeys/entries/88', () => {
+          updateCalls++;
+          return HttpResponse.json({ id: 88 });
+        }),
+        http.post('/api/journeys/entries/88/provider-photos', () => {
+          providerCalls++;
+          return providerCalls === 1
+            ? HttpResponse.json({ error: 'provider unavailable' }, { status: 502 })
+            : HttpResponse.json({ added: 1 });
+        }),
+      );
+
+      await renderAndWait();
+      await openEntryEditor(user);
+      await user.click(screen.getByRole('button', { name: /external photos/i }));
+      await waitFor(() => expect(screen.getByTestId('journey-external-provider-immich')).toBeInTheDocument());
+      await user.click(screen.getByTestId('journey-external-provider-immich'));
+
+      const picker = await waitFor(() => screen.getByTestId('journey-provider-picker-embedded'));
+      await waitFor(() => expect(picker.querySelector('img[src*="/api/integrations/memories/"]')).toBeTruthy());
+      const photo = picker.querySelector('img[src*="/api/integrations/memories/"]')!;
+      await user.click(photo.closest('[class*="aspect-square"]') as HTMLElement);
+      await user.click(screen.getByRole('button', { name: /^Add \(1\)/ }));
+
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(providerCalls).toBe(1));
+      expect(createCalls).toBe(1);
+      expect(screen.getByText('New Entry')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(providerCalls).toBe(2));
+      expect(createCalls).toBe(1);
+      expect(updateCalls).toBe(1);
+    });
   });
 });

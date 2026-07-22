@@ -349,6 +349,7 @@ describe('Immich browse and search', () => {
     expect(Array.isArray(res.body.assets)).toBe(true);
     expect(res.body.assets[0]).toMatchObject({ id: 'asset-search-1', city: 'Paris', country: 'France', lat: 48.8566, lng: 2.3522 });
     expect(typeof res.body.hasMore).toBe('boolean');
+    expect(immichState.searchCalls[0]).toMatchObject({ withExif: true });
   });
 
   it('IMMICH-043 — POST /search when upstream throws returns 502', async () => {

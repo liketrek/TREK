@@ -555,7 +555,7 @@ export async function searchSynologyPhotos(userId: number, from?: string, to?: s
         offset,
         limit,
         keyword: '.',
-        additional: ['thumbnail', 'address'],
+        additional: ['thumbnail', 'address', 'gps'],
     };
 
     if (from || to) {
@@ -703,4 +703,3 @@ export async function streamSynologyAsset(
     const url = _buildSynologyEndpoint(synology_credentials.data.synology_url, params.toString());
     await pipeAsset(url, response, undefined, undefined, 'public, max-age=86400', { rejectUnauthorized: !synology_credentials.data.synology_skip_ssl })
 }
-

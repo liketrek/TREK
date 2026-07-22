@@ -466,13 +466,14 @@ function JourneyDetailPageDesktop() {
           galleryPhotos={current.gallery || []}
           userId={useAuthStore.getState().user?.id || 0}
           onClose={() => setEditingEntry(null)}
-          onSave={async (data) => {
-            let entryId = editingEntry.id
-            if (editingEntry.id === 0) {
+          onSave={async (data, existingEntryId) => {
+            const currentEntryId = existingEntryId ?? editingEntry.id
+            let entryId = currentEntryId
+            if (currentEntryId === 0) {
               const created = await useJourneyStore.getState().createEntry(current.id, data)
               entryId = created.id
             } else {
-              await updateEntry(editingEntry.id, data)
+              await updateEntry(currentEntryId, data)
             }
             return entryId
           }}

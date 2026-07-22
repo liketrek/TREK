@@ -23,7 +23,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   trips: JourneyTrip[]
   userId?: number
   onClose: () => void
-  onSave: (data: Record<string, unknown>) => Promise<number>
+  onSave: (data: Record<string, unknown>, existingEntryId?: number) => Promise<number>
   onUploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
   onAddProviderPhotos?: (entryId: number, group: PendingProviderGroup) => Promise<void>
   onDone: () => void
@@ -59,6 +59,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   const [pendingProviderGroups, setPendingProviderGroups] = useState<PendingProviderGroup[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
   const storyRef = useRef<HTMLTextAreaElement>(null)
+  const persistedEntryIdRef = useRef<number | null>(entry.id > 0 ? entry.id : null)
 
   // Track which fields differ from the entry we started editing so we can
   // warn before discarding on close/cancel.
@@ -139,7 +140,8 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
         weather: weather || null,
         pros_cons: { pros: pros.filter(p => p.trim()), cons: cons.filter(c => c.trim()) },
         type: ((entry.type === 'skeleton' && (story.trim() || pendingFiles.length > 0 || pendingLinkIds.length > 0 || pendingProviderGroups.length > 0)) ? 'entry' : undefined),
-      })
+      }, persistedEntryIdRef.current ?? undefined)
+      if (entryId > 0) persistedEntryIdRef.current = entryId
       // upload queued files after entry is created
       if (pendingFiles.length > 0 && entryId) {
         const filesToUpload = pendingFiles
