@@ -160,6 +160,8 @@ export interface RouteSegment {
   durationText?: string
   /** Extra text a plugin route attached to this leg (e.g. "25 min charge"). */
   noteText?: string
+  /** The travel mode this leg was routed with (#1281) — drives the connector icon. */
+  mode?: string
 }
 
 /** An intermediate stop a plugin route places on the drawn line (charging stop, rest area). */

@@ -33,6 +33,8 @@ export class CollectionsService {
   }
   updatePlace(userId: number, placeId: number, body: CollectionPlaceUpdateRequest, socketId?: string) { return svc.updatePlace(userId, placeId, body, socketId); }
   setStatus(userId: number, placeId: number, status: CollectionStatus, socketId?: string) { return svc.setStatus(userId, placeId, status, socketId); }
+  setRating(userId: number, placeId: number, rating: number | null, socketId?: string) { return svc.setRating(userId, placeId, rating, socketId); }
+  setPlaceImage(userId: number, placeId: number, imageUrl: string | null, socketId?: string) { return svc.setPlaceImage(userId, placeId, imageUrl, socketId); }
   deletePlace(userId: number, placeId: number, socketId?: string) { return svc.deletePlace(userId, placeId, socketId); }
   deletePlacesMany(userId: number, ids: number[], socketId?: string) { return svc.deletePlacesMany(userId, ids, socketId); }
 

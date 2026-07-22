@@ -102,9 +102,9 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
     ">${label}</span>`
   }
 
-  // Prefer base64 data URLs (no zoom lag); also accept same-origin proxy URLs as a fallback
-  // while the thumb is still being generated in the background
-  if (place.image_url && (place.image_url.startsWith('data:') || place.image_url.startsWith('/api/maps/place-photo/'))) {
+  // Prefer base64 data URLs (no zoom lag); also accept same-origin proxy + uploaded
+  // custom images (#1136) as a fallback while the thumb is still being generated
+  if (place.image_url && (place.image_url.startsWith('data:') || place.image_url.startsWith('/api/maps/place-photo/') || place.image_url.startsWith('/uploads/'))) {
     const imgIcon = L.divIcon({
       className: '',
       html: `<div style="
@@ -362,6 +362,7 @@ function MapContextMenuHandler({ onContextMenu }: { onContextMenu: ((e: L.Leafle
 
 // Module-level photo cache shared with PlaceAvatar
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
+import { isCustomPlaceImage } from './placePhoto'
 import { useAuthStore } from '../../store/authStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import LocationButton from './LocationButton'
@@ -617,6 +618,10 @@ export const MapView = memo(function MapView({
     }
 
     for (const place of places) {
+      // A custom uploaded image is shown directly — never auto-fetch a provider
+      // photo for it (the request would 404 for OSM-only places and the fetched
+      // thumb would shadow the user's own image). (#1136)
+      if (isCustomPlaceImage(place.image_url)) continue
       const cacheKey = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
       if (!cacheKey) continue
 
@@ -664,7 +669,8 @@ export const MapView = memo(function MapView({
   const markers = useMemo(() => places.map((place) => {
     const isSelected = place.id === selectedPlaceId
     const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
-    const photoUrl = (pck && photoUrls[pck]) || place.image_url || null
+    // A custom uploaded image wins over the auto-fetched thumb; otherwise fall back.
+    const photoUrl = isCustomPlaceImage(place.image_url) ? place.image_url! : ((pck && photoUrls[pck]) || place.image_url || null)
     const orderNumbers = dayOrderMap[place.id] ?? null
     return (
       <MemoMarker

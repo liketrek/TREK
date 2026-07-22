@@ -58,6 +58,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': '크루즈',
   'reservations.type.event': '이벤트',
   'reservations.type.tour': '투어',
+  'reservations.type.parking': '주차',
   'reservations.type.other': '기타',
   'reservations.type.bus': '버스',
   'reservations.type.ferry': '페리',

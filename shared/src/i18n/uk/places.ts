@@ -43,6 +43,9 @@ const places: TranslationStrings = {
   'places.all': 'Усі',
   'places.unplanned': 'Незаплановані',
   'places.filterTracks': 'Треки',
+  'places.sortByRating': 'Сортувати за рейтингом',
+  'places.yourRating': 'Твоя оцінка',
+  'places.notRated': 'Ще не оцінено',
   'places.search': 'Пошук місць...',
   'places.allCategories': 'Всі категорії',
   'places.categoriesSelected': 'категорій',
@@ -88,5 +91,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Збагатити місця через Google',
   'places.enrichOnImportHint':
     'Знаходить кожне імпортоване місце й додає фото, адресу та контакти. Потрібен ключ Google Maps.',
+  'places.uploadImage': 'Завантажити зображення',
+  'places.changeImage': 'Змінити зображення',
+  'places.removeImage': 'Видалити зображення',
+  'places.imageUploadError': 'Не вдалося завантажити зображення',
 };
 export default places;

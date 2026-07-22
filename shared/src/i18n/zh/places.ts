@@ -42,6 +42,9 @@ const places: TranslationStrings = {
   'places.all': '全部',
   'places.unplanned': '未规划',
   'places.filterTracks': '路线',
+  'places.sortByRating': '按评分排序',
+  'places.yourRating': '你的评分',
+  'places.notRated': '暂无评分',
   'places.search': '搜索地点...',
   'places.allCategories': '所有分类',
   'places.categoriesSelected': '个分类',
@@ -84,5 +87,9 @@ const places: TranslationStrings = {
   'places.addAnyway': '仍然添加',
   'places.enrichOnImport': '通过 Google 丰富地点信息',
   'places.enrichOnImportHint': '查找每个导入的地点以补充照片、地址和联系方式。需要 Google Maps 密钥。',
+  'places.uploadImage': '上传图片',
+  'places.changeImage': '更换图片',
+  'places.removeImage': '移除图片',
+  'places.imageUploadError': '无法上传图片',
 };
 export default places;

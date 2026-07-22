@@ -43,6 +43,9 @@ const places: TranslationStrings = {
   'places.all': 'Alle',
   'places.unplanned': 'Ongepland',
   'places.filterTracks': 'Tracks',
+  'places.sortByRating': 'Sorteren op beoordeling',
+  'places.yourRating': 'Jouw beoordeling',
+  'places.notRated': 'Nog niet beoordeeld',
   'places.search': 'Plaatsen zoeken...',
   'places.allCategories': 'Alle categorieën',
   'places.categoriesSelected': 'categorieën',
@@ -88,5 +91,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Plaatsen verrijken via Google',
   'places.enrichOnImportHint':
     'Zoekt elke geïmporteerde plaats op om fotos, adres en contactgegevens toe te voegen. Gebruikt je Google Maps-sleutel.',
+  'places.uploadImage': 'Afbeelding uploaden',
+  'places.changeImage': 'Afbeelding wijzigen',
+  'places.removeImage': 'Afbeelding verwijderen',
+  'places.imageUploadError': 'Afbeelding uploaden mislukt',
 };
 export default places;

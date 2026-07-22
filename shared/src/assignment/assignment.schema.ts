@@ -39,6 +39,9 @@ export const assignmentSchema = z.object({
   notes: z.string().nullable().optional(),
   assignment_time: z.string().nullable().optional(),
   assignment_end_time: z.string().nullable().optional(),
+  // Per-segment travel mode (#1281): the transport mode of the leg LEAVING this
+  // stop for the next one. null = inherit the day's default_transport_mode.
+  leg_transport_mode: z.string().nullable().optional(),
   participants: z.array(assignmentParticipantSchema).optional(),
   created_at: z.string().optional(),
   place: assignmentPlaceSchema,
@@ -67,6 +70,12 @@ export const assignmentTimeRequestSchema = z.object({
   end_time: z.string().nullable().optional(),
 });
 export type AssignmentTimeRequest = z.infer<typeof assignmentTimeRequestSchema>;
+
+/** Set the leg's travel mode (a RouteProfileKey, or null to inherit the day default). */
+export const assignmentTransportRequestSchema = z.object({
+  transport_mode: z.string().nullable(),
+});
+export type AssignmentTransportRequest = z.infer<typeof assignmentTransportRequestSchema>;
 
 export const assignmentParticipantsRequestSchema = z.object({
   user_ids: z.array(z.number()),

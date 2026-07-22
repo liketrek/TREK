@@ -8,6 +8,7 @@ import { registerMapsWeatherTools } from './tools/mapsWeather';
 import { registerNotificationTools } from './tools/notifications';
 import { registerAtlasTools } from './tools/atlas';
 import { registerPlaceTools } from './tools/places';
+import { registerCollectionTools } from './tools/collections';
 import { registerDayTools } from './tools/days';
 import { registerBudgetTools } from './tools/budget';
 import { registerPackingTools } from './tools/packing';
@@ -22,6 +23,8 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   registerTripTools(server, userId, scopes, getDeprecationNotice);
 
   registerPlaceTools(server, userId, scopes);
+
+  registerCollectionTools(server, userId, scopes);
 
   registerBudgetTools(server, userId, scopes);
 

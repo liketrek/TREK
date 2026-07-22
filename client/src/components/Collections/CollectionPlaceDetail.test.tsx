@@ -139,4 +139,26 @@ describe('CollectionPlaceDetail', () => {
     await user.click(await screen.findByRole('button', { name: 'Copy to trip' }));
     expect(props.onCopyToTrip).toHaveBeenCalledTimes(1);
   });
+
+  // ── Custom cover image (#1136) ──────────────────────────────────────────────
+  it('FE-COMP-COLDETAIL-011: shows the cover upload control when canEdit && onUploadImage', async () => {
+    renderDetail({ canEdit: true, onUploadImage: vi.fn() });
+    expect(await screen.findByRole('button', { name: 'Upload image' })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-COLDETAIL-012: hides the cover upload control when onUploadImage is not provided', async () => {
+    renderDetail({ canEdit: true });
+    // Wait for the mount photo effect to settle before asserting absence.
+    expect(await screen.findByRole('button', { name: 'Copy to trip' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Upload image' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Change image' })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-COLDETAIL-013: removing a custom cover calls onSave with { image_url: null }', async () => {
+    const user = userEvent.setup();
+    const withImage: CollectionPlace = { ...place, image_url: '/uploads/places/mock.jpg' };
+    const props = renderDetail({ canEdit: true, onUploadImage: vi.fn(), place: withImage });
+    await user.click(await screen.findByRole('button', { name: 'Remove image' }));
+    expect(props.onSave).toHaveBeenCalledWith({ image_url: null });
+  });
 });

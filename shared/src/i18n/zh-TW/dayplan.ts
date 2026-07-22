@@ -15,6 +15,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': '計算中...',
   'dayplan.route': '路線',
   'dayplan.optimize': '最佳化',
+  'dayplan.transportMode.change': '變更交通方式',
+  'dayplan.transportMode.useDefault': '使用當日預設',
   'dayplan.optimized': '路線已最佳化',
   'dayplan.routeError': '路線計算失敗',
   'dayplan.toast.needTwoPlaces': '路線最佳化至少需要兩個地點',

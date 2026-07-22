@@ -43,6 +43,9 @@ const places: TranslationStrings = {
   'places.all': 'Alla',
   'places.unplanned': 'Oplanerat',
   'places.filterTracks': 'Spår',
+  'places.sortByRating': 'Sortera efter betyg',
+  'places.yourRating': 'Ditt betyg',
+  'places.notRated': 'Inte betygsatt ännu',
   'places.search': 'Sök efter platser...',
   'places.allCategories': 'Alla kategorier',
   'places.categoriesSelected': 'kategorier',
@@ -88,5 +91,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Berika platser via Google',
   'places.enrichOnImportHint':
     'Sök upp varje importerad plats för att fylla i bilder, adress och kontaktuppgifter. Använder din Google Maps-nyckel.',
+  'places.uploadImage': 'Ladda upp bild',
+  'places.changeImage': 'Byt bild',
+  'places.removeImage': 'Ta bort bild',
+  'places.imageUploadError': 'Det gick inte att ladda upp bilden',
 };
 export default places;

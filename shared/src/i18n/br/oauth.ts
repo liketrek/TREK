@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': 'Viagens',
   'oauth.scope.group.places': 'Locais',
+  'oauth.scope.group.collections': 'Coleções',
   'oauth.scope.group.atlas': 'Atlas',
   'oauth.scope.group.packing': 'Bagagem',
   'oauth.scope.group.todos': 'Tarefas',
@@ -26,6 +27,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': 'Ler locais, atribuições de dias, tags e categorias',
   'oauth.scope.places:write.label': 'Gerenciar locais',
   'oauth.scope.places:write.description': 'Criar, atualizar e excluir locais, atribuições e tags',
+  'oauth.scope.collections:read.label': 'Ver coleções',
+  'oauth.scope.collections:read.description': 'Ler coleções de lugares salvos, seus lugares, avaliações, etiquetas e membros',
+  'oauth.scope.collections:write.label': 'Gerenciar coleções',
+  'oauth.scope.collections:write.description': 'Criar/editar coleções, salvar, avaliar, etiquetar e copiar lugares, e compartilhar listas',
   'oauth.scope.atlas:read.label': 'Ver Atlas',
   'oauth.scope.atlas:read.description': 'Ler países visitados, regiões e lista de desejos',
   'oauth.scope.atlas:write.label': 'Gerenciar Atlas',

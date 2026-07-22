@@ -84,13 +84,14 @@ export default function MCollections() {
     setLabelDrop(false)
   }, [c.activeId])
 
-  // The mobile toolbar has no category filter control, but the shared hook
-  // still applies one set on desktop — keep it cleared so resizing to phone
-  // doesn't silently filter the list and map.
-  const { categoryFilter, setCategoryFilter } = c
+  // The mobile toolbar has no category or rating filter control, but the shared
+  // hook still applies whatever was set on desktop — keep both cleared so
+  // resizing to phone doesn't silently filter the list and map (#1435).
+  const { categoryFilter, setCategoryFilter, ratingFilter, setRatingFilter } = c
   useEffect(() => {
     if (categoryFilter !== 'all') setCategoryFilter('all')
-  }, [categoryFilter, setCategoryFilter])
+    if (ratingFilter !== 'all') setRatingFilter('all')
+  }, [categoryFilter, setCategoryFilter, ratingFilter, setRatingFilter])
 
   const title = c.isAllSaved ? t('collections.allSaved') : (c.activeCollection?.name ?? t('collections.title'))
   const isRealList = !c.isAllSaved && typeof c.activeId === 'number'
@@ -453,8 +454,10 @@ export default function MCollections() {
         onClose={c.handleCloseDetail}
         onSetStatus={c.handleDetailStatus}
         onSave={patch => c.updatePlace(c.selectedPlace!.id, patch)}
+        onUploadImage={file => c.uploadPlaceImage(c.selectedPlace!.id, file)}
         onCopyToTrip={c.openCopyForSelectedPlace}
         onRemove={c.handleDetailRemove}
+        onRate={r => c.handleRatePlace(c.selectedPlace!.id, r)}
         t={t}
       />
 

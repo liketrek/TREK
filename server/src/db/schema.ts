@@ -155,6 +155,15 @@ function createTables(db: Database.Database): void {
       PRIMARY KEY (place_id, tag_id)
     );
 
+    CREATE TABLE IF NOT EXISTS place_ratings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(place_id, user_id)
+    );
+
     CREATE TABLE IF NOT EXISTS day_assignments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       day_id INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
@@ -425,6 +434,15 @@ function createTables(db: Database.Database): void {
       sort_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS collection_place_ratings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      collection_place_id INTEGER NOT NULL REFERENCES collection_places(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(collection_place_id, user_id)
     );
 
     CREATE TABLE IF NOT EXISTS collection_place_tags (

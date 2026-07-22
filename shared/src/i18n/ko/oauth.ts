@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': '여행',
   'oauth.scope.group.places': '장소',
+  'oauth.scope.group.collections': '컬렉션',
   'oauth.scope.group.atlas': 'Atlas',
   'oauth.scope.group.packing': '짐 목록',
   'oauth.scope.group.todos': '할 일',
@@ -26,6 +27,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': '장소, 날 배정, 태그, 카테고리 읽기',
   'oauth.scope.places:write.label': '장소 관리',
   'oauth.scope.places:write.description': '장소, 배정, 태그 만들기, 업데이트, 삭제',
+  'oauth.scope.collections:read.label': '컬렉션 보기',
+  'oauth.scope.collections:read.description': '저장된 장소 컬렉션과 장소, 평점, 라벨, 멤버 읽기',
+  'oauth.scope.collections:write.label': '컬렉션 관리',
+  'oauth.scope.collections:write.description': '컬렉션 생성·편집, 장소 저장·평가·라벨 지정·복사, 목록 공유',
   'oauth.scope.atlas:read.label': 'Atlas 보기',
   'oauth.scope.atlas:read.description': '방문한 나라, 지역, 버킷 리스트 읽기',
   'oauth.scope.atlas:write.label': 'Atlas 관리',

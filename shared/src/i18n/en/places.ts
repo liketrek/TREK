@@ -43,6 +43,9 @@ const places: TranslationStrings = {
   'places.all': 'All',
   'places.unplanned': 'Unplanned',
   'places.filterTracks': 'Tracks',
+  'places.sortByRating': 'Sort by rating',
+  'places.yourRating': 'Your rating',
+  'places.notRated': 'Not rated yet',
   'places.search': 'Search places...',
   'places.allCategories': 'All Categories',
   'places.categoriesSelected': 'categories',
@@ -88,5 +91,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Enrich places via Google',
   'places.enrichOnImportHint':
     'Look up each imported place to fill in photos, address and contact details. Uses your Google Maps key.',
+  'places.uploadImage': 'Upload image',
+  'places.changeImage': 'Change image',
+  'places.removeImage': 'Remove image',
+  'places.imageUploadError': 'Could not upload image',
 };
 export default places;

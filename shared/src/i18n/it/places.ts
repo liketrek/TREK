@@ -43,6 +43,9 @@ const places: TranslationStrings = {
   'places.all': 'Tutti',
   'places.unplanned': 'Non pianificati',
   'places.filterTracks': 'Tracce',
+  'places.sortByRating': 'Ordina per valutazione',
+  'places.yourRating': 'La tua valutazione',
+  'places.notRated': 'Non ancora valutato',
   'places.search': 'Cerca luoghi...',
   'places.allCategories': 'Tutte le categorie',
   'places.categoriesSelected': 'categorie',
@@ -88,5 +91,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Arricchisci i luoghi con Google',
   'places.enrichOnImportHint':
     'Cerca ogni luogo importato per aggiungere foto, indirizzo e contatti. Usa la tua chiave Google Maps.',
+  'places.uploadImage': 'Carica immagine',
+  'places.changeImage': 'Cambia immagine',
+  'places.removeImage': 'Rimuovi immagine',
+  'places.imageUploadError': "Impossibile caricare l'immagine",
 };
 export default places;

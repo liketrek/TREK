@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { Search, MapPin, Plus, Loader2, Link2, Trash2, Check, X } from 'lucide-react'
 import Modal from '../shared/Modal'
+import { NumericInput } from '../shared/NumericInput'
 import MarkdownToolbar from '../Journey/MarkdownToolbar'
 import { mapsApi } from '../../api/client'
 import { collectionsApi } from '../../api/collections'
@@ -44,6 +45,11 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
   // The picked location (address/coords/ids) plus the editable fields.
   const [picked, setPicked] = useState<MapsPlace | null>(null)
   const [name, setName] = useState('')
+  // Address + coordinates: prefilled from a picked result, but also directly
+  // typeable so a place can be added by GPS without searching (#1435).
+  const [address, setAddress] = useState('')
+  const [lat, setLat] = useState('')
+  const [lng, setLng] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [description, setDescription] = useState('')
   const [links, setLinks] = useState<CollectionLink[]>([])
@@ -51,7 +57,7 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
   const [saving, setSaving] = useState(false)
   const descRef = useRef<HTMLTextAreaElement>(null)
 
-  const reset = () => { setQuery(''); setResults([]); setPicked(null); setName(''); setCategoryId(null); setDescription(''); setLinks([]); setStatus('idea') }
+  const reset = () => { setQuery(''); setResults([]); setPicked(null); setName(''); setAddress(''); setLat(''); setLng(''); setCategoryId(null); setDescription(''); setLinks([]); setStatus('idea') }
   useEffect(() => { if (!isOpen) reset() }, [isOpen])
 
   const search = async () => {
@@ -67,21 +73,31 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
     }
   }
 
-  const pick = (r: MapsPlace) => { setPicked(r); setName(str(r.name) ?? ''); setResults([]); setQuery(str(r.name) ?? query) }
+  const pick = (r: MapsPlace) => {
+    setPicked(r)
+    setName(str(r.name) ?? '')
+    setAddress(str(r.address) ?? '')
+    const la = num(r.lat); const lo = num(r.lng)
+    setLat(la != null ? String(la) : '')
+    setLng(lo != null ? String(lo) : '')
+    setResults([]); setQuery(str(r.name) ?? query)
+  }
   const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
 
   const save = async () => {
     const cleanName = name.trim()
     if (!cleanName) return
     const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
+    const latNum = lat.trim() ? Number(lat) : NaN
+    const lngNum = lng.trim() ? Number(lng) : NaN
     setSaving(true)
     try {
       const res = await collectionsApi.savePlace({
         collection_id: collectionId,
         name: cleanName,
-        address: (picked && str(picked.address)) ?? null,
-        lat: (picked && num(picked.lat)) ?? null,
-        lng: (picked && num(picked.lng)) ?? null,
+        address: address.trim() || null,
+        lat: Number.isFinite(latNum) ? latNum : null,
+        lng: Number.isFinite(lngNum) ? lngNum : null,
         google_place_id: (picked && str(picked.google_place_id)) ?? null,
         google_ftid: (picked && str(picked.google_ftid)) ?? null,
         osm_id: (picked && str(picked.osm_id)) ?? null,
@@ -103,7 +119,12 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
     }
   }
 
-  const address = picked ? str(picked.address) : undefined
+  const coordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData('text').trim()
+    const match = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/)
+    if (match) { e.preventDefault(); setLat(match[1]); setLng(match[2]) }
+  }
+  const coordInputClass = 'w-full px-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[14px] outline-none focus:border-accent'
 
   return (
     <Modal
@@ -163,7 +184,16 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
         <div>
           <label className="block text-[12px] font-medium text-content-secondary mb-1.5">{t('common.name')}</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder={t('common.name')} className="w-full px-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[14px] outline-none focus:border-accent" />
-          {address && <div className="flex items-center gap-1.5 mt-1.5 text-[12px] text-content-faint"><MapPin size={12} /> {address}</div>}
+        </div>
+
+        {/* Address + coordinates — editable so a place can be added by GPS alone */}
+        <div>
+          <label className="block text-[12px] font-medium text-content-secondary mb-1.5">{t('places.formAddress')}</label>
+          <input value={address} onChange={e => setAddress(e.target.value)} placeholder={t('places.formAddressPlaceholder')} className={coordInputClass} />
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <NumericInput mode="signed" value={lat} onValueChange={setLat} onPaste={coordPaste} placeholder={t('places.formLat')} className={coordInputClass} />
+            <NumericInput mode="signed" value={lng} onValueChange={setLng} placeholder={t('places.formLng')} className={coordInputClass} />
+          </div>
         </div>
 
         {/* Status */}

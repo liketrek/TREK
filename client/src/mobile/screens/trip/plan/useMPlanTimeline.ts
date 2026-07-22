@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTripStore } from '../../../../store/tripStore'
 import { useRouteCalculation } from '../../../../hooks/useRouteCalculation'
-import { reservationsApi, weatherApi } from '../../../../api/client'
+import { assignmentsApi, reservationsApi, weatherApi } from '../../../../api/client'
+import { usePluginStore } from '../../../../store/pluginStore'
 import { getDayBookendHotels } from '../../../../utils/dayOrder'
 import { getDisplayTimeForDay, getMergedItems, getTransportForDay } from '../../../../utils/dayMerge'
 import { dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute'
@@ -315,6 +316,31 @@ export function useMPlanTimeline(planner: TripPlanner) {
     ? Math.round(settings.temperature_unit === 'fahrenheit' ? weather.temp * 9 / 5 + 32 : weather.temp)
     : null
 
+  // ── Per-segment travel mode (#1281) ──
+  const activePlugins = usePluginStore(s => s.plugins)
+  const routeModeOptions = useMemo(() => {
+    const opts: Array<{ key: string; label: string }> = [
+      { key: 'driving', label: 'Driving' },
+      { key: 'walking', label: 'Walking' },
+    ]
+    for (const p of activePlugins) for (const prof of p.routeProfiles ?? []) opts.push({ key: `plugin:${p.id}/${prof.id}`, label: prof.label })
+    return opts
+  }, [activePlugins])
+
+  // Set the mode of the leg leaving a stop — optimistic, then persisted; null clears
+  // the override back to the day default. Sticky against the whole-day picker.
+  const setLegMode = useCallback((assignmentId: number, mode: string | null) => {
+    if (!day) return
+    const key = String(day.id)
+    useTripStore.setState(state => ({
+      assignments: { ...state.assignments, [key]: (state.assignments[key] || []).map(a => (a.id === assignmentId ? { ...a, leg_transport_mode: mode } : a)) },
+    }))
+    assignmentsApi.updateTransport(tripId, assignmentId, mode).catch((err: unknown) => {
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+      tripActions.refreshDays(tripId)
+    })
+  }, [day, tripId, toast, t, tripActions])
+
   return {
     day, rows, hotelLegs, merged, hotelChips, weather, weatherTemp, upNext,
     language, timeFormat: settings.time_format,
@@ -322,6 +348,7 @@ export function useMPlanTimeline(planner: TripPlanner) {
     moveRow, removeAssignment, editAssignment, editTransport, openTransitJourney,
     addPlace, addBooking, addTransport,
     optimize, exportGoogleMaps, renameDay, fullPlaceOf,
+    routeModeOptions, setLegMode,
   }
 }
 

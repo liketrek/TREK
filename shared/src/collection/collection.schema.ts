@@ -1,4 +1,4 @@
-import { placeCategorySchema } from '../place/place.schema';
+import { placeCategorySchema, placeRatingVoteSchema } from '../place/place.schema';
 import { tagSchema } from '../tag/tag.schema';
 
 import { z } from 'zod';
@@ -70,6 +70,10 @@ export const collectionPlaceSchema = z.object({
   tags: z.array(tagSchema.partial()).optional(),
   /** Ids of the per-collection labels assigned to this place. */
   label_ids: z.array(z.number()).optional(),
+  // Collaborative ratings (#1435): every member's vote + the displayed aggregate.
+  ratings: z.array(placeRatingVoteSchema).optional(),
+  rating_avg: z.number().nullable().optional(),
+  rating_count: z.number().optional(),
 });
 export type CollectionPlace = z.infer<typeof collectionPlaceSchema>;
 
@@ -173,6 +177,9 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  // Editable coordinates so a place added by GPS can be corrected later (#1435).
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
   // .removeDefault() strips the inner .default('idea') so an ABSENT status parses to
   // undefined (left unchanged) instead of being injected as 'idea' (see #1437). The
   // .catch('idea') guard against invalid values is preserved.
@@ -183,6 +190,8 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   tag_ids: z.array(z.number()).optional(),
   // Replace the place's per-collection label assignments (omit to leave unchanged).
   label_ids: z.array(z.number()).optional(),
+  // Custom thumbnail (#1136): null clears it (falls back to the auto-fetched photo).
+  image_url: z.string().nullable().optional(),
 });
 export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateRequestSchema>;
 

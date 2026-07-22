@@ -28,7 +28,7 @@ export type PlanRow =
   | { key: string; kind: 'transport'; item: MergedItem; res: TransportEntry }
   | { key: string; kind: 'transit'; item: MergedItem; res: TransportEntry; transit: TransitMeta }
   | { key: string; kind: 'note'; item: MergedItem; note: DayNote }
-  | { key: string; kind: 'conn'; seg: RouteSegment }
+  | { key: string; kind: 'conn'; seg: RouteSegment; assignmentId?: number }
 
 export function parseReservationMeta(res: Reservation): Record<string, unknown> {
   let meta: unknown = res.metadata
@@ -136,7 +136,9 @@ export function buildPlanRows(opts: {
       const to = coordOf(next)
       if (to) { seg = takeSegment(from, to); break }
     }
-    if (seg) out.push({ key: `conn-${row.key}`, kind: 'conn', seg })
+    // The leg's mode is stored on its ORIGIN place assignment (#1281), so carry
+    // that id for the tap-to-change menu.
+    if (seg) out.push({ key: `conn-${row.key}`, kind: 'conn', seg, assignmentId: row.kind === 'place' ? row.assignment.id : undefined })
   }
   return out
 }

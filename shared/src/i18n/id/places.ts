@@ -42,6 +42,9 @@ const places: TranslationStrings = {
   'places.all': 'Semua',
   'places.unplanned': 'Belum direncanakan',
   'places.filterTracks': 'Trek',
+  'places.sortByRating': 'Urutkan berdasarkan rating',
+  'places.yourRating': 'Rating kamu',
+  'places.notRated': 'Belum dinilai',
   'places.search': 'Cari tempat...',
   'places.allCategories': 'Semua Kategori',
   'places.categoriesSelected': 'kategori',
@@ -87,5 +90,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Perkaya tempat via Google',
   'places.enrichOnImportHint':
     'Mencari setiap tempat yang diimpor untuk menambahkan foto, alamat, dan kontak. Memerlukan kunci Google Maps.',
+  'places.uploadImage': 'Unggah gambar',
+  'places.changeImage': 'Ganti gambar',
+  'places.removeImage': 'Hapus gambar',
+  'places.imageUploadError': 'Tidak dapat mengunggah gambar',
 };
 export default places;

@@ -45,6 +45,9 @@ const places: TranslationStrings = {
   'places.all': 'Tüm',
   'places.unplanned': 'Planlanmamış',
   'places.filterTracks': 'Parçalar',
+  'places.sortByRating': 'Puana göre sırala',
+  'places.yourRating': 'Senin puanın',
+  'places.notRated': 'Henüz puanlanmadı',
   'places.search': 'Yer ara...',
   'places.allCategories': 'Tüm Kategoriler',
   'places.categoriesSelected': 'kategoriler',
@@ -90,5 +93,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Yerleri Google ile zenginleştir',
   'places.enrichOnImportHint':
     'İçe aktarılan her yeri arayarak fotoğraf, adres ve iletişim bilgilerini ekler. Google Maps anahtarı gerekir.',
+  'places.uploadImage': 'Görsel yükle',
+  'places.changeImage': 'Görseli değiştir',
+  'places.removeImage': 'Görseli kaldır',
+  'places.imageUploadError': 'Görsel yüklenemedi',
 };
 export default places;

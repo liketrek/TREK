@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': 'Chuyến đi',
   'oauth.scope.group.places': 'Địa điểm',
+  'oauth.scope.group.collections': 'Bộ sưu tập',
   'oauth.scope.group.atlas': 'Bản đồ',
   'oauth.scope.group.packing': 'Đóng gói',
   'oauth.scope.group.todos': 'Việc cần làm',
@@ -26,6 +27,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': 'Đọc địa điểm, bài tập trong ngày, thẻ và danh mục',
   'oauth.scope.places:write.label': 'Quản lý địa điểm',
   'oauth.scope.places:write.description': 'Tạo, cập nhật và xóa địa điểm, bài tập và thẻ',
+  'oauth.scope.collections:read.label': 'Xem bộ sưu tập',
+  'oauth.scope.collections:read.description': 'Đọc bộ sưu tập địa điểm đã lưu cùng các địa điểm, đánh giá, nhãn và thành viên trong đó',
+  'oauth.scope.collections:write.label': 'Quản lý bộ sưu tập',
+  'oauth.scope.collections:write.description': 'Tạo/chỉnh sửa bộ sưu tập, lưu, đánh giá, gắn nhãn và sao chép địa điểm, chia sẻ danh sách',
   'oauth.scope.atlas:read.label': 'Xem bản đồ',
   'oauth.scope.atlas:read.description': 'Đọc các quốc gia, khu vực và danh sách nhóm đã ghé thăm',
   'oauth.scope.atlas:write.label': 'Quản lý bản đồ',

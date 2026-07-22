@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': 'الرحلات',
   'oauth.scope.group.places': 'الأماكن',
+  'oauth.scope.group.collections': 'المجموعات',
   'oauth.scope.group.packing': 'الأمتعة',
   'oauth.scope.group.todos': 'المهام',
   'oauth.scope.group.budget': 'الميزانية',
@@ -24,6 +25,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': 'قراءة الأماكن وتعيينات الأيام والعلامات والفئات',
   'oauth.scope.places:write.label': 'إدارة الأماكن',
   'oauth.scope.places:write.description': 'إنشاء وتحديث وحذف الأماكن والتعيينات والعلامات',
+  'oauth.scope.collections:read.label': 'عرض المجموعات',
+  'oauth.scope.collections:read.description': 'قراءة مجموعات الأماكن المحفوظة وأماكنها وتقييماتها وتسمياتها وأعضائها',
+  'oauth.scope.collections:write.label': 'إدارة المجموعات',
+  'oauth.scope.collections:write.description': 'إنشاء وتعديل المجموعات، وحفظ الأماكن وتقييمها وتسميتها ونسخها، ومشاركة القوائم',
   'oauth.scope.atlas:read.label': 'عرض Atlas',
   'oauth.scope.atlas:read.description': 'قراءة الدول والمناطق المزارة وقائمة الأمنيات',
   'oauth.scope.atlas:write.label': 'إدارة Atlas',

@@ -27,8 +27,14 @@ function makeProps(overrides: Partial<HarnessProps> = {}): HarnessProps {
     counts: { all: 3, idea: 1, want: 1, visited: 1 },
     categoryFilter: 'all',
     categoryOptions: CATEGORY_OPTIONS,
+    ratingFilter: 'all',
+    sortMode: 'default',
     onStatusFilter: vi.fn(),
     onCategoryFilter: vi.fn(),
+    onRatingFilter: vi.fn(),
+    onSortMode: vi.fn(),
+    canAddPlace: false,
+    onAddPlace: vi.fn(),
     showLabels: false,
     labelOptions: [],
     labelFilter: [],
@@ -49,9 +55,9 @@ beforeEach(() => {
 describe('CollectionFilterBar', () => {
   it('FE-COMP-COLFILTERBAR-001: renders the status dropdown showing the current "All" filter', () => {
     render(<Harness {...makeProps()} />);
-    // Both dropdown triggers currently read "All" (status=all, category=all).
-    // With a category present there are exactly two "All" triggers: status + category.
-    expect(screen.getAllByRole('button', { name: 'All' })).toHaveLength(2);
+    // Three dropdown triggers read "All" (status=all, category=all, rating=all):
+    // status + category + the #1435 rating filter.
+    expect(screen.getAllByRole('button', { name: 'All' })).toHaveLength(3);
   });
 
   it('FE-COMP-COLFILTERBAR-002: opening the status dropdown reveals the status options', async () => {
@@ -84,15 +90,15 @@ describe('CollectionFilterBar', () => {
 
   it('FE-COMP-COLFILTERBAR-004: the category dropdown is present when categoryOptions is non-empty', () => {
     render(<Harness {...makeProps()} />);
-    // Two dropdown triggers = status + category.
+    // Three dropdown triggers = status + category + rating.
     const triggers = screen.getAllByRole('button', { name: 'All' });
-    expect(triggers).toHaveLength(2);
+    expect(triggers).toHaveLength(3);
   });
 
   it('FE-COMP-COLFILTERBAR-005: the category dropdown is hidden when categoryOptions is empty', () => {
     render(<Harness {...makeProps({ categoryOptions: [] })} />);
-    // Only the status dropdown remains.
-    expect(screen.getAllByRole('button', { name: 'All' })).toHaveLength(1);
+    // The status + rating dropdowns remain (the rating filter always shows).
+    expect(screen.getAllByRole('button', { name: 'All' })).toHaveLength(2);
   });
 
   it('FE-COMP-COLFILTERBAR-006: clicking a category option calls onCategoryFilter with the category id', async () => {

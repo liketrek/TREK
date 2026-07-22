@@ -3741,6 +3741,50 @@ function runMigrations(db: Database.Database): void {
         db.exec("ALTER TABLE vacay_holiday_calendars ADD COLUMN type TEXT NOT NULL DEFAULT 'public_holiday'");
       }
     },
+    // Collaborative place ratings (#1435): every trip member can rate a trip
+    // place 1-5, every collection member a saved place; the displayed value is
+    // the average. One row per user and place, mirroring collab_poll_votes.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS place_ratings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          rating INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(place_id, user_id)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_place_ratings_place ON place_ratings (place_id);');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS collection_place_ratings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          collection_place_id INTEGER NOT NULL REFERENCES collection_places(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          rating INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(collection_place_id, user_id)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_collection_place_ratings_place ON collection_place_ratings (collection_place_id);');
+    },
+    // Per-segment travel mode (#1281): the day-plan route can use a different
+    // transport mode for each leg. leg_transport_mode on an assignment is the mode
+    // of the leg LEAVING that stop (NULL = inherit the day default); days gains a
+    // persisted default_transport_mode so the whole-day choice survives a reload.
+    // Both nullable → existing itineraries keep today's single-mode behaviour.
+    () => {
+      try {
+        db.exec('ALTER TABLE day_assignments ADD COLUMN leg_transport_mode TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+      try {
+        db.exec('ALTER TABLE days ADD COLUMN default_transport_mode TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

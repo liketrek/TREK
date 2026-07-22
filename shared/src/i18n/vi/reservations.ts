@@ -59,6 +59,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'Du thuyền',
   'reservations.type.event': 'Sự kiện',
   'reservations.type.tour': 'Chuyến du lịch',
+  'reservations.type.parking': 'Bãi đỗ xe',
   'reservations.type.other': 'Khác',
   'reservations.type.bus': 'xe buýt',
   'reservations.type.ferry': 'Phà',

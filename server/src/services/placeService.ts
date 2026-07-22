@@ -1,7 +1,7 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import unzipper from 'unzipper';
 import { db, getPlaceWithTags } from '../db/database';
-import { loadTagsByPlaceIds } from './queryHelpers';
+import { loadTagsByPlaceIds, loadRatingsByPlaceIds, ratingAggregate } from './queryHelpers';
 import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../utils/ssrfGuard';
 import { Place } from '../types';
 import {
@@ -17,6 +17,7 @@ import { enrichImportedPlaces, type EnrichablePlace } from './placeEnrichment';
 import * as placePhotoCache from './placePhotoCache';
 import { searchUnsplashPhotos, getUnsplashKey } from './unsplashService';
 import { type UpdateConflict, isUpdateConflict } from './conflictResult';
+import { reclaimPlaceImage } from './placeImage';
 
 // Reclaim a deleted place's cached marker photo if nothing else references it.
 // The cache key is the Google place_id, or — for coordinate-only places — the
@@ -96,6 +97,7 @@ export function listPlaces(
 
   const placeIds = places.map(p => p.id);
   const tagsByPlaceId = loadTagsByPlaceIds(placeIds);
+  const ratingsByPlaceId = loadRatingsByPlaceIds(placeIds);
 
   return places.map(p => ({
     ...p,
@@ -106,6 +108,8 @@ export function listPlaces(
       icon: p.category_icon,
     } : null,
     tags: tagsByPlaceId[p.id] || [],
+    ratings: ratingsByPlaceId[p.id] || [],
+    ...ratingAggregate(ratingsByPlaceId[p.id]),
   }));
 }
 
@@ -255,6 +259,12 @@ export function updatePlace(
     }
   }
 
+  // A custom uploaded thumbnail (#1136) that was just replaced or cleared leaves
+  // an orphan file behind — reclaim it once nothing references it any more.
+  if (image_url !== undefined && image_url !== existingPlace.image_url) {
+    reclaimPlaceImage(existingPlace.image_url);
+  }
+
   return getPlaceWithTags(placeId);
 }
 
@@ -269,6 +279,7 @@ export function deletePlace(tripId: string, placeId: string): boolean {
   if (!place) return false;
   db.prepare('DELETE FROM places WHERE id = ?').run(placeId);
   reclaimPhotoCache(place.google_place_id, place.image_url);
+  reclaimPlaceImage(place.image_url);
   return true;
 }
 
@@ -289,7 +300,10 @@ export function deletePlacesMany(tripId: string, ids: number[]): number[] {
   });
   run(ids);
   // Reclaim after the transaction commits so isReferenced() sees the final place set.
-  for (const row of reclaimable) reclaimPhotoCache(row.google_place_id, row.image_url);
+  for (const row of reclaimable) {
+    reclaimPhotoCache(row.google_place_id, row.image_url);
+    reclaimPlaceImage(row.image_url);
+  }
   return deleted;
 }
 
@@ -982,4 +996,28 @@ export async function searchPlaceImage(tripId: string, placeId: string, userId: 
   if (!place) return { error: 'Place not found', status: 404 };
 
   return searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, getUnsplashKey(userId));
+}
+
+// ---------------------------------------------------------------------------
+// Collaborative ratings (#1435)
+// ---------------------------------------------------------------------------
+
+/**
+ * Set (rating 1-5) or clear (rating null) the user's own vote on a trip place.
+ * Ratings live in their own table so voting never bumps places.updated_at —
+ * a vote must not 409 another member's offline edit. Returns the refreshed
+ * place (with the new aggregate) or null when the place isn't in the trip.
+ */
+export function ratePlace(tripId: string, placeId: string, userId: number, rating: number | null): ReturnType<typeof getPlaceWithTags> | null {
+  const place = db.prepare('SELECT id FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId);
+  if (!place) return null;
+  if (rating === null) {
+    db.prepare('DELETE FROM place_ratings WHERE place_id = ? AND user_id = ?').run(placeId, userId);
+  } else {
+    db.prepare(`
+      INSERT INTO place_ratings (place_id, user_id, rating) VALUES (?, ?, ?)
+      ON CONFLICT(place_id, user_id) DO UPDATE SET rating = excluded.rating
+    `).run(placeId, userId, rating);
+  }
+  return getPlaceWithTags(placeId);
 }

@@ -79,6 +79,20 @@ describe('Tool: create_reservation', () => {
     });
   });
 
+  it('creates a parking reservation (#1444)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: { tripId: trip.id, title: 'Airport Parking P1', type: 'parking' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.reservation.title).toBe('Airport Parking P1');
+      expect(data.reservation.type).toBe('parking');
+    });
+  });
+
   it('creates a hotel reservation and links accommodation', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

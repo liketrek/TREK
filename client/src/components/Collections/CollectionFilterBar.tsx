@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Check, Layers, Tag, Tags, CheckSquare } from 'lucide-react'
-import type { StatusFilter } from '../../store/collectionStore'
+import { ChevronDown, Check, Layers, Tag, Tags, CheckSquare, Star, Plus, ArrowDownUp } from 'lucide-react'
+import type { StatusFilter, CollectionSortMode } from '../../store/collectionStore'
 import type { TranslationFn } from '../../types'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel'
@@ -67,8 +67,15 @@ interface CollectionFilterBarProps {
   counts: Record<StatusFilter, number>
   categoryFilter: number | 'all'
   categoryOptions: CategoryOption[]
+  ratingFilter: number | 'all'
+  sortMode: CollectionSortMode
   onStatusFilter: (f: StatusFilter) => void
   onCategoryFilter: (f: number | 'all') => void
+  onRatingFilter: (f: number | 'all') => void
+  onSortMode: (m: CollectionSortMode) => void
+  // Add a place to the current list — leads the row when the list is editable.
+  canAddPlace: boolean
+  onAddPlace: () => void
   // Per-collection labels (hidden on the "All saved" union).
   showLabels: boolean
   labelOptions: LabelOption[]
@@ -88,7 +95,9 @@ interface CollectionFilterBarProps {
  * Custom compact dropdowns so they barely take any space.
  */
 export default function CollectionFilterBar({
-  statusFilter, counts, categoryFilter, categoryOptions, onStatusFilter, onCategoryFilter,
+  statusFilter, counts, categoryFilter, categoryOptions, ratingFilter, sortMode,
+  onStatusFilter, onCategoryFilter, onRatingFilter, onSortMode,
+  canAddPlace, onAddPlace,
   showLabels, labelOptions, labelFilter, onLabelFilter, canManageLabels, onManageLabels,
   showSelect, selectMode, onToggleSelect, t,
 }: CollectionFilterBarProps): React.ReactElement {
@@ -109,12 +118,35 @@ export default function CollectionFilterBar({
     }),
   ]
 
+  // Minimum-average-rating filter (#1435): All, then ≥5…≥1 stars.
+  const ratingOpts: Opt[] = [
+    { key: 'all', label: t('common.all') },
+    ...[5, 4, 3, 2, 1].map(n => ({
+      key: n,
+      label: `${n}+`,
+      icon: <Star size={13} color="#facc15" fill="#facc15" />,
+    })),
+  ]
+
+  // Display order: the saved order, or alphabetical by name.
+  const sortOpts: Opt[] = [
+    { key: 'default', label: t('collections.sort.default') },
+    { key: 'name_asc', label: t('collections.sort.nameAsc') },
+  ]
+
   return (
     <div className="col-filterbar">
+      {canAddPlace && (
+        <button type="button" onClick={onAddPlace} className="col-filter-btn col-filter-add" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
+          <Plus size={15} />
+        </button>
+      )}
       <Dropdown current={statusFilter} options={statusOpts} onSelect={k => onStatusFilter(k as StatusFilter)} lead={<Layers size={13} />} />
       {categoryOptions.length > 0 && (
         <Dropdown current={categoryFilter} options={catOpts} onSelect={k => onCategoryFilter(k as number | 'all')} lead={<Tag size={13} />} />
       )}
+      <Dropdown current={ratingFilter} options={ratingOpts} onSelect={k => onRatingFilter(k as number | 'all')} lead={<Star size={13} />} />
+      <Dropdown current={sortMode} options={sortOpts} onSelect={k => onSortMode(k as CollectionSortMode)} lead={<ArrowDownUp size={13} />} />
       {showSelect && (
         <button type="button" onClick={onToggleSelect} className={`col-filter-btn col-filter-select${selectMode ? ' open' : ''}`} aria-pressed={selectMode}>
           <CheckSquare size={14} /> <span className="col-filter-lbl">{t('collections.select')}</span>
@@ -140,7 +172,7 @@ export default function CollectionFilterBar({
             )
           })}
           {canManageLabels && (
-            <button type="button" className="col-labelchip col-labelchip-manage" onClick={onManageLabels} title={t('collections.labels.manage')}>
+            <button type="button" className="col-filter-btn col-filter-addlabel" onClick={onManageLabels} title={t('collections.labels.manage')}>
               <Tags size={13} />
               <span className="col-filter-lbl">{labelOptions.length ? t('collections.labels.manage') : t('collections.labels.add')}</span>
             </button>

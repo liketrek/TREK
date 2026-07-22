@@ -43,6 +43,9 @@ const places: TranslationStrings = {
   'places.all': 'Összes',
   'places.unplanned': 'Nem tervezett',
   'places.filterTracks': 'Nyomvonalak',
+  'places.sortByRating': 'Rendezés értékelés szerint',
+  'places.yourRating': 'Az értékelésed',
+  'places.notRated': 'Még nincs értékelve',
   'places.search': 'Helyek keresése...',
   'places.allCategories': 'Összes kategória',
   'places.categoriesSelected': 'kategória',
@@ -88,5 +91,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Helyek gazdagítása a Google-lel',
   'places.enrichOnImportHint':
     'Minden importált helyet megkeres, hogy fotókat, címet és elérhetőséget adjon hozzá. Google Maps-kulcs szükséges.',
+  'places.uploadImage': 'Kép feltöltése',
+  'places.changeImage': 'Kép módosítása',
+  'places.removeImage': 'Kép eltávolítása',
+  'places.imageUploadError': 'Nem sikerült feltölteni a képet',
 };
 export default places;
