@@ -1,7 +1,7 @@
 name: Lint & Prettier
 on:
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev, dev-test]
 jobs:
   lint:
     runs-on: ubuntu-latest

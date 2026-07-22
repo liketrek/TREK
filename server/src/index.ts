@@ -19,12 +19,15 @@ const tmpDir = path.join(__dirname, '../data/tmp');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
+import { applyDefaultUserSettingsFromEnv } from './services/defaultUserSettings';
 import * as scheduler from './scheduler';
 import { getAppUrl, getMcpSafeUrl } from './services/notifications';
 
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST;
 const APP_VERSION: string = process.env.APP_VERSION || (require('../package.json') as { version: string }).version;
+
+applyDefaultUserSettingsFromEnv();
 
 const onListen = () => {
   const { logInfo: sLogInfo, logWarn: sLogWarn } = require('./services/auditLog');

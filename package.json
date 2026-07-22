@@ -16,7 +16,7 @@
     "version:prepatch": "npm version prepatch --preid=alpha --workspaces --include-workspace-root --no-git-tag-version",
     "version:prerelease": "npm version prerelease --preid=pre --workspaces --include-workspace-root --no-git-tag-version",
     "dev": "npm run build --workspace=shared && concurrently --names shared,server,client \"npm run build:watch --workspace=shared\" \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
-    "build": "npm run build --workspace=shared && npm run build --workspace=server && npm run build --workspace=client",
+    "build": "npm run build --workspace=shared && npm run build --workspace=server && npm run build --workspace=client && cp -r client/dist/. server/public/ && cp -r client/public/fonts/. server/public/fonts/",
     "test": "npm run test --workspace=shared && npm run test --workspace=server && npm run test --workspace=client",
     "test:cov": "npm run test:coverage --workspace=server && npm run test:coverage --workspace=client",
     "test:e2e": "npm run test:e2e --workspace=server",
@@ -43,5 +43,8 @@
     "@img/sharp-linuxmusl-x64": "0.35.1",
     "@rollup/rollup-linux-arm64-musl": "4.62.0",
     "@rollup/rollup-linux-x64-musl": "4.62.0"
+  },
+  "dependencies": {
+    "ldapts": "^9.0.0"
   }
 }

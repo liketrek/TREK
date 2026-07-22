@@ -76,7 +76,7 @@ export class AuthPublicController {
   async login(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 10);
     const started = Date.now();
-    const result = this.auth.loginUser(body);
+    const result = await this.auth.ldapLoginUser(body);
     if (result.auditAction) {
       writeAudit({ userId: result.auditUserId ?? null, action: result.auditAction, ip: getClientIp(req), details: result.auditDetails });
     }
