@@ -104,21 +104,6 @@
   to { opacity: 1; filter: blur(0); }
 }
 
-/* The climax boom rocks the whole frame — short, decaying, gone. */
-.fz-shake {
-  animation: fzShake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-}
-
-@keyframes fzShake {
-  0% { transform: translate(0, 0); }
-  12% { transform: translate(-6px, 3px) rotate(-0.25deg); }
-  28% { transform: translate(5px, -4px) rotate(0.2deg); }
-  46% { transform: translate(-4px, 2px); }
-  64% { transform: translate(3px, -1px); }
-  82% { transform: translate(-1px, 1px); }
-  100% { transform: translate(0, 0); }
-}
-
 /* Staccato words strobing to the heartbeat in the late fear act. */
 .fz-flash-wrap {
   position: absolute;

@@ -202,12 +202,6 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
         if (cue.act) audioRef.current?.setAct(cue.act)
         if (cue.impact) audioRef.current?.impact(cue.impact)
         if (cue.swell) audioRef.current?.swell()
-        // The climax hit shakes the whole frame with the boom.
-        if ((cue.impact ?? 0) >= 0.8 && overlayRef.current) {
-          const el = overlayRef.current
-          el.classList.add('fz-shake')
-          window.setTimeout(() => el.classList.remove('fz-shake'), 700)
-        }
         setCueIdx(idx)
         if (t >= ANTHEM_AT) setAnthem(true)
       }
