@@ -125,6 +125,22 @@ export class NoFearAudio {
     else void this.ctx.resume().catch(() => {})
   }
 
+  /** A soft warm swell out of the silence — the first calm breath, not a hit. */
+  swell(): void {
+    if (!this.ctx || !this.master) return
+    const t = this.ctx.currentTime + 0.05
+    const o = this.ctx.createOscillator()
+    o.type = 'sine'
+    o.frequency.value = 55 // A1 — the root the hope act will grow from
+    const g = this.ctx.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(0.22, t + 1.6)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 5)
+    o.connect(g)
+    this.out(g, 0.6)
+    o.start(t); o.stop(t + 5.2)
+  }
+
   /** A cue-driven cinema hit: sub boom + filtered noise burst, tail blooming in the hall. */
   impact(strength = 1): void {
     if (!this.ctx || !this.master) return
@@ -161,7 +177,9 @@ export class NoFearAudio {
     if (!this.ctx || !this.master || this.act === act) return
     this.act = act
     const t = this.ctx.currentTime
-    this.releaseVoices(act === 'silence' ? 0.1 : 1.6)
+    // Into the silence: a fast pull-away rather than a hard kill — the fear's
+    // hall tail is left ringing out on its own, like a room falling quiet.
+    this.releaseVoices(act === 'silence' ? 0.6 : 1.6)
     this.stopChords()
     switch (act) {
       case 'fear':
@@ -202,6 +220,9 @@ export class NoFearAudio {
     this.heartbeatTimer = null
     this.stopChords()
     this.releaseVoices(0.1)
+    // Pull the master down fast BEFORE the deferred close — closing mid-release
+    // (voices still ~30% hot plus the hall tail) would pop.
+    if (this.master && this.ctx) this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05)
     const ctx = this.ctx
     this.ctx = null
     this.master = null
@@ -303,13 +324,18 @@ export class NoFearAudio {
     const g = this.ctx.createGain()
     g.gain.setValueAtTime(0.0001, t)
     g.gain.exponentialRampToValueAtTime(level, t + 4)
+    // The swell LFO modulates a SERIES tremolo stage, not g itself — an input
+    // on g.gain would ADD to the release automation and the wind could never
+    // be silenced for the hard cut into the silence act.
+    const trem = this.ctx.createGain()
+    trem.gain.value = 0.75
     const lfo = this.ctx.createOscillator()
     lfo.frequency.value = 0.07
     const lfoGain = this.ctx.createGain()
-    lfoGain.gain.value = level * 0.55
-    lfo.connect(lfoGain); lfoGain.connect(g.gain)
+    lfoGain.gain.value = 0.4
+    lfo.connect(lfoGain); lfoGain.connect(trem.gain)
     lfo.start(t)
-    src.connect(bp); bp.connect(g)
+    src.connect(bp); bp.connect(trem); trem.connect(g)
     this.out(g, 0.55)
     src.start(t)
     this.hold(g, [src, lfo])
@@ -490,15 +516,15 @@ export class NoFearAudio {
       const n = this.ctx.createBufferSource()
       n.buffer = this.noiseBuf
       const hp = this.ctx.createBiquadFilter()
-      hp.type = 'lowpass'
-      hp.frequency.value = 340
+      hp.type = 'highpass' // the CLICK of the valve — the sine above is the body
+      hp.frequency.value = 1700
       const ng = this.ctx.createGain()
       ng.gain.setValueAtTime(0.0001, at)
-      ng.gain.exponentialRampToValueAtTime(level * 0.5, at + 0.006)
-      ng.gain.exponentialRampToValueAtTime(0.0001, at + 0.05)
+      ng.gain.exponentialRampToValueAtTime(level * 0.3, at + 0.005)
+      ng.gain.exponentialRampToValueAtTime(0.0001, at + 0.04)
       n.connect(hp); hp.connect(ng); ng.connect(this.master)
       n.start(at)
-      n.stop(at + 0.08)
+      n.stop(at + 0.07)
     }
   }
 }

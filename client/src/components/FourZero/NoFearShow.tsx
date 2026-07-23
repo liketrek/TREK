@@ -18,7 +18,9 @@ interface Cue {
   act?: NoFearAct
   line?: LineKey | null
   hard?: boolean
+  soft?: boolean
   impact?: number
+  swell?: boolean
 }
 
 // The script. Times in seconds; the scene ramps below share the same clock.
@@ -28,7 +30,7 @@ const CUES: Cue[] = [
   { at: 12.0, act: 'dread', line: 'fearTool' },
   { at: 18.5, line: 'hateTrade' },
   { at: 26.0, act: 'silence', line: null },
-  { at: 28.5, line: 'butYouTraveled', impact: 0.5 },
+  { at: 28.5, line: 'butYouTraveled', soft: true, swell: true },
   { at: 34.0, act: 'hope', line: 'tables' },
   { at: 42.0, line: 'face' },
   { at: 49.0, line: 'fences' },
@@ -188,6 +190,7 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
         const cue = CUES[idx]
         if (cue.act) audioRef.current?.setAct(cue.act)
         if (cue.impact) audioRef.current?.impact(cue.impact)
+        if (cue.swell) audioRef.current?.swell()
         setCueIdx(idx)
         if (t >= ANTHEM_AT) setAnthem(true)
         if (t >= CREDITS_AT) setCredits(true)
@@ -242,7 +245,7 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
       {/* The lines. */}
       {!anthem && lineText && flashIdx < 0 && (
         <div className="fz-line-wrap" aria-live="polite">
-          <p key={lineText} className={`fz-line ${hard ? 'fz-line-hard' : ''}`}>{lineText}</p>
+          <p key={lineText} className={`fz-line ${hard ? 'fz-line-hard' : ''} ${cue?.soft ? 'fz-line-soft' : ''}`}>{lineText}</p>
         </div>
       )}
 
