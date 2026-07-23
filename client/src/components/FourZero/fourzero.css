@@ -66,6 +66,11 @@
   letter-spacing: 0.01em;
 }
 
+/* The pivot line out of the silence breathes in slowly instead of arriving. */
+.fz-line-soft {
+  animation-duration: 3.4s;
+}
+
 @keyframes fzLineIn {
   from { opacity: 0; transform: translateY(14px); filter: blur(6px); }
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
