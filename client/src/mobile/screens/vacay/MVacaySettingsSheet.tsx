@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowRightLeft, Building2, Calendar, CalendarX, ChevronDown, Globe, Plus, Trash2, Unlink, X } from 'lucide-react'
+import { ArrowRightLeft, Building2, Calendar, CalendarX, ChevronDown, Globe, GraduationCap, Plus, Trash2, Unlink, X } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
@@ -7,7 +7,8 @@ import { useVacayStore } from '../../../store/vacayStore'
 import { getIntlLanguage, useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
 import apiClient from '../../../api/client'
-import { fetchRegionOptions } from '../../../components/Vacay/holidayRegions'
+import { fetchRegionOptions, fetchSchoolHolidayRegionOptions } from '../../../components/Vacay/holidayRegions'
+import { SCHOOL_HOLIDAY_COUNTRY_CONFIG } from '../../../vacay/schoolHolidayCountries'
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
 import type { VacayHolidayCalendar } from '../../../types'
 
@@ -31,6 +32,7 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
   const { plan, updatePlan, addHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar, isFused, dissolve, users } = useVacayStore()
   const [countries, setCountries] = useState<Option[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
+  const [showAddSchoolForm, setShowAddSchoolForm] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -47,6 +49,12 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
   }, [open, language])
 
   if (!plan) return null
+
+  // Public and school calendars live in the same holiday_calendars list, split by type
+  // (a null type predates the school-holiday feature, so it counts as a public holiday).
+  const publicHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => (cal.type ?? 'public_holiday') === 'public_holiday')
+  const schoolHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => cal.type === 'school_holiday')
+  const schoolHolidayCountries = countries.filter(country => country.value in SCHOOL_HOLIDAY_COUNTRY_CONFIG)
 
   const weekendDays: number[] = plan.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]
   const weekdayChips = [
@@ -167,11 +175,12 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
         </div>
         {plan.holidays_enabled && (
           <>
-            {(plan.holiday_calendars ?? []).map(cal => (
+            {publicHolidayCalendars.map(cal => (
               <CalendarEditor
                 key={cal.id}
                 cal={cal}
                 countries={countries}
+                calendarType="public_holiday"
                 onUpdate={data => updateHolidayCalendar(cal.id, data)}
                 onDelete={() => deleteHolidayCalendar(cal.id)}
               />
@@ -179,13 +188,56 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
             {showAddForm ? (
               <AddCalendarDraft
                 countries={countries}
-                onAdd={async data => { await addHolidayCalendar(data); setShowAddForm(false) }}
+                calendarType="public_holiday"
+                onAdd={async data => { await addHolidayCalendar({ ...data, type: 'public_holiday' }); setShowAddForm(false) }}
                 onCancel={() => setShowAddForm(false)}
               />
             ) : (
               <button
                 type="button"
                 onClick={() => setShowAddForm(true)}
+                className="mt-2 inline-flex items-center gap-[6px] rounded-full border-[1.5px] border-dashed border-[color:var(--m-rowbr)] px-[13px] py-2 font-geist text-[0.6875rem] font-semibold text-m-muted"
+              >
+                <Plus size={12} strokeWidth={2.2} />
+                {t('vacay.addCalendar')}
+              </button>
+            )}
+          </>
+        )}
+        <div className="my-2 h-px bg-[color:var(--m-rowbr)]" />
+
+        {/* School holidays + calendar editor */}
+        <div className="flex items-start gap-[11px] py-3">
+          <GraduationCap size={17} strokeWidth={2} className="mt-[1px] flex-none text-m-muted" />
+          <div className="flex-1">
+            <div className="text-[0.84375rem] font-bold">{t('vacay.schoolHolidays')}</div>
+            <div className="font-geist text-[0.65625rem] text-m-muted">{t('vacay.schoolHolidaysHint')}</div>
+          </div>
+          <MToggle checked={plan.school_holidays_enabled} onChange={() => updatePlan({ school_holidays_enabled: !plan.school_holidays_enabled })} ariaLabel={t('vacay.schoolHolidays')} />
+        </div>
+        {plan.school_holidays_enabled && (
+          <>
+            {schoolHolidayCalendars.map(cal => (
+              <CalendarEditor
+                key={cal.id}
+                cal={cal}
+                countries={schoolHolidayCountries}
+                calendarType="school_holiday"
+                onUpdate={data => updateHolidayCalendar(cal.id, data)}
+                onDelete={() => deleteHolidayCalendar(cal.id)}
+              />
+            ))}
+            {showAddSchoolForm ? (
+              <AddCalendarDraft
+                countries={schoolHolidayCountries}
+                calendarType="school_holiday"
+                onAdd={async data => { await addHolidayCalendar({ ...data, type: 'school_holiday' }); setShowAddSchoolForm(false) }}
+                onCancel={() => setShowAddSchoolForm(false)}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAddSchoolForm(true)}
                 className="mt-2 inline-flex items-center gap-[6px] rounded-full border-[1.5px] border-dashed border-[color:var(--m-rowbr)] px-[13px] py-2 font-geist text-[0.6875rem] font-semibold text-m-muted"
               >
                 <Plus size={12} strokeWidth={2.2} />
@@ -282,9 +334,10 @@ function ColorSwatch({ color, onPick }: { color: string; onPick: (color: string)
   )
 }
 
-function CalendarEditor({ cal, countries, onUpdate, onDelete }: {
+function CalendarEditor({ cal, countries, calendarType = 'public_holiday', onUpdate, onDelete }: {
   cal: VacayHolidayCalendar
   countries: Option[]
+  calendarType?: 'public_holiday' | 'school_holiday'
   onUpdate: (data: { region?: string; color?: string; label?: string | null }) => void
   onDelete: () => void
 }) {
@@ -297,8 +350,9 @@ function CalendarEditor({ cal, countries, onUpdate, onDelete }: {
   useEffect(() => { setLabel(cal.label || '') }, [cal.label])
   useEffect(() => {
     if (!country) { setRegions([]); return }
-    fetchRegionOptions(country).then(setRegions)
-  }, [country])
+    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
+    load(country).then(setRegions)
+  }, [country, calendarType])
 
   return (
     <div className="mt-2 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
@@ -324,8 +378,9 @@ function CalendarEditor({ cal, countries, onUpdate, onDelete }: {
   )
 }
 
-function AddCalendarDraft({ countries, onAdd, onCancel }: {
+function AddCalendarDraft({ countries, calendarType = 'public_holiday', onAdd, onCancel }: {
   countries: Option[]
+  calendarType?: 'public_holiday' | 'school_holiday'
   onAdd: (data: { region: string; color: string; label: string | null }) => void
   onCancel: () => void
 }) {
@@ -340,8 +395,9 @@ function AddCalendarDraft({ countries, onAdd, onCancel }: {
 
   useEffect(() => {
     if (!country) { setRegions([]); return }
-    fetchRegionOptions(country).then(setRegions)
-  }, [country])
+    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
+    load(country).then(setRegions)
+  }, [country, calendarType])
 
   const canAdd = Boolean(country) && (regions.length === 0 || selectedRegion !== '')
 

@@ -202,10 +202,8 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
           </div>
         )}
       </div>
-        </div>
-      </div>
 
-      {/* School holidays */}
+      {/* School holidays — sits on the right, directly under Public holidays */}
       <div>
         <SettingToggle
           icon={GraduationCap}
@@ -250,6 +248,8 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
             )}
           </div>
         )}
+      </div>
+        </div>
       </div>
 
       {/* Dissolve fusion */}
