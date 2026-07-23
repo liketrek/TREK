@@ -65,6 +65,32 @@
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
+/* Staccato words strobing to the heartbeat in the late fear act. */
+.fz-flash-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.fz-flash {
+  font-size: clamp(52px, 9vw, 130px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #ff4b3e;
+  text-shadow: 0 0 42px rgba(235, 50, 45, 0.65), 0 2px 18px rgba(0, 0, 0, 0.9);
+  animation: fzFlashIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fzFlashIn {
+  0% { opacity: 0; transform: scale(1.28); filter: blur(8px); }
+  18% { opacity: 1; transform: scale(1); filter: blur(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* ── anthem ── */
 
 .fz-anthem {
@@ -132,6 +158,15 @@
   padding: 0 8vw;
   text-align: center;
   animation: fzLineIn 1.8s ease-out both;
+}
+
+.fz-credit-lead {
+  font-size: clamp(16px, 1.7vw, 23px);
+  font-weight: 300;
+  font-style: italic;
+  opacity: 0.95;
+  margin: 6px 0 4px;
+  max-width: 680px;
 }
 
 .fz-credit-title {
@@ -216,36 +251,46 @@
 
 /* ── beacon (dashboard trigger) ── */
 
+/* Wrapper is a div so the dismiss can be a real sibling <button> — a button
+   may not contain another interactive element. */
 .fz-beacon {
   position: relative;
   display: none;
   width: 100%;
-  border: none;
-  text-align: left;
-  cursor: pointer;
   border-radius: 16px;
-  padding: 18px 16px 16px;
   overflow: hidden;
   background:
     radial-gradient(120% 90% at 20% 0%, rgba(235, 60, 55, 0.16), transparent 55%),
     radial-gradient(130% 100% at 85% 100%, rgba(255, 180, 90, 0.14), transparent 60%),
     #0a0c12;
   color: #f5f2ea;
-  font-family: inherit;
 }
 
 @media (min-width: 1024px) {
   .fz-beacon { display: block; }
 }
 
+.fz-beacon-play {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  padding: 18px 16px 16px;
+  font-family: inherit;
+}
+
 .fz-beacon-pulse {
   position: absolute;
   top: 16px;
-  right: 16px;
+  inset-inline-end: 16px;
   width: 10px;
   height: 10px;
   border-radius: 999px;
   background: #ff5a4e;
+  pointer-events: none;
 }
 
 .fz-beacon-pulse::before,
@@ -302,7 +347,7 @@
 .fz-beacon-dismiss {
   position: absolute;
   top: 8px;
-  left: 8px;
+  inset-inline-start: 8px;
   display: inline-flex;
   padding: 5px;
   border: none;
@@ -314,11 +359,18 @@
 
 .fz-beacon-dismiss:hover { color: rgba(245, 240, 225, 0.85); }
 
-/* Accessibility: the show honours reduced motion by jumping to its final,
-   static frame (handled in the component); kill the looping accents too. */
+/* While the show runs: no floating dashboard chrome above it, no page scroll. */
+body.fz-show-open { overflow: hidden; }
+body.fz-show-open .fab-new-trip { display: none; }
+
+/* Accessibility: with reduced motion the component renders a single static
+   frame and skips straight to the credits; flatten every looping accent too. */
 @media (prefers-reduced-motion: reduce) {
+  .fz-overlay *,
   .fz-beacon-pulse::before,
   .fz-beacon-pulse::after,
-  .fz-vignette { animation: none; }
-  .fz-cascade-item { animation-duration: 0.01s; }
+  .fz-vignette {
+    animation-duration: 0.01s !important;
+    animation-iteration-count: 1 !important;
+  }
 }

@@ -25,23 +25,23 @@ export default function NoFearBeacon() {
 
   return (
     <>
-      <button type="button" className="fz-beacon" onClick={() => setOpen(true)}>
+      <div className="fz-beacon">
+        <button type="button" className="fz-beacon-play" onClick={() => setOpen(true)}>
+          <p className="fz-beacon-eyebrow">TREK 4.0.0</p>
+          <p className="fz-beacon-title">{copy.beaconTitle}</p>
+          <p className="fz-beacon-sub">{copy.beaconSub}</p>
+          <span className="fz-beacon-cta"><Play size={12} fill="currentColor" /> {copy.beaconCta}</span>
+        </button>
         <span className="fz-beacon-pulse" aria-hidden />
-        <span
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           className="fz-beacon-dismiss"
-          aria-label="×"
-          onClick={e => { e.stopPropagation(); localStorage.setItem(DISMISS_KEY, '1'); setDismissed(true) }}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); localStorage.setItem(DISMISS_KEY, '1'); setDismissed(true) } }}
+          aria-label={copy.skip}
+          onClick={() => { localStorage.setItem(DISMISS_KEY, '1'); setDismissed(true) }}
         >
           <X size={12} />
-        </span>
-        <p className="fz-beacon-eyebrow">TREK 4.0.0</p>
-        <p className="fz-beacon-title">{copy.beaconTitle}</p>
-        <p className="fz-beacon-sub">{copy.beaconSub}</p>
-        <span className="fz-beacon-cta"><Play size={12} fill="currentColor" /> {copy.beaconCta}</span>
-      </button>
+        </button>
+      </div>
       {open && (
         <Suspense fallback={null}>
           <NoFearShow onClose={() => setOpen(false)} />
