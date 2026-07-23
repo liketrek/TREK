@@ -41,6 +41,7 @@ const places: TranslationStrings = {
   'places.assignToDay': '어느 날에 추가할까요?',
   'places.all': '전체',
   'places.unplanned': '미계획',
+  'places.planned': '계획됨',
   'places.filterTracks': '트랙',
   'places.sortByRating': '평점순 정렬',
   'places.yourRating': '내 평점',

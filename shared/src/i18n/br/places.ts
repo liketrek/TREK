@@ -42,6 +42,7 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Adicionar a qual dia?',
   'places.all': 'Todos',
   'places.unplanned': 'Não planejados',
+  'places.planned': 'Planejados',
   'places.filterTracks': 'Trilhas',
   'places.sortByRating': 'Ordenar por avaliação',
   'places.yourRating': 'Sua avaliação',

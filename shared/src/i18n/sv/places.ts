@@ -42,6 +42,7 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Lägg till vilken dag?',
   'places.all': 'Alla',
   'places.unplanned': 'Oplanerat',
+  'places.planned': 'Planerat',
   'places.filterTracks': 'Spår',
   'places.sortByRating': 'Sortera efter betyg',
   'places.yourRating': 'Ditt betyg',

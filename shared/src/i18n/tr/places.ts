@@ -44,6 +44,7 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Hangi güne eklensin?',
   'places.all': 'Tüm',
   'places.unplanned': 'Planlanmamış',
+  'places.planned': 'Planlanmış',
   'places.filterTracks': 'Parçalar',
   'places.sortByRating': 'Puana göre sırala',
   'places.yourRating': 'Senin puanın',

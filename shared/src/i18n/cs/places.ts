@@ -42,6 +42,7 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Přidat do kterého dne?',
   'places.all': 'Vše',
   'places.unplanned': 'Nezařazené',
+  'places.planned': 'Naplánované',
   'places.filterTracks': 'Trasy',
   'places.sortByRating': 'Seřadit podle hodnocení',
   'places.yourRating': 'Tvé hodnocení',

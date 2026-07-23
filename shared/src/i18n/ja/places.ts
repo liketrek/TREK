@@ -42,6 +42,7 @@ const places: TranslationStrings = {
   'places.assignToDay': 'どの日に追加しますか？',
   'places.all': 'すべて',
   'places.unplanned': '未計画',
+  'places.planned': '計画済み',
   'places.filterTracks': 'トラック',
   'places.sortByRating': '評価順に並べ替え',
   'places.yourRating': 'あなたの評価',

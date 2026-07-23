@@ -42,6 +42,7 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Ajouter à quel jour ?',
   'places.all': 'Tous',
   'places.unplanned': 'Non planifiés',
+  'places.planned': 'Planifiés',
   'places.filterTracks': 'Traces',
   'places.sortByRating': 'Trier par note',
   'places.yourRating': 'Ta note',

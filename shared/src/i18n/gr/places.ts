@@ -42,6 +42,7 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Σε ποια ημέρα να προστεθεί;',
   'places.all': 'Όλα',
   'places.unplanned': 'Μη προγραμματισμένα',
+  'places.planned': 'Προγραμματισμένα',
   'places.filterTracks': 'Ίχνη',
   'places.sortByRating': 'Ταξινόμηση κατά βαθμολογία',
   'places.yourRating': 'Η βαθμολογία σου',

@@ -41,6 +41,7 @@ const places: TranslationStrings = {
   'places.assignToDay': '添加到哪一天？',
   'places.all': '全部',
   'places.unplanned': '未规划',
+  'places.planned': '已规划',
   'places.filterTracks': '路线',
   'places.sortByRating': '按评分排序',
   'places.yourRating': '你的评分',
