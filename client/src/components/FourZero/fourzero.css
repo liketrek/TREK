@@ -76,6 +76,49 @@
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
+/* A replaced fear line falls apart: every letter drifts off on its own path. */
+.fz-line-ghost {
+  position: absolute;
+  animation: none;
+}
+
+.fz-char-decay {
+  display: inline-block;
+  white-space: pre;
+  animation: fzCharDecay 1.05s cubic-bezier(0.4, 0, 0.9, 0.4) both;
+}
+
+@keyframes fzCharDecay {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0); filter: blur(0); }
+  100% { opacity: 0; transform: translate(var(--dx, 0), var(--dy, -20px)) rotate(var(--rot, 0)); filter: blur(7px); }
+}
+
+/* Hope-act lines arrive sentence by sentence, in speech rhythm. */
+.fz-seg {
+  opacity: 0;
+  animation: fzSegIn 1.5s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+@keyframes fzSegIn {
+  from { opacity: 0; filter: blur(5px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+/* The climax boom rocks the whole frame — short, decaying, gone. */
+.fz-shake {
+  animation: fzShake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes fzShake {
+  0% { transform: translate(0, 0); }
+  12% { transform: translate(-6px, 3px) rotate(-0.25deg); }
+  28% { transform: translate(5px, -4px) rotate(0.2deg); }
+  46% { transform: translate(-4px, 2px); }
+  64% { transform: translate(3px, -1px); }
+  82% { transform: translate(-1px, 1px); }
+  100% { transform: translate(0, 0); }
+}
+
 /* Staccato words strobing to the heartbeat in the late fear act. */
 .fz-flash-wrap {
   position: absolute;
@@ -149,6 +192,24 @@
   to { opacity: 1; transform: scale(1); letter-spacing: 0.06em; filter: blur(0); }
 }
 
+/* Assembly mode: the DOM word skips the zoom-in (the particles ARE the
+   entrance, and the zoom would skew the measured letterform targets); once the
+   particles settle it fades in crisp and keeps breathing quietly forever. */
+.fz-anthem-word.fz-word-assembled {
+  animation: fzAnthemBreathe 5.5s ease-in-out 5.5s infinite;
+  transition: opacity 1.5s ease;
+}
+
+.fz-anthem-word.fz-word-hidden {
+  opacity: 0;
+  transition: none;
+}
+
+@keyframes fzAnthemBreathe {
+  0%, 100% { transform: scale(1); text-shadow: 0 0 60px rgba(255, 200, 120, 0.35), 0 2px 30px rgba(0, 0, 0, 0.9); }
+  50% { transform: scale(1.012); text-shadow: 0 0 84px rgba(255, 205, 130, 0.5), 0 2px 30px rgba(0, 0, 0, 0.9); }
+}
+
 .fz-cascade {
   display: flex;
   flex-wrap: wrap;
@@ -214,7 +275,7 @@
   display: none;
   width: 100%;
   min-height: 196px;
-  border-radius: 16px;
+  border-radius: var(--r-xl, 16px); /* same corner radius as the dashboard tool widgets */
   overflow: hidden;
   isolation: isolate;
   box-shadow: 0 12px 34px -14px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 190, 110, 0.14);
