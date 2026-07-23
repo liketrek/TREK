@@ -15,10 +15,9 @@ import {
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
 import { useJourneyStore } from '../store/journeyStore'
-import type { JourneyEntry } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
 import { useJourneyDetail } from './journeyDetail/useJourneyDetail'
-import { pickGradient, groupByDate, formatDate, photoUrl } from './journeyDetail/JourneyDetailPage.helpers'
+import { createDraftJourneyEntry, pickGradient, groupByDate, formatDate, photoUrl } from './journeyDetail/JourneyDetailPage.helpers'
 import { EntryCard, SkeletonCard, CheckinCard } from '../components/Journey/JourneyDetailPageEntryCard'
 import { GalleryView } from '../components/Journey/JourneyDetailPageGalleryView'
 import { EntryEditor } from '../components/Journey/JourneyDetailPageEntryEditor'
@@ -92,8 +91,7 @@ function JourneyDetailPageDesktop() {
           readOnly={!canEditEntries}
           onEntryClick={(entry) => setViewingEntry(entry)}
           onAddEntry={canEditEntries ? () => {
-            const today = new Date().toISOString().split('T')[0]
-            setEditingEntry({ id: 0, journey_id: current.id, author_id: 0, type: 'entry', entry_date: today, visibility: 'private', sort_order: 0, photos: [], created_at: 0, updated_at: 0 } as JourneyEntry)
+            setEditingEntry(createDraftJourneyEntry(current.id))
           } : undefined}
         />
       )}
@@ -303,8 +301,7 @@ function JourneyDetailPageDesktop() {
                 {canEditEntries && view === 'timeline' && (
                   <button
                     onClick={() => {
-                      const today = new Date().toISOString().split('T')[0]
-                      setEditingEntry({ id: 0, journey_id: current.id, author_id: 0, type: 'entry', entry_date: today, visibility: 'private', sort_order: 0, photos: [], created_at: 0, updated_at: 0 } as JourneyEntry)
+                      setEditingEntry(createDraftJourneyEntry(current.id))
                     }}
                     className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
                     style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
