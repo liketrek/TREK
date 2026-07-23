@@ -217,9 +217,10 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
   const cue = cueIdx >= 0 ? CUES[cueIdx] : null
   const lineKey = cue?.line ?? null
   // The personal-stats line only exists when the traveler's data arrived; the
-  // yourPlaces line falls back to the generic "every light" line without it.
+  // yourPlaces line falls back to the generic "every light" line without it,
+  // and that line simply stays up through the stats slot (same text = no remount).
   let lineText: string | null = null
-  if (lineKey === 'yourStatsCountries') lineText = statsRef.current?.line ?? null
+  if (lineKey === 'yourStatsCountries') lineText = statsRef.current?.line ?? copy.lines.everyDot
   else if (lineKey === 'yourPlaces') lineText = statsRef.current ? copy.lines.yourPlaces : copy.lines.everyDot
   else if (lineKey) lineText = copy.lines[lineKey]
   const hard = !!cue?.hard
@@ -241,7 +242,7 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
       {/* The lines. */}
       {!anthem && lineText && flashIdx < 0 && (
         <div className="fz-line-wrap" aria-live="polite">
-          <p key={lineKey} className={`fz-line ${hard ? 'fz-line-hard' : ''}`}>{lineText}</p>
+          <p key={lineText} className={`fz-line ${hard ? 'fz-line-hard' : ''}`}>{lineText}</p>
         </div>
       )}
 
