@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Play, X } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { noFearCopy } from './noFearLines'
 import './fourzero.css'
@@ -7,8 +7,6 @@ import './fourzero.css'
 // TREK 4.0.0 release moment — remove together with the FourZero folder.
 
 const NoFearShow = lazy(() => import('./NoFearShow'))
-
-const DISMISS_KEY = 'trek-fourzero-dismissed'
 
 // Abstract night-world for the teaser: light points loosely shaped like the
 // inhabited continents (relative coords), between which golden arcs travel.
@@ -120,16 +118,12 @@ function TeaserCanvas() {
 /**
  * The dashboard trigger for the 4.0.0 "KEINE ANGST" show: a dark cinematic card
  * with a living web of golden travel arcs (desktop only). One click starts the
- * show; the small × dismisses the beacon for good on this device.
- * Core colors ride inline so no dashboard widget CSS can wash them out.
+ * show. Core colors ride inline so no dashboard widget CSS can wash them out.
  */
 export default function NoFearBeacon() {
   const { language } = useTranslation()
   const copy = noFearCopy(language)
-  const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === '1')
   const [open, setOpen] = useState(false)
-
-  if (dismissed) return null
 
   return (
     <>
@@ -140,14 +134,6 @@ export default function NoFearBeacon() {
           <span className="fz-beacon-title">{copy.beaconTitle}</span>
           <span className="fz-beacon-sub" style={{ color: 'rgba(245, 240, 225, 0.75)' }}>{copy.beaconSub}</span>
           <span className="fz-beacon-playbtn" aria-hidden><Play size={16} fill="currentColor" /></span>
-        </button>
-        <button
-          type="button"
-          className="fz-beacon-dismiss"
-          aria-label={copy.skip}
-          onClick={() => { localStorage.setItem(DISMISS_KEY, '1'); setDismissed(true) }}
-        >
-          <X size={12} />
         </button>
       </div>
       {open && (
