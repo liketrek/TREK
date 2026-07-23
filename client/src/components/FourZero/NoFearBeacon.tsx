@@ -136,13 +136,11 @@ export default function NoFearBeacon() {
       <div className="fz-beacon" style={{ background: '#07080d', color: '#f5f2ea' }}>
         <TeaserCanvas />
         <div className="fz-beacon-glow" aria-hidden />
-        <button type="button" className="fz-beacon-play" style={{ background: 'transparent', color: '#f5f2ea' }} onClick={() => setOpen(true)}>
-          <p className="fz-beacon-eyebrow">TREK 4.0.0</p>
-          <p className="fz-beacon-title" style={{ color: '#f7f3e8' }}>{copy.beaconTitle}</p>
-          <p className="fz-beacon-sub" style={{ color: 'rgba(245, 240, 225, 0.72)' }}>{copy.beaconSub}</p>
-          <span className="fz-beacon-cta"><Play size={12} fill="currentColor" /> {copy.beaconCta}</span>
+        <button type="button" className="fz-beacon-play" aria-label={copy.beaconCta} onClick={() => setOpen(true)}>
+          <span className="fz-beacon-title">{copy.beaconTitle}</span>
+          <span className="fz-beacon-sub" style={{ color: 'rgba(245, 240, 225, 0.75)' }}>{copy.beaconSub}</span>
+          <span className="fz-beacon-playbtn" aria-hidden><Play size={16} fill="currentColor" /></span>
         </button>
-        <span className="fz-beacon-pulse" aria-hidden />
         <button
           type="button"
           className="fz-beacon-dismiss"
