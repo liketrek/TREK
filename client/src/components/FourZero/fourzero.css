@@ -86,20 +86,34 @@
   pointer-events: none;
 }
 
+/* A stamped title card, not a zoom: bone-white core, chromatic red/blue
+   fringes, a nervous micro-jitter while it stands, tracking that slowly
+   clenches, and a hard cut out. */
 .fz-flash {
   font-size: clamp(52px, 9vw, 130px);
   font-weight: 900;
-  letter-spacing: 0.08em;
-  color: #ff4b3e;
-  text-shadow: 0 0 42px rgba(235, 50, 45, 0.65), 0 2px 18px rgba(0, 0, 0, 0.9);
-  animation: fzFlashIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  color: #f4ded9;
+  text-shadow:
+    -2px 0 0 rgba(235, 45, 38, 0.85),
+    2px 0 0 rgba(60, 90, 235, 0.5),
+    0 0 34px rgba(235, 50, 45, 0.5),
+    0 4px 26px rgba(0, 0, 0, 0.95);
+  animation:
+    fzFlashStamp 0.65s linear both,
+    fzFlashJitter 0.1s steps(2, jump-none) infinite;
 }
 
-@keyframes fzFlashIn {
-  0% { opacity: 0; transform: scale(1.28); filter: blur(8px); }
-  18% { opacity: 1; transform: scale(1); filter: blur(0); }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
+@keyframes fzFlashStamp {
+  0% { opacity: 0; letter-spacing: 0.2em; }
+  6% { opacity: 1; }
+  88% { opacity: 1; letter-spacing: 0.11em; }
+  100% { opacity: 0; letter-spacing: 0.11em; }
+}
+
+@keyframes fzFlashJitter {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(1.6px, -1px); }
+  100% { transform: translate(-1.4px, 0.8px); }
 }
 
 /* ── anthem ── */
