@@ -252,40 +252,103 @@
 /* ── beacon (dashboard trigger) ── */
 
 /* Wrapper is a div so the dismiss can be a real sibling <button> — a button
-   may not contain another interactive element. */
+   may not contain another interactive element. Core colors also ride inline in
+   the component so no dashboard widget CSS can wash them out. */
 .fz-beacon {
   position: relative;
   display: none;
   width: 100%;
+  min-height: 196px;
   border-radius: 16px;
   overflow: hidden;
-  background:
-    radial-gradient(120% 90% at 20% 0%, rgba(235, 60, 55, 0.16), transparent 55%),
-    radial-gradient(130% 100% at 85% 100%, rgba(255, 180, 90, 0.14), transparent 60%),
-    #0a0c12;
-  color: #f5f2ea;
+  isolation: isolate;
+  box-shadow: 0 12px 34px -14px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 190, 110, 0.14);
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+}
+
+.fz-beacon:hover {
+  box-shadow: 0 16px 44px -14px rgba(220, 80, 50, 0.35), inset 0 0 0 1px rgba(255, 190, 110, 0.3);
+  transform: translateY(-2px);
 }
 
 @media (min-width: 1024px) {
   .fz-beacon { display: block; }
 }
 
+/* The living night-world painted by TeaserCanvas. */
+.fz-beacon-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* Slow-breathing colored glows drifting over the canvas. */
+.fz-beacon-glow {
+  position: absolute;
+  inset: -30%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(45% 40% at 22% 18%, rgba(235, 60, 55, 0.2), transparent 70%),
+    radial-gradient(50% 45% at 82% 78%, rgba(255, 170, 80, 0.16), transparent 70%);
+  animation: fzGlowDrift 9s ease-in-out infinite alternate;
+}
+
+@keyframes fzGlowDrift {
+  from { transform: translate(-2%, -2%) scale(1); opacity: 0.8; }
+  to { transform: translate(2%, 3%) scale(1.08); opacity: 1; }
+}
+
 .fz-beacon-play {
+  position: relative;
+  z-index: 2;
   display: block;
   width: 100%;
+  min-height: 196px;
   border: none;
-  background: transparent;
-  color: inherit;
   text-align: start;
   cursor: pointer;
-  padding: 18px 16px 16px;
+  padding: 78px 18px 16px;
   font-family: inherit;
+  /* Scrim so the copy always sits on darkness, whatever the canvas draws. */
+  background: linear-gradient(180deg, rgba(7, 8, 13, 0) 0%, rgba(7, 8, 13, 0.55) 46%, rgba(7, 8, 13, 0.92) 100%) !important;
+}
+
+.fz-beacon-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgba(255, 150, 110, 0.95);
+  margin: 0 0 7px;
+}
+
+.fz-beacon-title {
+  font-size: 27px;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  line-height: 1.05;
+  margin: 0 0 6px;
+  background: linear-gradient(100deg, #f7f3e8 0%, #f7f3e8 38%, #ffd98f 50%, #f7f3e8 62%, #f7f3e8 100%);
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: fzTitleSheen 4.5s ease-in-out infinite;
+  text-shadow: none;
+}
+
+@keyframes fzTitleSheen {
+  0%, 25% { background-position: 120% 0; }
+  60%, 100% { background-position: -60% 0; }
 }
 
 .fz-beacon-pulse {
   position: absolute;
   top: 16px;
   inset-inline-end: 16px;
+  z-index: 2;
   width: 10px;
   height: 10px;
   border-radius: 999px;
@@ -310,44 +373,32 @@
   to { transform: scale(3.6); opacity: 0; }
 }
 
-.fz-beacon-eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: rgba(255, 170, 120, 0.85);
-  margin: 0 0 6px;
-}
-
-.fz-beacon-title {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  margin: 0 0 4px;
-}
-
 .fz-beacon-sub {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 400;
-  color: rgba(245, 240, 225, 0.68);
+  color: rgba(245, 240, 225, 0.72);
   margin: 0;
 }
 
 .fz-beacon-cta {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 12px;
-  font-size: 12px;
-  font-weight: 700;
+  gap: 7px;
+  margin-top: 13px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
   color: #ffcf8e;
+  transition: color 0.2s, gap 0.25s;
 }
 
-.fz-beacon:hover .fz-beacon-cta { color: #ffe3b3; }
+.fz-beacon:hover .fz-beacon-cta { color: #ffe6b8; gap: 10px; }
 
 .fz-beacon-dismiss {
   position: absolute;
   top: 8px;
   inset-inline-start: 8px;
+  z-index: 2;
   display: inline-flex;
   padding: 5px;
   border: none;
