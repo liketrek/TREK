@@ -1,25 +1,31 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { X, Plus, Image, Minus, Check, MapPin } from 'lucide-react'
 import { normalizeImageFiles } from '../../utils/convertHeic'
 import { type ResilientResult, type UploadProgress } from '../../utils/uploadQueue'
 import { useTranslation } from '../../i18n'
-import { journeyApi, mapsApi } from '../../api/client'
+import { journeyApi, mapsApi, addonsApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 import { getApiErrorMessage } from '../../types'
-import type { JourneyEntry, JourneyPhoto, GalleryPhoto } from '../../store/journeyStore'
+import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
-import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
+import { photoUrl, isValidGeoPoint } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import MarkdownToolbar from './MarkdownToolbar'
 import { DatePicker } from './JourneyDetailPageDatePicker'
+import { ProviderPicker, type ProviderPhotoGroup } from './JourneyDetailPageProviderPicker'
 
-export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSave, onUploadPhotos, onDone }: {
+type PendingProviderGroup = ProviderPhotoGroup & { provider: string }
+
+export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips, userId = 0, onClose, onSave, onUploadPhotos, onAddProviderPhotos, onDone }: {
   entry: JourneyEntry
   journeyId: number
   tripDates: Set<string>
   galleryPhotos: GalleryPhoto[]
+  trips: JourneyTrip[]
+  userId?: number
   onClose: () => void
-  onSave: (data: Record<string, unknown>) => Promise<number>
+  onSave: (data: Record<string, unknown>, existingEntryId?: number) => Promise<number>
   onUploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
+  onAddProviderPhotos?: (entryId: number, group: PendingProviderGroup) => Promise<void>
   onDone: () => void
 }) {
   const { t } = useTranslation()
@@ -46,8 +52,14 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([])
   const [showGalleryPick, setShowGalleryPick] = useState(false)
+  const [photoTab, setPhotoTab] = useState<'upload' | 'gallery' | 'external'>('upload')
+  const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([])
+  const [providersLoading, setProvidersLoading] = useState(false)
+  const [externalProvider, setExternalProvider] = useState<string | null>(null)
+  const [pendingProviderGroups, setPendingProviderGroups] = useState<PendingProviderGroup[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
   const storyRef = useRef<HTMLTextAreaElement>(null)
+  const persistedEntryIdRef = useRef<number | null>(entry.id > 0 ? entry.id : null)
 
   // Track which fields differ from the entry we started editing so we can
   // warn before discarding on close/cancel.
@@ -66,10 +78,47 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
     pros.filter(p => p.trim()).join('\n') !== originalPros ||
     cons.filter(c => c.trim()).join('\n') !== originalCons ||
     pendingFiles.length > 0 ||
-    pendingLinkIds.length > 0
+    pendingLinkIds.length > 0 ||
+    pendingProviderGroups.length > 0
   )
 
   const availableGalleryPhotos = galleryPhotos.filter(gp => !photos.some(p => p.id === gp.id))
+
+  useEffect(() => {
+    if (photoTab !== 'external' || availableProviders.length > 0 || providersLoading) return
+    let cancelled = false
+    setProvidersLoading(true)
+    ;(async () => {
+      try {
+        const addonsData = await addonsApi.enabled()
+        const enabled = (addonsData.addons || []).filter((a: any) => a.type === 'photo_provider' && a.enabled)
+        const connected: { id: string; name: string }[] = []
+        for (const provider of enabled) {
+          try {
+            const response = await fetch(`/api/integrations/memories/${provider.id}/status`, { credentials: 'include' })
+            if (response.ok && (await response.json()).connected) connected.push({ id: provider.id, name: provider.name })
+          } catch {}
+        }
+        if (!cancelled) {
+          setAvailableProviders(connected)
+          if (connected.length > 0) setExternalProvider(current => current || connected[0].id)
+        }
+      } catch {}
+      if (!cancelled) setProvidersLoading(false)
+    })()
+    return () => { cancelled = true }
+  }, [photoTab, availableProviders.length])
+
+  const activeExternalProvider = externalProvider || availableProviders[0]?.id || null
+  const providerExistingAssetIds = new Set<string>()
+  if (activeExternalProvider) {
+    photos.forEach(photo => {
+      if (photo.provider === activeExternalProvider && photo.asset_id) providerExistingAssetIds.add(photo.asset_id)
+    })
+    pendingProviderGroups.forEach(group => {
+      if (group.provider === activeExternalProvider) group.assetIds.forEach(assetId => providerExistingAssetIds.add(assetId))
+    })
+  }
 
   const handleClose = () => {
     if (isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return
@@ -90,8 +139,9 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
         mood: mood || null,
         weather: weather || null,
         pros_cons: { pros: pros.filter(p => p.trim()), cons: cons.filter(c => c.trim()) },
-        type: ((entry.type === 'skeleton' && (story.trim() || pendingFiles.length > 0 || pendingLinkIds.length > 0)) ? 'entry' : undefined),
-      })
+        type: ((entry.type === 'skeleton' && (story.trim() || pendingFiles.length > 0 || pendingLinkIds.length > 0 || pendingProviderGroups.length > 0)) ? 'entry' : undefined),
+      }, persistedEntryIdRef.current ?? undefined)
+      if (entryId > 0) persistedEntryIdRef.current = entryId
       // upload queued files after entry is created
       if (pendingFiles.length > 0 && entryId) {
         const filesToUpload = pendingFiles
@@ -116,6 +166,18 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
           try { await journeyApi.linkPhoto(entryId, photoId) } catch {}
         }
       }
+      if (pendingProviderGroups.length > 0 && entryId && onAddProviderPhotos) {
+        const failed: PendingProviderGroup[] = []
+        for (const group of pendingProviderGroups) {
+          try { await onAddProviderPhotos(entryId, group) } catch { failed.push(group) }
+        }
+        if (failed.length > 0) {
+          setPendingProviderGroups(failed)
+          toast.error(t('journey.editor.externalPhotosPartialFailed', { failed: String(failed.length), total: String(pendingProviderGroups.length) }))
+          return
+        }
+        setPendingProviderGroups([])
+      }
       onDone()
     } finally {
       setSaving(false)
@@ -130,6 +192,10 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
     const normalized = await normalizeImageFiles(files)
     setPendingFiles(prev => [...prev, ...normalized])
   }
+
+  const contextLocation = isValidGeoPoint({ lat: locationLat ?? NaN, lng: locationLng ?? NaN })
+    ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
+    : null
 
   return (
     <div className="fixed inset-0 z-[9999]" style={{ background: 'rgba(9,9,11,0.6)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
@@ -163,7 +229,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
             <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} className="hidden" />
             <div className="flex gap-2">
               <button
-                onClick={() => fileRef.current?.click()}
+                onClick={() => { setPhotoTab('upload'); setShowGalleryPick(false); fileRef.current?.click() }}
                 disabled={saving}
                 className="flex-1 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl py-4 text-[12px] text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
@@ -175,7 +241,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
               </button>
               {galleryPhotos.length > 0 && (
                 <button
-                  onClick={() => setShowGalleryPick(!showGalleryPick)}
+                  onClick={() => { setPhotoTab('gallery'); setShowGalleryPick(!showGalleryPick) }}
                   className={`flex-1 border rounded-xl py-4 text-[12px] text-zinc-500 flex items-center justify-center gap-1.5 ${
                     showGalleryPick
                       ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
@@ -185,6 +251,17 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                   <Image size={13} /> {t('journey.editor.fromGallery')}
                 </button>
               )}
+              <button
+                onClick={() => { setPhotoTab('external'); setShowGalleryPick(false) }}
+                disabled={saving}
+                className={`flex-1 border rounded-lg py-4 text-[12px] text-zinc-500 flex items-center justify-center gap-1.5 ${
+                  photoTab === 'external'
+                    ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
+                    : 'border-dashed border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <Image size={13} /> {t('journey.editor.externalPhotos') || 'External photos'}
+              </button>
             </div>
 
             {/* Gallery picker — directly below buttons. Safari collapses
@@ -218,6 +295,85 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                     <div className="col-span-full text-center py-3 text-[11px] text-zinc-400">{t('journey.editor.allPhotosAdded')}</div>
                   )}
                 </div>
+              </div>
+            )}
+            {photoTab === 'external' && (
+              <div className="mt-2 flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden bg-zinc-50 dark:bg-zinc-800/50" style={{ height: 'min(56vh, 520px)' }}>
+                <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 truncate">
+                      {t('journey.editor.externalPhotosFor', { date: new Date(entryDate + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) })}
+                    </p>
+                    <p className="text-[10px] text-zinc-400 truncate">
+                      {contextLocation?.name
+                        ? `${t('journey.editor.externalPhotosNearby') || 'Nearby photos first'} · ${contextLocation.name}`
+                        : (t('journey.editor.externalPhotosNoLocation') || 'All photos from this day')}
+                    </p>
+                  </div>
+                  {pendingProviderGroups.length > 0 && (
+                    <button onClick={() => setPendingProviderGroups([])} className="text-[10px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white whitespace-nowrap">
+                      {pendingProviderGroups.reduce((sum, group) => sum + group.assetIds.length, 0)} {t('journey.editor.externalPhotosQueued') || 'queued'} · {t('common.clear') || 'Clear'}
+                    </button>
+                  )}
+                </div>
+                {providersLoading ? (
+                  <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-700 rounded-full animate-spin" /></div>
+                ) : availableProviders.length === 0 ? (
+                  <div className="text-center py-10 px-4 text-[12px] text-zinc-500">{t('journey.editor.externalPhotosUnavailable') || 'No connected photo providers are available.'}</div>
+                ) : (
+                  <div className="h-full min-h-0 flex flex-col">
+                    <div className="flex gap-1 px-3 py-2 border-b border-zinc-200 dark:border-zinc-700 overflow-x-auto">
+                      {availableProviders.map(provider => (
+                        <button
+                          key={provider.id}
+                          data-testid={`journey-external-provider-${provider.id}`}
+                          onClick={() => setExternalProvider(provider.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap ${externalProvider === provider.id ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700'}`}
+                        >
+                          {provider.name}
+                        </button>
+                      ))}
+                    </div>
+                    {activeExternalProvider && (
+                      <div className="flex-1 min-h-0">
+                        <ProviderPicker
+                          key={`${activeExternalProvider}-${entryDate}`}
+                          provider={activeExternalProvider}
+                          userId={userId}
+                          entries={[entry]}
+                          trips={trips}
+                          existingAssetIds={providerExistingAssetIds}
+                          initialDate={entryDate}
+                          contextLocation={contextLocation}
+                          initialEntryId={entry.id || null}
+                          embedded
+                          onClose={() => setExternalProvider(null)}
+                          onAdd={async groups => {
+                            setPendingProviderGroups(previous => {
+                              const next = [...previous]
+                              for (const group of groups) {
+                                const existing = next.find(item => item.provider === activeExternalProvider && item.passphrase === group.passphrase)
+                                if (existing) {
+                                  const seen = new Set(existing.assetIds)
+                                  group.assetIds.forEach((assetId, index) => {
+                                    if (seen.has(assetId)) return
+                                    seen.add(assetId)
+                                    existing.assetIds.push(assetId)
+                                    existing.mediaTypes?.push(group.mediaTypes?.[index] || 'image')
+                                  })
+                                } else {
+                                  next.push({ ...group, provider: activeExternalProvider })
+                                }
+                              }
+                              return next
+                            })
+                            setExternalProvider(null)
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             {(photos.length > 0 || pendingFiles.length > 0) && (

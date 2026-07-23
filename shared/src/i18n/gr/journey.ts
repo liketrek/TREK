@@ -230,5 +230,13 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Δεν βρέθηκαν άλμπουμ',
   'journey.picker.selectDate': 'Επιλογή ημερομηνίας',
   'journey.picker.search': 'Αναζήτηση',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

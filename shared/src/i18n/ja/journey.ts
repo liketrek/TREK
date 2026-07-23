@@ -229,5 +229,13 @@ const journey: TranslationStrings = {
   'journey.editor.uploadPartialFailed':
     '{total}枚中{failed}枚の写真がアップロードに失敗しました — もう一度保存して再試行してください',
   'journey.photosUploadFailed': '一部の写真をアップロードできませんでした',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

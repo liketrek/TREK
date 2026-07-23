@@ -67,6 +67,11 @@ export type AlbumsList = {
 export type Asset = {
     id: string;
     takenAt: string;
+    mediaType?: string;
+    city?: string | null;
+    country?: string | null;
+    lat?: number | null;
+    lng?: number | null;
 };
 
 export type AssetsList = {

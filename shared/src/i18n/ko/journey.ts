@@ -229,5 +229,13 @@ const journey: TranslationStrings = {
   'journey.editor.uploadPartialFailed':
     '{total}개 중 {failed}개의 사진을 업로드하지 못했습니다 — 다시 저장하여 재시도하세요',
   'journey.photosUploadFailed': '일부 사진을 업로드하지 못했습니다',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;
