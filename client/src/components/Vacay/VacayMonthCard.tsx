@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from '../../i18n'
 import type { HolidaysMap, VacayEntry } from '../../types'
+import { schoolHolidayBand, schoolHolidayWash } from './holidayVisual'
 
 const WEEKDAY_KEYS = ['vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat', 'vacay.sun'] as const
 
@@ -96,13 +97,16 @@ export default function VacayMonthCard({
           const dateStr = `${year}-${pad(month + 1)}-${pad(day)}`
           const dayOfWeek = new Date(year, month, day).getDay()
           const weekend = weekendDays.includes(dayOfWeek)
-          const holiday = holidays[dateStr]
+          const rawHolidayMarkers = holidays[dateStr]
+          const holidayMarkers = Array.isArray(rawHolidayMarkers) ? rawHolidayMarkers : rawHolidayMarkers ? [rawHolidayMarkers] : []
+          const publicHoliday = holidayMarkers.find(h => (h.type ?? 'public_holiday') === 'public_holiday')
+          const schoolHolidayMarkers = holidayMarkers.filter(h => h.type === 'school_holiday')
           const isCompany = companyHolidaysEnabled && companyHolidaySet.has(dateStr)
           const dayEntries = entryMap[dateStr] || []
           const hasEntries = dayEntries.length > 0
           const isBlocked = (weekend && blockWeekends) || (isCompany && !companyMode)
           const isToday = dateStr === todayStr
-          const plain = !hasEntries && !holiday && !isCompany
+          const plain = !hasEntries && holidayMarkers.length === 0 && !isCompany
 
           // The fill always shows WHO is off (person colour, split for several) — half
           // days keep that fill and get a small corner ½ badge instead, so a half day
@@ -119,7 +123,10 @@ export default function VacayMonthCard({
           if (dayEntries.length === 1) background = fill(dayEntries[0].person_color)
           else if (dayEntries.length === 2) background = `linear-gradient(135deg, ${fill(dayEntries[0].person_color)} 50%, ${fill(dayEntries[1].person_color)} 50%)`
           else if (dayEntries.length === 0 && isCompany) background = 'rgba(245,158,11,0.22)'
-          else if (dayEntries.length === 0 && holiday) background = `color-mix(in srgb, ${holiday.color} 22%, transparent)`
+          else if (dayEntries.length === 0 && publicHoliday) background = `color-mix(in srgb, ${publicHoliday.color} 22%, transparent)`
+          // A plain school-break day gets a soft wash of its calendar colour so a run of
+          // days reads as one gentle stretch; the rounded band below names the calendar.
+          else if (dayEntries.length === 0 && schoolHolidayMarkers.length > 0) background = schoolHolidayWash(schoolHolidayMarkers[0].color)
           // Weekend / settings-blocked days read as inactive: subtle grey fill, like before the facelift.
           else if (weekend && blockWeekends) background = 'color-mix(in srgb, var(--vg-ink3) 7%, transparent)'
 
@@ -133,13 +140,13 @@ export default function VacayMonthCard({
 
           let numColor = 'var(--vg-ink2)'
           if (hasEntries) numColor = '#fff'
-          else if (holiday) numColor = holiday.color
+          else if (publicHoliday) numColor = publicHoliday.color
           else if (weekend) numColor = 'var(--vg-ink3)'
 
           return (
             <div
               key={di}
-              title={holiday ? (holiday.label ? `${holiday.label}: ${holiday.localName}` : holiday.localName) : undefined}
+              title={publicHoliday ? (publicHoliday.label ? `${publicHoliday.label}: ${publicHoliday.localName}` : publicHoliday.localName) : undefined}
               className="relative flex items-center justify-center transition-colors"
               style={{
                 height: 28,
@@ -151,11 +158,11 @@ export default function VacayMonthCard({
               onClick={() => onCellClick(dateStr)}
               onMouseEnter={e => {
                 if (!isBlocked && plain) e.currentTarget.style.background = 'var(--vg-surf2)'
-                if (anyHalf || sharedColors.length > 0) onCellHover?.(dateStr, e.currentTarget)
+                if (hasEntries || sharedColors.length > 0 || schoolHolidayMarkers.length > 0) onCellHover?.(dateStr, e.currentTarget)
               }}
               onMouseLeave={e => {
                 if (!isBlocked && plain) e.currentTarget.style.background = background
-                if (anyHalf || sharedColors.length > 0) onCellHover?.(null, null)
+                if (hasEntries || sharedColors.length > 0 || schoolHolidayMarkers.length > 0) onCellHover?.(null, null)
               }}
             >
               {/* 3+ people: quadrant overlay at full colour (1 & 2 use the cell background). */}
@@ -183,6 +190,20 @@ export default function VacayMonthCard({
                   The hover tooltip spells out who is on a half day. */}
               {anyHalf && (
                 <span className="absolute bottom-1 right-1 w-[5px] h-[5px] rounded-full z-[3] bg-[#f97316]" style={{ boxShadow: '0 0 0 1.5px var(--vg-surf)' }} aria-hidden />
+              )}
+
+              {schoolHolidayMarkers.length > 0 && (
+                <span
+                  className="absolute rounded-full z-[2]"
+                  style={{
+                    left: 4,
+                    right: 4,
+                    bottom: 3,
+                    height: 3,
+                    background: schoolHolidayBand(schoolHolidayMarkers.map(h => h.color)),
+                  }}
+                  aria-hidden
+                />
               )}
 
               <span className="relative z-[1]" style={{

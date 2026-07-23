@@ -1,3 +1,4 @@
+import { schoolHolidayWash } from '../../../components/Vacay/holidayVisual'
 import type { HolidaysMap, VacayEntry } from '../../../types'
 
 // Users created before picking a color have color=null; same fallback the
@@ -10,6 +11,9 @@ export interface DayVisual {
   boxShadow?: string
   // At least one person logged this day as a half day (#552) — the cell shows a ½ badge.
   half?: boolean
+  // Colours of the school-holiday calendars covering this day — drawn as a rounded
+  // accent band under the number, on top of whatever fill the cell already has.
+  school?: string[]
 }
 
 export interface DayVisualContext {
@@ -84,11 +88,19 @@ export function splitBackground(colors: string[]): string {
  * theme-independent surfaces.
  */
 function baseDayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext): DayVisual {
+  const holidayMarkers = ctx.holidays[dateStr]
+  const holidays = Array.isArray(holidayMarkers) ? holidayMarkers : holidayMarkers ? [holidayMarkers] : []
+  const publicHoliday = holidays.find(holiday => (holiday.type ?? 'public_holiday') === 'public_holiday')
+  const schoolColors = holidays.filter(holiday => holiday.type === 'school_holiday').map(holiday => holiday.color)
+  // The school band sits on top of any fill (person / company / public), so tag it
+  // onto whatever visual this day resolves to rather than picking a single winner.
+  const withSchool = (v: DayVisual): DayVisual => (schoolColors.length > 0 ? { ...v, school: schoolColors } : v)
+
   if (dateStr === ctx.todayStr) {
-    return { background: 'transparent', numColor: 'var(--m-ink)', boxShadow: 'inset 0 0 0 1.5px var(--m-ink)' }
+    return withSchool({ background: 'transparent', numColor: 'var(--m-ink)', boxShadow: 'inset 0 0 0 1.5px var(--m-ink)' })
   }
   if (ctx.companyHolidaysEnabled && ctx.companyHolidaySet.has(dateStr)) {
-    return { background: '#F5D9A6', numColor: '#8A5A00' }
+    return withSchool({ background: '#F5D9A6', numColor: '#8A5A00' })
   }
   const entries = ctx.entryMap[dateStr]
   if (entries && entries.length > 0) {
@@ -98,11 +110,14 @@ function baseDayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext
     // true so full days keep their exact { background, numColor } shape.
     const visual: DayVisual = { background: tints.length === 1 ? tints[0] : splitBackground(tints), numColor: '#101013' }
     if (entries.some(e => (e.fraction ?? 1) === 0.5)) visual.half = true
-    return visual
+    return withSchool(visual)
   }
-  const holiday = ctx.holidays[dateStr]
-  if (holiday) {
-    return { background: holiday.color, numColor: holidayInk(holiday.color) }
+  if (publicHoliday) {
+    return withSchool({ background: publicHoliday.color, numColor: holidayInk(publicHoliday.color) })
+  }
+  // Plain school-break day: soft wash + readable tinted ink, matching the desktop card.
+  if (schoolColors.length > 0) {
+    return { background: schoolHolidayWash(schoolColors[0]), numColor: holidayInk(schoolColors[0]), school: schoolColors }
   }
   if (ctx.weekendDays.includes(dayOfWeek)) {
     return { background: 'var(--m-ic)', numColor: 'var(--m-faint)' }

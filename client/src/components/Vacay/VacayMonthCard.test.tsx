@@ -67,6 +67,16 @@ describe('VacayMonthCard', () => {
     expect(cell).toBeInTheDocument()
   })
 
+  it('FE-COMP-VACAYMONTHCARD-014: School holiday markers do not recolor the day number', () => {
+    const props = {
+      ...baseProps,
+      holidays: { '2025-01-02': { name: 'School holiday', localName: 'School holiday', label: 'NL', color: '#22c55e', type: 'school_holiday' as const } },
+    }
+    render(<VacayMonthCard {...props} />)
+    const daySpan = screen.getByText('2')
+    expect(daySpan.style.color).toBe('var(--vg-ink2)')
+  })
+
   it('FE-COMP-VACAYMONTHCARD-006: Weekend cell has default cursor (blocked)', () => {
     render(<VacayMonthCard {...baseProps} />)
     // January 5, 2025 is a Sunday (getDay() === 0), which is in weekendDays [0, 6]

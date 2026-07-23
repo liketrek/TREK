@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { type LucideIcon, CalendarOff, AlertCircle, Building2, Unlink, ArrowRightLeft, Globe, Plus, Trash2, CalendarDays } from 'lucide-react'
+import { type LucideIcon, CalendarOff, AlertCircle, Building2, Unlink, ArrowRightLeft, Globe, Plus, Trash2, CalendarDays, GraduationCap } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
 import { getIntlLanguage, useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import apiClient from '../../api/client'
-import { fetchRegionOptions } from './holidayRegions'
+import { fetchRegionOptions, fetchSchoolHolidayRegionOptions } from './holidayRegions'
+import { SCHOOL_HOLIDAY_COUNTRY_CONFIG } from '../../vacay/schoolHolidayCountries'
 import type { VacayHolidayCalendar } from '../../types'
 
 interface VacaySettingsProps {
@@ -18,6 +19,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
   const { plan, updatePlan, addHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar, isFused, dissolve, users } = useVacayStore()
   const [countries, setCountries] = useState<{ value: string; label: string }[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
+  const [showAddSchoolForm, setShowAddSchoolForm] = useState(false)
 
   const { language } = useTranslation()
 
@@ -38,6 +40,9 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
   if (!plan) return null
 
   const toggle = (key: string) => updatePlan({ [key]: !plan[key] })
+  const publicHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => (cal.type ?? 'public_holiday') === 'public_holiday')
+  const schoolHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => cal.type === 'school_holiday')
+  const schoolHolidayCountries = countries.filter(country => country.value in SCHOOL_HOLIDAY_COUNTRY_CONFIG)
 
   return (
     <div className="space-y-4">
@@ -162,15 +167,16 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
         />
         {plan.holidays_enabled && (
           <div className="ml-7 mt-2 space-y-2">
-            {(plan.holiday_calendars ?? []).length === 0 && (
+            {publicHolidayCalendars.length === 0 && (
               <p className="text-xs text-content-faint">{t('vacay.noCalendars')}</p>
             )}
-            {(plan.holiday_calendars ?? []).map(cal => (
+            {publicHolidayCalendars.map(cal => (
               <CalendarRow
                 key={cal.id}
                 cal={cal}
                 countries={countries}
                 language={language}
+                calendarType="public_holiday"
                 onUpdate={(data) => updateHolidayCalendar(cal.id, data)}
                 onDelete={() => deleteHolidayCalendar(cal.id)}
               />
@@ -179,7 +185,8 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
               <AddCalendarForm
                 countries={countries}
                 language={language}
-                onAdd={async (data) => { await addHolidayCalendar(data); setShowAddForm(false) }}
+                calendarType="public_holiday"
+                onAdd={async (data) => { await addHolidayCalendar({ ...data, type: 'public_holiday' }); setShowAddForm(false) }}
                 onCancel={() => setShowAddForm(false)}
               />
             ) : (
@@ -189,6 +196,53 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
                 style={{ borderColor: 'var(--vg-line2)', background: 'var(--vg-surf)', color: 'var(--vg-ink2)' }}
               >
                 <Plus size={13} />
+                {t('vacay.addCalendar')}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* School holidays — sits on the right, directly under Public holidays */}
+      <div>
+        <SettingToggle
+          icon={GraduationCap}
+          label={t('vacay.schoolHolidays')}
+          hint={t('vacay.schoolHolidaysHint')}
+          value={plan.school_holidays_enabled}
+          onChange={() => toggle('school_holidays_enabled')}
+        />
+        {plan.school_holidays_enabled && (
+          <div className="ml-7 mt-2 space-y-2">
+            {schoolHolidayCalendars.length === 0 && (
+              <p className="text-xs text-content-faint">{t('vacay.noSchoolCalendars')}</p>
+            )}
+            {schoolHolidayCalendars.map(cal => (
+              <CalendarRow
+                key={cal.id}
+                cal={cal}
+                countries={schoolHolidayCountries}
+                language={language}
+                calendarType="school_holiday"
+                onUpdate={(data) => updateHolidayCalendar(cal.id, data)}
+                onDelete={() => deleteHolidayCalendar(cal.id)}
+              />
+            ))}
+            {showAddSchoolForm ? (
+              <AddCalendarForm
+                countries={schoolHolidayCountries}
+                language={language}
+                calendarType="school_holiday"
+                defaultColor="#a5f3fc"
+                onAdd={async (data) => { await addHolidayCalendar({ ...data, type: 'school_holiday' }); setShowAddSchoolForm(false) }}
+                onCancel={() => setShowAddSchoolForm(false)}
+              />
+            ) : (
+              <button
+                onClick={() => setShowAddSchoolForm(true)}
+                className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md transition-colors text-content-muted bg-surface-secondary"
+              >
+                <Plus size={12} />
                 {t('vacay.addCalendar')}
               </button>
             )}
@@ -266,10 +320,11 @@ function SettingToggle({ icon: Icon, label, hint, value, onChange }: SettingTogg
 }
 
 // ── Existing calendar row (inline edit) ──────────────────────────────────────
-function CalendarRow({ cal, countries, onUpdate, onDelete }: {
+function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
   cal: VacayHolidayCalendar
   countries: { value: string; label: string }[]
   language: string
+  calendarType: 'public_holiday' | 'school_holiday'
   onUpdate: (data: { region?: string; color?: string; label?: string | null }) => void
   onDelete: () => void
 }) {
@@ -278,16 +333,18 @@ function CalendarRow({ cal, countries, onUpdate, onDelete }: {
   const [localLabel, setLocalLabel] = useState(cal.label || '')
   const [regions, setRegions] = useState<{ value: string; label: string }[]>([])
 
-  const selectedCountry = cal.region.split('-')[0]
-  const selectedRegion = cal.region.includes('-') ? cal.region : ''
+  const [baseRegion] = cal.region.split('|')
+  const selectedCountry = baseRegion.split('-')[0]
+  const selectedRegion = cal.region.includes('|group:') || baseRegion.includes('-') ? cal.region : ''
 
   useEffect(() => { setLocalColor(cal.color) }, [cal.color])
   useEffect(() => { setLocalLabel(cal.label || '') }, [cal.label])
 
   useEffect(() => {
     if (!selectedCountry) { setRegions([]); return }
-    fetchRegionOptions(selectedCountry).then(setRegions)
-  }, [selectedCountry])
+    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
+    load(selectedCountry).then(setRegions)
+  }, [calendarType, selectedCountry])
 
   const PRESET_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af', '#6366f1', '#ef4444', '#22c55e', '#3b82f6']
   const [showColorPicker, setShowColorPicker] = useState(false)
@@ -349,27 +406,31 @@ function CalendarRow({ cal, countries, onUpdate, onDelete }: {
 }
 
 // ── Add-new-calendar form ─────────────────────────────────────────────────────
-function AddCalendarForm({ countries, onAdd, onCancel }: {
+function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColor = '#fecaca' }: {
   countries: { value: string; label: string }[]
   language: string
+  calendarType: 'public_holiday' | 'school_holiday'
   onAdd: (data: { region: string; color: string; label: string | null }) => void
   onCancel: () => void
+  defaultColor?: string
 }) {
   const { t } = useTranslation()
   const [region, setRegion] = useState('')
-  const [color, setColor] = useState('#fecaca')
+  const [color, setColor] = useState(defaultColor)
   const [label, setLabel] = useState('')
   const [regions, setRegions] = useState<{ value: string; label: string }[]>([])
   const [loadingRegions, setLoadingRegions] = useState(false)
 
-  const selectedCountry = region.split('-')[0] || ''
-  const selectedRegion = region.includes('-') ? region : ''
+  const [baseRegion] = region.split('|')
+  const selectedCountry = baseRegion.split('-')[0] || ''
+  const selectedRegion = region.includes('|group:') || baseRegion.includes('-') ? region : ''
 
   useEffect(() => {
     if (!selectedCountry) { setRegions([]); return }
     setLoadingRegions(true)
-    fetchRegionOptions(selectedCountry).then(list => { setRegions(list) }).finally(() => setLoadingRegions(false))
-  }, [selectedCountry])
+    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
+    load(selectedCountry).then(list => { setRegions(list) }).finally(() => setLoadingRegions(false))
+  }, [calendarType, selectedCountry])
 
   const canAdd = selectedCountry && (regions.length === 0 || selectedRegion !== '')
 

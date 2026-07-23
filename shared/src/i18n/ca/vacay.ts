@@ -46,7 +46,9 @@ const vacay: TranslationStrings = {
   'vacay.sat': 'Ds',
   'vacay.sun': 'Dg',
   'vacay.publicHolidays': 'Festius',
-  'vacay.publicHolidaysHint': 'Marca festius al calendari',
+  'vacay.publicHolidaysHint': 'Mark public holidays in the calendar',
+    'vacay.schoolHolidays': 'School Holidays',
+  'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': 'Selecciona un país',
   'vacay.selectRegion': 'Selecciona una regió (opcional)',
   'vacay.companyHolidays': "Festius de l'empresa",
@@ -107,6 +109,7 @@ const vacay: TranslationStrings = {
   'vacay.addCalendar': 'Afegeix un calendari',
   'vacay.calendarColor': 'Color del calendari',
   'vacay.calendarLabel': 'Etiqueta',
-  'vacay.noCalendars': 'Sense calendaris',
+      'vacay.noCalendars': 'No holiday calendars added yet',
+'vacay.noSchoolCalendars': 'No school holiday calendars added yet',
 };
 export default vacay;

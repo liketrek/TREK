@@ -10,6 +10,7 @@ export interface VacayPlan {
   block_weekends: number;
   holidays_enabled: number;
   holidays_region: string | null;
+  school_holidays_enabled: number;
   company_holidays_enabled: number;
   carry_over_enabled: number;
 }
@@ -44,9 +45,16 @@ export interface Holiday {
   counties?: string[] | null;
 }
 
+export interface SchoolHoliday {
+  startDate?: string;
+  endDate?: string;
+  name?: Array<{ language?: string; text?: string }> | string;
+}
+
 export interface VacayHolidayCalendar {
   id: number;
   plan_id: number;
+  type: 'public_holiday' | 'school_holiday';
   region: string;
   label: string | null;
   color: string;
@@ -196,7 +204,7 @@ export function notifyShareViewers(ownerIds: number[], excludeSid?: string): voi
 export async function applyHolidayCalendars(planId: number): Promise<void> {
   const plan = db.prepare('SELECT holidays_enabled FROM vacay_plans WHERE id = ?').get(planId) as { holidays_enabled: number } | undefined;
   if (!plan?.holidays_enabled) return;
-  const calendars = db.prepare('SELECT * FROM vacay_holiday_calendars WHERE plan_id = ? ORDER BY sort_order, id').all(planId) as VacayHolidayCalendar[];
+  const calendars = db.prepare("SELECT * FROM vacay_holiday_calendars WHERE plan_id = ? AND type = 'public_holiday' ORDER BY sort_order, id").all(planId) as VacayHolidayCalendar[];
   if (calendars.length === 0) return;
   const years = db.prepare('SELECT year FROM vacay_years WHERE plan_id = ?').all(planId) as { year: number }[];
   for (const cal of calendars) {
@@ -242,6 +250,7 @@ export interface UpdatePlanBody {
   block_weekends?: boolean;
   holidays_enabled?: boolean;
   holidays_region?: string;
+  school_holidays_enabled?: boolean;
   company_holidays_enabled?: boolean;
   carry_over_enabled?: boolean;
   weekend_days?: string;
@@ -249,13 +258,14 @@ export interface UpdatePlanBody {
 }
 
 export async function updatePlan(planId: number, body: UpdatePlanBody, socketId: string | undefined) {
-  const { block_weekends, holidays_enabled, holidays_region, company_holidays_enabled, carry_over_enabled, weekend_days, week_start } = body;
+  const { block_weekends, holidays_enabled, holidays_region, school_holidays_enabled, company_holidays_enabled, carry_over_enabled, weekend_days, week_start } = body;
 
   const updates: string[] = [];
   const params: (string | number)[] = [];
   if (block_weekends !== undefined) { updates.push('block_weekends = ?'); params.push(block_weekends ? 1 : 0); }
   if (holidays_enabled !== undefined) { updates.push('holidays_enabled = ?'); params.push(holidays_enabled ? 1 : 0); }
   if (holidays_region !== undefined) { updates.push('holidays_region = ?'); params.push(holidays_region); }
+  if (school_holidays_enabled !== undefined) { updates.push('school_holidays_enabled = ?'); params.push(school_holidays_enabled ? 1 : 0); }
   if (company_holidays_enabled !== undefined) { updates.push('company_holidays_enabled = ?'); params.push(company_holidays_enabled ? 1 : 0); }
   if (carry_over_enabled !== undefined) { updates.push('carry_over_enabled = ?'); params.push(carry_over_enabled ? 1 : 0); }
   if (weekend_days !== undefined) { updates.push('weekend_days = ?'); params.push(String(weekend_days)); }
@@ -309,6 +319,7 @@ export async function updatePlan(planId: number, body: UpdatePlanBody, socketId:
       ...updated,
       block_weekends: !!updated.block_weekends,
       holidays_enabled: !!updated.holidays_enabled,
+      school_holidays_enabled: !!updated.school_holidays_enabled,
       company_holidays_enabled: !!updated.company_holidays_enabled,
       carry_over_enabled: !!updated.carry_over_enabled,
       holiday_calendars: updatedCalendars,
@@ -320,10 +331,10 @@ export async function updatePlan(planId: number, body: UpdatePlanBody, socketId:
 // Holiday calendars CRUD
 // ---------------------------------------------------------------------------
 
-export function addHolidayCalendar(planId: number, region: string, label: string | null, color: string | undefined, sortOrder: number | undefined, socketId: string | undefined) {
+export function addHolidayCalendar(planId: number, region: string, label: string | null, color: string | undefined, sortOrder: number | undefined, socketId: string | undefined, type: 'public_holiday' | 'school_holiday' = 'public_holiday') {
   const result = db.prepare(
-    'INSERT INTO vacay_holiday_calendars (plan_id, region, label, color, sort_order) VALUES (?, ?, ?, ?, ?)'
-  ).run(planId, region, label || null, color || '#fecaca', sortOrder ?? 0);
+    'INSERT INTO vacay_holiday_calendars (plan_id, type, region, label, color, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(planId, type, region, label || null, color || (type === 'school_holiday' ? '#a5f3fc' : '#fecaca'), sortOrder ?? 0);
   const cal = db.prepare('SELECT * FROM vacay_holiday_calendars WHERE id = ?').get(result.lastInsertRowid) as VacayHolidayCalendar;
   notifyPlanUsers(planId, socketId, 'vacay:settings');
   return cal;
@@ -332,15 +343,16 @@ export function addHolidayCalendar(planId: number, region: string, label: string
 export function updateHolidayCalendar(
   calId: number,
   planId: number,
-  body: { region?: string; label?: string | null; color?: string; sort_order?: number },
+  body: { region?: string; label?: string | null; color?: string; sort_order?: number; type?: 'public_holiday' | 'school_holiday' },
   socketId: string | undefined,
 ): VacayHolidayCalendar | null {
   const cal = db.prepare('SELECT * FROM vacay_holiday_calendars WHERE id = ? AND plan_id = ?').get(calId, planId) as VacayHolidayCalendar | undefined;
   if (!cal) return null;
-  const { region, label, color, sort_order } = body;
+  const { region, label, color, sort_order, type } = body;
   const updates: string[] = [];
   const params: (string | number | null)[] = [];
   if (region !== undefined) { updates.push('region = ?'); params.push(region); }
+  if (type !== undefined) { updates.push('type = ?'); params.push(type); }
   if (label !== undefined) { updates.push('label = ?'); params.push(label); }
   if (color !== undefined) { updates.push('color = ?'); params.push(color); }
   if (sort_order !== undefined) { updates.push('sort_order = ?'); params.push(sort_order); }
@@ -904,6 +916,7 @@ export function getPlanData(userId: number) {
       ...plan,
       block_weekends: !!plan.block_weekends,
       holidays_enabled: !!plan.holidays_enabled,
+      school_holidays_enabled: !!plan.school_holidays_enabled,
       company_holidays_enabled: !!plan.company_holidays_enabled,
       carry_over_enabled: !!plan.carry_over_enabled,
       holiday_calendars: holidayCalendars,
@@ -945,5 +958,55 @@ export async function getHolidays(year: string, country: string): Promise<{ data
     return { data };
   } catch {
     return { error: 'Failed to fetch holidays' };
+  }
+}
+
+export async function getSchoolHolidayRegions(country: string, language = 'EN'): Promise<{ data?: unknown; error?: string }> {
+  const normalizedLanguage = String(language || 'EN').slice(0, 2).toUpperCase();
+  const cacheKey = `school-regions-${country}-${normalizedLanguage}`;
+  const cached = holidayCache.get(cacheKey);
+  if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
+  try {
+    const [groupsResp, subdivisionsResp] = await Promise.all([
+      fetch(`https://openholidaysapi.org/Groups?countryIsoCode=${country}&languageIsoCode=${normalizedLanguage}`, { headers: { accept: 'text/json' } }),
+      fetch(`https://openholidaysapi.org/Subdivisions?countryIsoCode=${country}&languageIsoCode=${normalizedLanguage}`, { headers: { accept: 'text/json' } }),
+    ]);
+    if (!groupsResp.ok || !subdivisionsResp.ok) return { error: 'Failed to fetch school holiday regions' };
+    const data = {
+      groups: await groupsResp.json(),
+      subdivisions: await subdivisionsResp.json(),
+    };
+    holidayCache.set(cacheKey, { data, time: Date.now() });
+    return { data };
+  } catch {
+    return { error: 'Failed to fetch school holiday regions' };
+  }
+}
+
+export async function getSchoolHolidays(year: string, country: string, subdivision?: string | null, language = 'EN', group?: string | null): Promise<{ data?: unknown; error?: string }> {
+  const normalizedLanguage = String(language || 'EN').slice(0, 2).toUpperCase();
+  const normalizedSubdivision = subdivision || '';
+  const normalizedGroup = group || '';
+  const cacheKey = `school-${year}-${country}-${normalizedSubdivision || 'all'}-${normalizedGroup || 'all'}-${normalizedLanguage}`;
+  const cached = holidayCache.get(cacheKey);
+  if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
+  try {
+    const params = new URLSearchParams({
+      countryIsoCode: country,
+      languageIsoCode: normalizedLanguage,
+      validFrom: `${year}-01-01`,
+      validTo: `${year}-12-31`,
+    });
+    if (normalizedSubdivision) params.set('subdivisionCode', normalizedSubdivision);
+    if (normalizedGroup) params.set('groupCode', normalizedGroup);
+    const resp = await fetch(`https://openholidaysapi.org/SchoolHolidays?${params.toString()}`, {
+      headers: { accept: 'text/json' },
+    });
+    if (!resp.ok) return { error: 'Failed to fetch school holidays' };
+    const data = await resp.json();
+    holidayCache.set(cacheKey, { data, time: Date.now() });
+    return { data };
+  } catch {
+    return { error: 'Failed to fetch school holidays' };
   }
 }

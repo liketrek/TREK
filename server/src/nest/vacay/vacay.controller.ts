@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { vacayShareUpdateRequestSchema, type VacayShareUpdateRequest } from '@trek/shared';
@@ -47,14 +48,14 @@ export class VacayController {
   @HttpCode(200)
   addHolidayCalendar(
     @CurrentUser() user: User,
-    @Body() body: { region?: string; label?: string | null; color?: string; sort_order?: number },
+    @Body() body: { region?: string; label?: string | null; color?: string; sort_order?: number; type?: 'public_holiday' | 'school_holiday' },
     @Headers('x-socket-id') socketId?: string,
   ) {
     if (!body.region) {
       throw new HttpException({ error: 'region required' }, 400);
     }
     const planId = this.vacay.getActivePlanId(user.id);
-    const calendar = this.vacay.addHolidayCalendar(planId, body.region, body.label ?? null, body.color, body.sort_order, socketId);
+    const calendar = this.vacay.addHolidayCalendar(planId, body.region, body.label ?? null, body.color, body.sort_order, socketId, body.type);
     return { calendar };
   }
 
@@ -302,6 +303,42 @@ export class VacayController {
   @Get('holidays/:year/:country')
   async holidays(@Param('year') year: string, @Param('country') country: string) {
     const result = await this.vacay.getHolidays(year, country);
+    if (result.error) {
+      throw new HttpException({ error: result.error }, 502);
+    }
+    return result.data;
+  }
+
+  @Get('school-holidays/regions/:country')
+  async schoolHolidayRegions(@Param('country') country: string) {
+    const result = await this.vacay.getSchoolHolidayRegions(country, country.toUpperCase() === 'DE' ? 'DE' : 'EN');
+    if (result.error) {
+      throw new HttpException({ error: result.error }, 502);
+    }
+    return result.data;
+  }
+
+  @Get('school-holidays/:year/:country')
+  async schoolHolidaysForCountry(
+    @Param('year') year: string,
+    @Param('country') country: string,
+    @Query('group') group?: string,
+  ) {
+    return this.schoolHolidays(year, country, undefined, group);
+  }
+
+  @Get('school-holidays/:year/:country/:subdivision')
+  async schoolHolidaysForSubdivision(
+    @Param('year') year: string,
+    @Param('country') country: string,
+    @Param('subdivision') subdivision: string,
+    @Query('group') group?: string,
+  ) {
+    return this.schoolHolidays(year, country, subdivision, group);
+  }
+
+  private async schoolHolidays(year: string, country: string, subdivision?: string, group?: string) {
+    const result = await this.vacay.getSchoolHolidays(year, country, subdivision, country.toUpperCase() === 'DE' ? 'DE' : 'EN', group);
     if (result.error) {
       throw new HttpException({ error: result.error }, 502);
     }

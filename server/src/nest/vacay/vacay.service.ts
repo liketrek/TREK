@@ -26,8 +26,8 @@ export class VacayService {
     return svc.updatePlan(planId, body, socketId);
   }
 
-  addHolidayCalendar(planId: number, region: string, label: string | null, color: string | undefined, sortOrder: number | undefined, socketId: string | undefined) {
-    return svc.addHolidayCalendar(planId, region, label, color, sortOrder, socketId);
+  addHolidayCalendar(planId: number, region: string, label: string | null, color: string | undefined, sortOrder: number | undefined, socketId: string | undefined, type?: 'public_holiday' | 'school_holiday') {
+    return svc.addHolidayCalendar(planId, region, label, color, sortOrder, socketId, type);
   }
 
   updateHolidayCalendar(id: number, planId: number, body: Parameters<typeof svc.updateHolidayCalendar>[2], socketId: string | undefined) {
@@ -106,6 +106,10 @@ export class VacayService {
     return svc.getCountries();
   }
 
+  getSchoolHolidayRegions(country: string, language?: string) {
+    return svc.getSchoolHolidayRegions(country, language);
+  }
+
   getHolidays(year: string, country: string) {
     return svc.getHolidays(year, country);
   }
@@ -132,5 +136,9 @@ export class VacayService {
 
   getSharedCalendars(viewerId: number, year: string) {
     return svc.getSharedCalendars(viewerId, year);
+  }
+
+  getSchoolHolidays(year: string, country: string, subdivision?: string | null, language?: string, group?: string | null) {
+    return svc.getSchoolHolidays(year, country, subdivision, language, group);
   }
 }

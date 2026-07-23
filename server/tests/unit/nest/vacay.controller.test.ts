@@ -46,7 +46,7 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
       const addHolidayCalendar = vi.fn().mockReturnValue({ id: 1, region: 'DE-BY' });
       const res = makeController({ ...planBase, addHolidayCalendar }).addHolidayCalendar(user, { region: 'DE-BY', label: 'Bayern' }, 'sock');
       expect(res).toEqual({ calendar: { id: 1, region: 'DE-BY' } });
-      expect(addHolidayCalendar).toHaveBeenCalledWith(10, 'DE-BY', 'Bayern', undefined, undefined, 'sock');
+      expect(addHolidayCalendar).toHaveBeenCalledWith(10, 'DE-BY', 'Bayern', undefined, undefined, 'sock', undefined);
     });
 
     it('404 on update of a missing calendar', () => {

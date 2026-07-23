@@ -1,3 +1,4 @@
+import { schoolHolidayBand } from '../../../components/Vacay/holidayVisual'
 import { dayVisual, localDateStr, monthLead, type DayVisualContext } from './vacayDayModel'
 
 interface MVacayMonthProps {
@@ -61,6 +62,15 @@ export default function MVacayMonth({
                   mini ? 'right-[2px] bottom-[2px] h-[3px] w-[3px]' : 'right-[4px] bottom-[4px] h-[5px] w-[5px]'
                 }`}
                 style={{ background: '#f97316' }}
+              />
+            )}
+            {visual.school && visual.school.length > 0 && (
+              <span
+                aria-hidden
+                className={`absolute rounded-full ${
+                  mini ? 'inset-x-[2px] bottom-[1.5px] h-[1.5px]' : 'inset-x-[4px] bottom-[3px] h-[2.5px]'
+                }`}
+                style={{ background: schoolHolidayBand(visual.school) }}
               />
             )}
           </button>

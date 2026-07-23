@@ -46,7 +46,9 @@ const vacay: TranslationStrings = {
   'vacay.sat': 'Sáb',
   'vacay.sun': 'Dom',
   'vacay.publicHolidays': 'Festivos',
-  'vacay.publicHolidaysHint': 'Marcar festivos en el calendario',
+  'vacay.publicHolidaysHint': 'Mark public holidays in the calendar',
+    'vacay.schoolHolidays': 'School Holidays',
+  'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': 'Seleccionar país',
   'vacay.selectRegion': 'Seleccionar región (opcional)',
   'vacay.companyHolidays': 'Festivos de empresa',
@@ -107,6 +109,7 @@ const vacay: TranslationStrings = {
   'vacay.addCalendar': 'Añadir calendario',
   'vacay.calendarColor': 'Color del calendario',
   'vacay.calendarLabel': 'Etiqueta',
-  'vacay.noCalendars': 'Sin calendarios',
+      'vacay.noCalendars': 'No holiday calendars added yet',
+'vacay.noSchoolCalendars': 'No school holiday calendars added yet',
 };
 export default vacay;

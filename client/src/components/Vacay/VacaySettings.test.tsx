@@ -7,7 +7,8 @@ import { server } from '../../../tests/helpers/msw/server'
 import { http, HttpResponse } from 'msw'
 import { useVacayStore } from '../../store/vacayStore'
 import VacaySettings from './VacaySettings'
-import { fetchRegionOptions } from './holidayRegions'
+import { fetchRegionOptions, fetchSchoolHolidayRegionOptions } from './holidayRegions'
+import { SCHOOL_HOLIDAY_COUNTRY_CONFIG } from '../../vacay/schoolHolidayCountries'
 
 const basePlan = {
   id: 1,
@@ -443,6 +444,53 @@ describe('VacaySettings', () => {
     )
 
     expect(await fetchRegionOptions('JP')).toEqual([])
+  })
+
+  it('FE-COMP-VACAYSETTINGS-021: school holiday whitelist contains only approved green/yellow countries', () => {
+    expect(Object.values(SCHOOL_HOLIDAY_COUNTRY_CONFIG).every(config => ['green', 'yellow'].includes(config.status))).toBe(true)
+    expect(SCHOOL_HOLIDAY_COUNTRY_CONFIG.SE).toBeUndefined()
+  })
+
+  it('FE-COMP-VACAYSETTINGS-022: German school holidays use subdivisions even when OpenHolidays exposes groups', async () => {
+    server.use(
+      http.get('/api/addons/vacay/school-holidays/regions/:country', () =>
+        HttpResponse.json({
+          groups: [
+            { code: 'DE-MV-ABS', name: [{ language: 'EN', text: 'General Schools' }] },
+          ],
+          subdivisions: [
+            { code: 'DE-BY', name: [{ language: 'EN', text: 'Bavaria' }] },
+            { code: 'DE-NW', name: [{ language: 'EN', text: 'North Rhine-Westphalia' }] },
+          ],
+        })
+      ),
+    )
+
+    expect(await fetchSchoolHolidayRegionOptions('DE')).toEqual([
+      { value: 'DE-BY', label: 'Bavaria' },
+      { value: 'DE-NW', label: 'North Rhine-Westphalia' },
+    ])
+  })
+
+  it('FE-COMP-VACAYSETTINGS-023: Dutch school holidays use OpenHolidays groups', async () => {
+    server.use(
+      http.get('/api/addons/vacay/school-holidays/regions/:country', () =>
+        HttpResponse.json({
+          groups: [
+            { code: 'NL-NO', name: [{ language: 'EN', text: 'North Region' }] },
+            { code: 'NL-MI', name: [{ language: 'EN', text: 'Central Region' }] },
+          ],
+          subdivisions: [
+            { code: 'NL-DR', name: [{ language: 'EN', text: 'Drenthe' }] },
+          ],
+        })
+      ),
+    )
+
+    expect(await fetchSchoolHolidayRegionOptions('NL')).toEqual([
+      { value: 'NL|group:NL-MI', label: 'Central Region' },
+      { value: 'NL|group:NL-NO', label: 'North Region' },
+    ])
   })
 
   it('FE-COMP-VACAYSETTINGS-018: adding weekend day calls updatePlan with day added', async () => {

@@ -6,6 +6,7 @@ import type {
   VacayPlan, VacayUser, VacayEntry, VacayStat, HolidaysMap, HolidayInfo, VacayHolidayCalendar,
   VacayShareOutgoing, VacayShareIncoming, SharedVacayCalendar,
 } from '../types'
+import { isSchoolHolidayCountrySupported } from '../vacay/schoolHolidayCountries'
 import type {
   VacaySetColorRequest, VacayInviteRequest, VacayInviteActionRequest,
   VacayAddYearRequest, VacayToggleEntryRequest, VacayCompanyHolidayRequest,
@@ -54,6 +55,12 @@ interface VacayHolidayRaw {
   counties: string[] | null
 }
 
+interface VacaySchoolHolidayRaw {
+  startDate?: string
+  endDate?: string
+  name?: string | { language?: string; text?: string }[]
+}
+
 interface VacayApi {
   getPlan: () => Promise<VacayPlanResponse>
   updatePlan: (data: Partial<VacayPlan>) => Promise<{ plan: VacayPlan }>
@@ -74,8 +81,9 @@ interface VacayApi {
   updateStats: (year: number, days: number, targetUserId?: number) => Promise<unknown>
   getCountries: () => Promise<{ countries: string[] }>
   getHolidays: (year: number, country: string) => Promise<VacayHolidayRaw[]>
-  addHolidayCalendar: (data: { region: string; color?: string; label?: string | null }) => Promise<{ calendar: VacayHolidayCalendar }>
-  updateHolidayCalendar: (id: number, data: { region?: string; color?: string; label?: string | null }) => Promise<{ calendar: VacayHolidayCalendar }>
+  getSchoolHolidays: (year: number, country: string, subdivision?: string | null, group?: string | null) => Promise<VacaySchoolHolidayRaw[]>
+  addHolidayCalendar: (data: { region: string; color?: string; label?: string | null; type?: 'public_holiday' | 'school_holiday' }) => Promise<{ calendar: VacayHolidayCalendar }>
+  updateHolidayCalendar: (id: number, data: { region?: string; color?: string; label?: string | null; type?: 'public_holiday' | 'school_holiday' }) => Promise<{ calendar: VacayHolidayCalendar }>
   deleteHolidayCalendar: (id: number) => Promise<unknown>
   getShares: () => Promise<{ outgoing: VacayShareOutgoing[]; incoming: VacayShareIncoming[] }>
   share: (userId: number) => Promise<unknown>
@@ -105,6 +113,12 @@ const api: VacayApi = {
   updateStats: (year, days, targetUserId) => ax.put(`/addons/vacay/stats/${year}`, { vacation_days: days, target_user_id: targetUserId } satisfies VacayUpdateStatsRequest).then((r: AxiosResponse) => r.data),
   getCountries: () => ax.get('/addons/vacay/holidays/countries').then((r: AxiosResponse) => r.data),
   getHolidays: (year, country) => ax.get(`/addons/vacay/holidays/${year}/${country}`).then((r: AxiosResponse) => r.data),
+  getSchoolHolidays: (year, country, subdivision, group) => {
+    const params = new URLSearchParams()
+    if (group) params.set('group', group)
+    const qs = params.toString()
+    return ax.get(`/addons/vacay/school-holidays/${year}/${country}${subdivision ? `/${subdivision}` : ''}${qs ? `?${qs}` : ''}`).then((r: AxiosResponse) => r.data)
+  },
   addHolidayCalendar: (data) => ax.post('/addons/vacay/plan/holiday-calendars', data).then((r: AxiosResponse) => r.data),
   updateHolidayCalendar: (id, data) => ax.put(`/addons/vacay/plan/holiday-calendars/${id}`, data).then((r: AxiosResponse) => r.data),
   deleteHolidayCalendar: (id) => ax.delete(`/addons/vacay/plan/holiday-calendars/${id}`).then((r: AxiosResponse) => r.data),
@@ -114,6 +128,42 @@ const api: VacayApi = {
   updateShare: (shareId, hidden) => ax.put(`/addons/vacay/shares/${shareId}`, { hidden } satisfies VacayShareUpdateRequest).then((r: AxiosResponse) => r.data),
   shareAvailableUsers: () => ax.get('/addons/vacay/shares/available-users').then((r: AxiosResponse) => r.data),
   getSharedCalendars: (year) => ax.get(`/addons/vacay/shares/calendars/${year}`).then((r: AxiosResponse) => r.data),
+}
+
+function pushHolidayMarker(map: HolidaysMap, date: string, marker: HolidayInfo) {
+  const existing = map[date]
+  if (!existing) {
+    map[date] = [marker]
+    return
+  }
+  map[date] = Array.isArray(existing) ? [...existing, marker] : [existing, marker]
+}
+
+function parseCalendarRegion(region: string): { country: string; subdivision: string | null; group: string | null } {
+  const [base, meta] = region.split('|')
+  const group = meta?.startsWith('group:') ? meta.slice('group:'.length) : null
+  return {
+    country: base.split('-')[0],
+    subdivision: group ? null : base.includes('-') ? base : null,
+    group,
+  }
+}
+
+function schoolHolidayName(h: VacaySchoolHolidayRaw): string {
+  if (typeof h.name === 'string') return h.name
+  const names = Array.isArray(h.name) ? h.name : []
+  return names.find(n => n.language?.toUpperCase() === 'DE')?.text || names[0]?.text || 'School holidays'
+}
+
+function datesBetween(startStr: string, endStr: string): string[] {
+  const dates: string[] = []
+  const start = new Date(startStr + 'T00:00:00')
+  const end = new Date(endStr + 'T00:00:00')
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return dates
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+  }
+  return dates
 }
 
 interface VacayState {
@@ -154,8 +204,8 @@ interface VacayState {
   loadStats: (year?: number) => Promise<void>
   updateVacationDays: (year: number, days: number, targetUserId?: number) => Promise<void>
   loadHolidays: (year?: number) => Promise<void>
-  addHolidayCalendar: (data: { region: string; color?: string; label?: string | null }) => Promise<void>
-  updateHolidayCalendar: (id: number, data: { region?: string; color?: string; label?: string | null }) => Promise<void>
+  addHolidayCalendar: (data: { region: string; color?: string; label?: string | null; type?: 'public_holiday' | 'school_holiday' }) => Promise<void>
+  updateHolidayCalendar: (id: number, data: { region?: string; color?: string; label?: string | null; type?: 'public_holiday' | 'school_holiday' }) => Promise<void>
   deleteHolidayCalendar: (id: number) => Promise<void>
   loadShares: () => Promise<void>
   loadSharedCalendars: (year?: number) => Promise<void>
@@ -331,25 +381,38 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     const y = year || get().selectedYear
     const plan = get().plan
     const calendars = plan?.holiday_calendars ?? []
-    if (!plan?.holidays_enabled || calendars.length === 0) {
+    const enabledCalendars = calendars.filter(cal =>
+      (cal.type === 'school_holiday' && plan?.school_holidays_enabled) ||
+      ((cal.type ?? 'public_holiday') === 'public_holiday' && plan?.holidays_enabled)
+    )
+    if (enabledCalendars.length === 0) {
       set({ holidays: {} })
       return
     }
     const map: HolidaysMap = {}
-    for (const cal of calendars) {
-      const country = cal.region.split('-')[0]
-      const region = cal.region.includes('-') ? cal.region : null
+    for (const cal of enabledCalendars) {
+      const { country, subdivision, group } = parseCalendarRegion(cal.region)
       try {
-        const data = await api.getHolidays(y, country)
-        const hasRegions = data.some((h: VacayHolidayRaw) => h.counties && h.counties.length > 0)
-        if (hasRegions && !region) continue
-        data.forEach((h: VacayHolidayRaw) => {
-          if (h.global || !h.counties || (region && h.counties.includes(region))) {
-            if (!map[h.date]) {
-              map[h.date] = { name: h.name, localName: h.localName, color: cal.color, label: cal.label }
+        if ((cal.type ?? 'public_holiday') === 'school_holiday') {
+          if (!isSchoolHolidayCountrySupported(country)) continue
+          const data = await api.getSchoolHolidays(y, country, subdivision, group)
+          data.forEach((h: VacaySchoolHolidayRaw) => {
+            if (!h.startDate) return
+            const name = schoolHolidayName(h)
+            datesBetween(h.startDate, h.endDate || h.startDate).filter(date => date.startsWith(`${y}-`)).forEach(date => {
+              pushHolidayMarker(map, date, { name, localName: name, color: cal.color, label: cal.label, type: 'school_holiday' })
+            })
+          })
+        } else {
+          const data = await api.getHolidays(y, country)
+          const hasRegions = data.some((h: VacayHolidayRaw) => h.counties && h.counties.length > 0)
+          if (hasRegions && !subdivision) continue
+          data.forEach((h: VacayHolidayRaw) => {
+            if (h.global || !h.counties || (subdivision && h.counties.includes(subdivision))) {
+              pushHolidayMarker(map, h.date, { name: h.name, localName: h.localName, color: cal.color, label: cal.label, type: 'public_holiday' })
             }
-          }
-        })
+          })
+        }
       } catch { /* API error, skip */ }
     }
     set({ holidays: map })

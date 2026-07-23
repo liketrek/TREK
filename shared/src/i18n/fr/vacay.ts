@@ -47,7 +47,9 @@ const vacay: TranslationStrings = {
   'vacay.blockWeekends': 'Bloquer les week-ends',
   'vacay.blockWeekendsHint': 'Empêcher les entrées de vacances les samedis et dimanches',
   'vacay.publicHolidays': 'Jours fériés',
-  'vacay.publicHolidaysHint': 'Marquer les jours fériés dans le calendrier',
+  'vacay.publicHolidaysHint': 'Mark public holidays in the calendar',
+    'vacay.schoolHolidays': 'School Holidays',
+  'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': 'Sélectionner un pays',
   'vacay.selectRegion': 'Sélectionner une région (facultatif)',
   'vacay.companyHolidays': "Jours fériés d'entreprise",
@@ -108,6 +110,7 @@ const vacay: TranslationStrings = {
   'vacay.addCalendar': 'Ajouter un calendrier',
   'vacay.calendarColor': 'Couleur',
   'vacay.calendarLabel': 'Libellé',
-  'vacay.noCalendars': 'Aucun calendrier',
+      'vacay.noCalendars': 'No holiday calendars added yet',
+'vacay.noSchoolCalendars': 'No school holiday calendars added yet',
 };
 export default vacay;
