@@ -146,7 +146,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               type="button"
               onClick={() => shell.openSheet('import')}
               aria-label={t('mobileTrip.importPlaces')}
-              className="ml-auto flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted"
+              className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted"
             >
               <MoreHorizontal size={16} strokeWidth={2} />
             </button>
@@ -357,13 +357,14 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   )
 }
 
-/** All / Unplanned / Planned / Tracks pool chip. Counts are omitted on mobile to save row space. */
+/** All / Unplanned / Planned / Tracks pool chip. Counts are omitted on mobile to save row
+ *  space; chips flex to share the row's full width up to the import button on the right. */
 function FilterChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-10 flex-none items-center whitespace-nowrap rounded-full px-[15px] text-[0.75rem] font-semibold ${
+      className={`flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full px-[12px] text-[0.75rem] font-semibold ${
         active ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'
       }`}
     >
