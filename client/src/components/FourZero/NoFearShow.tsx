@@ -5,6 +5,7 @@ import { placesApi, tripsApi } from '../../api/client'
 import apiClient from '../../api/client'
 import { useTranslation } from '../../i18n'
 import type { Place, Trip } from '../../types'
+import { TextAssembly } from './noFearAssembly'
 import { NoFearAudio, type NoFearAct } from './noFearAudio'
 import { NoFearScene, type SceneState } from './noFearScene'
 import { ANTHEM_CASCADE, noFearCopy } from './noFearLines'
@@ -79,10 +80,15 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
   const sceneRef = useRef<NoFearScene | null>(null)
   const startRef = useRef<number>(performance.now())
   const statsRef = useRef<{ line: string } | null>(null)
+  const assemblyRef = useRef<TextAssembly | null>(null)
+  const anthemWordRef = useRef<HTMLHeadingElement>(null)
   const [cueIdx, setCueIdx] = useState(-1)
   const [flashIdx, setFlashIdx] = useState(-1)
   const [muted, setMuted] = useState(false)
   const [anthem, setAnthem] = useState(false)
+  // A fear-act line that was just replaced — rendered once more while its
+  // letters decay away (the words of fear literally fall apart).
+  const [ghost, setGhost] = useState<{ text: string; id: number } | null>(null)
   const reducedMotion = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, [])
 
   const skipToEnd = useCallback(() => {
@@ -183,11 +189,25 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
       let idx = -1
       for (let i = 0; i < CUES.length; i++) if (t >= CUES[i].at) idx = i
       if (idx !== lastCue && idx >= 0) {
+        // A replaced fear-act line decays letter by letter instead of vanishing.
+        if (lastCue >= 0 && lastCue <= 3) {
+          const prevKey = CUES[lastCue].line
+          if (prevKey) {
+            setGhost({ text: copy.lines[prevKey], id: lastCue })
+            window.setTimeout(() => setGhost(g => (g?.id === lastCue ? null : g)), 1400)
+          }
+        }
         lastCue = idx
         const cue = CUES[idx]
         if (cue.act) audioRef.current?.setAct(cue.act)
         if (cue.impact) audioRef.current?.impact(cue.impact)
         if (cue.swell) audioRef.current?.swell()
+        // The climax hit shakes the whole frame with the boom.
+        if ((cue.impact ?? 0) >= 0.8 && overlayRef.current) {
+          const el = overlayRef.current
+          el.classList.add('fz-shake')
+          window.setTimeout(() => el.classList.remove('fz-shake'), 700)
+        }
         setCueIdx(idx)
         if (t >= ANTHEM_AT) setAnthem(true)
       }
@@ -200,6 +220,29 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
         setFlashIdx(flash)
       }
       if (ctx) sceneRef.current?.draw(ctx, sceneAt(t), t)
+      // The finale condenses out of light: once the anthem title is measurable,
+      // sample its letterforms and gather rising particles into them; the real
+      // DOM text takes over as they settle.
+      if (ctx && cv && t >= ANTHEM_AT) {
+        const word = anthemWordRef.current
+        if (!assemblyRef.current && word) {
+          const assembly = new TextAssembly()
+          const style = window.getComputedStyle(word)
+          const rect = word.getBoundingClientRect()
+          assembly.init(
+            word.textContent ?? '',
+            `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
+            { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+            cv.clientWidth,
+            cv.clientHeight,
+          )
+          assemblyRef.current = assembly
+        }
+        const progress = ramp(t, ANTHEM_AT + 0.4, ANTHEM_AT + 3.6)
+        const fade = ramp(t, ANTHEM_AT + 3.4, ANTHEM_AT + 4.8)
+        assemblyRef.current?.draw(ctx, progress, fade, t)
+        word?.classList.toggle('fz-word-hidden', fade < 0.15)
+      }
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
@@ -241,20 +284,54 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      {/* The lines. */}
-      {!anthem && lineText && flashIdx < 0 && (
-        <div className="fz-line-wrap" aria-live="polite">
-          <p key={lineText} className={`fz-line ${hard ? 'fz-line-hard' : ''} ${cue?.soft ? 'fz-line-soft' : ''}`}>{lineText}</p>
+      {/* A replaced fear line decays away letter by letter. */}
+      {!anthem && ghost && (
+        <div className="fz-line-wrap" aria-hidden>
+          <p key={`ghost-${ghost.id}`} className="fz-line fz-line-ghost">
+            {[...ghost.text].map((ch, i) => (
+              <span
+                key={i}
+                className="fz-char-decay"
+                style={{
+                  '--dx': `${(Math.sin(i * 37.7) * 0.5) * 52}px`,
+                  '--dy': `${-(12 + Math.abs(Math.sin(i * 17.3)) * 34)}px`,
+                  '--rot': `${Math.sin(i * 53.1) * 14}deg`,
+                  animationDelay: `${Math.abs(Math.sin(i * 91.7)) * 0.3}s`,
+                } as React.CSSProperties}
+              >
+                {ch === ' ' ? ' ' : ch}
+              </span>
+            ))}
+          </p>
         </div>
       )}
 
-      {/* The ending: the big words + the cascade through every TREK language — and it stays. */}
+      {/* The lines. Hope-act lines reveal sentence by sentence, like speech. */}
+      {!anthem && lineText && flashIdx < 0 && (
+        <div className="fz-line-wrap" aria-live="polite">
+          <p key={lineText} className={`fz-line ${hard ? 'fz-line-hard' : ''} ${cue?.soft ? 'fz-line-soft' : ''}`}>
+            {cueIdx >= 6 && cueIdx <= 10 && !hard
+              ? lineText.split(/(?<=[.!?…])\s+/u).map((seg, i) => (
+                  <span key={i} className="fz-seg" style={{ animationDelay: `${i * 0.95}s` }}>{seg}{' '}</span>
+                ))
+              : lineText}
+          </p>
+        </div>
+      )}
+
+      {/* The ending: the big words condense out of rising light, then the
+          cascade through every TREK language joins — and it all stays. */}
       {anthem && (
         <div className="fz-anthem">
-          <h1 className="fz-anthem-word">{copy.anthem}</h1>
+          <h1
+            ref={anthemWordRef}
+            className={`fz-anthem-word ${reducedMotion ? '' : 'fz-word-assembled fz-word-hidden'}`}
+          >
+            {copy.anthem}
+          </h1>
           <div className="fz-cascade">
             {ANTHEM_CASCADE.filter(c => c.lang !== language).map((c, i) => (
-              <span key={c.lang} className="fz-cascade-item" style={{ animationDelay: `${0.6 + i * 0.42}s` }}>
+              <span key={c.lang} className="fz-cascade-item" style={{ animationDelay: `${(reducedMotion ? 0.2 : 4.6) + i * 0.42}s` }}>
                 {c.text}
               </span>
             ))}
