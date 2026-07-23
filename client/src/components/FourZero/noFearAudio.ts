@@ -1,8 +1,10 @@
 // Procedural soundtrack for the 4.0.0 "KEINE ANGST" show. Everything is
-// synthesized with the Web Audio API at runtime — heartbeat with a real click
-// transient, wind-noise textures, a trailer-style noise riser, cue-driven
-// sub-bass impacts and a moving chord progression with glided voice-leading —
-// so the show ships zero audio assets and touches no copyrighted material.
+// synthesized with the Web Audio API at runtime — no audio assets, no
+// copyrighted material. The cinema comes from three things: a convolution
+// reverb fed by a procedurally generated impulse response (dry synthesis
+// always sounds like a buzzer; a hall makes it a room), an organic low bed of
+// sub sine + filtered rumble instead of raw sawtooths, and cue-driven sub
+// impacts whose tails bloom in that same hall.
 
 export type NoFearAct = 'fear' | 'dread' | 'silence' | 'hope' | 'anthem' | 'end'
 
@@ -24,6 +26,7 @@ const BASS_ROOTS = [36.71, 41.2, 46.25, 41.2] // D1 E1 F#1 E1
 export class NoFearAudio {
   private ctx: AudioContext | null = null
   private master: GainNode | null = null
+  private reverbIn: GainNode | null = null
   private noiseBuf: AudioBuffer | null = null
   private muted = false
   private act: NoFearAct | null = null
@@ -46,21 +49,58 @@ export class NoFearAudio {
     // A lazily-loaded chunk can construct us a beat after the click gesture —
     // resume() re-arms the context if the browser started it suspended.
     if (this.ctx.state === 'suspended') void this.ctx.resume().catch(() => {})
-    this.master = this.ctx.createGain()
-    this.master.gain.value = this.muted ? 0 : 0.9
     const limiter = this.ctx.createDynamicsCompressor()
     limiter.threshold.value = -12
     limiter.knee.value = 22
     limiter.ratio.value = 12
-    this.master.connect(limiter)
     limiter.connect(this.ctx.destination)
-    // 2s of looped white noise feeds every texture (wind, risers, ticks).
+    this.master = this.ctx.createGain()
+    this.master.gain.value = this.muted ? 0 : 0.9
+    this.master.connect(limiter)
+    // The hall: a convolver fed by 3.4s of exponentially decaying stereo noise.
+    // Everything sends into it in different amounts; the wet return rides the
+    // same master gain so mute/fade cover it too.
+    const convolver = this.ctx.createConvolver()
+    convolver.buffer = this.makeImpulseResponse(3.4, 2.7)
+    const wet = this.ctx.createGain()
+    wet.gain.value = 0.5
+    this.reverbIn = this.ctx.createGain()
+    this.reverbIn.connect(convolver)
+    convolver.connect(wet)
+    wet.connect(this.master)
+    // 2s of looped white noise feeds every texture (wind, rumble, risers, ticks).
     const len = this.ctx.sampleRate * 2
     this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate)
     const data = this.noiseBuf.getChannelData(0)
     for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1
     this.nextBeat = this.ctx.currentTime + 0.2
     this.heartbeatTimer = window.setInterval(() => this.scheduleBeats(), 100)
+  }
+
+  private makeImpulseResponse(seconds: number, decay: number): AudioBuffer {
+    const ctx = this.ctx as AudioContext
+    const rate = ctx.sampleRate
+    const len = Math.floor(rate * seconds)
+    const ir = ctx.createBuffer(2, len, rate)
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch)
+      for (let i = 0; i < len; i++) {
+        d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** decay
+      }
+    }
+    return ir
+  }
+
+  /** Routes a node to the dry bus plus a measured send into the hall. */
+  private out(node: AudioNode, send: number): void {
+    if (!this.master || !this.reverbIn) return
+    node.connect(this.master)
+    if (send > 0) {
+      const g = (this.ctx as AudioContext).createGain()
+      g.gain.value = send
+      node.connect(g)
+      g.connect(this.reverbIn)
+    }
   }
 
   setMuted(muted: boolean): void {
@@ -85,7 +125,7 @@ export class NoFearAudio {
     else void this.ctx.resume().catch(() => {})
   }
 
-  /** A cue-driven cinema hit: sub boom + filtered noise burst. strength 0..1. */
+  /** A cue-driven cinema hit: sub boom + filtered noise burst, tail blooming in the hall. */
   impact(strength = 1): void {
     if (!this.ctx || !this.master) return
     const t = this.ctx.currentTime + 0.02
@@ -97,7 +137,8 @@ export class NoFearAudio {
     g.gain.setValueAtTime(0.0001, t)
     g.gain.exponentialRampToValueAtTime(0.9 * strength, t + 0.018)
     g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6)
-    o.connect(g); g.connect(this.master)
+    o.connect(g)
+    this.out(g, 0.5)
     o.start(t); o.stop(t + 1.8)
     if (this.noiseBuf) {
       const n = this.ctx.createBufferSource()
@@ -108,9 +149,10 @@ export class NoFearAudio {
       lp.frequency.exponentialRampToValueAtTime(120, t + 0.5)
       const ng = this.ctx.createGain()
       ng.gain.setValueAtTime(0.0001, t)
-      ng.gain.exponentialRampToValueAtTime(0.32 * strength, t + 0.012)
+      ng.gain.exponentialRampToValueAtTime(0.3 * strength, t + 0.012)
       ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.6)
-      n.connect(lp); lp.connect(ng); ng.connect(this.master)
+      n.connect(lp); lp.connect(ng)
+      this.out(ng, 0.6)
       n.start(t); n.stop(t + 0.8)
     }
   }
@@ -125,14 +167,14 @@ export class NoFearAudio {
       case 'fear':
         this.bpm = 74
         this.beatGain = 0.55
-        this.drone(55, 82.4, 0.15, 230, 3)
+        this.darkBed(0.16, false)
         this.wind(0.05, 420)
         break
       case 'dread':
         this.bpm = 116
         this.beatGain = 0.7
-        this.drone(55, 77.8, 0.19, 300, 1) // flattened fifth — it beats uneasily
-        this.wind(0.085, 700)
+        this.darkBed(0.21, true) // + a semitone rub that grinds
+        this.wind(0.09, 700)
         this.riser(t)
         break
       case 'silence':
@@ -163,6 +205,7 @@ export class NoFearAudio {
     const ctx = this.ctx
     this.ctx = null
     this.master = null
+    this.reverbIn = null
     if (ctx) window.setTimeout(() => { void ctx.close().catch(() => {}) }, 300)
   }
 
@@ -185,41 +228,70 @@ export class NoFearAudio {
     })
   }
 
-  /** Two slightly detuned low saws through a lowpass — the fear act's room tone. */
-  private drone(f1: number, f2: number, level: number, cutoff: number, attack: number): void {
-    if (!this.ctx || !this.master) return
+  /**
+   * The fear act's floor: a sine sub, a quiet detune-drifting fifth and a
+   * low rumble of filtered noise that breathes — a room, not a synthesizer.
+   * `grind` adds a close semitone against the sub that beats uneasily.
+   */
+  private darkBed(level: number, grind: boolean): void {
+    if (!this.ctx || !this.noiseBuf) return
     const t = this.ctx.currentTime
     const g = this.ctx.createGain()
     g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(level, t + attack)
-    const lp = this.ctx.createBiquadFilter()
-    lp.type = 'lowpass'
-    lp.frequency.value = cutoff
-    // A slow LFO breathes the filter so the drone never sits still.
-    const lfo = this.ctx.createOscillator()
-    lfo.frequency.value = 0.09
-    const lfoGain = this.ctx.createGain()
-    lfoGain.gain.value = cutoff * 0.35
-    lfo.connect(lfoGain); lfoGain.connect(lp.frequency)
-    lfo.start(t)
-    const oscs: (OscillatorNode | AudioBufferSourceNode)[] = [f1, f2].map(f => {
-      const o = this.ctx!.createOscillator()
-      o.type = 'sawtooth'
-      o.frequency.value = f
-      o.detune.value = Math.random() * 7 - 3.5
-      o.connect(lp)
-      o.start(t)
-      return o
-    })
-    oscs.push(lfo)
-    lp.connect(g)
-    g.connect(this.master)
+    g.gain.exponentialRampToValueAtTime(level, t + 3)
+    const sub = this.ctx.createOscillator()
+    sub.type = 'sine'
+    sub.frequency.value = 55
+    const subG = this.ctx.createGain()
+    subG.gain.value = 0.85
+    sub.connect(subG); subG.connect(g)
+    const fifth = this.ctx.createOscillator()
+    fifth.type = 'triangle'
+    fifth.frequency.value = 82.4
+    const fifthG = this.ctx.createGain()
+    fifthG.gain.value = 0.3
+    fifth.connect(fifthG); fifthG.connect(g)
+    // Slow detune drift keeps the interval from ever sitting still.
+    const drift = this.ctx.createOscillator()
+    drift.frequency.value = 0.07
+    const driftG = this.ctx.createGain()
+    driftG.gain.value = 6
+    drift.connect(driftG); driftG.connect(fifth.detune)
+    const oscs: (OscillatorNode | AudioBufferSourceNode)[] = [sub, fifth, drift]
+    if (grind) {
+      const rub = this.ctx.createOscillator()
+      rub.type = 'sine'
+      rub.frequency.value = 58.27 // a semitone against the sub — it grinds
+      const rubG = this.ctx.createGain()
+      rubG.gain.value = 0.4
+      rub.connect(rubG); rubG.connect(g)
+      rub.start(t)
+      oscs.push(rub)
+    }
+    // The rumble: looped noise through a low lowpass, its gain breathing slowly.
+    const rumble = this.ctx.createBufferSource()
+    rumble.buffer = this.noiseBuf
+    rumble.loop = true
+    const rlp = this.ctx.createBiquadFilter()
+    rlp.type = 'lowpass'
+    rlp.frequency.value = 120
+    const rg = this.ctx.createGain()
+    rg.gain.value = 0.5
+    const breathe = this.ctx.createOscillator()
+    breathe.frequency.value = 0.06
+    const breatheG = this.ctx.createGain()
+    breatheG.gain.value = 0.25
+    breathe.connect(breatheG); breatheG.connect(rg.gain)
+    rumble.connect(rlp); rlp.connect(rg); rg.connect(g)
+    sub.start(t); fifth.start(t); drift.start(t); rumble.start(t); breathe.start(t)
+    oscs.push(rumble, breathe)
+    this.out(g, 0.3)
     this.hold(g, oscs)
   }
 
   /** Bandpassed noise that slowly swells and recedes — wind through the scene. */
   private wind(level: number, freq: number): void {
-    if (!this.ctx || !this.master || !this.noiseBuf) return
+    if (!this.ctx || !this.noiseBuf) return
     const t = this.ctx.currentTime
     const src = this.ctx.createBufferSource()
     src.buffer = this.noiseBuf
@@ -237,14 +309,15 @@ export class NoFearAudio {
     lfoGain.gain.value = level * 0.55
     lfo.connect(lfoGain); lfoGain.connect(g.gain)
     lfo.start(t)
-    src.connect(bp); bp.connect(g); g.connect(this.master)
+    src.connect(bp); bp.connect(g)
+    this.out(g, 0.55)
     src.start(t)
     this.hold(g, [src, lfo])
   }
 
   /** Trailer riser: a saw sweep doubled by a noise sweep, 14s of climb. */
   private riser(t: number): void {
-    if (!this.ctx || !this.master) return
+    if (!this.ctx) return
     const o = this.ctx.createOscillator()
     o.type = 'sawtooth'
     o.frequency.setValueAtTime(180, t)
@@ -256,8 +329,9 @@ export class NoFearAudio {
     bp.Q.value = 8
     const g = this.ctx.createGain()
     g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(0.055, t + 7)
-    o.connect(bp); bp.connect(g); g.connect(this.master)
+    g.gain.exponentialRampToValueAtTime(0.05, t + 7)
+    o.connect(bp); bp.connect(g)
+    this.out(g, 0.35)
     o.start(t)
     const nodes: (OscillatorNode | AudioBufferSourceNode)[] = [o]
     if (this.noiseBuf) {
@@ -271,8 +345,9 @@ export class NoFearAudio {
       nbp.Q.value = 1.4
       const ng = this.ctx.createGain()
       ng.gain.setValueAtTime(0.0001, t)
-      ng.gain.exponentialRampToValueAtTime(0.09, t + 12)
-      n.connect(nbp); nbp.connect(ng); ng.connect(this.master)
+      ng.gain.exponentialRampToValueAtTime(0.08, t + 12)
+      n.connect(nbp); nbp.connect(ng)
+      this.out(ng, 0.35)
       n.start(t)
       nodes.push(n)
       this.hold(ng, [n])
@@ -284,7 +359,7 @@ export class NoFearAudio {
 
   /** Five gliding triangle voices + a sub root, stepping through D–A–f#m–E. */
   private startChords(cutoff: number, level: number, withSub: boolean): void {
-    if (!this.ctx || !this.master) return
+    if (!this.ctx) return
     const t = this.ctx.currentTime
     const lp = this.ctx.createBiquadFilter()
     lp.type = 'lowpass'
@@ -309,7 +384,7 @@ export class NoFearAudio {
       }
     }
     lp.connect(g)
-    g.connect(this.master)
+    this.out(g, 0.55) // the pad lives IN the hall — that's what makes it big
     this.hold(g, oscs)
     if (withSub) {
       const sub = this.ctx.createOscillator()
@@ -318,7 +393,8 @@ export class NoFearAudio {
       const sg = this.ctx.createGain()
       sg.gain.setValueAtTime(0.0001, t)
       sg.gain.exponentialRampToValueAtTime(0.16, t + 2.5)
-      sub.connect(sg); sg.connect(this.master)
+      sub.connect(sg)
+      this.out(sg, 0) // sub stays dry — low end in the hall turns to mud
       sub.start(t)
       this.bassOsc = sub
       this.hold(sg, [sub])
@@ -332,7 +408,6 @@ export class NoFearAudio {
     this.chordIdx = (this.chordIdx + 1) % PROGRESSION.length
     const chord = PROGRESSION[this.chordIdx]
     const t = this.ctx.currentTime
-    // Each pair of detuned oscillators shares a chord voice; glide legato.
     for (let i = 0; i < this.padVoices.length; i++) {
       const target = chord[Math.floor(i / 2) % chord.length]
       this.padVoices[i].frequency.setTargetAtTime(target, t, 0.55)
@@ -347,13 +422,21 @@ export class NoFearAudio {
     this.bassOsc = null
   }
 
-  /** Sparse high pings on the A-major pentatonic — tiny lights going on. */
+  /** Sparse pentatonic pings through a feedback echo, drowned in the hall. */
   private shimmer(t: number): void {
-    if (!this.ctx || !this.master) return
+    if (!this.ctx) return
     const notes = [880, 1108.7, 1318.5, 1479.98, 1760]
     const g = this.ctx.createGain()
-    g.gain.value = 0.055
-    g.connect(this.master)
+    g.gain.value = 0.045
+    // A 0.38s feedback delay turns each ping into a trailing echo.
+    const delay = this.ctx.createDelay(1)
+    delay.delayTime.value = 0.38
+    const fb = this.ctx.createGain()
+    fb.gain.value = 0.35
+    delay.connect(fb); fb.connect(delay)
+    g.connect(delay)
+    this.out(g, 0.8)
+    this.out(delay, 0.8)
     const oscs: OscillatorNode[] = []
     for (let i = 0; i < 14; i++) {
       const o = this.ctx.createOscillator()
@@ -387,7 +470,8 @@ export class NoFearAudio {
     }
   }
 
-  /** A heartbeat with body AND transient: low sine thump + tiny filtered click. */
+  /** A heartbeat with body AND transient: low sine thump + tiny filtered click.
+      Stays nearly dry — a heart is close, not in a hall. */
   private thump(at: number, level: number): void {
     if (!this.ctx || !this.master) return
     const o = this.ctx.createOscillator()
@@ -399,7 +483,7 @@ export class NoFearAudio {
     g.gain.exponentialRampToValueAtTime(level, at + 0.01)
     g.gain.exponentialRampToValueAtTime(0.0001, at + 0.24)
     o.connect(g)
-    g.connect(this.master)
+    this.out(g, 0.1)
     o.start(at)
     o.stop(at + 0.32)
     if (this.noiseBuf) {

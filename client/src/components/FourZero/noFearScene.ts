@@ -307,13 +307,19 @@ export class NoFearScene {
   }
 
   private strokeArc(c: CanvasRenderingContext2D, arc: Arc, upTo: number, alpha: number): void {
-    const steps = 26
-    const n = Math.max(2, Math.round(steps * upTo))
+    // The tip interpolates FRACTIONALLY along the curve — quantizing growth to
+    // whole segments made the heads visibly step forward instead of glide.
+    const steps = 48
+    const n = Math.floor(steps * upTo)
     c.beginPath()
     for (let i = 0; i <= n; i++) {
       const [ix, iy] = this.arcPoint(arc, (i / steps))
       if (i === 0) c.moveTo(ix, iy)
       else c.lineTo(ix, iy)
+    }
+    if (upTo < 1) {
+      const [tx, ty] = this.arcPoint(arc, upTo)
+      c.lineTo(tx, ty)
     }
     c.strokeStyle = `rgba(255, 176, 90, ${0.10 * alpha})`
     c.lineWidth = 4.2
@@ -324,7 +330,10 @@ export class NoFearScene {
   }
 
   private arcLocal(arc: Arc, web: number): number {
-    return Math.min(Math.max((web - arc.delay * 0.72) / 0.28, 0), 1)
+    // A tighter growth window + ease-out: each arc shoots off and settles,
+    // rather than crawling for a third of the act.
+    const q = Math.min(Math.max((web - arc.delay * 0.84) / 0.16, 0), 1)
+    return 1 - (1 - q) ** 3
   }
 
   draw(c: CanvasRenderingContext2D, s: SceneState, t: number): void {
