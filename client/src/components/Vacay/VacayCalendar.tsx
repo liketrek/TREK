@@ -105,6 +105,8 @@ export default function VacayCalendar() {
   const selectedUser = users.find(u => u.id === selectedUserId)
   const tipEntries = tip ? entryMap[tip.date] : undefined
   const tipShared = tip ? sharedMap[tip.date] : undefined
+  const tipHolidayRaw = tip ? holidays[tip.date] : undefined
+  const tipSchool = (Array.isArray(tipHolidayRaw) ? tipHolidayRaw : tipHolidayRaw ? [tipHolidayRaw] : []).filter(h => h.type === 'school_holiday')
   const tipDate = tip ? new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'long' }).format(new Date(tip.date + 'T00:00:00')) : ''
 
   return (
@@ -135,7 +137,7 @@ export default function VacayCalendar() {
           with half days, plus shared read-only calendars). Rendered fixed at the
           root (not inside a month card) so backdrop-filter stacking contexts
           can't clip or occlude it. */}
-      {tip && ((tipEntries && tipEntries.length > 0) || (tipShared && tipShared.length > 0)) && (
+      {tip && ((tipEntries && tipEntries.length > 0) || (tipShared && tipShared.length > 0) || tipSchool.length > 0) && (
         <div
           className="vg-card rounded-xl"
           style={{ position: 'fixed', top: tip.top - 9, left: tip.left, transform: 'translate(-50%, -100%)', zIndex: 80, pointerEvents: 'none' }}
@@ -164,6 +166,24 @@ export default function VacayCalendar() {
                 </span>
               </div>
             ))}
+            {/* School holidays fold into this tooltip under a divider instead of a
+                separate native title, so a half/full day and the school break read together. */}
+            {tipSchool.length > 0 && (
+              <>
+                {((tipEntries?.length ?? 0) > 0 || (tipShared?.length ?? 0) > 0) && (
+                  <div style={{ height: 1, background: 'var(--vg-line)', margin: '7px 0 6px' }} />
+                )}
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--vg-ink3)', marginBottom: 4 }}>
+                  {t('vacay.schoolHolidays')}
+                </div>
+                {tipSchool.map((h, i) => (
+                  <div key={`sch${i}`} className="flex items-center gap-2" style={{ marginTop: i ? 3 : 0 }}>
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: h.color }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--vg-ink)' }}>{h.label ? `${h.label}: ${h.localName}` : h.localName}</span>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
