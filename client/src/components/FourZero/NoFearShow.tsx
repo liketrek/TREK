@@ -6,7 +6,7 @@ import { useTranslation } from '../../i18n'
 import type { Place, Trip } from '../../types'
 import { NoFearAudio, type NoFearAct } from './noFearAudio'
 import { NoFearScene, type SceneState } from './noFearScene'
-import { ANTHEM_CASCADE, INSPIRED_URL, noFearCopy } from './noFearLines'
+import { ANTHEM_CASCADE, noFearCopy } from './noFearLines'
 import './fourzero.css'
 
 // TREK 4.0.0 release moment — remove together with the FourZero folder.
@@ -270,10 +270,6 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
           <p className="fz-credit-lead">{copy.tooBeautiful}</p>
           <p className="fz-credit-title">{copy.creditTitle}</p>
           <p className="fz-credit-body">{copy.creditBody}</p>
-          <a className="fz-credit-link" href={INSPIRED_URL} target="_blank" rel="noopener noreferrer">
-            {copy.inspiredBy}
-          </a>
-          <button type="button" className="fz-close-btn" onClick={onClose}>{copy.close}</button>
         </div>
       )}
 
