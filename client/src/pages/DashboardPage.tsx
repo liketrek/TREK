@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal'
 import CollectionsWidget from '../components/Dashboard/CollectionsWidget'
+import NoFearBeacon from '../components/FourZero/NoFearBeacon' // 4.0.0 release moment — remove with the FourZero folder
 import PluginWidgets from '../components/Plugins/PluginWidgets'
 import PluginFrame from '../components/Plugins/PluginFrame'
 import { TripCardBadges, useTripCardBadges } from '../components/Plugins/TripCardBadges'
@@ -254,6 +255,7 @@ function DashboardPageDesktop(): React.ReactElement {
 
           {sidebarVisible && (
             <aside className="page-sidebar">
+              <NoFearBeacon /> {/* 4.0.0 release moment — remove with the FourZero folder */}
               {showCurrency && <CurrencyTool />}
               {showCollections && <CollectionsWidget onOpen={() => navigate('/collections')} />}
               {showTimezones && <TimezoneTool locale={locale} />}

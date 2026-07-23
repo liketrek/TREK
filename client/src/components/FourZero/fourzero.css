@@ -1,0 +1,324 @@
+/* TREK 4.0.0 "KEINE ANGST" — styles for the beacon and the show.
+   Temporary by design: remove together with the FourZero folder. */
+
+.fz-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #05060a;
+  overflow: hidden;
+  color: #f5f2ea;
+  font-family: inherit;
+}
+
+.fz-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.fz-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(160, 25, 25, 0.28) 100%);
+  animation: fzVignettePulse 2.6s ease-in-out infinite;
+}
+
+@keyframes fzVignettePulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* ── the lines ── */
+
+.fz-line-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12vw;
+  pointer-events: none;
+}
+
+.fz-line {
+  max-width: 900px;
+  text-align: center;
+  font-size: clamp(22px, 3.2vw, 40px);
+  font-weight: 300;
+  line-height: 1.45;
+  letter-spacing: 0.015em;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.85);
+  animation: fzLineIn 1.6s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+.fz-line-hard {
+  font-weight: 700;
+  font-size: clamp(26px, 3.8vw, 50px);
+  letter-spacing: 0.01em;
+}
+
+@keyframes fzLineIn {
+  from { opacity: 0; transform: translateY(14px); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* ── anthem ── */
+
+.fz-anthem {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4vh;
+  pointer-events: none;
+  padding: 0 6vw;
+}
+
+.fz-anthem-word {
+  font-size: clamp(48px, 9vw, 128px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin: 0;
+  text-shadow: 0 0 60px rgba(255, 200, 120, 0.35), 0 2px 30px rgba(0, 0, 0, 0.9);
+  animation: fzAnthemIn 2.8s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+.fz-anthem-word-small {
+  font-size: clamp(34px, 5vw, 64px);
+}
+
+@keyframes fzAnthemIn {
+  from { opacity: 0; transform: scale(0.94); letter-spacing: 0.18em; filter: blur(10px); }
+  to { opacity: 1; transform: scale(1); letter-spacing: 0.06em; filter: blur(0); }
+}
+
+.fz-cascade {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 26px;
+  max-width: 1000px;
+}
+
+.fz-cascade-item {
+  font-size: clamp(13px, 1.35vw, 19px);
+  font-weight: 500;
+  opacity: 0;
+  color: rgba(245, 235, 215, 0.92);
+  animation: fzCascadeIn 1.4s ease-out both;
+}
+
+@keyframes fzCascadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 0.92; transform: translateY(0); }
+}
+
+/* ── credits ── */
+
+.fz-credits {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 8vw;
+  text-align: center;
+  animation: fzLineIn 1.8s ease-out both;
+}
+
+.fz-credit-title {
+  font-size: clamp(17px, 1.8vw, 24px);
+  font-weight: 700;
+  margin: 10px 0 0;
+}
+
+.fz-credit-body {
+  font-size: clamp(14px, 1.4vw, 18px);
+  font-weight: 300;
+  opacity: 0.85;
+  margin: 0;
+  max-width: 640px;
+}
+
+.fz-credit-link {
+  font-size: 13px;
+  color: rgba(255, 200, 120, 0.9);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 200, 120, 0.4);
+  padding-bottom: 1px;
+  margin-top: 6px;
+  pointer-events: auto;
+}
+
+.fz-credit-link:hover { color: #ffd58a; border-color: #ffd58a; }
+
+.fz-close-btn {
+  margin-top: 26px;
+  padding: 11px 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 240, 225, 0.35);
+  background: transparent;
+  color: #f5f2ea;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.fz-close-btn:hover {
+  background: rgba(245, 240, 225, 0.12);
+  border-color: rgba(245, 240, 225, 0.7);
+}
+
+/* ── chrome ── */
+
+.fz-chrome {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  opacity: 0;
+  animation: fzChromeIn 1s ease-out 2.5s both;
+}
+
+@keyframes fzChromeIn { to { opacity: 1; } }
+
+.fz-chrome-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 240, 225, 0.22);
+  background: rgba(10, 12, 18, 0.55);
+  color: rgba(245, 240, 225, 0.75);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.fz-chrome-btn:hover { color: #fff; border-color: rgba(245, 240, 225, 0.55); }
+
+/* ── beacon (dashboard trigger) ── */
+
+.fz-beacon {
+  position: relative;
+  display: none;
+  width: 100%;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 16px;
+  padding: 18px 16px 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(235, 60, 55, 0.16), transparent 55%),
+    radial-gradient(130% 100% at 85% 100%, rgba(255, 180, 90, 0.14), transparent 60%),
+    #0a0c12;
+  color: #f5f2ea;
+  font-family: inherit;
+}
+
+@media (min-width: 1024px) {
+  .fz-beacon { display: block; }
+}
+
+.fz-beacon-pulse {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ff5a4e;
+}
+
+.fz-beacon-pulse::before,
+.fz-beacon-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 90, 78, 0.75);
+  animation: fzPulse 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.fz-beacon-pulse::after { animation-delay: 1.3s; }
+
+@keyframes fzPulse {
+  from { transform: scale(1); opacity: 0.9; }
+  to { transform: scale(3.6); opacity: 0; }
+}
+
+.fz-beacon-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(255, 170, 120, 0.85);
+  margin: 0 0 6px;
+}
+
+.fz-beacon-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin: 0 0 4px;
+}
+
+.fz-beacon-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(245, 240, 225, 0.68);
+  margin: 0;
+}
+
+.fz-beacon-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffcf8e;
+}
+
+.fz-beacon:hover .fz-beacon-cta { color: #ffe3b3; }
+
+.fz-beacon-dismiss {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  padding: 5px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(245, 240, 225, 0.4);
+  cursor: pointer;
+}
+
+.fz-beacon-dismiss:hover { color: rgba(245, 240, 225, 0.85); }
+
+/* Accessibility: the show honours reduced motion by jumping to its final,
+   static frame (handled in the component); kill the looping accents too. */
+@media (prefers-reduced-motion: reduce) {
+  .fz-beacon-pulse::before,
+  .fz-beacon-pulse::after,
+  .fz-vignette { animation: none; }
+  .fz-cascade-item { animation-duration: 0.01s; }
+}
