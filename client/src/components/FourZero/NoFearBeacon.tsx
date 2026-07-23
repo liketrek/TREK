@@ -73,13 +73,20 @@ function TeaserCanvas() {
         const my = (y1 + y2) / 2 - Math.min(Math.abs(x2 - x1) * 0.35, h * 0.34)
         c.beginPath()
         const steps = 22
-        const upto = Math.max(2, Math.round(steps * grow))
+        const eased = 1 - (1 - grow) ** 3
+        const upto = Math.floor(steps * eased)
+        const pt = (q: number): [number, number] => [
+          (1 - q) * (1 - q) * x1 + 2 * (1 - q) * q * mx + q * q * x2,
+          (1 - q) * (1 - q) * y1 + 2 * (1 - q) * q * my + q * q * y2,
+        ]
         for (let s = 0; s <= upto; s++) {
-          const q = s / steps
-          const ix = (1 - q) * (1 - q) * x1 + 2 * (1 - q) * q * mx + q * q * x2
-          const iy = (1 - q) * (1 - q) * y1 + 2 * (1 - q) * q * my + q * q * y2
+          const [ix, iy] = pt(s / steps)
           if (s === 0) c.moveTo(ix, iy)
           else c.lineTo(ix, iy)
+        }
+        if (eased < 1) {
+          const [tx, ty] = pt(eased)
+          c.lineTo(tx, ty)
         }
         c.strokeStyle = `rgba(255, 180, 95, ${0.12 * fade})`
         c.lineWidth = 3.4
