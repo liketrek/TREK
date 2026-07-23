@@ -371,8 +371,9 @@ export function useTripPlanner() {
       }
     }
 
-    // Build set of planned place IDs for unplanned filter
-    const plannedIds = placesFilter === 'unplanned'
+    // Planned place IDs — needed by both the 'unplanned' filter (exclude them) and
+    // the new 'planned' filter (keep only them).
+    const plannedIds = placesFilter === 'unplanned' || placesFilter === 'planned'
       ? new Set(Object.values(assignments).flatMap(da => da.map(a => a.place?.id).filter(Boolean)))
       : null
 
@@ -384,8 +385,12 @@ export function useTripPlanner() {
           if (!placesCategoryFilter.has('uncategorized')) return false
         } else if (!placesCategoryFilter.has(String(p.category_id))) return false
       }
-      if (hiddenPlaceIds.has(p.id)) return false
-      if (plannedIds && plannedIds.has(p.id)) return false
+      // Collapsed-day declutter hides a day's stops on every filter EXCEPT 'planned':
+      // there the user asked to see the whole plan on the map, so a collapsed day
+      // must not drop its planned places.
+      if (placesFilter !== 'planned' && hiddenPlaceIds.has(p.id)) return false
+      if (placesFilter === 'unplanned' && plannedIds && plannedIds.has(p.id)) return false
+      if (placesFilter === 'planned' && plannedIds && !plannedIds.has(p.id)) return false
       return true
     })
   }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds])

@@ -13,7 +13,7 @@ import type { MPlacesBrowserProps } from '../MTripShell'
 import type { Place } from '../../../../types'
 import MPlacesBulkCategorySheet from './MPlacesBulkCategorySheet'
 import MPlacesSaveToCollectionSheet from './MPlacesSaveToCollectionSheet'
-import { filterPool, firstPlannedDayNumbers, plannedPlaceIds, poolCounts } from './placesBrowserModel'
+import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBrowserModel'
 
 /**
  * Fullscreen places pool (mode === 'browse'): All/Unplanned/Tracks filter
@@ -56,10 +56,6 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
 
   const plannedIds = useMemo(() => plannedPlaceIds(assignments), [assignments])
   const dayNumberByPlace = useMemo(() => firstPlannedDayNumbers(assignments, days), [assignments, days])
-  const counts = useMemo(
-    () => poolCounts(places, categoryFilters, search, plannedIds),
-    [places, categoryFilters, search, plannedIds],
-  )
   const filtered = useMemo(
     () => filterPool(places, { filter, categoryFilters, search, plannedIds }),
     [places, filter, categoryFilters, search, plannedIds],
@@ -121,37 +117,29 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   return (
     <div className="flex h-full flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
-        {/* ── Filter chips + Add + Import ── */}
+        {/* ── Filter chips + Import (Add sits in the search row below to free space) ── */}
         <div className="flex items-center gap-[6px]">
           <FilterChip
             active={filter === 'all'}
             label={t('places.all')}
-            count={counts.all}
             onClick={() => { setFilter('all'); setSelectedIds(new Set()) }}
           />
           <FilterChip
             active={filter === 'unplanned'}
             label={t('places.unplanned')}
-            count={counts.unplanned}
             onClick={() => { setFilter('unplanned'); setSelectedIds(new Set()) }}
+          />
+          <FilterChip
+            active={filter === 'planned'}
+            label={t('places.planned')}
+            onClick={() => { setFilter('planned'); setSelectedIds(new Set()) }}
           />
           {hasTracks && (
             <FilterChip
               active={filter === 'tracks'}
               label={t('places.filterTracks')}
-              count={counts.tracks}
               onClick={() => { setFilter('tracks'); setSelectedIds(new Set()) }}
             />
-          )}
-          {canEditPlaces && (
-            <button
-              type="button"
-              onClick={openAddPlace}
-              className="flex h-10 min-w-0 flex-1 items-center justify-center gap-[6px] whitespace-nowrap rounded-full bg-m-act text-[0.8125rem] font-semibold text-m-actfg"
-            >
-              <Plus size={14} strokeWidth={2.2} />
-              {t('common.add')}
-            </button>
           )}
           {canEditPlaces && (
             <button
@@ -200,6 +188,16 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               }`}
             >
               {selectMode ? <X size={15} strokeWidth={2} /> : <ListChecks size={15} strokeWidth={2} />}
+            </button>
+          )}
+          {canEditPlaces && (
+            <button
+              type="button"
+              onClick={openAddPlace}
+              aria-label={t('common.add')}
+              className="flex w-[42px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg"
+            >
+              <Plus size={18} strokeWidth={2.2} />
             </button>
           )}
         </div>
@@ -359,18 +357,18 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   )
 }
 
-/** All / Unplanned / Tracks pool chip with its Geist count. */
-function FilterChip({ active, label, count, onClick }: { active: boolean; label: string; count: number; onClick: () => void }) {
+/** All / Unplanned / Planned / Tracks pool chip. Counts are omitted on mobile to save row
+ *  space; chips flex to share the row's full width up to the import button on the right. */
+function FilterChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-10 flex-none items-center gap-[5px] whitespace-nowrap rounded-full px-[15px] text-[0.75rem] font-semibold ${
+      className={`flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full px-[12px] text-[0.75rem] font-semibold ${
         active ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'
       }`}
     >
       {label}
-      <span className="font-geist text-[0.625rem] opacity-75">{count}</span>
     </button>
   )
 }

@@ -1448,7 +1448,21 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
             (routeBookends?.morning?.place_lat != null && routeBookends?.morning?.place_lng != null) ||
             (routeBookends?.evening?.place_lat != null && routeBookends?.evening?.place_lng != null)
           )
-          const routeToolsRoutable = da.length >= 2 || (loc != null && hasRouteBookend)
+          // Transfer day with no stops at all: you check out of one hotel and into another, so
+          // the map already draws a hotel → hotel leg (see the transfer branch in
+          // useRouteCalculation) even with zero places. Mirror that exact gate here — two
+          // distinct bookend hotels you actually slept in / sleep in tonight — so the route
+          // tools appear when you click the day (#1297). A same-hotel rest day or a plain
+          // arrival/departure day has morning === evening and stays excluded.
+          const transferMorning = routeBookends?.morning
+          const transferEvening = routeBookends?.evening
+          const hasHotelTransfer = !!(
+            routeBookends?.morningIsSleptHere && routeBookends?.eveningIsOvernight &&
+            transferMorning?.place_lat != null && transferMorning?.place_lng != null &&
+            transferEvening?.place_lat != null && transferEvening?.place_lng != null &&
+            (transferMorning.place_lat !== transferEvening.place_lat || transferMorning.place_lng !== transferEvening.place_lng)
+          )
+          const routeToolsRoutable = da.length >= 2 || (loc != null && hasRouteBookend) || hasHotelTransfer
           // Is this day's inline route currently on? Mobile toggles it per day (its
           // own expandedRouteDayIds entry); desktop uses the global Route toggle on
           // the selected day (#1374).
@@ -2444,7 +2458,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     )}
                   </div>
 
-                  {/* Routen-Werkzeuge (ausgewählter Tag, 2+ Orte — oder 1 Ort mit Hotel-Bookend, #1330) */}
+                  {/* Routen-Werkzeuge (ausgewählter Tag, 2+ Orte — oder 1 Ort mit Hotel-Bookend #1330 — oder Hotel-zu-Hotel-Transfertag ohne Orte #1297) */}
                   {(isSelected || (showRouteToolsWhenExpanded && isExpanded)) && routeToolsRoutable && (
                     <div style={{ padding: '10px 16px 12px', borderTop: '1px solid var(--border-faint)', display: 'flex', flexDirection: 'column', gap: 7 }}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>

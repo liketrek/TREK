@@ -40,6 +40,7 @@ const places: TranslationStrings = {
   'places.assignToDay': "A quin dia l'afegeixo?",
   'places.all': 'Tot',
   'places.unplanned': 'Sense planificar',
+  'places.planned': 'Planificats',
   'places.filterTracks': 'Rutes',
   'places.sortByRating': 'Ordena per valoració',
   'places.yourRating': 'La teva valoració',

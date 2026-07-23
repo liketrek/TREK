@@ -41,6 +41,7 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Tambah ke hari mana?',
   'places.all': 'Semua',
   'places.unplanned': 'Belum direncanakan',
+  'places.planned': 'Direncanakan',
   'places.filterTracks': 'Trek',
   'places.sortByRating': 'Urutkan berdasarkan rating',
   'places.yourRating': 'Rating kamu',

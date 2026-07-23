@@ -57,6 +57,7 @@ interface PoolFilterArgs {
 export function filterPool(places: Place[], { filter, categoryFilters, search, plannedIds }: PoolFilterArgs): Place[] {
   return places.filter(p => {
     if (filter === 'unplanned' && plannedIds.has(p.id)) return false
+    if (filter === 'planned' && !plannedIds.has(p.id)) return false
     if (filter === 'tracks' && !p.route_geometry) return false
     return matchesCategoryFilter(p, categoryFilters) && matchesSearch(p, search)
   })
@@ -68,6 +69,7 @@ export function poolCounts(places: Place[], categoryFilters: Set<string>, search
   return {
     all: base.length,
     unplanned: base.filter(p => !plannedIds.has(p.id)).length,
+    planned: base.filter(p => plannedIds.has(p.id)).length,
     tracks: base.filter(p => p.route_geometry).length,
   }
 }
