@@ -310,39 +310,39 @@
 .fz-beacon-play {
   position: relative;
   z-index: 2;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
   width: 100%;
-  min-height: 196px;
+  min-height: 216px;
   border: none;
-  text-align: start;
+  text-align: center;
   cursor: pointer;
-  padding: 78px 18px 16px;
+  padding: 64px 18px 20px;
   font-family: inherit;
-  /* Scrim so the copy always sits on darkness, whatever the canvas draws. */
-  background: linear-gradient(180deg, rgba(7, 8, 13, 0) 0%, rgba(7, 8, 13, 0.55) 46%, rgba(7, 8, 13, 0.92) 100%) !important;
-}
-
-.fz-beacon-eyebrow {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  color: rgba(255, 150, 110, 0.95);
-  margin: 0 0 7px;
+  color: #f5f2ea;
+  /* Cinema scrim: darkness pools at the bottom and in the corners. */
+  background:
+    radial-gradient(130% 90% at 50% 0%, rgba(7, 8, 13, 0) 40%, rgba(7, 8, 13, 0.5) 100%),
+    linear-gradient(180deg, rgba(7, 8, 13, 0) 20%, rgba(7, 8, 13, 0.62) 58%, rgba(7, 8, 13, 0.95) 100%) !important;
 }
 
 .fz-beacon-title {
-  font-size: 27px;
+  display: block;
+  font-size: 30px;
   font-weight: 900;
-  letter-spacing: 0.045em;
-  line-height: 1.05;
-  margin: 0 0 6px;
+  letter-spacing: 0.13em;
+  text-indent: 0.13em;
+  line-height: 1.04;
+  margin: 0 0 7px;
   background: linear-gradient(100deg, #f7f3e8 0%, #f7f3e8 38%, #ffd98f 50%, #f7f3e8 62%, #f7f3e8 100%);
   background-size: 240% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: fzTitleSheen 4.5s ease-in-out infinite;
-  text-shadow: none;
+  filter: drop-shadow(0 0 22px rgba(255, 205, 130, 0.28)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
 }
 
 @keyframes fzTitleSheen {
@@ -350,55 +350,45 @@
   60%, 100% { background-position: -60% 0; }
 }
 
-.fz-beacon-pulse {
-  position: absolute;
-  top: 16px;
-  inset-inline-end: 16px;
-  z-index: 2;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #ff5a4e;
-  pointer-events: none;
-}
-
-.fz-beacon-pulse::before,
-.fz-beacon-pulse::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  border: 1.5px solid rgba(255, 90, 78, 0.75);
-  animation: fzPulse 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-}
-
-.fz-beacon-pulse::after { animation-delay: 1.3s; }
-
-@keyframes fzPulse {
-  from { transform: scale(1); opacity: 0.9; }
-  to { transform: scale(3.6); opacity: 0; }
-}
-
 .fz-beacon-sub {
+  display: block;
   font-size: 12.5px;
   font-weight: 400;
-  color: rgba(245, 240, 225, 0.72);
+  letter-spacing: 0.02em;
+  color: rgba(245, 240, 225, 0.75);
   margin: 0;
+  text-shadow: 0 1px 8px rgba(5, 6, 10, 0.9);
 }
 
-.fz-beacon-cta {
+/* The call to action: a cinema play circle with a slow golden pulse. */
+.fz-beacon-playbtn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  margin-top: 13px;
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  color: #ffcf8e;
-  transition: color 0.2s, gap 0.25s;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin-top: 15px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 205, 130, 0.7);
+  background: radial-gradient(circle at 50% 42%, rgba(255, 195, 110, 0.16), rgba(255, 195, 110, 0.05));
+  color: #ffd694;
+  padding-inline-start: 3px; /* optically centers the triangle */
+  box-shadow: 0 0 22px rgba(255, 190, 105, 0.16);
+  animation: fzPlayPulse 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  transition: background 0.25s, color 0.25s, border-color 0.25s, transform 0.25s;
 }
 
-.fz-beacon:hover .fz-beacon-cta { color: #ffe6b8; gap: 10px; }
+@keyframes fzPlayPulse {
+  0% { box-shadow: 0 0 22px rgba(255, 190, 105, 0.16), 0 0 0 0 rgba(255, 200, 120, 0.45); }
+  70%, 100% { box-shadow: 0 0 22px rgba(255, 190, 105, 0.16), 0 0 0 18px rgba(255, 200, 120, 0); }
+}
+
+.fz-beacon:hover .fz-beacon-playbtn {
+  background: #ffd694;
+  border-color: #ffe2ac;
+  color: #14100a;
+  transform: scale(1.08);
+}
 
 .fz-beacon-dismiss {
   position: absolute;
@@ -424,9 +414,7 @@ body.fz-show-open .fab-new-trip { display: none; }
    frame and skips straight to the credits; flatten every looping accent too. */
 @media (prefers-reduced-motion: reduce) {
   .fz-overlay *,
-  .fz-beacon-pulse::before,
-  .fz-beacon-pulse::after,
-  .fz-vignette {
+    .fz-vignette {
     animation-duration: 0.01s !important;
     animation-iteration-count: 1 !important;
   }
