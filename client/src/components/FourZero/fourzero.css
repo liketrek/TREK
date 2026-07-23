@@ -170,76 +170,6 @@
   to { opacity: 0.92; transform: translateY(0); }
 }
 
-/* ── credits ── */
-
-.fz-credits {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 0 8vw;
-  text-align: center;
-  animation: fzLineIn 1.8s ease-out both;
-}
-
-.fz-credit-lead {
-  font-size: clamp(16px, 1.7vw, 23px);
-  font-weight: 300;
-  font-style: italic;
-  opacity: 0.95;
-  margin: 6px 0 4px;
-  max-width: 680px;
-}
-
-.fz-credit-title {
-  font-size: clamp(17px, 1.8vw, 24px);
-  font-weight: 700;
-  margin: 10px 0 0;
-}
-
-.fz-credit-body {
-  font-size: clamp(14px, 1.4vw, 18px);
-  font-weight: 300;
-  opacity: 0.85;
-  margin: 0;
-  max-width: 640px;
-}
-
-.fz-credit-link {
-  font-size: 13px;
-  color: rgba(255, 200, 120, 0.9);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(255, 200, 120, 0.4);
-  padding-bottom: 1px;
-  margin-top: 6px;
-  pointer-events: auto;
-}
-
-.fz-credit-link:hover { color: #ffd58a; border-color: #ffd58a; }
-
-.fz-close-btn {
-  margin-top: 26px;
-  padding: 11px 34px;
-  border-radius: 999px;
-  border: 1px solid rgba(245, 240, 225, 0.35);
-  background: transparent;
-  color: #f5f2ea;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.fz-close-btn:hover {
-  background: rgba(245, 240, 225, 0.12);
-  border-color: rgba(245, 240, 225, 0.7);
-}
-
 /* ── chrome ── */
 
 .fz-chrome {
@@ -332,41 +262,50 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   width: 100%;
   min-height: 216px;
   border: none;
   text-align: center;
   cursor: pointer;
-  padding: 64px 18px 20px;
+  padding: 22px 18px 18px;
   font-family: inherit;
   color: #f5f2ea;
-  /* Cinema scrim: darkness pools at the bottom and in the corners. */
+  /* Cinema scrim: a dark pool behind the centered copy, corners vignetted. */
   background:
-    radial-gradient(130% 90% at 50% 0%, rgba(7, 8, 13, 0) 40%, rgba(7, 8, 13, 0.5) 100%),
-    linear-gradient(180deg, rgba(7, 8, 13, 0) 20%, rgba(7, 8, 13, 0.62) 58%, rgba(7, 8, 13, 0.95) 100%) !important;
+    radial-gradient(120% 105% at 50% 52%, rgba(7, 8, 13, 0.62) 0%, rgba(7, 8, 13, 0.28) 52%, rgba(7, 8, 13, 0.7) 100%) !important;
 }
 
+/* Ivory-to-gold text with a traveling sheen and a slow breathing glow —
+   quiet effects, jewelry-grade, no gimmicks. */
 .fz-beacon-title {
   display: block;
-  font-size: 30px;
+  font-size: 31px;
   font-weight: 900;
-  letter-spacing: 0.13em;
-  text-indent: 0.13em;
+  letter-spacing: 0.14em;
+  text-indent: 0.14em;
   line-height: 1.04;
-  margin: 0 0 7px;
-  background: linear-gradient(100deg, #f7f3e8 0%, #f7f3e8 38%, #ffd98f 50%, #f7f3e8 62%, #f7f3e8 100%);
-  background-size: 240% 100%;
+  margin: 0 0 8px;
+  background-image:
+    linear-gradient(110deg, transparent 40%, rgba(255, 244, 214, 0.95) 50%, transparent 60%),
+    linear-gradient(180deg, #fdfaf1 0%, #f4e6c2 52%, #e5c084 100%);
+  background-size: 260% 100%, 100% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: fzTitleSheen 4.5s ease-in-out infinite;
-  filter: drop-shadow(0 0 22px rgba(255, 205, 130, 0.28)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
+  animation:
+    fzTitleSheen 5.5s ease-in-out infinite,
+    fzTitleBreathe 4.5s ease-in-out infinite;
 }
 
 @keyframes fzTitleSheen {
-  0%, 25% { background-position: 120% 0; }
-  60%, 100% { background-position: -60% 0; }
+  0%, 30% { background-position: 130% 0, 0 0; }
+  62%, 100% { background-position: -70% 0, 0 0; }
+}
+
+@keyframes fzTitleBreathe {
+  0%, 100% { filter: drop-shadow(0 0 16px rgba(255, 205, 130, 0.18)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85)); }
+  50% { filter: drop-shadow(0 0 30px rgba(255, 210, 140, 0.42)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85)); }
 }
 
 .fz-beacon-sub {

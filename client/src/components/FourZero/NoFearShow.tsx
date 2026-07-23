@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import ReactDOM from 'react-dom'
 import { Volume2, VolumeX, X } from 'lucide-react'
 import { placesApi, tripsApi } from '../../api/client'
 import apiClient from '../../api/client'
@@ -38,10 +39,8 @@ const CUES: Cue[] = [
   { at: 58.8, line: 'yourStatsCountries' },
   { at: 64.0, line: 'notAnOpinion', hard: true, impact: 1 },
   { at: 71.0, act: 'anthem', line: null, impact: 0.8 },
-  { at: 84.0, act: 'end', line: null },
 ]
 const ANTHEM_AT = 71
-const CREDITS_AT = 84
 // The three staccato words strobe with the late fear act, just before the cut.
 const FLASH_WINDOWS: [number, number][] = [[22.2, 22.85], [23.6, 24.25], [25.0, 25.65]]
 
@@ -62,7 +61,7 @@ function sceneAt(t: number): SceneState {
     warmth: ramp(t, 34, 46),
     personalGlow: ramp(t, 55.5, 60.5),
     particles: ramp(t, ANTHEM_AT, ANTHEM_AT + 4),
-    opacity: (1 - blackout) * (t >= CREDITS_AT ? 0.35 : 1),
+    opacity: 1 - blackout,
   }
 }
 
@@ -83,15 +82,13 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
   const [cueIdx, setCueIdx] = useState(-1)
   const [flashIdx, setFlashIdx] = useState(-1)
   const [muted, setMuted] = useState(false)
-  const [credits, setCredits] = useState(false)
   const [anthem, setAnthem] = useState(false)
   const reducedMotion = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, [])
 
   const skipToEnd = useCallback(() => {
-    startRef.current = performance.now() - CREDITS_AT * 1000
+    startRef.current = performance.now() - ANTHEM_AT * 1000
     setAnthem(true)
-    setCredits(true)
-    audioRef.current?.setAct('end')
+    audioRef.current?.setAct('anthem')
   }, [])
 
   // Boot: audio, scene, personal places, chrome side effects.
@@ -175,7 +172,7 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
     const ctx = cv?.getContext('2d')
     if (reducedMotion) {
       setCueIdx(CUES.length - 1)
-      if (ctx) sceneRef.current?.draw(ctx, { ...sceneAt(CREDITS_AT), particles: 0 }, CREDITS_AT)
+      if (ctx) sceneRef.current?.draw(ctx, { ...sceneAt(ANTHEM_AT + 8), particles: 0 }, ANTHEM_AT + 8)
       return
     }
     let raf = 0
@@ -193,7 +190,6 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
         if (cue.swell) audioRef.current?.swell()
         setCueIdx(idx)
         if (t >= ANTHEM_AT) setAnthem(true)
-        if (t >= CREDITS_AT) setCredits(true)
       }
       let flash = -1
       for (let i = 0; i < FLASH_WINDOWS.length; i++) {
@@ -228,7 +224,10 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
   else if (lineKey) lineText = copy.lines[lineKey]
   const hard = !!cue?.hard
 
-  return (
+  // Portal to body: the dashboard sidebar is position:sticky and forms its own
+  // stacking context, so an in-place overlay would sit UNDER the fixed navbar
+  // (z-200 at root level) no matter its z-index.
+  return ReactDOM.createPortal(
     <div ref={overlayRef} className="fz-overlay" role="dialog" aria-modal="true" aria-label={copy.beaconTitle} tabIndex={-1}>
       <canvas ref={canvasRef} className="fz-canvas" />
 
@@ -249,8 +248,8 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      {/* Anthem: the big words + the cascade through every TREK language. */}
-      {anthem && !credits && (
+      {/* The ending: the big words + the cascade through every TREK language — and it stays. */}
+      {anthem && (
         <div className="fz-anthem">
           <h1 className="fz-anthem-word">{copy.anthem}</h1>
           <div className="fz-cascade">
@@ -260,16 +259,6 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
               </span>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Credits — stays until dismissed. */}
-      {credits && (
-        <div className="fz-credits">
-          <h1 className="fz-anthem-word fz-anthem-word-small">{copy.anthem}</h1>
-          <p className="fz-credit-lead">{copy.tooBeautiful}</p>
-          <p className="fz-credit-title">{copy.creditTitle}</p>
-          <p className="fz-credit-body">{copy.creditBody}</p>
         </div>
       )}
 
@@ -283,7 +272,7 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
         >
           {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </button>
-        {!credits && (
+        {!anthem && (
           <button type="button" className="fz-chrome-btn fz-chrome-skip" onClick={skipToEnd}>
             {copy.skip}
           </button>
@@ -292,6 +281,7 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
           <X size={15} />
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
