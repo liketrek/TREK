@@ -355,6 +355,7 @@ export default function MJourneyDetail() {
         <MJourneyEntrySheet
           entry={editingEntry}
           galleryPhotos={gallery}
+          quickCapture={editingEntry.id === 0}
           readOnly={!canEditEntries}
           onClose={() => setEditingEntry(null)}
           onSave={async data => {

@@ -15,6 +15,24 @@ export function groupByDate(entries: JourneyEntry[]): Map<string, JourneyEntry[]
   return groups
 }
 
+export function createDraftJourneyEntry(journeyId: number, now = new Date()): JourneyEntry {
+  const entryDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const entryTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  return {
+    id: 0,
+    journey_id: journeyId,
+    author_id: 0,
+    type: 'entry',
+    entry_date: entryDate,
+    entry_time: entryTime,
+    visibility: 'private',
+    sort_order: 0,
+    photos: [],
+    created_at: 0,
+    updated_at: 0,
+  }
+}
+
 export function formatDate(d: string, locale?: string): { weekday: string; month: string; day: number } {
   const date = new Date(d + 'T00:00:00')
   // Pass the app's selected locale so weekday/month follow the UI language

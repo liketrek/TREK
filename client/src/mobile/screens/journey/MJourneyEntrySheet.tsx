@@ -1,17 +1,17 @@
-import { useRef, useState } from 'react'
-import { Plus, Image, X, MapPin, Trash2, CheckCircle2, MinusCircle } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Camera, Plus, Image, X, MapPin, Trash2, CheckCircle2, MinusCircle } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
-import { journeyApi, mapsApi } from '../../../api/client'
+import { journeyApi, mapsApi, weatherApi } from '../../../api/client'
 import { getApiErrorMessage } from '../../../types'
 import { normalizeImageFiles } from '../../../utils/convertHeic'
 import type { ResilientResult, UploadProgress } from '../../../utils/uploadQueue'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto } from '../../../store/journeyStore'
 import { photoUrl } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import JournalBody from '../../../components/Journey/JournalBody'
-import { MOBILE_MOODS, MOBILE_WEATHERS } from './mobileJourneyMeta'
+import { journeyWeatherCategory, MOBILE_MOODS, MOBILE_WEATHERS } from './mobileJourneyMeta'
 
 const PRO_COLOR = '#2FA37A'
 const CON_COLOR = '#D6273B'
@@ -26,6 +26,7 @@ interface LocationResult {
 interface MJourneyEntrySheetProps {
   entry: JourneyEntry
   galleryPhotos: GalleryPhoto[]
+  quickCapture?: boolean
   readOnly?: boolean
   onClose: () => void
   onSave: (data: Record<string, unknown>) => Promise<number>
@@ -40,7 +41,7 @@ interface MJourneyEntrySheetProps {
  * weather (6) and tags. Read-only for viewer contributors.
  */
 export default function MJourneyEntrySheet({
-  entry, galleryPhotos, readOnly = false, onClose, onSave, onUploadPhotos, onDelete, onDone,
+  entry, galleryPhotos, quickCapture = false, readOnly = false, onClose, onSave, onUploadPhotos, onDelete, onDone,
 }: MJourneyEntrySheetProps) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -67,8 +68,49 @@ export default function MJourneyEntrySheet({
   const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([])
   const [showGalleryPick, setShowGalleryPick] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [captureOnly, setCaptureOnly] = useState(quickCapture)
+  const [locating, setLocating] = useState(false)
+  const [locationError, setLocationError] = useState('')
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!quickCapture || readOnly || entry.location_lat != null || entry.location_lng != null) return
+    if (!navigator.geolocation) {
+      setLocationError(t('common.error'))
+      return
+    }
+
+    let active = true
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(async position => {
+      const lat = position.coords.latitude
+      const lng = position.coords.longitude
+      if (!active) return
+      setLocationLat(lat)
+      setLocationLng(lng)
+
+      const [placeResult, weatherResult] = await Promise.allSettled([
+        mapsApi.reverse(lat, lng),
+        weatherApi.getCurrent(lat, lng, 'en'),
+      ])
+      if (!active) return
+      if (placeResult.status === 'fulfilled') {
+        setLocationName(placeResult.value.name || placeResult.value.address || '')
+      }
+      if (weatherResult.status === 'fulfilled' && !weatherResult.value.error) {
+        setWeather(current => current || journeyWeatherCategory(weatherResult.value.main, weatherResult.value.description))
+      }
+      setLocating(false)
+    }, error => {
+      if (!active) return
+      setLocationError(error.message || t('common.error'))
+      setLocating(false)
+    }, { enableHighAccuracy: true, maximumAge: 60_000, timeout: 10_000 })
+
+    return () => { active = false }
+  }, [quickCapture, readOnly, entry.location_lat, entry.location_lng, entry.entry_date, t])
 
   const isDirty =
     title !== (entry.title || '') ||
@@ -85,7 +127,7 @@ export default function MJourneyEntrySheet({
     pendingLinkIds.length > 0
 
   const handleClose = () => {
-    if (!readOnly && isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return
+    if (!captureOnly && !readOnly && isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return
     onClose()
   }
 
@@ -193,7 +235,7 @@ export default function MJourneyEntrySheet({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-3">
-        {readOnly ? (
+        {!captureOnly && (readOnly ? (
           <div className="pb-[10px] pt-1 text-[1.25rem] font-extrabold">{title || t('journey.editor.titlePlaceholder')}</div>
         ) : (
           <input
@@ -202,15 +244,16 @@ export default function MJourneyEntrySheet({
             placeholder={t('journey.editor.titlePlaceholder')}
             className="w-full bg-transparent pb-[10px] pt-1 text-[1.25rem] font-extrabold text-m-ink outline-none placeholder:text-m-faint"
           />
-        )}
+        ))}
 
         {!readOnly && (
           <>
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} />
             <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} />
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => fileRef.current?.click()}
+                onClick={() => (captureOnly ? cameraRef : fileRef).current?.click()}
                 disabled={saving}
                 className="flex flex-1 items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] border-dashed border-[color:var(--m-rowbr)] p-3 text-[0.75rem] font-semibold text-m-muted disabled:opacity-50"
               >
@@ -221,27 +264,27 @@ export default function MJourneyEntrySheet({
                   </>
                 ) : (
                   <>
-                    <Plus size={14} strokeWidth={2.2} />
-                    {t('journey.editor.uploadPhotos')}
+                    {captureOnly ? <Camera size={14} strokeWidth={2.2} /> : <Plus size={14} strokeWidth={2.2} />}
+                    {captureOnly ? t('journey.photo.add') : t('journey.editor.uploadPhotos')}
                   </>
                 )}
               </button>
               <button
                 type="button"
-                onClick={() => setShowGalleryPick(v => !v)}
-                disabled={galleryPhotos.length === 0}
+                onClick={() => captureOnly ? fileRef.current?.click() : setShowGalleryPick(v => !v)}
+                disabled={!captureOnly && galleryPhotos.length === 0}
                 className={`flex flex-1 items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] p-3 text-[0.75rem] font-semibold disabled:opacity-40 ${
-                  showGalleryPick
+                  !captureOnly && showGalleryPick
                     ? 'border-[color:var(--m-act)] text-m-ink'
                     : 'border-dashed border-[color:var(--m-rowbr)] text-m-muted'
                 }`}
               >
                 <Image size={14} strokeWidth={2} />
-                {t('journey.editor.fromGallery')}
+                {captureOnly ? t('journey.share.gallery') : t('journey.editor.fromGallery')}
               </button>
             </div>
 
-            {showGalleryPick && (
+            {!captureOnly && showGalleryPick && (
               <div className="mt-2 max-h-[160px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-2">
                 <div className="grid grid-cols-5 gap-[6px]">
                   {availableGalleryPhotos.map(gp => (
@@ -333,24 +376,25 @@ export default function MJourneyEntrySheet({
           </div>
         )}
 
-        {readOnly ? (
-          story && (
-            <div className="mt-[10px] font-geist text-[0.8125rem] leading-[1.5] text-m-ink">
-              <JournalBody text={story} />
-            </div>
-          )
-        ) : (
-          <textarea
-            rows={3}
-            value={story}
-            onChange={e => setStory(e.target.value)}
-            placeholder={t('journey.editor.writeStory')}
-            className={`mt-[10px] w-full resize-none px-[14px] py-3 font-geist text-[0.8125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint ${fieldShell} rounded-[14px]`}
-          />
-        )}
+        {!captureOnly && <>
+          {readOnly ? (
+            story && (
+              <div className="mt-[10px] font-geist text-[0.8125rem] leading-[1.5] text-m-ink">
+                <JournalBody text={story} />
+              </div>
+            )
+          ) : (
+            <textarea
+              rows={3}
+              value={story}
+              onChange={e => setStory(e.target.value)}
+              placeholder={t('journey.editor.writeStory')}
+              className={`mt-[10px] w-full resize-none px-[14px] py-3 font-geist text-[0.8125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint ${fieldShell} rounded-[14px]`}
+            />
+          )}
 
-        {/* Pros & Cons */}
-        {(!readOnly || pros.length > 0 || cons.length > 0) && (
+          {/* Pros & Cons */}
+          {(!readOnly || pros.length > 0 || cons.length > 0) && (
           <div className="mt-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[13px]">
             <div className={`${eyebrow} mb-2`}>{t('journey.editor.prosCons')}</div>
             <div className="flex gap-[10px]">
@@ -422,29 +466,34 @@ export default function MJourneyEntrySheet({
               </div>
             </div>
           </div>
-        )}
+          )}
+        </>}
 
         {/* Date + Time */}
         <div className="mt-3 flex gap-2">
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <div className={`${eyebrow} mb-[5px]`}>{t('journey.editor.date')}</div>
-            <input
-              type="date"
-              value={entryDate}
-              disabled={readOnly}
-              onChange={e => setEntryDate(e.target.value)}
-              className={`w-full px-3 py-[10px] text-[0.78125rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums] ${fieldShell}`}
-            />
+            <div className={`${fieldShell} overflow-hidden`}>
+              <input
+                type="date"
+                value={entryDate}
+                disabled={readOnly}
+                onChange={e => setEntryDate(e.target.value)}
+                className="block min-w-0 w-full box-border border-0 bg-transparent px-3 py-[10px] text-center text-[0.78125rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums]"
+              />
+            </div>
           </div>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <div className={`${eyebrow} mb-[5px]`}>{t('mobileJourney.time')}</div>
-            <input
-              type="time"
-              value={entryTime}
-              disabled={readOnly}
-              onChange={e => setEntryTime(e.target.value)}
-              className={`w-full px-3 py-[10px] text-[0.78125rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums] ${fieldShell}`}
-            />
+            <div className={`${fieldShell} overflow-hidden`}>
+              <input
+                type="time"
+                value={entryTime}
+                disabled={readOnly}
+                onChange={e => setEntryTime(e.target.value)}
+                className="block min-w-0 w-full box-border border-0 bg-transparent px-3 py-[10px] text-center text-[0.78125rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums]"
+              />
+            </div>
           </div>
         </div>
 
@@ -487,30 +536,34 @@ export default function MJourneyEntrySheet({
               ))}
             </div>
           )}
+          {locating && <div className="mt-[5px] font-geist text-[0.65625rem] text-m-muted">{t('common.loading')}</div>}
+          {locationError && <div className="mt-[5px] font-geist text-[0.65625rem] text-[color:var(--m-st-danger)]">{locationError}</div>}
         </div>
 
         {/* Mood */}
-        <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.mood')}</div>
-        <div className="flex flex-wrap gap-[6px]">
-          {MOBILE_MOODS.map(m => {
-            const active = mood === m.id
-            return (
-              <button
-                key={m.id}
-                type="button"
-                disabled={readOnly}
-                onClick={() => setMood(active ? '' : m.id)}
-                className={`flex items-center gap-[5px] rounded-full border px-3 py-[7px] text-[0.71875rem] font-semibold ${
-                  active ? '' : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
-                }`}
-                style={active ? { background: `${m.color}24`, color: m.color, borderColor: `${m.color}4D` } : undefined}
-              >
-                <m.icon size={13} strokeWidth={2.2} />
-                {t(m.labelKey)}
-              </button>
-            )
-          })}
-        </div>
+        {!captureOnly && <>
+          <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.mood')}</div>
+          <div className="flex flex-wrap gap-[6px]">
+            {MOBILE_MOODS.map(m => {
+              const active = mood === m.id
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() => setMood(active ? '' : m.id)}
+                  className={`flex items-center gap-[5px] rounded-full border px-3 py-[7px] text-[0.71875rem] font-semibold ${
+                    active ? '' : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
+                  }`}
+                  style={active ? { background: `${m.color}24`, color: m.color, borderColor: `${m.color}4D` } : undefined}
+                >
+                  <m.icon size={13} strokeWidth={2.2} />
+                  {t(m.labelKey)}
+                </button>
+              )
+            })}
+          </div>
+        </>}
 
         {/* Weather */}
         <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.weather')}</div>
@@ -537,7 +590,7 @@ export default function MJourneyEntrySheet({
         </div>
 
         {/* Tags */}
-        {(!readOnly || tags.length > 0) && (
+        {!captureOnly && (!readOnly || tags.length > 0) && (
           <>
             <div className={`${eyebrow} mb-[6px] mt-3`}>{t('mobileJourney.tags')}</div>
             <div className={`flex flex-wrap items-center gap-[6px] px-3 py-2 ${fieldShell} rounded-[14px]`}>
@@ -580,6 +633,15 @@ export default function MJourneyEntrySheet({
           >
             <Trash2 size={13} strokeWidth={2} />
             {t('common.delete')}
+          </button>
+        )}
+        {!readOnly && captureOnly && (
+          <button
+            type="button"
+            onClick={() => setCaptureOnly(false)}
+            className="rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
+          >
+            {t('collections.addDetails')}
           </button>
         )}
         <button

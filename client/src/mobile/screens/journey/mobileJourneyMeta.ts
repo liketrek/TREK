@@ -45,6 +45,17 @@ export function weatherMeta(id: string | null | undefined): WeatherMeta | undefi
   return id ? MOBILE_WEATHERS.find(w => w.id === id) : undefined
 }
 
+export function journeyWeatherCategory(main: string, description: string): string {
+  const normalizedMain = main.toLowerCase()
+  const normalizedDescription = description.toLowerCase()
+  if (normalizedMain === 'clear') return 'sunny'
+  if (normalizedMain === 'thunderstorm') return 'stormy'
+  if (normalizedMain === 'snow') return 'cold'
+  if (normalizedMain === 'rain' || normalizedMain === 'drizzle') return 'rainy'
+  if (normalizedDescription.includes('partly') || normalizedDescription.includes('teilweise')) return 'partly'
+  return 'cloudy'
+}
+
 /** Journey cover_image is stored relative — prefix /uploads/ unless it already is. */
 export function journeyCoverSrc(coverImage: string | null | undefined): string | null {
   if (!coverImage) return null
