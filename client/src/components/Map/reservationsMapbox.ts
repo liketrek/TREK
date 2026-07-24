@@ -51,6 +51,11 @@ function parseInTz(isoLocal: string, tz: string): number {
   const [y, mo, d] = datePart.split('-').map(Number)
   const [h, mi] = (timePart || '00:00').split(':').map(Number)
   const guess = Date.UTC(y, mo - 1, d, h, mi)
+  // A malformed date/time (e.g. an imported booking whose time is missing its
+  // minutes) makes Date.UTC NaN; bail before formatToParts, which throws on a
+  // non-finite date and would blank the whole trip. computeDuration's finiteness
+  // check then drops the duration cleanly.
+  if (!Number.isFinite(guess)) return NaN
   const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: tz, hour12: false,
     year: 'numeric', month: '2-digit', day: '2-digit',
