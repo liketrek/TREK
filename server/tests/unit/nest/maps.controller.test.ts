@@ -98,11 +98,11 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       expect(pois).not.toHaveBeenCalled();
     });
 
-    it('delegates a valid request with a parsed numeric bbox', async () => {
+    it('delegates a valid request with a parsed numeric bbox and forwards lang', async () => {
       const pois = vi.fn().mockResolvedValue({ places: [] });
-      const res = await makeController({ pois }).pois('cafe', '1', '2', '3', '4');
+      const res = await makeController({ pois }).pois('cafe', '1', '2', '3', '4', 'fr');
       expect(res).toEqual({ places: [] });
-      expect(pois).toHaveBeenCalledWith('cafe', { south: 1, west: 2, north: 3, east: 4 });
+      expect(pois).toHaveBeenCalledWith('cafe', { south: 1, west: 2, north: 3, east: 4 }, 'fr');
     });
 
     it('maps a service error, defaulting to 500', async () => {
