@@ -93,6 +93,28 @@ describe('ReservationMapboxOverlay road routes (#1425)', () => {
   })
 })
 
+// A flight whose endpoints carry a malformed local_time (an imported booking
+// missing the minutes) plus timezones, so computeDuration takes the parseInTz
+// path. Pre-fix, Date.UTC → NaN and formatToParts threw mid-render (#1620).
+function malformedTimeFlight(): Reservation {
+  return {
+    id: 3, type: 'flight', status: 'confirmed',
+    reservation_time: '2024-01-15T22', reservation_end_time: '2024-01-16T08',
+    endpoints: [
+      { role: 'from', sequence: 0, name: 'JFK', code: 'JFK', lat: 40.6, lng: -73.8, timezone: 'America/New_York', local_date: '2024-01-15', local_time: '22' },
+      { role: 'to', sequence: 1, name: 'LHR', code: 'LHR', lat: 51.5, lng: -0.5, timezone: 'Europe/London', local_date: '2024-01-16', local_time: '08' },
+    ],
+  } as unknown as Reservation
+}
+
+describe('ReservationMapboxOverlay malformed times (#1620)', () => {
+  it('renders a flight with a malformed time instead of throwing on formatToParts', () => {
+    const map = fakeMap()
+    const overlay = new ReservationMapboxOverlay(map as never, opts, FakeMarker as never)
+    expect(() => overlay.update([malformedTimeFlight()], opts)).not.toThrow()
+  })
+})
+
 describe('ReservationMapboxOverlay transit routes (#1570)', () => {
   it('draws a transit journey with real geometry even when its stations project close together', () => {
     const map = fakeMap()
