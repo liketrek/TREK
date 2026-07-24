@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import type { ReservationTraveler } from '@trek/shared'
+import { avatarSrc } from '../../../../utils/avatarSrc'
+import GuestBadge from '../../../../components/shared/GuestBadge'
 
 /**
  * Scroll body shared by the list-style trip tabs (transports, bookings, costs,
@@ -88,4 +91,42 @@ export function Field({ label, children, className = '', tabular = false }: {
 /** 7px status dot; `color` is a --m-st-* token from STATUS_COLOR. */
 export function StatusDot({ color }: { color: string }) {
   return <span className="h-[7px] w-[7px] flex-none rounded-full" style={{ background: color }} />
+}
+
+/**
+ * Read-only avatar-chip cluster for a reservation's assigned travelers (#1517).
+ * The mobile transport / booking cards only display them — assignment editing
+ * lives in the reservation sheet, so there is no picker here. Reuses the shared
+ * avatarSrc + GuestBadge like the cost member chips; renders nothing when nobody
+ * is assigned. `label` comes from 'reservations.travelers.label'.
+ */
+export function TravelerAvatars({ travelers, label }: {
+  travelers: ReservationTraveler[]
+  label: string
+}) {
+  if (travelers.length === 0) return null
+  return (
+    <div className="mt-2">
+      <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
+        {label}
+      </div>
+      <div className="flex flex-wrap items-center gap-[6px]">
+        {travelers.map(tv => {
+          const src = tv.avatar_url || avatarSrc(tv.avatar)
+          return (
+            <span
+              key={tv.user_id}
+              className="flex items-center gap-[6px] rounded-full border border-[color:var(--m-rowbr)] bg-m-card py-[3px] pl-[3px] pr-[10px]"
+            >
+              <span className="flex h-[20px] w-[20px] flex-none items-center justify-center overflow-hidden rounded-full bg-m-act text-[0.5625rem] font-extrabold text-m-actfg">
+                {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : tv.username?.[0]?.toUpperCase()}
+              </span>
+              <span className="truncate text-[0.71875rem] font-semibold text-m-ink">{tv.username}</span>
+              {!!tv.is_guest && <GuestBadge size="xs" />}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
 }

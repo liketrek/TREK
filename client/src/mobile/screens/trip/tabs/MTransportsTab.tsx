@@ -7,7 +7,7 @@ import { openFile } from '../../../../utils/fileDownload'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import MConfirmSheet from '../../settings/MConfirmSheet'
-import { CountPill, Field, SectionHeader, StatusDot, TabScroller } from './tabChrome'
+import { CountPill, Field, SectionHeader, StatusDot, TabScroller, TravelerAvatars } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import {
   TRANSPORT_TYPE_COLOR,
@@ -246,6 +246,8 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
               ))}
             </div>
           )}
+
+          <TravelerAvatars travelers={res.travelers || []} label={t('reservations.travelers.label')} />
 
           {files.length > 0 && (
             <div className="mt-2">
