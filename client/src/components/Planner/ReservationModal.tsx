@@ -105,6 +105,14 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
     [days, assignments, t, locale]
   )
 
+  // Restrict non-hotel booking dates to the trip's span (#1662). Hotels already
+  // constrain to trip days via their day dropdowns. Falls back to no limit when
+  // the trip has no dated days.
+  const tripDateRange = useMemo(() => {
+    const dates = (days || []).map(d => d.date).filter((d): d is string => !!d).sort()
+    return { min: dates[0], max: dates[dates.length - 1] }
+  }, [days])
+
   useEffect(() => {
     // Match an existing place by name (exact, then loose contains) for hotels.
     const matchPlaceId = (name: string | undefined): string | number => {
@@ -448,6 +456,8 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                     const [, tm] = (form.reservation_time || '').split('T')
                     set('reservation_time', d ? (tm ? `${d}T${tm}` : d) : '')
                   }}
+                  min={tripDateRange.min}
+                  max={tripDateRange.max}
                 />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -469,6 +479,8 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                 <CustomDatePicker
                   value={form.end_date}
                   onChange={d => set('end_date', d || '')}
+                  min={tripDateRange.min}
+                  max={tripDateRange.max}
                 />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

@@ -142,6 +142,12 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     badge: fmtDate(d.date),
   }))
 
+  // Restrict non-hotel booking dates to the trip's span (#1662); hotels already
+  // constrain to trip days via their day dropdowns.
+  const tripDates = days.map(d => d.date).filter((d): d is string => !!d).sort()
+  const tripMinDate = tripDates[0]
+  const tripMaxDate = tripDates[tripDates.length - 1]
+
   const handleClose = () => {
     if (importReviewActive) { advanceImportReview(); return }
     setShowReservationModal(false)
@@ -268,6 +274,8 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
                 <CustomDatePicker
                   value={startDate}
                   onChange={d => set('reservation_time', d ? (startTime ? `${d}T${startTime}` : d) : '')}
+                  min={tripMinDate}
+                  max={tripMaxDate}
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -284,7 +292,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <div className="mt-2 flex gap-2">
               <div className="min-w-0 flex-[1.2]">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.endDate')}</Eyebrow>
-                <CustomDatePicker value={form.end_date} onChange={d => set('end_date', d || '')} />
+                <CustomDatePicker value={form.end_date} onChange={d => set('end_date', d || '')} min={tripMinDate} max={tripMaxDate} />
               </div>
               <div className="min-w-0 flex-1">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.endTime')}</Eyebrow>

@@ -19,6 +19,10 @@ interface CustomDatePickerProps {
   style?: React.CSSProperties;
   compact?: boolean;
   borderless?: boolean;
+  // Optional inclusive ISO (YYYY-MM-DD) bounds. Dates outside the range are
+  // disabled in the calendar and rejected on manual entry.
+  min?: string;
+  max?: string;
 }
 
 export function CustomDatePicker({
@@ -28,6 +32,8 @@ export function CustomDatePicker({
   style = {},
   compact = false,
   borderless = false,
+  min,
+  max,
 }: CustomDatePickerProps) {
   const { locale, t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -55,6 +61,12 @@ export function CustomDatePicker({
       if (parsed) {
         setViewYear(parsed.getUTCFullYear());
         setViewMonth(parsed.getUTCMonth());
+      } else if (min || max) {
+        // No value yet: open on the first in-range month so the user isn't
+        // greeted by an all-disabled calendar.
+        const anchor = new Date((min || max) + 'T00:00:00Z');
+        setViewYear(anchor.getUTCFullYear());
+        setViewMonth(anchor.getUTCMonth());
       }
       setView('days');
     }
@@ -149,11 +161,17 @@ export function CustomDatePicker({
       })
     : '';
 
+  // Inclusive range check on ISO (YYYY-MM-DD) strings — lexicographic order
+  // matches chronological order for this format.
+  const isOutOfRange = (iso: string) => (!!min && iso < min) || (!!max && iso > max);
+
   const selectDay = (day: number) => {
     const y = String(viewYear);
     const m = String(viewMonth + 1).padStart(2, '0');
     const d = String(day).padStart(2, '0');
-    onChange(`${y}-${m}-${d}`);
+    const iso = `${y}-${m}-${d}`;
+    if (isOutOfRange(iso)) return;
+    onChange(iso);
     setOpen(false);
   };
 
@@ -183,6 +201,7 @@ export function CustomDatePicker({
 
     // Try ISO first — always works
     if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+      if (isOutOfRange(input)) return;
       onChange(input);
       return;
     }
@@ -218,7 +237,9 @@ export function CustomDatePicker({
     }
     const year = y < 100 ? 2000 + y : y;
     if (m < 1 || m > 12 || d < 1 || d > 31) return;
-    onChange(`${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    const iso = `${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    if (isOutOfRange(iso)) return;
+    onChange(iso);
   };
 
   const gridCellStyle = (selected: boolean, current: boolean): React.CSSProperties => ({
@@ -465,6 +486,7 @@ export function CustomDatePicker({
                     const sel = d === selectedDay;
                     const td = isToday(d);
                     const isoDate = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const disabled = isOutOfRange(isoDate);
                     const ariaLabel = new Date(isoDate + 'T00:00:00Z').toLocaleDateString(locale, {
                       day: 'numeric',
                       month: 'long',
@@ -476,6 +498,7 @@ export function CustomDatePicker({
                         key={d}
                         type="button"
                         onClick={() => selectDay(d)}
+                        disabled={disabled}
                         aria-label={ariaLabel}
                         aria-pressed={sel}
                         style={{
@@ -486,9 +509,10 @@ export function CustomDatePicker({
                           alignItems: 'center',
                           justifyContent: 'center',
                           ...gridCellStyle(sel, td),
+                          ...(disabled ? { opacity: 0.3, cursor: 'not-allowed' } : {}),
                         }}
                         onMouseEnter={(e) => {
-                          if (!sel) e.currentTarget.style.background = 'var(--bg-hover)';
+                          if (!sel && !disabled) e.currentTarget.style.background = 'var(--bg-hover)';
                         }}
                         onMouseLeave={(e) => {
                           if (!sel) e.currentTarget.style.background = 'transparent';
