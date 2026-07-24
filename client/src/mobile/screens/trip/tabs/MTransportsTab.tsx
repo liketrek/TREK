@@ -7,7 +7,7 @@ import { openFile } from '../../../../utils/fileDownload'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import MConfirmSheet from '../../settings/MConfirmSheet'
-import { CountPill, Field, SectionHeader, StatusDot, TabScroller, TravelerAvatars } from './tabChrome'
+import { CountPill, Field, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import {
   TRANSPORT_TYPE_COLOR,
@@ -26,9 +26,13 @@ import {
  */
 export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
   const { t, reservations, days } = planner
-  const transports = reservations.filter(r => planner.TRANSPORT_TYPES.has(r.type))
+  const [travelerFilter, setTravelerFilter] = useState<Set<number>>(new Set())
+  const allTransports = reservations.filter(r => planner.TRANSPORT_TYPES.has(r.type))
+  const transports = travelerFilter.size === 0 ? allTransports : allTransports.filter(r => (r.travelers || []).some(tv => travelerFilter.has(tv.user_id)))
   const groups = groupTransports(transports, days)
   const canEdit = planner.can('day_edit', planner.trip)
+  const showTravelerFilter = planner.tripMembers.length > 1 && allTransports.some(r => (r.travelers || []).length > 0)
+  const toggleTravelerFilter = (id: number) => setTravelerFilter(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const toggle = (id: string) => setCollapsed(c => ({ ...c, [id]: !c[id] }))
@@ -39,20 +43,17 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
     { id: 'transit', label: t('reservations.type.transit'), rows: groups.transit },
   ].filter(s => s.rows.length > 0)
 
-  if (sections.length === 0) {
-    return (
-      <TabScroller>
+  return (
+    <TabScroller>
+      {showTravelerFilter && (
+        <TravelerFilterRow members={planner.tripMembers} active={travelerFilter} onToggle={toggleTravelerFilter} label={t('reservations.travelers.label')} />
+      )}
+      {sections.length === 0 ? (
         <div className="flex min-h-full flex-col items-center justify-center px-8 py-10 text-center">
           <MDancingTrek scene="transport" className="mb-2" />
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('mobileTrip.transportsEmpty')}</p>
         </div>
-      </TabScroller>
-    )
-  }
-
-  return (
-    <TabScroller>
-      {sections.map(section => (
+      ) : sections.map(section => (
         <div key={section.id}>
           <SectionHeader
             label={section.label}
