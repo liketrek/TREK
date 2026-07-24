@@ -396,19 +396,59 @@
 
 .fz-beacon-dismiss {
   position: absolute;
-  top: 8px;
-  inset-inline-start: 8px;
-  z-index: 2;
+  top: 10px;
+  inset-inline-end: 10px;
+  z-index: 3;
   display: inline-flex;
+  align-items: center;
   padding: 5px;
   border: none;
   border-radius: 999px;
-  background: transparent;
-  color: rgba(245, 240, 225, 0.4);
+  background: rgba(8, 10, 16, 0.4);
+  color: rgba(245, 240, 225, 0.55);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
+  opacity: 0;
+  backdrop-filter: blur(4px);
+  transition: opacity 0.3s ease, color 0.2s, background 0.2s;
 }
 
-.fz-beacon-dismiss:hover { color: rgba(245, 240, 225, 0.85); }
+/* Stays out of the way until the card is hovered or the button is focused. */
+.fz-beacon:hover .fz-beacon-dismiss,
+.fz-beacon-dismiss:focus-visible { opacity: 1; }
+
+.fz-beacon-dismiss:hover { color: #fff; background: rgba(8, 10, 16, 0.65); }
+
+/* Armed confirm: a clear, deliberate red pill — this click is permanent. */
+.fz-beacon-dismiss-confirm {
+  opacity: 1;
+  padding: 5px 11px;
+  background: rgba(200, 60, 45, 0.9);
+  color: #fff;
+}
+
+.fz-beacon-dismiss-confirm:hover { background: rgba(214, 68, 52, 0.95); }
+
+/* White retirement badge at the foot of the card: viewable until Aug 23. */
+.fz-beacon-until {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 3;
+  pointer-events: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1a1712;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
 
 /* While the show runs: no floating dashboard chrome above it, no page scroll. */
 body.fz-show-open { overflow: hidden; }

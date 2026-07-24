@@ -1,12 +1,19 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Play } from 'lucide-react'
+import { Play, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
-import { noFearCopy } from './noFearLines'
+import { noFearChrome, noFearCopy } from './noFearLines'
 import './fourzero.css'
 
 // TREK 4.0.0 release moment — remove together with the FourZero folder.
 
 const NoFearShow = lazy(() => import('./NoFearShow'))
+
+// The moment retires itself. Last day it shows: 2026-08-23 (local midnight after
+// it ends the run). After that the beacon renders nothing even if the folder is
+// still in the build — so self-hosters who don't update past this version still
+// see it disappear on time. The end date holds regardless of updates.
+const VISIBLE_UNTIL = new Date('2026-08-24T00:00:00').getTime()
+const DISMISS_KEY = 'trek.fourzero.dismissed'
 
 // Abstract night-world for the teaser: light points loosely shaped like the
 // inhabited continents (relative coords), between which golden arcs travel.
@@ -123,7 +130,20 @@ function TeaserCanvas() {
 export default function NoFearBeacon() {
   const { language } = useTranslation()
   const copy = noFearCopy(language)
+  const chrome = noFearChrome(language)
   const [open, setOpen] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(DISMISS_KEY) === '1' } catch { return false }
+  })
+
+  // Past the end date, or dismissed for good — nothing renders.
+  if (dismissed || Date.now() >= VISIBLE_UNTIL) return null
+
+  const dismiss = () => {
+    try { localStorage.setItem(DISMISS_KEY, '1') } catch { /* private mode — hide for this session at least */ }
+    setDismissed(true)
+  }
 
   return (
     <>
@@ -135,6 +155,21 @@ export default function NoFearBeacon() {
           <span className="fz-beacon-sub" style={{ color: 'rgba(245, 240, 225, 0.75)' }}>{copy.beaconSub}</span>
           <span className="fz-beacon-playbtn" aria-hidden><Play size={16} fill="currentColor" /></span>
         </button>
+        {/* Top-right X: two-step so a stray click can't retire the moment for good.
+            Dismissing is permanent (localStorage) — only an update brings it back. */}
+        <button
+          type="button"
+          className={`fz-beacon-dismiss ${confirming ? 'fz-beacon-dismiss-confirm' : ''}`}
+          aria-label={chrome.dismiss}
+          title={chrome.dismiss}
+          onClick={() => (confirming ? dismiss() : setConfirming(true))}
+          onMouseLeave={() => setConfirming(false)}
+          onBlur={() => setConfirming(false)}
+        >
+          {confirming ? chrome.confirm : <X size={15} />}
+        </button>
+        {/* White retirement badge: viewable until Aug 23. */}
+        <span className="fz-beacon-until">{chrome.until}</span>
       </div>
       {open && (
         <Suspense fallback={null}>

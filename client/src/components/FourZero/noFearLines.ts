@@ -789,3 +789,45 @@ export const ANTHEM_CASCADE: { lang: string; text: string }[] = [
 ]
 
 export const INSPIRED_URL = 'https://www.youtube.com/watch?v=Gg-SCpXba64'
+
+// The beacon retires itself after the release window. The white "viewable until"
+// badge and the dismiss copy live in one compact table so the 23 language blocks
+// above stay untouched — and it all still leaves with the folder.
+interface NoFearChrome {
+  /** The white badge: this moment is viewable until Aug 23. */
+  until: string
+  /** aria-label / title of the top-right X. */
+  dismiss: string
+  /** Armed confirm label — a stray click must not retire it for good. */
+  confirm: string
+}
+
+const CHROME: Record<string, NoFearChrome> = {
+  de: { until: 'Noch bis 23.08. zu sehen', dismiss: 'Ausblenden', confirm: 'Dauerhaft ausblenden?' },
+  en: { until: 'Shown until Aug 23', dismiss: 'Dismiss', confirm: 'Hide for good?' },
+  es: { until: 'Visible hasta el 23 ago', dismiss: 'Ocultar', confirm: '¿Ocultar para siempre?' },
+  fr: { until: 'Visible jusqu’au 23 août', dismiss: 'Masquer', confirm: 'Masquer définitivement ?' },
+  it: { until: 'Visibile fino al 23 ago', dismiss: 'Nascondi', confirm: 'Nascondere per sempre?' },
+  nl: { until: 'Te zien tot 23 aug', dismiss: 'Verbergen', confirm: 'Voorgoed verbergen?' },
+  pl: { until: 'Widoczne do 23 sierpnia', dismiss: 'Ukryj', confirm: 'Ukryć na zawsze?' },
+  ru: { until: 'Показывается до 23 августа', dismiss: 'Скрыть', confirm: 'Скрыть навсегда?' },
+  uk: { until: 'Доступно до 23 серпня', dismiss: 'Сховати', confirm: 'Сховати назавжди?' },
+  cs: { until: 'K vidění do 23. srpna', dismiss: 'Skrýt', confirm: 'Skrýt natrvalo?' },
+  sv: { until: 'Visas till 23 aug', dismiss: 'Dölj', confirm: 'Dölj för gott?' },
+  tr: { until: '23 Ağustos’a kadar görünür', dismiss: 'Gizle', confirm: 'Kalıcı olarak gizlensin mi?' },
+  gr: { until: 'Έως 23 Αυγούστου', dismiss: 'Απόκρυψη', confirm: 'Μόνιμη απόκρυψη;' },
+  hu: { until: 'Augusztus 23-ig látható', dismiss: 'Elrejtés', confirm: 'Végleg elrejti?' },
+  br: { until: 'Visível até 23 de ago', dismiss: 'Ocultar', confirm: 'Ocultar para sempre?' },
+  ca: { until: 'Visible fins al 23 d’ag.', dismiss: 'Amaga', confirm: 'Amagar per sempre?' },
+  id: { until: 'Tampil hingga 23 Agu', dismiss: 'Sembunyikan', confirm: 'Sembunyikan selamanya?' },
+  vi: { until: 'Hiển thị đến 23 tháng 8', dismiss: 'Ẩn', confirm: 'Ẩn vĩnh viễn?' },
+  ja: { until: '8月23日まで公開', dismiss: '非表示', confirm: '完全に非表示にしますか？' },
+  ko: { until: '8월 23일까지 표시', dismiss: '숨기기', confirm: '영구히 숨기시겠어요?' },
+  zh: { until: '展示至 8月23日', dismiss: '隐藏', confirm: '永久隐藏？' },
+  ar: { until: 'يظهر حتى 23 أغسطس', dismiss: 'إخفاء', confirm: 'إخفاء نهائيًا؟' },
+  'zh-TW': { until: '展示至 8月23日', dismiss: '隱藏', confirm: '永久隱藏？' },
+}
+
+export function noFearChrome(language: string): NoFearChrome {
+  return CHROME[language] ?? CHROME.en
+}
