@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FileText, Hotel, Link2, ParkingSquare, Plus, Ticket, Users, Utensils } from 'lucide-react'
+import { Check, FileText, Hotel, Link2, ParkingSquare, Plus, Ticket, Users, Utensils } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
@@ -10,6 +10,10 @@ import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import PlFileAttach from './PlFileAttach'
+import GuestBadge from '../../../../components/shared/GuestBadge'
+import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
+import { useTripStore } from '../../../../store/tripStore'
+import type { TripMember } from '../../../../types'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import type { TripPlanner } from '../MTripShell'
 
@@ -26,6 +30,9 @@ const TYPE_OPTIONS = [
   { value: 'parking', labelKey: 'reservations.type.parking', Icon: ParkingSquare },
   { value: 'other', labelKey: 'reservations.type.other', Icon: FileText },
 ]
+
+// Traveler picker row — same surface as the cost-split rows (bg on --m-ic).
+const TRAVELER_ROW_CLS = 'flex w-full items-center gap-[9px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-left'
 
 const EMPTY = {
   title: '', type: 'other', status: 'pending',
@@ -45,7 +52,7 @@ const EMPTY = {
  */
 export default function MReservationSheet({ planner, onOpenExpense }: MReservationSheetProps) {
   const {
-    t, toast, tripId, days, places, tripAccommodations, selectedDayId,
+    t, toast, tripId, days, places, tripAccommodations, tripMembers, selectedDayId,
     showReservationModal, setShowReservationModal,
     editingReservation, setEditingReservation, reservationPrefill,
     bookingForAssignmentId, setBookingForAssignmentId,
@@ -53,11 +60,15 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     handleSaveReservation, canUploadFiles, tripActions,
   } = planner
   const { locale } = useTranslation()
+  const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
 
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
 
   const [form, setForm] = useState(EMPTY)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  // Travelers assigned to this booking (#1517) — seeded from the editing
+  // reservation on open, persisted separately after the save resolves.
+  const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set())
   const [isSaving, setIsSaving] = useState(false)
   // Ref (not state) so handleSubmit reads the intent set by the same click.
   const expenseIntentRef = useRef(false)
@@ -71,6 +82,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     setSnap({ res: editingReservation, assignmentId: bookingForAssignmentId ?? null })
     expenseIntentRef.current = false
     setPendingFiles([])
+    setTravelerIds(new Set((editingReservation?.travelers || []).map(tv => tv.user_id)))
 
     const res = editingReservation
     if (res) {
@@ -121,6 +133,26 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   const res = snap.res
   const isHotel = form.type === 'hotel'
   const set = (field: keyof typeof EMPTY, value: string | number) => setForm(prev => ({ ...prev, [field]: value }))
+
+  const toggleTraveler = (id: number) => setTravelerIds(prev => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
+
+  const TravelerAvatar = ({ m, idx, dim }: { m: TripMember; idx: number; dim: boolean }) =>
+    m.avatar_url
+      ? <img src={m.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, opacity: dim ? 0.45 : 1 }} />
+      : (
+        <span
+          style={{
+            width: 22, height: 22, borderRadius: '50%', background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient,
+            color: '#fff', display: 'grid', placeItems: 'center', fontSize: 8.8, fontWeight: 700, flexShrink: 0, opacity: dim ? 0.45 : 1,
+          }}
+        >
+          {(m.username || '?').charAt(0).toUpperCase()}
+        </span>
+      )
 
   const isEndBeforeStart = (() => {
     if (isHotel || !form.end_date || !form.reservation_time) return false
@@ -194,6 +226,15 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         }
       }
       const saved = await handleSaveReservation(saveData as never)
+      // Persist the traveler assignment once we have the reservation id (from the
+      // save result on create, or the edited reservation) — only when it changed.
+      const savedId = saved?.id ?? res?.id
+      if (savedId) {
+        const original = (res?.travelers || []).map(tv => tv.user_id)
+        const next = [...travelerIds]
+        const changed = original.length !== next.length || next.some(id => !original.includes(id))
+        if (changed) await setReservationTravelers(tripId, savedId, next)
+      }
       if (!res?.id && saved?.id && pendingFiles.length > 0 && canUploadFiles) {
         for (const file of pendingFiles) {
           const fd = new FormData()
@@ -460,6 +501,31 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
           placeholder={t('reservations.notesPlaceholder')}
           className={FIELD_AREA_CLS}
         />
+
+        {/* TRAVELERS */}
+        <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.travelers.label')}</Eyebrow>
+        {tripMembers.length === 0 ? (
+          <div className="text-[0.71875rem] text-m-faint">{t('reservations.travelers.none')}</div>
+        ) : (
+          <div className="flex flex-col gap-[6px]">
+            {tripMembers.map((m, idx) => {
+              const on = travelerIds.has(m.id)
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => toggleTraveler(m.id)}
+                  className={`${TRAVELER_ROW_CLS} ${on ? '' : 'opacity-60'}`}
+                >
+                  <TravelerAvatar m={m} idx={idx} dim={!on} />
+                  <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-m-ink">{m.username}</span>
+                  {m.is_guest && <GuestBadge size="xs" />}
+                  {on && <Check size={15} strokeWidth={2.4} className="flex-none text-m-act" />}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* FILES */}
         {canUploadFiles && (

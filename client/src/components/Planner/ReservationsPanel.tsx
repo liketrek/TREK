@@ -623,6 +623,11 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
           </span>
         </div>
       )}
+      {r.travelers && r.travelers.length > 0 && (
+        <div style={{ paddingLeft: 44 }} onClick={e => e.stopPropagation()}>
+          <TravelerChips travelers={r.travelers} onSetTravelers={() => {}} readOnly compact={false} />
+        </div>
+      )}
       <PluginCardFooter items={contributions} tripId={tripId} />
       {/* Reservation-detail plugin slots: sandboxed, scoped to this journey. The
           card itself is clickable, so keep frame interactions from opening it. */}
@@ -705,11 +710,31 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
     })
   }
 
+  // Filter by assigned traveler (#1517, #1557), persisted alongside the type filter.
+  const [travelerFilters, setTravelerFilters] = useState<Set<number>>(() => {
+    try {
+      const saved = sessionStorage.getItem(`${storageKey}-travelers`)
+      return saved ? new Set<number>(JSON.parse(saved)) : new Set<number>()
+    } catch { return new Set<number>() }
+  })
+  const toggleTravelerFilter = (userId: number) => {
+    setTravelerFilters(prev => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId); else next.add(userId)
+      sessionStorage.setItem(`${storageKey}-travelers`, JSON.stringify([...next]))
+      return next
+    })
+  }
+
   const assignmentLookup = useMemo(() => buildAssignmentLookup(days, assignments), [days, assignments])
 
-  const filtered = useMemo(() =>
-    typeFilters.size === 0 ? reservations : reservations.filter(r => typeFilters.has(r.type)),
-  [reservations, typeFilters])
+  const filtered = useMemo(() => {
+    let list = typeFilters.size === 0 ? reservations : reservations.filter(r => typeFilters.has(r.type))
+    if (travelerFilters.size > 0) {
+      list = list.filter(r => (r.travelers || []).some(tv => travelerFilters.has(tv.user_id)))
+    }
+    return list
+  }, [reservations, typeFilters, travelerFilters])
 
   // Chronological order (#1507): day-linked transports often carry no date in
   // reservation_time, so resolve each entry to an effective departure datetime —
@@ -816,6 +841,31 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                 })}
               </div>
             </>
+          )}
+
+          {/* Filter by traveler — members/guests assigned to bookings (#1517/#1557). */}
+          {tripMembers.length > 1 && reservations.some(r => (r.travelers || []).length > 0) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }} title={t('reservations.travelers.label')}>
+              {tripMembers.map(tm => {
+                const active = travelerFilters.has(tm.id)
+                return (
+                  <button key={tm.id} type="button" onClick={() => toggleTravelerFilter(tm.id)} title={tm.username}
+                    style={{
+                      width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', padding: 0, flexShrink: 0,
+                      border: active ? '2px solid var(--accent)' : '2px solid var(--border-primary)',
+                      background: 'var(--bg-tertiary)', overflow: 'hidden',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
+                      opacity: active || travelerFilters.size === 0 ? 1 : 0.45,
+                      transition: 'opacity 0.15s, border-color 0.15s',
+                    }}>
+                    {tm.avatar_url
+                      ? <img src={tm.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                      : tm.username?.[0]?.toUpperCase()}
+                  </button>
+                )
+              })}
+            </div>
           )}
 
           {canEdit && (
