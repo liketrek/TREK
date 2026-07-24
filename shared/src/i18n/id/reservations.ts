@@ -170,5 +170,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Tautan',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Peserta',
+  'reservations.travelers.assign': 'Tetapkan peserta',
+  'reservations.travelers.none': 'Belum ada anggota perjalanan.',
 };
 export default reservations;

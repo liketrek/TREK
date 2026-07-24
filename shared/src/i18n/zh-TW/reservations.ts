@@ -169,5 +169,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': '連結',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': '出行成員',
+  'reservations.travelers.assign': '指派成員',
+  'reservations.travelers.none': '行程中尚無成員。',
 };
 export default reservations;

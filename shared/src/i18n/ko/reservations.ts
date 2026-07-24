@@ -170,5 +170,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': '링크',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': '동행자',
+  'reservations.travelers.assign': '동행자 지정',
+  'reservations.travelers.none': '아직 여행 멤버가 없습니다.',
 };
 export default reservations;

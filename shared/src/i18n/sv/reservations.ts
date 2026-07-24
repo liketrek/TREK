@@ -171,5 +171,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Ta bort utgiften',
   'reservations.urlLabel': 'Länk',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Resenärer',
+  'reservations.travelers.assign': 'Tilldela resenärer',
+  'reservations.travelers.none': 'Inga resedeltagare ännu.',
 };
 export default reservations;

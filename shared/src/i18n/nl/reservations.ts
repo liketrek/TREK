@@ -172,5 +172,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Kostenpost verwijderen',
   'reservations.urlLabel': 'Link',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Reizigers',
+  'reservations.travelers.assign': 'Reizigers toewijzen',
+  'reservations.travelers.none': 'Nog geen reisgenoten in deze reis.',
 };
 export default reservations;

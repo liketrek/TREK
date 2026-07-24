@@ -173,5 +173,8 @@ const reservations: TranslationStrings = {
   'reservations.linkedExpense': 'Despesa vinculada',
   'reservations.removeExpense': 'Eliminar despesa',
   'reservations.airtrail.joinConnection': 'Importar com un sol vol amb escala a {stops}',
+  'reservations.travelers.label': 'Viatgers',
+  'reservations.travelers.assign': 'Assigna viatgers',
+  'reservations.travelers.none': 'Encara no hi ha viatgers al viatge.',
 };
 export default reservations;

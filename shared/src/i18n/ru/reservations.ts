@@ -170,5 +170,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Ссылка',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Путешественники',
+  'reservations.travelers.assign': 'Назначить путешественников',
+  'reservations.travelers.none': 'В поездке пока нет участников.',
 };
 export default reservations;

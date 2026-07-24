@@ -170,5 +170,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'リンク',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': '同行者',
+  'reservations.travelers.assign': '同行者を割り当て',
+  'reservations.travelers.none': 'まだ旅行メンバーがいません。',
 };
 export default reservations;

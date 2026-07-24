@@ -173,5 +173,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Xóa chi phí',
   'reservations.urlLabel': 'Liên kết',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Người đi',
+  'reservations.travelers.assign': 'Chỉ định người đi',
+  'reservations.travelers.none': 'Chưa có thành viên nào trong chuyến đi.',
 };
 export default reservations;

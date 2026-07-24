@@ -172,5 +172,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Bağlantı',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Yolcular',
+  'reservations.travelers.assign': 'Yolcu ata',
+  'reservations.travelers.none': 'Henüz gezi üyesi yok.',
 };
 export default reservations;

@@ -174,5 +174,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Hivatkozás',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Utasok',
+  'reservations.travelers.assign': 'Utasok hozzárendelése',
+  'reservations.travelers.none': 'Még nincsenek utastársak.',
 };
 export default reservations;
