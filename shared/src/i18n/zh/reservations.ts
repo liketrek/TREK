@@ -169,5 +169,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': '移除关联支出',
   'reservations.urlLabel': '链接',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': '出行人',
+  'reservations.travelers.assign': '分配出行人',
+  'reservations.travelers.none': '行程中暂无成员。',
 };
 export default reservations;

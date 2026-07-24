@@ -174,5 +174,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Σύνδεσμος',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Ταξιδιώτες',
+  'reservations.travelers.assign': 'Ανάθεση ταξιδιωτών',
+  'reservations.travelers.none': 'Δεν υπάρχουν ακόμη μέλη στο ταξίδι.',
 };
 export default reservations;

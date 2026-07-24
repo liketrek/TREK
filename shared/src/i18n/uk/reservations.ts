@@ -170,5 +170,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Посилання',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Мандрівники',
+  'reservations.travelers.assign': 'Призначити мандрівників',
+  'reservations.travelers.none': 'Поки немає учасників подорожі.',
 };
 export default reservations;

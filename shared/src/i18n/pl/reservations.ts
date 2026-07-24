@@ -171,5 +171,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Link',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Podróżni',
+  'reservations.travelers.assign': 'Przypisz podróżnych',
+  'reservations.travelers.none': 'Brak podróżnych w wyprawie.',
 };
 export default reservations;
