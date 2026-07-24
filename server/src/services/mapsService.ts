@@ -437,6 +437,7 @@ async function overpassFetch(query: string): Promise<OverpassPoiElement[]> {
 export async function searchOverpassPois(
   category: string,
   bbox: { south: number; west: number; north: number; east: number },
+  lang?: string,
   limit = 60,
 ): Promise<PoiSearchResult> {
   const filters = CATEGORY_OSM_FILTERS[category];
@@ -459,8 +460,15 @@ export async function searchOverpassPois(
     clamped = true;
   }
 
+  // OSM `name:*` tags are keyed by language subtag: prefer the user's language
+  // (the same localization the search/autocomplete path asks the geocoder for)
+  // over the native `name`. `int_name` is OSM's international/romanized name — a
+  // sensible fallback before the native one. Part of the cache key so a cached
+  // area isn't served with another language's titles.
+  const osmLang = toApiLang(lang).split('-')[0].toLowerCase();
+
   // Serve repeat pans/toggles of the same area straight from the cache.
-  const cacheKey = `${category}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${limit}`;
+  const cacheKey = `${category}|${osmLang}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${limit}`;
   const cached = POI_CACHE.get(cacheKey);
   if (cached && Date.now() - cached.at < POI_CACHE_TTL_MS) return cached.value;
   if (cached) POI_CACHE.delete(cacheKey); // expired — drop it before refetching
@@ -482,7 +490,7 @@ export async function searchOverpassPois(
   const pois: OverpassPoi[] = [];
   for (const el of elements) {
     const tags = el.tags || {};
-    const name = tags.name || tags['name:en'] || tags.brand || null;
+    const name = tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || null;
     if (!name) continue; // unnamed POIs aren't useful to add to a plan
     const lat = el.lat ?? el.center?.lat;
     const lng = el.lon ?? el.center?.lon;
