@@ -23,7 +23,7 @@ import { usePluginStore, type ActivePlugin } from '../../store/pluginStore'
 import PluginFrame from '../Plugins/PluginFrame'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
 import EmptyState from '../shared/EmptyState'
-import TravelerChips from './TravelerChips'
+import { TravelerAvatarRow, TravelerFilterAvatars } from './TravelerPicker'
 import type { TripMember } from '../Budget/BudgetPanelMemberChips'
 
 interface AssignmentLookupEntry {
@@ -87,12 +87,10 @@ interface ReservationCardProps {
   contributions?: ViewContribution[]
   /** Plugins that declared a reservation-detail slot — mounted at the card's foot, scoped to this reservation. */
   detailPlugins?: ActivePlugin[]
-  /** Trip members + guests, for the traveler picker (#1517). */
-  tripMembers?: TripMember[]
 }
 
-function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateToFiles, assignmentLookup, canEdit, days = [], contributions = [], detailPlugins = [], tripMembers = [] }: ReservationCardProps) {
-  const { toggleReservationStatus, setReservationTravelers } = useTripStore()
+function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateToFiles, assignmentLookup, canEdit, days = [], contributions = [], detailPlugins = [] }: ReservationCardProps) {
+  const { toggleReservationStatus } = useTripStore()
   const toast = useToast()
   const { t, locale } = useTranslation()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
@@ -432,21 +430,16 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             </div>
           </div>
         )}
+        {/* Travelers assigned to this booking — read-only; assignment lives in the edit/create modal (#1517). */}
+        {r.travelers && r.travelers.length > 0 && (
+          <div>
+            <div className={fieldLabelClass}>{t('reservations.travelers.label')}</div>
+            <div className={fieldValueClass}>
+              <TravelerAvatarRow travelers={r.travelers} />
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Travelers this booking is for — members/guests (#1517). */}
-      {(canEdit || (r.travelers && r.travelers.length > 0)) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 12px' }}>
-          <span className={fieldLabelClass} style={{ marginBottom: 0 }}>{t('reservations.travelers.label')}</span>
-          <TravelerChips
-            travelers={r.travelers}
-            tripMembers={tripMembers}
-            onSetTravelers={(ids) => { void setReservationTravelers(tripId, r.id, ids) }}
-            readOnly={!canEdit}
-            compact={false}
-          />
-        </div>
-      )}
 
       <PluginCardFooter items={contributions} tripId={tripId} />
 
@@ -625,7 +618,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
       )}
       {r.travelers && r.travelers.length > 0 && (
         <div style={{ paddingLeft: 44 }} onClick={e => e.stopPropagation()}>
-          <TravelerChips travelers={r.travelers} onSetTravelers={() => {}} readOnly compact={false} />
+          <TravelerAvatarRow travelers={r.travelers} />
         </div>
       )}
       <PluginCardFooter items={contributions} tripId={tripId} />
@@ -845,27 +838,10 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
 
           {/* Filter by traveler — members/guests assigned to bookings (#1517/#1557). */}
           {tripMembers.length > 1 && reservations.some(r => (r.travelers || []).length > 0) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }} title={t('reservations.travelers.label')}>
-              {tripMembers.map(tm => {
-                const active = travelerFilters.has(tm.id)
-                return (
-                  <button key={tm.id} type="button" onClick={() => toggleTravelerFilter(tm.id)} title={tm.username}
-                    style={{
-                      width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', padding: 0, flexShrink: 0,
-                      border: active ? '2px solid var(--accent)' : '2px solid var(--border-primary)',
-                      background: 'var(--bg-tertiary)', overflow: 'hidden',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
-                      opacity: active || travelerFilters.size === 0 ? 1 : 0.45,
-                      transition: 'opacity 0.15s, border-color 0.15s',
-                    }}>
-                    {tm.avatar_url
-                      ? <img src={tm.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                      : tm.username?.[0]?.toUpperCase()}
-                  </button>
-                )
-              })}
-            </div>
+            <>
+              <div className="hidden md:block" style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
+              <TravelerFilterAvatars members={tripMembers} active={travelerFilters} onToggle={toggleTravelerFilter} label={t('reservations.travelers.label')} />
+            </>
           )}
 
           {canEdit && (
@@ -934,12 +910,12 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
             )}
             {allPending.length > 0 && (
               <Section title={t('reservations.pending')} count={allPending.length} accent="gray" storageKey={`trek:bookings-pending-open:${tripId}`}>
-                {allPending.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} contributions={contribFor(r.id)} detailPlugins={reservationDetailPlugins} tripMembers={tripMembers} />)}
+                {allPending.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} contributions={contribFor(r.id)} detailPlugins={reservationDetailPlugins} />)}
               </Section>
             )}
             {allConfirmed.length > 0 && (
               <Section title={t('reservations.confirmed')} count={allConfirmed.length} accent="green" storageKey={`trek:bookings-confirmed-open:${tripId}`}>
-                {allConfirmed.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} contributions={contribFor(r.id)} detailPlugins={reservationDetailPlugins} tripMembers={tripMembers} />)}
+                {allConfirmed.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} contributions={contribFor(r.id)} detailPlugins={reservationDetailPlugins} />)}
               </Section>
             )}
           </>

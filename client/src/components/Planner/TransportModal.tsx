@@ -16,6 +16,8 @@ import apiClient from '../../api/client'
 import type { Day, Place, Accommodation, Reservation, ReservationEndpoint, TripFile, BudgetItem, AssignmentsMap } from '../../types'
 import { parseReservationMetadata, orderedEndpoints } from '../../utils/flightLegs'
 import { BookingCostsSection } from './BookingCostsSection'
+import { TravelerPicker } from './TravelerPicker'
+import type { TripMember } from '../Budget/BudgetPanelMemberChips'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { BookingReviewDraft } from './parsedItemToDraft'
 import TransitSearchPanel, { type PickedPlace } from './TransitSearchPanel'
@@ -160,15 +162,18 @@ interface TransportModalProps {
   tripHasDates?: boolean
   /** Pre-seed the transit search — used by "change route" on an existing journey. */
   transitPrefill?: { from?: PickedPlace | null; to?: PickedPlace | null } | null
+  /** Trip members + guests, for the traveler picker (#1517). */
+  tripMembers?: TripMember[]
 }
 
-export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, places = [], assignments = {}, accommodations = [], initialAutomated = false, transitPrefill = null, tripHasDates = true }: TransportModalProps) {
+export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, places = [], assignments = {}, accommodations = [], initialAutomated = false, transitPrefill = null, tripHasDates = true, tripMembers = [] }: TransportModalProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
   const loadFiles = useTripStore(s => s.loadFiles)
+  const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
   const { id: tripId } = useParams<{ id: string }>()
   // Set right before submitting when the user clicked "create/edit expense", so
   // the post-save handler knows to open the Costs editor for the saved booking.
@@ -187,10 +192,13 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [showFilePicker, setShowFilePicker] = useState(false)
   const [linkedFileIds, setLinkedFileIds] = useState<number[]>([])
+  // Travelers assigned to this booking (#1517) — seeded on open, persisted after save.
+  const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!isOpen) return
+    setTravelerIds(new Set((reservation?.travelers || []).map(tv => tv.user_id)))
     // Edit uses the saved `reservation`; a review-import populates from `prefill`.
     // Either way the init reads the same fields — `reservation` still decides
     // edit-vs-create at submit time.
@@ -316,6 +324,12 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   }, [isOpen, reservation, prefill, selectedDayId, budgetItems])
 
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }))
+
+  const toggleTraveler = (id: number) => setTravelerIds(prev => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -507,6 +521,17 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         }
       }
       const saved = await onSave(payload)
+      // Persist the traveler assignment once we have the reservation id (create → save
+      // result, edit → existing reservation), and only when it actually changed (#1517).
+      const savedId = saved?.id ?? reservation?.id
+      if (savedId && tripId) {
+        const original = (reservation?.travelers || []).map(tv => tv.user_id)
+        const nextIds = [...travelerIds]
+        const changed = original.length !== nextIds.length || nextIds.some(id => !original.includes(id))
+        if (changed) {
+          try { await setReservationTravelers(tripId, savedId, nextIds) } catch { toast.error(t('common.unknownError')) }
+        }
+      }
       if (!reservation?.id && saved?.id && pendingFiles.length > 0 && onFileUpload) {
         for (const file of pendingFiles) {
           const fd = new FormData()
@@ -924,6 +949,12 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2}
             placeholder={t('reservations.notesPlaceholder')}
             className={inputClass} style={{ resize: 'none', lineHeight: 1.5 }} />
+        </div>
+
+        {/* Travelers — assign trip members & guests to this transport (#1517) */}
+        <div>
+          <label className={labelClass}>{t('reservations.travelers.label')}</label>
+          <TravelerPicker tripMembers={tripMembers} selectedIds={travelerIds} onToggle={toggleTraveler} />
         </div>
 
         {/* Files */}
