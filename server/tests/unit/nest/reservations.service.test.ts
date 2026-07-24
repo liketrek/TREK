@@ -23,6 +23,7 @@ const { resv } = vi.hoisted(() => ({
     verifyTripAccess: vi.fn(), listReservations: vi.fn(), createReservation: vi.fn(), updatePositions: vi.fn(),
     getReservation: vi.fn(), updateReservation: vi.fn(), deleteReservation: vi.fn(),
     notifyBookingChange: vi.fn(),
+    setReservationTravelers: vi.fn(), loadTravelers: vi.fn(), getReservationWithJoins: vi.fn(),
   },
 }));
 vi.mock('../../../src/services/reservationService', () => resv);
@@ -53,6 +54,24 @@ describe('ReservationsService', () => {
     expect(resv.getReservation).toHaveBeenCalledWith('9', '5');
     svc().remove('9', '5');
     expect(resv.deleteReservation).toHaveBeenCalledWith('9', '5');
+  });
+
+  describe('setTravelers', () => {
+    it('returns null when the reservation is not on the trip (off-trip guard)', () => {
+      resv.getReservation.mockReturnValue(undefined);
+      expect(svc().setTravelers('9', '5', [2])).toBeNull();
+      expect(resv.setReservationTravelers).not.toHaveBeenCalled();
+    });
+
+    it('assigns travelers and returns the refreshed travelers + reservation', () => {
+      resv.getReservation.mockReturnValue({ id: 9 });
+      const travelers = [{ user_id: 2, username: 'Sam', avatar: null, is_guest: 0 }];
+      resv.loadTravelers.mockReturnValue(travelers);
+      resv.getReservationWithJoins.mockReturnValue({ id: 9, travelers });
+      expect(svc().setTravelers('9', '5', [2])).toEqual({ travelers, reservation: { id: 9, travelers } });
+      expect(resv.setReservationTravelers).toHaveBeenCalledWith('9', '5', [2]);
+      expect(resv.getReservationWithJoins).toHaveBeenCalledWith(9);
+    });
   });
 
   describe('syncBudgetOnCreate', () => {
