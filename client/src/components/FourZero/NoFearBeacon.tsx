@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Play, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { noFearChrome, noFearCopy } from './noFearLines'
 import './fourzero.css'
@@ -153,7 +153,6 @@ export default function NoFearBeacon() {
         <button type="button" className="fz-beacon-play" aria-label={copy.beaconCta} onClick={() => setOpen(true)}>
           <span className="fz-beacon-title">{copy.beaconTitle}</span>
           <span className="fz-beacon-sub" style={{ color: 'rgba(245, 240, 225, 0.75)' }}>{copy.beaconSub}</span>
-          <span className="fz-beacon-playbtn" aria-hidden><Play size={16} fill="currentColor" /></span>
         </button>
         {/* Top-right X: two-step so a stray click can't retire the moment for good.
             Dismissing is permanent (localStorage) — only an update brings it back. */}

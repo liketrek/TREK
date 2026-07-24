@@ -364,36 +364,6 @@
   text-shadow: 0 1px 8px rgba(5, 6, 10, 0.9);
 }
 
-/* The call to action: a cinema play circle with a slow golden pulse. */
-.fz-beacon-playbtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  margin-top: 15px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(255, 205, 130, 0.7);
-  background: radial-gradient(circle at 50% 42%, rgba(255, 195, 110, 0.16), rgba(255, 195, 110, 0.05));
-  color: #ffd694;
-  padding-inline-start: 3px; /* optically centers the triangle */
-  box-shadow: 0 0 22px rgba(255, 190, 105, 0.16);
-  animation: fzPlayPulse 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-  transition: background 0.25s, color 0.25s, border-color 0.25s, transform 0.25s;
-}
-
-@keyframes fzPlayPulse {
-  0% { box-shadow: 0 0 22px rgba(255, 190, 105, 0.16), 0 0 0 0 rgba(255, 200, 120, 0.45); }
-  70%, 100% { box-shadow: 0 0 22px rgba(255, 190, 105, 0.16), 0 0 0 18px rgba(255, 200, 120, 0); }
-}
-
-.fz-beacon:hover .fz-beacon-playbtn {
-  background: #ffd694;
-  border-color: #ffe2ac;
-  color: #14100a;
-  transform: scale(1.08);
-}
-
 .fz-beacon-dismiss {
   position: absolute;
   top: 10px;
