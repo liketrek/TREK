@@ -1,5 +1,6 @@
 import { db } from '../db/database';
 import { Reservation } from '../types';
+import { avatarUrl } from './avatarUrl';
 
 export { verifyTripAccess } from './tripAccess';
 
@@ -71,6 +72,71 @@ function loadEndpoints(reservationId: number): ReservationEndpoint[] {
   return db.prepare(
     'SELECT * FROM reservation_endpoints WHERE reservation_id = ? ORDER BY sequence'
   ).all(reservationId) as ReservationEndpoint[];
+}
+
+// --- Travelers (#1517): trip members / named guests assigned to a booking -----
+
+export interface ReservationTraveler {
+  user_id: number;
+  username: string;
+  avatar: string | null;
+  avatar_url?: string | null;
+  is_guest?: number | null;
+}
+
+const toTraveler = (r: { user_id: number; username: string; avatar: string | null; is_guest?: number | null }): ReservationTraveler =>
+  ({ user_id: r.user_id, username: r.username, avatar: r.avatar, is_guest: r.is_guest ?? null, avatar_url: avatarUrl(r) });
+
+/** Users assignable on a trip: its members (guests included) plus the owner. */
+function assignableUserIds(tripId: string | number): Set<number> {
+  const members = db.prepare('SELECT user_id FROM trip_members WHERE trip_id = ?').all(tripId) as { user_id: number }[];
+  const ids = new Set(members.map(m => m.user_id));
+  const owner = db.prepare('SELECT user_id FROM trips WHERE id = ?').get(tripId) as { user_id: number } | undefined;
+  if (owner) ids.add(owner.user_id);
+  return ids;
+}
+
+export function loadTravelersByTrip(tripId: string | number): Map<number, ReservationTraveler[]> {
+  const rows = db.prepare(`
+    SELECT rt.reservation_id, rt.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar, u.is_guest
+    FROM reservation_travelers rt
+    JOIN reservations r ON rt.reservation_id = r.id
+    JOIN users u ON rt.user_id = u.id
+    WHERE r.trip_id = ?
+    ORDER BY rt.reservation_id
+  `).all(tripId) as (ReservationTraveler & { reservation_id: number })[];
+  const map = new Map<number, ReservationTraveler[]>();
+  for (const row of rows) {
+    const list = map.get(row.reservation_id) ?? [];
+    list.push(toTraveler(row));
+    map.set(row.reservation_id, list);
+  }
+  return map;
+}
+
+export function loadTravelers(reservationId: number | string): ReservationTraveler[] {
+  const rows = db.prepare(`
+    SELECT rt.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar, u.is_guest
+    FROM reservation_travelers rt
+    JOIN users u ON rt.user_id = u.id
+    WHERE rt.reservation_id = ?
+  `).all(reservationId) as ReservationTraveler[];
+  return rows.map(toTraveler);
+}
+
+/**
+ * Replace a reservation's assigned travelers. Only real trip members/guests are
+ * accepted — ids that aren't on the trip are silently dropped so a stale client
+ * can't leak a cross-trip user. #1517.
+ */
+export function setReservationTravelers(reservationId: number | string, tripId: string | number, userIds: number[]): void {
+  const allowed = assignableUserIds(tripId);
+  const ids = [...new Set(userIds)].filter(uid => allowed.has(uid));
+  db.prepare('DELETE FROM reservation_travelers WHERE reservation_id = ?').run(reservationId);
+  if (ids.length > 0) {
+    const insert = db.prepare('INSERT OR IGNORE INTO reservation_travelers (reservation_id, user_id) VALUES (?, ?)');
+    for (const uid of ids) insert.run(reservationId, uid);
+  }
 }
 
 // Resolve the day row whose date matches the date portion of an ISO-ish
@@ -184,10 +250,12 @@ export function listReservations(tripId: string | number) {
   }
 
   const endpointsMap = loadEndpointsByTrip(tripId);
+  const travelersMap = loadTravelersByTrip(tripId);
 
   for (const r of reservations) {
     r.day_positions = posMap.get(r.id) || null;
     r.endpoints = endpointsMap.get(r.id) || [];
+    r.travelers = travelersMap.get(r.id) || [];
     // accommodation_id is a TEXT column; the integer FK reads back as a numeric
     // string (e.g. "14.0"). Normalize to an int so clients can parse it.
     r.accommodation_id = r.accommodation_id == null ? null : Math.trunc(Number(r.accommodation_id));
@@ -244,6 +312,7 @@ export function getReservationWithJoins(id: string | number) {
   `).get(id) as any;
   if (!row) return undefined;
   row.endpoints = loadEndpoints(row.id);
+  row.travelers = loadTravelers(row.id);
   // accommodation_id is a TEXT column; the integer FK reads back as a numeric
   // string (e.g. "14.0"). Normalize to an int so clients can parse it.
   row.accommodation_id = row.accommodation_id == null ? null : Math.trunc(Number(row.accommodation_id));

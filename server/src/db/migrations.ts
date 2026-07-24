@@ -3786,6 +3786,19 @@ function runMigrations(db: Database.Database): void {
         db.exec("ALTER TABLE vacay_holiday_calendars ADD COLUMN type TEXT NOT NULL DEFAULT 'public_holiday'");
       }
     },
+    // #1517 — assign trip members / named guests to a reservation (mirrors budget_item_members).
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS reservation_travelers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          reservation_id INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          UNIQUE(reservation_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_reservation_travelers_res ON reservation_travelers(reservation_id);
+        CREATE INDEX IF NOT EXISTS idx_reservation_travelers_user ON reservation_travelers(user_id);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {
