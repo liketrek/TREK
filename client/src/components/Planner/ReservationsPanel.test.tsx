@@ -493,4 +493,17 @@ describe('ReservationsPanel', () => {
     expect(screen.getByText('Not synced')).toBeInTheDocument();
     expect(screen.getByTitle('This flight was removed in AirTrail and no longer syncs.')).toBeInTheDocument();
   });
+
+  it('FE-PLANNER-RESP-049: a flight grown into multiple legs locally (endpoints > 2, no legs array) shows the layover hint, not "Not synced"', () => {
+    // Matches the server's second hasLocalMultiLegShape criterion (endpoint count > 2).
+    const res = buildReservation({
+      title: 'Grown multi-leg', type: 'flight', external_source: 'airtrail', sync_enabled: 0,
+      endpoints: [{ sequence: 0 }, { sequence: 1 }, { sequence: 2 }],
+    } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
+    expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
+    expect(
+      screen.getByTitle('Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.'),
+    ).toBeInTheDocument();
+  });
 });

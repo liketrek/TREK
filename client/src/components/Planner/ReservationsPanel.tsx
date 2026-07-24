@@ -101,11 +101,15 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   // no single flight to round-trip a layover chain to, so it's created with
   // sync_enabled=0 (#1535). Distinguish it from a flight that was removed
   // upstream so the badge doesn't falsely claim it "was removed in AirTrail" (#1646).
+  // Mirror the server's hasLocalMultiLegShape (airtrailSync.ts): a metadata legs
+  // array of length > 1, OR — for a flight grown into multiple legs locally, which
+  // carries no legs array — more than two endpoints. Both are detached, not removed.
   const airtrailMultiLeg = r.external_source === 'airtrail' && !r.sync_enabled && (() => {
     try {
       const m = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
-      return Array.isArray(m?.legs) && m.legs.length > 1
-    } catch { return false }
+      if (Array.isArray(m?.legs) && m.legs.length > 1) return true
+    } catch { /* malformed metadata — fall through to the endpoint count */ }
+    return (r.endpoints || []).length > 2
   })()
   const attachedFiles = files.filter(f => f.reservation_id === r.id || (f.linked_reservation_ids || []).includes(r.id))
   const linked = r.assignment_id ? assignmentLookup[r.assignment_id] : null
