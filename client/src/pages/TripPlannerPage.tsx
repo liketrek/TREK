@@ -663,6 +663,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               titleKey="transport.title"
               addManualKey="transport.addManual"
               contributionView="transports"
+              tripMembers={tripMembers}
             />
           </div>
         )}
@@ -681,6 +682,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               onEdit={(r) => { setEditingReservation(r); setShowReservationModal(true) }}
               onDelete={handleDeleteReservation}
               onNavigateToFiles={() => handleTabChange('dateien')}
+              tripMembers={tripMembers}
             />
           </div>
         )}

@@ -173,5 +173,8 @@ const reservations: TranslationStrings = {
   'reservations.createExpenseHint': 'Speichert die Buchung und öffnet dann den Kosten-Editor.',
   'reservations.linkedExpense': 'Verknüpfte Ausgabe',
   'reservations.removeExpense': 'Ausgabe entfernen',
+  'reservations.travelers.label': 'Reisende',
+  'reservations.travelers.assign': 'Reisende zuweisen',
+  'reservations.travelers.none': 'Noch keine Reisenden im Trip.',
 };
 export default reservations;
