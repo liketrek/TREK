@@ -169,5 +169,8 @@ const reservations: TranslationStrings = {
   'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',
   'reservations.linkedExpense': 'Linked expense',
   'reservations.removeExpense': 'Remove expense',
+  'reservations.travelers.label': 'Travelers',
+  'reservations.travelers.assign': 'Assign travelers',
+  'reservations.travelers.none': 'No trip members yet.',
 };
 export default reservations;
