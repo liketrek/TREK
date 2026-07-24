@@ -152,6 +152,21 @@ describe('getUserSettings', () => {
     testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'theme', '')").run(user.id);
     expect(getUserSettings(user.id).theme).toBe('');
   });
+
+  it('SET-SVC-025 — an inherited admin llm_api_key is masked, never returned in cleartext', () => {
+    const { user } = createUser(testDb);
+    setAdminDefault('llm_api_key', 'sk-admin-secret');
+    // No user row → the value is inherited from the admin default; it is a secret
+    // and must reach the client masked, not in cleartext.
+    expect(getUserSettings(user.id).llm_api_key).toBe('••••••••');
+  });
+
+  it('SET-SVC-026 — an empty user llm_api_key falls back to the admin key, still masked', () => {
+    const { user } = createUser(testDb);
+    setAdminDefault('llm_api_key', 'sk-admin-secret');
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'llm_api_key', '')").run(user.id);
+    expect(getUserSettings(user.id).llm_api_key).toBe('••••••••');
+  });
 });
 
 // ── upsertSetting ─────────────────────────────────────────────────────────────

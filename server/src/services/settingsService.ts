@@ -140,7 +140,17 @@ export function getUserSettings(userId: number): Record<string, unknown> {
   // an empty string would otherwise shadow the admin/system-wide default and the
   // user could never fall back to it — even after clearing their own value
   // (#1634). Non-defaultable keys keep their exact stored value.
-  const merged: Record<string, unknown> = { ...adminDefaults };
+  //
+  // Seed from the admin defaults, but mask any encrypted secret (e.g. a shared
+  // llm_api_key) exactly like the per-user path above: getUserSettings is the
+  // client-facing accessor and must never hand back a secret in cleartext — not
+  // even one inherited from an admin default (the fall-through above widened the
+  // set of users who inherit it). The server reads the real value via
+  // getAdminUserDefaults / getDecryptedUserSetting, which don't mask.
+  const merged: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(adminDefaults)) {
+    merged[key] = MASKED_SETTING_KEYS.has(key) ? (value ? '••••••••' : '') : value;
+  }
   for (const [key, value] of Object.entries(userSettings)) {
     if (
       DEFAULTABLE_USER_SETTING_KEY_SET.has(key) &&
