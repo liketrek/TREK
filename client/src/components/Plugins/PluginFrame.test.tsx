@@ -313,7 +313,7 @@ describe('PluginFrame', () => {
     });
   });
 
-  it('FE-PLUGINS-FRAME-015: brokered plugin session state round-trips through host sessionStorage', () => {
+  it('FE-PLUGINS-FRAME-020: brokered plugin session state round-trips through host sessionStorage', () => {
     const { container } = render(<PluginFrame pluginId="demo" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
@@ -330,7 +330,7 @@ describe('PluginFrame', () => {
     expect(sessionStorage.key(0)).not.toBe('dismissed');
   });
 
-  it('FE-PLUGINS-FRAME-016: trip session state requires a trip and is partitioned from plugin scope', () => {
+  it('FE-PLUGINS-FRAME-021: trip session state requires a trip and is partitioned from plugin scope', () => {
     const noTrip = render(<PluginFrame pluginId="demo" />);
     const noTripFrame = noTrip.container.querySelector('iframe')!;
     const noTripPosted: Array<Record<string, unknown>> = [];
