@@ -89,7 +89,7 @@ export class MapsService {
   }
 
   // OSM-only POI search by category within a viewport bbox (never calls Google).
-  pois(category: string, bbox: { south: number; west: number; north: number; east: number }) {
-    return searchOverpassPois(category, bbox);
+  pois(category: string, bbox: { south: number; west: number; north: number; east: number }, lang?: string) {
+    return searchOverpassPois(category, bbox, lang);
   }
 }

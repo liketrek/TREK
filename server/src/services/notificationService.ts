@@ -93,6 +93,13 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     navigateTextKey: 'notif.action.view_vacay',
     navigateTarget: p => (p.planId ? `/vacay/${p.planId}` : null),
   },
+  vacay_share: {
+    inAppType: 'navigate',
+    titleKey: 'notif.vacay_share.title',
+    textKey: 'notif.vacay_share.text',
+    navigateTextKey: 'notif.action.view_vacay',
+    navigateTarget: () => '/vacay',
+  },
   collection_invite: {
     inAppType: 'navigate',
     titleKey: 'notif.collection_invite.title',

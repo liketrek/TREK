@@ -9,12 +9,20 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  vacayShareUpdateRequestSchema,
+  vacayYearSettingsRequestSchema,
+  type VacayShareUpdateRequest,
+  type VacayYearSettingsRequest,
+} from '@trek/shared';
 import type { User } from '../../types';
 import { VacayService } from './vacay.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
 
 /**
  * /api/addons/vacay — shared vacation-day planner.
@@ -45,14 +53,14 @@ export class VacayController {
   @HttpCode(200)
   addHolidayCalendar(
     @CurrentUser() user: User,
-    @Body() body: { region?: string; label?: string | null; color?: string; sort_order?: number },
+    @Body() body: { region?: string; label?: string | null; color?: string; sort_order?: number; type?: 'public_holiday' | 'school_holiday' },
     @Headers('x-socket-id') socketId?: string,
   ) {
     if (!body.region) {
       throw new HttpException({ error: 'region required' }, 400);
     }
     const planId = this.vacay.getActivePlanId(user.id);
-    const calendar = this.vacay.addHolidayCalendar(planId, body.region, body.label ?? null, body.color, body.sort_order, socketId);
+    const calendar = this.vacay.addHolidayCalendar(planId, body.region, body.label ?? null, body.color, body.sort_order, socketId, body.type);
     return { calendar };
   }
 
@@ -172,17 +180,32 @@ export class VacayController {
     return { years: this.vacay.deleteYear(planId, year, socketId) };
   }
 
+  @Get('year-settings')
+  yearSettings(@CurrentUser() user: User) {
+    return { settings: this.vacay.getYearSettings(user.id) };
+  }
+
+  @Put('year-settings')
+  updateYearSettings(
+    @CurrentUser() user: User,
+    @Body(new ZodValidationPipe(vacayYearSettingsRequestSchema)) body: VacayYearSettingsRequest,
+  ) {
+    return { settings: this.vacay.updateYearSettings(user.id, body) };
+  }
+
   @Get('entries/:year')
   entries(@CurrentUser() user: User, @Param('year') year: string) {
     const planId = this.vacay.getActivePlanId(user.id);
-    return this.vacay.getEntries(planId, year);
+    // Entries load over the caller's leave-year window (#737), so a shifted year
+    // returns both calendar halves the grid renders.
+    return this.vacay.getEntries(planId, year, user.id);
   }
 
   @Post('entries/toggle')
   @HttpCode(200)
   toggleEntry(
     @CurrentUser() user: User,
-    @Body() body: { date?: string; target_user_id?: number | string },
+    @Body() body: { date?: string; target_user_id?: number | string; fraction?: number; kind?: string },
     @Headers('x-socket-id') socketId?: string,
   ) {
     if (!body.date) {
@@ -197,7 +220,7 @@ export class VacayController {
       }
       userId = tid;
     }
-    return this.vacay.toggleEntry(userId, planId, body.date, socketId);
+    return this.vacay.toggleEntry(userId, planId, body.date, body.fraction, body.kind, socketId);
   }
 
   @Post('entries/company-holiday')
@@ -235,6 +258,59 @@ export class VacayController {
     return { success: true };
   }
 
+  @Get('shares')
+  shares(@CurrentUser() user: User) {
+    return this.vacay.listShares(user.id);
+  }
+
+  @Post('shares')
+  @HttpCode(200)
+  share(
+    @CurrentUser() user: User,
+    @Body('user_id') userIdInput?: number | string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    if (!userIdInput) {
+      throw new HttpException({ error: 'user_id required' }, 400);
+    }
+    const result = this.vacay.shareCalendar(user.id, user.email, parseInt(String(userIdInput)), socketId);
+    if (result.error) {
+      throw new HttpException({ error: result.error }, result.status!);
+    }
+    return { success: true };
+  }
+
+  @Get('shares/available-users')
+  shareAvailableUsers(@CurrentUser() user: User) {
+    return { users: this.vacay.getShareAvailableUsers(user.id) };
+  }
+
+  @Get('shares/calendars/:year')
+  sharedCalendars(@CurrentUser() user: User, @Param('year') year: string) {
+    return { calendars: this.vacay.getSharedCalendars(user.id, year) };
+  }
+
+  @Put('shares/:id')
+  updateShare(
+    @CurrentUser() user: User,
+    @Param('id') idParam: string,
+    @Body(new ZodValidationPipe(vacayShareUpdateRequestSchema)) body: VacayShareUpdateRequest,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    if (!this.vacay.setShareHidden(parseInt(idParam), user.id, body.hidden, socketId)) {
+      throw new HttpException({ error: 'Share not found' }, 404);
+    }
+    return { success: true };
+  }
+
+  @Delete('shares/:id')
+  deleteShare(@CurrentUser() user: User, @Param('id') idParam: string, @Headers('x-socket-id') socketId?: string) {
+    if (!this.vacay.removeShare(parseInt(idParam), user.id, socketId)) {
+      throw new HttpException({ error: 'Share not found' }, 404);
+    }
+    return { success: true };
+  }
+
   @Get('holidays/countries')
   async holidayCountries() {
     const result = await this.vacay.getCountries();
@@ -247,6 +323,42 @@ export class VacayController {
   @Get('holidays/:year/:country')
   async holidays(@Param('year') year: string, @Param('country') country: string) {
     const result = await this.vacay.getHolidays(year, country);
+    if (result.error) {
+      throw new HttpException({ error: result.error }, 502);
+    }
+    return result.data;
+  }
+
+  @Get('school-holidays/regions/:country')
+  async schoolHolidayRegions(@Param('country') country: string) {
+    const result = await this.vacay.getSchoolHolidayRegions(country, country.toUpperCase() === 'DE' ? 'DE' : 'EN');
+    if (result.error) {
+      throw new HttpException({ error: result.error }, 502);
+    }
+    return result.data;
+  }
+
+  @Get('school-holidays/:year/:country')
+  async schoolHolidaysForCountry(
+    @Param('year') year: string,
+    @Param('country') country: string,
+    @Query('group') group?: string,
+  ) {
+    return this.schoolHolidays(year, country, undefined, group);
+  }
+
+  @Get('school-holidays/:year/:country/:subdivision')
+  async schoolHolidaysForSubdivision(
+    @Param('year') year: string,
+    @Param('country') country: string,
+    @Param('subdivision') subdivision: string,
+    @Query('group') group?: string,
+  ) {
+    return this.schoolHolidays(year, country, subdivision, group);
+  }
+
+  private async schoolHolidays(year: string, country: string, subdivision?: string, group?: string) {
+    const result = await this.vacay.getSchoolHolidays(year, country, subdivision, country.toUpperCase() === 'DE' ? 'DE' : 'EN', group);
     if (result.error) {
       throw new HttpException({ error: result.error }, 502);
     }

@@ -79,6 +79,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Utazási emlékeztetők',
   'settings.notifyTodoDue': 'Teendő esedékes',
   'settings.notifyVacayInvite': 'Vacay összevonási meghívók',
+  'settings.notifyVacayShare': 'Vacay naptármegosztások',
   'settings.notifyPhotosShared': 'Megosztott fotók (Immich)',
   'settings.notifyCollabMessage': 'Csevegés üzenetek (Collab)',
   'settings.notifyPackingTagged': 'Csomagolási lista: hozzárendelések',
@@ -428,6 +429,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Alsó navigációs sáv',
+  'settings.appearance.mobileNav.hint':
+    'Válaszd ki, mely elemek jelenjenek meg a sávban, és melyek kerüljenek a „Továbbiak” alá. Az Irányítópult mindig elöl marad.',
+  'settings.appearance.mobileNav.inBar': 'A sávban',
+  'settings.appearance.mobileNav.underMore': 'A „Továbbiak” alatt',
+  'settings.appearance.mobileNav.moreEmpty': 'Itt még nincs semmi — minden elfér a sávban.',
+  'settings.appearance.mobileNav.pinned': 'Rögzítve',
+  'settings.appearance.mobileNav.toMore': 'Áthelyezés a „Továbbiak” alá',
+  'settings.appearance.mobileNav.toBar': 'Áthelyezés a sávba',
+  'settings.appearance.dashOrder': 'Irányítópult sorrendje',
+  'settings.appearance.dashOrder.hint':
+    'Rendezd át, hogyan legyenek egymás alatt az utazáslista és a widgetek a telefon irányítópultján. A kiemelt utazás mindig felül marad.',
+  'settings.appearance.dashOrder.trips': 'Utazások',
+  'settings.appearance.dashOrder.hidden': 'Rejtett',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -495,7 +510,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Mikor',
   'settings.pluginActivity.columns.status': 'Eredmény',
   'settings.alwaysShowRoutes': 'Mindig jelenjenek meg a foglalási útvonalak',
-  'settings.alwaysShowRoutesHint': 'Automatikusan megjeleníti minden repülőjárat, vonat és egyéb foglalás útvonalát a térképen, nincs szükség egyenkénti bekapcsolásra.',
+  'settings.alwaysShowRoutesHint':
+    'Automatikusan megjeleníti minden repülőjárat, vonat és egyéb foglalás útvonalát a térképen, nincs szükség egyenkénti bekapcsolásra.',
 };
 
 export default settings;

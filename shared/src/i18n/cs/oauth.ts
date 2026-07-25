@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': 'Výlety',
   'oauth.scope.group.places': 'Místa',
+  'oauth.scope.group.collections': 'Kolekce',
   'oauth.scope.group.atlas': 'Atlas',
   'oauth.scope.group.packing': 'Balení',
   'oauth.scope.group.todos': 'Úkoly',
@@ -26,6 +27,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': 'Číst místa, denní přiřazení, štítky a kategorie',
   'oauth.scope.places:write.label': 'Spravovat místa',
   'oauth.scope.places:write.description': 'Vytvářet, aktualizovat a mazat místa, přiřazení a štítky',
+  'oauth.scope.collections:read.label': 'Zobrazit kolekce',
+  'oauth.scope.collections:read.description': 'Číst kolekce uložených míst, jejich místa, hodnocení, štítky a členy',
+  'oauth.scope.collections:write.label': 'Spravovat kolekce',
+  'oauth.scope.collections:write.description': 'Vytvářet a upravovat kolekce, ukládat, hodnotit, označovat a kopírovat místa a sdílet seznamy',
   'oauth.scope.atlas:read.label': 'Zobrazit Atlas',
   'oauth.scope.atlas:read.description': 'Číst navštívené země, regiony a seznam přání',
   'oauth.scope.atlas:write.label': 'Spravovat Atlas',

@@ -81,6 +81,10 @@ export class AssignmentsService {
     return svc.updateTime(id, placeTime as never, endTime as never);
   }
 
+  setLegTransportMode(id: string, mode: string | null) {
+    return svc.setLegTransportMode(id, mode);
+  }
+
   setParticipants(id: string, userIds: number[]) {
     return svc.setParticipants(id, userIds);
   }

@@ -1,7 +1,6 @@
 import ReactDOM from 'react-dom'
 import { useState, useEffect } from 'react'
-import DOM from 'react-dom'
-import { UserPlus, Unlink, Check, Loader2, Clock, X } from 'lucide-react'
+import { UserPlus, Check, Loader2, Clock, X } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
 import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
@@ -9,6 +8,7 @@ import { getApiErrorMessage } from '../../types'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import apiClient from '../../api/client'
+import VacayBadge from './VacayBadge'
 
 const PRESET_COLORS = [
   '#6366f1', '#ec4899', '#14b8a6', '#8b5cf6', '#ef4444',
@@ -55,7 +55,7 @@ export default function VacayPersons() {
     }
   }
 
-  const handleColorChange = async (color) => {
+  const handleColorChange = async (color: string) => {
     await updateColor(color, colorEditUserId)
     setShowColorPicker(false)
     setColorEditUserId(null)
@@ -64,37 +64,42 @@ export default function VacayPersons() {
   const editingUserColor = users.find(u => u.id === colorEditUserId)?.color || '#6366f1'
 
   return (
-    <div className="rounded-xl border p-3 bg-surface-card border-edge">
+    <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-content-faint">{t('vacay.persons')}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.persons')}</span>
         <button onClick={() => { setShowInvite(true); loadAvailable() }}
-          className="p-0.5 rounded transition-colors text-content-faint">
-          <UserPlus size={14} />
+          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+          style={{ color: 'var(--vg-ink3)' }}>
+          <UserPlus size={15} />
         </button>
       </div>
 
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-1">
         {users.map(u => {
           const isSelected = selectedUserId === u.id
           return (
             <div key={u.id}
               onClick={() => { if (isFused) setSelectedUserId(u.id) }}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg group transition-all border ${isSelected ? 'bg-surface-hover border-edge' : 'bg-transparent border-transparent'}`}
+              className="flex items-center gap-2.5 group transition-colors"
               style={{
+                padding: '7px 10px',
+                borderRadius: 12,
                 cursor: isFused ? 'pointer' : 'default',
+                background: isSelected ? 'var(--vg-surf2)' : 'transparent',
+                border: `1px solid ${isSelected ? 'var(--vg-line)' : 'transparent'}`,
               }}>
               <button
                 onClick={(e) => { e.stopPropagation(); setColorEditUserId(u.id); setShowColorPicker(true) }}
-                className="w-3.5 h-3.5 rounded-full shrink-0 transition-transform hover:scale-125"
+                className="w-3 h-3 rounded-full shrink-0 transition-transform hover:scale-125"
                 style={{ backgroundColor: u.color, cursor: 'pointer' }}
                 title={t('vacay.changeColor')}
               />
-              <span className="text-xs font-medium flex-1 truncate text-content">
+              <span className="truncate min-w-0" style={{ fontSize: 13, fontWeight: 600, color: 'var(--vg-ink)' }}>
                 {u.username}
-                {u.id === currentUser?.id && <span className="text-content-faint"> ({t('vacay.you')})</span>}
               </span>
+              {u.id === currentUser?.id && <VacayBadge label={t('vacay.you')} />}
               {isSelected && isFused && (
-                <Check size={12} className="text-content" />
+                <Check size={15} strokeWidth={2.4} className="ml-auto" style={{ color: 'var(--vg-ink2)' }} />
               )}
             </div>
           )
@@ -102,14 +107,16 @@ export default function VacayPersons() {
 
         {/* Pending invites */}
         {pendingInvites.map(inv => (
-          <div key={inv.user_id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg group bg-surface-secondary"
-            style={{ opacity: 0.7 }}>
-            <Clock size={12} className="text-content-faint" />
-            <span className="text-xs flex-1 truncate text-content-muted">
-              {inv.username} <span className="text-[10px]">({t('vacay.pending')})</span>
+          <div key={inv.user_id} className="flex items-center gap-2.5 group"
+            style={{ padding: '7px 10px', borderRadius: 12, background: 'var(--vg-surf2)', opacity: 0.7 }}>
+            <Clock size={13} style={{ color: 'var(--vg-ink3)' }} />
+            <span className="truncate min-w-0" style={{ fontSize: 13, color: 'var(--vg-ink2)' }}>
+              {inv.username}
             </span>
+            <VacayBadge label={t('vacay.pending')} tone="amber" />
             <button onClick={() => cancelInvite(inv.user_id)}
-              className="opacity-0 group-hover:opacity-100 text-[10px] px-1.5 py-0.5 rounded transition-all text-content-faint">
+              className="ml-auto opacity-0 group-hover:opacity-100 text-[10px] px-1.5 py-0.5 rounded transition-all"
+              style={{ color: 'var(--vg-ink3)' }}>
               {t('common.cancel')}
             </button>
           </div>

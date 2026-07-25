@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Ενέργειες',
+  'packing.editDone': 'Τέλος',
+  'packing.personalEmptyHint': 'Η προσωπική σας λίστα είναι κενή — αντιγράψτε κοινόχρηστα στοιχεία ή προσθέστε δικά σας.',
+  'packing.assignMembers': 'Ανάθεση μελών',
+  'packing.categoryOptions': 'Επιλογές λίστας',
+  'packing.editItem': 'Επεξεργασία στοιχείου',
+  'packing.itemName': 'Όνομα',
+  'packing.itemQuantity': 'Ποσότητα',
+  'packing.itemWeight': 'Βάρος (γρ)',
   'packing.title': 'Λίστα Αποσκευών',
   'packing.empty': 'Η λίστα αποσκευών είναι κενή',
   'packing.import': 'Εισαγωγή',

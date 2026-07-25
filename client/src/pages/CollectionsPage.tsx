@@ -16,21 +16,18 @@ import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDeta
 import LabelManager from '../components/Collections/LabelManager'
 import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal'
 import { useCollections } from './collections/useCollections'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MCollections from '../mobile/screens/collections/MCollections'
+import EmptyState from '../components/shared/EmptyState'
 import '../styles/dashboard.css'
 import '../styles/collections.css'
 
-function EmptyState({ icon, title, text, action }: { icon: React.ReactNode; title: string; text: string; action?: React.ReactNode }): React.ReactElement {
-  return (
-    <div className="col-emptystate">
-      <div className="ic">{icon}</div>
-      <h3>{title}</h3>
-      <p>{text}</p>
-      {action && <div style={{ marginTop: 18 }}>{action}</div>}
-    </div>
-  )
+export default function CollectionsPage(): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <MCollections /> : <CollectionsPageDesktop />
 }
 
-export default function CollectionsPage(): React.ReactElement {
+function CollectionsPageDesktop(): React.ReactElement {
   const c = useCollections()
   const { t } = c
 
@@ -105,8 +102,14 @@ export default function CollectionsPage(): React.ReactElement {
       counts={c.counts}
       categoryFilter={c.categoryFilter}
       categoryOptions={c.categoryOptions}
+      ratingFilter={c.ratingFilter}
+      sortMode={c.sortMode}
       onStatusFilter={c.setStatusFilter}
       onCategoryFilter={c.setCategoryFilter}
+      onRatingFilter={c.setRatingFilter}
+      onSortMode={c.setSortMode}
+      canAddPlace={canAddPlace}
+      onAddPlace={() => c.setShowAddPlace(true)}
       showLabels={isRealList}
       labelOptions={c.labelOptions}
       labelFilter={c.labelFilter}
@@ -124,7 +127,7 @@ export default function CollectionsPage(): React.ReactElement {
       {filterBar}
       {c.visiblePlaces.length > 0
         ? listEl
-        : <EmptyState icon={<Search size={26} />} title={t('collections.empty.noMatchTitle')} text={t('collections.empty.noMatchText')} />}
+        : <EmptyState scene="search" title={t('collections.empty.noMatchTitle')} />}
     </>
   )
 
@@ -132,7 +135,16 @@ export default function CollectionsPage(): React.ReactElement {
   if (c.placesLoading && !hasPlaces) {
     body = <div className="col-loading"><div className="col-spinner" /></div>
   } else if (!hasPlaces) {
-    body = <EmptyState icon={<Bookmark size={26} />} title={t('collections.empty.title')} text={t('collections.empty.text')} />
+    body = (
+      <div className="flex flex-col items-center">
+        <EmptyState scene="collections" title={t('collections.empty.title')} className={canAddPlace ? 'pb-4' : undefined} />
+        {canAddPlace && (
+          <button type="button" onClick={() => c.setShowAddPlace(true)} className="col-cta">
+            <Plus size={16} /> {t('collections.addPlace')}
+          </button>
+        )}
+      </div>
+    )
   } else if (desktopSplit) {
     body = (
       <div className={`col-split${c.view === 'map' ? ' map-full' : ''}`}>
@@ -169,16 +181,12 @@ export default function CollectionsPage(): React.ReactElement {
 
           <div className="col-body">
             {noLists ? (
-              <EmptyState
-                icon={<Bookmark size={26} />}
-                title={t('collections.empty.firstTitle')}
-                text={t('collections.empty.firstText')}
-                action={
-                  <button type="button" onClick={() => c.setEditorTarget('new')} className="col-cta">
-                    <Bookmark size={16} /> {t('collections.newList')}
-                  </button>
-                }
-              />
+              <div className="flex flex-col items-center">
+                <EmptyState scene="collections" title={t('collections.empty.firstTitle')} className="pb-4" />
+                <button type="button" onClick={() => c.setEditorTarget('new')} className="col-cta">
+                  <Bookmark size={16} /> {t('collections.newList')}
+                </button>
+              </div>
             ) : (
               <>
                 <div ref={c.heroRef}>
@@ -200,7 +208,7 @@ export default function CollectionsPage(): React.ReactElement {
                   />
                 </div>
 
-                {(!mapOverlay || canAddPlace) && (
+                {!mapOverlay && (
                   <div className="col-toolbar">
                     <button type="button" className="col-rail-toggle" onClick={() => c.setMobileRailOpen(true)}>
                       <Bookmark size={15} /> {t('collections.title')}
@@ -214,11 +222,6 @@ export default function CollectionsPage(): React.ReactElement {
                           <MapIcon size={16} />
                         </button>
                       </div>
-                    )}
-                    {canAddPlace && (
-                      <button type="button" onClick={() => c.setShowAddPlace(true)} className="col-iconbtn" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
-                        <Plus size={16} />
-                      </button>
                     )}
                     <div className="col-toolbar-spacer" />
                     {!mapOverlay && (
@@ -302,8 +305,10 @@ export default function CollectionsPage(): React.ReactElement {
             onClose={c.handleCloseDetail}
             onSetStatus={c.handleDetailStatus}
             onSave={patch => c.updatePlace(c.selectedPlace!.id, patch)}
+            onUploadImage={file => c.uploadPlaceImage(c.selectedPlace!.id, file)}
             onCopyToTrip={c.openCopyForSelectedPlace}
             onRemove={c.handleDetailRemove}
+            onRate={r => c.handleRatePlace(c.selectedPlace!.id, r)}
             t={t}
           />
         )}

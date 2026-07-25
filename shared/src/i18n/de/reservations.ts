@@ -61,6 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'Kreuzfahrt',
   'reservations.type.event': 'Veranstaltung',
   'reservations.type.tour': 'Tour',
+  'reservations.type.parking': 'Parkplatz',
   'reservations.type.other': 'Sonstiges',
   'reservations.type.bus': 'Bus',
   'reservations.type.ferry': 'Fähre',
@@ -154,6 +155,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'Aus AirTrail synchronisiert — Änderungen bleiben in beide Richtungen synchron.',
   'reservations.airtrail.notSynced': 'Nicht synchronisiert',
   'reservations.airtrail.notSyncedHint': 'Dieser Flug wurde in AirTrail gelöscht und wird nicht mehr synchronisiert.',
+  'reservations.airtrail.layoverHint': 'Aus AirTrail importiert. Ein mehrteiliger Flug mit Zwischenstopp lässt sich keinem einzelnen AirTrail-Flug zuordnen und bleibt daher ein einmaliger Import.',
   'reservations.airtrail.loadError': 'Ihre AirTrail-Flüge konnten nicht geladen werden.',
   'reservations.airtrail.imported': '{count} Flug/Flüge importiert',
   'reservations.airtrail.skippedDuplicate': '{count} bereits in dieser Reise, übersprungen',
@@ -171,5 +173,8 @@ const reservations: TranslationStrings = {
   'reservations.createExpenseHint': 'Speichert die Buchung und öffnet dann den Kosten-Editor.',
   'reservations.linkedExpense': 'Verknüpfte Ausgabe',
   'reservations.removeExpense': 'Ausgabe entfernen',
+  'reservations.travelers.label': 'Reisende',
+  'reservations.travelers.assign': 'Reisende zuweisen',
+  'reservations.travelers.none': 'Noch keine Reisenden im Trip.',
 };
 export default reservations;

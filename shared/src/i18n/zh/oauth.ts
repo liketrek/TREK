@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': '行程',
   'oauth.scope.group.places': '地点',
+  'oauth.scope.group.collections': '收藏夹',
   'oauth.scope.group.atlas': '足迹',
   'oauth.scope.group.packing': '行李',
   'oauth.scope.group.todos': '待办事项',
@@ -26,6 +27,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': '读取地点、每日分配、标签和分类',
   'oauth.scope.places:write.label': '管理地点',
   'oauth.scope.places:write.description': '创建、更新和删除地点、分配和标签',
+  'oauth.scope.collections:read.label': '查看收藏夹',
+  'oauth.scope.collections:read.description': '读取收藏夹及其中的地点、评分、标签和成员',
+  'oauth.scope.collections:write.label': '管理收藏夹',
+  'oauth.scope.collections:write.description': '创建/编辑收藏夹，保存、评分、标注、复制地点，以及分享列表',
   'oauth.scope.atlas:read.label': '查看足迹',
   'oauth.scope.atlas:read.description': '读取已访问国家、地区和心愿清单',
   'oauth.scope.atlas:write.label': '管理足迹',

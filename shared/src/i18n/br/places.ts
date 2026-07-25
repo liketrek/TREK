@@ -42,7 +42,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Adicionar a qual dia?',
   'places.all': 'Todos',
   'places.unplanned': 'Não planejados',
+  'places.planned': 'Planejados',
   'places.filterTracks': 'Trilhas',
+  'places.sortByRating': 'Ordenar por avaliação',
+  'places.yourRating': 'Sua avaliação',
+  'places.notRated': 'Ainda sem avaliações',
   'places.search': 'Buscar lugares...',
   'places.allCategories': 'Todas as categorias',
   'places.categoriesSelected': 'categorias',
@@ -88,5 +92,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Enriquecer lugares via Google',
   'places.enrichOnImportHint':
     'Busca cada lugar importado para adicionar fotos, endereço e contato. Usa sua chave do Google Maps.',
+  'places.uploadImage': 'Enviar imagem',
+  'places.changeImage': 'Alterar imagem',
+  'places.removeImage': 'Remover imagem',
+  'places.imageUploadError': 'Não foi possível enviar a imagem',
 };
 export default places;

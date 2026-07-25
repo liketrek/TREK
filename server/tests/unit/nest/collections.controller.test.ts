@@ -196,6 +196,25 @@ describe('CollectionsController', () => {
     });
   });
 
+  describe('uploadPlaceImage', () => {
+    const file = { filename: 'x.jpg' } as Express.Multer.File;
+    it('403 in demo mode for a demo user', () => {
+      process.env.DEMO_MODE = 'true';
+      const demo = { ...user, email: 'demo@trek.app' } as User;
+      expect(thrown(() => new CollectionsController(makeService()).uploadPlaceImage(demo, '9', file)))
+        .toEqual({ status: 403, body: { error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' } });
+    });
+    it('400 when no file was uploaded', () => {
+      expect(thrown(() => new CollectionsController(makeService()).uploadPlaceImage(user, '9', undefined)))
+        .toEqual({ status: 400, body: { error: 'No image uploaded' } });
+    });
+    it('stores the place image via /uploads/places and forwards the socket id', () => {
+      const svc = makeService({ setPlaceImage: vi.fn().mockReturnValue({ id: 9 }) });
+      expect(new CollectionsController(svc).uploadPlaceImage(user, '9', file, 'sid')).toEqual({ id: 9 });
+      expect(svc.setPlaceImage).toHaveBeenCalledWith(1, 9, '/uploads/places/x.jpg', 'sid');
+    });
+  });
+
   describe('labels', () => {
     it('create / update / delete / assign / unassign forward user + socket id', () => {
       const svc = makeService();

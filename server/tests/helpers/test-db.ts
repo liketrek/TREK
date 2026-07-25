@@ -78,6 +78,8 @@ const RESET_TABLES = [
   'journey_trips',
   'journeys',
   // Vacay
+  'vacay_user_settings',
+  'vacay_shares',
   'vacay_entries',
   'vacay_company_holidays',
   'vacay_holiday_calendars',

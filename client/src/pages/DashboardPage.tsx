@@ -7,6 +7,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 import CopyTripDialog from '../components/shared/CopyTripDialog'
 import CustomSelect from '../components/shared/CustomSelect'
 import PlaceAvatar from '../components/shared/PlaceAvatar'
+import EmptyState from '../components/shared/EmptyState'
 import MobileTopBar from '../components/Layout/MobileTopBar'
 import { useDashboard } from './dashboard/useDashboard'
 import {
@@ -16,10 +17,11 @@ import {
 import {
   Plus, Edit2, Trash2, Archive, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
-  LayoutGrid, List, Ticket, X, CalendarPlus,
+  LayoutGrid, List, Ticket, X, CalendarPlus, ParkingSquare,
 } from 'lucide-react'
 import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal'
 import CollectionsWidget from '../components/Dashboard/CollectionsWidget'
+import NoFearBeacon from '../components/FourZero/NoFearBeacon' // 4.0.0 release moment — remove with the FourZero folder
 import PluginWidgets from '../components/Plugins/PluginWidgets'
 import PluginFrame from '../components/Plugins/PluginFrame'
 import { TripCardBadges, useTripCardBadges } from '../components/Plugins/TripCardBadges'
@@ -31,6 +33,8 @@ import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAddonStore } from '../store/addonStore'
 import { normalizeAppearance } from '@trek/shared'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MDashboard from '../mobile/screens/dashboard/MDashboard'
 import '../styles/dashboard.css'
 
 const GRADIENTS = [
@@ -89,7 +93,7 @@ function initials(name: string | null | undefined): string {
 }
 
 const RES_ICON: Record<string, React.ReactElement> = {
-  flight: <Plane size={16} />, hotel: <Hotel size={16} />, restaurant: <Utensils size={16} />,
+  flight: <Plane size={16} />, hotel: <Hotel size={16} />, restaurant: <Utensils size={16} />, parking: <ParkingSquare size={16} />,
 }
 const RES_TYPE_CLASS: Record<string, string> = { flight: 'flight', hotel: 'hotel', restaurant: 'food' }
 
@@ -106,6 +110,13 @@ function useIsMobile(): boolean {
 }
 
 export default function DashboardPage(): React.ReactElement {
+  // Phones get the mobile screen, everything else the untouched desktop page.
+  // Both branches call hooks of their own, so the split lives above them.
+  const isPhone = useIsPhone()
+  return isPhone ? <MDashboard /> : <DashboardPageDesktop />
+}
+
+function DashboardPageDesktop(): React.ReactElement {
   // Page = wiring container: all state, data loading and mutations live in the
   // useDashboard data hook; this component only renders what it returns.
   const {
@@ -211,8 +222,7 @@ export default function DashboardPage(): React.ReactElement {
 
               {gridTrips.length === 0 && tripFilter === 'planned' && !isLoading && !loadError && (
                 <div className="trips-empty">
-                  <h4>{t('dashboard.emptyTitle')}</h4>
-                  <p>{t('dashboard.emptyText')}</p>
+                  <EmptyState scene="dashboard" title={t('dashboard.emptyTitle')} />
                 </div>
               )}
 
@@ -245,6 +255,7 @@ export default function DashboardPage(): React.ReactElement {
 
           {sidebarVisible && (
             <aside className="page-sidebar">
+              <NoFearBeacon /> {/* 4.0.0 release moment — remove with the FourZero folder */}
               {showCurrency && <CurrencyTool />}
               {showCollections && <CollectionsWidget onOpen={() => navigate('/collections')} />}
               {showTimezones && <TimezoneTool locale={locale} />}

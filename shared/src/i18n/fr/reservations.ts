@@ -60,6 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'Croisière',
   'reservations.type.event': 'Événement',
   'reservations.type.tour': 'Visite',
+  'reservations.type.parking': 'Parking',
   'reservations.type.other': 'Autre',
   'reservations.type.bus': 'Bus',
   'reservations.type.ferry': 'Ferry',
@@ -155,6 +156,7 @@ const reservations: TranslationStrings = {
     'Synchronisé depuis AirTrail — les modifications restent synchronisées dans les deux sens.',
   'reservations.airtrail.notSynced': 'Non synchronisé',
   'reservations.airtrail.notSyncedHint': "Ce vol a été supprimé dans AirTrail et n'est plus synchronisé.",
+  'reservations.airtrail.layoverHint': 'Importé depuis AirTrail. Un vol à plusieurs segments avec escale ne correspond à aucun vol AirTrail unique à synchroniser ; il reste donc un import ponctuel.',
   'reservations.airtrail.loadError': 'Impossible de charger vos vols AirTrail.',
   'reservations.airtrail.imported': '{count} vol(s) importé(s)',
   'reservations.airtrail.skippedDuplicate': '{count} déjà dans ce voyage, ignoré(s)',
@@ -174,5 +176,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Lien',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Voyageurs',
+  'reservations.travelers.assign': 'Assigner des voyageurs',
+  'reservations.travelers.none': 'Aucun participant au voyage pour le moment.',
 };
 export default reservations;

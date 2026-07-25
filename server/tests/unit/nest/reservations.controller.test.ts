@@ -95,6 +95,28 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
     });
   });
 
+  describe('PUT /:id/travelers', () => {
+    it('400 when user_ids is not an array', () => {
+      expect(thrown(() => new ReservationsController(makeService()).updateTravelers(user, '5', '9', 'nope'))).toEqual({ status: 400, body: { error: 'user_ids must be an array' } });
+    });
+
+    it('404 when the reservation is off-trip / missing', () => {
+      const svc = makeService({ setTravelers: vi.fn().mockReturnValue(null) } as Partial<ReservationsService>);
+      expect(thrown(() => new ReservationsController(svc).updateTravelers(user, '5', '9', [1]))).toEqual({ status: 404, body: { error: 'Reservation not found' } });
+    });
+
+    it('assigns travelers, broadcasts, and returns { travelers, reservation }', () => {
+      const travelers = [{ user_id: 2, username: 'Sam', avatar: null, is_guest: 0 }];
+      const reservation = { id: 9, travelers };
+      const setTravelers = vi.fn().mockReturnValue({ travelers, reservation });
+      const broadcast = vi.fn();
+      const svc = makeService({ setTravelers, broadcast } as Partial<ReservationsService>);
+      expect(new ReservationsController(svc).updateTravelers(user, '5', '9', [2], 'sock')).toEqual({ travelers, reservation });
+      expect(setTravelers).toHaveBeenCalledWith('9', '5', [2]);
+      expect(broadcast).toHaveBeenCalledWith('5', 'reservation:travelers-updated', { reservationId: 9, travelers }, 'sock');
+    });
+  });
+
   describe('DELETE /:id', () => {
     it('404 when nothing deleted', () => {
       const svc = makeService({ remove: vi.fn().mockReturnValue({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null }) } as Partial<ReservationsService>);

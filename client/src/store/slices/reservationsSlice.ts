@@ -14,6 +14,7 @@ export interface ReservationsSlice {
   updateReservation: (tripId: number | string, id: number, data: Partial<Reservation>) => Promise<Reservation>
   toggleReservationStatus: (tripId: number | string, id: number) => Promise<void>
   deleteReservation: (tripId: number | string, id: number) => Promise<void>
+  setReservationTravelers: (tripId: number | string, id: number, userIds: number[]) => Promise<void>
 }
 
 export const createReservationsSlice = (set: SetState, get: GetState): ReservationsSlice => ({
@@ -72,6 +73,17 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
       set(state => ({ reservations: state.reservations.filter(r => r.id !== id) }))
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error deleting reservation'))
+    }
+  },
+
+  setReservationTravelers: async (tripId, id, userIds) => {
+    try {
+      const result = await reservationsApi.setTravelers(tripId, id, userIds)
+      set(state => ({
+        reservations: state.reservations.map(r => r.id === id ? { ...r, travelers: result.travelers } : r),
+      }))
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, 'Error updating travelers'))
     }
   },
 })

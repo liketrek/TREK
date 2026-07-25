@@ -42,7 +42,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'إلى أي يوم تريد الإضافة؟',
   'places.all': 'الكل',
   'places.unplanned': 'غير مخطط',
+  'places.planned': 'مخطط لها',
   'places.filterTracks': 'المسارات',
+  'places.sortByRating': 'الترتيب حسب التقييم',
+  'places.yourRating': 'تقييمك',
+  'places.notRated': 'لم يُقيَّم بعد',
   'places.search': 'ابحث عن أماكن...',
   'places.allCategories': 'كل الفئات',
   'places.categoriesSelected': 'فئات',
@@ -88,5 +92,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'إثراء الأماكن عبر Google',
   'places.enrichOnImportHint':
     'يبحث عن كل مكان مستورد لإضافة الصور والعنوان وبيانات الاتصال. يتطلب مفتاح خرائط Google.',
+  'places.uploadImage': 'رفع صورة',
+  'places.changeImage': 'تغيير الصورة',
+  'places.removeImage': 'إزالة الصورة',
+  'places.imageUploadError': 'تعذّر رفع الصورة',
 };
 export default places;

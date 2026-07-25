@@ -11,6 +11,7 @@ import { addListener, removeListener } from '../../api/websocket'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import EmptyState from '../shared/EmptyState'
 import type { User } from '../../types'
 import type { CollabNote } from './CollabNotes.types'
 import { FONT, NOTE_COLORS } from './CollabNotes.constants'
@@ -329,18 +330,7 @@ function CollabNotesGrid(S: NotesState) {
     <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
       {sortedNotes.length === 0 ? (
         /* ── Empty state ── */
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '48px 20px', textAlign: 'center', height: '100%',
-        }}>
-          <Pencil size={36} color="var(--text-faint)" style={{ marginBottom: 12 }} />
-          <div style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, fontFamily: FONT }}>
-            {t('collab.notes.empty')}
-          </div>
-          <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', fontFamily: FONT }}>
-            {t('collab.notes.emptyDesc') || 'Create a note to get started'}
-          </div>
-        </div>
+        <EmptyState scene="notes" title={t('collab.notes.empty')} />
       ) : (
         /* ── Notes grid — 2 columns ── */
         <div style={{

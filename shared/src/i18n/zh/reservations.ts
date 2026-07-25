@@ -58,6 +58,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': '邮轮',
   'reservations.type.event': '活动',
   'reservations.type.tour': '旅游团',
+  'reservations.type.parking': '停车',
   'reservations.type.other': '其他',
   'reservations.type.bus': '公交车',
   'reservations.type.ferry': '渡轮',
@@ -148,6 +149,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': '已从 AirTrail 同步——编辑会双向保持同步。',
   'reservations.airtrail.notSynced': '未同步',
   'reservations.airtrail.notSyncedHint': '此航班已在 AirTrail 中删除，不再同步。',
+  'reservations.airtrail.layoverHint': '从 AirTrail 导入。含中转的多段航班没有对应的单个 AirTrail 航班可供同步，因此保留为一次性导入。',
   'reservations.airtrail.loadError': '无法加载您的 AirTrail 航班。',
   'reservations.airtrail.imported': '已导入 {count} 个航班',
   'reservations.airtrail.skippedDuplicate': '{count} 个已在此行程中，已跳过',
@@ -167,5 +169,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': '移除关联支出',
   'reservations.urlLabel': '链接',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': '出行人',
+  'reservations.travelers.assign': '分配出行人',
+  'reservations.travelers.none': '行程中暂无成员。',
 };
 export default reservations;

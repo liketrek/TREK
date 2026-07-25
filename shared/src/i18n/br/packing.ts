@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Ações',
+  'packing.editDone': 'Concluído',
+  'packing.personalEmptyHint': 'Sua lista pessoal está vazia — copie itens compartilhados ou adicione os seus.',
+  'packing.assignMembers': 'Atribuir membros',
+  'packing.categoryOptions': 'Opções da lista',
+  'packing.editItem': 'Editar item',
+  'packing.itemName': 'Nome',
+  'packing.itemQuantity': 'Quantidade',
+  'packing.itemWeight': 'Peso (g)',
   'packing.title': 'Lista de mala',
   'packing.empty': 'A lista de mala está vazia',
   'packing.import': 'Importar',

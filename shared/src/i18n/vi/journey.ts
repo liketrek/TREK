@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Biến chuyến đi của bạn thành những câu chuyện bạn sẽ không bao giờ quên',
   'journey.frontpage.createJourney': 'Tạo hành trình',
   'journey.frontpage.activeJourney': 'Hành trình đang hoạt động',
+  'journey.frontpage.latestJourney': 'Hành trình mới nhất',
   'journey.frontpage.allJourneys': 'Tất cả hành trình',
   'journey.frontpage.journeys': 'cuộc hành trình',
   'journey.frontpage.createNew': 'Tạo một hành trình mới',
@@ -227,5 +228,13 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Không tìm thấy album nào',
   'journey.picker.selectDate': 'Chọn ngày',
   'journey.picker.search': 'Tìm kiếm',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

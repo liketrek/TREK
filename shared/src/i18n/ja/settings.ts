@@ -79,6 +79,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': '旅行リマインダー',
   'settings.notifyTodoDue': 'ToDoの期限',
   'settings.notifyVacayInvite': 'Vacay fusion の招待',
+  'settings.notifyVacayShare': 'Vacay カレンダーの共有',
   'settings.notifyPhotosShared': '共有写真（Immich）',
   'settings.notifyCollabMessage': 'チャットメッセージ（Collab）',
   'settings.notifyPackingTagged': '持ち物リスト：割り当て',
@@ -402,6 +403,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': '下部ナビゲーションバー',
+  'settings.appearance.mobileNav.hint':
+    'バーに表示する項目と「その他」に入れる項目を選べます。ダッシュボードは常に先頭に固定されます。',
+  'settings.appearance.mobileNav.inBar': 'バー内',
+  'settings.appearance.mobileNav.underMore': '「その他」内',
+  'settings.appearance.mobileNav.moreEmpty': 'まだ何もありません — すべてバーに収まっています。',
+  'settings.appearance.mobileNav.pinned': '固定',
+  'settings.appearance.mobileNav.toMore': '「その他」に移動',
+  'settings.appearance.mobileNav.toBar': 'バーに移動',
+  'settings.appearance.dashOrder': 'ダッシュボードの並び順',
+  'settings.appearance.dashOrder.hint':
+    'スマホのダッシュボードで旅行リストやウィジェットが並ぶ順番を変更できます。注目の旅行は常に一番上に固定されます。',
+  'settings.appearance.dashOrder.trips': '旅行',
+  'settings.appearance.dashOrder.hidden': '非表示',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -466,7 +481,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': '日時',
   'settings.pluginActivity.columns.status': '結果',
   'settings.alwaysShowRoutes': '予約ルートを常に表示',
-  'settings.alwaysShowRoutesHint': 'フライトや電車などすべての予約のルートを、個別にオンにしなくても地図上に自動的に表示します。',
+  'settings.alwaysShowRoutesHint':
+    'フライトや電車などすべての予約のルートを、個別にオンにしなくても地図上に自動的に表示します。',
 };
 
 export default settings;

@@ -369,6 +369,14 @@ const admin: TranslationStrings = {
     'Προσθήκη στηλών και ενεργειών στις προβολές του ταξιδιού (κρατήσεις, τοποθεσίες, ημέρες)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Προσθήκη δεικτών στον χάρτη του ταξιδιού (π.χ. εμφάνιση κρατήσεων ή POI)',
+  'admin.plugins.perm.hook:map-layer-provider':
+    'Σχεδίαση διαδρομών, διαδρόμων και ζωνών στον χάρτη του ταξιδιού',
+  'admin.plugins.perm.hook:route-provider':
+    'Παροχή προφίλ δρομολόγησης με τα οποία ο σχεδιαστής υπολογίζει τις διαδρομές των ημερών (π.χ. δρομολόγηση ηλεκτρικού οχήματος με στάσεις φόρτισης)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Προσθήκη χρονικών καταχωρίσεων στο πλάνο της ημέρας (στάσεις φόρτισης, περιθώρια ασφαλείας)',
+  'admin.plugins.perm.geolocation:read':
+    'Αίτημα της τρέχουσας τοποθεσίας σας όσο μία από τις προβολές του είναι ανοιχτή (το πρόγραμμα περιήγησής σας θα ζητήσει επιπλέον επιβεβαίωση)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Προσθήκη ενοτήτων κειμένου στην εξαγωγή PDF του ταξιδιού',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Επισήμανση χωρών στον παγκόσμιο χάρτη του Άτλαντα (π.χ. λίστες επιθυμιών ή ταξιδιωτικές οδηγίες)',
@@ -489,6 +497,10 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Παρέχει συμβάντα ημερολογίου',
   'admin.plugins.cap.placeDetails': 'Εμπλουτίζει μέρη',
   'admin.plugins.cap.warnings': 'Επισημαίνει ζητήματα',
+  'admin.plugins.cap.mapLayers': 'Σχεδιάζει στον χάρτη',
+  'admin.plugins.cap.routing': 'Παρέχει δρομολόγηση',
+  'admin.plugins.cap.daySchedule': 'Προσθέτει χρόνους πλάνου',
+  'admin.plugins.cap.geolocation': 'Διαβάζει την τοποθεσία σας',
   'admin.plugins.cap.events': 'Αντιδρά σε δραστηριότητα',
   'admin.plugins.cap.requiresAddon': 'Απαιτεί {addon}',
   'admin.plugins.cap.dependsOn': 'Χρειάζεται {id} {version}',

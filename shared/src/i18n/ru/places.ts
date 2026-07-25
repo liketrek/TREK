@@ -42,7 +42,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Добавить в какой день?',
   'places.all': 'Все',
   'places.unplanned': 'Незапланированные',
+  'places.planned': 'Запланированные',
   'places.filterTracks': 'Треки',
+  'places.sortByRating': 'Сортировать по рейтингу',
+  'places.yourRating': 'Твоя оценка',
+  'places.notRated': 'Ещё нет оценок',
   'places.search': 'Поиск мест...',
   'places.allCategories': 'Все категории',
   'places.categoriesSelected': 'категорий',
@@ -88,5 +92,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Обогатить места через Google',
   'places.enrichOnImportHint':
     'Находит каждое импортированное место и добавляет фото, адрес и контакты. Требуется ключ Google Maps.',
+  'places.uploadImage': 'Загрузить изображение',
+  'places.changeImage': 'Изменить изображение',
+  'places.removeImage': 'Удалить изображение',
+  'places.imageUploadError': 'Не удалось загрузить изображение',
 };
 export default places;

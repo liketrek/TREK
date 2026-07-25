@@ -2,15 +2,19 @@ import React, { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag, Tags } from 'lucide-react'
+import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag, Tags, Camera, Loader2 } from 'lucide-react'
 import type { CollectionPlace, CollectionStatus, CollectionLink, CollectionLabel } from '@trek/shared'
 import type { Category, TranslationFn } from '../../types'
 import MarkdownToolbar from '../Journey/MarkdownToolbar'
+import { NumericInput } from '../shared/NumericInput'
 import { mapsApi } from '../../api/client'
 import { entityGradient } from '../../utils/gradients'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { STATUS_META, STATUS_ORDER, normalizeLinkUrl } from '../../pages/collections/collectionsModel'
 import { useToast } from '../shared/Toast'
+import { Tooltip } from '../shared/Tooltip'
+import PlaceRating from '../shared/StarRating'
+import { normalizeImageFile } from '../../utils/convertHeic'
 import { getApiErrorMessage } from '../../types'
 
 function linkHost(url: string): string {
@@ -28,9 +32,13 @@ interface CollectionPlaceDetailProps {
   anchorRect?: { left: number; width: number } | null
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[] }) => Promise<void>
+  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; lat?: number | null; lng?: number | null }) => Promise<void>
+  /** Upload a custom cover image (#1136); enables the cover change/remove controls. */
+  onUploadImage?: (file: File) => Promise<void>
   onCopyToTrip: () => void
   onRemove: () => void
+  /** Cast/clear the current user's star vote (#1435); every member may vote. */
+  onRate?: (rating: number | null) => Promise<void> | void
   t: TranslationFn
 }
 
@@ -58,15 +66,19 @@ function StatusSegment({ status, onSet, t }: { status: CollectionStatus; onSet: 
  * is an always-live segmented control (auto-saves).
  */
 export default function CollectionPlaceDetail({
-  place, canEdit, canDelete, categories, labels, anchorRect, onClose, onSetStatus, onSave, onCopyToTrip, onRemove, t,
+  place, canEdit, canDelete, categories, labels, anchorRect, onClose, onSetStatus, onSave, onUploadImage, onCopyToTrip, onRemove, onRate, t,
 }: CollectionPlaceDetailProps): React.ReactElement {
   const toast = useToast()
   const [editing, setEditing] = useState(false)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+  const [imgBusy, setImgBusy] = useState(false)
   const [name, setName] = useState(place.name)
   const [categoryId, setCategoryId] = useState<number | null>(place.category_id ?? null)
   const [description, setDescription] = useState(place.description ?? '')
   const [links, setLinks] = useState<CollectionLink[]>(place.links ?? [])
   const [labelIds, setLabelIds] = useState<number[]>(place.label_ids ?? [])
+  const [lat, setLat] = useState(place.lat != null ? String(place.lat) : '')
+  const [lng, setLng] = useState(place.lng != null ? String(place.lng) : '')
   const [saving, setSaving] = useState(false)
   // A higher-res photo pulled from the maps provider when the place has none of
   // its own — the list avatar's little thumbnail is too low-res for the cover.
@@ -81,6 +93,8 @@ export default function CollectionPlaceDetail({
     setDescription(place.description ?? '')
     setLinks(place.links ?? [])
     setLabelIds(place.label_ids ?? [])
+    setLat(place.lat != null ? String(place.lat) : '')
+    setLng(place.lng != null ? String(place.lng) : '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.id])
 
@@ -99,16 +113,49 @@ export default function CollectionPlaceDetail({
   }, [place.id])
 
   const banner = place.image_url || fetchedPhoto
+
+  const handleCoverPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !onUploadImage) return
+    setImgBusy(true)
+    try {
+      await onUploadImage(await normalizeImageFile(file))
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('places.imageUploadError')))
+    } finally {
+      setImgBusy(false)
+    }
+  }
+
+  const handleImageRemove = async () => {
+    setImgBusy(true)
+    try {
+      await onSave({ image_url: null })
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('places.imageUploadError')))
+    } finally {
+      setImgBusy(false)
+    }
+  }
+
   const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
   const toggleLabel = (id: number) => setLabelIds(labelIds.includes(id) ? labelIds.filter(x => x !== id) : [...labelIds, id])
-  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []); setLabelIds(place.label_ids ?? []) }
+  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []); setLabelIds(place.label_ids ?? []); setLat(place.lat != null ? String(place.lat) : ''); setLng(place.lng != null ? String(place.lng) : '') }
+  const coordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData('text').trim()
+    const match = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/)
+    if (match) { e.preventDefault(); setLat(match[1]); setLng(match[2]) }
+  }
   const assignedLabels = labels.filter(l => (place.label_ids ?? []).includes(l.id))
 
   const save = async () => {
     const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
+    const latNum = lat.trim() ? Number(lat) : NaN
+    const lngNum = lng.trim() ? Number(lng) : NaN
     setSaving(true)
     try {
-      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds })
+      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds, lat: Number.isFinite(latNum) ? latNum : null, lng: Number.isFinite(lngNum) ? lngNum : null })
       setEditing(false)
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('common.error')))
@@ -131,6 +178,33 @@ export default function CollectionPlaceDetail({
           </span>
         )}
         <button type="button" className="col-detail-close" onClick={onClose} aria-label={t('common.close')}><X size={16} /></button>
+        {canEdit && onUploadImage && (
+          <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 6, zIndex: 2 }}>
+            <Tooltip label={place.image_url ? t('places.changeImage') : t('places.uploadImage')} placement="bottom">
+              <button
+                type="button"
+                onClick={() => { if (!imgBusy) coverInputRef.current?.click() }}
+                aria-label={place.image_url ? t('places.changeImage') : t('places.uploadImage')}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', cursor: imgBusy ? 'default' : 'pointer', background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
+              >
+                {imgBusy ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
+              </button>
+            </Tooltip>
+            {place.image_url && !imgBusy && (
+              <Tooltip label={t('places.removeImage')} placement="bottom">
+                <button
+                  type="button"
+                  onClick={handleImageRemove}
+                  aria-label={t('places.removeImage')}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </Tooltip>
+            )}
+            <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" style={{ display: 'none' }} onChange={handleCoverPick} />
+          </div>
+        )}
         <div className="col-detail-head">
           {editing
             ? <input value={name} onChange={e => setName(e.target.value)} className="col-detail-name-input" autoFocus aria-label={t('collections.listName')} />
@@ -149,6 +223,13 @@ export default function CollectionPlaceDetail({
         {/* Status — live for editors, read-only for viewers */}
         <StatusSegment status={place.status} onSet={canEdit ? onSetStatus : () => {}} t={t} />
 
+        {/* Collaborative rating (#1435) — every member votes; the average shows. */}
+        {onRate && (
+          <div style={{ padding: '2px 0' }}>
+            <PlaceRating ratings={place.ratings ?? []} ratingAvg={place.rating_avg} onRate={onRate} />
+          </div>
+        )}
+
         {editing ? (
           <div className="col-detail-edit">
             {/* Category */}
@@ -165,6 +246,14 @@ export default function CollectionPlaceDetail({
                     </button>
                   )
                 })}
+              </div>
+            </div>
+            {/* Coordinates */}
+            <div className="col-detail-field">
+              <div className="col-detail-label"><MapPin size={12} /> {t('collections.coordinates')}</div>
+              <div className="col-detail-link-row">
+                <NumericInput mode="signed" value={lat} onValueChange={setLat} onPaste={coordPaste} placeholder={t('places.formLat')} className="col-detail-input flex-1" />
+                <NumericInput mode="signed" value={lng} onValueChange={setLng} placeholder={t('places.formLng')} className="col-detail-input flex-1" />
               </div>
             </div>
             {/* Labels */}

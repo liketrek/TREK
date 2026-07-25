@@ -49,9 +49,11 @@ describe('ReservationsPanel', () => {
     expect(els.length).toBeGreaterThan(0);
   });
 
-  it('FE-COMP-RES-004: shows empty hint text', () => {
+  it('FE-COMP-RES-004: shows empty-state mascot illustration', () => {
     render(<ReservationsPanel {...defaultProps} reservations={[]} />);
-    expect(screen.getByText(/Add reservations for flights/i)).toBeInTheDocument();
+    // The mobile rewrite dropped the hint subtitle in favour of the shared
+    // EmptyState mascot; the bookings scene renders the TREK mark svg.
+    expect(document.querySelector('.trek--bookings')).toBeInTheDocument();
   });
 
   it('FE-COMP-RES-005: shows Manual Booking add button', () => {
@@ -461,5 +463,47 @@ describe('ReservationsPanel', () => {
     render(<ReservationsPanel {...defaultProps} reservations={[hotel, flight]} days={[day1, day2]} />);
     const text = document.body.textContent || '';
     expect(text.indexOf('Mid flight')).toBeLessThan(text.indexOf('Hotel stay'));
+  });
+
+  // AirTrail sync badge — three states (#1646)
+  it('FE-PLANNER-RESP-046: a synced AirTrail flight shows the AirTrail badge', () => {
+    const res = buildReservation({ title: 'Synced flight', type: 'flight', external_source: 'airtrail', sync_enabled: 1 } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
+    expect(screen.getByTitle('Synced from AirTrail — edits stay in sync both ways.')).toBeInTheDocument();
+    expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESP-047: a multi-leg import shows the layover hint, not the "removed" message', () => {
+    const res = buildReservation({
+      title: 'Layover flight', type: 'flight', external_source: 'airtrail', sync_enabled: 0,
+      metadata: JSON.stringify({ legs: [{ from: 'AMS' }, { from: 'IST' }] }),
+    } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
+    // Not falsely labelled "Not synced" / "removed in AirTrail"…
+    expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
+    // …and carries the truthful layover explanation.
+    expect(
+      screen.getByTitle('Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.'),
+    ).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESP-048: a single-leg flight removed upstream still shows "Not synced"', () => {
+    const res = buildReservation({ title: 'Removed flight', type: 'flight', external_source: 'airtrail', sync_enabled: 0 } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
+    expect(screen.getByText('Not synced')).toBeInTheDocument();
+    expect(screen.getByTitle('This flight was removed in AirTrail and no longer syncs.')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESP-049: a flight grown into multiple legs locally (endpoints > 2, no legs array) shows the layover hint, not "Not synced"', () => {
+    // Matches the server's second hasLocalMultiLegShape criterion (endpoint count > 2).
+    const res = buildReservation({
+      title: 'Grown multi-leg', type: 'flight', external_source: 'airtrail', sync_enabled: 0,
+      endpoints: [{ sequence: 0 }, { sequence: 1 }, { sequence: 2 }],
+    } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
+    expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
+    expect(
+      screen.getByTitle('Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.'),
+    ).toBeInTheDocument();
   });
 });

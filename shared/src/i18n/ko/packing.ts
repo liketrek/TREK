@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': '작업',
+  'packing.editDone': '완료',
+  'packing.personalEmptyHint': '개인 목록이 비어 있습니다 — 공유 항목을 복사하거나 직접 추가하세요.',
+  'packing.assignMembers': '멤버 배정',
+  'packing.categoryOptions': '목록 옵션',
+  'packing.editItem': '항목 편집',
+  'packing.itemName': '이름',
+  'packing.itemQuantity': '수량',
+  'packing.itemWeight': '무게(g)',
   'packing.title': '짐 목록',
   'packing.empty': '짐 목록이 비어 있습니다',
   'packing.import': '가져오기',

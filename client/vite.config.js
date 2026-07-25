@@ -7,6 +7,16 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Serve the generated manifest (+ dev SW) in development too, so the installed
+      // PWA can be tested against the dev server. Without this, dev ships no
+      // <link rel="manifest">, so iOS falls back to legacy standalone
+      // (apple-mobile-web-app-capable only) and pops the Safari chrome on every
+      // in-app navigation away from the start URL. Prod already serves the manifest.
+      devOptions: {
+        enabled: true,
+        type: 'module',
+        suppressWarnings: true,
+      },
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],

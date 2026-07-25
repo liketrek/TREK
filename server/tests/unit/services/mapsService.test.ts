@@ -583,6 +583,58 @@ describe('fetchOverpassDetails (fetch stubbed)', () => {
   });
 });
 
+// ── searchOverpassPois localized names (#1655) ───────────────────────────────
+
+describe('searchOverpassPois localized names (#1655)', () => {
+  // Elephant and Obelisk in Rome: OSM ships the native name plus localized tags.
+  const tags = {
+    name: 'Obelisco della Minerva',
+    'name:en': 'Elephant and Obelisk',
+    'name:de': 'Minerva-Obelisk',
+    int_name: 'Elephant Obelisk',
+    tourism: 'attraction',
+  };
+  const stubOverpass = (elementTags: Record<string, string>) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ elements: [{ type: 'node', id: 1, lat: 41.9, lon: 12.48, tags: elementTags }] }),
+      }),
+    );
+  // Distinct bboxes per case so the module-level POI_CACHE (keyed by lang+bbox)
+  // never serves one case's names to another.
+  const bbox = (n: number) => ({ south: 41 + n / 100, west: 12, north: 42 + n / 100, east: 13 });
+
+  it('prefers name:<lang> for the user language over the native name', async () => {
+    stubOverpass(tags);
+    const { searchOverpassPois } = await import('../../../src/services/mapsService');
+    const { pois } = await searchOverpassPois('sights', bbox(1), 'en-US');
+    expect(pois[0].name).toBe('Elephant and Obelisk');
+  });
+
+  it('localizes to a non-English language too', async () => {
+    stubOverpass(tags);
+    const { searchOverpassPois } = await import('../../../src/services/mapsService');
+    const { pois } = await searchOverpassPois('sights', bbox(2), 'de-DE');
+    expect(pois[0].name).toBe('Minerva-Obelisk');
+  });
+
+  it('falls back to int_name when the language tag is absent', async () => {
+    stubOverpass({ name: tags.name, int_name: tags.int_name, tourism: 'attraction' });
+    const { searchOverpassPois } = await import('../../../src/services/mapsService');
+    const { pois } = await searchOverpassPois('sights', bbox(3), 'fr-FR');
+    expect(pois[0].name).toBe('Elephant Obelisk');
+  });
+
+  it('falls back to the native name when no localized tag exists', async () => {
+    stubOverpass({ name: tags.name, tourism: 'attraction' });
+    const { searchOverpassPois } = await import('../../../src/services/mapsService');
+    const { pois } = await searchOverpassPois('sights', bbox(4), 'fr-FR');
+    expect(pois[0].name).toBe('Obelisco della Minerva');
+  });
+});
+
 // ── fetchWikimediaPhoto (fetch stubbed) ───────────────────────────────────────
 
 describe('fetchWikimediaPhoto (fetch stubbed)', () => {

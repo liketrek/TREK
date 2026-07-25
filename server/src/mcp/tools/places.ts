@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
 import { canAccessTrip, db } from '../../db/database';
 import { isDemoUser } from '../../services/authService';
-import { deletePlacesMany, updatePlacesMany, importGoogleList, importNaverList, listPlaces, createPlace, updatePlace, deletePlace } from '../../services/placeService';
+import { deletePlacesMany, updatePlacesMany, importGoogleList, importNaverList, listPlaces, createPlace, updatePlace, deletePlace, ratePlace } from '../../services/placeService';
 import { createAssignment, dayExists } from '../../services/assignmentService';
 import { onPlaceDeleted, reconcileTripSkeletons } from '../../services/journeyService';
 import { listCategories } from '../../services/categoryService';
@@ -133,6 +133,28 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('place_edit', tripId, userId)) return permissionDenied();
       const place = updatePlace(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id, google_ftid });
+      if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
+      safeBroadcast(tripId, 'place:updated', { place });
+      return ok({ place });
+    }
+  );
+
+  if (W) server.registerTool(
+    'rate_place',
+    {
+      description: "Set or clear the current user's 1-5 star rating on a trip place (#1435). Every trip member rates independently; the place shows the average. Omit rating (or pass null) to remove the user's vote. Use the ratings to capture the user's preferences and shape the itinerary around highly-rated places.",
+      inputSchema: {
+        tripId: z.number().int().positive(),
+        placeId: z.number().int().positive(),
+        rating: z.number().int().min(1).max(5).nullable().optional().describe('1-5 stars; null/omitted clears the vote'),
+      },
+      annotations: TOOL_ANNOTATIONS_WRITE,
+    },
+    async ({ tripId, placeId, rating }) => {
+      if (isDemoUser(userId)) return demoDenied();
+      // Rating is a personal vote — any trip member may cast one, place_edit not required.
+      if (!canAccessTrip(tripId, userId)) return noAccess();
+      const place = ratePlace(String(tripId), String(placeId), userId, rating ?? null);
       if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
       safeBroadcast(tripId, 'place:updated', { place });
       return ok({ place });

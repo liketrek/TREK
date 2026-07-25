@@ -26,6 +26,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'Hesaplanıyor...',
   'dayplan.route': 'Rota',
   'dayplan.optimize': 'Optimize et',
+  'dayplan.transportMode.change': 'Ulaşım türünü değiştir',
+  'dayplan.transportMode.useDefault': 'Günün varsayılanını kullan',
   'dayplan.optimized': 'Rota optimize edildi',
   'dayplan.routeError': 'Rota hesaplanamadı',
   'dayplan.toast.needTwoPlaces': 'Rota optimizasyonu için en az iki yer gerekli',

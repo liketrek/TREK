@@ -2,7 +2,7 @@ import { Circle, Bookmark, CheckCircle2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { CollectionPlace, CollectionStatus, CollectionLabel } from '@trek/shared'
 import { COLLECTION_STATUSES } from '@trek/shared'
-import type { StatusFilter } from '../../store/collectionStore'
+import type { StatusFilter, CollectionSortMode } from '../../store/collectionStore'
 
 /**
  * Pure data shaping + presentation metadata for the Collections page. No React
@@ -35,8 +35,12 @@ export function nextStatus(status: CollectionStatus): CollectionStatus {
   return STATUS_ORDER[(i + 1) % STATUS_ORDER.length]
 }
 
-/** Sort places by explicit sort_order, falling back to created_at (newest first). */
-export function sortPlaces(places: CollectionPlace[]): CollectionPlace[] {
+/** Order the places for display. 'default' keeps the saved order (sort_order,
+ *  then newest first); 'name_asc' sorts alphabetically by name (locale-aware). */
+export function sortPlaces(places: CollectionPlace[], mode: CollectionSortMode = 'default'): CollectionPlace[] {
+  if (mode === 'name_asc') {
+    return [...places].sort((a, b) => a.name.localeCompare(b.name))
+  }
   return [...places].sort((a, b) => {
     const so = (a.sort_order ?? 0) - (b.sort_order ?? 0)
     if (so !== 0) return so
@@ -54,12 +58,15 @@ export function filterPlaces(
   search: string,
   categoryFilter: number | 'all' = 'all',
   labelFilter: number[] = [],
+  ratingFilter: number | 'all' = 'all',
 ): CollectionPlace[] {
   const q = search.trim().toLowerCase()
   return places.filter(p => {
     if (!p) return false
     if (statusFilter !== 'all' && p.status !== statusFilter) return false
     if (categoryFilter !== 'all' && (p.category_id ?? null) !== categoryFilter) return false
+    // Minimum-average-stars filter (#1435): unrated places drop out once a floor is set.
+    if (ratingFilter !== 'all' && (p.rating_avg == null || p.rating_avg < ratingFilter)) return false
     if (labelFilter.length && !labelFilter.some(id => (p.label_ids ?? []).includes(id))) return false
     if (!q) return true
     return (

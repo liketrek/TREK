@@ -135,6 +135,45 @@ describe('CustomDatePicker', () => {
     expect(screen.queryByPlaceholderText('DD.MM.YYYY')).toBeNull();
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
   });
+
+  // ── min/max range restriction (#1662) ──────────────────────────────────────
+
+  it('FE-COMP-DATEPICKER-027: days outside [min,max] are disabled and not clickable', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    await user.click(screen.getAllByRole('button')[0]); // open March 2026
+    const day5 = screen.getAllByRole('button').find((b) => b.textContent?.trim() === '5');
+    expect((day5 as HTMLButtonElement).disabled).toBe(true);
+    await user.click(day5!);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-DATEPICKER-028: days within [min,max] stay selectable', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    await user.click(screen.getAllByRole('button')[0]); // open March 2026
+    const day12 = screen.getAllByRole('button').find((b) => b.textContent?.trim() === '12');
+    expect((day12 as HTMLButtonElement).disabled).toBe(false);
+    await user.click(day12!);
+    expect(onChange).toHaveBeenCalledWith('2026-03-12');
+  });
+
+  it('FE-COMP-DATEPICKER-029: manual entry of an out-of-range date is rejected', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    await user.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: '2026-03-25' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-DATEPICKER-030: empty value opens the calendar on the first in-range month', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    await user.click(screen.getAllByRole('button')[0]); // open — should land on March 2026
+    expect(screen.getByText(/march 2026/i)).toBeTruthy();
+  });
 });
 
 // ─── CustomDateTimePicker ─────────────────────────────────────────────────────

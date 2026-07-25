@@ -77,7 +77,8 @@ describe('vacayStore', () => {
 
       expect(Object.keys(state.holidays).length).toBeGreaterThan(0);
       expect(state.holidays['2025-12-25']).toBeDefined();
-      expect(state.holidays['2025-12-25'].name).toBe('Christmas');
+      const christmas = state.holidays['2025-12-25'];
+      expect(Array.isArray(christmas) ? christmas[0].name : christmas.name).toBe('Christmas');
     });
   });
 
@@ -399,6 +400,259 @@ describe('vacayStore', () => {
       const holidays = useVacayStore.getState().holidays;
       // Global holidays are included even for regional calendars when counties data is absent
       expect(holidays['2025-12-25']).toBeDefined();
+    });
+  });
+
+  describe('FE-STORE-VACAY-022: loadShares()', () => {
+    it('stores outgoing and incoming shares', async () => {
+      server.use(
+        http.get('/api/addons/vacay/shares', () =>
+          HttpResponse.json({
+            outgoing: [{ id: 1, user_id: 2, username: 'Bob' }],
+            incoming: [{ id: 2, owner_id: 3, username: 'Carol', color: '#ec4899', hidden: false }],
+          })
+        )
+      );
+
+      await useVacayStore.getState().loadShares();
+      const state = useVacayStore.getState();
+
+      expect(state.outgoingShares.length).toBe(1);
+      expect(state.outgoingShares[0].username).toBe('Bob');
+      expect(state.incomingShares.length).toBe(1);
+      expect(state.incomingShares[0].hidden).toBe(false);
+    });
+  });
+
+  describe('FE-STORE-VACAY-023: loadSharedCalendars() uses selectedYear when no year arg', () => {
+    it('requests the selected year and stores the calendars', async () => {
+      useVacayStore.setState({ selectedYear: 2025 });
+
+      let requestedYear: string | undefined;
+      server.use(
+        http.get('/api/addons/vacay/shares/calendars/:year', ({ params }) => {
+          requestedYear = params.year as string;
+          return HttpResponse.json({
+            calendars: [{
+              share_id: 2,
+              owner_id: 3,
+              owner_name: 'Carol',
+              color: '#ec4899',
+              hidden: false,
+              entries: [{ date: '2025-06-15', fraction: 1 }],
+              companyHolidays: [],
+            }],
+          });
+        })
+      );
+
+      await useVacayStore.getState().loadSharedCalendars();
+      const state = useVacayStore.getState();
+
+      expect(requestedYear).toBe('2025');
+      expect(state.sharedCalendars.length).toBe(1);
+      expect(state.sharedCalendars[0].owner_name).toBe('Carol');
+    });
+  });
+
+  describe('FE-STORE-VACAY-024: shareWith()', () => {
+    it('posts the user id and reloads shares', async () => {
+      let postedUserId: number | undefined;
+      server.use(
+        http.post('/api/addons/vacay/shares', async ({ request }) => {
+          const body = await request.json() as { user_id: number };
+          postedUserId = body.user_id;
+          return HttpResponse.json({ success: true });
+        }),
+        http.get('/api/addons/vacay/shares', () =>
+          HttpResponse.json({
+            outgoing: [{ id: 1, user_id: 5, username: 'Eve' }],
+            incoming: [],
+          })
+        )
+      );
+
+      await useVacayStore.getState().shareWith(5);
+      const state = useVacayStore.getState();
+
+      expect(postedUserId).toBe(5);
+      expect(state.outgoingShares.length).toBe(1);
+    });
+  });
+
+  describe('FE-STORE-VACAY-025: removeShare()', () => {
+    it('deletes the share and reloads shares and shared calendars', async () => {
+      useVacayStore.setState({
+        selectedYear: 2025,
+        outgoingShares: [{ id: 1, user_id: 5, username: 'Eve' }],
+      });
+
+      let deletedId: string | undefined;
+      server.use(
+        http.delete('/api/addons/vacay/shares/:id', ({ params }) => {
+          deletedId = params.id as string;
+          return HttpResponse.json({ success: true });
+        })
+      );
+
+      await useVacayStore.getState().removeShare(1);
+      const state = useVacayStore.getState();
+
+      expect(deletedId).toBe('1');
+      // Default MSW handlers return empty lists after the delete
+      expect(state.outgoingShares).toEqual([]);
+      expect(state.sharedCalendars).toEqual([]);
+    });
+  });
+
+  describe('FE-STORE-VACAY-026: setShareHidden()', () => {
+    it('optimistically toggles hidden on the share and its calendar', async () => {
+      useVacayStore.setState({
+        incomingShares: [{ id: 2, owner_id: 3, username: 'Carol', color: '#ec4899', hidden: false }],
+        sharedCalendars: [{ share_id: 2, owner_id: 3, owner_name: 'Carol', color: '#ec4899', hidden: false, entries: [], companyHolidays: [] }],
+      });
+
+      await useVacayStore.getState().setShareHidden(2, true);
+      const state = useVacayStore.getState();
+
+      expect(state.incomingShares[0].hidden).toBe(true);
+      expect(state.sharedCalendars[0].hidden).toBe(true);
+    });
+
+    it('rolls back the optimistic toggle when the API call fails', async () => {
+      useVacayStore.setState({
+        incomingShares: [{ id: 2, owner_id: 3, username: 'Carol', color: '#ec4899', hidden: false }],
+        sharedCalendars: [{ share_id: 2, owner_id: 3, owner_name: 'Carol', color: '#ec4899', hidden: false, entries: [], companyHolidays: [] }],
+      });
+
+      server.use(
+        http.put('/api/addons/vacay/shares/:id', () =>
+          HttpResponse.json({ error: 'Share not found' }, { status: 404 })
+        )
+      );
+
+      await expect(useVacayStore.getState().setShareHidden(2, true)).rejects.toThrow();
+      const state = useVacayStore.getState();
+
+      expect(state.incomingShares[0].hidden).toBe(false);
+      expect(state.sharedCalendars[0].hidden).toBe(false);
+    });
+  });
+
+  describe('FE-STORE-VACAY-027: loadHolidays() with national school holiday calendar', () => {
+    it('loads school holidays when the calendar has no subdivision', async () => {
+      useVacayStore.setState({
+        selectedYear: 2026,
+        plan: {
+          id: 1,
+          holidays_enabled: false,
+          school_holidays_enabled: true,
+          holidays_region: null,
+          holiday_calendars: [
+            { id: 1, plan_id: 1, region: 'NL', label: 'Niederlande', color: '#22c55e', sort_order: 0, type: 'school_holiday' },
+          ],
+          block_weekends: false,
+          carry_over_enabled: false,
+          company_holidays_enabled: false,
+        },
+      });
+
+      let requestedUrl = '';
+      server.use(
+        http.get('/api/addons/vacay/school-holidays/:year/:country', ({ request }) => {
+          requestedUrl = request.url;
+          return HttpResponse.json([
+            {
+              id: 'nl-summer-2026',
+              startDate: '2026-07-18',
+              endDate: '2026-08-30',
+              name: [{ language: 'EN', text: 'Summer holidays' }],
+            },
+          ]);
+        })
+      );
+
+      await useVacayStore.getState().loadHolidays(2026);
+      const holidays = useVacayStore.getState().holidays;
+
+      expect(requestedUrl).toContain('/school-holidays/2026/NL');
+      expect(holidays['2026-07-18']).toBeDefined();
+      const summer = holidays['2026-07-18'];
+      expect(Array.isArray(summer) ? summer[0].type : summer.type).toBe('school_holiday');
+    });
+  });
+
+  describe('FE-STORE-VACAY-028: loadHolidays() with school holiday group calendar', () => {
+    it('passes the OpenHolidays group code for regional school holiday zones', async () => {
+      useVacayStore.setState({
+        selectedYear: 2026,
+        plan: {
+          id: 1,
+          holidays_enabled: false,
+          school_holidays_enabled: true,
+          holidays_region: null,
+          holiday_calendars: [
+            { id: 1, plan_id: 1, region: 'NL|group:NL-NO', label: 'Noord', color: '#22c55e', sort_order: 0, type: 'school_holiday' },
+          ],
+          block_weekends: false,
+          carry_over_enabled: false,
+          company_holidays_enabled: false,
+        },
+      });
+
+      let requestedUrl = '';
+      server.use(
+        http.get('/api/addons/vacay/school-holidays/:year/:country', ({ request }) => {
+          requestedUrl = request.url;
+          return HttpResponse.json([
+            {
+              id: 'nl-north-2026',
+              startDate: '2026-07-04',
+              endDate: '2026-08-16',
+              name: [{ language: 'EN', text: 'Summer holidays' }],
+            },
+          ]);
+        })
+      );
+
+      await useVacayStore.getState().loadHolidays(2026);
+
+      expect(requestedUrl).toContain('/school-holidays/2026/NL');
+      expect(requestedUrl).toContain('group=NL-NO');
+      expect(useVacayStore.getState().holidays['2026-07-04']).toBeDefined();
+    });
+  });
+
+  describe('FE-STORE-VACAY-029: loadHolidays() with unsupported school holiday country', () => {
+    it('skips school holiday calendars that are not in the approved whitelist', async () => {
+      useVacayStore.setState({
+        selectedYear: 2026,
+        plan: {
+          id: 1,
+          holidays_enabled: false,
+          school_holidays_enabled: true,
+          holidays_region: null,
+          holiday_calendars: [
+            { id: 1, plan_id: 1, region: 'SE', label: 'Sweden', color: '#22c55e', sort_order: 0, type: 'school_holiday' },
+          ],
+          block_weekends: false,
+          carry_over_enabled: false,
+          company_holidays_enabled: false,
+        },
+      });
+
+      let requested = false;
+      server.use(
+        http.get('/api/addons/vacay/school-holidays/:year/:country', () => {
+          requested = true;
+          return HttpResponse.json([]);
+        })
+      );
+
+      await useVacayStore.getState().loadHolidays(2026);
+
+      expect(requested).toBe(false);
+      expect(useVacayStore.getState().holidays).toEqual({});
     });
   });
 });

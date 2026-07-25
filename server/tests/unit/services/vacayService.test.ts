@@ -25,6 +25,8 @@ vi.mock('../../../src/config', () => ({
 }));
 // Mock websocket so notifyPlanUsers doesn't throw
 vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
+// shareCalendar fires a notification after inserting — keep that out of unit scope
+vi.mock('../../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
@@ -53,6 +55,17 @@ import {
   toggleCompanyHoliday,
   getStats,
   applyHolidayCalendars,
+  listShares,
+  shareCalendar,
+  removeShare,
+  setShareHidden,
+  getShareAvailableUsers,
+  getSharedCalendars,
+  resolveYearWindow,
+  updateUserYearSettings,
+  getUserYearSettings,
+  getYearSettings,
+  currentPeriodYear,
 } from '../../../src/services/vacayService';
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -527,6 +540,44 @@ describe('toggleEntry', () => {
       .get(user.id, plan.id, '2025-08-02');
     expect(row).toBeUndefined();
   });
+
+  it('VACAY-SVC-033a: logs a half day when fraction is 0.5 (#552)', () => {
+    const { user, plan } = setupUserWithPlan();
+
+    const result = toggleEntry(user.id, plan.id, '2025-08-05', 0.5);
+
+    expect(result).toMatchObject({ action: 'added', fraction: 0.5 });
+    const row = testDb
+      .prepare('SELECT fraction FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date = ?')
+      .get(user.id, plan.id, '2025-08-05') as { fraction: number };
+    expect(row.fraction).toBe(0.5);
+  });
+
+  it('VACAY-SVC-033b: converts a full day into a half day in place (action: updated)', () => {
+    const { user, plan } = setupUserWithPlan();
+
+    toggleEntry(user.id, plan.id, '2025-08-06', 1);
+    const result = toggleEntry(user.id, plan.id, '2025-08-06', 0.5);
+
+    expect(result).toMatchObject({ action: 'updated', fraction: 0.5 });
+    const row = testDb
+      .prepare('SELECT fraction FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date = ?')
+      .get(user.id, plan.id, '2025-08-06') as { fraction: number };
+    expect(row.fraction).toBe(0.5);
+  });
+
+  it('VACAY-SVC-033c: toggling the same half day again clears it (action: removed)', () => {
+    const { user, plan } = setupUserWithPlan();
+
+    toggleEntry(user.id, plan.id, '2025-08-07', 0.5);
+    const result = toggleEntry(user.id, plan.id, '2025-08-07', 0.5);
+
+    expect(result.action).toBe('removed');
+    const row = testDb
+      .prepare('SELECT id FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date = ?')
+      .get(user.id, plan.id, '2025-08-07');
+    expect(row).toBeUndefined();
+  });
 });
 
 // ── toggleCompanyHoliday ──────────────────────────────────────────────────────
@@ -701,6 +752,331 @@ describe('getStats', () => {
     expect(stats[0].used).toBe(2);
     expect(stats[0].remaining).toBe(28);
   });
+
+  it('VACAY-SVC-045a: half days count as 0.5 toward the used total (#552)', () => {
+    const { user, plan } = setupUserWithPlan();
+    const yr = new Date().getFullYear();
+
+    toggleEntry(user.id, plan.id, `${yr}-09-12`, 1);    // full day
+    toggleEntry(user.id, plan.id, `${yr}-09-13`, 0.5);  // half day
+
+    const stats = getStats(plan.id, yr);
+
+    expect(stats[0].used).toBe(1.5);
+    expect(stats[0].remaining).toBe(28.5);
+  });
+
+  it('VACAY-SVC-045b: comp/flex days cost nothing (#1074)', () => {
+    const { user, plan } = setupUserWithPlan();
+    const yr = new Date().getFullYear();
+
+    toggleEntry(user.id, plan.id, `${yr}-09-14`, 1, 'vacation');
+    toggleEntry(user.id, plan.id, `${yr}-09-15`, 1, 'comp');
+
+    const stats = getStats(plan.id, yr);
+
+    expect(stats[0].used).toBe(1);
+    expect(stats[0].remaining).toBe(29);
+  });
+
+  it('VACAY-SVC-045c: a half comp day also costs nothing (#1074)', () => {
+    const { user, plan } = setupUserWithPlan();
+    const yr = new Date().getFullYear();
+
+    toggleEntry(user.id, plan.id, `${yr}-09-16`, 0.5, 'comp');
+
+    const stats = getStats(plan.id, yr);
+
+    expect(stats[0].used).toBe(0);
+    expect(stats[0].remaining).toBe(30);
+  });
+
+  it('VACAY-SVC-045d: comp_used reports comp days separately, summing fractions (#1074)', () => {
+    const { user, plan } = setupUserWithPlan();
+    const yr = new Date().getFullYear();
+
+    toggleEntry(user.id, plan.id, `${yr}-09-17`, 1, 'comp');
+    toggleEntry(user.id, plan.id, `${yr}-09-18`, 0.5, 'comp');
+    toggleEntry(user.id, plan.id, `${yr}-09-19`, 1, 'vacation');
+
+    const stats = getStats(plan.id, yr);
+
+    expect(stats[0].comp_used).toBe(1.5);
+    expect(stats[0].used).toBe(1);
+  });
+
+  it('VACAY-SVC-045e: converting a vacation day to comp refunds it to the entitlement (#1074)', () => {
+    const { user, plan } = setupUserWithPlan();
+    const yr = new Date().getFullYear();
+
+    toggleEntry(user.id, plan.id, `${yr}-09-20`, 1, 'vacation');
+    expect(getStats(plan.id, yr)[0].used).toBe(1);
+
+    const result = toggleEntry(user.id, plan.id, `${yr}-09-20`, 1, 'comp');
+
+    expect(result).toMatchObject({ action: 'updated', kind: 'comp' });
+    expect(getStats(plan.id, yr)[0].used).toBe(0);
+  });
+
+  it('VACAY-SVC-045f: getStats reports the window it counted over (#737)', () => {
+    const { user, plan } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7, year_start_day: 1 });
+
+    const stats = getStats(plan.id, 2026);
+
+    expect(stats[0]).toMatchObject({ window_start: '2026-07-01', window_end: '2027-07-01' });
+  });
+});
+
+// ── Configurable vacation year (#737) ─────────────────────────────────────────
+
+describe('resolveYearWindow', () => {
+  it('VACAY-SVC-045g: defaults to the plain calendar year when nothing is configured', () => {
+    const { user } = setupUserWithPlan();
+
+    expect(resolveYearWindow(user.id, 2026)).toEqual({ start: '2026-01-01', end: '2027-01-01' });
+  });
+
+  it('VACAY-SVC-045h: an explicit calendar setting resolves identically', () => {
+    const { user } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'calendar' });
+
+    expect(resolveYearWindow(user.id, 2026)).toEqual({ start: '2026-01-01', end: '2027-01-01' });
+  });
+
+  it('VACAY-SVC-045i: a fiscal year starts on the configured month and day', () => {
+    const { user } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 4, year_start_day: 6 });
+
+    expect(resolveYearWindow(user.id, 2026)).toEqual({ start: '2026-04-06', end: '2027-04-06' });
+  });
+
+  it('VACAY-SVC-045j: an anniversary year follows the hire date month and day', () => {
+    const { user } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'anniversary', hire_date: '2019-09-16' });
+
+    expect(resolveYearWindow(user.id, 2026)).toEqual({ start: '2026-09-16', end: '2027-09-16' });
+  });
+
+  it('VACAY-SVC-045k: an anniversary year without a hire date falls back to January 1', () => {
+    const { user } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'anniversary' });
+
+    expect(resolveYearWindow(user.id, 2026)).toEqual({ start: '2026-01-01', end: '2027-01-01' });
+  });
+
+  it('VACAY-SVC-045k1: an anniversary year ignores a month left behind by a previous fiscal setting', () => {
+    const { user } = setupUserWithPlan();
+    // What the settings UI sends when you pick Fiscal/April and then click
+    // "Hire date" before typing one — it carries the whole settings object.
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 4, year_start_day: 1 });
+    updateUserYearSettings(user.id, { year_type: 'anniversary', year_start_month: 4, year_start_day: 1, hire_date: null });
+
+    expect(resolveYearWindow(user.id, 2026)).toEqual({ start: '2026-01-01', end: '2027-01-01' });
+  });
+
+  it('VACAY-SVC-045k2: a Feb 29 hire date resolves to Feb 28, a boundary every year has', () => {
+    const { user } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'anniversary', hire_date: '2024-02-29' });
+
+    expect(resolveYearWindow(user.id, 2026)).toEqual({ start: '2026-02-28', end: '2027-02-28' });
+  });
+
+  it('VACAY-SVC-045k3: a fiscal day the month cannot have is clamped down to one it can', () => {
+    const { user } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 2, year_start_day: 31 });
+
+    expect(resolveYearWindow(user.id, 2026)).toEqual({ start: '2026-02-28', end: '2027-02-28' });
+  });
+
+  it('VACAY-SVC-045l: consecutive periods meet exactly, so the carry-over chain stays intact', () => {
+    const { user } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
+
+    expect(resolveYearWindow(user.id, 2025).end).toBe(resolveYearWindow(user.id, 2026).start);
+  });
+});
+
+describe('updateUserYearSettings', () => {
+  it('VACAY-SVC-045m: upserts, so a second call replaces the first', () => {
+    const { user } = setupUserWithPlan();
+
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7, year_start_day: 1 });
+    const saved = updateUserYearSettings(user.id, { year_type: 'calendar' });
+
+    expect(saved.year_type).toBe('calendar');
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM vacay_user_settings WHERE user_id = ?').get(user.id)).toEqual({ n: 1 });
+  });
+
+  it('VACAY-SVC-045n: clamps an out-of-range month and day instead of storing them', () => {
+    const { user } = setupUserWithPlan();
+
+    const saved = updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 99, year_start_day: 0 });
+
+    expect(saved.year_start_month).toBe(12);
+    expect(saved.year_start_day).toBe(1);
+  });
+
+  it('VACAY-SVC-045o: drops a malformed hire date rather than persisting it', () => {
+    const { user } = setupUserWithPlan();
+
+    const saved = updateUserYearSettings(user.id, { year_type: 'anniversary', hire_date: 'not-a-date' });
+
+    expect(saved.hire_date).toBeNull();
+  });
+
+  it('VACAY-SVC-045p: an unknown year type falls back to calendar', () => {
+    const { user } = setupUserWithPlan();
+
+    expect(updateUserYearSettings(user.id, { year_type: 'quarterly' }).year_type).toBe('calendar');
+  });
+});
+
+describe('getYearSettings', () => {
+  it('VACAY-SVC-045q: fills in the calendar defaults for a user who never configured anything', () => {
+    const { user } = setupUserWithPlan();
+
+    expect(getUserYearSettings(user.id)).toBeUndefined();
+    expect(getYearSettings(user.id)).toEqual({
+      user_id: user.id, year_type: 'calendar', year_start_month: 1, year_start_day: 1, hire_date: null,
+    });
+  });
+});
+
+describe('currentPeriodYear', () => {
+  it('VACAY-SVC-045r: a calendar user is always in the period named after today’s year', () => {
+    const { user } = setupUserWithPlan();
+
+    expect(currentPeriodYear(user.id, new Date('2026-03-15T12:00:00'))).toBe(2026);
+  });
+
+  it('VACAY-SVC-045s: before a fiscal year starts, today still belongs to the previous period', () => {
+    const { user } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
+
+    expect(currentPeriodYear(user.id, new Date('2026-03-15T12:00:00'))).toBe(2025);
+    expect(currentPeriodYear(user.id, new Date('2026-08-15T12:00:00'))).toBe(2026);
+  });
+});
+
+describe('usage over a shifted window (#737)', () => {
+  it('VACAY-SVC-045t: a day in the next calendar year still counts toward the fiscal period', () => {
+    const { user, plan } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
+
+    toggleEntry(user.id, plan.id, '2026-08-10', 1, 'vacation');  // inside, first half
+    toggleEntry(user.id, plan.id, '2027-02-10', 1, 'vacation');  // inside, second half
+
+    expect(getStats(plan.id, 2026)[0].used).toBe(2);
+  });
+
+  it('VACAY-SVC-045u: days outside the window belong to the neighbouring periods, not this one', () => {
+    const { user, plan } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
+
+    toggleEntry(user.id, plan.id, '2026-06-30', 1, 'vacation');  // last day of the previous period
+    toggleEntry(user.id, plan.id, '2027-07-01', 1, 'vacation');  // first day of the next period
+
+    expect(getStats(plan.id, 2026)[0].used).toBe(0);
+    expect(getStats(plan.id, 2025)[0].used).toBe(1);
+    expect(getStats(plan.id, 2027)[0].used).toBe(1);
+  });
+
+  // Periods well past the year seeded with the plan, so addYear really inserts.
+  it('VACAY-SVC-045v: carry-over is computed over the previous period, not the previous calendar year', () => {
+    const { user, plan } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
+    testDb.prepare('UPDATE vacay_plans SET carry_over_enabled = 1 WHERE id = ?').run(plan.id);
+    testDb.prepare(`
+      INSERT OR REPLACE INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over)
+      VALUES (?, ?, 2030, 10, 0)
+    `).run(user.id, plan.id);
+
+    // Two days inside the 2030 period (Jul 2030 – Jun 2031), one of them in 2031.
+    toggleEntry(user.id, plan.id, '2030-09-01', 1, 'vacation');
+    toggleEntry(user.id, plan.id, '2031-02-01', 1, 'vacation');
+
+    addYear(plan.id, 2031, undefined);
+
+    const row = testDb
+      .prepare('SELECT carried_over FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = 2031')
+      .get(user.id, plan.id) as { carried_over: number };
+    expect(row.carried_over).toBe(8);
+  });
+
+  it('VACAY-SVC-045w: comp days are excluded from the carry-over of a shifted period too', () => {
+    const { user, plan } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
+    testDb.prepare('UPDATE vacay_plans SET carry_over_enabled = 1 WHERE id = ?').run(plan.id);
+    testDb.prepare(`
+      INSERT OR REPLACE INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over)
+      VALUES (?, ?, 2030, 10, 0)
+    `).run(user.id, plan.id);
+
+    toggleEntry(user.id, plan.id, '2031-02-01', 1, 'comp');
+
+    addYear(plan.id, 2031, undefined);
+
+    const row = testDb
+      .prepare('SELECT carried_over FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = 2031')
+      .get(user.id, plan.id) as { carried_over: number };
+    expect(row.carried_over).toBe(10);
+  });
+
+  it('VACAY-SVC-045x: deleteYear clears the entries of the period, spanning both calendar years', () => {
+    const { user, plan } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
+    addYear(plan.id, 2026, undefined);
+
+    toggleEntry(user.id, plan.id, '2026-08-10', 1, 'vacation');  // inside
+    toggleEntry(user.id, plan.id, '2027-02-10', 1, 'vacation');  // inside, next calendar year
+    toggleEntry(user.id, plan.id, '2026-06-30', 1, 'vacation');  // previous period, must survive
+
+    deleteYear(plan.id, 2026, undefined);
+
+    const left = testDb
+      .prepare('SELECT date FROM vacay_entries WHERE plan_id = ? ORDER BY date')
+      .all(plan.id) as { date: string }[];
+    expect(left.map(r => r.date)).toEqual(['2026-06-30']);
+  });
+});
+
+describe('getEntries over a window (#737)', () => {
+  it('VACAY-SVC-045y: returns both calendar halves of a shifted period for the viewer', () => {
+    const { user, plan } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
+
+    toggleEntry(user.id, plan.id, '2026-08-10', 1, 'vacation');
+    toggleEntry(user.id, plan.id, '2027-02-10', 1, 'vacation');
+    toggleEntry(user.id, plan.id, '2026-06-30', 1, 'vacation');  // previous period
+
+    const result = getEntries(plan.id, '2026', user.id);
+
+    expect((result.entries as { date: string }[]).map(e => e.date).sort()).toEqual(['2026-08-10', '2027-02-10']);
+  });
+
+  it('VACAY-SVC-045z: without a viewer it stays on the plain calendar year (MCP reads)', () => {
+    const { user, plan } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
+
+    toggleEntry(user.id, plan.id, '2026-08-10', 1, 'vacation');
+    toggleEntry(user.id, plan.id, '2027-02-10', 1, 'vacation');
+
+    const result = getEntries(plan.id, '2026');
+
+    expect((result.entries as { date: string }[]).map(e => e.date)).toEqual(['2026-08-10']);
+  });
+
+  it('VACAY-SVC-045aa: a start day past the 1st still loads the whole first month, since the grid renders it', () => {
+    const { user, plan } = setupUserWithPlan();
+    updateUserYearSettings(user.id, { year_type: 'fiscal', year_start_month: 4, year_start_day: 6 });
+
+    toggleEntry(user.id, plan.id, '2026-04-02', 1, 'vacation');  // rendered, but counted in the previous period
+
+    expect((getEntries(plan.id, '2026', user.id).entries as unknown[])).toHaveLength(1);
+    expect(getStats(plan.id, 2026)[0].used).toBe(0);
+    expect(getStats(plan.id, 2025)[0].used).toBe(1);
+  });
 });
 
 // ── applyHolidayCalendars ─────────────────────────────────────────────────────
@@ -741,5 +1117,271 @@ describe('applyHolidayCalendars', () => {
       .prepare('SELECT * FROM vacay_entries WHERE plan_id = ? AND date = ?')
       .all(plan.id, holidayDate);
     expect(remaining).toHaveLength(0);
+  });
+});
+
+// ── Read-only calendar shares (#444/#667) ─────────────────────────────────────
+
+describe('shareCalendar', () => {
+  it('VACAY-SVC-048: inserts a share row and returns no error', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: target } = createUser(testDb);
+
+    const result = shareCalendar(owner.id, owner.email, target.id);
+
+    expect(result.error).toBeUndefined();
+    const row = testDb
+      .prepare('SELECT * FROM vacay_shares WHERE owner_id = ? AND user_id = ?')
+      .get(owner.id, target.id);
+    expect(row).toBeDefined();
+  });
+
+  it('VACAY-SVC-049: returns 400 when sharing with yourself', () => {
+    const { user: owner } = setupUserWithPlan();
+
+    const result = shareCalendar(owner.id, owner.email, owner.id);
+
+    expect(result).toEqual({ error: 'Cannot share with yourself', status: 400 });
+  });
+
+  it('VACAY-SVC-050: returns 404 when the target user does not exist', () => {
+    const { user: owner } = setupUserWithPlan();
+
+    const result = shareCalendar(owner.id, owner.email, 99999);
+
+    expect(result).toEqual({ error: 'User not found', status: 404 });
+  });
+
+  it('VACAY-SVC-051: returns 400 when the share already exists', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: target } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, target.id);
+
+    const result = shareCalendar(owner.id, owner.email, target.id);
+
+    expect(result).toEqual({ error: 'Already shared', status: 400 });
+  });
+
+  it('VACAY-SVC-052: returns 400 when the target is already a member of the owner plan', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: member } = createUser(testDb);
+    insertMember(plan.id, member.id, 'accepted');
+
+    const result = shareCalendar(owner.id, owner.email, member.id);
+
+    expect(result).toEqual({ error: 'User is already in your calendar', status: 400 });
+  });
+});
+
+describe('listShares', () => {
+  it('VACAY-SVC-053: outgoing rows carry the target user info', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: target } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, target.id);
+
+    const result = listShares(owner.id);
+
+    expect(result.outgoing).toHaveLength(1);
+    expect(result.outgoing[0]).toMatchObject({
+      user_id: target.id,
+      username: target.username,
+    });
+    expect(result.outgoing[0]).not.toHaveProperty('email');
+    expect(result.incoming).toEqual([]);
+  });
+
+  it('VACAY-SVC-054: incoming rows carry the owner info, their color and a boolean hidden flag', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    setUserColor(owner.id, plan.id, '#ef4444', undefined);
+    const { user: viewer } = setupUserWithPlan();
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const result = listShares(viewer.id);
+
+    expect(result.outgoing).toEqual([]);
+    expect(result.incoming).toHaveLength(1);
+    expect(result.incoming[0]).toMatchObject({
+      owner_id: owner.id,
+      username: owner.username,
+      color: '#ef4444',
+      hidden: false,
+    });
+    expect(result.incoming[0]).not.toHaveProperty('email');
+  });
+
+  it('VACAY-SVC-055: remaps colors when two sharing owners sit on the default indigo', () => {
+    const { user: viewer } = setupUserWithPlan(); // viewer's own color is #6366f1
+    const { user: owner1 } = setupUserWithPlan(); // default #6366f1
+    const { user: owner2 } = setupUserWithPlan(); // default #6366f1
+    shareCalendar(owner1.id, owner1.email, viewer.id);
+    shareCalendar(owner2.id, owner2.email, viewer.id);
+
+    const { incoming } = listShares(viewer.id);
+
+    expect(incoming).toHaveLength(2);
+    // Both collide with the viewer's own indigo, so each gets a distinct free preset
+    expect(incoming[0].color).not.toBe('#6366f1');
+    expect(incoming[1].color).not.toBe('#6366f1');
+    expect(incoming[0].color).not.toBe(incoming[1].color);
+  });
+});
+
+describe('removeShare', () => {
+  it('VACAY-SVC-056: the owner can revoke their share', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(owner.id).outgoing[0].id as number;
+
+    expect(removeShare(shareId, owner.id)).toBe(true);
+    const row = testDb.prepare('SELECT id FROM vacay_shares WHERE id = ?').get(shareId);
+    expect(row).toBeUndefined();
+  });
+
+  it('VACAY-SVC-057: the recipient can remove a share they received', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(viewer.id).incoming[0].id;
+
+    expect(removeShare(shareId, viewer.id)).toBe(true);
+  });
+
+  it('VACAY-SVC-058: a third user cannot remove the share, unknown ids return false', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(owner.id).outgoing[0].id as number;
+
+    expect(removeShare(shareId, stranger.id)).toBe(false);
+    const row = testDb.prepare('SELECT id FROM vacay_shares WHERE id = ?').get(shareId);
+    expect(row).toBeDefined();
+
+    expect(removeShare(99999, owner.id)).toBe(false);
+  });
+});
+
+describe('setShareHidden', () => {
+  it('VACAY-SVC-059: the recipient can hide and unhide the shared calendar', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(viewer.id).incoming[0].id;
+
+    expect(setShareHidden(shareId, viewer.id, true)).toBe(true);
+    let row = testDb.prepare('SELECT hidden FROM vacay_shares WHERE id = ?').get(shareId) as { hidden: number };
+    expect(row.hidden).toBe(1);
+    expect(listShares(viewer.id).incoming[0].hidden).toBe(true);
+
+    expect(setShareHidden(shareId, viewer.id, false)).toBe(true);
+    row = testDb.prepare('SELECT hidden FROM vacay_shares WHERE id = ?').get(shareId) as { hidden: number };
+    expect(row.hidden).toBe(0);
+  });
+
+  it('VACAY-SVC-060: the owner cannot toggle the recipient hidden flag', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, viewer.id);
+    const shareId = listShares(owner.id).outgoing[0].id as number;
+
+    expect(setShareHidden(shareId, owner.id, true)).toBe(false);
+    const row = testDb.prepare('SELECT hidden FROM vacay_shares WHERE id = ?').get(shareId) as { hidden: number };
+    expect(row.hidden).toBe(0);
+  });
+});
+
+describe('getShareAvailableUsers', () => {
+  it('VACAY-SVC-061: excludes self, already-shared users and plan members', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: member } = createUser(testDb);
+    insertMember(plan.id, member.id, 'accepted');
+    const { user: shared } = createUser(testDb);
+    shareCalendar(owner.id, owner.email, shared.id);
+    const { user: unrelated } = createUser(testDb);
+
+    const ids = (getShareAvailableUsers(owner.id) as { id: number }[]).map(u => u.id);
+
+    expect(ids).toContain(unrelated.id);
+    expect(ids).not.toContain(owner.id);
+    expect(ids).not.toContain(member.id);
+    expect(ids).not.toContain(shared.id);
+  });
+});
+
+describe('getSharedCalendars', () => {
+  it('VACAY-SVC-062: returns only the owner entries of the shared plan, including fractions', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: member } = createUser(testDb);
+    insertMember(plan.id, member.id, 'accepted');
+    const { user: viewer } = setupUserWithPlan();
+    toggleEntry(owner.id, plan.id, '2025-06-10', 1);
+    toggleEntry(owner.id, plan.id, '2025-06-11', 0.5);
+    toggleEntry(member.id, plan.id, '2025-06-12', 1);
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars).toHaveLength(1);
+    expect(calendars[0].owner_id).toBe(owner.id);
+    expect(calendars[0].owner_name).toBe(owner.username);
+    expect(calendars[0].hidden).toBe(false);
+    expect(calendars[0].entries).toEqual([
+      { date: '2025-06-10', fraction: 1, kind: 'vacation' },
+      { date: '2025-06-11', fraction: 0.5, kind: 'vacation' },
+    ]);
+  });
+
+  it('VACAY-SVC-063: company holidays stay hidden while the owner plan has them disabled', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    testDb.prepare('UPDATE vacay_plans SET company_holidays_enabled = 0 WHERE id = ?').run(plan.id);
+    toggleCompanyHoliday(plan.id, '2025-12-24', 'Christmas Eve', undefined);
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars[0].companyHolidays).toEqual([]);
+  });
+
+  it('VACAY-SVC-064: company holidays appear once the owner plan enables them', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: viewer } = createUser(testDb);
+    testDb.prepare('UPDATE vacay_plans SET company_holidays_enabled = 1 WHERE id = ?').run(plan.id);
+    toggleCompanyHoliday(plan.id, '2025-12-24', 'Christmas Eve', undefined);
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars[0].companyHolidays).toEqual([{ date: '2025-12-24' }]);
+  });
+
+  it('VACAY-SVC-065: an owner without any plan yields empty arrays (no lazy creation)', () => {
+    const { user: owner } = createUser(testDb); // never touched vacay — no plan row
+    const { user: viewer } = createUser(testDb);
+    testDb.prepare('INSERT INTO vacay_shares (owner_id, user_id) VALUES (?, ?)').run(owner.id, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars).toHaveLength(1);
+    expect(calendars[0].entries).toEqual([]);
+    expect(calendars[0].companyHolidays).toEqual([]);
+    const plan = testDb.prepare('SELECT id FROM vacay_plans WHERE owner_id = ?').get(owner.id);
+    expect(plan).toBeUndefined();
+  });
+
+  it('VACAY-SVC-066: follows an owner fused into another plan', () => {
+    const { user: host, plan: hostPlan } = setupUserWithPlan();
+    const { user: owner } = createUser(testDb);
+    getOwnPlan(owner.id);
+    insertMember(hostPlan.id, owner.id, 'accepted');
+    const { user: viewer } = createUser(testDb);
+    toggleEntry(owner.id, hostPlan.id, '2025-03-03', 1);
+    shareCalendar(owner.id, owner.email, viewer.id);
+
+    const calendars = getSharedCalendars(viewer.id, '2025');
+
+    expect(calendars).toHaveLength(1);
+    expect(calendars[0].entries).toEqual([{ date: '2025-03-03', fraction: 1, kind: 'vacation' }]);
   });
 });

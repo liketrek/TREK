@@ -432,6 +432,11 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
         return {
           reservations: state.reservations.map(r => r.id === (payload.reservation as Reservation).id ? payload.reservation as Reservation : r),
         }
+      case 'reservation:travelers-updated':
+        return {
+          reservations: state.reservations.map(r => r.id === (payload.reservationId as number)
+            ? { ...r, travelers: payload.travelers as Reservation['travelers'] } : r),
+        }
       case 'reservation:deleted':
         return {
           reservations: state.reservations.filter(r => r.id !== payload.reservationId),

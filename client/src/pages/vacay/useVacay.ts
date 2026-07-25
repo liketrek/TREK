@@ -10,7 +10,7 @@ import { addListener, removeListener } from '../../api/websocket'
  * Behaviour is identical to the previous in-component logic.
  */
 export function useVacay() {
-  const { years, selectedYear, setSelectedYear, addYear, removeYear, loadAll, loadPlan, loadEntries, loadStats, loadHolidays, loading, incomingInvites, acceptInvite, declineInvite, plan } = useVacayStore()
+  const { years, selectedYear, setSelectedYear, addYear, removeYear, loadAll, loadPlan, loadEntries, loadStats, loadHolidays, loadShares, loadSharedCalendars, loading, incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars } = useVacayStore()
   const [showSettings, setShowSettings] = useState<boolean>(false)
   const [deleteYear, setDeleteYear] = useState<number | null>(null)
   const [showMobileSidebar, setShowMobileSidebar] = useState<boolean>(false)
@@ -28,6 +28,10 @@ export function useVacay() {
     if (msg.type === 'vacay:invite' || msg.type === 'vacay:accepted' || msg.type === 'vacay:declined' || msg.type === 'vacay:cancelled' || msg.type === 'vacay:dissolved') {
       loadAll()
     }
+    if (msg.type === 'vacay:share' || msg.type === 'vacay:share-removed' || msg.type === 'vacay:shared-update') {
+      loadShares()
+      loadSharedCalendars(selectedYear)
+    }
   }, [selectedYear])
 
   useEffect(() => {
@@ -35,7 +39,7 @@ export function useVacay() {
     return () => removeListener(handleWsMessage)
   }, [handleWsMessage])
   useEffect(() => {
-    if (selectedYear) { loadEntries(selectedYear); loadStats(selectedYear); loadHolidays(selectedYear) }
+    if (selectedYear) { loadEntries(selectedYear); loadStats(selectedYear); loadHolidays(selectedYear); loadSharedCalendars(selectedYear) }
   }, [selectedYear])
 
   const handleAddNextYear = () => {
@@ -50,7 +54,7 @@ export function useVacay() {
 
   return {
     years, selectedYear, setSelectedYear, removeYear, loading,
-    incomingInvites, acceptInvite, declineInvite, plan,
+    incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars,
     showSettings, setShowSettings, deleteYear, setDeleteYear,
     showMobileSidebar, setShowMobileSidebar,
     handleAddNextYear, handleAddPrevYear,

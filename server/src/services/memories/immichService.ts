@@ -198,6 +198,7 @@ export async function searchPhotos(
         // `isVisible` either, so they still return hidden assets. isVisibleAsset()
         // below is the only guard on those versions. Do not remove it.
         visibility: 'timeline',
+        withExif: true,
         size,
         page,
       }),
@@ -217,6 +218,8 @@ export async function searchPhotos(
         takenAt: a.fileCreatedAt || a.createdAt,
         city: a.exifInfo?.city || null,
         country: a.exifInfo?.country || null,
+        lat: typeof a.exifInfo?.latitude === 'number' ? a.exifInfo.latitude : null,
+        lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
         mediaType: a.type === 'VIDEO' ? 'video' : 'image',
       }));
     return { assets, hasMore: items.length >= size };

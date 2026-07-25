@@ -26,6 +26,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'Υπολογισμός...',
   'dayplan.route': 'Διαδρομή',
   'dayplan.optimize': 'Βελτιστοποίηση',
+  'dayplan.transportMode.change': 'Αλλαγή μέσου μεταφοράς',
+  'dayplan.transportMode.useDefault': 'Χρήση προεπιλογής ημέρας',
   'dayplan.optimized': 'Η διαδρομή βελτιστοποιήθηκε',
   'dayplan.routeError': 'Αποτυχία υπολογισμού διαδρομής',
   'dayplan.toast.needTwoPlaces': 'Χρειάζονται τουλάχιστον δύο μέρη για βελτιστοποίηση διαδρομής',

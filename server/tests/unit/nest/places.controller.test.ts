@@ -269,4 +269,44 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     const http = svc({ searchImage: vi.fn().mockRejectedValue(new HttpException({ error: 'rate limited' }, 429)) } as Partial<PlacesService>);
     expect(await thrownAsync(() => new PlacesController(http).image(user, '5', '9'))).toEqual({ status: 429, body: { error: 'rate limited' } });
   });
+
+  describe('POST /:id/image (custom place image #1136)', () => {
+    const file = { filename: 'abc.jpg' } as Express.Multer.File;
+
+    it('404 when the trip is not accessible, 403 without place_edit', () => {
+      expect(thrown(() => new PlacesController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).uploadImage(user, '5', '9', file))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+      expect(thrown(() => new PlacesController(svc({ canEdit: vi.fn().mockReturnValue(false) })).uploadImage(user, '5', '9', file))).toEqual({ status: 403, body: { error: 'No permission' } });
+    });
+
+    it('400 when no file was uploaded', () => {
+      expect(thrown(() => new PlacesController(svc()).uploadImage(user, '5', '9', undefined))).toEqual({ status: 400, body: { error: 'No image uploaded' } });
+    });
+
+    it('404 when the place is missing (service returns null)', () => {
+      expect(thrown(() => new PlacesController(svc({ update: vi.fn().mockReturnValue(null) } as Partial<PlacesService>)).uploadImage(user, '5', '9', file))).toEqual({ status: 404, body: { error: 'Place not found' } });
+    });
+
+    it('stores the uploaded file as image_url, broadcasts + fires the update hook', () => {
+      const update = vi.fn().mockReturnValue({ id: 9 }); const onUpdated = vi.fn(); const broadcast = vi.fn();
+      const s = svc({ update, onUpdated, broadcast } as Partial<PlacesService>);
+      expect(new PlacesController(s).uploadImage(user, '5', '9', file, 'sock')).toEqual({ place: { id: 9 } });
+      expect(update).toHaveBeenCalledWith('5', '9', { image_url: '/uploads/places/abc.jpg' });
+      expect(broadcast).toHaveBeenCalledWith('5', 'place:updated', { place: { id: 9 } }, 'sock');
+      expect(onUpdated).toHaveBeenCalledWith(9);
+    });
+
+    it('403 in demo mode for a demo account', () => {
+      const prev = process.env.DEMO_MODE;
+      process.env.DEMO_MODE = 'true';
+      const demo = { ...user, email: 'demo@trek.app' } as User;
+      try {
+        expect(thrown(() => new PlacesController(svc()).uploadImage(demo, '5', '9', file))).toEqual({
+          status: 403, body: { error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' },
+        });
+      } finally {
+        if (prev === undefined) delete process.env.DEMO_MODE;
+        else process.env.DEMO_MODE = prev;
+      }
+    });
+  });
 });

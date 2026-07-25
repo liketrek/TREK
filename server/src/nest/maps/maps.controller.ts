@@ -80,6 +80,7 @@ export class MapsController {
     @Query('west') west?: string,
     @Query('north') north?: string,
     @Query('east') east?: string,
+    @Query('lang') lang?: string,
   ) {
     if (!category) throw new HttpException({ error: 'A category is required' }, 400);
     const bbox = { south: Number(south), west: Number(west), north: Number(north), east: Number(east) };
@@ -87,7 +88,7 @@ export class MapsController {
       throw new HttpException({ error: 'A valid bbox (south, west, north, east) is required' }, 400);
     }
     try {
-      return await this.maps.pois(category, bbox);
+      return await this.maps.pois(category, bbox, lang);
     } catch (err: unknown) {
       throw toHttpException(err, 'POI search error', 500);
     }

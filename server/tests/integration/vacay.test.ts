@@ -538,3 +538,133 @@ describe('Vacay toggle entry for plan member', () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe('Vacay read-only calendar shares', () => {
+  it('VACAY-039 — POST /shares shares the calendar with another user', async () => {
+    const { user: a } = createUser(testDb);
+    const { user: b } = createUser(testDb);
+    await request(app).get('/api/addons/vacay/plan').set('Cookie', authCookie(a.id));
+
+    const res = await request(app)
+      .post('/api/addons/vacay/shares')
+      .set('Cookie', authCookie(a.id))
+      .send({ user_id: b.id });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  it('VACAY-040 — GET /shares lists the share as outgoing for A and incoming for B', async () => {
+    const { user: a } = createUser(testDb);
+    const { user: b } = createUser(testDb);
+    await request(app).get('/api/addons/vacay/plan').set('Cookie', authCookie(a.id));
+    await request(app).post('/api/addons/vacay/shares').set('Cookie', authCookie(a.id)).send({ user_id: b.id });
+
+    const aRes = await request(app).get('/api/addons/vacay/shares').set('Cookie', authCookie(a.id));
+    expect(aRes.status).toBe(200);
+    expect(aRes.body.outgoing).toHaveLength(1);
+    expect(aRes.body.outgoing[0].user_id).toBe(b.id);
+    expect(aRes.body.incoming).toHaveLength(0);
+
+    const bRes = await request(app).get('/api/addons/vacay/shares').set('Cookie', authCookie(b.id));
+    expect(bRes.status).toBe(200);
+    expect(bRes.body.incoming).toHaveLength(1);
+    expect(bRes.body.incoming[0].owner_id).toBe(a.id);
+    expect(bRes.body.incoming[0].hidden).toBe(false);
+    expect(bRes.body.outgoing).toHaveLength(0);
+  });
+
+  it('VACAY-041 — GET /shares/calendars/:year exposes A entries and company holidays to B', async () => {
+    const { user: a } = createUser(testDb);
+    const { user: b } = createUser(testDb);
+    await request(app).get('/api/addons/vacay/plan').set('Cookie', authCookie(a.id));
+    await request(app).post('/api/addons/vacay/years').set('Cookie', authCookie(a.id)).send({ year: 2025 });
+    await request(app).put('/api/addons/vacay/plan').set('Cookie', authCookie(a.id)).send({ company_holidays_enabled: true });
+    await request(app).post('/api/addons/vacay/entries/toggle').set('Cookie', authCookie(a.id)).send({ date: '2025-06-16' });
+    await request(app).post('/api/addons/vacay/entries/company-holiday').set('Cookie', authCookie(a.id)).send({ date: '2025-12-25', note: 'Christmas' });
+    await request(app).post('/api/addons/vacay/shares').set('Cookie', authCookie(a.id)).send({ user_id: b.id });
+
+    const res = await request(app)
+      .get('/api/addons/vacay/shares/calendars/2025')
+      .set('Cookie', authCookie(b.id));
+    expect(res.status).toBe(200);
+    expect(res.body.calendars).toHaveLength(1);
+    const cal = res.body.calendars[0];
+    expect(cal.owner_id).toBe(a.id);
+    expect(cal.entries.map((e: { date: string }) => e.date)).toContain('2025-06-16');
+    expect(cal.companyHolidays.map((h: { date: string }) => h.date)).toContain('2025-12-25');
+  });
+
+  it('VACAY-042 — PUT /shares/:id lets B hide the shared calendar', async () => {
+    const { user: a } = createUser(testDb);
+    const { user: b } = createUser(testDb);
+    await request(app).get('/api/addons/vacay/plan').set('Cookie', authCookie(a.id));
+    await request(app).post('/api/addons/vacay/shares').set('Cookie', authCookie(a.id)).send({ user_id: b.id });
+    const list = await request(app).get('/api/addons/vacay/shares').set('Cookie', authCookie(b.id));
+    const shareId = list.body.incoming[0].id;
+
+    const res = await request(app)
+      .put(`/api/addons/vacay/shares/${shareId}`)
+      .set('Cookie', authCookie(b.id))
+      .send({ hidden: true });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const after = await request(app).get('/api/addons/vacay/shares').set('Cookie', authCookie(b.id));
+    expect(after.body.incoming[0].hidden).toBe(true);
+  });
+
+  it('VACAY-043 — DELETE /shares/:id lets B remove the share', async () => {
+    const { user: a } = createUser(testDb);
+    const { user: b } = createUser(testDb);
+    await request(app).get('/api/addons/vacay/plan').set('Cookie', authCookie(a.id));
+    await request(app).post('/api/addons/vacay/shares').set('Cookie', authCookie(a.id)).send({ user_id: b.id });
+    const list = await request(app).get('/api/addons/vacay/shares').set('Cookie', authCookie(b.id));
+    const shareId = list.body.incoming[0].id;
+
+    const res = await request(app)
+      .delete(`/api/addons/vacay/shares/${shareId}`)
+      .set('Cookie', authCookie(b.id));
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const bAfter = await request(app).get('/api/addons/vacay/shares').set('Cookie', authCookie(b.id));
+    expect(bAfter.body.incoming).toHaveLength(0);
+    const aAfter = await request(app).get('/api/addons/vacay/shares').set('Cookie', authCookie(a.id));
+    expect(aAfter.body.outgoing).toHaveLength(0);
+  });
+
+  it('VACAY-044 — PUT/DELETE on a foreign share id returns 404', async () => {
+    const { user: a } = createUser(testDb);
+    const { user: b } = createUser(testDb);
+    const { user: c } = createUser(testDb);
+    await request(app).get('/api/addons/vacay/plan').set('Cookie', authCookie(a.id));
+    await request(app).post('/api/addons/vacay/shares').set('Cookie', authCookie(a.id)).send({ user_id: b.id });
+    const list = await request(app).get('/api/addons/vacay/shares').set('Cookie', authCookie(b.id));
+    const shareId = list.body.incoming[0].id;
+
+    const put = await request(app)
+      .put(`/api/addons/vacay/shares/${shareId}`)
+      .set('Cookie', authCookie(c.id))
+      .send({ hidden: true });
+    expect(put.status).toBe(404);
+
+    const del = await request(app)
+      .delete(`/api/addons/vacay/shares/${shareId}`)
+      .set('Cookie', authCookie(c.id));
+    expect(del.status).toBe(404);
+  });
+
+  it('VACAY-045 — sharing with the same user twice returns 400', async () => {
+    const { user: a } = createUser(testDb);
+    const { user: b } = createUser(testDb);
+    await request(app).get('/api/addons/vacay/plan').set('Cookie', authCookie(a.id));
+    await request(app).post('/api/addons/vacay/shares').set('Cookie', authCookie(a.id)).send({ user_id: b.id });
+
+    const res = await request(app)
+      .post('/api/addons/vacay/shares')
+      .set('Cookie', authCookie(a.id))
+      .send({ user_id: b.id });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Already shared');
+  });
+});

@@ -158,6 +158,19 @@ export interface RouteSegment {
   drivingText: string
   distanceText: string
   durationText?: string
+  /** Extra text a plugin route attached to this leg (e.g. "25 min charge"). */
+  noteText?: string
+  /** The travel mode this leg was routed with (#1281) — drives the connector icon. */
+  mode?: string
+}
+
+/** An intermediate stop a plugin route places on the drawn line (charging stop, rest area). */
+export interface RouteVia {
+  lat: number
+  lng: number
+  label?: string
+  tone: 'default' | 'success' | 'warn' | 'danger'
+  dwellSeconds?: number
 }
 
 export interface RouteWithLegs {
@@ -165,6 +178,8 @@ export interface RouteWithLegs {
   distance: number
   duration: number
   legs: RouteSegment[]
+  /** Present on plugin-provided routes only. */
+  vias?: RouteVia[]
 }
 
 export interface RouteResult {
@@ -251,6 +266,7 @@ export interface WebSocketEvent {
 export interface VacayHolidayCalendar {
   id: number
   plan_id: number
+  type?: 'public_holiday' | 'school_holiday'
   region: string
   label: string | null
   color: string
@@ -260,6 +276,7 @@ export interface VacayHolidayCalendar {
 export interface VacayPlan {
   id: number
   holidays_enabled: boolean
+  school_holidays_enabled?: boolean
   holidays_region: string | null
   holiday_calendars: VacayHolidayCalendar[]
   block_weekends: boolean
@@ -287,6 +304,12 @@ export interface VacayEntry {
   plan_id?: number
   person_color?: string
   person_name?: string
+  // Portion of a vacation day this entry counts as: 1 = full day, 0.5 = half
+  // day (#552). Absent on legacy entries, which are treated as full days.
+  fraction?: number
+  // Leave type (#1074): 'comp' = flex/comp day (does not touch the entitlement),
+  // 'vacation' (or absent, for legacy entries) = a regular vacation day.
+  kind?: 'vacation' | 'comp'
 }
 
 // Vacay per-user stats row as returned by getStats
@@ -301,6 +324,27 @@ export interface VacayStat {
   total_available: number
   used: number
   remaining: number
+  // Comp/flex days used this year (#1074) — informational, not deducted from the
+  // entitlement. Absent on older server builds.
+  comp_used?: number
+  // The leave-year window this row was computed over (#737), as YYYY-MM-DD.
+  // `window_end` is exclusive. Absent on older server builds.
+  window_start?: string
+  window_end?: string
+}
+
+export type VacayYearType = 'calendar' | 'fiscal' | 'anniversary'
+
+/**
+ * Per-user leave-year configuration (#737). 'calendar' is the unchanged Jan–Dec
+ * default, 'fiscal' starts on a fixed month/day, 'anniversary' on the month/day
+ * of the hire date.
+ */
+export interface VacayYearSettings {
+  year_type: VacayYearType
+  year_start_month: number
+  year_start_day: number
+  hire_date: string | null
 }
 
 export interface HolidayInfo {
@@ -308,10 +352,36 @@ export interface HolidayInfo {
   localName: string
   color: string
   label: string | null
+  type?: 'public_holiday' | 'school_holiday'
 }
 
 export interface HolidaysMap {
-  [date: string]: HolidayInfo
+  [date: string]: HolidayInfo | HolidayInfo[]
+}
+
+// Read-only calendar shares (#444/#667)
+export interface VacayShareOutgoing {
+  id: number
+  user_id: number
+  username: string
+}
+
+export interface VacayShareIncoming {
+  id: number
+  owner_id: number
+  username: string
+  color: string
+  hidden: boolean
+}
+
+export interface SharedVacayCalendar {
+  share_id: number
+  owner_id: number
+  owner_name: string
+  color: string
+  hidden: boolean
+  entries: { date: string; fraction?: number; kind?: 'vacation' | 'comp' }[]
+  companyHolidays: { date: string; note?: string }[]
 }
 
 // API error shape from axios

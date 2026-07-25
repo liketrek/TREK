@@ -51,6 +51,10 @@ export class DaysService {
     return dayService.updateDay(id, current, fields);
   }
 
+  setDefaultTransportMode(id: string, mode: string | null) {
+    return dayService.setDefaultTransportMode(id, mode);
+  }
+
   remove(id: string): void {
     dayService.deleteDay(id);
   }

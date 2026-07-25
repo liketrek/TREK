@@ -317,6 +317,12 @@ const admin: TranslationStrings = {
     'Spalten und Aktionen zu Reise-Ansichten hinzufügen (Reservierungen, Orte, Tage)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Marker zur Reisekarte hinzufügen (z. B. Buchungen oder POIs anzeigen)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Routen, Korridore und Zonen auf der Reisekarte zeichnen',
+  'admin.plugins.perm.hook:route-provider':
+    'Routing-Profile anbieten, mit denen der Planer Tage berechnet (z. B. E-Auto-Routing mit Ladestopps)',
+  'admin.plugins.perm.hook:day-schedule-provider': 'Zeiteinträge an den Tagesplan anhängen (Ladestopps, Puffer)',
+  'admin.plugins.perm.geolocation:read':
+    'Deinen Live-Standort abfragen, solange eine seiner Ansichten offen ist (dein Browser fragt zusätzlich nach)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Textabschnitte an den PDF-Export einer Reise anhängen',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Länder auf der Atlas-Weltkarte hervorheben (z. B. Wunschlisten oder Reisehinweise)',
@@ -437,6 +443,10 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Liefert Kalender-Events',
   'admin.plugins.cap.placeDetails': 'Reichert Orte an',
   'admin.plugins.cap.warnings': 'Meldet Probleme',
+  'admin.plugins.cap.mapLayers': 'Zeichnet auf der Karte',
+  'admin.plugins.cap.routing': 'Bietet Routing an',
+  'admin.plugins.cap.daySchedule': 'Ergänzt Planzeiten',
+  'admin.plugins.cap.geolocation': 'Liest deinen Standort',
   'admin.plugins.cap.events': 'Reagiert auf Aktivität',
   'admin.plugins.cap.requiresAddon': 'Benötigt {addon}',
   'admin.plugins.cap.dependsOn': 'Benötigt {id} {version}',

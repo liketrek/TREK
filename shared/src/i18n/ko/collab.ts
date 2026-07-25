@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': '이 채팅은 읽기 전용입니다',
+  'collab.chat.messageOptions': '메시지 옵션',
+  'collab.polls.confirmDeleteTitle': '투표를 삭제할까요?',
+  'collab.polls.confirmDeleteBody': '이 투표는 영구적으로 삭제됩니다.',
+  'collab.polls.countdownDaysHours': '{d}일 {h}시간 남음',
+  'collab.polls.countdownHoursMinutes': '{h}시간 {m}분 남음',
+  'collab.polls.countdownMinutes': '{m}분 남음',
+  'collab.polls.clearDeadline': '마감일 지우기',
   'collab.tabs.chat': '채팅',
   'collab.tabs.notes': '메모',
   'collab.tabs.polls': '투표',

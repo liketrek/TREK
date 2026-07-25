@@ -58,9 +58,11 @@ describe('PackingListPanel', () => {
     expect(els.length).toBeGreaterThan(0);
   });
 
-  it('FE-COMP-PACKING-003: empty state shows hint text', () => {
-    render(<PackingListPanel tripId={1} items={[]} />);
-    expect(screen.getByText(/Add items or use the suggestions/i)).toBeInTheDocument();
+  it('FE-COMP-PACKING-003: empty state shows the packing mascot illustration', () => {
+    const { container } = render(<PackingListPanel tripId={1} items={[]} />);
+    // The reworded empty state drops the old hint copy in favour of the shared
+    // EmptyState: the TREK mascot acting out the "packing" scene beside the title.
+    expect(container.querySelector('.trek--packing')).toBeInTheDocument();
   });
 
   it('FE-COMP-PACKING-004: shows items from props grouped by category', () => {

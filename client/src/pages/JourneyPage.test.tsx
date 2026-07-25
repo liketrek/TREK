@@ -114,8 +114,7 @@ describe('JourneyPage', () => {
     render(<JourneyPage />);
     await waitFor(() => {
       // Grid renders with only the create card (the dashed-border button)
-      // The "0 journeys" counter is shown
-      expect(screen.getByText(/0/)).toBeInTheDocument();
+      expect(screen.getByText(/Create a new Journey/i)).toBeInTheDocument();
     });
   });
 
@@ -275,7 +274,7 @@ describe('JourneyPage', () => {
   });
 
   // FE-PAGE-JOURNEY-010
-  it('FE-PAGE-JOURNEY-010: shows journey count in header', async () => {
+  it('FE-PAGE-JOURNEY-010: renders all journeys in the grid', async () => {
     const j1 = buildJourneyListItem({ id: 1, title: 'Trip A' });
     const j2 = buildJourneyListItem({ id: 2, title: 'Trip B' });
     const j3 = buildJourneyListItem({ id: 3, title: 'Trip C' });
@@ -285,8 +284,8 @@ describe('JourneyPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Trip A')).toBeInTheDocument();
     });
-    // The count "3 journeys" text is displayed
-    expect(screen.getByText(/3 journeys/i)).toBeInTheDocument();
+    expect(screen.getByText('Trip B')).toBeInTheDocument();
+    expect(screen.getByText('Trip C')).toBeInTheDocument();
   });
 
   // FE-PAGE-JOURNEY-011
@@ -379,8 +378,11 @@ describe('JourneyPage', () => {
 
   // FE-PAGE-JOURNEY-014
   it('FE-PAGE-JOURNEY-014: journey card shows draft status badge', async () => {
+    // A live journey claims the hero slot, so the draft journey renders as a
+    // grid card — which is where the lifecycle badge lives.
+    const live = buildJourneyListItem({ id: 31, title: 'Live Journey', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
     const j1 = buildJourneyListItem({ id: 30, title: 'Draft Journey', status: 'draft' });
-    setupDefaultHandlers([j1]);
+    setupDefaultHandlers([live, j1]);
 
     render(<JourneyPage />);
     await waitFor(() => {
@@ -389,69 +391,6 @@ describe('JourneyPage', () => {
 
     // Draft badge rendered
     expect(screen.getByText('Draft')).toBeInTheDocument();
-  });
-
-  // FE-PAGE-JOURNEY-015
-  it('FE-PAGE-JOURNEY-015: timeAgo renders "just now" for recent updates', async () => {
-    const active = buildJourneyListItem({
-      id: 40,
-      title: 'Recent Active',
-      status: 'active',
-      trip_date_min: '2020-01-01',
-      trip_date_max: '2099-12-31',
-      updated_at: Date.now() - 60000, // 1 minute ago
-    });
-    setupDefaultHandlers([active]);
-
-    render(<JourneyPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Recent Active')).toBeInTheDocument();
-    });
-
-    // timeAgo should show "just now" for < 1 hour
-    expect(screen.getByText(/Updated just now/i)).toBeInTheDocument();
-  });
-
-  // FE-PAGE-JOURNEY-016
-  it('FE-PAGE-JOURNEY-016: timeAgo renders hours ago', async () => {
-    const active = buildJourneyListItem({
-      id: 41,
-      title: 'Hours Active',
-      status: 'active',
-      trip_date_min: '2020-01-01',
-      trip_date_max: '2099-12-31',
-      updated_at: Date.now() - 3 * 3600000, // 3 hours ago
-    });
-    setupDefaultHandlers([active]);
-
-    render(<JourneyPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Hours Active')).toBeInTheDocument();
-    });
-
-    // timeAgo shows "{count}h ago"
-    expect(screen.getByText(/Updated 3h ago/i)).toBeInTheDocument();
-  });
-
-  // FE-PAGE-JOURNEY-017
-  it('FE-PAGE-JOURNEY-017: timeAgo renders days ago', async () => {
-    const active = buildJourneyListItem({
-      id: 42,
-      title: 'Days Active',
-      status: 'active',
-      trip_date_min: '2020-01-01',
-      trip_date_max: '2099-12-31',
-      updated_at: Date.now() - 5 * 24 * 3600000, // 5 days ago
-    });
-    setupDefaultHandlers([active]);
-
-    render(<JourneyPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Days Active')).toBeInTheDocument();
-    });
-
-    // timeAgo shows "{count}d ago"
-    expect(screen.getByText(/Updated 5d ago/i)).toBeInTheDocument();
   });
 
   // FE-PAGE-JOURNEY-018
@@ -468,7 +407,7 @@ describe('JourneyPage', () => {
   });
 
   // FE-PAGE-JOURNEY-019
-  it('FE-PAGE-JOURNEY-019: active journey hero shows Live and Synced badges', async () => {
+  it('FE-PAGE-JOURNEY-019: active journey hero shows the continue-writing action', async () => {
     const active = buildJourneyListItem({ id: 51, title: 'Live Journey', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
     setupDefaultHandlers([active]);
 
@@ -477,8 +416,7 @@ describe('JourneyPage', () => {
       expect(screen.getByText('Live Journey')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Live')).toBeInTheDocument();
-    expect(screen.getByText('Synced')).toBeInTheDocument();
+    expect(screen.getByText(/Continue writing/i)).toBeInTheDocument();
   });
 
   // FE-PAGE-JOURNEY-020
@@ -495,5 +433,42 @@ describe('JourneyPage', () => {
     // Click the hero card title
     await user.click(screen.getByText('Clickable Hero'));
     expect(mockNavigate).toHaveBeenCalledWith('/journey/60');
+  });
+
+  // FE-PAGE-JOURNEY-021
+  it('FE-PAGE-JOURNEY-021: shows a latest-journey hero when no trip is live', async () => {
+    // Neither journey is live; the most recent one (first in the updated_at-sorted
+    // list) still becomes the hero, labelled "Latest Journey".
+    const recent = buildJourneyListItem({ id: 70, title: 'Most Recent', status: 'completed' });
+    const older = buildJourneyListItem({ id: 71, title: 'Older One', status: 'completed' });
+    setupDefaultHandlers([recent, older]);
+
+    render(<JourneyPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Most Recent')).toBeInTheDocument();
+    });
+
+    // Hero eyebrow reflects the non-live state, and the hero-only action shows.
+    expect(screen.getByText(/Latest Journey/i)).toBeInTheDocument();
+    expect(screen.getByText('Continue writing')).toBeInTheDocument();
+    // The older journey stays in the grid below the hero.
+    expect(screen.getByText('Older One')).toBeInTheDocument();
+  });
+
+  // FE-PAGE-JOURNEY-022
+  it('FE-PAGE-JOURNEY-022: a live journey wins the hero over a more recent non-live one', async () => {
+    // The list is sorted newest-first; even though the completed journey is newer,
+    // the live one is featured as the hero (labelled "Active Journey").
+    const newerCompleted = buildJourneyListItem({ id: 80, title: 'Newer Completed', status: 'completed' });
+    const live = buildJourneyListItem({ id: 81, title: 'Ongoing Trip', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
+    setupDefaultHandlers([newerCompleted, live]);
+
+    render(<JourneyPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Ongoing Trip')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Active Journey/i)).toBeInTheDocument();
+    // The newer completed journey is pushed down into the grid.
+    expect(screen.getByText('Newer Completed')).toBeInTheDocument();
   });
 });

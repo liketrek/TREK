@@ -1,12 +1,14 @@
 import PageShell from '../components/Layout/PageShell'
 import { useTranslation, TransHtml } from '../i18n'
 import {
-  Plus, Search, Sparkles, Calendar, MapPin, BookOpen, Camera,
-  Check, X, ChevronRight, RefreshCw, Users,
+  Plus, Search, Sparkles, Calendar, MapPin,
+  Check, X, ChevronRight,
 } from 'lucide-react'
 import type { Journey } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
 import { useJourney } from './journey/useJourney'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MJourney from '../mobile/screens/journey/MJourney'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #6366F1 45%, #EC4899 100%)',
@@ -21,31 +23,27 @@ function pickGradient(id: number): string {
   return GRADIENTS[id % GRADIENTS.length]
 }
 
-function timeAgo(timestamp: number, t: (k: string, p?: any) => string): string {
-  const diff = Date.now() - timestamp
-  const hours = Math.floor(diff / 3600000)
-  if (hours < 1) return t('common.justNow')
-  if (hours < 24) return t('common.hoursAgo', { count: hours })
-  const days = Math.floor(hours / 24)
-  return t('common.daysAgo', { count: days })
+export default function JourneyPage() {
+  const isPhone = useIsPhone()
+  return isPhone ? <MJourney /> : <JourneyPageDesktop />
 }
 
-export default function JourneyPage() {
+function JourneyPageDesktop() {
   const { t } = useTranslation()
   // Page = wiring container: store load, create modal, search + suggestions in the hook.
   const {
     navigate, journeys, loading,
-    showCreate, setShowCreate, newTitle, setNewTitle,
+    showCreate, setShowCreate, newTitle, setNewTitle, newSubtitle, setNewSubtitle,
     availableTrips, selectedTripIds, setSelectedTripIds,
     searchOpen, setSearchOpen, searchQuery, setSearchQuery, searchInputRef,
     activeSuggestion, setDismissedSuggestions,
-    activeJourney, filteredJourneys,
+    activeJourney, activeJourneyIsLive, filteredJourneys,
     openCreateModal, handleCreate, totalPlaces,
   } = useJourney()
 
   return (
-    <PageShell className="bg-zinc-50 dark:bg-zinc-950" navOffset="var(--nav-h, 56px)">
-        <div className="max-w-[1440px] mx-auto">
+    <PageShell background="var(--vg-bg)" navOffset="var(--nav-h, 56px)">
+        <div className="max-w-[1800px] mx-auto">
 
           {/* Header — mobile */}
           <div className="md:hidden px-5 pt-5 pb-4 flex flex-col gap-2">
@@ -84,45 +82,7 @@ export default function JourneyPage() {
             )}
           </div>
 
-          {/* Header — desktop (unified toolbar) */}
-          <div className="hidden md:block px-8 pt-10 pb-7">
-            <div className="bg-surface-tertiary border border-edge" style={{
-              borderRadius: 18,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-              padding: '14px 16px 14px 22px',
-              display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-            }}>
-              <h2 className="text-content" style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, letterSpacing: '-0.01em', flexShrink: 0 }}>
-                {t('journey.title')}
-              </h2>
-              <div className="bg-edge-faint" style={{ width: 1, height: 22, flexShrink: 0 }} />
-              <span className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>
-                {t('journey.frontpage.subtitle')}
-              </span>
-
-              <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
-                <button
-                  onClick={() => openCreateModal()}
-                  className="bg-accent text-accent-text"
-                  style={{
-                    appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
-                    flexShrink: 0,
-                    marginLeft: 2,
-                    transition: 'opacity 0.15s ease',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                >
-                  <Plus size={14} strokeWidth={2.5} />
-                  {t('journey.frontpage.createJourney')}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-4 md:px-8 pb-16">
+          <div className="px-4 md:px-8 pt-10 pb-16">
 
             {/* Suggestion banner */}
             {activeSuggestion && (
@@ -162,73 +122,70 @@ export default function JourneyPage() {
             {/* Active Journey Hero */}
             {activeJourney && (
               <div className="mb-10">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-zinc-500">{t("journey.frontpage.activeJourney")}</span>
-                  <span className="text-[11px] text-zinc-400 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {t('journey.frontpage.updated', { time: timeAgo(activeJourney.updated_at, t) })}
-                  </span>
-                </div>
-
                 <div
                   onClick={() => navigate(`/journey/${activeJourney.id}`)}
-                  className="relative rounded-3xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:shadow-xl h-[340px] md:h-[400px]"
-                  style={{ background: pickGradient(activeJourney.id) }}
+                  className="relative rounded-[28px] overflow-hidden cursor-pointer h-[250px] md:h-[280px] transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 shadow-[0_2px_4px_rgba(0,0,0,0.06),0_20px_48px_-18px_rgba(0,0,0,0.32)]"
+                  style={{
+                    background: activeJourney.cover_image
+                      ? `linear-gradient(120deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.05) 100%), url(/uploads/${activeJourney.cover_image}) center/cover`
+                      : pickGradient(activeJourney.id),
+                    willChange: 'transform',
+                  }}
                 >
-                  {/* Cover image */}
-                  {activeJourney.cover_image && (
-                    <div className="absolute inset-0 z-[1]">
-                      <img src={`/uploads/${activeJourney.cover_image}`} className="w-full h-full object-cover" alt="" />
-                      <div className="absolute inset-0" style={{ background: pickGradient(activeJourney.id), opacity: 0.45 }} />
-                    </div>
-                  )}
+                  {/* Left-fading glass blur — promoted to its own layer so the hover
+                      transform on the parent doesn't drop the mask for a frame. */}
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      backdropFilter: 'blur(7px)',
+                      WebkitBackdropFilter: 'blur(7px)',
+                      maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.82) 22%, rgba(0,0,0,0) 62%)',
+                      WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.82) 22%, rgba(0,0,0,0) 62%)',
+                      transform: 'translateZ(0)',
+                      willChange: 'transform',
+                    }}
+                  />
 
-                  {/* Gradient overlays */}
-                  <div className="absolute inset-0 pointer-events-none z-[2]" style={{ background: 'radial-gradient(circle at 15% 20%, rgba(236,72,153,0.35), transparent 40%), radial-gradient(circle at 85% 80%, rgba(251,146,60,0.3), transparent 45%), radial-gradient(circle at 50% 50%, rgba(99,102,241,0.25), transparent 50%)' }} />
-                  <div className="absolute inset-0 pointer-events-none z-[2]" style={{ background: 'linear-gradient(180deg, transparent 0%, transparent 50%, rgba(0,0,0,0.4) 100%), linear-gradient(90deg, rgba(0,0,0,0.15) 0%, transparent 50%)' }} />
-
-                  <div className="relative h-full p-6 md:p-8 flex flex-col z-[3] text-white">
-                    {/* Top badges */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/12 backdrop-blur-sm border border-white/15 rounded-full text-[10px] font-semibold uppercase tracking-[0.08em]">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)] animate-pulse" />
-                          {t('journey.frontpage.live')}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/12 backdrop-blur-sm border border-white/15 rounded-full text-[10px] font-medium">
-                          <RefreshCw size={10} />
-                          {t('journey.frontpage.synced')}
+                  <div className="absolute inset-0 flex flex-col text-white" style={{ padding: '30px 34px 34px' }}>
+                    <div className="mt-auto">
+                      {/* Eyebrow */}
+                      <div className="mb-2.5">
+                        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+                          {activeJourneyIsLive ? t('journey.frontpage.activeJourney') : t('journey.frontpage.latestJourney')}
                         </span>
                       </div>
-                    </div>
 
-                    {/* Middle — title */}
-                    <div className="flex-1 flex flex-col justify-center py-4">
-                      {activeJourney.subtitle && (
-                        <p className="text-[13px] font-medium opacity-85 mb-3">{activeJourney.subtitle}</p>
-                      )}
-                      <h2 className="text-[40px] md:text-[56px] font-extrabold tracking-[-0.035em] leading-[0.95] mb-3" style={{ textShadow: '0 2px 30px rgba(0,0,0,0.15)' }}>
+                      <h2 style={{ margin: 0, fontSize: 'clamp(34px, 5vw, 52px)', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, textShadow: '0 2px 14px rgba(0,0,0,0.4)' }}>
                         {activeJourney.title}
                       </h2>
-                    </div>
 
-                    {/* Bottom stats */}
-                    <div className="flex items-end justify-between gap-6">
-                      <div className="flex gap-7">
-                        {[
-                          { val: (activeJourney as any).entry_count ?? '--', label: t("journey.stats.entries") },
-                          { val: (activeJourney as any).photo_count ?? '--', label: t("journey.stats.photos") },
-                          { val: (activeJourney as any).place_count ?? '--', label: t("journey.stats.places") },
-                        ].map(s => (
-                          <div key={s.label} className="flex flex-col gap-1">
-                            <span className="text-[28px] font-extrabold tracking-[-0.02em] leading-none">{s.val}</span>
-                            <span className="text-[10px] uppercase tracking-[0.12em] opacity-70 font-semibold">{s.label}</span>
-                          </div>
-                        ))}
+                      {activeJourney.subtitle && (
+                        <div className="mt-3 max-w-[560px]" style={{ fontSize: 15, color: 'rgba(255,255,255,0.9)', lineHeight: 1.5 }}>
+                          {activeJourney.subtitle}
+                        </div>
+                      )}
+
+                      {/* Stats + continue */}
+                      <div className="flex items-center gap-5 mt-[22px]">
+                        <div
+                          className="flex items-center"
+                          style={{ gap: 40, padding: '14px 28px', borderRadius: 16, background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.2)' }}
+                        >
+                          {[
+                            { val: (activeJourney as any).entry_count ?? '--', label: t('journey.stats.entries') },
+                            { val: (activeJourney as any).photo_count ?? '--', label: t('journey.stats.photos') },
+                            { val: (activeJourney as any).place_count ?? '--', label: t('journey.stats.places') },
+                          ].map(s => (
+                            <div key={s.label} className="flex flex-col gap-1">
+                              <span style={{ fontFamily: 'var(--font-subtext)', fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{s.val}</span>
+                              <span className="uppercase font-semibold" style={{ fontSize: 9.5, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.75)' }}>{s.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <span className="ml-auto hidden md:inline-flex items-center gap-2" style={{ padding: '13px 22px', borderRadius: 14, background: '#fff', color: '#101013', fontSize: 14, fontWeight: 700 }}>
+                          {t('journey.frontpage.continueWriting')}<ChevronRight size={16} strokeWidth={2.4} />
+                        </span>
                       </div>
-                      <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 backdrop-blur-sm rounded-full text-[11px] font-medium">
-                        {t('journey.frontpage.continueWriting')}<ChevronRight size={12} />
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -249,8 +206,7 @@ export default function JourneyPage() {
             {/* All Journeys */}
             {!searchQuery.trim() && (
               <div className="mb-4 flex items-center justify-between">
-                <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-zinc-500">{t("journey.frontpage.allJourneys")}</span>
-                <span className="text-[11px] text-zinc-400">{journeys.length} {t('journey.frontpage.journeys')}</span>
+                <span className="text-[11px] font-bold tracking-[0.14em] uppercase" style={{ color: 'var(--vg-ink3)' }}>{t("journey.frontpage.allJourneys")}</span>
               </div>
             )}
 
@@ -259,7 +215,7 @@ export default function JourneyPage() {
                 <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-[18px]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-[18px]">
                 {filteredJourneys.map(j => (
                   <JourneyCard key={j.id} journey={j} onClick={() => navigate(`/journey/${j.id}`)} />
                 ))}
@@ -267,13 +223,16 @@ export default function JourneyPage() {
                 {/* Create card */}
                 <button
                   onClick={() => openCreateModal()}
-                  className="group min-h-[320px] rounded-2xl border-[1.5px] border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex flex-col items-center justify-center gap-2.5 hover:border-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-[border-color,background-color,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] cursor-pointer hover:-translate-y-0.5"
+                  className="group min-h-[200px] rounded-[24px] flex flex-col items-center justify-center gap-3 transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] cursor-pointer hover:-translate-y-1"
+                  style={{ border: '1.5px dashed var(--vg-line2)', background: 'var(--vg-surf2)' }}
                 >
-                  <div className="w-14 h-14 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-white dark:group-hover:bg-zinc-700 transition-[background-color,transform] group-hover:rotate-90 duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]">
-                    <Plus size={22} />
+                  <span className="w-[52px] h-[52px] rounded-full flex items-center justify-center transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:rotate-90" style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}>
+                    <Plus size={22} strokeWidth={2.4} />
+                  </span>
+                  <div className="text-center">
+                    <div className="text-[16px] font-semibold" style={{ color: 'var(--vg-ink)' }}>{t("journey.frontpage.createNew")}</div>
+                    <div className="text-[12.5px] mt-[3px] max-w-[200px] leading-snug" style={{ color: 'var(--vg-ink3)' }}>{t("journey.frontpage.createNewSub")}</div>
                   </div>
-                  <span className="text-[14px] font-semibold text-zinc-700 dark:text-zinc-300">{t("journey.frontpage.createNew")}</span>
-                  <span className="text-[12px] text-zinc-400 max-w-[180px] text-center leading-snug">{t("journey.frontpage.createNewSub")}</span>
                 </button>
               </div>
             )}
@@ -298,6 +257,14 @@ export default function JourneyPage() {
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
                 placeholder={t('journey.frontpage.namePlaceholder')}
+                className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:border-zinc-900 dark:focus:border-zinc-400 focus:outline-none mb-5"
+              />
+
+              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2.5">{t('journey.settings.subtitle')}</label>
+              <input
+                value={newSubtitle}
+                onChange={e => setNewSubtitle(e.target.value)}
+                placeholder={t('journey.settings.subtitlePlaceholder')}
                 className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:border-zinc-900 dark:focus:border-zinc-400 focus:outline-none mb-5"
               />
 
@@ -401,56 +368,49 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
   return (
     <div
       onClick={onClick}
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 overflow-hidden cursor-pointer transition-[transform,box-shadow,border-color] duration-250 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-zinc-400 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] flex flex-col"
+      className="vg-card rounded-[24px] overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col"
     >
-      {/* Cover */}
-      <div className="h-[170px] relative overflow-hidden" style={{ background: pickGradient(j.id) }}>
+      {/* Cover with title overlay */}
+      <div className="relative h-[200px] overflow-hidden" style={{ background: pickGradient(j.id) }}>
         {j.cover_image && (
-          <>
-            <img src={`/uploads/${j.cover_image}`} className="absolute inset-0 w-full h-full object-cover" alt="" />
-            <div className="absolute inset-0" style={{ background: pickGradient(j.id), opacity: 0.4 }} />
-          </>
+          <img src={`/uploads/${j.cover_image}`} className="absolute inset-0 w-full h-full object-cover" alt="" />
         )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.4) 100%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.62) 100%)' }} />
 
-        {/* Top overlay */}
-        <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between z-[2]">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-black/45 backdrop-blur-sm rounded-full text-white text-[10px] font-semibold tracking-wide">
-            <Calendar size={10} />
-            {new Date(j.created_at).getFullYear()}
-          </span>
-        </div>
-
-      </div>
-
-      {/* Body */}
-      <div className="px-[18px] pt-4 pb-[18px] flex flex-col flex-1">
-        <h3 className="text-[16px] font-bold tracking-[-0.01em] text-zinc-900 dark:text-white">{j.title}</h3>
-        {j.subtitle && (
-          <p className="text-[12px] text-zinc-500 mt-1">{j.subtitle}</p>
-        )}
+        <span className="absolute top-3.5 left-3.5 z-[2] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-white text-[11px] font-semibold"
+          style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.26)' }}>
+          <Calendar size={12} strokeWidth={2.2} />
+          {new Date(j.created_at).getFullYear()}
+        </span>
         {lifecycle !== 'live' && (
-          <span className={`inline-flex self-start mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide ${
-            lifecycle === 'archived' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' :
-            lifecycle === 'upcoming' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
-            lifecycle === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' :
-            'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
-          }`}>
+          <span className="absolute top-3.5 right-3.5 z-[2] px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide text-white"
+            style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
             {t(`journey.status.${lifecycle}`)}
           </span>
         )}
 
-        <div className="grid grid-cols-3 gap-2.5 mt-auto pt-3.5 border-t border-zinc-100 dark:border-zinc-800" style={{ marginTop: j.subtitle ? 14 : 'auto' }}>
+        <div className="absolute left-[18px] right-[18px] bottom-[15px] z-[2] text-white">
+          <div className="text-[21px] font-bold tracking-[-0.02em] leading-tight" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.4)' }}>{j.title}</div>
+          {j.subtitle && (
+            <div className="text-[12px] font-medium mt-[3px]" style={{ color: 'rgba(255,255,255,0.88)', textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>{j.subtitle}</div>
+          )}
+        </div>
+      </div>
+
+      {/* Body — stats */}
+      <div className="px-[18px] pt-[11px] pb-[13px]">
+        <div className="flex gap-[26px]">
           {[
             { val: entryCount, label: t('journey.stats.entries') },
             { val: photoCount, label: t('journey.stats.photos') },
             { val: placeCount, label: t('journey.stats.places') },
           ].map(s => (
-            <div key={s.label} className="flex flex-col gap-1">
-              <span className={`text-[16px] font-bold leading-none tracking-[-0.01em] ${s.val > 0 ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}`}>
+            <div key={s.label} className="flex flex-col gap-0.5">
+              <span className="text-[16px] font-bold leading-none tracking-[-0.01em]"
+                style={{ fontFamily: 'var(--font-subtext)', color: s.val > 0 ? 'var(--vg-ink)' : 'var(--vg-ink3)' }}>
                 {s.val > 0 ? s.val : '--'}
               </span>
-              <span className="text-[9px] uppercase tracking-[0.06em] text-zinc-500 font-medium">{s.label}</span>
+              <span className="text-[9.5px] uppercase tracking-[0.09em] font-semibold" style={{ color: 'var(--vg-ink3)' }}>{s.label}</span>
             </div>
           ))}
         </div>

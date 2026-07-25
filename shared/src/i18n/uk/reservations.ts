@@ -58,6 +58,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'Круїз',
   'reservations.type.event': 'Заходи',
   'reservations.type.tour': 'Екскурсія',
+  'reservations.type.parking': 'Паркування',
   'reservations.type.other': 'Інше',
   'reservations.type.bus': 'Автобус',
   'reservations.type.ferry': 'Пором',
@@ -149,6 +150,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'Синхронізовано з AirTrail — зміни синхронізуються в обидва боки.',
   'reservations.airtrail.notSynced': 'Не синхронізовано',
   'reservations.airtrail.notSyncedHint': 'Цей рейс було видалено в AirTrail і він більше не синхронізується.',
+  'reservations.airtrail.layoverHint': 'Імпортовано з AirTrail. Багатосегментний рейс із пересадкою не має єдиного рейсу AirTrail для синхронізації, тому залишається одноразовим імпортом.',
   'reservations.airtrail.loadError': 'Не вдалося завантажити ваші рейси з AirTrail.',
   'reservations.airtrail.imported': '{count} рейс(ів) імпортовано',
   'reservations.airtrail.skippedDuplicate': '{count} вже в цій подорожі, пропущено',
@@ -168,5 +170,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Посилання',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Мандрівники',
+  'reservations.travelers.assign': 'Призначити мандрівників',
+  'reservations.travelers.none': 'Поки немає учасників подорожі.',
 };
 export default reservations;

@@ -125,6 +125,27 @@ export class ReservationsController {
     return { reservation };
   }
 
+  @Put(':id/travelers')
+  updateTravelers(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body('user_ids') userIds: unknown,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (!Array.isArray(userIds)) {
+      throw new HttpException({ error: 'user_ids must be an array' }, 400);
+    }
+    const result = this.reservations.setTravelers(id, tripId, userIds as number[]);
+    if (!result) {
+      throw new HttpException({ error: 'Reservation not found' }, 404);
+    }
+    this.reservations.broadcast(tripId, 'reservation:travelers-updated', { reservationId: Number(id), travelers: result.travelers }, socketId);
+    return { travelers: result.travelers, reservation: result.reservation };
+  }
+
   @Delete(':id')
   remove(
     @CurrentUser() user: User,

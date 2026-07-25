@@ -57,7 +57,9 @@ Flights, trains, cars, and cruises can be drawn as overlays between their endpoi
 
 Installed plugins can add their own markers to the trip map — for example to show bookings on the map (#587). A plugin implements the `mapMarkerProvider` hook and returns marker specs (`id`, `lat`, `lng`, and optional `label`, `popupText`, `url`, `icon`, `tone`); TREK range-checks the coordinates, length-caps the text, allows only http/https/mailto links, and draws them itself. Markers are additive and fail-safe: a plugin never runs code on the map canvas, and one that errors or is slow simply contributes nothing.
 
-> **Plugins:** requires the `hook:map-marker-provider` permission. See [Plugin-Development](Plugin-Development) for the hook contract.
+Plugins can also draw bounded vector overlays — a computed route, a reachable-range corridor, a zone — via the `mapLayerProvider` hook (polylines, polygons and metric circles, styled with the same tone palette). TREK clamps every styling value, enforces per-plugin vertex budgets, and always draws its own day route on top. Both hooks work on the Leaflet and the Mapbox/MapLibre GL renderer, on desktop and mobile.
+
+> **Plugins:** requires the `hook:map-marker-provider` permission (markers) or `hook:map-layer-provider` (overlays). See [Plugin-Development](Plugin-Development) for the hook contracts.
 
 ## Location button
 

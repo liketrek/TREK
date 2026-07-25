@@ -25,6 +25,7 @@ export type NotifEventType =
   | 'trip_reminder'
   | 'todo_due'
   | 'vacay_invite'
+  | 'vacay_share'
   | 'collection_invite'
   | 'photos_shared'
   | 'collab_message'
@@ -40,6 +41,7 @@ export const ALL_EVENT_TYPES: NotifEventType[] = [
   'trip_reminder',
   'todo_due',
   'vacay_invite',
+  'vacay_share',
   'collection_invite',
   'photos_shared',
   'collab_message',

@@ -1,6 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const todo: TranslationStrings = {
+  'todo.emptyFiltered': 'Καμία εργασία δεν ταιριάζει με αυτό το φίλτρο',
   'todo.subtab.packing': 'Λίστα Αποσκευών',
   'todo.subtab.todo': 'Εργασίες',
   'todo.completed': 'ολοκληρώθηκαν',

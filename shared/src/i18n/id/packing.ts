@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Tindakan',
+  'packing.editDone': 'Selesai',
+  'packing.personalEmptyHint': 'Daftar pribadimu kosong — salin item bersama atau tambahkan milikmu sendiri.',
+  'packing.assignMembers': 'Tetapkan anggota',
+  'packing.categoryOptions': 'Opsi daftar',
+  'packing.editItem': 'Edit item',
+  'packing.itemName': 'Nama',
+  'packing.itemQuantity': 'Jumlah',
+  'packing.itemWeight': 'Berat (g)',
   'packing.title': 'Daftar Bawaan',
   'packing.empty': 'Daftar bawaan kosong',
   'packing.import': 'Impor',

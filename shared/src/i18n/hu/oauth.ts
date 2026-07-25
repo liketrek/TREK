@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': 'Utazások',
   'oauth.scope.group.places': 'Helyek',
+  'oauth.scope.group.collections': 'Gyűjtemények',
   'oauth.scope.group.atlas': 'Atlas',
   'oauth.scope.group.packing': 'Csomagolás',
   'oauth.scope.group.todos': 'Feladatok',
@@ -26,6 +27,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': 'Helyek, napi hozzárendelések, címkék és kategóriák olvasása',
   'oauth.scope.places:write.label': 'Helyek kezelése',
   'oauth.scope.places:write.description': 'Helyek, hozzárendelések és címkék létrehozása, frissítése és törlése',
+  'oauth.scope.collections:read.label': 'Gyűjtemények megtekintése',
+  'oauth.scope.collections:read.description': 'Helygyűjtemények, azok helyeinek, értékeléseinek, címkéinek és tagjainak olvasása',
+  'oauth.scope.collections:write.label': 'Gyűjtemények kezelése',
+  'oauth.scope.collections:write.description': 'Gyűjtemények létrehozása/szerkesztése, helyek mentése, értékelése, címkézése és másolása, valamint listák megosztása',
   'oauth.scope.atlas:read.label': 'Atlas megtekintése',
   'oauth.scope.atlas:read.description': 'Meglátogatott országok, régiók és bakancslisták olvasása',
   'oauth.scope.atlas:write.label': 'Atlas kezelése',

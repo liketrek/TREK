@@ -380,7 +380,7 @@ Both jobs and scheduled tasks run with **no acting user** (trip reads are refuse
 
 ## Contribute native primitives to core views
 
-Six declarative hooks let a plugin push data into TREK's own screens — the host renders and sanitizes everything, so no iframe and no plugin JS on the canvas. Each needs its own `hook:*` permission, runs with the current user bound on a short timeout, and a slow or failing call is skipped (never fatal). The host caps counts and lengths.
+Seven declarative hooks let a plugin push data into TREK's own screens — the host renders and sanitizes everything, so no iframe and no plugin JS on the canvas. Each needs its own `hook:*` permission, runs with the current user bound on a short timeout, and a slow or failing call is skipped (never fatal). The host caps counts and lengths.
 
 ```js
 hooks: {
@@ -392,6 +392,14 @@ hooks: {
   // hook:map-marker-provider — pins on the trip map (#587)
   mapMarkerProvider: { async getMarkers(tripId, ctx) {
     return [{ id: 'm1', lat: 35.62, lng: 139.78, label: 'Teamlab', popupText: 'Opens 10:00' }]
+  } },
+
+  // hook:map-layer-provider — routes/corridors/zones drawn on the trip map
+  mapLayerProvider: { async getLayers(tripId, ctx) {
+    return [{ id: 'route', name: 'Suggested route', features: [
+      { type: 'polyline', points: [[35.62, 139.78], [35.66, 139.70]], tone: 'success', width: 4 },
+      { type: 'circle', center: [35.66, 139.70], radiusM: 1500, dash: 'dash', fill: true, label: 'Reachable on foot' },
+    ] }]
   } },
 
   // hook:pdf-section-provider — text sections appended to the trip PDF export
@@ -417,6 +425,61 @@ hooks: {
 ```
 
 `tone` is `'default' | 'success' | 'warn' | 'danger'`; any `url` must be http/https/mailto; `icon` is a lucide icon name. A table `action` (instead of a `column`) is a labelled button whose target opens your sandboxed frame or calls one of your routes.
+
+---
+
+## Offer a routing profile (EV charging stops)
+
+Declare a profile and implement the `routeProvider` hook — your profile appears in the planner's route toggle next to Driving/Walking, and TREK asks *you* to route the day. Needs `hook:route-provider`; add `http:outbound:<solver-host>` if you call an external routing service.
+
+```json
+"permissions": ["hook:route-provider", "http:outbound:api.example-ev.com"],
+"egress": ["api.example-ev.com"],
+"capabilities": { "routeProfiles": [{ "id": "ev", "label": "EV (charging)" }] }
+```
+
+```js
+hooks: {
+  routeProvider: {
+    async getRoute({ tripId, dayId, profile, waypoints }, ctx) {
+      // waypoints = the day's located stops in visit order (2..30).
+      const plan = await solveEvRoute(waypoints) // your solver / external API
+      return {
+        coordinates: plan.polyline,          // [lat,lng][] for the map line
+        distance: plan.meters,
+        duration: plan.seconds,              // driving + charging
+        legs: waypoints.slice(1).map((_, i) => ({
+          distance: plan.legs[i].meters,
+          duration: plan.legs[i].seconds,
+          note: plan.legs[i].chargeMin ? `${plan.legs[i].chargeMin} min charge` : undefined,
+        })),
+        viaPoints: plan.chargers.map((c) => ({
+          lat: c.lat, lng: c.lng, tone: 'success',
+          label: `${c.name} · to ${c.targetSoc}%`, dwellSeconds: c.chargeMin * 60,
+        })),
+      }
+    },
+  },
+},
+```
+
+The legs must line up 1:1 with the waypoint pairs (TREK rejects the result whole otherwise), `note` shows on the day-plan connector, and via points are drawn as stops on the route line. You have 20 s per request; a throw or timeout simply falls back to straight lines. Pair this with `mapLayerProvider` if you also want corridors/zones, and with `db:write:places` + `db:write:itinerary` if the user should be able to persist charging stops as real places.
+
+To also make the *time plan* reflect your stops, add `hook:day-schedule-provider` and return anchored time rows — they render in the day plan on desktop and mobile, and their minutes count into the day's route-footer total:
+
+```js
+dayScheduleProvider: {
+  async getSchedule(tripId, ctx) {
+    const days = await ctx.trips.getDays(tripId)
+    return days.flatMap((d) => (d.assignments ?? [])
+      .filter((a) => needsCharge(a))
+      .map((a) => ({
+        id: `charge-${a.id}`, dayId: d.id, assignmentId: a.id,
+        minutes: 35, label: 'Charge to 80% nearby', tone: 'warn',
+      })))
+  },
+},
+```
 
 ---
 

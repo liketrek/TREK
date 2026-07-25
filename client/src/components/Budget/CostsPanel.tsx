@@ -10,7 +10,7 @@ import { useTranslation } from '../../i18n'
 import { budgetApi } from '../../api/client'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { formatMoney, currencyDecimals, currencyLocale } from '../../utils/formatters'
+import { formatMoney, currencyDecimals, currencyLocale, localizeAmountInput } from '../../utils/formatters'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
@@ -21,6 +21,7 @@ import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 import GuestBadge from '../shared/GuestBadge'
 import { NumericInput } from '../shared/NumericInput'
+import EmptyState from '../shared/EmptyState'
 
 export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
   const n = members.length
@@ -467,9 +468,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
           {dayBanner}
           {dayGroups.length === 0 ? (
-            <div className="text-content-faint" style={{ textAlign: 'center', padding: '60px 20px' }}>
-              {search ? t('costs.noMatch') : t('costs.emptyText')}
-            </div>
+            search ? (
+              <div className="text-content-faint" style={{ textAlign: 'center', padding: '60px 20px' }}>
+                {t('costs.noMatch')}
+              </div>
+            ) : (
+              <EmptyState scene="costs" title={t('costs.emptyText')} />
+            )
           ) : dayGroups.map(g => {
             const dtot = g.entries.reduce((a, en) => en.kind === 'expense' ? a + baseTotal(en.e) : a, 0)
             return (
@@ -1290,7 +1295,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px', opacity: isTicketMode ? 0.6 : 1 }}>
             <span className="text-content-faint" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))' }}>{sym(currency)}</span>
-            <NumericInput mode="decimal" placeholder="0.00" value={isTicketMode ? ticketInfo.total.toFixed(2) : total}
+            <NumericInput mode="decimal" placeholder={localizeAmountInput('0.00', currency)} value={localizeAmountInput(isTicketMode ? ticketInfo.total.toFixed(2) : total, currency)}
               onValueChange={onTotalChange}
               disabled={isTicketMode}
               className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, paddingLeft: 6, width: '100%' }} />
@@ -1373,8 +1378,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                       {on ? (
                         <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
                           <span className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{sym(currency)}</span>
-                          <NumericInput mode="decimal" placeholder="0.00" data-testid="payer-amount"
-                            value={payerAmounts[p.id] || ''}
+                          <NumericInput mode="decimal" placeholder={localizeAmountInput('0.00', currency)} data-testid="payer-amount"
+                            value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
                             onValueChange={v => onPayerAmountChange(p.id, v)}
                             className="text-content"
                             style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
@@ -1438,8 +1443,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                         <span className="text-content-faint" style={{ fontSize: 12 }}>{sym(currency)}</span>
                         <NumericInput
                           mode="decimal"
-                          placeholder="0.00"
-                          value={item.price}
+                          placeholder={localizeAmountInput('0.00', currency)}
+                          value={localizeAmountInput(item.price, currency)}
                           onValueChange={v => handleUpdateItemPrice(item.id, v)}
                           className="text-content"
                           style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 13, fontWeight: 600, textAlign: 'right', padding: '6px 0' }}
@@ -1521,7 +1526,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                         on ? (
                           <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
                             <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
-                            <input type="text" inputMode="decimal" placeholder={(placeholderShares[p.id] || 0).toFixed(2)} value={customAmounts[p.id] || ''}
+                            <input type="text" inputMode="decimal" placeholder={localizeAmountInput((placeholderShares[p.id] || 0).toFixed(2), currency)} value={localizeAmountInput(customAmounts[p.id] || '', currency)}
                               onChange={e => handleCustomAmountChange(p.id, e.target.value)}
                               className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
                           </div>

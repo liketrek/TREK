@@ -133,7 +133,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 - **Costs** — expense tracker with splits and settle-up (who owes whom), multi-currency
 - **Documents** — file attachments on trips, places, and reservations
 - **Collab** — chat, notes, polls, day-by-day attendance
-- **Vacay** — personal vacation planner with calendar, 100+ country holidays, carry-over tracking
+- **Vacay** — personal vacation planner with calendar, 100+ country holidays, approved school holiday overlays, carry-over tracking
 - **Atlas** — world map of visited countries, bucket list, travel stats, streak tracking, liquid-glass UI
 - **Journey** — magazine-style travel journal with entries, photos (Immich/Synology), maps, moods
 - **AirTrail** — connect a self-hosted AirTrail instance to import and sync flights into reservations
@@ -472,4 +472,3 @@ for full third-party attributions.
 ## License
 
 TREK is [AGPL v3](LICENSE). Self-host freely for personal or internal company use. If you modify and offer TREK as a network service to third parties, your modifications must be open-sourced under the same licence.
-

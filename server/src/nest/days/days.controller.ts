@@ -113,6 +113,24 @@ export class DaysController {
     return { day };
   }
 
+  @Put(':id/transport')
+  transport(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body() body: { transport_mode?: string | null },
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (!this.days.getDay(id, tripId)) {
+      throw new HttpException({ error: 'Day not found' }, 404);
+    }
+    const day = this.days.setDefaultTransportMode(id, body.transport_mode ?? null);
+    this.days.broadcast(tripId, 'day:updated', { day }, socketId);
+    return { day };
+  }
+
   @Delete(':id')
   remove(
     @CurrentUser() user: User,

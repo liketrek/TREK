@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'С отметкой',
+  'files.link': 'Связать',
+  'files.linkTitle': 'Связать файл',
+  'files.linkEmpty': 'Пока нет мест или бронирований для связи',
+  'files.menu': 'Дополнительные параметры',
+  'files.uploadErrorSize': 'Файл слишком большой (макс. 50 МБ)',
   'files.title': 'Файлы',
   'files.pageTitle': 'Файлы и документы',
   'files.subtitle': '{count} файлов для {trip}',

@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const budget: TranslationStrings = {
+  'costs.confirm.deleteTitle': 'Gider silinsin mi?',
+  'costs.confirm.deleteBody': '"{name}" kalıcı olarak silinecek.',
   'budget.title': 'Bütçe',
   'budget.exportCsv': 'CSV dışa aktar',
   'budget.emptyTitle': 'Henüz bütçe oluşturulmadı',

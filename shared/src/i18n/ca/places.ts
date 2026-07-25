@@ -40,7 +40,11 @@ const places: TranslationStrings = {
   'places.assignToDay': "A quin dia l'afegeixo?",
   'places.all': 'Tot',
   'places.unplanned': 'Sense planificar',
+  'places.planned': 'Planificats',
   'places.filterTracks': 'Rutes',
+  'places.sortByRating': 'Ordena per valoració',
+  'places.yourRating': 'La teva valoració',
+  'places.notRated': 'Encara sense valoració',
   'places.search': 'Cerca llocs...',
   'places.allCategories': 'Totes les categories',
   'places.categoriesSelected': 'categories',
@@ -89,5 +93,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Enriquir llocs mitjançant Google',
   'places.enrichOnImportHint':
     "Obté automàticament adreces, puntuacions i horaris d'obertura des de Google en importar.",
+  'places.uploadImage': 'Puja una imatge',
+  'places.changeImage': 'Canvia la imatge',
+  'places.removeImage': 'Elimina la imatge',
+  'places.imageUploadError': "No s'ha pogut pujar la imatge",
 };
 export default places;

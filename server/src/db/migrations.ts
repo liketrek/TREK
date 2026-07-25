@@ -3701,6 +3701,126 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_regions_user ON hidden_regions (user_id);');
     },
+    // Half vacation days (#552): a vacay entry can now count as a full day (1) or
+    // a half day (0.5) toward the entitlement. Existing entries default to a full
+    // day, so the entitlement maths are unchanged for everyone already using vacay.
+    // Guarded so re-running the migration tail (e.g. the crosswalk test) is a no-op.
+    () => {
+      const hasFraction = db.prepare("SELECT 1 FROM pragma_table_info('vacay_entries') WHERE name = 'fraction'").get();
+      if (!hasFraction) db.exec('ALTER TABLE vacay_entries ADD COLUMN fraction REAL NOT NULL DEFAULT 1');
+    },
+    // Read-only vacay calendar sharing (#444/#667): a user can let other users
+    // view their vacation calendar without fusing plans. owner_id is the sharing
+    // user, user_id the viewer; hidden lets the viewer hide the overlay without
+    // removing the share. Follows the person, not the plan, so it survives
+    // fusion and dissolution.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS vacay_shares (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          hidden INTEGER NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (owner_id, user_id)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_vacay_shares_user ON vacay_shares (user_id);');
+    },
+    // Collaborative place ratings (#1435): every trip member can rate a trip
+    // place 1-5, every collection member a saved place; the displayed value is
+    // the average. One row per user and place, mirroring collab_poll_votes.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS place_ratings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          rating INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(place_id, user_id)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_place_ratings_place ON place_ratings (place_id);');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS collection_place_ratings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          collection_place_id INTEGER NOT NULL REFERENCES collection_places(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          rating INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(collection_place_id, user_id)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_collection_place_ratings_place ON collection_place_ratings (collection_place_id);');
+    },
+    // Per-segment travel mode (#1281): the day-plan route can use a different
+    // transport mode for each leg. leg_transport_mode on an assignment is the mode
+    // of the leg LEAVING that stop (NULL = inherit the day default); days gains a
+    // persisted default_transport_mode so the whole-day choice survives a reload.
+    // Both nullable → existing itineraries keep today's single-mode behaviour.
+    () => {
+      try {
+        db.exec('ALTER TABLE day_assignments ADD COLUMN leg_transport_mode TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+      try {
+        db.exec('ALTER TABLE days ADD COLUMN default_transport_mode TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
+    // School holidays are a visual Vacay calendar layer. Keep them separate from
+    // public holidays so applyHolidayCalendars never removes vacation entries for
+    // school-break dates. Appended LAST: this branch was cut before #1435/#1281
+    // landed on dev, so an existing DB is already past their slots — only a
+    // trailing migration re-runs on upgrade and actually adds these columns.
+    () => {
+      const planCols = db.prepare("PRAGMA table_info('vacay_plans')").all() as Array<{ name: string }>;
+      if (!planCols.some(col => col.name === 'school_holidays_enabled')) {
+        db.exec('ALTER TABLE vacay_plans ADD COLUMN school_holidays_enabled INTEGER DEFAULT 0');
+      }
+      const calendarCols = db.prepare("PRAGMA table_info('vacay_holiday_calendars')").all() as Array<{ name: string }>;
+      if (!calendarCols.some(col => col.name === 'type')) {
+        db.exec("ALTER TABLE vacay_holiday_calendars ADD COLUMN type TEXT NOT NULL DEFAULT 'public_holiday'");
+      }
+    },
+    // #1517 — assign trip members / named guests to a reservation (mirrors budget_item_members).
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS reservation_travelers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          reservation_id INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          UNIQUE(reservation_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_reservation_travelers_res ON reservation_travelers(reservation_id);
+        CREATE INDEX IF NOT EXISTS idx_reservation_travelers_user ON reservation_travelers(user_id);
+      `);
+    },
+    // Comp/Flex days (#1074): a vacay entry is either a vacation day (counts toward
+    // the entitlement) or a comp/flex day (kind='comp', costs 0 — flextime/overtime
+    // offset). Orthogonal to fraction, so a half comp day is kind='comp' + fraction=0.5.
+    () => {
+      const hasKind = db.prepare("SELECT 1 FROM pragma_table_info('vacay_entries') WHERE name = 'kind'").get();
+      if (!hasKind) db.exec("ALTER TABLE vacay_entries ADD COLUMN kind TEXT NOT NULL DEFAULT 'vacation'");
+    },
+    // Configurable vacation year (#737): per-user leave-year window. 'calendar' keeps
+    // the Jan 1–Dec 31 default (unchanged for everyone); 'fiscal' starts on a fixed
+    // month/day; 'anniversary' starts on the month/day of the hire date. The year
+    // integer still names a period; the service resolves it to a [start,end) range.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS vacay_user_settings (
+          user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          year_type TEXT NOT NULL DEFAULT 'calendar',
+          year_start_month INTEGER NOT NULL DEFAULT 1,
+          year_start_day INTEGER NOT NULL DEFAULT 1,
+          hire_date TEXT
+        );
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -198,5 +198,15 @@ const packing: TranslationStrings = {
   'packing.alsoBringingStop': 'Ja no ho porto',
   'packing.cloneToMine': 'Copiar a la meva llista',
   'packing.quantity': 'Quant.',
+  'packing.actions': 'Accions',
+  'packing.editDone': 'Fet',
+  'packing.personalEmptyHint':
+    'La teva llista personal és buida: copia-hi els elements compartits o afegeix-ne de propis.',
+  'packing.assignMembers': 'Assigna membres',
+  'packing.categoryOptions': 'Opcions de la llista',
+  'packing.editItem': "Edita l'element",
+  'packing.itemName': 'Nom',
+  'packing.itemQuantity': 'Quantitat',
+  'packing.itemWeight': 'Pes (g)',
 };
 export default packing;

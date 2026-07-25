@@ -35,6 +35,7 @@ interface PlaceLike {
   sort_order?: number;
   created_at?: string;
   label_ids?: number[];
+  rating_avg?: number | null;
 }
 function cp(overrides: PlaceLike): CollectionPlace {
   return {
@@ -78,6 +79,25 @@ describe('collectionsModel', () => {
       ];
       const out = filterPlaces(places, 'all', '', 5);
       expect(out.map(p => p.id)).toEqual([1, 3]);
+    });
+
+    it('FE-COLLECTIONS-MODEL-036: rating filter keeps places whose average is >= the floor (#1435)', () => {
+      const places = [
+        cp({ id: 1, name: 'A', status: 'idea', rating_avg: 4.5 }),
+        cp({ id: 2, name: 'B', status: 'idea', rating_avg: 3 }),
+        cp({ id: 3, name: 'C', status: 'idea', rating_avg: null }), // unrated → excluded by a floor
+        cp({ id: 4, name: 'D', status: 'idea' }),                   // unrated (undefined) → excluded
+      ];
+      const out = filterPlaces(places, 'all', '', 'all', [], 4);
+      expect(out.map(p => p.id)).toEqual([1]);
+    });
+
+    it("FE-COLLECTIONS-MODEL-037: rating filter 'all' keeps unrated places too", () => {
+      const places = [
+        cp({ id: 1, name: 'A', status: 'idea', rating_avg: 5 }),
+        cp({ id: 2, name: 'B', status: 'idea', rating_avg: null }),
+      ];
+      expect(filterPlaces(places, 'all', '', 'all', [], 'all')).toHaveLength(2);
     });
 
     it('FE-COLLECTIONS-MODEL-004: search matches place name (case-insensitive)', () => {

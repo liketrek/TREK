@@ -80,6 +80,10 @@ export class PlacesService {
     return svc.searchPlaceImage(tripId, id, userId);
   }
 
+  rate(tripId: string, id: string, userId: number, rating: number | null) {
+    return svc.ratePlace(tripId, id, userId, rating);
+  }
+
   // Journey hooks — non-fatal, mirroring the route's try/catch wrappers.
   onCreated(tripId: string, placeId: number): void { try { onPlaceCreated(Number(tripId), placeId); } catch { /* non-fatal */ } }
   onUpdated(placeId: number): void { try { onPlaceUpdated(placeId); } catch { /* non-fatal */ } }

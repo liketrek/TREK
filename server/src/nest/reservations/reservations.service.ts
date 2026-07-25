@@ -61,6 +61,13 @@ export class ReservationsService {
     return svc.deleteReservation(id, tripId);
   }
 
+  /** Assign trip members / named guests to a reservation (#1517). Null when off-trip. */
+  setTravelers(id: string, tripId: string, userIds: number[]) {
+    if (!svc.getReservation(id, tripId)) return null;
+    svc.setReservationTravelers(id, tripId, userIds);
+    return { travelers: svc.loadTravelers(id), reservation: svc.getReservationWithJoins(Number(id)) };
+  }
+
   /** POST side effect: auto-create a linked budget item when a price is provided. */
   syncBudgetOnCreate(tripId: string, reservationId: number, title: string, type: string | undefined, entry: BudgetEntry, socketId: string | undefined): void {
     if (!entry || !(Number(entry.total_price) > 0)) return;

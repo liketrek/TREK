@@ -7,8 +7,8 @@ export function MoodChip({ mood }: { mood: string }) {
   if (!config) return null
   const Icon = config.icon
   return (
-    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: config.bg, color: config.text }}>
-      <Icon size={11} />
+    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-semibold" style={{ background: config.bg, color: config.text }}>
+      <Icon size={12} />
       {t(config.label)}
     </div>
   )
@@ -20,8 +20,8 @@ export function WeatherChip({ weather }: { weather: string }) {
   if (!config) return null
   const Icon = config.icon
   return (
-    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-      <Icon size={11} />
+    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-semibold" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink2)' }}>
+      <Icon size={12} />
       {t(config.label)}
     </div>
   )

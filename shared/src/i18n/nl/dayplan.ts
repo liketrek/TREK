@@ -15,6 +15,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'Berekenen...',
   'dayplan.route': 'Route',
   'dayplan.optimize': 'Optimaliseren',
+  'dayplan.transportMode.change': 'Vervoerswijze wijzigen',
+  'dayplan.transportMode.useDefault': 'Dagstandaard gebruiken',
   'dayplan.optimized': 'Route geoptimaliseerd',
   'dayplan.routeError': 'Route berekenen mislukt',
   'dayplan.toast.needTwoPlaces': 'Minimaal twee plaatsen nodig voor route-optimalisatie',

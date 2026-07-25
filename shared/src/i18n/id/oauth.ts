@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': 'Perjalanan',
   'oauth.scope.group.places': 'Tempat',
+  'oauth.scope.group.collections': 'Koleksi',
   'oauth.scope.group.atlas': 'Atlas',
   'oauth.scope.group.packing': 'Perlengkapan',
   'oauth.scope.group.todos': 'To-do',
@@ -26,6 +27,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': 'Baca tempat, penugasan hari, tag, dan kategori',
   'oauth.scope.places:write.label': 'Kelola tempat',
   'oauth.scope.places:write.description': 'Buat, perbarui, dan hapus tempat, penugasan, dan tag',
+  'oauth.scope.collections:read.label': 'Lihat koleksi',
+  'oauth.scope.collections:read.description': 'Baca koleksi tempat tersimpan beserta tempat, rating, label, dan anggotanya',
+  'oauth.scope.collections:write.label': 'Kelola koleksi',
+  'oauth.scope.collections:write.description': 'Buat/edit koleksi, simpan, beri rating, beri label, dan salin tempat, serta bagikan daftar',
   'oauth.scope.atlas:read.label': 'Lihat Atlas',
   'oauth.scope.atlas:read.description': 'Baca negara yang dikunjungi, wilayah, dan daftar impian',
   'oauth.scope.atlas:write.label': 'Kelola Atlas',

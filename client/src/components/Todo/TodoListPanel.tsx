@@ -20,6 +20,7 @@ import { KAT_COLORS, PRIO_CONFIG, katColor, type FilterType, type Member } from 
 import { useTodoList } from './useTodoList'
 import TodoRow from './TodoRow'
 import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
+import EmptyState from '../shared/EmptyState'
 
 export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tripId: number; items: TodoItem[]; addItemSignal?: number }) {
   // Layout component: state/effects/derived/handlers live in useTodoList.
@@ -206,7 +207,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
 
         {/* Task list */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-          {filtered.length === 0 ? null : (
+          {filtered.length === 0 ? <EmptyState scene="tasks" title={t('todo.empty')} /> : (
             filtered.map(item => {
               const contributions = contribFor(item.id)
               return (

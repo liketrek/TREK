@@ -42,7 +42,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'どの日に追加しますか？',
   'places.all': 'すべて',
   'places.unplanned': '未計画',
+  'places.planned': '計画済み',
   'places.filterTracks': 'トラック',
+  'places.sortByRating': '評価順に並べ替え',
+  'places.yourRating': 'あなたの評価',
+  'places.notRated': '未評価',
   'places.search': '場所を検索…',
   'places.allCategories': 'すべてのカテゴリ',
   'places.categoriesSelected': 'カテゴリ',
@@ -87,5 +91,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Googleで場所を補完',
   'places.enrichOnImportHint':
     'インポートした各場所を検索して、写真・住所・連絡先を追加します。Google Maps キーが必要です。',
+  'places.uploadImage': '画像をアップロード',
+  'places.changeImage': '画像を変更',
+  'places.removeImage': '画像を削除',
+  'places.imageUploadError': '画像をアップロードできませんでした',
 };
 export default places;

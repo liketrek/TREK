@@ -1,6 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const todo: TranslationStrings = {
+  'todo.emptyFiltered': 'Không có công việc nào khớp với bộ lọc này',
   'todo.subtab.packing': 'Danh sách đóng gói',
   'todo.subtab.todo': 'Việc cần làm',
   'todo.completed': 'hoàn thành',

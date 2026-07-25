@@ -443,6 +443,20 @@ describe('ReservationModal', () => {
     );
   });
 
+  it('FE-PLANNER-RESMODAL-031b: parking type — saving calls onSave with parking type (#1444)', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ReservationModal {...defaultProps} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Parking/i }));
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Airport Parking P1');
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Airport Parking P1', type: 'parking' })
+    );
+  });
+
   it('FE-PLANNER-RESMODAL-032: edit mode — save button shows "Update"', () => {
     const res = buildReservation({ title: 'My Trip', type: 'other' });
     render(<ReservationModal {...defaultProps} reservation={res} />);

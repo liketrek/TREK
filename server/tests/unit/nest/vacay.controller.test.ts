@@ -46,7 +46,7 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
       const addHolidayCalendar = vi.fn().mockReturnValue({ id: 1, region: 'DE-BY' });
       const res = makeController({ ...planBase, addHolidayCalendar }).addHolidayCalendar(user, { region: 'DE-BY', label: 'Bayern' }, 'sock');
       expect(res).toEqual({ calendar: { id: 1, region: 'DE-BY' } });
-      expect(addHolidayCalendar).toHaveBeenCalledWith(10, 'DE-BY', 'Bayern', undefined, undefined, 'sock');
+      expect(addHolidayCalendar).toHaveBeenCalledWith(10, 'DE-BY', 'Bayern', undefined, undefined, 'sock', undefined);
     });
 
     it('404 on update of a missing calendar', () => {
@@ -137,7 +137,42 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
     it('toggles for the caller', () => {
       const toggleEntry = vi.fn().mockReturnValue({ action: 'added' });
       expect(makeController({ ...planBase, toggleEntry }).toggleEntry(user, { date: '2026-07-01' }, 'sock')).toEqual({ action: 'added' });
-      expect(toggleEntry).toHaveBeenCalledWith(1, 10, '2026-07-01', 'sock');
+      expect(toggleEntry).toHaveBeenCalledWith(1, 10, '2026-07-01', undefined, undefined, 'sock');
+    });
+
+    it('forwards the half-day fraction (#552)', () => {
+      const toggleEntry = vi.fn().mockReturnValue({ action: 'added', fraction: 0.5 });
+      makeController({ ...planBase, toggleEntry }).toggleEntry(user, { date: '2026-07-01', fraction: 0.5 }, 'sock');
+      expect(toggleEntry).toHaveBeenCalledWith(1, 10, '2026-07-01', 0.5, undefined, 'sock');
+    });
+
+    it('forwards the comp/flex leave type (#1074)', () => {
+      const toggleEntry = vi.fn().mockReturnValue({ action: 'added', kind: 'comp' });
+      makeController({ ...planBase, toggleEntry }).toggleEntry(user, { date: '2026-07-01', kind: 'comp' }, 'sock');
+      expect(toggleEntry).toHaveBeenCalledWith(1, 10, '2026-07-01', undefined, 'comp', 'sock');
+    });
+
+    it('GET reads entries over the caller window (#737)', () => {
+      const getEntries = vi.fn().mockReturnValue({ entries: [], companyHolidays: [] });
+      makeController({ ...planBase, getEntries }).entries(user, '2026');
+      expect(getEntries).toHaveBeenCalledWith(10, '2026', 1);
+    });
+  });
+
+  describe('year settings (#737)', () => {
+    it('GET wraps the caller settings', () => {
+      const getYearSettings = vi.fn().mockReturnValue({ year_type: 'calendar' });
+      expect(makeController({ getYearSettings }).yearSettings(user)).toEqual({ settings: { year_type: 'calendar' } });
+      expect(getYearSettings).toHaveBeenCalledWith(1);
+    });
+
+    it('PUT saves for the caller and returns the stored settings', () => {
+      const updateYearSettings = vi.fn().mockReturnValue({ year_type: 'fiscal', year_start_month: 7, year_start_day: 1 });
+      const body = { year_type: 'fiscal' as const, year_start_month: 7, year_start_day: 1 };
+      expect(makeController({ updateYearSettings }).updateYearSettings(user, body)).toEqual({
+        settings: { year_type: 'fiscal', year_start_month: 7, year_start_day: 1 },
+      });
+      expect(updateYearSettings).toHaveBeenCalledWith(1, body);
     });
   });
 
@@ -170,6 +205,67 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
       const getHolidays = vi.fn().mockResolvedValue({ error: 'upstream down' });
       return thrown(() => makeController({ getHolidays }).holidays('2026', 'DE')).then((r) =>
         expect(r).toEqual({ status: 502, body: { error: 'upstream down' } }));
+    });
+  });
+
+  describe('read-only shares', () => {
+    it('GET /shares delegates listShares', () => {
+      const listShares = vi.fn().mockReturnValue({ outgoing: [{ id: 1 }], incoming: [] });
+      expect(makeController({ listShares }).shares(user)).toEqual({ outgoing: [{ id: 1 }], incoming: [] });
+      expect(listShares).toHaveBeenCalledWith(1);
+    });
+
+    it('400 when user_id missing on share', () => {
+      return thrown(() => makeController({}).share(user, undefined)).then((r) =>
+        expect(r).toEqual({ status: 400, body: { error: 'user_id required' } }));
+    });
+
+    it('maps a shareCalendar error to its status', () => {
+      const shareCalendar = vi.fn().mockReturnValue({ error: 'Already shared', status: 400 });
+      return thrown(() => makeController({ shareCalendar }).share(user, 2)).then((r) =>
+        expect(r).toEqual({ status: 400, body: { error: 'Already shared' } }));
+    });
+
+    it('shares a calendar (user_id coerced to a number, socket id forwarded)', () => {
+      const shareCalendar = vi.fn().mockReturnValue({});
+      expect(makeController({ shareCalendar }).share(user, '2', 'sock-1')).toEqual({ success: true });
+      expect(shareCalendar).toHaveBeenCalledWith(1, 'u@example.test', 2, 'sock-1');
+    });
+
+    it('GET /shares/available-users wraps the user list', () => {
+      const getShareAvailableUsers = vi.fn().mockReturnValue([{ id: 3 }]);
+      expect(makeController({ getShareAvailableUsers }).shareAvailableUsers(user)).toEqual({ users: [{ id: 3 }] });
+      expect(getShareAvailableUsers).toHaveBeenCalledWith(1);
+    });
+
+    it('GET /shares/calendars/:year wraps the calendars', () => {
+      const getSharedCalendars = vi.fn().mockReturnValue([{ share_id: 4 }]);
+      expect(makeController({ getSharedCalendars }).sharedCalendars(user, '2026')).toEqual({ calendars: [{ share_id: 4 }] });
+      expect(getSharedCalendars).toHaveBeenCalledWith(1, '2026');
+    });
+
+    it('PUT /shares/:id forwards the socket id and the hidden flag', () => {
+      const setShareHidden = vi.fn().mockReturnValue(true);
+      expect(makeController({ setShareHidden }).updateShare(user, '7', { hidden: true }, 'sock-1')).toEqual({ success: true });
+      expect(setShareHidden).toHaveBeenCalledWith(7, 1, true, 'sock-1');
+    });
+
+    it('404 on PUT when the share is not toggleable by the caller', () => {
+      const setShareHidden = vi.fn().mockReturnValue(false);
+      return thrown(() => makeController({ setShareHidden }).updateShare(user, '9', { hidden: true })).then((r) =>
+        expect(r).toEqual({ status: 404, body: { error: 'Share not found' } }));
+    });
+
+    it('DELETE /shares/:id forwards the socket id', () => {
+      const removeShare = vi.fn().mockReturnValue(true);
+      expect(makeController({ removeShare }).deleteShare(user, '7', 'sock-1')).toEqual({ success: true });
+      expect(removeShare).toHaveBeenCalledWith(7, 1, 'sock-1');
+    });
+
+    it('404 on DELETE of a foreign share', () => {
+      const removeShare = vi.fn().mockReturnValue(false);
+      return thrown(() => makeController({ removeShare }).deleteShare(user, '9')).then((r) =>
+        expect(r).toEqual({ status: 404, body: { error: 'Share not found' } }));
     });
   });
 });

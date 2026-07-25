@@ -58,6 +58,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'クルーズ',
   'reservations.type.event': 'イベント',
   'reservations.type.tour': 'ツアー',
+  'reservations.type.parking': '駐車場',
   'reservations.type.other': 'その他',
   'reservations.type.bus': 'バス',
   'reservations.type.ferry': 'フェリー',
@@ -149,6 +150,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'AirTrail と同期済み — 編集は双方向で同期されます。',
   'reservations.airtrail.notSynced': '未同期',
   'reservations.airtrail.notSyncedHint': 'このフライトは AirTrail で削除されたため、同期されなくなりました。',
+  'reservations.airtrail.layoverHint': 'AirTrail からインポートしました。乗り継ぎのある複数区間のフライトは、同期先となる単一の AirTrail フライトがないため、一度限りのインポートのままになります。',
   'reservations.airtrail.loadError': 'AirTrail のフライトを読み込めませんでした。',
   'reservations.airtrail.imported': '{count} 件のフライトをインポートしました',
   'reservations.airtrail.skippedDuplicate': '{count} 件はこの旅行に既に存在するためスキップしました',
@@ -168,5 +170,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'リンク',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': '同行者',
+  'reservations.travelers.assign': '同行者を割り当て',
+  'reservations.travelers.none': 'まだ旅行メンバーがいません。',
 };
 export default reservations;

@@ -71,6 +71,20 @@ export function currencyLocale(currency: string): string {
   return CURRENCY_LOCALE[(currency || '').toUpperCase()] || 'en-US'
 }
 
+// The decimal separator formatMoney renders a currency with (',' for EUR, '.' for
+// USD) — same home-locale convention, so an amount input can match the displayed list.
+export function currencyDecimalSeparator(currency: string): string {
+  return (0.1).toLocaleString(currencyLocale(currency)).replace(/\d/g, '') || '.'
+}
+
+// Show a dot-normalized amount string in an input using the currency's decimal
+// separator, so the field reads the same way as the list. State stays dot-normalized;
+// callers still normalize typed input back to a dot on change.
+export function localizeAmountInput(value: string | number | null | undefined, currency: string): string {
+  const s = String(value ?? '')
+  return currencyDecimalSeparator(currency) === ',' ? s.replace('.', ',') : s
+}
+
 /**
  * Locale- and currency-correct money formatting via Intl: the symbol position,
  * thousands/decimal separators and decimal count all follow the user's locale

@@ -109,10 +109,10 @@ describe('MapsService', () => {
       expect(maps.resolveGoogleMapsUrl).toHaveBeenCalledWith('https://maps.app.goo.gl/x');
     });
 
-    it('pois forwards category and bbox through', () => {
+    it('pois forwards category, bbox and lang through', () => {
       const bbox = { south: 1, west: 2, north: 3, east: 4 };
-      svc().pois('cafe', bbox);
-      expect(maps.searchOverpassPois).toHaveBeenCalledWith('cafe', bbox);
+      svc().pois('cafe', bbox, 'de');
+      expect(maps.searchOverpassPois).toHaveBeenCalledWith('cafe', bbox, 'de');
     });
   });
 

@@ -23,6 +23,8 @@ export type ActiveCollectionId = number | typeof ALL_SAVED | null
 
 export type CollectionView = 'list' | 'map'
 export type StatusFilter = CollectionStatus | 'all'
+/** Display order for a list's places: the saved order, or alphabetical by name. */
+export type CollectionSortMode = 'default' | 'name_asc'
 
 interface CollectionState {
   collections: Collection[]
@@ -34,7 +36,9 @@ interface CollectionState {
   view: CollectionView
   statusFilter: StatusFilter
   categoryFilter: number | 'all'
+  ratingFilter: number | 'all'
   labelFilter: number[]
+  sortMode: CollectionSortMode
   search: string
   selectedPlaceId: number | null
   selectMode: boolean
@@ -55,6 +59,8 @@ interface CollectionState {
 
   setStatus: (placeId: number, status: CollectionStatus) => Promise<void>
   updatePlace: (placeId: number, body: CollectionPlaceUpdateRequest) => Promise<void>
+  uploadPlaceImage: (placeId: number, file: File) => Promise<void>
+  ratePlace: (placeId: number, rating: number | null) => Promise<void>
   deletePlace: (placeId: number) => Promise<void>
   deleteMany: (ids: number[]) => Promise<void>
   copyToTrip: (tripId: number, placeIds: number[], force?: boolean) => Promise<{ copied: number; skipped: { id: number; name: string }[] }>
@@ -77,7 +83,9 @@ interface CollectionState {
   setView: (view: CollectionView) => void
   setStatusFilter: (filter: StatusFilter) => void
   setCategoryFilter: (filter: number | 'all') => void
+  setRatingFilter: (filter: number | 'all') => void
   setLabelFilter: (labelIds: number[]) => void
+  setSortMode: (mode: CollectionSortMode) => void
   setSearch: (search: string) => void
   setSelectedPlaceId: (id: number | null) => void
   setSelectMode: (on: boolean) => void
@@ -96,7 +104,9 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   view: 'list',
   statusFilter: 'all',
   categoryFilter: 'all',
+  ratingFilter: 'all',
   labelFilter: [],
+  sortMode: 'default',
   search: '',
   selectedPlaceId: null,
   selectMode: false,
@@ -227,6 +237,18 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   updatePlace: async (placeId, body) => {
     // The endpoint returns the updated place directly (not wrapped in { place }).
     const updated = await collectionsApi.updatePlace(placeId, body)
+    if (updated) set({ places: get().places.map(p => (p.id === placeId ? updated : p)) })
+  },
+
+  uploadPlaceImage: async (placeId: number, file: File) => {
+    const fd = new FormData()
+    fd.append('image', file)
+    const updated = await collectionsApi.uploadPlaceImage(placeId, fd)
+    if (updated) set({ places: get().places.map(p => (p.id === placeId ? updated : p)) })
+  },
+
+  ratePlace: async (placeId: number, rating: number | null) => {
+    const updated = await collectionsApi.ratePlace(placeId, rating)
     if (updated) set({ places: get().places.map(p => (p.id === placeId ? updated : p)) })
   },
 
@@ -375,7 +397,9 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   setView: (view: CollectionView) => set({ view }),
   setStatusFilter: (filter: StatusFilter) => set({ statusFilter: filter }),
   setCategoryFilter: (filter: number | 'all') => set({ categoryFilter: filter }),
+  setRatingFilter: (filter: number | 'all') => set({ ratingFilter: filter }),
   setLabelFilter: (labelIds: number[]) => set({ labelFilter: labelIds }),
+  setSortMode: (mode: CollectionSortMode) => set({ sortMode: mode }),
   setSearch: (search: string) => set({ search }),
   setSelectedPlaceId: (id: number | null) => set({ selectedPlaceId: id }),
   setSelectMode: (on: boolean) => set({ selectMode: on, selectedIds: on ? get().selectedIds : [] }),

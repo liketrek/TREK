@@ -3,6 +3,7 @@ import {
   vacayInviteRequestSchema,
   vacayToggleEntryRequestSchema,
   vacayAddYearRequestSchema,
+  vacayYearSettingsRequestSchema,
 } from './vacay.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -38,6 +39,31 @@ describe('vacayToggleEntryRequestSchema', () => {
       }).success,
     ).toBe(true);
     expect(vacayToggleEntryRequestSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('vacayYearSettingsRequestSchema', () => {
+  it('requires a known year type; the month/day/hire_date parts are optional', () => {
+    expect(vacayYearSettingsRequestSchema.safeParse({ year_type: 'calendar' }).success).toBe(true);
+    expect(
+      vacayYearSettingsRequestSchema.safeParse({ year_type: 'fiscal', year_start_month: 7, year_start_day: 1 }).success,
+    ).toBe(true);
+    expect(
+      vacayYearSettingsRequestSchema.safeParse({ year_type: 'anniversary', hire_date: '2019-09-16' }).success,
+    ).toBe(true);
+    expect(vacayYearSettingsRequestSchema.safeParse({ year_type: 'quarterly' }).success).toBe(false);
+    expect(vacayYearSettingsRequestSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('rejects an out-of-range month or day', () => {
+    expect(vacayYearSettingsRequestSchema.safeParse({ year_type: 'fiscal', year_start_month: 13 }).success).toBe(false);
+    expect(vacayYearSettingsRequestSchema.safeParse({ year_type: 'fiscal', year_start_month: 0 }).success).toBe(false);
+    expect(vacayYearSettingsRequestSchema.safeParse({ year_type: 'fiscal', year_start_day: 32 }).success).toBe(false);
+  });
+
+  it('takes a null hire_date but not a malformed one', () => {
+    expect(vacayYearSettingsRequestSchema.safeParse({ year_type: 'anniversary', hire_date: null }).success).toBe(true);
+    expect(vacayYearSettingsRequestSchema.safeParse({ year_type: 'anniversary', hire_date: '16.09.2019' }).success).toBe(false);
   });
 });
 

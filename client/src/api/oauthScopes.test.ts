@@ -7,6 +7,7 @@ describe('SCOPE_GROUPS', () => {
     const expected = [
       'trips:read', 'trips:write', 'trips:delete', 'trips:share',
       'places:read', 'places:write',
+      'collections:read', 'collections:write',
       'atlas:read', 'atlas:write',
       'packing:read', 'packing:write',
       'todos:read', 'todos:write',
@@ -16,6 +17,7 @@ describe('SCOPE_GROUPS', () => {
       'notifications:read', 'notifications:write',
       'vacay:read', 'vacay:write',
       'geo:read', 'weather:read',
+      'journey:read', 'journey:write', 'journey:share',
     ]
     for (const scope of expected) {
       expect(SCOPE_GROUPS).toHaveProperty(scope)
@@ -32,8 +34,8 @@ describe('SCOPE_GROUPS', () => {
 })
 
 describe('ALL_SCOPES', () => {
-  it('FE-OAUTH-SCOPES-003: contains exactly 27 scopes', () => {
-    expect(ALL_SCOPES).toHaveLength(27)
+  it('FE-OAUTH-SCOPES-003: contains exactly 29 scopes', () => {
+    expect(ALL_SCOPES).toHaveLength(29)
   })
 
   it('FE-OAUTH-SCOPES-004: matches Object.keys(SCOPE_GROUPS)', () => {

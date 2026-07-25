@@ -20,6 +20,11 @@ interface ActivePlugin {
   tripPage?: { replaces?: string[]; position?: number };
   /** The plugin ships a settings.html the user-settings page frames. */
   settingsUi?: true;
+  /** Routing profiles the planner's route toggle offers (routeProvider hook, granted only). */
+  routeProfiles?: Array<{ id: string; label: string; icon?: string }>;
+  /** The plugin holds the geolocation:read grant — its frames may request the
+   * browser position over the host bridge (the browser prompt still applies). */
+  geolocation?: true;
 }
 
 @Controller('api/plugins')
@@ -29,15 +34,18 @@ export class PluginsFeedController {
   list(): { plugins: ActivePlugin[] } {
     if (!pluginsEnabled()) return { plugins: [] };
     const rows = db
-      .prepare("SELECT id, name, type, icon, capabilities FROM plugins WHERE status = 'active' ORDER BY sort_order, name")
-      .all() as Array<Omit<ActivePlugin, 'slot' | 'tripPage'> & { capabilities: string }>;
-    const plugins = rows.map(({ capabilities, ...p }) => {
+      .prepare("SELECT id, name, type, icon, capabilities, granted_permissions FROM plugins WHERE status = 'active' ORDER BY sort_order, name")
+      .all() as Array<Omit<ActivePlugin, 'slot' | 'tripPage'> & { capabilities: string; granted_permissions: string }>;
+    const plugins = rows.map(({ capabilities, granted_permissions, ...p }) => {
       const tripPage = p.type === 'trip-page' ? tripPageOf(capabilities) : undefined;
+      const routeProfiles = routeProfilesOf(capabilities, granted_permissions);
       return {
         ...p,
         slot: slotOf(capabilities),
         ...(tripPage ? { tripPage } : {}),
         ...(settingsUiOf(capabilities) ? { settingsUi: true as const } : {}),
+        ...(routeProfiles ? { routeProfiles } : {}),
+        ...(hasGrant(granted_permissions, 'geolocation:read') ? { geolocation: true as const } : {}),
       };
     });
     return { plugins };
@@ -65,6 +73,41 @@ function settingsUiOf(capabilities: string): boolean {
     return c.settingsUi === true;
   } catch {
     return false;
+  }
+}
+
+function hasGrant(granted: string, permission: string): boolean {
+  try {
+    return (JSON.parse(granted || '[]') as unknown[]).includes(permission);
+  } catch {
+    return false;
+  }
+}
+
+// Same re-validation rationale as the tab list: the profiles the client offers in
+// the route picker must never be steerable by a hand-edited capabilities row, and
+// an un-granted routeProvider must not surface profiles it can never serve.
+const PROFILE_RE = /^[a-z][a-z0-9-]{0,23}$/;
+
+function routeProfilesOf(capabilities: string, granted: string): ActivePlugin['routeProfiles'] {
+  try {
+    if (!(JSON.parse(granted || '[]') as unknown[]).includes('hook:route-provider')) return undefined;
+    const c = JSON.parse(capabilities || '{}') as { routeProfiles?: unknown };
+    if (!Array.isArray(c.routeProfiles)) return undefined;
+    const out: NonNullable<ActivePlugin['routeProfiles']> = [];
+    for (const v of c.routeProfiles.slice(0, 3)) {
+      if (!v || typeof v !== 'object') continue;
+      const p = v as { id?: unknown; label?: unknown; icon?: unknown };
+      if (typeof p.id !== 'string' || !PROFILE_RE.test(p.id) || typeof p.label !== 'string' || !p.label.trim()) continue;
+      out.push({
+        id: p.id,
+        label: p.label.trim().slice(0, 40),
+        ...(typeof p.icon === 'string' && p.icon ? { icon: p.icon.slice(0, 40) } : {}),
+      });
+    }
+    return out.length ? out : undefined;
+  } catch {
+    return undefined;
   }
 }
 

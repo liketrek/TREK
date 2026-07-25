@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { MapPin, Clock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { MapPin, Clock, MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
 import { formatLocationName } from '../../utils/formatters'
 import { useTranslation } from '../../i18n'
 import { pluginsApi } from '../../api/client'
@@ -45,7 +45,7 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
   const hasProscons = prosArr.length > 0 || consArr.length > 0
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl overflow-hidden transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-zinc-400 dark:hover:border-zinc-500 hover:shadow-sm">
+    <div className="bg-white dark:bg-zinc-900 rounded-[20px] overflow-hidden transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-md" style={{ border: '1px solid var(--vg-line)' }}>
 
       {/* Hero area: photos with title overlay */}
       {photos.length > 0 ? (
@@ -185,22 +185,25 @@ export function SkeletonCard({ entry, onClick }: { entry: JourneyEntry; onClick?
   return (
     <div
       onClick={onClick}
-      className={`bg-white dark:bg-zinc-900 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3.5 flex items-center gap-3 transition-[border-color,border-style] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${onClick ? 'hover:border-solid hover:border-zinc-400 dark:hover:border-zinc-500 cursor-pointer' : ''}`}
+      className={`rounded-[18px] px-3.5 py-3 flex items-center gap-3 transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${onClick ? 'hover:-translate-y-0.5 cursor-pointer' : ''}`}
+      style={{ border: '1.5px dashed var(--vg-line2)', background: 'var(--vg-surf2)' }}
     >
-      <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 flex-shrink-0">
-        <MapPin size={14} />
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--vg-surf)', border: '1px solid var(--vg-line)', color: 'var(--vg-ink3)' }}>
+        <MapPin size={15} />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-medium text-zinc-900 dark:text-white">
+        <div className="text-[13px] font-semibold truncate" style={{ color: 'var(--vg-ink)' }}>
           {entry.title || t('journey.detail.newEntry')}
         </div>
-        <div className="text-[11px] text-zinc-500 mt-0.5">
+        <div className="text-[11px] mt-0.5 truncate" style={{ color: 'var(--vg-ink3)' }}>
           {formatLocationName(entry.location_name)}{entry.entry_time ? ` · ${entry.entry_time}` : ''}
         </div>
       </div>
-      <div className="text-[11px] text-zinc-500 font-medium flex-shrink-0">
-        {t('journey.detail.addEntry')} &rarr;
-      </div>
+      {onClick && (
+        <span className="inline-flex items-center gap-1 flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold" style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}>
+          <Plus size={12} strokeWidth={2.6} /> {t('journey.detail.addEntry')}
+        </span>
+      )}
     </div>
   )
 }

@@ -278,8 +278,8 @@ function _normalizeSynologyPhotoInfo(item: SynologyPhotoItem): AssetInfo {
         aperture: exif.aperture || null,
         shutter: exif.exposure_time || null,
         iso: exif.iso || null,
-        lat: gps.latitude || null,
-        lng: gps.longitude || null,
+        lat: typeof gps.latitude === 'number' ? gps.latitude : null,
+        lng: typeof gps.longitude === 'number' ? gps.longitude : null,
         orientation: item.additional?.orientation || null,
         description: item.additional?.description || null,
         width: item.additional?.resolution?.width || null,
@@ -555,7 +555,7 @@ export async function searchSynologyPhotos(userId: number, from?: string, to?: s
         offset,
         limit,
         keyword: '.',
-        additional: ['thumbnail', 'address'],
+        additional: ['thumbnail', 'address', 'gps'],
     };
 
     if (from || to) {
@@ -703,4 +703,3 @@ export async function streamSynologyAsset(
     const url = _buildSynologyEndpoint(synology_credentials.data.synology_url, params.toString());
     await pipeAsset(url, response, undefined, undefined, 'public, max-age=86400', { rejectUnauthorized: !synology_credentials.data.synology_skip_ssl })
 }
-

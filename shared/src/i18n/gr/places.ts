@@ -42,7 +42,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Σε ποια ημέρα να προστεθεί;',
   'places.all': 'Όλα',
   'places.unplanned': 'Μη προγραμματισμένα',
+  'places.planned': 'Προγραμματισμένα',
   'places.filterTracks': 'Ίχνη',
+  'places.sortByRating': 'Ταξινόμηση κατά βαθμολογία',
+  'places.yourRating': 'Η βαθμολογία σου',
+  'places.notRated': 'Χωρίς βαθμολογία ακόμη',
   'places.search': 'Αναζήτηση μερών...',
   'places.allCategories': 'Όλες οι Κατηγορίες',
   'places.categoriesSelected': 'κατηγορίες',
@@ -88,5 +92,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Εμπλουτισμός τόπων μέσω Google',
   'places.enrichOnImportHint':
     'Αναζητά κάθε εισαγόμενο μέρος για να προσθέσει φωτογραφίες, διεύθυνση και στοιχεία επικοινωνίας. Απαιτεί κλειδί Google Maps.',
+  'places.uploadImage': 'Μεταφόρτωση εικόνας',
+  'places.changeImage': 'Αλλαγή εικόνας',
+  'places.removeImage': 'Αφαίρεση εικόνας',
+  'places.imageUploadError': 'Δεν ήταν δυνατή η μεταφόρτωση της εικόνας',
 };
 export default places;

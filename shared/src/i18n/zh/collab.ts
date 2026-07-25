@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': '仅可查看此聊天',
+  'collab.chat.messageOptions': '消息选项',
+  'collab.polls.confirmDeleteTitle': '删除投票？',
+  'collab.polls.confirmDeleteBody': '此投票将被永久删除。',
+  'collab.polls.countdownDaysHours': '还剩 {d} 天 {h} 小时',
+  'collab.polls.countdownHoursMinutes': '还剩 {h} 小时 {m} 分钟',
+  'collab.polls.countdownMinutes': '还剩 {m} 分钟',
+  'collab.polls.clearDeadline': '清除截止时间',
   'collab.tabs.chat': '聊天',
   'collab.tabs.notes': '笔记',
   'collab.tabs.polls': '投票',

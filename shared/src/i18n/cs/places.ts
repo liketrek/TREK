@@ -42,7 +42,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Přidat do kterého dne?',
   'places.all': 'Vše',
   'places.unplanned': 'Nezařazené',
+  'places.planned': 'Naplánované',
   'places.filterTracks': 'Trasy',
+  'places.sortByRating': 'Seřadit podle hodnocení',
+  'places.yourRating': 'Tvé hodnocení',
+  'places.notRated': 'Zatím bez hodnocení',
   'places.search': 'Hledat místa...',
   'places.allCategories': 'Všechny kategorie',
   'places.categoriesSelected': 'kategorií',
@@ -87,5 +91,9 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Obohatit místa přes Google',
   'places.enrichOnImportHint':
     'Vyhledá každé importované místo a doplní fotky, adresu a kontakty. Vyžaduje klíč Google Maps.',
+  'places.uploadImage': 'Nahrát obrázek',
+  'places.changeImage': 'Změnit obrázek',
+  'places.removeImage': 'Odebrat obrázek',
+  'places.imageUploadError': 'Obrázek se nepodařilo nahrát',
 };
 export default places;

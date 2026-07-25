@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Перетворюйте поїздки на історії, які ви ніколи не забудете',
   'journey.frontpage.createJourney': 'Створити подорож',
   'journey.frontpage.activeJourney': 'Активна подорож',
+  'journey.frontpage.latestJourney': 'Остання подорож',
   'journey.frontpage.allJourneys': 'Усі подорожі',
   'journey.frontpage.journeys': 'подорожей',
   'journey.frontpage.createNew': 'Створити нову подорож',
@@ -228,5 +229,13 @@ const journey: TranslationStrings = {
   'journey.editor.uploadPartialFailed':
     '{failed} з {total} фото не вдалося завантажити — збережіть ще раз, щоб повторити',
   'journey.photosUploadFailed': 'Деякі фото не вдалося завантажити',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

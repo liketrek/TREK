@@ -562,6 +562,24 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --mood-neutral: #94928C;
   --mood-tired: #6B9BD2;
   --mood-rough: #9B8EC4;
+
+  /* ── Vacay "liquid glass" facelift tokens (desktop) ──────────────
+     Prefixed --vg-*; only the Vacay surface consumes them. Values are
+     the light palette; .dark overrides below. Kept global (not scoped)
+     so the tablet sidebar drawer — which portals to <body> — still
+     resolves them in dark mode. */
+  --vg-ink:   oklch(0.22 0.012 65);
+  --vg-ink2:  oklch(0.42 0.012 65);
+  --vg-ink3:  oklch(0.62 0.01 65);
+  --vg-bg:    #f8fafc;
+  --vg-surf:  #ffffff;
+  --vg-surf2: oklch(0.968 0.003 247);
+  --vg-line:  oklch(0.92 0.008 70);
+  --vg-line2: oklch(0.88 0.01 70);
+  --vg-glass-bg: linear-gradient(135deg, oklch(1 0 0 / .72) 0%, oklch(0.99 0.006 75 / .5) 100%);
+  --vg-glass-br: oklch(0.88 0.008 70 / .7);
+  --vg-glass-sh: 0 1px 2px oklch(0.4 0.02 60 / .05), 0 12px 32px -14px oklch(0.3 0.02 60 / .2);
+  --vg-hi: inset 0 1px 0 oklch(1 0 0 / .8);
 }
 
 @media (max-width: 767px) {
@@ -630,6 +648,29 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --mood-neutral: #9a9a94;
   --mood-tired: #6db3f0;
   --mood-rough: #a9a3f0;
+
+  /* Vacay "liquid glass" facelift tokens (dark) */
+  --vg-ink:   oklch(0.96 0 0);
+  --vg-ink2:  oklch(0.78 0 0);
+  --vg-ink3:  oklch(0.6 0 0);
+  --vg-bg:    oklch(0.17 0 0);
+  --vg-surf:  oklch(0.225 0 0);
+  --vg-surf2: oklch(0.255 0 0);
+  --vg-line:  oklch(0.32 0 0);
+  --vg-line2: oklch(0.38 0 0);
+  --vg-glass-bg: linear-gradient(135deg, oklch(0.31 0 0 / .58) 0%, oklch(0.25 0 0 / .42) 100%);
+  --vg-glass-br: oklch(1 0 0 / .1);
+  --vg-glass-sh: 0 1px 2px oklch(0 0 0 / .3), 0 12px 32px -14px oklch(0 0 0 / .55);
+  --vg-hi: inset 0 1px 0 oklch(1 0 0 / .09);
+}
+
+/* Vacay glass card + button helpers (consume --vg-* above). */
+.vg-card {
+  background: var(--vg-glass-bg);
+  border: 1px solid var(--vg-glass-br);
+  box-shadow: var(--vg-glass-sh), var(--vg-hi);
+  -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  backdrop-filter: blur(22px) saturate(1.7);
 }
 
 /* ── Color schemes (data-scheme) ──────────────────────────────────

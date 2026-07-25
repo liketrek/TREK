@@ -41,7 +41,11 @@ const places: TranslationStrings = {
   'places.assignToDay': '新增到哪一天？',
   'places.all': '全部',
   'places.unplanned': '未規劃',
+  'places.planned': '已規劃',
   'places.filterTracks': '路線',
+  'places.sortByRating': '依評分排序',
+  'places.yourRating': '你的評分',
+  'places.notRated': '尚未評分',
   'places.search': '搜尋地點...',
   'places.allCategories': '所有分類',
   'places.categoriesSelected': '個分類',
@@ -84,5 +88,9 @@ const places: TranslationStrings = {
   'places.addAnyway': '仍要新增',
   'places.enrichOnImport': '透過 Google 豐富地點資訊',
   'places.enrichOnImportHint': '查詢每個匯入的地點以補上照片、地址與聯絡資訊。需要 Google Maps 金鑰。',
+  'places.uploadImage': '上傳圖片',
+  'places.changeImage': '變更圖片',
+  'places.removeImage': '移除圖片',
+  'places.imageUploadError': '無法上傳圖片',
 };
 export default places;

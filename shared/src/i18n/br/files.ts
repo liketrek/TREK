@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'Favoritos',
+  'files.link': 'Vincular',
+  'files.linkTitle': 'Vincular arquivo',
+  'files.linkEmpty': 'Ainda não há lugares ou reservas para vincular',
+  'files.menu': 'Mais opções',
+  'files.uploadErrorSize': 'O arquivo é muito grande (máx. 50 MB)',
   'files.title': 'Arquivos',
   'files.pageTitle': 'Arquivos e documentos',
   'files.subtitle': '{count} arquivos para {trip}',

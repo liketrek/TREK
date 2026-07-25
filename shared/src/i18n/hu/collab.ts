@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': 'Csak olvasási hozzáférés ehhez a csevegéshez',
+  'collab.chat.messageOptions': 'Üzenetbeállítások',
+  'collab.polls.confirmDeleteTitle': 'Törlöd a szavazást?',
+  'collab.polls.confirmDeleteBody': 'Ez a szavazás véglegesen törlődik.',
+  'collab.polls.countdownDaysHours': 'Még {d} n {h} ó',
+  'collab.polls.countdownHoursMinutes': 'Még {h} ó {m} p',
+  'collab.polls.countdownMinutes': 'Még {m} p',
+  'collab.polls.clearDeadline': 'Határidő törlése',
   'collab.tabs.chat': 'Csevegés',
   'collab.tabs.notes': 'Jegyzetek',
   'collab.tabs.polls': 'Szavazások',

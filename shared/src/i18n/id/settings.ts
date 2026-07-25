@@ -78,6 +78,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Pengingat perjalanan',
   'settings.notifyTodoDue': 'Tugas jatuh tempo',
   'settings.notifyVacayInvite': 'Undangan Vacay fusion',
+  'settings.notifyVacayShare': 'Berbagi kalender Vacay',
   'settings.notifyPhotosShared': 'Foto dibagikan (Immich)',
   'settings.notifyCollabMessage': 'Pesan chat (Collab)',
   'settings.notifyPackingTagged': 'Daftar bawaan: penugasan',
@@ -426,6 +427,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Bilah navigasi bawah',
+  'settings.appearance.mobileNav.hint':
+    'Pilih item yang tampil di bilah dan yang masuk ke “Lainnya”. Dasbor selalu tetap di urutan pertama.',
+  'settings.appearance.mobileNav.inBar': 'Di bilah',
+  'settings.appearance.mobileNav.underMore': 'Di bawah “Lainnya”',
+  'settings.appearance.mobileNav.moreEmpty': 'Belum ada apa pun di sini — semuanya muat di bilah.',
+  'settings.appearance.mobileNav.pinned': 'Disematkan',
+  'settings.appearance.mobileNav.toMore': 'Pindahkan ke “Lainnya”',
+  'settings.appearance.mobileNav.toBar': 'Pindahkan ke bilah',
+  'settings.appearance.dashOrder': 'Urutan dasbor',
+  'settings.appearance.dashOrder.hint':
+    'Atur ulang susunan daftar perjalanan dan widget di dasbor ponsel Anda. Perjalanan unggulan selalu berada di atas.',
+  'settings.appearance.dashOrder.trips': 'Perjalanan',
+  'settings.appearance.dashOrder.hidden': 'Tersembunyi',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -492,7 +507,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Waktu',
   'settings.pluginActivity.columns.status': 'Hasil',
   'settings.alwaysShowRoutes': 'Selalu tampilkan rute pemesanan',
-  'settings.alwaysShowRoutesHint': 'Menampilkan rute setiap penerbangan, kereta, dan pemesanan lainnya di peta secara otomatis, tanpa perlu mengaktifkannya satu per satu.',
+  'settings.alwaysShowRoutesHint':
+    'Menampilkan rute setiap penerbangan, kereta, dan pemesanan lainnya di peta secara otomatis, tanpa perlu mengaktifkannya satu per satu.',
 };
 
 export default settings;

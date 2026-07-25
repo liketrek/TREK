@@ -27,6 +27,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'Beräknar...',
   'dayplan.route': 'Rutt',
   'dayplan.optimize': 'Optimera',
+  'dayplan.transportMode.change': 'Ändra färdsätt',
+  'dayplan.transportMode.useDefault': 'Använd dagens standard',
   'dayplan.optimized': 'Rutt optimerad',
   'dayplan.routeError': 'Det gick inte att beräkna rutten',
   'dayplan.toast.needTwoPlaces': 'Minst två platser krävs för ruttoptimering',

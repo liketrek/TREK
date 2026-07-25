@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': '已收藏',
+  'files.link': '关联',
+  'files.linkTitle': '关联文件',
+  'files.linkEmpty': '暂无可关联的地点或预订',
+  'files.menu': '更多选项',
+  'files.uploadErrorSize': '文件过大（最大 50 MB）',
   'files.title': '文件',
   'files.pageTitle': '文件与文档',
   'files.subtitle': '{trip} 的 {count} 个文件',

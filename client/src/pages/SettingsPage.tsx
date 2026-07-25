@@ -14,8 +14,15 @@ import OfflineTab from '../components/Settings/OfflineTab'
 import PluginSettingsTab from '../components/Settings/PluginSettingsTab'
 import { usePluginStore } from '../store/pluginStore'
 import { useSettings } from './settings/useSettings'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MSettings from '../mobile/screens/settings/MSettings'
 
 export default function SettingsPage(): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <MSettings /> : <SettingsPageDesktop />
+}
+
+function SettingsPageDesktop(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: addon/version loading + active-tab state in the hook.
   const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()

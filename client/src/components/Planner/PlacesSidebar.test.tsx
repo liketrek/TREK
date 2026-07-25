@@ -242,6 +242,18 @@ describe('Filter tabs', () => {
     await user.click(screen.getByRole('button', { name: /Unplanned/i }));
     expect(screen.getByText(/All places are planned/i)).toBeInTheDocument();
   });
+
+  it('FE-PLANNER-SIDEBAR-019b: "Planned" filter shows only planned places', () => {
+    const planned = buildPlace({ name: 'Planned Place' });
+    const unplanned = buildPlace({ name: 'Unplanned Place' });
+    const assignments = { '1': [buildAssignment({ place: planned, day_id: 1 })] };
+    // Seed the pool filter directly: the tab label resolves from @trek/shared, but the
+    // filter behaviour (only day-assigned places survive) is what this guards.
+    seedStore(useTripStore, { placesFilter: 'planned' });
+    render(<PlacesSidebar {...defaultProps} places={[planned, unplanned]} assignments={assignments} />);
+    expect(screen.getByText('Planned Place')).toBeInTheDocument();
+    expect(screen.queryByText('Unplanned Place')).not.toBeInTheDocument();
+  });
 });
 
 // ── Search ────────────────────────────────────────────────────────────────────

@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Verwandle deine Reisen in Geschichten, die du nie vergisst',
   'journey.frontpage.createJourney': 'Journey erstellen',
   'journey.frontpage.activeJourney': 'Aktive Journey',
+  'journey.frontpage.latestJourney': 'Neueste Journey',
   'journey.frontpage.allJourneys': 'Alle Journeys',
   'journey.frontpage.journeys': 'Journeys',
   'journey.frontpage.createNew': 'Neue Journey erstellen',
@@ -227,5 +228,13 @@ const journey: TranslationStrings = {
   'journey.picker.selectDate': 'Datum wählen',
   'journey.picker.search': 'Suchen',
   'journey.detail.journeyTab': 'Journey', // en-fallback
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

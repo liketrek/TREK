@@ -682,7 +682,22 @@ window.addEventListener("message", function(ev){
       .then(function(data){ f.contentWindow.postMessage({type:"trek:response",requestId:m.requestId,data:data},"*"); })
       .catch(function(e){ f.contentWindow.postMessage({type:"trek:error",requestId:m.requestId,code:"error",message:String(e&&e.message||e)},"*"); });
   }
+  else if(m.type==="trek:geolocation"){
+    // Mirror the host's geolocation bridge with a fixed dev position, so
+    // trek.geolocation.* works in the preview without a permission prompt.
+    var pos={lat:52.5163,lng:13.3777,accuracy:12,heading:null,speed:null,timestamp:Date.now()};
+    var act=m.action||"get";
+    if(act==="clear"){ clearInterval(geoTick); geoTick=null; f.contentWindow.postMessage({type:"trek:geolocation:result",requestId:m.requestId,cleared:true},"*"); }
+    else if(act==="watch"){
+      f.contentWindow.postMessage({type:"trek:geolocation:result",requestId:m.requestId,watching:true},"*");
+      clearInterval(geoTick);
+      geoTick=setInterval(function(){ pos=Object.assign({},pos,{lng:pos.lng+0.0002,timestamp:Date.now()}); f.contentWindow.postMessage({type:"trek:geolocation:update",position:pos},"*"); },2000);
+      f.contentWindow.postMessage({type:"trek:geolocation:update",position:pos},"*");
+    }
+    else { f.contentWindow.postMessage({type:"trek:geolocation:result",requestId:m.requestId,position:pos},"*"); }
+  }
 });
+var geoTick=null;
 ["theme","accent","rm","nt","trip"].forEach(function(id){ val(id).addEventListener("change",postCtx); });
 f.addEventListener("load", function(){ f.style.height="120px"; postCtx(); });
 var __v; setInterval(function(){ fetch("/__dev/version").then(function(r){return r.text();}).then(function(v){ if(__v&&v!==__v){ f.src=f.src; } __v=v; }).catch(function(){}); },1000);

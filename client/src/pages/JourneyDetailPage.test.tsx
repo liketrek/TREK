@@ -501,16 +501,17 @@ describe('JourneyDetailPage', () => {
       });
     });
 
-    it('shows hint text to add a trip', async () => {
+    it('shows the journey mascot illustration alongside the empty state', async () => {
       setupDefaultHandlers({ entries: [], stats: { entries: 0, photos: 0, places: 0 } });
 
-      render(<JourneyDetailPage />);
+      const { container } = render(<JourneyDetailPage />);
 
       await waitFor(() => {
-        expect(
-          screen.getByText('Add a trip to get started with skeleton entries'),
-        ).toBeInTheDocument();
+        expect(screen.getByText('No entries yet')).toBeInTheDocument();
       });
+      // The shared EmptyState renders the TREK mascot acting out the "journey"
+      // scene instead of a text hint.
+      expect(container.querySelector('.trek--journey')).toBeInTheDocument();
     });
   });
 
@@ -636,8 +637,8 @@ describe('JourneyDetailPage', () => {
         expect(screen.getAllByText('Venice Visit').length).toBeGreaterThanOrEqual(1);
       });
 
-      // Skeleton card shows "Add Entry" CTA
-      expect(screen.getByText(/Add Entry/)).toBeInTheDocument();
+      // Skeleton card shows "Add Entry" CTA (the view-controls button also shows it)
+      expect(screen.getAllByText(/Add Entry/).length).toBeGreaterThan(0);
     });
   });
 
@@ -3756,6 +3757,97 @@ describe('JourneyDetailPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Copied!')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('FE-PAGE-JOURNEYDETAIL-153: Contextual external photos', () => {
+    it('shows the External photos tab and searches the selected entry day', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const searches: Array<{ from?: string; to?: string }> = [];
+      server.use(
+        http.get('/api/integrations/memories/:provider/status', () => HttpResponse.json({ connected: true })),
+        http.post('/api/integrations/memories/:provider/search', async ({ request }) => {
+          searches.push(await request.json() as { from?: string; to?: string });
+          return HttpResponse.json({ assets: [{ id: 'context-1', takenAt: '2026-03-15T12:00:00Z', city: 'Rome' }], hasMore: false });
+        }),
+      );
+
+      await renderAndWait();
+      await openEntryEditor(user);
+      await user.click(screen.getByRole('button', { name: /external photos/i }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('journey-external-provider-immich')).toBeInTheDocument();
+      });
+      await user.click(screen.getByTestId('journey-external-provider-immich'));
+      await waitFor(() => expect(screen.getByTestId('journey-provider-picker-embedded')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(/This day|journey\.picker\.day/)).toBeInTheDocument());
+      await waitFor(() => expect(searches.length).toBeGreaterThan(0));
+
+      expect(searches[0].from).toBe(searches[0].to);
+      expect(screen.getByText('This day')).toBeInTheDocument();
+      expect(document.querySelector('img[src*="/api/integrations/memories/"]')).toBeTruthy();
+
+      await user.click(screen.getByText('Trip Period'));
+      await waitFor(() => expect(searches.some(search => search.from === '2026-03-14' && search.to === '2026-03-20')).toBe(true));
+      expect(screen.queryByText(/No trips linked/i)).not.toBeInTheDocument();
+    });
+
+    it('does not create a duplicate when provider-photo attachment fails after creating the entry', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      let createCalls = 0;
+      let updateCalls = 0;
+      let providerCalls = 0;
+
+      server.use(
+        http.get('/api/integrations/memories/:provider/status', () => HttpResponse.json({ connected: true })),
+        http.post('/api/integrations/memories/:provider/search', () => HttpResponse.json({
+          assets: [{ id: 'context-1', takenAt: '2026-03-15T12:00:00Z', city: 'Rome' }],
+          hasMore: false,
+        })),
+        http.post('/api/journeys/1/entries', () => {
+          createCalls++;
+          return HttpResponse.json({
+            id: 88, journey_id: 1, author_id: 1, type: 'entry',
+            entry_date: '2026-03-15', title: null, story: null, location_name: null,
+            location_lat: null, location_lng: null, mood: null, weather: null,
+            tags: [], pros_cons: null, visibility: 'private', sort_order: 0,
+            entry_time: null, photos: [], created_at: now, updated_at: now,
+          });
+        }),
+        http.patch('/api/journeys/entries/88', () => {
+          updateCalls++;
+          return HttpResponse.json({ id: 88 });
+        }),
+        http.post('/api/journeys/entries/88/provider-photos', () => {
+          providerCalls++;
+          return providerCalls === 1
+            ? HttpResponse.json({ error: 'provider unavailable' }, { status: 502 })
+            : HttpResponse.json({ added: 1 });
+        }),
+      );
+
+      await renderAndWait();
+      await openEntryEditor(user);
+      await user.click(screen.getByRole('button', { name: /external photos/i }));
+      await waitFor(() => expect(screen.getByTestId('journey-external-provider-immich')).toBeInTheDocument());
+      await user.click(screen.getByTestId('journey-external-provider-immich'));
+
+      const picker = await waitFor(() => screen.getByTestId('journey-provider-picker-embedded'));
+      await waitFor(() => expect(picker.querySelector('img[src*="/api/integrations/memories/"]')).toBeTruthy());
+      const photo = picker.querySelector('img[src*="/api/integrations/memories/"]')!;
+      await user.click(photo.closest('[class*="aspect-square"]') as HTMLElement);
+      await user.click(screen.getByRole('button', { name: /^Add \(1\)/ }));
+
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(providerCalls).toBe(1));
+      expect(createCalls).toBe(1);
+      expect(screen.getByText('New Entry')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(providerCalls).toBe(2));
+      expect(createCalls).toBe(1);
+      expect(updateCalls).toBe(1);
     });
   });
 });

@@ -3,6 +3,7 @@ import { useTranslation } from '../i18n'
 import Navbar from '../components/Layout/Navbar'
 import apiClient from '../api/client'
 import CustomSelect from '../components/shared/CustomSelect'
+import EmptyState from '../components/shared/EmptyState'
 import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search } from 'lucide-react'
 import type { TranslationFn } from '../types'
 import { A2_TO_A3, countryCodeToFlag, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
@@ -11,6 +12,8 @@ import { useAtlas } from './atlas/useAtlas'
 import AtlasCountrySearch from './atlas/AtlasCountrySearch'
 import { useToast } from '../components/shared/Toast'
 import { getApiErrorMessage } from '../types'
+import { useIsPhone } from '../mobile/useIsPhone'
+import MAtlas from '../mobile/screens/atlas/MAtlas'
 
 function MobileStats({ data, stats, countries, resolveName, t, dark }: { data: AtlasData | null; stats: AtlasStats; countries: AtlasCountry[]; resolveName: (code: string) => string; t: TranslationFn; dark: boolean }): React.ReactElement {
   const tp = dark ? '#f1f5f9' : '#0f172a'
@@ -62,6 +65,11 @@ function MobileStats({ data, stats, countries, resolveName, t, dark }: { data: A
 }
 
 export default function AtlasPage(): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <MAtlas /> : <AtlasPageDesktop />
+}
+
+function AtlasPageDesktop(): React.ReactElement {
   // Page = wiring container: the whole interactive globe (map lifecycle, atlas +
   // bucket data, mark/unmark flows, country search) lives in useAtlas. The page
   // only wires that state into JSX and its presentational SidebarContent helper.
@@ -530,11 +538,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
     return (
       <>
         {tabBar}
-        <div className="p-8 text-center">
-          <Globe size={28} className="mx-auto mb-2" style={{ color: tf, opacity: 0.4 }} />
-          <p className="text-sm font-medium" style={{ color: tm }}>{t('atlas.noData')}</p>
-          <p className="text-xs mt-1" style={{ color: tf }}>{t('atlas.noDataHint')}</p>
-        </div>
+        <EmptyState scene="atlas" title={t('atlas.noData')} />
       </>
     )
   }

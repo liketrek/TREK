@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const oauth: TranslationStrings = {
   'oauth.scope.group.trips': 'Geziler',
   'oauth.scope.group.places': 'Yer',
+  'oauth.scope.group.collections': 'Koleksiyonlar',
   'oauth.scope.group.atlas': 'Atlas',
   'oauth.scope.group.packing': 'Ambalaj',
   'oauth.scope.group.todos': 'Yapılacaklar',
@@ -27,6 +28,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:read.description': 'Yerleri, gün atamalarını, etiketleri ve kategorileri oku',
   'oauth.scope.places:write.label': 'Yerleri yönet',
   'oauth.scope.places:write.description': 'Yerleri, atamaları ve etiketleri oluştur, güncelle ve sil',
+  'oauth.scope.collections:read.label': 'Koleksiyonları görüntüle',
+  'oauth.scope.collections:read.description': 'Kayıtlı yer koleksiyonlarını, içindeki yerleri, puanları, etiketleri ve üyeleri okuma',
+  'oauth.scope.collections:write.label': 'Koleksiyonları yönet',
+  'oauth.scope.collections:write.description': 'Koleksiyon oluşturma/düzenleme, yerleri kaydetme, puanlama, etiketleme ve kopyalama, listeleri paylaşma',
   'oauth.scope.atlas:read.label': "Atlas'ı Görüntüle",
   'oauth.scope.atlas:read.description': 'Ziyaret edilen ülkeleri, bölgeleri ve yapılacaklar listesini oku',
   'oauth.scope.atlas:write.label': "Atlas'ı Yönet",

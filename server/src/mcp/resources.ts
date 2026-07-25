@@ -369,7 +369,7 @@ export function registerResources(server: McpServer, userId: number, scopes: str
       { description: 'All vacation entries for the active plan and a specific year', mimeType: 'application/json' },
       async (uri, { year }) => {
         const planId = getActivePlanId(userId);
-        const entries = getVacayEntries(planId, Array.isArray(year) ? year[0] : year);
+        const entries = getVacayEntries(planId, Array.isArray(year) ? year[0] : year, userId);
         return jsonContent(uri.href, entries);
       }
     );

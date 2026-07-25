@@ -488,6 +488,19 @@ describe('sendNtfy', () => {
     expect(Buffer.from(b64, 'base64').toString('utf8')).toBe('Buy →€ ticket');
   });
 
+  it('NTFY-009b — title with Latin-1 umlauts is RFC 2047 encoded, not sent as raw bytes', async () => {
+    const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+    mockFetch.mockResolvedValueOnce({ ok: true, text: async () => '' } as never);
+
+    await sendNtfy(ntfyUrl, null, { ...payload, title: 'Frühstück in Zürich' });
+
+    const [, calledOpts] = mockFetch.mock.calls[0];
+    const encoded = calledOpts.headers['Title'] as string;
+    expect(encoded).toMatch(/^=\?UTF-8\?B\?/);
+    const b64 = encoded.replace(/^=\?UTF-8\?B\?/, '').replace(/\?=$/, '');
+    expect(Buffer.from(b64, 'base64').toString('utf8')).toBe('Frühstück in Zürich');
+  });
+
   it('NTFY-010 — ASCII-only title is passed through verbatim', async () => {
     const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
     mockFetch.mockResolvedValueOnce({ ok: true, text: async () => '' } as never);

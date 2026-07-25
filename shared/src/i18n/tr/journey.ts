@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': "Turn your trips into stories you'll never forget",
   'journey.frontpage.createJourney': 'Journey Oluştur',
   'journey.frontpage.activeJourney': 'Aktif Journey',
+  'journey.frontpage.latestJourney': 'Son Journey',
   'journey.frontpage.allJourneys': "Tüm Journey'ler",
   'journey.frontpage.journeys': 'journey',
   'journey.frontpage.createNew': 'Yeni Journey oluştur',
@@ -227,5 +228,13 @@ const journey: TranslationStrings = {
   'journey.editor.uploadFailed': 'Fotoğraf yüklenemedi',
   'journey.editor.uploadPartialFailed': '{total} fotoğraftan {failed} tanesi başarısız — tekrar denemek için kaydedin',
   'journey.photosUploadFailed': 'Bazı fotoğraflar yüklenemedi',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

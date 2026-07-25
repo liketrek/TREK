@@ -20,6 +20,8 @@ export const SCOPE_GROUPS: Record<string, ScopeKeys> = {
   'trips:share':         { labelKey: 'oauth.scope.trips:share.label',         descriptionKey: 'oauth.scope.trips:share.description',         groupKey: 'oauth.scope.group.trips' },
   'places:read':         { labelKey: 'oauth.scope.places:read.label',         descriptionKey: 'oauth.scope.places:read.description',         groupKey: 'oauth.scope.group.places' },
   'places:write':        { labelKey: 'oauth.scope.places:write.label',        descriptionKey: 'oauth.scope.places:write.description',        groupKey: 'oauth.scope.group.places' },
+  'collections:read':    { labelKey: 'oauth.scope.collections:read.label',    descriptionKey: 'oauth.scope.collections:read.description',    groupKey: 'oauth.scope.group.collections' },
+  'collections:write':   { labelKey: 'oauth.scope.collections:write.label',   descriptionKey: 'oauth.scope.collections:write.description',   groupKey: 'oauth.scope.group.collections' },
   'atlas:read':          { labelKey: 'oauth.scope.atlas:read.label',          descriptionKey: 'oauth.scope.atlas:read.description',          groupKey: 'oauth.scope.group.atlas' },
   'atlas:write':         { labelKey: 'oauth.scope.atlas:write.label',         descriptionKey: 'oauth.scope.atlas:write.description',         groupKey: 'oauth.scope.group.atlas' },
   'packing:read':        { labelKey: 'oauth.scope.packing:read.label',        descriptionKey: 'oauth.scope.packing:read.description',        groupKey: 'oauth.scope.group.packing' },

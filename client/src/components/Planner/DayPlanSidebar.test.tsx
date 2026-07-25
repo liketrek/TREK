@@ -210,6 +210,48 @@ describe('DayPlanSidebar', () => {
     expect(screen.queryByRole('button', { name: 'Open in Google Maps' })).not.toBeInTheDocument()
   })
 
+  // ── #1297: route tools for a hotel-to-hotel transfer day with no stops ───────
+  it('FE-PLANNER-DAYPLAN-005d: route tools show for a two-hotel transfer day with no places (#1297)', () => {
+    const dayA = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const dayTransfer = buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' })
+    const dayB = buildDay({ id: 12, date: '2025-06-03', title: 'Day 3' })
+    // Check out of hotel A (slept there) and into hotel B on the same day — two distinct
+    // located hotels, zero places. The map draws A → B, so the tools must be reachable.
+    const accommodations = [
+      { id: 1, start_day_id: 10, end_day_id: 11, place_lat: 48.85, place_lng: 2.35 },
+      { id: 2, start_day_id: 11, end_day_id: 12, place_lat: 51.50, place_lng: -0.12 },
+    ]
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [dayA, dayTransfer, dayB], accommodations: accommodations as any, selectedDayId: 11,
+    })} />)
+    expect(screen.getByRole('button', { name: 'Open in Google Maps' })).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-005e: no route tools on a same-hotel rest day with no places (#1297 guard)', () => {
+    const dayA = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const dayRest = buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' })
+    const dayC = buildDay({ id: 12, date: '2025-06-03', title: 'Day 3' })
+    // One hotel spanning all three days: the middle day has morning === evening, so there is
+    // no transfer leg to draw and the tools stay hidden.
+    const accommodations = [{ id: 1, start_day_id: 10, end_day_id: 12, place_lat: 48.85, place_lng: 2.35 }]
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [dayA, dayRest, dayC], accommodations: accommodations as any, selectedDayId: 11,
+    })} />)
+    expect(screen.queryByRole('button', { name: 'Open in Google Maps' })).not.toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-005f: no route tools on a plain arrival day with no places (#1297 guard)', () => {
+    const dayArrive = buildDay({ id: 11, date: '2025-06-02', title: 'Day 1' })
+    const dayNext = buildDay({ id: 12, date: '2025-06-03', title: 'Day 2' })
+    // Only a check-in today (no hotel slept in last night, no places): morning === evening,
+    // so there is no hotel → hotel leg and the tools stay hidden.
+    const accommodations = [{ id: 2, start_day_id: 11, end_day_id: 12, place_lat: 51.50, place_lng: -0.12 }]
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [dayArrive, dayNext], accommodations: accommodations as any, selectedDayId: 11,
+    })} />)
+    expect(screen.queryByRole('button', { name: 'Open in Google Maps' })).not.toBeInTheDocument()
+  })
+
   // ── Day expansion/collapse ──────────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-006: days are expanded by default', () => {

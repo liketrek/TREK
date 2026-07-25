@@ -15,6 +15,8 @@ const notif: TranslationStrings = {
   'notif.todo_due.text': '{trip} 中的 {todo} 將於 {due} 到期',
   'notif.vacay_invite.title': 'Vacay Fusion 邀請',
   'notif.vacay_invite.text': '{actor} 邀請你合併假期計畫',
+  'notif.vacay_share.title': 'Vacay 日曆已共享',
+  'notif.vacay_share.text': '{actor} 與你共享了假期日曆',
   'notif.collection_invite.title': '收藏邀請',
   'notif.collection_invite.text': '{actor} 邀請您加入收藏',
   'notif.photos_shared.title': '照片已分享',

@@ -1,10 +1,11 @@
 import React from 'react'
-import { Trash2, Reply, ChevronUp, MessageCircle } from 'lucide-react'
+import { Trash2, Reply, ChevronUp } from 'lucide-react'
 import { URL_REGEX } from './CollabChat.constants'
 import { formatTime, formatDateSeparator, shouldShowDateSeparator } from './CollabChat.helpers'
 import { MessageText } from './CollabChatMessageText'
 import { LinkPreview } from './CollabChatLinkPreview'
 import { ReactionBadge } from './CollabChatReactionBadge'
+import EmptyState from '../shared/EmptyState'
 
 export function ChatMessages(props: any) {
   const { currentUser, tripId, t, is12h, can, trip, canEdit, messages, setMessages, loading, setLoading, hasMore, setHasMore, loadingMore, setLoadingMore, text, setText, replyTo, setReplyTo, hoveredId, setHoveredId, sending, setSending, showEmoji, setShowEmoji, reactMenu, setReactMenu, deletingIds, setDeletingIds, deleteTimersRef, containerRef, messagesRef, scrollRef, textareaRef, emojiBtnRef, isAtBottom, scrollToBottom, checkAtBottom, handleLoadMore, handleTextChange, handleSend, handleKeyDown, handleDelete, handleReact, handleEmojiSelect, isOwn, isEmojiOnly } = props
@@ -12,11 +13,7 @@ export function ChatMessages(props: any) {
     <>
       {/* Messages */}
       {messages.length === 0 ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-faint)', padding: 32, textAlign: 'center' }}>
-          <MessageCircle size={40} strokeWidth={1.2} style={{ opacity: 0.4 }} />
-          <span style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('collab.chat.empty')}</span>
-          <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', opacity: 0.6, fontFamily: 'var(--font-subtext)' }}>{t('collab.chat.emptyDesc') || ''}</span>
-        </div>
+        <EmptyState scene="chat" title={t('collab.chat.empty')} />
       ) : (
         <div ref={scrollRef} onScroll={checkAtBottom} className="chat-scroll" style={{
           flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 14px 4px', WebkitOverflowScrolling: 'touch',

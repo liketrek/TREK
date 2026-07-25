@@ -26,8 +26,8 @@ export class VacayService {
     return svc.updatePlan(planId, body, socketId);
   }
 
-  addHolidayCalendar(planId: number, region: string, label: string | null, color: string | undefined, sortOrder: number | undefined, socketId: string | undefined) {
-    return svc.addHolidayCalendar(planId, region, label, color, sortOrder, socketId);
+  addHolidayCalendar(planId: number, region: string, label: string | null, color: string | undefined, sortOrder: number | undefined, socketId: string | undefined, type?: 'public_holiday' | 'school_holiday') {
+    return svc.addHolidayCalendar(planId, region, label, color, sortOrder, socketId, type);
   }
 
   updateHolidayCalendar(id: number, planId: number, body: Parameters<typeof svc.updateHolidayCalendar>[2], socketId: string | undefined) {
@@ -82,12 +82,20 @@ export class VacayService {
     return svc.deleteYear(planId, year, socketId);
   }
 
-  getEntries(planId: number, year: string) {
-    return svc.getEntries(planId, year);
+  getEntries(planId: number, year: string, viewerId?: number) {
+    return svc.getEntries(planId, year, viewerId);
   }
 
-  toggleEntry(userId: number, planId: number, date: string, socketId: string | undefined) {
-    return svc.toggleEntry(userId, planId, date, socketId);
+  getYearSettings(userId: number) {
+    return svc.getYearSettings(userId);
+  }
+
+  updateYearSettings(userId: number, data: Parameters<typeof svc.updateUserYearSettings>[1]) {
+    return svc.updateUserYearSettings(userId, data);
+  }
+
+  toggleEntry(userId: number, planId: number, date: string, fraction: unknown, kind: unknown, socketId: string | undefined) {
+    return svc.toggleEntry(userId, planId, date, fraction, kind, socketId);
   }
 
   toggleCompanyHoliday(planId: number, date: string, note: string | undefined, socketId: string | undefined) {
@@ -106,7 +114,39 @@ export class VacayService {
     return svc.getCountries();
   }
 
+  getSchoolHolidayRegions(country: string, language?: string) {
+    return svc.getSchoolHolidayRegions(country, language);
+  }
+
   getHolidays(year: string, country: string) {
     return svc.getHolidays(year, country);
+  }
+
+  listShares(userId: number) {
+    return svc.listShares(userId);
+  }
+
+  shareCalendar(ownerId: number, ownerEmail: string, targetUserId: number, socketId?: string) {
+    return svc.shareCalendar(ownerId, ownerEmail, targetUserId, socketId);
+  }
+
+  removeShare(shareId: number, userId: number, socketId: string | undefined): boolean {
+    return svc.removeShare(shareId, userId, socketId);
+  }
+
+  setShareHidden(shareId: number, userId: number, hidden: boolean, socketId: string | undefined): boolean {
+    return svc.setShareHidden(shareId, userId, hidden, socketId);
+  }
+
+  getShareAvailableUsers(userId: number) {
+    return svc.getShareAvailableUsers(userId);
+  }
+
+  getSharedCalendars(viewerId: number, year: string) {
+    return svc.getSharedCalendars(viewerId, year);
+  }
+
+  getSchoolHolidays(year: string, country: string, subdivision?: string | null, language?: string, group?: string | null) {
+    return svc.getSchoolHolidays(year, country, subdivision, language, group);
   }
 }

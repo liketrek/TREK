@@ -26,6 +26,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': '計算中...',
   'dayplan.route': 'ルート',
   'dayplan.optimize': '最適化',
+  'dayplan.transportMode.change': '移動手段を変更',
+  'dayplan.transportMode.useDefault': '1日のデフォルトを使用',
   'dayplan.optimized': 'ルートを最適化しました',
   'dayplan.routeError': 'ルートの計算に失敗しました',
   'dayplan.toast.needTwoPlaces': 'ルート最適化には2つ以上の場所が必要です',
