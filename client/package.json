@@ -86,7 +86,7 @@
     "prettier": "^3.8.3",
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "sharp": "^0.33.0",
+    "sharp": "^0.35.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.2",
