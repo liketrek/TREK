@@ -1,10 +1,10 @@
 import ReactDOM from 'react-dom'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { addListener, removeListener } from '../../api/websocket'
-import { reservationsApi } from '../../api/client'
+import { reservationsApi, healthApi } from '../../api/client'
 import { useBackgroundTasksStore, type BackgroundImportTask } from '../../store/backgroundTasksStore'
 
 /**
@@ -23,6 +23,25 @@ export default function BackgroundTasksWidget() {
   const setError = useBackgroundTasksStore((s) => s.setError)
   const requestReview = useBackgroundTasksStore((s) => s.requestReview)
   const dismiss = useBackgroundTasksStore((s) => s.dismiss)
+  const addTask = useBackgroundTasksStore((s) => s.addTask)
+
+  const [aiParsing, setAiParsing] = useState(false)
+  useEffect(() => {
+    healthApi.features().then((f) => setAiParsing(!!f.aiParsing)).catch(() => setAiParsing(false))
+  }, [])
+
+  // Re-runs the same files with force-ai: the LLM sees every file, kitinerary is skipped.
+  const retryWithAi = (task: BackgroundImportTask) => {
+    if (!task.sourceFiles || task.sourceFiles.length === 0) return
+    reservationsApi
+      .importBookingAsync(task.tripId, task.sourceFiles, 'force-ai')
+      .then(({ jobId }) => {
+        dismiss(task.id)
+        addTask({ id: jobId, tripId: task.tripId, label: task.label, total: task.sourceFiles!.length, files: task.sourceFiles, mode: 'force-ai' })
+      })
+      // 409 when the addon is enabled but this user has no model configured.
+      .catch((err) => setError(task.id, task.tripId, err?.response?.data?.error ?? t('reservations.import.error')))
+  }
 
   // On (re)load, reconcile tasks restored from localStorage with the server: a parse
   // that was still running when the page reloaded must keep its widget, so re-fetch each
@@ -136,12 +155,23 @@ export default function BackgroundTasksWidget() {
                   {t('common.import')}
                 </button>
               ) : (
-                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>
-                  {t('reservations.import.previewEmpty')}
-                  {(task.warnings?.length ?? 0) > 0 && (
-                    <div style={{ color: '#b45309', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 96, overflowY: 'auto' }}>
-                      {task.warnings!.join('\n')}
-                    </div>
+                <div>
+                  <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>
+                    {t('reservations.import.previewEmpty')}
+                    {(task.warnings?.length ?? 0) > 0 && (
+                      <div style={{ color: '#b45309', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 96, overflowY: 'auto' }}>
+                        {task.warnings!.join('\n')}
+                      </div>
+                    )}
+                  </div>
+                  {aiParsing && task.mode !== 'force-ai' && task.sourceFiles && task.sourceFiles.length > 0 && (
+                    <button
+                      onClick={() => retryWithAi(task)}
+                      className="bg-surface-tertiary text-content"
+                      style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      {t('reservations.import.tryAi')}
+                    </button>
                   )}
                 </div>
               )

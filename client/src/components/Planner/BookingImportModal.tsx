@@ -100,7 +100,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
       // Keep the uploaded files so the review can attach each source document to its booking —
       // in memory for the immediate path, and in IndexedDB so it survives a reload mid-parse.
       await saveImportFiles(jobId, files)
-      addTask({ id: jobId, tripId: String(tripId), label: files.map((f) => f.name).join(', '), total: files.length, files })
+      addTask({ id: jobId, tripId: String(tripId), label: files.map((f) => f.name).join(', '), total: files.length, files, mode })
       handleClose()
     } catch (err: any) {
       setError(err?.response?.data?.error ?? t('reservations.import.error'))
