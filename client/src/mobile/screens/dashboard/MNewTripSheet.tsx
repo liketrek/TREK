@@ -7,6 +7,8 @@ import { useToast } from '../../../components/shared/Toast'
 import { normalizeImageFile } from '../../../utils/convertHeic'
 import { getApiErrorMessage } from '../../../types'
 import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
+import CustomSelect from '../../../components/shared/CustomSelect'
+import { currenciesWith, SYMBOLS } from '../../../components/Budget/BudgetPanel.constants'
 import type { DashboardTrip } from '../../../pages/dashboard/dashboardModel'
 import type { Trip, TripCreateRequest } from '@trek/shared'
 import MSheet from '../../components/MSheet'
@@ -57,6 +59,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
   const [description, setDescription] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [currency, setCurrency] = useState('EUR')
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
@@ -74,6 +77,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
     setDescription(trip?.description || '')
     setStartDate(trip?.start_date || '')
     setEndDate(trip?.end_date || '')
+    setCurrency(trip?.currency || 'EUR')
     setCoverPreview(trip?.cover_image || null)
     setPendingCoverFile(null)
     setPendingUnsplashUrl(null)
@@ -109,6 +113,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
         description: description.trim() || null,
         start_date: startDate || null,
         end_date: endDate || null,
+        currency,
         ...(!startDate && !endDate && !isEditing ? { day_count: 7 } : {}),
       })
       const created = result ? result.trip : undefined
@@ -289,6 +294,19 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
         {!isEditing && !startDate && !endDate && (
           <div className="mt-[6px] px-1 font-geist text-[0.625rem] text-m-faint">{t('dashboard.noDateHint')}</div>
         )}
+
+        <div className="mt-2">
+          <FieldLabel>{t('dashboard.currency')}</FieldLabel>
+          <CustomSelect
+            value={currency}
+            onChange={v => { if (canEditTrip) setCurrency(String(v)) }}
+            disabled={!canEditTrip}
+            searchable
+            size="sm"
+            options={currenciesWith(currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
+            style={{ width: '100%', marginTop: 5 }}
+          />
+        </div>
 
         {canUploadCover && (
           <div className="mt-2">
