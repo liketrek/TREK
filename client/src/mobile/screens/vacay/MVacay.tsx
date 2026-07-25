@@ -11,6 +11,9 @@ import MVacaySettingsSheet from './MVacaySettingsSheet'
 import MVacayShareSheet from './MVacayShareSheet'
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
 
+/** Half days (#552) make the balance fractional; one decimal is exact and never drifts. */
+const fmtDays = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+
 const WEEKDAY_KEYS_MONDAY = ['vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat', 'vacay.sun'] as const
 const WEEKDAY_KEYS_SUNDAY = ['vacay.sun', 'vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat'] as const
 
@@ -78,23 +81,16 @@ export default function MVacay() {
             <div className="min-w-0 flex-1">
               <div className="text-[0.875rem] font-extrabold">{v.selectedUser.username}</div>
               <MProgress value={pct} color={v.selectedColor} className="mt-[6px]" />
-              <div className="mt-[5px] flex items-center justify-between">
-                <span className="font-geist text-[0.5625rem] font-bold text-m-muted">
-                  {t('mobileVacay.usedCount', { count: stat.used })}
-                </span>
-                {stat.carried_over > 0 && (
-                  <span className="font-geist text-[0.5625rem] font-bold text-[color:var(--m-st-pending)]">
-                    +{stat.carried_over} {v.isShiftedYear ? t('vacay.carriedOverPrevPeriod') : t('vacay.carriedOver', { year: v.selectedYear - 1 })}
-                  </span>
-                )}
-                {/* Comp / flex days (#1074) sit outside used/left — they cost nothing. */}
-                {(stat.comp_used ?? 0) > 0 && (
-                  <span className="font-geist text-[0.5625rem] font-bold text-m-muted">
-                    {t('vacay.compUsedCount', { count: stat.comp_used })}
-                  </span>
-                )}
-                <span className="font-geist text-[0.5625rem] font-extrabold" style={{ color: leftColor }}>
-                  {t('mobileVacay.leftCount', { count: stat.remaining })}
+              {/* Used, carried over and comp days all fit on a desktop sidebar; on a
+                  phone they turn into four scraps of 9px text. Only the number you
+                  act on stays — the rest is a tap away in the entitlement view. */}
+              <div className="mt-[6px] flex items-center">
+                <span
+                  className="inline-flex items-center gap-[3px] rounded-full px-[8px] py-[2px] font-geist text-[0.625rem] font-bold"
+                  style={{ background: `${leftColor}1f`, border: `1px solid ${leftColor}47`, color: leftColor }}
+                >
+                  <span className="font-extrabold tabular-nums">{fmtDays(stat.remaining)}</span>
+                  {t('mobileVacay.left')}
                 </span>
               </div>
             </div>
@@ -110,7 +106,7 @@ export default function MVacay() {
               <div className="min-w-[40px] text-center">
                 <div className="text-[1.1875rem] font-extrabold leading-none tabular-nums">{stat.vacation_days}</div>
                 <div className="font-geist text-[0.5rem] font-bold uppercase tracking-[.06em] text-m-faint">
-                  {t('mobileVacay.daysPerYear')}
+                  {t('vacay.entitlementDays')}
                 </div>
               </div>
               <button
@@ -266,7 +262,7 @@ export default function MVacay() {
                 }`}
               >
                 <Building2 size={13} strokeWidth={2.2} />
-                {t('vacay.modeCompany')}
+                {t('mobileVacay.modeCompany')}
               </button>
             )}
             {/* Divider — comp/flex and half-day modify the selected person's logging, they aren't modes. */}
