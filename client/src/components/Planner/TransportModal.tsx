@@ -246,9 +246,13 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             const isLast = i === orderedEps.length - 1
             return {
               airport: airportFromEndpoint(ep),
-              arrDayId: legInto?.arr_day_id ?? (isLast ? (src.end_day_id ?? '') : ''),
+              // An import prefill gives each endpoint its own local_date but no day_id, so
+              // resolve the day from that date (mirrors the top-level start_day_id fallback)
+              // — otherwise the review's per-leg day selectors render empty even though the
+              // time, read from the same endpoint, is filled.
+              arrDayId: legInto?.arr_day_id ?? (resolveDayId(days, ep.local_date) || (isLast ? (src.end_day_id ?? '') : '')),
               arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
-              depDayId: legOut?.dep_day_id ?? (isFirst ? (src.day_id ?? '') : ''),
+              depDayId: legOut?.dep_day_id ?? (resolveDayId(days, ep.local_date) || (isFirst ? (src.day_id ?? '') : '')),
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               airline: legOut?.airline ?? (isFirst ? (meta.airline ?? '') : ''),
               flight_number: legOut?.flight_number ?? (isFirst ? (meta.flight_number ?? '') : ''),
@@ -257,13 +261,13 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           })
         } else {
           // Legacy flight with no (or partial) endpoints — seed two waypoints.
-          const dep = emptyWaypoint(src.day_id ?? '')
+          const dep = emptyWaypoint(resolveDayId(days, from?.local_date) || (src.day_id ?? ''))
           dep.airport = airportFromEndpoint(from)
           dep.depTime = splitReservationDateTime(src.reservation_time).time ?? ''
           dep.airline = meta.airline ?? ''
           dep.flight_number = meta.flight_number ?? ''
           dep.seat = meta.seat ?? ''
-          const arr = emptyWaypoint(src.end_day_id ?? src.day_id ?? '')
+          const arr = emptyWaypoint(resolveDayId(days, to?.local_date) || (src.end_day_id ?? src.day_id ?? ''))
           arr.airport = airportFromEndpoint(to)
           arr.arrTime = splitReservationDateTime(src.reservation_end_time).time ?? ''
           wps = [dep, arr]
@@ -285,9 +289,11 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             const isLast = i === orderedEps.length - 1
             return {
               location: locationFromEndpoint(ep),
-              arrDayId: legInto?.arr_day_id ?? (isLast ? (src.end_day_id ?? '') : ''),
+              // See the flight branch: resolve each station's day from its endpoint local_date
+              // so an import prefill doesn't leave the per-leg day selectors empty.
+              arrDayId: legInto?.arr_day_id ?? (resolveDayId(days, ep.local_date) || (isLast ? (src.end_day_id ?? '') : '')),
               arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
-              depDayId: legOut?.dep_day_id ?? (isFirst ? (src.day_id ?? '') : ''),
+              depDayId: legOut?.dep_day_id ?? (resolveDayId(days, ep.local_date) || (isFirst ? (src.day_id ?? '') : '')),
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               train_number: legOut?.train_number ?? (isFirst ? (meta.train_number ?? '') : ''),
               platform: legOut?.platform ?? (isFirst ? (meta.platform ?? '') : ''),
@@ -295,13 +301,13 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             }
           })
         } else {
-          const dep = emptyStationWaypoint(src.day_id ?? '')
+          const dep = emptyStationWaypoint(resolveDayId(days, from?.local_date) || (src.day_id ?? ''))
           dep.location = locationFromEndpoint(from)
           dep.depTime = splitReservationDateTime(src.reservation_time).time ?? ''
           dep.train_number = meta.train_number ?? ''
           dep.platform = meta.platform ?? ''
           dep.seat = meta.seat ?? ''
-          const arr = emptyStationWaypoint(src.end_day_id ?? src.day_id ?? '')
+          const arr = emptyStationWaypoint(resolveDayId(days, to?.local_date) || (src.end_day_id ?? src.day_id ?? ''))
           arr.location = locationFromEndpoint(to)
           arr.arrTime = splitReservationDateTime(src.reservation_end_time).time ?? ''
           wps = [dep, arr]
