@@ -5,6 +5,7 @@ import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { addListener, removeListener } from '../../api/websocket'
 import { reservationsApi, healthApi } from '../../api/client'
+import { saveImportFiles } from '../../db/offlineDb'
 import { useBackgroundTasksStore, type BackgroundImportTask } from '../../store/backgroundTasksStore'
 
 /**
@@ -31,16 +32,25 @@ export default function BackgroundTasksWidget() {
   }, [])
 
   // Re-runs the same files with force-ai: the LLM sees every file, kitinerary is skipped.
-  const retryWithAi = (task: BackgroundImportTask) => {
-    if (!task.sourceFiles || task.sourceFiles.length === 0) return
-    reservationsApi
-      .importBookingAsync(task.tripId, task.sourceFiles, 'force-ai')
-      .then(({ jobId }) => {
-        dismiss(task.id)
-        addTask({ id: jobId, tripId: task.tripId, label: task.label, total: task.sourceFiles!.length, files: task.sourceFiles, mode: 'force-ai' })
-      })
+  const [retrying, setRetrying] = useState<string | null>(null)
+  const retryWithAi = async (task: BackgroundImportTask) => {
+    const files = task.sourceFiles
+    if (!files || files.length === 0 || retrying === task.id) return
+    setRetrying(task.id)
+    try {
+      const { jobId } = await reservationsApi.importBookingAsync(task.tripId, files, 'force-ai')
+      // Same as the modal's first submit: the review attaches each source document to the
+      // booking it created, and only IndexedDB survives a reload mid-parse.
+      await saveImportFiles(jobId, files)
+      dismiss(task.id)
+      addTask({ id: jobId, tripId: task.tripId, label: task.label, total: files.length, files, mode: 'force-ai' })
+    } catch (err) {
       // 409 when the addon is enabled but this user has no model configured.
-      .catch((err) => setError(task.id, task.tripId, err?.response?.data?.error ?? t('reservations.import.error')))
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setError(task.id, task.tripId, message ?? t('reservations.import.error'))
+    } finally {
+      setRetrying(null)
+    }
   }
 
   // On (re)load, reconcile tasks restored from localStorage with the server: a parse
@@ -167,8 +177,9 @@ export default function BackgroundTasksWidget() {
                   {aiParsing && task.mode !== 'force-ai' && task.sourceFiles && task.sourceFiles.length > 0 && (
                     <button
                       onClick={() => retryWithAi(task)}
+                      disabled={retrying === task.id}
                       className="bg-surface-tertiary text-content"
-                      style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                      style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: retrying === task.id ? 'default' : 'pointer', opacity: retrying === task.id ? 0.6 : 1, fontFamily: 'inherit' }}
                     >
                       {t('reservations.import.tryAi')}
                     </button>
