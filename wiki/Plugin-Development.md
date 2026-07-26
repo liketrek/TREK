@@ -501,14 +501,25 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 | `trek:confirm` | `{ requestId, title?, message?, confirmLabel?, cancelLabel?, danger? }` | host-rendered ConfirmDialog; answered as `trek:confirm:result` |
 | `trek:openExternal` | `{ url }` | open an `http(s)` URL in a new `noopener` tab; anything else is dropped |
 | `trek:geolocation` | `{ requestId, action?: 'get'\|'watch'\|'clear' }` | host-brokered browser position (needs `geolocation:read`); answered as `trek:geolocation:result`, watch updates stream as `trek:geolocation:update` |
+| `trek:session:get` | `{ requestId, key, scope?: 'plugin'\|'trip' }` | read tab-scoped state; answered as `trek:response` with `data` (`undefined` when unset) |
+| `trek:session:set` | `{ requestId, key, value, scope? }` | store a JSON-serialisable value; answered as `trek:response` |
+| `trek:session:remove` | `{ requestId, key, scope? }` | drop one key; answered as `trek:response` |
+| `trek:session:clear` | `{ requestId, scope? }` | drop every key in that scope; answered as `trek:response` |
+
+The session messages are rejected as `trek:error` with `code` set to `NO_TRIP_CONTEXT`
+(trip scope outside a trip), `SESSION_INVALID_KEY` (empty or over 64 characters),
+`SESSION_INVALID_VALUE` (not JSON-serialisable), `SESSION_VALUE_TOO_LARGE` (over 1 KiB
+serialised), `SESSION_KEY_LIMIT` (over 32 keys in that scope) or `SESSION_STORAGE_ERROR`
+(the browser refused the write). The storage key itself is host-owned and includes the
+signed-in user and your plugin id, so scopes never collide.
 
 **Messages TREK sends you:**
 
 | Message | Payload |
 |---|---|
 | `trek:context` | `{ tripId, placeId, dayId, reservationId, userId, theme, locale, dir, hostOrigin, user, formats, tokens, appearance }` (see below) — re-sent whenever the theme, appearance, **locale or formats** change |
-| `trek:response` | `{ requestId, data }` — a successful `trek:invoke` |
-| `trek:error` | `{ requestId, code, message }` — a failed `trek:invoke` (`code` is the HTTP status or `"error"`) |
+| `trek:response` | `{ requestId, data }` — a successful `trek:invoke` or `trek:session:*` |
+| `trek:error` | `{ requestId, code, message }` — a failed request; for `trek:invoke` `code` is the HTTP status or `"error"`, for `trek:session:*` one of the `SESSION_*` / `NO_TRIP_CONTEXT` codes above |
 | `trek:confirm:result` | `{ requestId, confirmed }` — the user's answer to your `trek:confirm` |
 | `trek:event` | `{ event, tripId }` — a core event fired on the trip in view; **names only, never payloads** — refetch what you need via `trek:invoke` |
 | `trek:geolocation:result` | `{ requestId, position? \| watching? \| cleared? \| error? }` — the answer to a `trek:geolocation` request (`error` ∈ `forbidden`/`denied`/`timeout`/`unavailable`/`unsupported`) |

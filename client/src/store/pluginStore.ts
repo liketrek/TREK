@@ -24,6 +24,20 @@ function clearInactivePluginSessions(activePluginIds: Set<string>) {
 }
 
 /**
+ * Drops every plugin's session state, whatever user or trip it belonged to.
+ * Logout calls this so the next user on a shared browser starts clean — the
+ * same reason the appearance snapshot and the user-scoped offline DB go.
+ */
+export function clearAllPluginSessions() {
+  const keysToRemove: string[] = []
+  for (let i = 0; i < sessionStorage.length; i += 1) {
+    const storageKey = sessionStorage.key(i)
+    if (storageKey?.startsWith(PLUGIN_SESSION_NAMESPACE)) keysToRemove.push(storageKey)
+  }
+  keysToRemove.forEach((storageKey) => sessionStorage.removeItem(storageKey))
+}
+
+/**
  * Active plugins the client renders (#plugins, M3). Page plugins become nav
  * entries + a full-page iframe route; widget plugins mount on the dashboard.
  * Cloned from addonStore — plugins have their own feed and lifecycle, so they
@@ -70,8 +84,12 @@ export const usePluginStore = create<PluginState>((set, get) => ({
     try {
       const data = await pluginsApi.active()
       const plugins = (data.plugins as ActivePlugin[]) || []
-      clearInactivePluginSessions(new Set(plugins.map((plugin) => plugin.id)))
       set({ plugins, loaded: true })
+      // After the state is committed: a sessionStorage failure (Safari private
+      // mode, quota) must not cost us the plugin list we just fetched.
+      try {
+        clearInactivePluginSessions(new Set(plugins.map((plugin) => plugin.id)))
+      } catch { /* leaving stale plugin state behind beats losing the nav entries */ }
     } catch {
       set({ loaded: true })
     }

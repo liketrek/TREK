@@ -415,6 +415,9 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
           break
         }
         case 'trek:session:clear': {
+          // Same guard the other request/response handlers apply: without an id
+          // the frame could never match our answer to its call.
+          if (typeof msg.requestId !== 'string' || !msg.requestId) break
           const scope = msg.scope === 'trip' ? 'trip' : 'plugin'
 
           // tripId required if we are on a trip-scoped key.
@@ -436,6 +439,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
         case 'trek:session:get':
         case 'trek:session:set':
         case 'trek:session:remove': {
+          if (typeof msg.requestId !== 'string' || !msg.requestId) break
           const scope = msg.scope === 'trip' ? 'trip' : 'plugin'
           if (scope === 'trip' && tripId == null) {
             post({ type: 'trek:error', requestId: msg.requestId, code: 'NO_TRIP_CONTEXT', message: 'trip session storage requires a trip context' })
@@ -551,7 +555,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       // The frame is going away (or re-bridging) — never leave a live GPS watch behind.
       if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
     }
-  }, [pluginId, tripId, fill, navigate, postFrame, buildContext])
+  }, [pluginId, tripId, fill, navigate, postFrame, buildContext, userId])
 
   // Hosts swap pluginId in place (tab bar, /plugins/:id route) — the iframe below
   // is keyed so the document is a fresh first load, and the per-plugin bridge

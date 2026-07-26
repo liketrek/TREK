@@ -242,17 +242,28 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   const emitted: MockHost['emitted'] = [];
   const notifications: MockHost['notifications'] = [];
   const sessionValues = new Map<string, string>();
+  // The real bridge rejects with a plain Error carrying the code on `.code`
+  // (ui/kit.ts). Keep the `CODE: message` text the rest of this mock uses, but
+  // attach `.code` too, so a plugin that branches on it behaves the same here.
+  const sessionError = (code: string, message: string) => {
+    const err = new Error(`${code}: ${message}`) as Error & { code: string };
+    err.code = code;
+    return err;
+  };
   const sessionPrefix = (scope: 'plugin' | 'trip') => {
     if (scope === 'trip' && opts.sessionTripId === undefined) {
-      throw new Error('NO_TRIP_CONTEXT: trip session storage requires a trip context');
+      throw sessionError('NO_TRIP_CONTEXT', 'trip session storage requires a trip context');
     }
     return scope === 'trip' ? `trip:${opts.sessionTripId}:` : 'plugin:';
   };
   const sessionKey = (key: string, scope: 'plugin' | 'trip') => {
+    // Scope before key, in the host's order — otherwise the same bad call
+    // reports a different code here than it does in the app.
+    const prefix = sessionPrefix(scope);
     if (!key || key.length > PLUGIN_SESSION_MAX_KEY_LENGTH) {
-      throw new Error(`SESSION_INVALID_KEY: session key must be 1-${PLUGIN_SESSION_MAX_KEY_LENGTH} characters`);
+      throw sessionError('SESSION_INVALID_KEY', `session key must be 1-${PLUGIN_SESSION_MAX_KEY_LENGTH} characters`);
     }
-    return `${sessionPrefix(scope)}${key}`;
+    return `${prefix}${key}`;
   };
   const session: PluginSessionStorage = {
     async get(key, options) {
@@ -262,15 +273,15 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     async set(key, value, options) {
       const fullKey = sessionKey(key, options?.scope === 'trip' ? 'trip' : 'plugin');
       const serialized = JSON.stringify(value);
-      if (serialized === undefined) throw new Error('SESSION_INVALID_VALUE: session value must be JSON-serialisable');
+      if (serialized === undefined) throw sessionError('SESSION_INVALID_VALUE', 'session value must be JSON-serialisable');
       const valueBytes = Buffer.byteLength(serialized, 'utf8');
       if (valueBytes > PLUGIN_SESSION_MAX_VALUE_BYTES) {
-        throw new Error(`SESSION_VALUE_TOO_LARGE: session value exceeds ${PLUGIN_SESSION_MAX_VALUE_BYTES} bytes`);
+        throw sessionError('SESSION_VALUE_TOO_LARGE', `session value exceeds ${PLUGIN_SESSION_MAX_VALUE_BYTES} bytes`);
       }
       const prefix = sessionPrefix(options?.scope === 'trip' ? 'trip' : 'plugin');
       const scopedKeyCount = [...sessionValues.keys()].filter((storedKey) => storedKey.startsWith(prefix)).length;
       if (!sessionValues.has(fullKey) && scopedKeyCount >= PLUGIN_SESSION_MAX_KEYS) {
-        throw new Error(`SESSION_KEY_LIMIT: plugin session storage allows at most ${PLUGIN_SESSION_MAX_KEYS} keys`);
+        throw sessionError('SESSION_KEY_LIMIT', `plugin session storage allows at most ${PLUGIN_SESSION_MAX_KEYS} keys`);
       }
       sessionValues.set(fullKey, serialized);
     },
