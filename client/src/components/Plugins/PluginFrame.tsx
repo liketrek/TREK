@@ -148,11 +148,38 @@ interface ConfirmRequest {
   danger: boolean
 }
 
+const PLUGIN_SESSION_NAMESPACE = 'trek:plugin-session:'
+const PLUGIN_SESSION_MAX_KEY_LENGTH = 64
+const PLUGIN_SESSION_MAX_KEYS = 32
+const PLUGIN_SESSION_MAX_VALUE_BYTES = 1024
+
+/**
+ * Returns all host-owned storage keys in one plugin scope (plugin-wide or a
+ * specific trip), excluding TREK state and every other plugin/scope.
+ */
+function getScopedSessionKeys(scopeKeyPrefix: string) {
+  const keys: string[] = []
+  for (let i = 0; i < sessionStorage.length; i += 1) {
+    const key = sessionStorage.key(i)
+    if (key?.startsWith(scopeKeyPrefix)) keys.push(key)
+  }
+  return keys
+}
+
 /**
  * Creates the prefix and full key for host-owned plugin session storage.
  *
+ *   Storage Keys:
  *   trek:plugin-session:{userId}:{pluginId}:plugin:{key}
  *   trek:plugin-session:{userId}:{pluginId}:trip:{tripId}:{key}
+ *
+ *   Scope Prefix:
+ *   trek:plugin-session:{userId}:{pluginId}:plugin
+ *   trek:plugin-session:{userId}:{pluginId}:trip:{tripId}
+ *
+ *   Plugin Prefix:
+ *   trek:plugin-session:{userId}:{pluginId}
+ *
  *
  * Each dynamic segment is URI-encoded, so plugin-controlled values cannot alter
  * the key format. For clear, omit logicalKey; the returned full key is then
@@ -165,17 +192,17 @@ function createPluginSessionStorageKeys(
   tripId: string | null,
   logicalKey?: string,
 ) {
-  const namespace = 'trek:plugin-session:'
-  const encodedUserId = encodeURIComponent(String(userId))
-  const encodedPluginId = encodeURIComponent(pluginId)
-  const encodedTripId = scope === 'trip' ? encodeURIComponent(tripId!) : null
-  const encodedLogicalKey = logicalKey === undefined ? undefined : encodeURIComponent(logicalKey)
+  const pluginKeyPrefix = `${PLUGIN_SESSION_NAMESPACE}${encodeURIComponent(String(userId))}:${encodeURIComponent(pluginId)}:`
 
-  const storageScopeSegment = encodedTripId === null ? scope : `${scope}:${encodedTripId}`
-  const storageKeyPrefix = `${namespace}${encodedUserId}:${encodedPluginId}:${storageScopeSegment}:`
-  const storageKey = encodedLogicalKey === undefined ? storageKeyPrefix : `${storageKeyPrefix}${encodedLogicalKey}`
+  // Scope is either :plugin: or :trip:${tripId}:
+  const scopeSegment = scope === 'trip' ? `trip:${encodeURIComponent(tripId!)}` : 'plugin'
+  const scopeKeyPrefix = `${pluginKeyPrefix}${scopeSegment}:`
+
+  const encodedLogicalKey = logicalKey === undefined ? undefined : encodeURIComponent(logicalKey)
+  const storageKey = encodedLogicalKey === undefined ? scopeKeyPrefix : `${scopeKeyPrefix}${encodedLogicalKey}`
   return {
-    storageKeyPrefix,
+    pluginKeyPrefix,
+    scopeKeyPrefix,
     storageKey,
   }
 }
@@ -396,14 +423,9 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
             break
           }
 
-          const { storageKeyPrefix } = createPluginSessionStorageKeys(userId, pluginId, scope, tripId)
+          const { scopeKeyPrefix } = createPluginSessionStorageKeys(userId, pluginId, scope, tripId)
           try {
-            const keysToRemove: string[] = []
-            for (let i = 0; i < sessionStorage.length; i += 1) {
-              const storageKey = sessionStorage.key(i)
-              if (storageKey?.startsWith(storageKeyPrefix)) keysToRemove.push(storageKey)
-            }
-            keysToRemove.forEach((storageKey) => sessionStorage.removeItem(storageKey))
+            getScopedSessionKeys(scopeKeyPrefix).forEach((storageKey) => sessionStorage.removeItem(storageKey))
             post({ type: 'trek:response', requestId: msg.requestId, data: undefined })
           } catch (error) {
             const message = error instanceof Error ? error.message : 'session storage failed'
@@ -419,7 +441,11 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
             post({ type: 'trek:error', requestId: msg.requestId, code: 'NO_TRIP_CONTEXT', message: 'trip session storage requires a trip context' })
             break
           }
-          const { storageKey } = createPluginSessionStorageKeys(userId, pluginId, scope, tripId, msg.key)
+          if (typeof msg.key !== 'string' || msg.key.length === 0 || msg.key.length > PLUGIN_SESSION_MAX_KEY_LENGTH) {
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_INVALID_KEY', message: `session key must be 1-${PLUGIN_SESSION_MAX_KEY_LENGTH} characters` })
+            break
+          }
+          const { scopeKeyPrefix, storageKey } = createPluginSessionStorageKeys(userId, pluginId, scope, tripId, msg.key)
           try {
             if (msg.type === 'trek:session:get') {
               const storedValue = sessionStorage.getItem(storageKey)
@@ -431,6 +457,18 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
               const serializedValue = JSON.stringify(msg.value)
               if (serializedValue === undefined) {
                 post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_INVALID_VALUE', message: 'session value must be JSON-serialisable' })
+                break
+              }
+
+              // Validate length based on unicode byte sizes
+              const valueBytes = new TextEncoder().encode(serializedValue).byteLength
+              if (valueBytes > PLUGIN_SESSION_MAX_VALUE_BYTES) {
+                post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_VALUE_TOO_LARGE', message: `session value exceeds ${PLUGIN_SESSION_MAX_VALUE_BYTES} bytes` })
+                break
+              }
+              const keys = getScopedSessionKeys(scopeKeyPrefix)
+              if (!keys.includes(storageKey) && keys.length >= PLUGIN_SESSION_MAX_KEYS) {
+                post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_KEY_LIMIT', message: `plugin session storage allows at most ${PLUGIN_SESSION_MAX_KEYS} keys` })
                 break
               }
               sessionStorage.setItem(storageKey, serializedValue)

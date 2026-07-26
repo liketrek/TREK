@@ -352,4 +352,29 @@ describe('PluginFrame', () => {
     expect(posted.find((m) => m.requestId === 's3')).toMatchObject({ type: 'trek:response', data: undefined });
     expect(posted.find((m) => m.requestId === 's4')).toMatchObject({ type: 'trek:response', data: ['flight'] });
   });
+
+  it('FE-PLUGINS-FRAME-022: session storage enforces key, value and key-count limits', () => {
+    const { container } = render(<PluginFrame pluginId="demo" />);
+    const iframe = container.querySelector('iframe')!;
+    const posted: Array<Record<string, unknown>> = [];
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
+    const set = (requestId: string, key: string, value: unknown) => {
+      fromFrame(iframe, { type: 'trek:session:set', requestId, key, value });
+      return posted.find((message) => message.requestId === requestId);
+    };
+
+    expect(set('bad-key', 'x'.repeat(65), 1)).toMatchObject({ type: 'trek:error', code: 'SESSION_INVALID_KEY' });
+    expect(set('big-value', 'large', 'x'.repeat(1024))).toMatchObject({
+      type: 'trek:error',
+      code: 'SESSION_VALUE_TOO_LARGE',
+    });
+    expect(set('at-limits', 'x'.repeat(64), 'x'.repeat(1022))).toMatchObject({ type: 'trek:response' });
+
+    sessionStorage.clear();
+    for (let index = 0; index < 32; index += 1) {
+      expect(set(`key-${index}`, `key-${index}`, index)).toMatchObject({ type: 'trek:response' });
+    }
+    expect(set('too-many', 'key-32', 32)).toMatchObject({ type: 'trek:error', code: 'SESSION_KEY_LIMIT' });
+  });
 });

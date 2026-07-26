@@ -1,6 +1,28 @@
 import { create } from 'zustand'
 import { pluginsApi } from '../api/client'
 
+const PLUGIN_SESSION_NAMESPACE = 'trek:plugin-session:'
+
+/**
+ * Purges state for plugins absent from a successful active-plugin response.
+ * A failed request never calls this, because plugin status is then unknown.
+ */
+function clearInactivePluginSessions(activePluginIds: Set<string>) {
+  const keysToRemove: string[] = []
+  for (let i = 0; i < sessionStorage.length; i += 1) {
+    const storageKey = sessionStorage.key(i)
+    if (!storageKey?.startsWith(PLUGIN_SESSION_NAMESPACE)) continue
+    const encodedPluginId = storageKey.slice(PLUGIN_SESSION_NAMESPACE.length).split(':')[1]
+    if (encodedPluginId === undefined) continue
+    try {
+      if (!activePluginIds.has(decodeURIComponent(encodedPluginId))) keysToRemove.push(storageKey)
+    } catch {
+      // Ignore malformed keys outside the host-owned format.
+    }
+  }
+  keysToRemove.forEach((storageKey) => sessionStorage.removeItem(storageKey))
+}
+
 /**
  * Active plugins the client renders (#plugins, M3). Page plugins become nav
  * entries + a full-page iframe route; widget plugins mount on the dashboard.
@@ -47,7 +69,9 @@ export const usePluginStore = create<PluginState>((set, get) => ({
   loadPlugins: async () => {
     try {
       const data = await pluginsApi.active()
-      set({ plugins: (data.plugins as ActivePlugin[]) || [], loaded: true })
+      const plugins = (data.plugins as ActivePlugin[]) || []
+      clearInactivePluginSessions(new Set(plugins.map((plugin) => plugin.id)))
+      set({ plugins, loaded: true })
     } catch {
       set({ loaded: true })
     }

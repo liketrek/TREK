@@ -729,6 +729,27 @@ export {
   PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION,
   grantGaps, grantedHosts, type GrantGap, type PluginEntryPoints,
 } from './permissions.js';
+
+/** Scope for host-managed, per-user session state in a sandboxed plugin UI. */
+export type PluginSessionStorageScope = 'plugin' | 'trip';
+
+/** Limits enforced independently for the plugin scope and each trip scope. */
+export const PLUGIN_SESSION_MAX_KEYS = 32;
+export const PLUGIN_SESSION_MAX_KEY_LENGTH = 64;
+export const PLUGIN_SESSION_MAX_VALUE_BYTES = 1024;
+
+export interface PluginSessionStorageOptions {
+  scope?: PluginSessionStorageScope;
+}
+
+/** The `window.trek.session` surface. Values must be JSON-serialisable. */
+export interface PluginSessionStorage {
+  get<T = unknown>(key: string, options?: PluginSessionStorageOptions): Promise<T | undefined>;
+  set(key: string, value: unknown, options?: PluginSessionStorageOptions): Promise<void>;
+  remove(key: string, options?: PluginSessionStorageOptions): Promise<void>;
+  clear(options?: PluginSessionStorageOptions): Promise<void>;
+}
+
 // The design kit for page/widget UIs: inline these into your client/index.html
 // (or drop a `<!-- trek:ui -->` marker and let `dev`/`pack` expand it) to get the
 // native TREK look — glass, hover, buttons, inputs — plus a `window.trek` bridge.

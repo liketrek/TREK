@@ -1,4 +1,5 @@
-import type { PluginContext, PluginDefinition, PluginRequest, PluginResponse, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, User, NotificationMessage, PluginActionResult } from './index.js';
+import { PLUGIN_SESSION_MAX_KEYS, PLUGIN_SESSION_MAX_KEY_LENGTH, PLUGIN_SESSION_MAX_VALUE_BYTES } from './index.js';
+import type { PluginContext, PluginDefinition, PluginRequest, PluginResponse, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, User, NotificationMessage, PluginActionResult, PluginSessionStorage } from './index.js';
 import { CHANNEL_EVENTS } from './manifest.js';
 import { PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION } from './permissions.js';
 
@@ -49,6 +50,8 @@ export interface MockHostOptions {
   queryResults?: Record<string, unknown[]>;
   /** The host-bound acting user for costs.* (a job/onLoad has none → refused). */
   actingUserId?: number;
+  /** Trip bound to the mock plugin UI's `session` helper. Required for scope: 'trip'. */
+  sessionTripId?: number | string;
   /** Whether the Costs (budget) addon is enabled; gates all costs.* (default true). */
   budgetAddonEnabled?: boolean;
   /** Same idea for the other gated subsystems (default true): journey gates
@@ -157,6 +160,8 @@ export interface MockHost {
    * read or write refuses with RESOURCE_FORBIDDEN). Shares this host's fixtures,
    * grants and recorders. */
   userlessCtx: PluginContext;
+  /** In-memory equivalent of `window.trek.session`, with production quota enforcement. */
+  session: PluginSessionStorage;
   /** Everything the plugin did, for assertions. */
   calls: { method: string; args: unknown[] }[];
   logs: { level: string; msg: string }[];
@@ -236,6 +241,49 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   const broadcasts: MockHost['broadcasts'] = [];
   const emitted: MockHost['emitted'] = [];
   const notifications: MockHost['notifications'] = [];
+  const sessionValues = new Map<string, string>();
+  const sessionPrefix = (scope: 'plugin' | 'trip') => {
+    if (scope === 'trip' && opts.sessionTripId === undefined) {
+      throw new Error('NO_TRIP_CONTEXT: trip session storage requires a trip context');
+    }
+    return scope === 'trip' ? `trip:${opts.sessionTripId}:` : 'plugin:';
+  };
+  const sessionKey = (key: string, scope: 'plugin' | 'trip') => {
+    if (!key || key.length > PLUGIN_SESSION_MAX_KEY_LENGTH) {
+      throw new Error(`SESSION_INVALID_KEY: session key must be 1-${PLUGIN_SESSION_MAX_KEY_LENGTH} characters`);
+    }
+    return `${sessionPrefix(scope)}${key}`;
+  };
+  const session: PluginSessionStorage = {
+    async get(key, options) {
+      const raw = sessionValues.get(sessionKey(key, options?.scope === 'trip' ? 'trip' : 'plugin'));
+      return raw === undefined ? undefined : JSON.parse(raw);
+    },
+    async set(key, value, options) {
+      const fullKey = sessionKey(key, options?.scope === 'trip' ? 'trip' : 'plugin');
+      const serialized = JSON.stringify(value);
+      if (serialized === undefined) throw new Error('SESSION_INVALID_VALUE: session value must be JSON-serialisable');
+      const valueBytes = Buffer.byteLength(serialized, 'utf8');
+      if (valueBytes > PLUGIN_SESSION_MAX_VALUE_BYTES) {
+        throw new Error(`SESSION_VALUE_TOO_LARGE: session value exceeds ${PLUGIN_SESSION_MAX_VALUE_BYTES} bytes`);
+      }
+      const prefix = sessionPrefix(options?.scope === 'trip' ? 'trip' : 'plugin');
+      const scopedKeyCount = [...sessionValues.keys()].filter((storedKey) => storedKey.startsWith(prefix)).length;
+      if (!sessionValues.has(fullKey) && scopedKeyCount >= PLUGIN_SESSION_MAX_KEYS) {
+        throw new Error(`SESSION_KEY_LIMIT: plugin session storage allows at most ${PLUGIN_SESSION_MAX_KEYS} keys`);
+      }
+      sessionValues.set(fullKey, serialized);
+    },
+    async remove(key, options) {
+      sessionValues.delete(sessionKey(key, options?.scope === 'trip' ? 'trip' : 'plugin'));
+    },
+    async clear(options) {
+      const prefix = sessionPrefix(options?.scope === 'trip' ? 'trip' : 'plugin');
+      for (const key of sessionValues.keys()) {
+        if (key.startsWith(prefix)) sessionValues.delete(key);
+      }
+    },
+  };
   // Validated once, up front: a fixture the host could never have installed should fail
   // the test at construction, not silently at the first get().
   const userSettings = settingsBlob(opts.userSettings, 'userSettings');
@@ -1486,7 +1534,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     },
   });
 
-  return { ctx, userlessCtx, calls, logs, broadcasts, emitted, notifications, scheduled: scheduledTasks, run };
+  return { ctx, userlessCtx, session, calls, logs, broadcasts, emitted, notifications, scheduled: scheduledTasks, run };
 }
 
 // `trek-plugin-sdk/testing` resolves to this module, so re-export what a test needs to

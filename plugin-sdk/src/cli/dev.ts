@@ -664,7 +664,10 @@ function ctx(){
 function postCtx(){ if(f.contentWindow) f.contentWindow.postMessage(ctx(),"*"); }
 var tt; function toast(msg){var el=document.getElementById("toast");el.textContent=msg;el.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){el.classList.remove("on");},2200);}
 var SESSION_PREFIX="trek:plugin-session:1:"+encodeURIComponent(${JSON.stringify(id)})+":";
+var SESSION_MAX_KEYS=32,SESSION_MAX_KEY_LENGTH=64,SESSION_MAX_VALUE_BYTES=1024;
+function sessionFail(m,code,message){f.contentWindow.postMessage({type:"trek:error",requestId:m.requestId,code:code,message:message},"*");}
 function sessionMessage(m){
+  try {
   var trip=ctx().tripId, scope=m.scope==="trip"?"trip":"plugin";
   if(scope==="trip"&&!trip){f.contentWindow.postMessage({type:"trek:error",requestId:m.requestId,code:"NO_TRIP_CONTEXT",message:"trip session storage requires a trip context"},"*");return;}
   var prefix=SESSION_PREFIX+scope+(scope==="trip"?":"+encodeURIComponent(String(trip)):"")+":";
@@ -672,12 +675,23 @@ function sessionMessage(m){
   if(m.type==="trek:session:clear"){
     var doomed=[];for(var i=0;i<sessionStorage.length;i++){var stored=sessionStorage.key(i);if(stored&&stored.indexOf(prefix)===0)doomed.push(stored);}doomed.forEach(function(stored){sessionStorage.removeItem(stored);});
   } else {
+    if(typeof m.key!=="string"||!m.key||m.key.length>SESSION_MAX_KEY_LENGTH){sessionFail(m,"SESSION_INVALID_KEY","session key must be 1-"+SESSION_MAX_KEY_LENGTH+" characters");return;}
     var key=prefix+encodeURIComponent(m.key);
     if(m.type==="trek:session:get"){var raw=sessionStorage.getItem(key);data=raw===null?undefined:JSON.parse(raw);}
     else if(m.type==="trek:session:remove"){sessionStorage.removeItem(key);}
-    else {sessionStorage.setItem(key,JSON.stringify(m.value));}
+    else {
+      var json=JSON.stringify(m.value);
+      if(json===undefined){sessionFail(m,"SESSION_INVALID_VALUE","session value must be JSON-serialisable");return;}
+      var bytes=new TextEncoder().encode(json).length;
+      if(bytes>SESSION_MAX_VALUE_BYTES){sessionFail(m,"SESSION_VALUE_TOO_LARGE","session value exceeds "+SESSION_MAX_VALUE_BYTES+" bytes");return;}
+      var count=0,exists=false;
+      for(var j=0;j<sessionStorage.length;j++){var sk=sessionStorage.key(j);if(sk&&sk.indexOf(prefix)===0){count++;if(sk===key)exists=true;}}
+      if(!exists&&count>=SESSION_MAX_KEYS){sessionFail(m,"SESSION_KEY_LIMIT","plugin session storage allows at most "+SESSION_MAX_KEYS+" keys");return;}
+      sessionStorage.setItem(key,json);
+    }
   }
   f.contentWindow.postMessage({type:"trek:response",requestId:m.requestId,data:data},"*");
+  } catch(e) { sessionFail(m,"SESSION_STORAGE_ERROR",String(e&&e.message||e)); }
 }
 window.addEventListener("message", function(ev){
   if(ev.source!==f.contentWindow) return;

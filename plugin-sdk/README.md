@@ -95,7 +95,8 @@ await trek.session.set('filters', ['flight', 'hotel'], { scope: 'trip' })
 `get()` returns `undefined` for a missing key. `set`, `get`, `remove`, and
 `clear` accept `{ scope: 'plugin' | 'trip' }`; `plugin` is the default. Use your
 plugin's own logical key (for example `reservation:88:expanded`) for any finer
-partitioning.
+partitioning. Each plugin or individual trip scope is limited to 32 keys,
+64 characters per key, and 1 KiB per JSON value.
 
 The kit applies the theme, mirrors the appearance flags (reduced-motion,
 no-transparency) and auto-reports your height. It also upgrades any native
