@@ -29,6 +29,7 @@
     "@nestjs/platform-express": "^11.1.24",
     "@nestjs/swagger": "^11.4.5",
     "@simplewebauthn/server": "^13.1.2",
+    "@trek/nest-mcp": "*",
     "@trek/shared": "*",
     "archiver": "^6.0.1",
     "bcryptjs": "^2.4.3",

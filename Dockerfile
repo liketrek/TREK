@@ -31,9 +31,12 @@ FROM node:24-alpine AS server-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY shared/package.json ./shared/
+COPY nest-mcp/package.json ./nest-mcp/
 COPY server/package.json ./server/
 RUN npm ci --workspace=server --ignore-scripts
 COPY --from=shared-builder /app/shared/dist ./shared/dist
+COPY nest-mcp/ ./nest-mcp/
+RUN npm run build --workspace=nest-mcp
 COPY server/ ./server/
 RUN npm run build --workspace=server
 
@@ -44,6 +47,7 @@ WORKDIR /app
 # Workspace manifests only — source never enters this stage.
 COPY package.json package-lock.json ./
 COPY shared/package.json ./shared/
+COPY nest-mcp/package.json ./nest-mcp/
 COPY server/package.json ./server/
 
 RUN apt-get update && \
@@ -84,6 +88,10 @@ COPY server/scripts/migrate-encryption.ts ./server/scripts/migrate-encryption.ts
 # Admin recovery script (node server/reset-admin.js) for locked-out installs.
 COPY server/reset-admin.js ./server/reset-admin.js
 COPY --from=shared-builder /app/shared/dist ./shared/dist
+# server dist requires @trek/nest-mcp at runtime through the workspace symlink;
+# its dist's MCP SDK subpath requires ride the same tsconfig-paths/register
+# hook the server already boots with.
+COPY --from=server-builder /app/nest-mcp/dist ./nest-mcp/dist
 COPY --from=client-builder /app/client/dist ./server/public
 COPY --from=client-builder /app/client/public/fonts ./server/public/fonts
 

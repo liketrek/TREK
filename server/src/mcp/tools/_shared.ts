@@ -1,6 +1,22 @@
+import { errorResult } from '@trek/nest-mcp';
 import { db } from '../../db/database';
 import { checkPermission } from '../../services/permissions';
 import { broadcast } from '../../websocket';
+
+// Generic MCP result helpers and annotation presets live in @trek/nest-mcp
+// (single source for the legacy registrars below and the decorator-based
+// domains). Re-exported so registrar files keep importing from here.
+export {
+  demoDenied,
+  errorResult,
+  ok,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+} from '@trek/nest-mcp';
 
 export function safeBroadcast(tripId: number, event: string, payload: Record<string, unknown>): void {
   try {
@@ -12,57 +28,12 @@ export function safeBroadcast(tripId: number, event: string, payload: Record<str
 
 export const MAX_MCP_TRIP_DAYS = 90;
 
-export const TOOL_ANNOTATIONS_READONLY = {
-  readOnlyHint: true,
-  destructiveHint: false,
-  idempotentHint: true,
-  openWorldHint: false,
-} as const;
-
-export const TOOL_ANNOTATIONS_OPEN_WORLD_READONLY = {
-  ...TOOL_ANNOTATIONS_READONLY,
-  openWorldHint: true,
-} as const;
-
-export const TOOL_ANNOTATIONS_WRITE = {
-  readOnlyHint: false,
-  destructiveHint: false,
-  idempotentHint: true,
-  openWorldHint: false,
-} as const;
-
-export const TOOL_ANNOTATIONS_DELETE = {
-  readOnlyHint: false,
-  destructiveHint: true,
-  idempotentHint: true,
-  openWorldHint: false,
-} as const;
-
-export const TOOL_ANNOTATIONS_NON_IDEMPOTENT = {
-  readOnlyHint: false,
-  destructiveHint: false,
-  idempotentHint: false,
-  openWorldHint: false,
-} as const;
-
-export const TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT = {
-  ...TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  openWorldHint: true,
-} as const;
-
-export function demoDenied() {
-  return { content: [{ type: 'text' as const, text: 'Write operations are disabled in demo mode.' }], isError: true };
-}
-
 export function noAccess() {
-  return { content: [{ type: 'text' as const, text: 'Trip not found or access denied.' }], isError: true };
+  return errorResult('Trip not found or access denied.');
 }
 
 export function permissionDenied() {
-  return {
-    content: [{ type: 'text' as const, text: 'You do not have permission to perform this action on this trip.' }],
-    isError: true,
-  };
+  return errorResult('You do not have permission to perform this action on this trip.');
 }
 
 /**
@@ -87,9 +58,5 @@ export function isAdminUser(userId: number): boolean {
 
 /** Error response for admin-only tools, reproducing the REST `{ error: 'Admin access required' }` string. */
 export function adminRequired() {
-  return { content: [{ type: 'text' as const, text: 'Admin access required' }], isError: true };
-}
-
-export function ok(data: unknown) {
-  return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+  return errorResult('Admin access required');
 }

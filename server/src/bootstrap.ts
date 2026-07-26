@@ -8,6 +8,8 @@ import { applyGlobalMiddleware } from './middleware/globalMiddleware';
 import { applyPlatformUploads, applyPlatformTransport, applyPlatformStatic } from './nest/platform/platform.routes';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
 import { setupApiDocs } from './nest/platform/api-docs';
+import { McpRegistryService } from '@trek/nest-mcp';
+import { setMcpRegistry } from './mcp/registry-handoff';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -56,5 +58,8 @@ export async function buildApp(): Promise<INestApplication> {
   applyPlatformStatic(instance);
   if (apiDocsEnabled()) setupApiDocs(app);
   await app.init();
+  // The /mcp handler is mounted pre-init (step 3) and has no DI access — hand
+  // it the boot-discovered registry now that the container is fully built.
+  setMcpRegistry(app.get(McpRegistryService));
   return app;
 }

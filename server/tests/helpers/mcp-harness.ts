@@ -15,6 +15,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { registerResources } from '../../src/mcp/resources';
 import { registerTools } from '../../src/mcp/tools';
+import { setMcpRegistry } from '../../src/mcp/registry-handoff';
+import { createMcpTestRegistry } from './mcp-test-controllers';
 
 export interface McpHarness {
   client: Client;
@@ -40,7 +42,14 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
   if (withResources) registerResources(server, userId);
-  if (withTools) registerTools(server, userId, scopes ?? null, isStaticToken);
+  if (withTools) {
+    // In production bootstrap.ts hands the Nest-discovered registry to
+    // registerTools after app.init(); the harness has no Nest app, so it
+    // builds the same registry by hand (see mcp-test-controllers.ts).
+    // registerTools' own ctx construction stays exercised.
+    setMcpRegistry(createMcpTestRegistry());
+    registerTools(server, userId, scopes ?? null, isStaticToken);
+  }
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 

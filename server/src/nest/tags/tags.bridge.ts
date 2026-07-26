@@ -5,9 +5,10 @@ import { TagsService } from './tags.service';
 
 /**
  * Non-Nest entry point for the tags domain — for code running OUTSIDE the Nest
- * container (MCP tools, plugin RPC host). Exports the legacy
- * services/tagService function names 1:1 so repointing a consumer is an
- * import-path-only diff. Inside the container, inject TagsService instead.
+ * container (currently only the plugin RPC host; the MCP tools moved to the
+ * DI-discovered tags.mcp.ts). Exports the legacy services/tagService function
+ * names 1:1 so repointing a consumer is an import-path-only diff. Inside the
+ * container, inject TagsService instead.
  *
  * Module-level construction is safe: `db` is the reinitialize-proof Proxy onto
  * the shared better-sqlite3 singleton (same pattern as

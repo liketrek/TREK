@@ -178,6 +178,21 @@ describe('Tool: update_tag', () => {
       expect(result.isError).toBe(true);
     });
   });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const r = testDb.prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)').run(user.id, 'Demo Tag', '#aaaaaa');
+    const tagId = r.lastInsertRowid as number;
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_tag',
+        arguments: { tagId, name: 'Blocked' },
+      });
+      expect(result.isError).toBe(true);
+      expect(testDb.prepare('SELECT name FROM tags WHERE id = ?').get(tagId)).toEqual({ name: 'Demo Tag' });
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -198,6 +213,76 @@ describe('Tool: delete_tag', () => {
       expect(data.success).toBe(true);
       expect(testDb.prepare('SELECT id FROM tags WHERE id = ?').get(tagId)).toBeUndefined();
     });
+  });
+
+  it('returns isError for non-existent tagId', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'delete_tag',
+        arguments: { tagId: 99999 },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const r = testDb.prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)').run(user.id, 'Demo Tag', '#aaaaaa');
+    const tagId = r.lastInsertRowid as number;
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'delete_tag',
+        arguments: { tagId },
+      });
+      expect(result.isError).toBe(true);
+      expect(testDb.prepare('SELECT id FROM tags WHERE id = ?').get(tagId)).toBeDefined();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tags scope gating (places:read / places:write, registration-time)
+// ---------------------------------------------------------------------------
+
+describe('Tags tools: scope gating', () => {
+  const TAG_TOOLS = ['list_tags', 'create_tag', 'update_tag', 'delete_tag'];
+
+  async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
+    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    try {
+      return (await h.client.listTools()).tools.map((t) => t.name);
+    } finally {
+      await h.cleanup();
+    }
+  }
+
+  it('registers all four tag tools with null scopes (full access)', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, null);
+    for (const tool of TAG_TOOLS) expect(names).toContain(tool);
+  });
+
+  it('registers only list_tags with places:read', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['places:read']);
+    expect(names).toContain('list_tags');
+    expect(names).not.toContain('create_tag');
+    expect(names).not.toContain('update_tag');
+    expect(names).not.toContain('delete_tag');
+  });
+
+  it('registers all four tag tools with places:write (write implies read)', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['places:write']);
+    for (const tool of TAG_TOOLS) expect(names).toContain(tool);
+  });
+
+  it('registers no tag tools for an unrelated scope', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['budget:read']);
+    for (const tool of TAG_TOOLS) expect(names).not.toContain(tool);
   });
 });
 

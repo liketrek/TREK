@@ -3,7 +3,6 @@ import { registerTodoTools } from './tools/todos';
 import { registerAssignmentTools } from './tools/assignments';
 import { registerJourneyTools } from './tools/journey';
 import { registerReservationTools } from './tools/reservations';
-import { registerTagTools } from './tools/tags';
 import { registerMapsWeatherTools } from './tools/mapsWeather';
 import { registerNotificationTools } from './tools/notifications';
 import { registerAtlasTools } from './tools/atlas';
@@ -18,6 +17,7 @@ import { registerTransportTools } from './tools/transports';
 import { registerTransitTools } from './tools/transit';
 import { registerVacayTools } from './tools/vacay';
 import { registerMcpPrompts } from './tools/prompts';
+import { getMcpRegistry } from './registry-handoff';
 
 export function registerTools(server: McpServer, userId: number, scopes: string[] | null, isStaticToken = false, getDeprecationNotice: () => string | null = () => null): void {
   registerTripTools(server, userId, scopes, getDeprecationNotice);
@@ -35,8 +35,6 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   registerDayTools(server, userId, scopes);
 
   registerAssignmentTools(server, userId, scopes);
-
-  registerTagTools(server, userId, scopes);
 
   registerMapsWeatherTools(server, userId, scopes);
 
@@ -57,4 +55,11 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   registerTodoTools(server, userId, scopes);
 
   registerMcpPrompts(server, userId, isStaticToken);
+
+  // Decorator-registered domains (@trek/nest-mcp) — migrating off the legacy
+  // registrar fan-out above, one domain at a time. Unset registry (direct
+  // callers without a Nest app, e.g. unit tests) ⇒ skip; the test harness
+  // attaches its own via createTestRegistry + setMcpRegistry.
+  const registry = getMcpRegistry();
+  if (registry) registry.attach(server, { userId, scopes, isStaticToken });
 }
