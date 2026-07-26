@@ -634,6 +634,7 @@ iframe{width:100%;border:0;background:transparent;min-height:120px;display:block
   <label>Accent <select id="accent"><option value="default">default</option><option value="indigo">indigo</option><option value="teal">teal</option><option value="rose">rose</option></select></label>
   <label><input type="checkbox" id="rm"> reduce motion</label>
   <label><input type="checkbox" id="nt"> no transparency</label>
+  <label><input type="checkbox" id="blur"> blur booking codes</label>
   <label><input type="checkbox" id="trip" checked> trip context</label>
 </header>
 <div class="stage"><div class="wrap"><iframe id="f" src="/ui/index.html" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" title="${id}"></iframe></div></div>
@@ -658,7 +659,7 @@ function ctx(){
     tripId: val("trip").checked?${tripId}:null, userId:"1",
     user:{name:"Dev User",avatar:null,isAdmin:true},
     appearance:{scheme:accent,density:"comfortable",reducedMotion:val("rm").checked,noTransparency:val("nt").checked},
-    formats:{locale:"en",currency:"EUR",timeFormat:"24h",distanceUnit:"metric",temperatureUnit:"celsius",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,blurBookingCodes:false},
+    formats:{locale:"en",currency:"EUR",timeFormat:"24h",distanceUnit:"metric",temperatureUnit:"celsius",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,blurBookingCodes:val("blur").checked},
     tokens:tokens};
 }
 function postCtx(){ if(f.contentWindow) f.contentWindow.postMessage(ctx(),"*"); }
@@ -698,7 +699,7 @@ window.addEventListener("message", function(ev){
   }
 });
 var geoTick=null;
-["theme","accent","rm","nt","trip"].forEach(function(id){ val(id).addEventListener("change",postCtx); });
+["theme","accent","rm","nt","blur","trip"].forEach(function(id){ val(id).addEventListener("change",postCtx); });
 f.addEventListener("load", function(){ f.style.height="120px"; postCtx(); });
 var __v; setInterval(function(){ fetch("/__dev/version").then(function(r){return r.text();}).then(function(v){ if(__v&&v!==__v){ f.src=f.src; } __v=v; }).catch(function(){}); },1000);
 </script>
