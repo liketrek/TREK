@@ -220,7 +220,10 @@ function DashboardPageDesktop(): React.ReactElement {
                 />
               )}
 
-              {gridTrips.length === 0 && tripFilter === 'planned' && !isLoading && !loadError && (
+              {/* "No trips yet" only when there really are none — a user whose trips are
+                  all finished has a hero, and telling them to create their first trip is
+                  simply wrong (#1706). Same condition the mobile dashboard already uses. */}
+              {gridTrips.length === 0 && !spotlight && tripFilter === 'planned' && !isLoading && !loadError && (
                 <div className="trips-empty">
                   <EmptyState scene="dashboard" title={t('dashboard.emptyTitle')} />
                 </div>

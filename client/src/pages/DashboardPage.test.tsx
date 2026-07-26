@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor } from '../../tests/helpers/render';
+import { render, screen, waitFor, within } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
@@ -941,6 +941,63 @@ describe('DashboardPage', () => {
         expect(localStorage.getItem('trek_dashboard_tz')).toBeNull();
       });
       expect(useSettingsStore.getState().settings.dashboard_timezones).toBeUndefined();
+    });
+  });
+
+  describe('FE-PAGE-DASH-035: A trip the hero fell back to still appears in the grid (#1706)', () => {
+    const onlyTrips = (trips: unknown[]) =>
+      server.use(
+        http.get('/api/trips', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
+          return HttpResponse.json({ trips });
+        }),
+      );
+    // The grid, not the hero — the hero renders the same title and would mask the bug.
+    const grid = () => document.querySelector('.trips') as HTMLElement;
+
+    it('lists a finished trip under Completed when it is the only one', async () => {
+      onlyTrips([buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' })]);
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await user.click(screen.getByText('Completed'));
+
+      await waitFor(() => expect(within(grid()).getByText('Lisbon 2025')).toBeInTheDocument());
+    });
+
+    it('lists a dateless trip under Planned when it is the only one', async () => {
+      onlyTrips([buildTrip({ title: 'Someday Iceland', start_date: null, end_date: null })]);
+      render(<DashboardPage />);
+
+      await waitFor(() => expect(within(grid()).getByText('Someday Iceland')).toBeInTheDocument());
+      expect(screen.queryByText('No trips yet')).not.toBeInTheDocument();
+    });
+
+    it('does not claim "No trips yet" when the only trip is simply finished', async () => {
+      onlyTrips([buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' })]);
+      render(<DashboardPage />);
+
+      await waitFor(() => expect(screen.getAllByText('Lisbon 2025').length).toBeGreaterThan(0));
+      expect(screen.queryByText('No trips yet')).not.toBeInTheDocument();
+    });
+
+    it('still says "No trips yet" for an account with no trips at all', async () => {
+      onlyTrips([]);
+      render(<DashboardPage />);
+
+      await waitFor(() => expect(screen.getByText('No trips yet')).toBeInTheDocument());
+    });
+
+    it('still keeps a running trip out of the grid, so the hero does not double up', async () => {
+      onlyTrips([
+        buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' }),
+        buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' }),
+      ]);
+      render(<DashboardPage />);
+
+      await waitFor(() => expect(screen.getAllByText('Paris Adventure').length).toBeGreaterThan(0));
+      expect(within(grid()).queryByText('Paris Adventure')).not.toBeInTheDocument();
     });
   });
 });
