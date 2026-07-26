@@ -513,4 +513,47 @@ describe('TransportModal', () => {
     expect(payload.metadata.legs).toBeUndefined();
     expect(payload.metadata.train_number).toBe('RE 9');
   });
+
+  // ── Per-endpoint day resolution (#1684) ────────────────────────────────────
+
+  const spanDays = [
+    { id: 10, trip_id: 1, day_number: 1, date: '2026-08-01', title: 'Day 1' },
+    { id: 11, trip_id: 1, day_number: 2, date: '2026-08-02', title: 'Day 2' },
+    { id: 12, trip_id: 1, day_number: 3, date: '2026-08-03', title: 'Day 3' },
+  ] as any;
+
+  const flightEndpoints = (fromDate: string, toDate: string) => ([
+    { id: 1, reservation_id: 1, role: 'from', sequence: 0, name: 'Frankfurt (FRA)', code: 'FRA', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin', local_date: fromDate, local_time: '10:00' },
+    { id: 2, reservation_id: 1, role: 'to', sequence: 1, name: 'New York (JFK)', code: 'JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York', local_date: toDate, local_time: '13:00' },
+  ]);
+
+  it('FE-PLANNER-TRANSMODAL-030: an import prefill resolves each waypoint day from its endpoint local_date (#1684)', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    // A parsed import carries local_date per endpoint but no day_id at all.
+    const prefill = { title: 'LH 400', type: 'flight', status: 'pending', endpoints: flightEndpoints('2026-08-02', '2026-08-03') } as any;
+    render(<TransportModal {...defaultProps} days={spanDays} prefill={prefill} onSave={onSave} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.day_id).toBe(11);
+    expect(payload.end_day_id).toBe(12);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-031: editing keeps the saved days when the endpoint local_date is stale', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    // Dragging a booking to another day rewrites day_id/end_day_id but leaves the
+    // endpoints untouched, so local_date lags behind. Re-saving must not move the
+    // booking back to the day that stale date points at.
+    const reservation = buildReservation({
+      id: 1, title: 'LH 400', type: 'flight', day_id: 10, end_day_id: 11,
+      reservation_time: '2026-08-01T10:00', reservation_end_time: '2026-08-02T13:00',
+      endpoints: flightEndpoints('2026-08-03', '2026-08-03'),
+    } as any) as any;
+    render(<TransportModal {...defaultProps} days={spanDays} reservation={reservation} onSave={onSave} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.day_id).toBe(10);
+    expect(payload.end_day_id).toBe(11);
+  });
 });
