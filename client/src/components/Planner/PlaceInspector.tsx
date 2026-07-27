@@ -4,10 +4,12 @@ import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy } from 'lucide-react'
+import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy, Route } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
 import PlaceRating from '../shared/StarRating'
+import TrackColorPicker from '../shared/TrackColorPicker'
+import { resolveTrackColor, inheritedTrackColor } from '../Map/trackColors'
 import GuestBadge from '../shared/GuestBadge'
 import StatusBadge from '../Collections/StatusBadge'
 import { mapsApi, pluginsApi } from '../../api/client'
@@ -392,7 +394,7 @@ export default function PlaceInspector({
             setHoursExpanded={setHoursExpanded} timeFormat={timeFormat} t={t} place={place} placeFiles={placeFiles}
             onFileUpload={onFileUpload} filesExpanded={filesExpanded} setFilesExpanded={setFilesExpanded}
             fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isUploading={isUploading}
-            distanceUnit={distanceUnit} />
+            distanceUnit={distanceUnit} onUpdatePlace={onUpdatePlace} />
 
           {/* Extra native rows from placeDetailProvider plugins (#1429). */}
           {mode === 'trip' && providerDetails.length > 0 && (
@@ -856,8 +858,51 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
   )
 }
 
+/**
+ * Track colour row (#776) — only for places that carry GPX geometry. Sits next
+ * to the stats block rather than inside it: that block bails out on unparsable
+ * geometry, and the colour control has no business disappearing with it.
+ */
+function TrackColorRow({ place, trackColor, onUpdatePlace, t }: any) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="bg-surface-hover" style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Route size={13} color="#9ca3af" />
+          <span className="text-content-secondary" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500 }}>
+            {t('inspector.trackColor')}
+          </span>
+        </div>
+        <span
+          className="ring-1 ring-inset ring-black/10 dark:ring-white/15"
+          style={{ width: 20, height: 20, borderRadius: 999, backgroundColor: trackColor, flexShrink: 0 }}
+        />
+      </button>
+      {open && (
+        <div className="border-edge" style={{ borderTopWidth: 1, paddingTop: 8 }}>
+          <TrackColorPicker
+            value={place.route_color ?? null}
+            inheritedColor={inheritedTrackColor(place)}
+            onChange={color => onUpdatePlace?.(place.id, { route_color: color })}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpanded, timeFormat, t, place,
-  placeFiles, onFileUpload, filesExpanded, setFilesExpanded, fileInputRef, handleFileUpload, isUploading, distanceUnit }: any) {
+  placeFiles, onFileUpload, filesExpanded, setFilesExpanded, fileInputRef, handleFileUpload, isUploading, distanceUnit,
+  onUpdatePlace }: any) {
+  const trackColor = resolveTrackColor(place)
   return (
           <div className={`grid grid-cols-1 ${openingHours?.length > 0 ? 'sm:grid-cols-2' : ''} gap-2`}>
           {openingHours && openingHours.length > 0 && (
@@ -892,6 +937,10 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
             </div>
           )}
 
+
+          {place.route_geometry && (
+            <TrackColorRow place={place} trackColor={trackColor} onUpdatePlace={onUpdatePlace} t={t} />
+          )}
 
           {/* GPX Track stats */}
           {place.route_geometry && (() => {
@@ -949,7 +998,7 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600 }}>
-                      <MapPin size={12} color="#3b82f6" />
+                      <MapPin size={12} color={trackColor} />
                       {formatDistance(distKm, distanceUnit)}
                     </div>
                     {hasEle && (
@@ -972,12 +1021,12 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
                     <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" className="bg-surface-tertiary" style={{ display: 'block', borderRadius: 6 }}>
                       <defs>
                         <linearGradient id={`ele-grad-${place.id}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+                          <stop offset="0%" stopColor={trackColor} stopOpacity="0.25" />
+                          <stop offset="100%" stopColor={trackColor} stopOpacity="0.02" />
                         </linearGradient>
                       </defs>
                       <path d={`${pathD} L${chartW},${chartH} L0,${chartH} Z`} fill={`url(#ele-grad-${place.id})`} />
-                      <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                      <path d={pathD} fill="none" stroke={trackColor} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
                     </svg>
                   )}
                 </div>

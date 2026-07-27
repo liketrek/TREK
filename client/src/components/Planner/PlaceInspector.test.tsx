@@ -732,4 +732,35 @@ describe('PlaceInspector', () => {
     expect(screen.queryByRole('button', { name: 'Change image' })).toBeNull();
   });
 
+// ── Track colour (#776) ──────────────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-051: the colour row only exists for a place with geometry', () => {
+    const { rerender } = render(<PlaceInspector {...defaultProps} />);
+    expect(screen.queryByText('Track color')).toBeNull();
+
+    rerender(<PlaceInspector {...defaultProps} place={{ ...place, route_geometry: '[[48.0,2.0],[49.0,3.0]]' }} />);
+    expect(screen.getAllByText('Track color').length).toBeGreaterThan(0);
+  });
+
+  it('FE-PLANNER-INSPECTOR-052: picking a swatch saves that colour', () => {
+    const onUpdatePlace = vi.fn();
+    const track = { ...place, route_geometry: '[[48.0,2.0],[49.0,3.0]]' };
+    render(<PlaceInspector {...defaultProps} place={track} onUpdatePlace={onUpdatePlace} />);
+
+    fireEvent.click(screen.getAllByText('Track color')[0]);
+    fireEvent.click(screen.getByRole('button', { name: '#059669' }));
+    expect(onUpdatePlace).toHaveBeenCalledWith(track.id, { route_color: '#059669' });
+  });
+
+  it('FE-PLANNER-INSPECTOR-053: the auto cell saves null, not undefined', () => {
+    const onUpdatePlace = vi.fn();
+    const track = { ...place, route_geometry: '[[48.0,2.0],[49.0,3.0]]', route_color: '#059669' };
+    render(<PlaceInspector {...defaultProps} place={track} onUpdatePlace={onUpdatePlace} />);
+
+    fireEvent.click(screen.getAllByText('Track color')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Automatic color' }));
+    // null is what clears the column; undefined would leave the colour in place.
+    expect(onUpdatePlace).toHaveBeenCalledWith(track.id, { route_color: null });
+  });
+
 });

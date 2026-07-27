@@ -565,6 +565,9 @@ export function useTripPlanner() {
             address: capturedPlace.address,
             category_id: capturedPlace.category_id,
             price: capturedPlace.price,
+            // An undone track has to come back as a track, not a bare point.
+            route_geometry: capturedPlace.route_geometry,
+            route_color: capturedPlace.route_color,
           })
           for (const { dayId, orderIndex } of capturedAssignments) {
             await tripActions.assignPlaceToDay(tripId, dayId, newPlace.id, orderIndex)
@@ -595,6 +598,7 @@ export function useTripPlanner() {
               name: place.name, description: place.description,
               lat: place.lat, lng: place.lng, address: place.address,
               category_id: place.category_id, price: place.price,
+              route_geometry: place.route_geometry, route_color: place.route_color,
             })
             for (const a of capturedAssignments.filter(x => x.placeId === place.id)) {
               await tripActions.assignPlaceToDay(tripId, a.dayId, newPlace.id, a.orderIndex)

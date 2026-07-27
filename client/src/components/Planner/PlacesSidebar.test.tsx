@@ -650,3 +650,23 @@ describe('touch device at desktop width (#1432)', () => {
     expect(screen.getByText('Drop to import')).toBeInTheDocument();
   });
 });
+
+// The map draws no legend of its own, so the stroke in the row is the only
+// thing tying a coloured line back to a place (#776).
+describe('track colour legend (#776)', () => {
+  it('FE-PLANNER-SIDEBAR-049: a track row carries a stroke in the colour the map draws', () => {
+    const track = buildPlace({ id: 11, name: 'Coloured Track', route_geometry: '[[48.0,2.0],[49.0,3.0]]', route_color: '#e11d48' });
+    render(<PlacesSidebar {...defaultProps} places={[track]} />);
+    const row = screen.getByText('Coloured Track').closest('div[draggable]')!;
+    const strokes = Array.from(row.querySelectorAll('span')).filter(el => (el as HTMLElement).style.borderRadius === '999px');
+    expect(strokes.some(el => (el as HTMLElement).style.background.includes('225, 29, 72') || (el as HTMLElement).style.background.includes('#e11d48'))).toBe(true);
+  });
+
+  it('FE-PLANNER-SIDEBAR-050: a place without geometry gets no stroke at all', () => {
+    const plain = buildPlace({ id: 12, name: 'Plain Place' });
+    render(<PlacesSidebar {...defaultProps} places={[plain]} />);
+    const row = screen.getByText('Plain Place').closest('div[draggable]')!;
+    const strokes = Array.from(row.querySelectorAll('span')).filter(el => (el as HTMLElement).style.borderRadius === '999px');
+    expect(strokes).toHaveLength(0);
+  });
+});

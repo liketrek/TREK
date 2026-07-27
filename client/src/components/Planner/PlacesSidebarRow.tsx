@@ -1,7 +1,8 @@
 import React from 'react'
-import { Plus, Check, Route, Star } from 'lucide-react'
+import { Plus, Check, Star } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import { getCategoryIcon } from '../shared/categoryIcons'
+import { resolveTrackColor } from '../Map/trackColors'
 import type { Place, Category } from '../../types'
 
 interface MemoPlaceRowProps {
@@ -81,7 +82,15 @@ export const MemoPlaceRow = React.memo(function MemoPlaceRow({
       <PlaceAvatar place={place} category={cat} size={34} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
-          {hasGeometry && <span title="Track / Route" style={{ display: 'inline-flex', flexShrink: 0 }}><Route size={11} strokeWidth={2} color="var(--text-faint)" /></span>}
+          {/* A stroke of the colour the track is drawn in — the map has no legend
+              of its own, so this is what tells you which line is this row (#776).
+              A line rather than another 11px icon, so it doesn't read as a second
+              category glyph next to the one below. */}
+          {hasGeometry && (
+            <span title={t('places.trackIndicator')} style={{ display: 'inline-flex', flexShrink: 0 }}>
+              <span style={{ display: 'block', width: 14, height: 3, borderRadius: 999, background: resolveTrackColor(place) }} />
+            </span>
+          )}
           {cat && (() => {
             const CatIcon = getCategoryIcon(cat.icon)
             return <span title={cat.name} style={{ display: 'inline-flex', flexShrink: 0 }}><CatIcon size={11} strokeWidth={2} color={cat.color || '#6366f1'} /></span>
