@@ -834,6 +834,50 @@ describe('exportICS', () => {
     expect(ferry).not.toContain('DTSTART;VALUE=DATE');
   });
 
+  it('TRIP-SVC-037: every UID is unique within a feed and stable across fetches', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'UID Trip', start_date: '2025-06-01', end_date: '2025-06-05' });
+    const days = getDays(trip.id);
+
+    // One of every event-producing shape, so the UID namespaces all meet here.
+    const hotelPlace = createPlace(testDb, trip.id, { name: 'UID Hotel' });
+    const acc = createDayAccommodation(testDb, trip.id, hotelPlace.id, days[0].id, days[2].id, {
+      check_in: '15:00', check_out: '11:00',
+    });
+    const hotel = createReservation(testDb, trip.id, { title: 'UID Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET accommodation_id=? WHERE id=?').run(String(acc.id), hotel.id);
+
+    const car = createReservation(testDb, trip.id, { title: 'UID Rental', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2025-06-02T17:00', '2025-06-04T09:00', car.id);
+
+    const flight = createReservation(testDb, trip.id, { title: 'UID Flight', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=? WHERE id=?').run('2025-06-01T08:00', flight.id);
+
+    const timedPlace = createPlace(testDb, trip.id, { name: 'UID Museum' });
+    const assignment = createDayAssignment(testDb, days[1].id, timedPlace.id);
+    testDb.prepare('UPDATE day_assignments SET assignment_time=? WHERE id=?').run('10:00', assignment.id);
+    createDayNote(testDb, days[3].id, trip.id, { text: 'UID note' });
+
+    const uidsOf = (ics: string) =>
+      eventBlocks(ics).map(b => b.match(/UID:([^\r\n]+)/)?.[1] ?? '');
+
+    const first = uidsOf(exportICS(trip.id).ics);
+    const second = uidsOf(exportICS(trip.id).ics);
+
+    // Unique: a duplicate UID makes clients collapse or overwrite events.
+    expect(new Set(first).size).toBe(first.length);
+    expect(first).not.toContain('');
+    // Stable: a changed UID across fetches makes a subscribed client delete and
+    // re-add the event (losing reminders), so this must not drift per fetch.
+    expect(second).toEqual(first);
+    // The hotel/car pairs are namespaced off their reservation id.
+    expect(first).toContain(`trek-res-${hotel.id}-checkin@trek`);
+    expect(first).toContain(`trek-res-${hotel.id}-checkout@trek`);
+    expect(first).toContain(`trek-res-${car.id}-pickup@trek`);
+    expect(first).toContain(`trek-res-${car.id}-dropoff@trek`);
+  });
+
   it('TRIP-SVC-029: trip banner and day-summary events are free (TRANSP:TRANSPARENT)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Banner Trip', start_date: '2025-06-01', end_date: '2025-06-03' });
