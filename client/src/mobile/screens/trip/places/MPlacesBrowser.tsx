@@ -8,6 +8,7 @@ import { useTripStore } from '../../../../store/tripStore'
 import { useAddonStore } from '../../../../store/addonStore'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
+import { resolveTrackColor } from '../../../../components/Map/trackColors'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { MPlacesBrowserProps } from '../MTripShell'
 import type { Place } from '../../../../types'
@@ -290,6 +291,15 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
                   <PlaceAvatar place={place} category={cat} size={40} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-[6px]">
+                      {/* Stroke in the track's colour — the mobile map is full-bleed
+                          with no sidebar, so this is the only thing tying a line to
+                          a row (#776). */}
+                      {place.route_geometry && (
+                        <span
+                          className="h-[3px] w-[14px] flex-none rounded-full"
+                          style={{ background: resolveTrackColor(place) }}
+                        />
+                      )}
                       <CatIcon size={12} strokeWidth={2.2} className="flex-none" style={{ color: cat?.color || 'var(--m-muted)' }} />
                       <span className="truncate text-[0.8125rem] font-semibold text-m-ink">{place.name}</span>
                     </span>

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import {
   Bookmark, Camera, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
-  Pencil, Phone, Plus, Trash2, Upload, X,
+  Pencil, Phone, Plus, Route, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -14,6 +14,8 @@ import { useSaveToCollectionStore } from '../../../../store/saveToCollectionStor
 import { collectionTargetFromPlace } from '../lib/collectionTarget'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import PlaceRating from '../../../../components/shared/StarRating'
+import TrackColorPicker from '../../../../components/shared/TrackColorPicker'
+import { resolveTrackColor, inheritedTrackColor } from '../../../../components/Map/trackColors'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import { openFile } from '../../../../utils/fileDownload'
 import { getGoogleMapsUrlForPlace } from '../../../../components/Planner/placeGoogleMaps'
@@ -42,6 +44,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const [participantPickerOpen, setParticipantPickerOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [imgBusy, setImgBusy] = useState(false)
+  const [colorPickerOpen, setColorPickerOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -129,6 +132,15 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
       planner.toast.error(translateApiError(t, err, 'places.imageUploadError'))
     } finally {
       setImgBusy(false)
+    }
+  }
+
+  const handleTrackColor = async (color: string | null) => {
+    if (!place) return
+    try {
+      await planner.tripActions.updatePlace(planner.tripId, place.id, { route_color: color })
+    } catch (err: unknown) {
+      planner.toast.error(translateApiError(t, err, 'common.unknownError'))
     }
   }
 
@@ -286,6 +298,43 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 <Eyebrow className="mb-[6px] mt-3">{t('mobileTrip.notes')}</Eyebrow>
                 <div className={`rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
                   <div className="whitespace-pre-wrap font-geist text-[0.75rem] leading-[1.5] text-m-muted">{place.notes}</div>
+                </div>
+              </>
+            )}
+
+            {/* ── Track colour (#776) ── */}
+            {place.route_geometry && (
+              <>
+                <Eyebrow className="mb-[6px] mt-3">{t('inspector.trackColor')}</Eyebrow>
+                <div className={`rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
+                  <button
+                    type="button"
+                    onClick={() => setColorPickerOpen(v => !v)}
+                    aria-expanded={colorPickerOpen}
+                    className="flex w-full items-center justify-between gap-3"
+                  >
+                    {/* The eyebrow above already names the section — this row says
+                        which colour is in effect, not the same word again. */}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Route size={14} className="shrink-0 text-m-muted" />
+                      <span className="truncate font-geist text-[0.75rem] font-medium">
+                        {place.route_color ?? t('inspector.trackColorAuto')}
+                      </span>
+                    </span>
+                    <span
+                      className="h-6 w-6 shrink-0 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/15"
+                      style={{ background: resolveTrackColor(place) }}
+                    />
+                  </button>
+                  {colorPickerOpen && (
+                    <div className="mt-[10px] border-t border-[color:var(--m-faint)] pt-[10px]">
+                      <TrackColorPicker
+                        value={place.route_color ?? null}
+                        inheritedColor={inheritedTrackColor(place)}
+                        onChange={handleTrackColor}
+                      />
+                    </div>
+                  )}
                 </div>
               </>
             )}
