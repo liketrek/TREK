@@ -3822,6 +3822,14 @@ function runMigrations(db: Database.Database): void {
         );
       `);
     },
+    // Manual GPX track colour (#776): imported tracks all render in the same blue
+    // because the importer never assigns a category, so several walks in the same
+    // area are indistinguishable. NULL keeps the old behaviour (category colour,
+    // then the #3b82f6 fallback) for every existing row.
+    () => {
+      const hasRouteColor = db.prepare("SELECT 1 FROM pragma_table_info('places') WHERE name = 'route_color'").get();
+      if (!hasRouteColor) db.exec('ALTER TABLE places ADD COLUMN route_color TEXT');
+    },
   ];
 
   if (currentVersion < migrations.length) {

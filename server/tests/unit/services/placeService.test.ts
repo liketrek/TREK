@@ -232,6 +232,49 @@ describe('updatePlace', () => {
     const updated = updatePlace(String(trip.id), String(place.id), { tags: [] }) as any;
     expect(updated.tags).toHaveLength(0);
   });
+
+  // ── Track colour (#776) ─────────────────────────────────────────────────────
+
+  it('PLACE-SVC-052 — stores a picked route_color', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Walk' }) as any;
+    const updated = updatePlace(String(trip.id), String(place.id), { route_color: '#e11d48' }) as any;
+    expect(updated.route_color).toBe('#e11d48');
+  });
+
+  it('PLACE-SVC-053 — an explicit null clears it again (the reset to auto)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Walk' }) as any;
+    updatePlace(String(trip.id), String(place.id), { route_color: '#e11d48' });
+    // Guards the COALESCE trap: name/currency/transport_mode can never be
+    // emptied, and route_color built that way would be a one-way door.
+    const cleared = updatePlace(String(trip.id), String(place.id), { route_color: null }) as any;
+    expect(cleared.route_color).toBeNull();
+  });
+
+  it('PLACE-SVC-054 — an unrelated update leaves the colour alone', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Walk' }) as any;
+    updatePlace(String(trip.id), String(place.id), { route_color: '#059669' });
+    const renamed = updatePlace(String(trip.id), String(place.id), { name: 'Hike' }) as any;
+    expect(renamed.name).toBe('Hike');
+    expect(renamed.route_color).toBe('#059669');
+  });
+
+  it('PLACE-SVC-055 — createPlace carries geometry and colour instead of dropping them', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const created = svcCreatePlace(String(trip.id), {
+      name: 'Restored track',
+      route_geometry: '[[48.0,2.0],[49.0,3.0]]',
+      route_color: '#7c3aed',
+    }) as any;
+    expect(created.route_geometry).toBe('[[48.0,2.0],[49.0,3.0]]');
+    expect(created.route_color).toBe('#7c3aed');
+  });
 });
 
 // ── updatePlacesMany ────────────────────────────────────────────────────────────

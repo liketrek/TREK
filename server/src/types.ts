@@ -73,6 +73,8 @@ export interface Place {
   google_place_id?: string | null;
   google_ftid?: string | null;
   osm_id?: string | null;
+  route_geometry?: string | null;
+  route_color?: string | null;
   website?: string | null;
   phone?: string | null;
   transport_mode?: string;

@@ -16,6 +16,9 @@ import { z } from 'zod';
 
 const open = z.record(z.string(), z.unknown());
 
+/** `#rgb` / `#rrggbb`, the form both map renderers and CSS accept. */
+export const hexColorSchema = z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+
 /**
  * Embedded category as returned on a place — a trimmed projection of the
  * categories row (id/name/color/icon), built inline by placeService and
@@ -70,6 +73,8 @@ export const placeSchema = z.object({
   google_ftid: z.string().nullable().optional(),
   osm_id: z.string().nullable().optional(),
   route_geometry: z.string().nullable().optional(),
+  // Manual track colour (#776). null = inherit the category colour like before.
+  route_color: hexColorSchema.nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   transport_mode: z.string().nullable().optional(),

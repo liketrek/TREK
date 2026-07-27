@@ -125,26 +125,28 @@ export function createPlace(
     place_time?: string; end_time?: string;
     duration_minutes?: number; notes?: string; image_url?: string;
     google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
-    transport_mode?: string; tags?: number[];
+    transport_mode?: string; route_geometry?: string; route_color?: string; tags?: number[];
   },
 ) {
   const {
     name, description, lat, lng, address, category_id, price, currency,
     place_time, end_time,
     duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
-    transport_mode, tags = [],
+    transport_mode, route_geometry, route_color, tags = [],
   } = body;
 
   const result = db.prepare(`
     INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone, transport_mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone, transport_mode,
+      route_geometry, route_color)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     tripId, name, description || null, lat || null, lng || null, address || null,
     category_id || null, price || null, currency || null,
     place_time || null, end_time || null, duration_minutes || 60, notes || null, image_url || null,
     google_place_id || null, google_ftid || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
+    route_geometry || null, route_color || null,
   );
 
   const placeId = result.lastInsertRowid;
@@ -182,7 +184,7 @@ export function updatePlace(
     place_time?: string; end_time?: string;
     duration_minutes?: number; notes?: string; image_url?: string;
     google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
-    transport_mode?: string; tags?: number[];
+    transport_mode?: string; route_color?: string | null; tags?: number[];
   },
   ifMatch?: string,
 ): ReturnType<typeof getPlaceWithTags> | UpdateConflict | null {
@@ -200,7 +202,7 @@ export function updatePlace(
     name, description, lat, lng, address, category_id, price, currency,
     place_time, end_time,
     duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
-    transport_mode, tags,
+    transport_mode, route_color, tags,
   } = body;
 
   db.prepare(`
@@ -224,6 +226,7 @@ export function updatePlace(
       website = ?,
       phone = ?,
       transport_mode = COALESCE(?, transport_mode),
+      route_color = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(
@@ -246,6 +249,9 @@ export function updatePlace(
     website !== undefined ? website : existingPlace.website,
     phone !== undefined ? phone : existingPlace.phone,
     transport_mode || null,
+    // Deliberately not COALESCE: an explicit null is how the picker resets a
+    // track back to its category colour (#776).
+    route_color !== undefined ? route_color : existingPlace.route_color,
     placeId,
   );
 

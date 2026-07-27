@@ -236,6 +236,37 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     expect(onUpdated).toHaveBeenCalledWith(9);
   });
 
+  describe('route_color (#776)', () => {
+    it('400s on anything that is not a hex colour, before the permission check', () => {
+      const canEdit = vi.fn().mockReturnValue(false); // would 403 if it got that far
+      const err = { status: 400, body: { error: 'route_color must be a hex colour like #4f46e5' } };
+      expect(thrown(() => new PlacesController(svc({ canEdit })).update(user, '5', '9', { route_color: 'red' }))).toEqual(err);
+      expect(thrown(() => new PlacesController(svc({ canEdit })).update(user, '5', '9', { route_color: '#12345' }))).toEqual(err);
+      expect(thrown(() => new PlacesController(svc({ canEdit })).update(user, '5', '9', { route_color: 123 }))).toEqual(err);
+      expect(thrown(() => new PlacesController(svc({ canEdit })).create(user, '5', { name: 'T', route_color: 'red' }))).toEqual(err);
+      expect(canEdit).not.toHaveBeenCalled();
+    });
+
+    it('passes a valid hex through, and null through as the reset to auto', () => {
+      const update = vi.fn().mockReturnValue({ id: 9, route_color: '#e11d48' });
+      const broadcast = vi.fn();
+      const s = svc({ update, broadcast } as Partial<PlacesService>);
+      expect(new PlacesController(s).update(user, '5', '9', { route_color: '#e11d48' }, 'sock'))
+        .toEqual({ place: { id: 9, route_color: '#e11d48' } });
+      expect(update).toHaveBeenCalledWith('5', '9', expect.objectContaining({ route_color: '#e11d48' }), undefined);
+      // The colour has to reach the other members too, not just the DB.
+      expect(broadcast).toHaveBeenCalledWith('5', 'place:updated', { place: { id: 9, route_color: '#e11d48' } }, 'sock');
+
+      new PlacesController(svc({ update } as Partial<PlacesService>)).update(user, '5', '9', { route_color: null });
+      expect(update).toHaveBeenLastCalledWith('5', '9', expect.objectContaining({ route_color: null }), undefined);
+    });
+
+    it('accepts the short #abc form', () => {
+      const update = vi.fn().mockReturnValue({ id: 9 });
+      expect(new PlacesController(svc({ update } as Partial<PlacesService>)).update(user, '5', '9', { route_color: '#abc' })).toEqual({ place: { id: 9 } });
+    });
+  });
+
   it('PUT /:id forwards the base-version token and 409s on a conflict (#1135)', () => {
     const update = vi.fn().mockReturnValue({ conflict: true, server: { id: 9, name: 'Theirs' } });
     const onUpdated = vi.fn(); const broadcast = vi.fn();

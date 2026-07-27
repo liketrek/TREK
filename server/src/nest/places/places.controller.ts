@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { hexColorSchema } from '@trek/shared';
 import { readEnv } from '../../app-config';
 import type { User } from '../../types';
 import { PlacesService } from './places.service';
@@ -36,6 +37,16 @@ function validateLengths(body: Record<string, unknown>): void {
     if (value && typeof value === 'string' && value.length > max) {
       throw new HttpException({ error: `${field} must be ${max} characters or less` }, 400);
     }
+  }
+}
+
+// A bad hex makes MapLibre fail hard when it parses the paint property, and the
+// update body is an open record that Zod does not police — so check it here.
+function validateRouteColor(body: Record<string, unknown>): void {
+  const value = body.route_color;
+  if (value === undefined || value === null) return;
+  if (typeof value !== 'string' || !hexColorSchema.safeParse(value).success) {
+    throw new HttpException({ error: 'route_color must be a hex colour like #4f46e5' }, 400);
   }
 }
 
@@ -93,6 +104,7 @@ export class PlacesController {
   ) {
     const trip = this.requireTrip(tripId, user);
     validateLengths(body);
+    validateRouteColor(body);
     this.requireEdit(trip, user);
     if (!body.name) {
       throw new HttpException({ error: 'Place name is required' }, 400);
@@ -358,6 +370,7 @@ export class PlacesController {
   ) {
     const trip = this.requireTrip(tripId, user);
     validateLengths(body);
+    validateRouteColor(body);
     this.requireEdit(trip, user);
     const result = this.places.update(tripId, id, body as never, ifMatch);
     if (!result) {

@@ -110,6 +110,24 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(bad.body).toEqual({ error: 'ids must be an array of numbers' });
   });
 
+  it('PUT route_color: hex through, null through, garbage rejected (#776)', async () => {
+    pl.updatePlace.mockReturnValue({ id: 9, route_color: '#e11d48' });
+    const ok = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: '#e11d48' });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toEqual({ place: { id: 9, route_color: '#e11d48' } });
+    expect(pl.updatePlace).toHaveBeenCalledWith('5', '9', expect.objectContaining({ route_color: '#e11d48' }), undefined);
+
+    // null is the reset back to the inherited category colour.
+    pl.updatePlace.mockReturnValue({ id: 9, route_color: null });
+    const cleared = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: null });
+    expect(cleared.status).toBe(200);
+    expect(pl.updatePlace).toHaveBeenLastCalledWith('5', '9', expect.objectContaining({ route_color: null }), undefined);
+
+    const bad = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: 'red' });
+    expect(bad.status).toBe(400);
+    expect(bad.body).toEqual({ error: 'route_color must be a hex colour like #4f46e5' });
+  });
+
   it('404 trip when not accessible', async () => {
     canAccessTrip.mockReturnValue(undefined);
     const res = await request(server).get('/api/trips/5/places').set('Cookie', sessionCookie(1));
