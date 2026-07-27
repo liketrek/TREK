@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Hely/Tevékenység hozzáadása',
   'places.importFile': 'Fájl importálása',
+  'places.trackIndicator': 'Nyomvonal / útvonal',
   'places.sidebarDrop': 'Ejtse el az importáláshoz',
   'places.importFileHint':
     '.gpx, .kml vagy .kmz fájlok importálása olyan eszközökből, mint a Google My Maps, Google Earth vagy egy GPS tracker.',

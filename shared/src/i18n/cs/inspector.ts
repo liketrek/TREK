@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Upravit rezervaci',
   'inspector.participants': 'Účastníci',
   'inspector.trackStats': 'Data trasy',
+  'inspector.trackColor': 'Barva trasy',
+  'inspector.trackColorAuto': 'Automatická barva',
+  'inspector.trackColorCustom': 'Vybrat vlastní barvu',
 };
 export default inspector;

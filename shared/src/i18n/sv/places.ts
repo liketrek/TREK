@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Lägg till plats/aktivitet',
   'places.importFile': 'Importera fil',
+  'places.trackIndicator': 'Spår / rutt',
   'places.sidebarDrop': 'Släpp för att importera',
   'places.importFileHint':
     'Importera .gpx-, .kml- eller .kmz-filer från verktyg som Google My Maps, Google Earth eller en GPS-spårare.',

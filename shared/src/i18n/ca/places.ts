@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Afegeix un lloc / activitat',
   'places.importFile': 'Importa un fitxer',
+  'places.trackIndicator': 'Track / ruta',
   'places.sidebarDrop': 'Deixa anar per importar',
   'places.importFileHint':
     "Importa fitxers .gpx, .kml o .kmz d'eines com Google My Maps, Google Earth o un rastrejador GPS.",

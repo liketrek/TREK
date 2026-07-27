@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Tambah Tempat/Aktivitas',
   'places.importFile': 'Impor file',
+  'places.trackIndicator': 'Jalur / rute',
   'places.sidebarDrop': 'Lepas untuk mengimpor',
   'places.importFileHint': 'Impor file .gpx, .kml, atau .kmz dari Google My Maps, Google Earth, atau pelacak GPS.',
   'places.importFileDropHere': 'Klik untuk memilih file atau seret dan lepas di sini',

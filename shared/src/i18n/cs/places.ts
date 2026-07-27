@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Přidat místo/aktivitu',
   'places.importFile': 'Importovat soubor',
+  'places.trackIndicator': 'Trasa',
   'places.sidebarDrop': 'Pusťte pro import',
   'places.importFileHint':
     'Importujte soubory .gpx, .kml nebo .kmz z nástrojů jako Google My Maps, Google Earth nebo GPS tracker.',

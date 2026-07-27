@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': '場所／アクティビティを追加',
   'places.importFile': 'ファイルをインポート',
+  'places.trackIndicator': 'トラック / ルート',
   'places.sidebarDrop': 'ドロップしてインポート',
   'places.importFileHint':
     'Google My Maps、Google Earth、GPSトラッカーなどの .gpx、.kml、.kmz ファイルをインポートできます。',

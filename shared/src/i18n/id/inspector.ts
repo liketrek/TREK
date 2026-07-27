@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Edit Reservasi',
   'inspector.participants': 'Peserta',
   'inspector.trackStats': 'Statistik Jalur',
+  'inspector.trackColor': 'Warna jalur',
+  'inspector.trackColorAuto': 'Warna otomatis',
+  'inspector.trackColorCustom': 'Pilih warna kustom',
 };
 export default inspector;

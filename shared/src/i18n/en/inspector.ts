@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Edit Reservation',
   'inspector.participants': 'Participants',
   'inspector.trackStats': 'Track Stats',
+  'inspector.trackColor': 'Track color',
+  'inspector.trackColorAuto': 'Automatic color',
+  'inspector.trackColorCustom': 'Choose custom color',
 };
 export default inspector;

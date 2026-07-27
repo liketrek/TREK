@@ -18,6 +18,9 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Edita la reserva',
   'inspector.participants': 'Participants',
   'inspector.trackStats': 'Dades de la ruta',
+  'inspector.trackColor': 'Color de la ruta',
+  'inspector.trackColorAuto': 'Color automàtic',
+  'inspector.trackColorCustom': 'Tria un color personalitzat',
 
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.saveToCollection': 'Desar a la col·lecció',

@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Προσθήκη Μέρους/Δραστηριότητας',
   'places.importFile': 'Εισαγωγή αρχείου',
+  'places.trackIndicator': 'Ίχνος / διαδρομή',
   'places.sidebarDrop': 'Αφήστε για εισαγωγή',
   'places.importFileHint':
     'Εισαγωγή αρχείων .gpx, .kml ή .kmz από εργαλεία όπως Google My Maps, Google Earth ή GPS tracker.',

@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Yer/etkinlik Ekle',
   'places.importFile': 'Dosyayı içe aktar',
+  'places.trackIndicator': 'İz / rota',
   'places.sidebarDrop': 'İçe aktarmak için bırakın',
   'places.importFileHint':
     'Google Haritalarım, Google Earth veya GPS izleyici gibi araçlardan .gpx, .kml veya .kmz dosyalarını içe aktarın.',

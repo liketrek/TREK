@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': '添加地点/活动',
   'places.importFile': '导入文件',
+  'places.trackIndicator': '轨迹 / 路线',
   'places.sidebarDrop': '拖放以导入',
   'places.importFileHint': '从 Google My Maps、Google Earth 或 GPS 追踪器等工具导入 .gpx、.kml 或 .kmz 文件。',
   'places.importFileDropHere': '点击选择文件或拖放到此处',

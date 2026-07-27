@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Thêm địa điểm/Hoạt động',
   'places.importFile': 'Nhập tập tin',
+  'places.trackIndicator': 'Đường đi / tuyến đường',
   'places.sidebarDrop': 'Thả để nhập',
   'places.importFileHint':
     'Nhập tệp.gpx,.kml hoặc.kmz từ các công cụ như Google My Maps, Google Earth hoặc trình theo dõi GPS.',

@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Redigera bokning',
   'inspector.participants': 'Deltagare',
   'inspector.trackStats': 'Spåra statistik',
+  'inspector.trackColor': 'Spårfärg',
+  'inspector.trackColorAuto': 'Automatisk färg',
+  'inspector.trackColorCustom': 'Välj egen färg',
 };
 export default inspector;

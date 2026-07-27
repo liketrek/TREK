@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'تعديل الحجز',
   'inspector.participants': 'المشاركون',
   'inspector.trackStats': 'بيانات المسار',
+  'inspector.trackColor': 'لون المسار',
+  'inspector.trackColorAuto': 'لون تلقائي',
+  'inspector.trackColorCustom': 'اختيار لون مخصص',
 };
 export default inspector;

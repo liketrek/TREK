@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': '장소/활동 추가',
   'places.importFile': '파일 가져오기',
+  'places.trackIndicator': '트랙 / 경로',
   'places.sidebarDrop': '끌어다 가져오기',
   'places.importFileHint': 'Google My Maps, Google Earth 또는 GPS 추적기 등의 .gpx, .kml, .kmz 파일을 가져옵니다.',
   'places.importFileDropHere': '파일을 선택하거나 여기에 끌어다 놓으세요',

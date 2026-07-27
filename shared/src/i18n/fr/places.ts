@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Ajouter un lieu/activité',
   'places.importFile': 'Importer un fichier',
+  'places.trackIndicator': 'Parcours / itinéraire',
   'places.sidebarDrop': 'Déposer pour importer',
   'places.importFileHint':
     'Importez des fichiers .gpx, .kml ou .kmz depuis des outils comme Google My Maps, Google Earth ou un traceur GPS.',

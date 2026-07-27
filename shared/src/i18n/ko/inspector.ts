@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': '예약 편집',
   'inspector.participants': '참가자',
   'inspector.trackStats': '트랙 통계',
+  'inspector.trackColor': '트랙 색상',
+  'inspector.trackColorAuto': '자동 색상',
+  'inspector.trackColorCustom': '사용자 지정 색상 선택',
 };
 export default inspector;

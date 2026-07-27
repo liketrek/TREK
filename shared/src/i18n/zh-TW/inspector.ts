@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': '編輯預訂',
   'inspector.participants': '參與者',
   'inspector.trackStats': '軌跡資料',
+  'inspector.trackColor': '軌跡顏色',
+  'inspector.trackColorAuto': '自動顏色',
+  'inspector.trackColorCustom': '選擇自定義顏色',
 };
 export default inspector;
