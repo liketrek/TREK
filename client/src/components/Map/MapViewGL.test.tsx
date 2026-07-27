@@ -676,4 +676,38 @@ describe('MapViewGL', () => {
 
     expect(glMap.fitBounds.mock.calls.length).toBe(afterDayFit)
   })
+// ── Track colours (#776) ──────────────────────────────────────────────────
+  // The gpx layer paints from a per-feature property, so what matters is the
+  // GeoJSON handed to setData. getSource returns null by default in this suite,
+  // which makes the effect bail out — the source has to be stubbed per test.
+  const gpxFeatures = () => {
+    const gpxSource = { setData: vi.fn() }
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-gpx' ? gpxSource : null))
+    return () => {
+      const calls = gpxSource.setData.mock.calls
+      return calls.length ? (calls[calls.length - 1][0]?.features ?? []) : []
+    }
+  }
+
+  it('FE-COMP-MAPVIEWGL-021: a picked route_color reaches the feature, casing on', async () => {
+    const features = gpxFeatures()
+    const places = [buildMapPlace({
+      id: 5, lat: 48, lng: 2, route_geometry: '[[48.0,2.0],[49.0,3.0]]',
+      category_color: '#00ff00', route_color: '#e11d48',
+    })]
+    render(<MapViewGL places={places} fitKey={1} glProvider="maplibre-gl" />)
+    await act(async () => {})
+    expect(features()[0]?.properties).toMatchObject({ color: '#e11d48', cased: true, place_id: 5 })
+  })
+
+  it('FE-COMP-MAPVIEWGL-022: without a pick it stays on the category colour and skips the casing', async () => {
+    const features = gpxFeatures()
+    const places = [buildMapPlace({
+      id: 6, lat: 48, lng: 2, route_geometry: '[[48.0,2.0],[49.0,3.0]]',
+      category_color: '#00ff00',
+    })]
+    render(<MapViewGL places={places} fitKey={1} glProvider="maplibre-gl" />)
+    await act(async () => {})
+    expect(features()[0]?.properties).toMatchObject({ color: '#00ff00', cased: false })
+  })
 })

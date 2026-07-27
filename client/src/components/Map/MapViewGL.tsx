@@ -19,6 +19,7 @@ import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import type { Place, Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
@@ -41,6 +42,7 @@ const PLACE_CLUSTER_SOURCE_ID = 'trip-place-clusters'
 const PLACE_CLUSTER_CIRCLE_LAYER_ID = 'trip-place-clusters-circle'
 const PLACE_CLUSTER_COUNT_LAYER_ID = 'trip-place-clusters-count'
 const PLACE_UNCLUSTERED_LAYER_ID = 'trip-place-unclustered-hit'
+const GPX_HIT_LAYER_ID = 'trip-gpx-hit'
 
 type PlaceWithCoords = Place & { lat: number; lng: number }
 
@@ -517,6 +519,17 @@ export function MapViewGL({
       // gpx geometries source (place.route_geometry)
       if (!map.getSource('trip-gpx')) {
         map.addSource('trip-gpx', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        // Casing under the tracks that carry a picked colour (#776) — keeps them
+        // legible on satellite and dark styles. Untouched tracks are filtered
+        // out, so they look exactly as they did before.
+        map.addLayer({
+          id: 'trip-gpx-casing',
+          type: 'line',
+          source: 'trip-gpx',
+          filter: ['==', ['get', 'cased'], true],
+          paint: { 'line-color': '#ffffff', 'line-width': 6.5, 'line-opacity': 0.7 },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
         map.addLayer({
           id: 'trip-gpx-line',
           type: 'line',
@@ -524,10 +537,45 @@ export function MapViewGL({
           paint: {
             'line-color': ['coalesce', ['get', 'color'], '#3b82f6'],
             'line-width': 3.5,
-            'line-opacity': 0.75,
+            'line-opacity': ['case', ['==', ['get', 'cased'], true], 0.9, 0.75],
           },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
         })
+        // Invisible fat line that catches the click — 3.5px is not a target,
+        // and the start markers cluster below zoom 11, so without this a track
+        // is unreachable at the very zoom where you compare walks side by side.
+        map.addLayer({
+          id: GPX_HIT_LAYER_ID,
+          type: 'line',
+          source: 'trip-gpx',
+          paint: { 'line-color': '#000', 'line-width': 14, 'line-opacity': 0 },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+        const selectTrack = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          // A click on a cluster bubble sitting over a track belongs to the
+          // cluster (zoom-to-expand), not to the line underneath it.
+          if (
+            typeof map.getLayer === 'function'
+            && map.getLayer(PLACE_CLUSTER_CIRCLE_LAYER_ID)
+            && typeof map.queryRenderedFeatures === 'function'
+            && map.queryRenderedFeatures(e.point, { layers: [PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID] }).length > 0
+          ) return
+          const target = e.originalEvent?.target as HTMLElement | undefined
+          if (target?.closest?.('.mapboxgl-marker, .maplibregl-marker')) return
+          const placeId = e.features?.[0]?.properties?.place_id
+          if (typeof placeId === 'number') onClickRefs.current.marker?.(placeId)
+        }
+        const setTrackCursor = () => {
+          const canvas = typeof map.getCanvas === 'function' ? map.getCanvas() : null
+          if (canvas) canvas.style.cursor = 'pointer'
+        }
+        const clearTrackCursor = () => {
+          const canvas = typeof map.getCanvas === 'function' ? map.getCanvas() : null
+          if (canvas) canvas.style.cursor = ''
+        }
+        map.on('click', GPX_HIT_LAYER_ID, selectTrack)
+        map.on('mouseenter', GPX_HIT_LAYER_ID, setTrackCursor)
+        map.on('mouseleave', GPX_HIT_LAYER_ID, clearTrackCursor)
       }
       if (!map.getSource(PLACE_CLUSTER_SOURCE_ID)) {
         map.addSource(PLACE_CLUSTER_SOURCE_ID, {
@@ -673,6 +721,14 @@ export function MapViewGL({
         && map.getLayer(PLACE_CLUSTER_CIRCLE_LAYER_ID)
         && typeof map.queryRenderedFeatures === 'function'
         && map.queryRenderedFeatures(e.point, { layers: [PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID] }).length > 0
+      ) return
+      // Same for a click that landed on a track — it selects the track, it does
+      // not drop a new place on top of the line.
+      if (
+        typeof map.getLayer === 'function'
+        && map.getLayer(GPX_HIT_LAYER_ID)
+        && typeof map.queryRenderedFeatures === 'function'
+        && map.queryRenderedFeatures(e.point, { layers: [GPX_HIT_LAYER_ID] }).length > 0
       ) return
       onClickRefs.current.map?.({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng } })
     })
@@ -1155,7 +1211,11 @@ export function MapViewGL({
         if (!coords || coords.length < 2) return []
         return [{
           type: 'Feature' as const,
-          properties: { color: (place as Place & { category_color?: string }).category_color || '#3b82f6' },
+          properties: {
+            color: resolveTrackColor(place),
+            cased: hasManualTrackColor(place),
+            place_id: place.id,
+          },
           geometry: { type: 'LineString' as const, coordinates: coords.map(([lat, lng]) => [lng, lat]) },
         }]
       } catch { return [] }

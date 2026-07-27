@@ -40,7 +40,22 @@ vi.mock('react-leaflet', () => ({
       {children}
     </div>
   ),
-  Polyline: ({ positions }: any) => <div data-testid="polyline" data-points={JSON.stringify(positions)} />,
+  // pathOptions has to reach the DOM: the style props are what the track-colour
+  // feature (#776) actually asserts on, and the real Leaflet only repaints when
+  // that object's reference changes.
+  // bubblingMouseEvents and pane are surfaced too: a jsdom mock cannot reproduce
+  // Leaflet's event propagation or its pane stacking, so the tests assert the
+  // options that govern them instead.
+  Polyline: ({ positions, pathOptions, eventHandlers, bubblingMouseEvents, pane }: any) => (
+    <div
+      data-testid="polyline"
+      data-points={JSON.stringify(positions)}
+      data-path-options={JSON.stringify(pathOptions ?? null)}
+      data-bubbling={String(bubblingMouseEvents)}
+      data-pane={pane ?? ''}
+      onClick={() => eventHandlers?.click?.()}
+    />
+  ),
   CircleMarker: () => <div data-testid="circle-marker" />,
   Circle: () => <div data-testid="circle" />,
   Tooltip: ({ children }: any) => <>{children}</>,
@@ -154,7 +169,10 @@ describe('MapView', () => {
       buildMapPlace({ lat: 48.0, lng: 2.0, route_geometry: '[[48.0,2.0],[49.0,3.0]]' }),
     ]
     render(<MapView places={places} />)
-    expect(screen.getByTestId('polyline')).toBeTruthy()
+    // Three per track: casing, the visible line, and the invisible fat one
+    // that catches clicks. The casing is always mounted so that toggling a
+    // colour never remounts a path into the wrong stacking position.
+    expect(screen.getAllByTestId('polyline').length).toBe(3)
   })
 
   it('FE-COMP-MAPVIEW-010: MarkerClusterGroup is rendered', () => {
@@ -185,6 +203,67 @@ describe('MapView', () => {
     ]
     render(<MapView places={places} />)
     expect(screen.queryByTestId('polyline')).toBeNull()
+  })
+
+  // ── Track colours (#776) ──────────────────────────────────────────────────
+  // The style has to travel through pathOptions: react-leaflet only calls
+  // setStyle when that object's reference changes, so bare color/weight props
+  // would freeze at their mount-time value and a recolour would never show.
+  const trackOptions = () => screen.getAllByTestId('polyline')
+    .map(el => JSON.parse(el.getAttribute('data-path-options') || 'null'))
+    .filter(Boolean)
+
+  it('FE-COMP-MAPVIEW-025: a picked route_color beats the category colour', () => {
+    const places = [buildMapPlace({
+      lat: 48.0, lng: 2.0, route_geometry: '[[48.0,2.0],[49.0,3.0]]',
+      category_color: '#00ff00', route_color: '#e11d48',
+    })]
+    render(<MapView places={places} />)
+    expect(trackOptions().some(o => o.color === '#e11d48')).toBe(true)
+    expect(trackOptions().some(o => o.color === '#00ff00')).toBe(false)
+  })
+
+  it('FE-COMP-MAPVIEW-026: without route_color the category colour still wins', () => {
+    const places = [buildMapPlace({
+      lat: 48.0, lng: 2.0, route_geometry: '[[48.0,2.0],[49.0,3.0]]',
+      category_color: '#00ff00', route_color: null,
+    })]
+    render(<MapView places={places} />)
+    expect(trackOptions().some(o => o.color === '#00ff00')).toBe(true)
+  })
+
+  it('FE-COMP-MAPVIEW-027: with neither colour the track keeps the old blue', () => {
+    const places = [buildMapPlace({ lat: 48.0, lng: 2.0, route_geometry: '[[48.0,2.0],[49.0,3.0]]' })]
+    render(<MapView places={places} />)
+    expect(trackOptions().some(o => o.color === '#3b82f6' && o.weight === 3.5 && o.opacity === 0.75)).toBe(true)
+    // The casing is mounted but invisible — a track nobody coloured looks
+    // exactly as it did before.
+    expect(trackOptions().some(o => o.color === '#ffffff' && o.opacity === 0)).toBe(true)
+    expect(trackOptions().some(o => o.color === '#ffffff' && o.opacity > 0)).toBe(false)
+  })
+
+  it('FE-COMP-MAPVIEW-028: a coloured track gets a white casing underneath', () => {
+    const places = [buildMapPlace({
+      lat: 48.0, lng: 2.0, route_geometry: '[[48.0,2.0],[49.0,3.0]]', route_color: '#059669',
+    })]
+    render(<MapView places={places} />)
+    expect(trackOptions().some(o => o.color === '#ffffff' && o.weight === 6.5 && o.opacity === 0.7)).toBe(true)
+    expect(trackOptions().some(o => o.color === '#059669' && o.opacity === 0.9)).toBe(true)
+  })
+
+  it('FE-COMP-MAPVIEW-029: clicking a track selects its place', () => {
+    const onMarkerClick = vi.fn()
+    const places = [buildMapPlace({
+      id: 77, lat: 48.0, lng: 2.0, route_geometry: '[[48.0,2.0],[49.0,3.0]]',
+    })]
+    render(<MapView places={places} onMarkerClick={onMarkerClick} />)
+    const hit = screen.getAllByTestId('polyline')
+      .find(el => JSON.parse(el.getAttribute('data-path-options') || '{}').weight === 14)
+    fireEvent.click(hit!)
+    expect(onMarkerClick).toHaveBeenCalledWith(77)
+    // Paths bubble to the map by default and the map click clears the selection
+    // this one just made — the mock cannot reproduce that, so assert the option.
+    expect(hit!.getAttribute('data-bubbling')).toBe('false')
   })
 
   it('FE-COMP-MAPVIEW-014: marker icon uses base64 image_url for photo places', () => {
