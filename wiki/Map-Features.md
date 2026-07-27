@@ -30,6 +30,16 @@ When zoomed out, nearby markers are grouped into clusters. Clicking a cluster zo
 
 When you have a day selected, a dark dashed line connects consecutive places in that day's order.
 
+## GPX tracks
+
+Tracks and routes imported from a `.gpx`, `.kml`, or `.kmz` file are drawn as lines on the map. Each track imported into a trip is given its own colour automatically, so several walks in the same area stay distinguishable without any setup.
+
+To change a track's colour, open the place and use the **Track color** row: pick one of the presets, choose your own with the colour picker, or hit the dashed cell to go back to the automatic colour — the category colour if the place has one, otherwise the default blue.
+
+Any track that carries a colour — assigned at import or picked by you — is drawn with a thin white casing so it stays readable on satellite imagery and dark basemaps. Tracks imported before this version keep their previous look until you give them a colour.
+
+Clicking a line on the map selects that track and opens its details — useful when the start markers are still clustered together. In the places list, each track shows a short stroke in the colour it is drawn in, which is how you tell which line belongs to which entry.
+
 ## Route time pills
 
 At zoom level 12 or higher, small pill-shaped labels appear between consecutive places and show the estimated **walking time** and **driving time** for each segment. Below zoom 12 they are hidden to keep the map clean.

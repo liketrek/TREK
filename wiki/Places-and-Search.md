@@ -63,6 +63,8 @@ The same control is available on saved places in [Collections](Collections#place
 
 Drag a `.gpx`, `.kml`, or `.kmz` file onto the Places sidebar to import all waypoints or features at once. You can also import a saved-list share URL using the **Import list** button in the sidebar header — both Google Maps and Naver Maps list URLs are supported.
 
+Imported tracks each get their own line colour so multiple routes stay apart on the map; you can override it per track from the place details. See [Map Features](Map-Features) for the details.
+
 > **Admin:** Google Maps API key is set in [User-Settings](User-Settings). Without it, OSM search is used automatically.
 
 **See also:** [Day-Plans-and-Notes](Day-Plans-and-Notes) · [Map-Features](Map-Features) · [Tags-and-Categories](Tags-and-Categories)
