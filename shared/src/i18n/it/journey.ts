@@ -125,6 +125,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1°',
   'journey.editor.makeFirst': 'Metti 1°',
   'journey.editor.searching': 'Ricerca...',
+  'journey.editor.useCurrentLocation': 'Usa la mia posizione attuale',
+  'journey.editor.locationPermissionDenied':
+    "L'accesso alla posizione è stato negato. Consentilo nelle impostazioni del browser e riprova.",
+  'journey.editor.locationTimeout': 'Tempo scaduto durante il rilevamento della posizione. Riprova.',
+  'journey.editor.locationUnavailable': 'Impossibile determinare la tua posizione.',
+  'journey.editor.locationInsecureContext': 'La posizione richiede una connessione sicura (HTTPS).',
   'journey.mood.amazing': 'Fantastico',
   'journey.mood.good': 'Buono',
   'journey.mood.neutral': 'Neutro',

@@ -128,6 +128,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1η',
   'journey.editor.makeFirst': 'Ορισμός ως 1η',
   'journey.editor.searching': 'Αναζήτηση...',
+  'journey.editor.useCurrentLocation': 'Χρήση της τρέχουσας τοποθεσίας μου',
+  'journey.editor.locationPermissionDenied':
+    'Η πρόσβαση στην τοποθεσία απορρίφθηκε. Επιτρέψτε την στις ρυθμίσεις του προγράμματος περιήγησης και δοκιμάστε ξανά.',
+  'journey.editor.locationTimeout': 'Λήξη χρονικού ορίου κατά τον εντοπισμό της τοποθεσίας σας. Δοκιμάστε ξανά.',
+  'journey.editor.locationUnavailable': 'Δεν ήταν δυνατός ο εντοπισμός της τοποθεσίας σας.',
+  'journey.editor.locationInsecureContext': 'Η τοποθεσία απαιτεί ασφαλή σύνδεση (HTTPS).',
   'journey.mood.amazing': 'Καταπληκτική',
   'journey.mood.good': 'Καλή',
   'journey.mood.neutral': 'Ουδέτερη',

@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
-import { X, Plus, Image, Minus, Check, MapPin } from 'lucide-react'
+import { X, Plus, Image, Minus, Check, MapPin, Locate } from 'lucide-react'
 import { normalizeImageFiles } from '../../utils/convertHeic'
 import { type ResilientResult, type UploadProgress } from '../../utils/uploadQueue'
 import { useTranslation } from '../../i18n'
 import { journeyApi, mapsApi, addonsApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
+import { getCurrentPositionOnce, GeoOnceError } from '../../hooks/useGeolocation'
 import { getApiErrorMessage } from '../../types'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
@@ -28,7 +29,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   onAddProviderPhotos?: (entryId: number, group: PendingProviderGroup) => Promise<void>
   onDone: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const toast = useToast()
   const [title, setTitle] = useState(entry.title || '')
   const [story, setStory] = useState(entry.story || '')
@@ -41,6 +42,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   const [locationResults, setLocationResults] = useState<{ name: string; address?: string; lat: number; lng: number }[]>([])
   const [locationSearching, setLocationSearching] = useState(false)
   const [showLocationResults, setShowLocationResults] = useState(false)
+  const [locating, setLocating] = useState(false)
   const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mood, setMood] = useState(entry.mood || '')
   const [weather, setWeather] = useState(entry.weather || '')
@@ -195,6 +197,41 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   const contextLocation = isValidGeoPoint({ lat: locationLat ?? NaN, lng: locationLng ?? NaN })
     ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
     : null
+
+  const handleUseCurrentLocation = async () => {
+    if (locating) return
+    setLocating(true)
+    try {
+      const pos = await getCurrentPositionOnce()
+      // Fill coordinates right away; the name is refined below once the
+      // reverse geocode comes back.
+      const fallbackName = `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`
+      if (locationTimerRef.current) clearTimeout(locationTimerRef.current)
+      setLocationSearching(false)
+      setLocationLat(pos.lat)
+      setLocationLng(pos.lng)
+      setLocationName(fallbackName)
+      setLocationQuery('')
+      setLocationResults([])
+      setShowLocationResults(false)
+      try {
+        const data = await mapsApi.reverse(pos.lat, pos.lng, language)
+        const name = data.name || data.address
+        // Only replace the coordinate fallback — don't clobber a search
+        // result the user may have picked while the reverse call was in flight.
+        if (name) setLocationName(prev => (prev === fallbackName ? name : prev))
+      } catch { /* best effort — keep the coordinate fallback */ }
+    } catch (err) {
+      const code = err instanceof GeoOnceError ? err.code : 'unavailable'
+      toast.error(
+        code === 'permission-denied' ? t('journey.editor.locationPermissionDenied')
+          : code === 'timeout' ? t('journey.editor.locationTimeout')
+          : code === 'insecure-context' ? t('journey.editor.locationInsecureContext')
+          : t('journey.editor.locationUnavailable'))
+    } finally {
+      setLocating(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[9999]" style={{ background: 'rgba(9,9,11,0.6)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
@@ -558,8 +595,20 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                   }}
                   onFocus={() => { if (locationResults.length > 0) setShowLocationResults(true) }}
                   placeholder={t('journey.editor.searchLocation')}
-                  className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  className="w-full pl-3 pr-9 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
                 />
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={locating}
+                  title={t('journey.editor.useCurrentLocation')}
+                  aria-label={t('journey.editor.useCurrentLocation')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50"
+                >
+                  {locating
+                    ? <div className="w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
+                    : <Locate size={14} />}
+                </button>
               </div>
               {showLocationResults && locationResults.length > 0 && (
                 <>

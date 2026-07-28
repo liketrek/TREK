@@ -123,6 +123,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1番目',
   'journey.editor.makeFirst': '1番目にする',
   'journey.editor.searching': '検索中…',
+  'journey.editor.useCurrentLocation': '現在地を使用',
+  'journey.editor.locationPermissionDenied':
+    '位置情報へのアクセスが拒否されました。ブラウザの設定で許可して再試行してください。',
+  'journey.editor.locationTimeout': '位置情報の取得がタイムアウトしました。もう一度お試しください。',
+  'journey.editor.locationUnavailable': '現在地を特定できませんでした。',
+  'journey.editor.locationInsecureContext': '位置情報には安全な接続（HTTPS）が必要です。',
   'journey.mood.amazing': '最高',
   'journey.mood.good': '良い',
   'journey.mood.neutral': '普通',

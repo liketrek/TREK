@@ -125,6 +125,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1.',
   'journey.editor.makeFirst': 'Nastavit jako 1.',
   'journey.editor.searching': 'Hledání...',
+  'journey.editor.useCurrentLocation': 'Použít moji aktuální polohu',
+  'journey.editor.locationPermissionDenied':
+    'Přístup k poloze byl odepřen. Povolte ho v nastavení prohlížeče a zkuste to znovu.',
+  'journey.editor.locationTimeout': 'Vypršel čas při zjišťování polohy. Zkuste to znovu.',
+  'journey.editor.locationUnavailable': 'Nepodařilo se zjistit vaši polohu.',
+  'journey.editor.locationInsecureContext': 'Poloha vyžaduje zabezpečené připojení (HTTPS).',
   'journey.mood.amazing': 'Úžasný',
   'journey.mood.good': 'Dobrý',
   'journey.mood.neutral': 'Neutrální',

@@ -126,6 +126,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1:a',
   'journey.editor.makeFirst': 'Gör 1:a',
   'journey.editor.searching': 'Söker...',
+  'journey.editor.useCurrentLocation': 'Använd min nuvarande plats',
+  'journey.editor.locationPermissionDenied':
+    'Platsåtkomst nekades. Tillåt den i webbläsarens inställningar och försök igen.',
+  'journey.editor.locationTimeout': 'Tidsgränsen för att hämta din plats överskreds. Försök igen.',
+  'journey.editor.locationUnavailable': 'Din plats kunde inte fastställas.',
+  'journey.editor.locationInsecureContext': 'Plats kräver en säker anslutning (HTTPS).',
   'journey.mood.amazing': 'Fantastiskt',
   'journey.mood.good': 'Bra',
   'journey.mood.neutral': 'Neutral',

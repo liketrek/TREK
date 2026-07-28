@@ -126,6 +126,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1e',
   'journey.editor.makeFirst': 'Maak 1e',
   'journey.editor.searching': 'Zoeken...',
+  'journey.editor.useCurrentLocation': 'Mijn huidige locatie gebruiken',
+  'journey.editor.locationPermissionDenied':
+    'Locatietoegang is geweigerd. Sta het toe in je browserinstellingen en probeer het opnieuw.',
+  'journey.editor.locationTimeout': 'Time-out bij het ophalen van je locatie. Probeer het opnieuw.',
+  'journey.editor.locationUnavailable': 'Je locatie kon niet worden bepaald.',
+  'journey.editor.locationInsecureContext': 'Locatie vereist een beveiligde (HTTPS-)verbinding.',
   'journey.mood.amazing': 'Fantastisch',
   'journey.mood.good': 'Goed',
   'journey.mood.neutral': 'Neutraal',

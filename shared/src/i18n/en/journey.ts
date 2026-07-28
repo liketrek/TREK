@@ -133,6 +133,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1st',
   'journey.editor.makeFirst': 'Make 1st',
   'journey.editor.searching': 'Searching...',
+  'journey.editor.useCurrentLocation': 'Use my current location',
+  'journey.editor.locationPermissionDenied':
+    'Location access was denied. Allow it in your browser settings and try again.',
+  'journey.editor.locationTimeout': 'Timed out getting your location. Try again.',
+  'journey.editor.locationUnavailable': 'Could not determine your location.',
+  'journey.editor.locationInsecureContext': 'Location requires a secure (HTTPS) connection.',
   'journey.mood.amazing': 'Amazing',
   'journey.mood.good': 'Good',
   'journey.mood.neutral': 'Neutral',

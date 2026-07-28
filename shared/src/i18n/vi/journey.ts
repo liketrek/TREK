@@ -126,6 +126,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': 'thứ nhất',
   'journey.editor.makeFirst': 'làm số 1',
   'journey.editor.searching': 'Đang tìm kiếm...',
+  'journey.editor.useCurrentLocation': 'Dùng vị trí hiện tại của tôi',
+  'journey.editor.locationPermissionDenied':
+    'Quyền truy cập vị trí bị từ chối. Hãy cho phép trong cài đặt trình duyệt rồi thử lại.',
+  'journey.editor.locationTimeout': 'Hết thời gian lấy vị trí. Hãy thử lại.',
+  'journey.editor.locationUnavailable': 'Không thể xác định vị trí của bạn.',
+  'journey.editor.locationInsecureContext': 'Vị trí yêu cầu kết nối an toàn (HTTPS).',
   'journey.mood.amazing': 'Tuyệt vời',
   'journey.mood.good': 'Tốt',
   'journey.mood.neutral': 'Trung lập',

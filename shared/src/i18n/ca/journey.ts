@@ -125,6 +125,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1r',
   'journey.editor.makeFirst': 'Fes 1r',
   'journey.editor.searching': 'Cercant...',
+  'journey.editor.useCurrentLocation': 'Utilitza la meva ubicació actual',
+  'journey.editor.locationPermissionDenied':
+    "S'ha denegat l'accés a la ubicació. Permet-lo a la configuració del navegador i torna-ho a provar.",
+  'journey.editor.locationTimeout': "S'ha esgotat el temps per obtenir la ubicació. Torna-ho a provar.",
+  'journey.editor.locationUnavailable': "No s'ha pogut determinar la teva ubicació.",
+  'journey.editor.locationInsecureContext': 'La ubicació requereix una connexió segura (HTTPS).',
   'journey.mood.amazing': 'Increïble',
   'journey.mood.good': 'Bé',
   'journey.mood.neutral': 'Neutral',
