@@ -46,13 +46,9 @@ const svc = new VacayService(new DatabaseService(testDb));
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
-beforeAll(async () => {
+beforeAll(() => {
   createTables(testDb);
   runMigrations(testDb);
-  // Warm the (mocked) notificationService module: sendInvite/shareCalendar do a
-  // fire-and-forget dynamic import of it, and a cold load can otherwise race the
-  // worker teardown ("Cannot load ... after the environment was torn down").
-  await import('../../../src/services/notificationService');
 });
 
 beforeEach(() => {
@@ -1114,6 +1110,27 @@ describe('shareCalendar', () => {
       .prepare('SELECT * FROM vacay_shares WHERE owner_id = ? AND user_id = ?')
       .get(owner.id, target.id);
     expect(row).toBeDefined();
+  });
+
+  it('VACAY-SVC-073: dispatches the share notification before returning, not on a deferred module load', async () => {
+    const { send } = await import('../../../src/services/notificationService');
+    vi.mocked(send).mockClear();
+    const { user: owner } = setupUserWithPlan();
+    const { user: target } = createUser(testDb);
+
+    svc.shareCalendar(owner.id, owner.email, target.id);
+
+    // A deferred `import(...).then(...)` only dispatches after the caller has
+    // returned, so the chain outlives the test: Vitest tears the module
+    // environment down underneath it and the late load fails the whole run with
+    // "Cannot load ... after the environment was torn down". Dispatching before
+    // returning is what removes the need to pre-warm the module in beforeAll.
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(send).mock.calls[0][0]).toMatchObject({
+      event: 'vacay_share',
+      actorId: owner.id,
+      targetId: target.id,
+    });
   });
 
   it('VACAY-SVC-049: returns 400 when sharing with yourself', () => {

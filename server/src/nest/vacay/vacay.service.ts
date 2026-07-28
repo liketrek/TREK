@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { broadcastToUser } from '../../websocket';
 import { DatabaseService } from '../database/database.service';
+// Imported statically on purpose: a deferred import() inside these synchronous
+// methods resolves after the caller has returned, so the module load outlives
+// the request — and, in tests, the module environment, which Vitest reports as
+// "Cannot load ... after the environment was torn down".
+import { send as sendNotification } from '../../services/notificationService';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -627,9 +632,7 @@ export class VacayService {
     } catch { /* websocket not available */ }
 
     // Notify invited user
-    import('../../services/notificationService').then(({ send }) => {
-      send({ event: 'vacay_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, planId: String(planId) } }).catch(() => {});
-    });
+    sendNotification({ event: 'vacay_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, planId: String(planId) } }).catch(() => {});
 
     return {};
   }
@@ -858,9 +861,7 @@ export class VacayService {
       broadcastToUser(ownerId, { type: 'vacay:share', from: { id: ownerId } }, socketId);
     } catch { /* websocket not available */ }
 
-    import('../../services/notificationService').then(({ send }) => {
-      send({ event: 'vacay_share', actorId: ownerId, scope: 'user', targetId: targetUserId, params: { actor: ownerEmail } }).catch(() => {});
-    });
+    sendNotification({ event: 'vacay_share', actorId: ownerId, scope: 'user', targetId: targetUserId, params: { actor: ownerEmail } }).catch(() => {});
 
     return {};
   }
