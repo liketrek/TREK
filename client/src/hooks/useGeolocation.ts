@@ -40,6 +40,56 @@ function smoothAngle(prev: number | null, next: number, alpha = 0.25): number {
   return (prev + delta * alpha + 360) % 360
 }
 
+export type GeoOnceErrorCode = 'unsupported' | 'insecure-context' | 'permission-denied' | 'unavailable' | 'timeout'
+
+export class GeoOnceError extends Error {
+  code: GeoOnceErrorCode
+
+  constructor(code: GeoOnceErrorCode, message?: string) {
+    super(message || code)
+    this.name = 'GeoOnceError'
+    this.code = code
+  }
+}
+
+// One-shot position fix for form fields (e.g. journal entry location).
+// Unlike the watch below, a cached fix up to a minute old is fine here —
+// the user is standing where they're journaling — so maximumAge is
+// generous to make the button feel instant when the OS already has a fix.
+export function getCurrentPositionOnce(
+  options: PositionOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+): Promise<GeoPosition> {
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator)) {
+      reject(new GeoOnceError('unsupported'))
+      return
+    }
+    // Browsers hard-block geolocation outside secure contexts; surface that
+    // explicitly since self-hosted instances served over plain HTTP hit it.
+    if (typeof window !== 'undefined' && window.isSecureContext === false) {
+      reject(new GeoOnceError('insecure-context'))
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        heading: pos.coords.heading ?? null,
+        speed: pos.coords.speed ?? null,
+        timestamp: pos.timestamp,
+      }),
+      (err) => reject(new GeoOnceError(
+        err.code === err.PERMISSION_DENIED ? 'permission-denied'
+          : err.code === err.TIMEOUT ? 'timeout'
+          : 'unavailable',
+        err.message,
+      )),
+      options,
+    )
+  })
+}
+
 export function useGeolocation(): UseGeolocationReturn {
   const [position, setPosition] = useState<GeoPosition | null>(null)
   const [mode, setModeState] = useState<TrackingMode>('off')

@@ -124,6 +124,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1.',
   'journey.editor.makeFirst': 'Legyen az 1.',
   'journey.editor.searching': 'Keresés...',
+  'journey.editor.useCurrentLocation': 'Jelenlegi helyzetem használata',
+  'journey.editor.locationPermissionDenied':
+    'A helymeghatározás engedélye megtagadva. Engedélyezd a böngésző beállításaiban, majd próbáld újra.',
+  'journey.editor.locationTimeout': 'Időtúllépés a helyzeted lekérése közben. Próbáld újra.',
+  'journey.editor.locationUnavailable': 'Nem sikerült meghatározni a helyzeted.',
+  'journey.editor.locationInsecureContext': 'A helymeghatározáshoz biztonságos (HTTPS) kapcsolat szükséges.',
   'journey.mood.amazing': 'Fantasztikus',
   'journey.mood.good': 'Jó',
   'journey.mood.neutral': 'Semleges',

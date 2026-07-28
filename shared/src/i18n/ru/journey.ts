@@ -124,6 +124,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1-е',
   'journey.editor.makeFirst': 'Сделать 1-м',
   'journey.editor.searching': 'Поиск...',
+  'journey.editor.useCurrentLocation': 'Использовать моё текущее местоположение',
+  'journey.editor.locationPermissionDenied':
+    'Доступ к геолокации запрещён. Разрешите его в настройках браузера и попробуйте снова.',
+  'journey.editor.locationTimeout': 'Время ожидания определения местоположения истекло. Попробуйте снова.',
+  'journey.editor.locationUnavailable': 'Не удалось определить ваше местоположение.',
+  'journey.editor.locationInsecureContext': 'Для геолокации требуется защищённое соединение (HTTPS).',
   'journey.mood.amazing': 'Потрясающе',
   'journey.mood.good': 'Хорошо',
   'journey.mood.neutral': 'Нейтрально',

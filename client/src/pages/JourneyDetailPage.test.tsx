@@ -3758,4 +3758,95 @@ describe('JourneyDetailPage', () => {
       });
     });
   });
+
+  // ── FE-PAGE-JOURNEYDETAIL-153 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-153: EntryEditor use-current-location button', () => {
+    const originalGeolocation = Object.getOwnPropertyDescriptor(navigator, 'geolocation');
+
+    function stubGeolocation(getCurrentPosition: (success: PositionCallback, error?: PositionErrorCallback) => void) {
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: { getCurrentPosition: vi.fn(getCurrentPosition) },
+      });
+    }
+
+    const stubGeoSuccess = () =>
+      stubGeolocation(success => success({
+        coords: {
+          latitude: 41.9, longitude: 12.5, accuracy: 10,
+          heading: null, speed: null, altitude: null, altitudeAccuracy: null,
+        },
+        timestamp: now,
+      } as unknown as GeolocationPosition));
+
+    afterEach(() => {
+      if (originalGeolocation) {
+        Object.defineProperty(navigator, 'geolocation', originalGeolocation);
+      } else {
+        delete (navigator as { geolocation?: unknown }).geolocation;
+      }
+      delete (window as { __addToast?: unknown }).__addToast;
+    });
+
+    it('fills the location field from geolocation and reverse geocoding', async () => {
+      stubGeoSuccess();
+      server.use(
+        http.get('/api/maps/reverse', () => {
+          return HttpResponse.json({ name: 'Colosseum', address: 'Rome, Italy' });
+        }),
+      );
+
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await renderAndWait();
+      await openEntryEditor(user);
+
+      await user.click(screen.getByRole('button', { name: 'Use my current location' }));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search location...')).toHaveValue('Colosseum');
+      });
+    });
+
+    it('falls back to coordinates when reverse geocoding returns nothing', async () => {
+      stubGeoSuccess();
+      server.use(
+        http.get('/api/maps/reverse', () => {
+          return HttpResponse.json({ name: null, address: null });
+        }),
+      );
+
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await renderAndWait();
+      await openEntryEditor(user);
+
+      await user.click(screen.getByRole('button', { name: 'Use my current location' }));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search location...')).toHaveValue('41.90000, 12.50000');
+      });
+    });
+
+    it('shows an error toast when location permission is denied', async () => {
+      const addToast = vi.fn();
+      (window as { __addToast?: unknown }).__addToast = addToast;
+      stubGeolocation((_success, error) => error?.({
+        code: 1, message: 'denied',
+        PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3,
+      } as GeolocationPositionError));
+
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await renderAndWait();
+      await openEntryEditor(user);
+
+      await user.click(screen.getByRole('button', { name: 'Use my current location' }));
+
+      await waitFor(() => {
+        expect(addToast).toHaveBeenCalledWith(
+          'Location access was denied. Allow it in your browser settings and try again.',
+          'error',
+          undefined,
+        );
+      });
+    });
+  });
 });

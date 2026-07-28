@@ -122,6 +122,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1.',
   'journey.editor.makeFirst': '1. yap',
   'journey.editor.searching': 'Aranıyor...',
+  'journey.editor.useCurrentLocation': 'Mevcut konumumu kullan',
+  'journey.editor.locationPermissionDenied':
+    'Konum erişimi reddedildi. Tarayıcı ayarlarından izin verip tekrar deneyin.',
+  'journey.editor.locationTimeout': 'Konum alınırken zaman aşımı oluştu. Tekrar deneyin.',
+  'journey.editor.locationUnavailable': 'Konumunuz belirlenemedi.',
+  'journey.editor.locationInsecureContext': 'Konum için güvenli (HTTPS) bir bağlantı gerekir.',
   'journey.mood.amazing': 'Muhteşem',
   'journey.mood.good': 'İyi',
   'journey.mood.neutral': 'Nötr',
