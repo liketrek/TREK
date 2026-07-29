@@ -37,11 +37,11 @@ describe('remoteEventHandler > dayNotes', () => {
 
   it('FE-WSEVT-DAYNOTE-003: dayNote:updated replaces note in correct day', () => {
     seedData();
-    const updated = buildDayNote({ id: 1, day_id: 10, text: 'Updated text', color: 'rose' });
+    const updated = buildDayNote({ id: 1, day_id: 10, text: 'Updated text', color: '#ef4444' });
     useTripStore.getState().handleRemoteEvent({ type: 'dayNote:updated', dayId: 10, note: updated });
     const { dayNotes } = useTripStore.getState();
     expect(dayNotes['10'][0].text).toBe('Updated text');
-    expect(dayNotes['10'][0].color).toBe('rose');
+    expect(dayNotes['10'][0].color).toBe('#ef4444');
   });
 
   it('FE-WSEVT-DAYNOTE-004: dayNote:deleted removes note from correct day', () => {

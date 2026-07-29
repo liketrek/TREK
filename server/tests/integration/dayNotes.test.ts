@@ -98,10 +98,10 @@ describe('Create day note', () => {
     const created = await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
       .set('Cookie', authCookie(user.id))
-      .send({ text: 'Book tickets', color: 'amber' });
+      .send({ text: 'Book tickets', color: '#f59e0b' });
     expect(created.status).toBe(201);
-    expect(created.body.note.color).toBe('amber');
-    expect((testDb.prepare('SELECT color FROM day_notes WHERE id = ?').get(created.body.note.id) as any).color).toBe('amber');
+    expect(created.body.note.color).toBe('#f59e0b');
+    expect((testDb.prepare('SELECT color FROM day_notes WHERE id = ?').get(created.body.note.id) as any).color).toBe('#f59e0b');
 
     const invalid = await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
@@ -218,15 +218,15 @@ describe('Update day note', () => {
     const create = await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
       .set('Cookie', authCookie(user.id))
-      .send({ text: 'Colored note', color: 'teal' });
+      .send({ text: 'Colored note', color: '#10b981' });
     const noteId = create.body.note.id;
 
     const changed = await request(app)
       .put(`/api/trips/${trip.id}/days/${day.id}/notes/${noteId}`)
       .set('Cookie', authCookie(user.id))
-      .send({ color: 'violet' });
+      .send({ color: '#8b5cf6' });
     expect(changed.status).toBe(200);
-    expect(changed.body.note.color).toBe('violet');
+    expect(changed.body.note.color).toBe('#8b5cf6');
 
     const cleared = await request(app)
       .put(`/api/trips/${trip.id}/days/${day.id}/notes/${noteId}`)

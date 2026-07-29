@@ -534,9 +534,9 @@ describe('host-deps factory — reservations, day notes, cross-trip + addon read
 
   it('day notes create/update/delete run the wiring; a day/note outside the trip is refused', async () => {
     const h = host('db:write:daynotes');
-    expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 3, input: { text: 'Pack', color: 'amber' } })).result).toMatchObject({ color: 'amber' });
+    expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 3, input: { text: 'Pack', color: '#f59e0b' } })).result).toMatchObject({ color: '#f59e0b' });
     expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 88, input: { text: 'x' } })).error.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 5, input: { text: 'y', color: 'violet' } })).result).toMatchObject({ color: 'violet' });
+    expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 5, input: { text: 'y', color: '#8b5cf6' } })).result).toMatchObject({ color: '#8b5cf6' });
     expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 99, input: {} })).error.code).toBe('RESOURCE_FORBIDDEN');
     expect((await call(h, 'daynotes.delete', { tripId: 1, dayId: 3, noteId: 5 })).ok).toBe(true);
     expect((await call(h, 'daynotes.delete', { tripId: 1, dayId: 3, noteId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');

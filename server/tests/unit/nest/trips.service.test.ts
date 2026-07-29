@@ -1139,7 +1139,7 @@ describe('folded quirk branches', () => {
     testDb.prepare("INSERT INTO budget_items (trip_id, category, name, total_price) VALUES (?, 'stay', 'Hotel', 120)").run(trip.id);
     const bagId = Number(testDb.prepare("INSERT INTO packing_bags (trip_id, name) VALUES (?, 'Backpack')").run(trip.id).lastInsertRowid);
     testDb.prepare("INSERT INTO packing_items (trip_id, name, checked, bag_id) VALUES (?, 'Towel', 1, ?)").run(trip.id, bagId);
-    createDayNote(testDb, days[0].id, trip.id, { text: 'note', color: 'violet' });
+    createDayNote(testDb, days[0].id, trip.id, { text: 'note', color: '#8b5cf6' });
     testDb.prepare("INSERT INTO todo_items (trip_id, name, checked) VALUES (?, 'Book', 1)").run(trip.id);
     testDb.prepare("INSERT INTO budget_category_order (trip_id, category, sort_order) VALUES (?, 'stay', 2)").run(trip.id);
 
@@ -1163,7 +1163,7 @@ describe('folded quirk branches', () => {
     expect(newItem.bag_id).not.toBeNull();
     expect((testDb.prepare('SELECT checked, assigned_user_id FROM todo_items WHERE trip_id = ?').get(newTripId) as any)).toEqual({ checked: 0, assigned_user_id: null });
     expect((testDb.prepare('SELECT sort_order FROM budget_category_order WHERE trip_id = ?').get(newTripId) as any).sort_order).toBe(2);
-    expect(testDb.prepare('SELECT color FROM day_notes WHERE trip_id = ?').get(newTripId)).toEqual({ color: 'violet' });
+    expect(testDb.prepare('SELECT color FROM day_notes WHERE trip_id = ?').get(newTripId)).toEqual({ color: '#8b5cf6' });
 
     // Missing source throws the byte-identical error.
     expect(() => svc.copy(99999, user.id)).toThrow('Trip not found');

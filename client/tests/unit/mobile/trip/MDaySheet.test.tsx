@@ -332,6 +332,42 @@ describe('MDaySheet', () => {
     expect(shell.openSheet).toHaveBeenCalledWith('note', { dayId: 2, note: expect.objectContaining({ id: 41 }) })
   })
 
+  it('FE-MOB-DAYSH-022a: shows the complete colored note title and tinted subtitle', async () => {
+    const title = 'A deliberately long Day Note title that must remain completely visible on a narrow mobile screen'
+    seedStore(useTripStore, {
+      dayNotes: {
+        '2': [{
+          id: 43,
+          day_id: 2,
+          text: title,
+          time: 'Colored detail',
+          color: '#3b82f6',
+          sort_order: 0,
+        } as DayNote],
+      },
+    })
+
+    await renderSheet()
+
+    const titleNode = screen.getByText(title)
+    expect(titleNode).toHaveClass('whitespace-normal', 'break-words')
+    expect(titleNode).not.toHaveClass('truncate')
+    expect(titleNode).toHaveStyle({
+      color: 'color-mix(in srgb, #3b82f6 72%, var(--text-primary))',
+    })
+    const card = titleNode.closest('button')
+    expect(card).toHaveAttribute('data-day-note-color', '#3b82f6')
+    expect(card).toHaveStyle({
+      background: 'color-mix(in srgb, #3b82f6 10%, var(--bg-hover))',
+    })
+    expect(card?.getAttribute('style')).toContain(
+      'border-color: color-mix(in srgb, #3b82f6 30%, var(--border-faint))',
+    )
+    expect(screen.getByText('Colored detail')).toHaveStyle({
+      color: 'color-mix(in srgb, #3b82f6 56%, var(--text-muted))',
+    })
+  })
+
   it('FE-MOB-DAYSH-023: shows the stay with its times, code and linked booking status', async () => {
     const { planner, shell } = await renderSheet()
     expect(screen.getByText('Hotel Sacher')).toBeInTheDocument()

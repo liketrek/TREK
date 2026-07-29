@@ -119,8 +119,8 @@ describe('dayExists', () => {
 describe('create', () => {
   it('DAYNOTE-SVC-005: inserts and returns the re-selected row', () => {
     const { trip, day } = seedTripAndDay();
-    const note = svc.create(day.id, trip.id, 'Lunch', '12:00', '🍜', 2, 'amber') as DayNote;
-    expect(note).toMatchObject({ day_id: day.id, trip_id: trip.id, text: 'Lunch', time: '12:00', icon: '🍜', color: 'amber', sort_order: 2 });
+    const note = svc.create(day.id, trip.id, 'Lunch', '12:00', '🍜', 2, '#f59e0b') as DayNote;
+    expect(note).toMatchObject({ day_id: day.id, trip_id: trip.id, text: 'Lunch', time: '12:00', icon: '🍜', color: '#f59e0b', sort_order: 2 });
     expect(note.id).toBeGreaterThan(0);
     const row = testDb.prepare('SELECT * FROM day_notes WHERE id = ?').get(note.id);
     expect(row).toEqual(note);
@@ -190,9 +190,9 @@ describe('getNote', () => {
 describe('update', () => {
   it('DAYNOTE-SVC-013: merges omitted fields from the current row (JS-side, full-row UPDATE)', () => {
     const { trip, day } = seedTripAndDay();
-    const note = svc.create(day.id, trip.id, 'Lunch', '12:00', '🍜', 2, 'teal') as DayNote;
+    const note = svc.create(day.id, trip.id, 'Lunch', '12:00', '🍜', 2, '#10b981') as DayNote;
     const updated = svc.update(note.id, note, { icon: '🍣' }) as DayNote;
-    expect(updated).toMatchObject({ id: note.id, text: 'Lunch', time: '12:00', icon: '🍣', color: 'teal', sort_order: 2 });
+    expect(updated).toMatchObject({ id: note.id, text: 'Lunch', time: '12:00', icon: '🍣', color: '#10b981', sort_order: 2 });
   });
 
   it('DAYNOTE-SVC-014: explicit null time clears it, undefined keeps it', () => {
@@ -214,9 +214,9 @@ describe('update', () => {
 
   it('DAYNOTE-SVC-017: changes and explicitly clears color', () => {
     const { trip, day } = seedTripAndDay();
-    const note = svc.create(day.id, trip.id, 'Lunch', undefined, undefined, undefined, 'rose') as DayNote;
-    const changed = svc.update(note.id, note, { color: 'indigo' }) as DayNote;
-    expect(changed.color).toBe('indigo');
+    const note = svc.create(day.id, trip.id, 'Lunch', undefined, undefined, undefined, '#ef4444') as DayNote;
+    const changed = svc.update(note.id, note, { color: '#3b82f6' }) as DayNote;
+    expect(changed.color).toBe('#3b82f6');
     const cleared = svc.update(note.id, changed, { color: null }) as DayNote;
     expect(cleared.color).toBeNull();
   });

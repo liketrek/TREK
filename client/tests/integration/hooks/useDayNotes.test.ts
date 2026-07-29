@@ -68,7 +68,7 @@ describe('useDayNotes', () => {
   });
 
   it('FE-HOOK-DAYNOTES-005: openEditNote sets mode=edit with note data', () => {
-    const note = buildDayNote({ id: 99, text: 'Hello', time: '10:00', icon: 'Star', color: 'violet' });
+    const note = buildDayNote({ id: 99, text: 'Hello', time: '10:00', icon: 'Star', color: '#8b5cf6' });
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
     act(() => {
@@ -81,7 +81,7 @@ describe('useDayNotes', () => {
       text: 'Hello',
       time: '10:00',
       icon: 'Star',
-      color: 'violet',
+      color: '#8b5cf6',
     });
   });
 
@@ -137,7 +137,7 @@ describe('useDayNotes', () => {
 
     act(() => {
       result.current.setNoteUi({
-        [DAY_ID]: { mode: 'add', text: 'New note', time: '', icon: 'FileText', color: 'amber', sortOrder: 0 },
+        [DAY_ID]: { mode: 'add', text: 'New note', time: '', icon: 'FileText', color: '#f59e0b', sortOrder: 0 },
       });
     });
 
@@ -146,7 +146,7 @@ describe('useDayNotes', () => {
     });
 
     // UI should be cleared after successful save
-    expect(capturedBody.color).toBe('amber');
+    expect(capturedBody.color).toBe('#f59e0b');
     expect(result.current.noteUi[DAY_ID]).toBeUndefined();
   });
 

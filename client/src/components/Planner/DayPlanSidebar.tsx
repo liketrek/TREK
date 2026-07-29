@@ -2246,7 +2246,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               {note.text}
                             </span>
                             {note.time && (
-                              <div className="collab-note-md day-note-markdown" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, color: 'var(--text-faint)', lineHeight: '1.3', marginTop: 2, wordBreak: 'break-word' }}>
+                              <div className="collab-note-md day-note-markdown" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, color: noteColor?.subtitle || 'var(--text-faint)', lineHeight: '1.3', marginTop: 2, wordBreak: 'break-word' }}>
                                 <Markdown
                                   remarkPlugins={[remarkGfm, remarkBreaks]}
                                   components={{

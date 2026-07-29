@@ -11,7 +11,7 @@ import { weatherApi } from '../../../../api/client'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { usePluginStore } from '../../../../store/pluginStore'
 import { useDayNotes } from '../../../../hooks/useDayNotes'
-import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
+import { RES_ICONS, getDayNoteColorStyle, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
 import { splitReservationDateTime } from '../../../../utils/formatters'
 import { dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute'
@@ -401,6 +401,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                   <div className="flex flex-col gap-[6px]">
                     {dayNotes.map(note => {
                       const NoteIcon = getNoteIcon(note.icon)
+                      const noteColor = getDayNoteColorStyle(note.color)
                       // The time column is a free detail line; only a leading
                       // HH:MM renders as an actual time (desktop semantics).
                       const { time: noteTime, detail } = splitNoteTime(note.time)
@@ -410,12 +411,33 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                           type="button"
                           onClick={() => { if (canEditDays) shell.openSheet('note', { dayId: day.id, note }) }}
                           className={`flex w-full items-center gap-[10px] rounded-[13px] px-[11px] py-[9px] text-left ${INNER_CLS}`}
+                          data-day-note-color={noteColor?.id || 'default'}
+                          style={noteColor ? { background: noteColor.background, borderColor: noteColor.border } : undefined}
                         >
-                          <NoteIcon size={15} strokeWidth={1.8} className="flex-none text-m-muted" />
+                          {noteColor ? (
+                            <span
+                              className="flex h-6 w-6 flex-none items-center justify-center rounded-full"
+                              style={{ background: noteColor.swatch }}
+                            >
+                              <NoteIcon size={15} strokeWidth={1.8} color={noteColor.iconForeground} />
+                            </span>
+                          ) : (
+                            <NoteIcon size={15} strokeWidth={1.8} className="flex-none text-m-muted" />
+                          )}
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[0.8125rem] font-semibold">{note.text}</span>
+                            <span
+                              className="block whitespace-normal break-words text-[0.8125rem] font-semibold"
+                              style={{ color: noteColor?.accent }}
+                            >
+                              {note.text}
+                            </span>
                             {detail && (
-                              <span className="block truncate font-geist text-[0.65625rem] text-m-muted">{detail}</span>
+                              <span
+                                className="block truncate font-geist text-[0.65625rem] text-m-muted"
+                                style={{ color: noteColor?.subtitle }}
+                              >
+                                {detail}
+                              </span>
                             )}
                           </span>
                           {noteTime && (

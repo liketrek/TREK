@@ -495,14 +495,17 @@ export function NoteRow({ note, chrome, reorder, onEdit }: {
           {time && <span className={TIME_CHIP}>{time}</span>}
           <span
             title={title}
-            className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.875rem] font-semibold"
+            className="block min-w-0 whitespace-normal break-words text-[0.875rem] font-semibold"
             style={{ color: noteColor?.accent }}
           >
             {title}
           </span>
         </div>
         {sub && (
-          <div className="collab-note-md day-note-markdown mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted">
+          <div
+            className="collab-note-md day-note-markdown mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted"
+            style={{ color: noteColor?.subtitle }}
+          >
             <Markdown
               remarkPlugins={[remarkGfm, remarkBreaks]}
               components={{

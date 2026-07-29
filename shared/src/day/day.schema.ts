@@ -17,7 +17,8 @@ import { z } from 'zod';
  * Day note entity (server day_notes table / dayNoteService). `sort_order` is
  * SQLite REAL; `icon` defaults to a note emoji.
  */
-export const dayNoteColorSchema = z.enum(['rose', 'amber', 'teal', 'indigo', 'violet']);
+export const DAY_NOTE_COLOR_VALUES = ['#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'] as const;
+export const dayNoteColorSchema = z.enum(DAY_NOTE_COLOR_VALUES);
 export type DayNoteColor = z.infer<typeof dayNoteColorSchema>;
 
 export const dayNoteSchema = z.object({

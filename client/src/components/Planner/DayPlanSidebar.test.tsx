@@ -768,7 +768,7 @@ describe('DayPlanSidebar', () => {
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     mockDayNotesState.dayNotes = {
       '10': [
-        buildDayNote({ id: 55, day_id: 10, text: 'Colored', color: 'rose', sort_order: 0 }),
+        buildDayNote({ id: 55, day_id: 10, text: 'Colored', time: 'Colored subtitle', color: '#ef4444', sort_order: 0 }),
         buildDayNote({ id: 56, day_id: 10, text: 'Default', color: null, sort_order: 1 }),
         buildDayNote({ id: 57, day_id: 10, text: 'Unknown', color: 'hotpink' as any, sort_order: 2 }),
       ],
@@ -778,9 +778,12 @@ describe('DayPlanSidebar', () => {
     const colored = cardRow(screen.getByText('Colored'))
     const uncolored = cardRow(screen.getByText('Default'))
     const unknown = cardRow(screen.getByText('Unknown'))
-    expect(colored).toHaveAttribute('data-day-note-color', 'rose')
+    expect(colored).toHaveAttribute('data-day-note-color', '#ef4444')
     const iconCircle = Array.from(colored.querySelectorAll('div')).find(element => element.style.width === '28px' && element.style.borderRadius === '50%')
-    expect(iconCircle).toHaveStyle({ background: '#e11d48' })
+    expect(iconCircle).toHaveStyle({ background: '#ef4444' })
+    expect(screen.getByText('Colored subtitle').closest('.day-note-markdown')).toHaveStyle({
+      color: 'color-mix(in srgb, #ef4444 56%, var(--text-muted))',
+    })
     expect(uncolored).toHaveAttribute('data-day-note-color', 'default')
     expect(uncolored).toHaveStyle({ background: 'var(--bg-hover)' })
     expect(unknown).toHaveAttribute('data-day-note-color', 'default')
@@ -825,18 +828,19 @@ describe('DayPlanSidebar', () => {
     const user = userEvent.setup()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     mockDayNotesState.noteUi = {
-      '10': { mode: 'edit', text: 'Hello', time: '', icon: 'FileText', color: 'rose' },
+      '10': { mode: 'edit', text: 'Hello', time: '', icon: 'FileText', color: '#ef4444' },
     }
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
 
-    const rose = screen.getByRole('button', { name: 'Rose' })
-    expect(rose).toHaveAttribute('aria-pressed', 'true')
+    const firstColor = screen.getByRole('button', { name: 'Color 1: #ef4444' })
+    expect(firstColor).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByRole('button', { name: /^Color \d+:/ })).toHaveLength(6)
     const titleInput = screen.getByDisplayValue('Hello')
     expect(titleInput).toHaveAttribute('maxlength', '500')
 
-    await user.click(screen.getByRole('button', { name: 'Amber' }))
+    await user.click(screen.getByRole('button', { name: 'Color 2: #f97316' }))
     const updater = mockDayNotesState.setNoteUi.mock.calls[0][0]
-    expect(updater(mockDayNotesState.noteUi)['10'].color).toBe('amber')
+    expect(updater(mockDayNotesState.noteUi)['10'].color).toBe('#f97316')
   })
 
   // ── Budget footer ───────────────────────────────────────────────────────

@@ -201,11 +201,11 @@ describe('Days + day-notes e2e (real auth guard + temp SQLite, real day SQL)', (
 
   it('201 create note (real insert: trim, empty-string coercions), 400 on over-long text (before access)', async () => {
     const ok = await request(server).post('/api/trips/5/days/3/notes').set('Cookie', sessionCookie(1))
-      .send({ text: '  Lunch  ', time: '', icon: '', color: 'amber', sort_order: 0 });
+      .send({ text: '  Lunch  ', time: '', icon: '', color: '#f59e0b', sort_order: 0 });
     expect(ok.status).toBe(201);
-    expect(ok.body.note).toMatchObject({ day_id: 3, trip_id: 5, text: 'Lunch', time: null, icon: '📝', color: 'amber', sort_order: 0 });
+    expect(ok.body.note).toMatchObject({ day_id: 3, trip_id: 5, text: 'Lunch', time: null, icon: '📝', color: '#f59e0b', sort_order: 0 });
     const row = db.prepare('SELECT * FROM day_notes WHERE id = ?').get(ok.body.note.id);
-    expect(row).toMatchObject({ text: 'Lunch', time: null, icon: '📝', color: 'amber', sort_order: 0 });
+    expect(row).toMatchObject({ text: 'Lunch', time: null, icon: '📝', color: '#f59e0b', sort_order: 0 });
     const long = await request(server).post('/api/trips/5/days/3/notes').set('Cookie', sessionCookie(1)).send({ text: 'x'.repeat(501) });
     expect(long.status).toBe(400);
     expect(long.body.error).toContain('text');
@@ -236,12 +236,12 @@ describe('Days + day-notes e2e (real auth guard + temp SQLite, real day SQL)', (
 
   it('200 update note merges omitted fields and can change or clear color', async () => {
     const created = await request(server).post('/api/trips/5/days/3/notes').set('Cookie', sessionCookie(1))
-      .send({ text: 'Lunch', time: '12:00', color: 'teal' });
+      .send({ text: 'Lunch', time: '12:00', color: '#10b981' });
     const id = created.body.note.id;
     const res = await request(server).put(`/api/trips/5/days/3/notes/${id}`).set('Cookie', sessionCookie(1))
-      .send({ icon: '🍜', color: 'violet' });
+      .send({ icon: '🍜', color: '#8b5cf6' });
     expect(res.status).toBe(200);
-    expect(res.body.note).toMatchObject({ id, text: 'Lunch', time: '12:00', icon: '🍜', color: 'violet' });
+    expect(res.body.note).toMatchObject({ id, text: 'Lunch', time: '12:00', icon: '🍜', color: '#8b5cf6' });
     const cleared = await request(server).put(`/api/trips/5/days/3/notes/${id}`).set('Cookie', sessionCookie(1))
       .send({ color: null });
     expect(cleared.status).toBe(200);

@@ -509,23 +509,26 @@ describe('NoteRow', () => {
     expect(screen.getByTestId('reorder')).toBeInTheDocument()
   })
 
-  it('FE-MOB-PLROW-042: renders a one-line title and safe Markdown subtitle', () => {
+  it('FE-MOB-PLROW-042: renders the full mobile title and a colored safe Markdown subtitle', () => {
     const { container } = render(
       <NoteRow
         {...base}
         note={note({
           text: 'A deliberately long warning title',
           time: '**Bold** and [Tickets](https://example.com)\n<b>not active</b>',
-          color: 'violet',
+          color: '#8b5cf6',
         })}
       />,
     )
 
     const title = screen.getByTitle('A deliberately long warning title')
-    expect(title).toHaveClass('whitespace-nowrap', 'overflow-hidden', 'text-ellipsis')
+    expect(title).toHaveClass('whitespace-normal', 'break-words')
     expect(screen.getByText('Bold', { selector: 'strong' })).toBeInTheDocument()
     expect(container.querySelector('.day-note-markdown b')).toBeNull()
-    expect(container.querySelector('[data-day-note-color="violet"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-day-note-color="#8b5cf6"]')).toBeInTheDocument()
+    expect(container.querySelector('.day-note-markdown')).toHaveStyle({
+      color: 'color-mix(in srgb, #8b5cf6 56%, var(--text-muted))',
+    })
 
     const link = screen.getByRole('link', { name: 'Tickets' })
     expect(link).toHaveAttribute('target', '_blank')

@@ -47,10 +47,10 @@ export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cance
                 </button>
               ))}
             </div>
-            <div role="group" aria-label={t('settings.appearance.scheme')} style={{ display: 'flex', gap: 7 }}>
-              {DAY_NOTE_COLOR_OPTIONS.map(option => {
+            <div role="group" aria-label={t('categories.color')} style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+              {DAY_NOTE_COLOR_OPTIONS.map((option, index) => {
                 const selected = (ui.color ?? null) === option.id
-                const label = t(option.labelKey)
+                const label = option.labelKey ? t(option.labelKey) : `${t('categories.color')} ${index}: ${option.id}`
                 return (
                   <button
                     key={option.id || 'default'}

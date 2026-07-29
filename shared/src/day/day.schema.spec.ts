@@ -33,7 +33,7 @@ describe('dayNoteCreateRequestSchema', () => {
 
   it('keeps color optional and accepts only the predefined palette', () => {
     expect(dayNoteCreateRequestSchema.safeParse({ text: 'Uncolored' }).success).toBe(true);
-    expect(dayNoteCreateRequestSchema.safeParse({ text: 'Warning', color: 'rose' }).success).toBe(true);
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'Warning', color: '#ef4444' }).success).toBe(true);
     expect(dayNoteCreateRequestSchema.safeParse({ text: 'Custom', color: '#ff00ff' }).success).toBe(false);
   });
 });
@@ -50,7 +50,7 @@ describe('dayNoteUpdateRequestSchema', () => {
   });
 
   it('accepts changing or clearing a color and rejects unknown values', () => {
-    expect(dayNoteUpdateRequestSchema.safeParse({ color: 'violet' }).success).toBe(true);
+    expect(dayNoteUpdateRequestSchema.safeParse({ color: '#8b5cf6' }).success).toBe(true);
     expect(dayNoteUpdateRequestSchema.safeParse({ color: null }).success).toBe(true);
     expect(dayNoteUpdateRequestSchema.safeParse({ color: 'magenta' }).success).toBe(false);
   });
