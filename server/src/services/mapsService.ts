@@ -61,9 +61,22 @@ interface GoogleAutocompleteSuggestion {
   };
 }
 
+interface GoogleTimePoint {
+  day?: number;
+  hour?: number;
+  minute?: number;
+}
+
+interface GoogleOpeningHours {
+  weekdayDescriptions?: string[];
+  openNow?: boolean;
+  periods?: { open?: GoogleTimePoint; close?: GoogleTimePoint }[];
+  specialDays?: { date?: { year?: number; month?: number; day?: number } }[];
+}
+
 interface GooglePlaceDetails extends GooglePlaceResult {
   userRatingCount?: number;
-  regularOpeningHours?: { weekdayDescriptions?: string[]; openNow?: boolean };
+  regularOpeningHours?: GoogleOpeningHours;
   editorialSummary?: { text: string };
   reviews?: {
     authorAttribution?: { displayName?: string; photoUri?: string };
@@ -531,10 +544,107 @@ export async function searchOverpassPois(
 
 // ── Opening hours parsing ────────────────────────────────────────────────────
 
-export function parseOpeningHours(ohString: string): { weekdayDescriptions: string[]; openNow: boolean | null } {
+// Machine-readable opening hours, in Google's numbering: day 0 = Sunday … 6 = Saturday.
+// The weekday descriptions next to them are display text in the requested language and
+// cannot be parsed reliably; these can. A period without `close` is Google's way of
+// saying the place never closes.
+export interface OpeningTimePoint {
+  day: number;
+  hour: number;
+  minute: number;
+}
+export interface OpeningPeriod {
+  open: OpeningTimePoint;
+  close: OpeningTimePoint | null;
+}
+
+// Places (New) speaks proto3 JSON, which leaves out fields that hold the default
+// value — a period starting Sunday midnight arrives as `{}`, not as three zeroes.
+function toTimePoint(point: GoogleTimePoint | undefined): OpeningTimePoint | null {
+  if (!point || typeof point !== 'object') return null;
+  const field = (value: unknown): number | null => {
+    if (value === undefined || value === null) return 0;
+    return typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : null;
+  };
+  const day = field(point.day);
+  const hour = field(point.hour);
+  const minute = field(point.minute);
+  if (day === null || hour === null || minute === null) return null;
+  if (day < 0 || day > 6 || hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { day, hour, minute };
+}
+
+export function normalizeOpeningPeriods(periods: GoogleOpeningHours['periods']): OpeningPeriod[] | null {
+  if (!Array.isArray(periods) || periods.length === 0) return null;
+  const result: OpeningPeriod[] = [];
+  for (const period of periods) {
+    const open = toTimePoint(period?.open);
+    if (!open) continue;
+    // A missing close means "never closes"; a close that is there but unusable makes
+    // the whole period a guess, so it is dropped rather than read as round-the-clock.
+    const close = period?.close == null ? null : toTimePoint(period.close);
+    if (period?.close != null && !close) continue;
+    result.push({ open, close });
+  }
+  return result.length > 0 ? result : null;
+}
+
+// Holidays and other exceptional days that the weekly periods do not describe. Google
+// reports them as calendar dates; they travel to the client as YYYY-MM-DD so it can
+// compare them against the place's own local date.
+export function normalizeSpecialDays(specialDays: GoogleOpeningHours['specialDays']): string[] | null {
+  if (!Array.isArray(specialDays) || specialDays.length === 0) return null;
+  const dates: string[] = [];
+  for (const entry of specialDays) {
+    const date = entry?.date;
+    if (!date) continue;
+    const { year, month, day } = date;
+    if (typeof year !== 'number' || typeof month !== 'number' || typeof day !== 'number') continue;
+    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+    const iso = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    if (!dates.includes(iso)) dates.push(iso);
+  }
+  return dates.length > 0 ? dates : null;
+}
+
+// "09:00-18:00", also the "20:00-02:00" and "00:00-24:00" spellings OSM uses.
+const OSM_TIME_RANGE = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/g;
+
+/** Periods for one OSM weekday line. `dayIdx` is Monday-based, the output is not. */
+function osmPeriods(dayIdx: number, timePart: string): OpeningPeriod[] {
+  const day = (dayIdx + 1) % 7;
+  const periods: OpeningPeriod[] = [];
+  for (const match of timePart.matchAll(OSM_TIME_RANGE)) {
+    const openHour = parseInt(match[1], 10);
+    const openMinute = parseInt(match[2], 10);
+    let closeHour = parseInt(match[3], 10);
+    const closeMinute = parseInt(match[4], 10);
+    if (openHour > 23 || openMinute > 59 || closeHour > 24 || closeMinute > 59) continue;
+    // OSM writes the end of a day as 24:00, a clock reading Google's numbering has no
+    // hour 24 — that is midnight of the following day, same as any range that wraps.
+    let nextDay = closeHour * 60 + closeMinute <= openHour * 60 + openMinute;
+    if (closeHour === 24) {
+      if (closeMinute !== 0) continue;
+      closeHour = 0;
+      nextDay = true;
+    }
+    periods.push({
+      open: { day, hour: openHour, minute: openMinute },
+      close: { day: nextDay ? (day + 1) % 7 : day, hour: closeHour, minute: closeMinute },
+    });
+  }
+  return periods;
+}
+
+export function parseOpeningHours(ohString: string): {
+  weekdayDescriptions: string[];
+  openNow: boolean | null;
+  periods: OpeningPeriod[];
+} {
   const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
   const LONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const result: string[] = LONG.map((d) => `${d}: ?`);
+  const periods: OpeningPeriod[] = [];
 
   // Parse segments like "Mo-Fr 09:00-18:00; Sa 10:00-14:00"
   for (const segment of ohString.split(';')) {
@@ -560,6 +670,7 @@ export function parseOpeningHours(ohString: string): { weekdayDescriptions: stri
     }
     for (const idx of dayIndices) {
       result[idx] = `${LONG[idx]}: ${timePart.trim()}`;
+      periods.push(...osmPeriods(idx, timePart));
     }
   }
 
@@ -583,7 +694,7 @@ export function parseOpeningHours(ohString: string): { weekdayDescriptions: stri
     /* best effort */
   }
 
-  return { weekdayDescriptions: result, openNow };
+  return { weekdayDescriptions: result, openNow, periods };
 }
 
 // ── Build standardized OSM details ───────────────────────────────────────────
@@ -591,12 +702,14 @@ export function parseOpeningHours(ohString: string): { weekdayDescriptions: stri
 export function buildOsmDetails(tags: Record<string, string>, osmType: string, osmId: string) {
   let opening_hours: string[] | null = null;
   let open_now: boolean | null = null;
+  let opening_periods: OpeningPeriod[] | null = null;
   if (tags.opening_hours) {
     const parsed = parseOpeningHours(tags.opening_hours);
     const hasData = parsed.weekdayDescriptions.some((line) => !line.endsWith('?'));
     if (hasData) {
       opening_hours = parsed.weekdayDescriptions;
       open_now = parsed.openNow;
+      opening_periods = parsed.periods.length > 0 ? parsed.periods : null;
     }
   }
   return {
@@ -604,6 +717,7 @@ export function buildOsmDetails(tags: Record<string, string>, osmType: string, o
     phone: tags['contact:phone'] || tags.phone || null,
     opening_hours,
     open_now,
+    opening_periods,
     osm_url: `https://www.openstreetmap.org/${osmType}/${osmId}`,
     summary: tags.description || null,
     source: 'openstreetmap' as const,
@@ -834,6 +948,21 @@ async function autocompleteNominatim(
 
 // ── Place details (Google or OSM) ────────────────────────────────────────────
 
+// Ids that can never resolve against the Google Places API: coordinate pseudo-ids
+// (right-click places, in both the coords: and the bare "lat,lng" spelling the
+// collection views send), OSM ids the client sends when a place has no
+// google_place_id, and the raw photo URLs legacy rows keep in image_url. Google
+// answers those with a billable 400 INVALID_ARGUMENT, so every lookup sorts them
+// out before the call and uses the OSM/Wikimedia path instead.
+const NON_GOOGLE_PLACE_ID = /^(?:coords|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$/i;
+// The subset that still has a provider behind it — Overpass for details,
+// Wikimedia for photos.
+const OSM_PLACE_ID = /^(?:node|way|relation):/i;
+
+export function isGooglePlaceId(placeId: string): boolean {
+  return !NON_GOOGLE_PLACE_ID.test(placeId);
+}
+
 export async function getPlaceDetails(
   userId: number,
   placeId: string,
@@ -912,6 +1041,11 @@ export async function getPlaceDetails(
     phone: data.nationalPhoneNumber || null,
     opening_hours: data.regularOpeningHours?.weekdayDescriptions || null,
     open_now: data.regularOpeningHours?.openNow ?? null,
+    // open_now is a snapshot Google took when this payload was fetched and it is cached
+    // for days; the periods let the client recompute the state in the place's own
+    // timezone, which the localised weekday lines above cannot do. Issue #1680.
+    opening_periods: normalizeOpeningPeriods(data.regularOpeningHours?.periods),
+    opening_special_days: normalizeSpecialDays(data.regularOpeningHours?.specialDays),
     google_maps_url: data.googleMapsUri || null,
     summary: null,
     reviews: [],
@@ -935,7 +1069,16 @@ export async function getPlaceDetailsExpanded(
   placeId: string,
   lang?: string,
   refresh = false,
-): Promise<{ place: Record<string, unknown> }> {
+): Promise<{ place: Record<string, unknown> | null }> {
+  // Reviews and the editorial summary only exist at Google, but the id does not
+  // have to be a Google one — the client sends whatever the place carries. OSM ids
+  // keep the details they do have (Overpass, via the plain lookup); coordinate
+  // pseudo-ids and legacy image URLs have no details source at all. Neither may be
+  // forwarded to Google, which bills the 400 INVALID_ARGUMENT it answers with.
+  if (!isGooglePlaceId(placeId)) {
+    return OSM_PLACE_ID.test(placeId) ? getPlaceDetails(userId, placeId, lang) : { place: null };
+  }
+
   const langKey = toApiLang(lang, 'de');
   const apiKey = getMapsKey(userId);
   if (!apiKey) throw Object.assign(new Error('Google Maps API key not configured'), { status: 400 });
@@ -982,6 +1125,8 @@ export async function getPlaceDetailsExpanded(
     phone: data.nationalPhoneNumber || null,
     opening_hours: data.regularOpeningHours?.weekdayDescriptions || null,
     open_now: data.regularOpeningHours?.openNow ?? null,
+    opening_periods: normalizeOpeningPeriods(data.regularOpeningHours?.periods),
+    opening_special_days: normalizeSpecialDays(data.regularOpeningHours?.specialDays),
     google_maps_url: data.googleMapsUri || null,
     summary: data.editorialSummary?.text || null,
     reviews: (data.reviews || []).slice(0, 5).map((r: NonNullable<GooglePlaceDetails['reviews']>[number]) => ({
@@ -1014,29 +1159,38 @@ export async function getPlacePhoto(
   lat: number,
   lng: number,
   name?: string,
-): Promise<{ photoUrl: string; attribution: string | null }> {
+): Promise<{ photoUrl: string | null; attribution: string | null }> {
   // Disk cache hit — serve immediately, no Google call
   const diskHit = placePhotoCache.get(placeId);
   if (diskHit) return { photoUrl: diskHit.photoUrl, attribution: diskHit.attribution };
 
-  // Recent error — don't hammer the API
-  if (placePhotoCache.getErrored(placeId)) {
-    throw Object.assign(new Error('(Cache) No photo available'), { status: 404 });
-  }
+  // "No photo for this place" is an empty result, not a missing resource: a trip
+  // view asks for one photo per place, so answering each miss with a 404 makes a
+  // normal itinerary render look like a 404 scan to fail2ban/CrowdSec and gets
+  // the user's IP banned. Every miss below returns photoUrl: null instead — the
+  // same shape the photos kill-switch already returns.
+  const noPhoto = { photoUrl: null, attribution: null };
+
+  // Recent miss — don't hammer the API
+  if (placePhotoCache.getErrored(placeId)) return noPhoto;
 
   // Deduplicate concurrent requests for the same placeId
   const existing = placePhotoCache.getInFlight(placeId);
   if (existing) {
     const result = await existing;
-    if (!result) throw Object.assign(new Error('(Cache) No photo available'), { status: 404 });
+    if (!result) return noPhoto;
     return { photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`, attribution: result.attribution };
   }
+
+  // Tells the two empty outcomes apart for the negative cache below: a place that
+  // has no photo anywhere is worth remembering for a day, a provider that refused
+  // or timed out only for a few minutes.
+  let providerFailed = false;
 
   const fetchPromise = (async (): Promise<{ filePath: string; attribution: string | null } | null> => {
     await acquirePhotoFetchSlot();
     try {
       const apiKey = getMapsKey(userId);
-      const isCoordLookup = placeId.startsWith('coords:');
 
       // Coordinate-based Wikipedia/Wikimedia lookup. Used for coordinate-only
       // (right-click) places and as a fallback when a Google place yields no photo,
@@ -1050,21 +1204,25 @@ export async function getPlacePhoto(
           // Follow redirects manually so each hop (the image URL can 3xx to a CDN
           // host) is re-validated against the SSRF guard, not just the first URL.
           const imgRes = await safeFetchFollow(wiki.photoUrl, undefined, { bypassInternalIpAllowed: true });
-          if (!imgRes.ok) return null;
+          if (!imgRes.ok) {
+            providerFailed = true;
+            return null;
+          }
           const bytes = Buffer.from(await imgRes.arrayBuffer());
           const cached = await placePhotoCache.put(placeId, bytes, wiki.attribution);
           return { filePath: cached.filePath, attribution: cached.attribution };
         } catch {
+          providerFailed = true;
           return null;
         }
       };
 
-      // Google Places photo for a Google place_id. Returns null (without marking an
-      // error) on any miss — no key, URL-shaped id, request rejected, no photos, or
-      // a failed media download — so the caller can fall back to Wikimedia.
+      // Google Places photo for a Google place_id. Returns null on any miss — no
+      // key, request rejected, no photos, or a failed media download — so the
+      // caller can fall back to Wikimedia; the misses that were Google's fault
+      // flag providerFailed on the way out.
       const fetchGooglePhoto = async (): Promise<{ filePath: string; attribution: string | null } | null> => {
-        // URL-shaped placeIds aren't Google IDs — legacy DBs may store raw photo URLs in image_url
-        if (!apiKey || /^https?:\/\//i.test(placeId)) return null;
+        if (!apiKey) return null;
 
         // Fetch details to get the photo name
         const detailsRes = await googleFetch(
@@ -1080,12 +1238,14 @@ export async function getPlacePhoto(
         const body = await detailsRes.text();
         if (!detailsRes.ok) {
           console.error('Google Places photo details error:', detailsRes.status, body.slice(0, 200));
+          providerFailed = true;
           return null;
         }
         let details: GooglePlaceDetails & { error?: { message?: string } };
         try {
           details = body ? JSON.parse(body) : { photos: [] };
         } catch {
+          providerFailed = true;
           return null;
         }
         if (!details.photos?.length) return null;
@@ -1100,10 +1260,17 @@ export async function getPlacePhoto(
           `getPlacePhoto/media(${placeId})`,
           { headers: { 'X-Goog-Api-Key': apiKey } },
         );
-        if (!mediaRes.ok) return null;
+        // The place does have a photo — only the download for it went wrong.
+        if (!mediaRes.ok) {
+          providerFailed = true;
+          return null;
+        }
 
         const bytes = Buffer.from(await mediaRes.arrayBuffer());
-        if (!bytes.length) return null;
+        if (!bytes.length) {
+          providerFailed = true;
+          return null;
+        }
 
         const cached = await placePhotoCache.put(placeId, bytes, attribution);
 
@@ -1121,8 +1288,8 @@ export async function getPlacePhoto(
 
       // Prefer the Google photo (higher quality); if Google yields nothing, fall
       // back to the same coordinate-based Wikipedia/OSM lookup that right-click
-      // places use. Coordinate-only ids skip Google entirely.
-      if (!isCoordLookup) {
+      // places use. Ids Google cannot resolve skip it entirely.
+      if (isGooglePlaceId(placeId)) {
         const googlePhoto = await fetchGooglePhoto();
         if (googlePhoto) return googlePhoto;
       }
@@ -1130,7 +1297,7 @@ export async function getPlacePhoto(
       const fallback = await fetchWikimediaFallback();
       if (fallback) return fallback;
 
-      placePhotoCache.markError(placeId);
+      placePhotoCache.markError(placeId, providerFailed ? 'provider-error' : 'no-photo');
       return null;
     } finally {
       releasePhotoFetchSlot();
@@ -1140,7 +1307,7 @@ export async function getPlacePhoto(
   placePhotoCache.setInFlight(placeId, fetchPromise);
 
   const result = await fetchPromise;
-  if (!result) throw Object.assign(new Error('No photo available'), { status: 404 });
+  if (!result) return noPhoto;
   return { photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`, attribution: result.attribution };
 }
 

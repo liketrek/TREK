@@ -210,10 +210,18 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     });
 
     it('maps a 4xx service error', async () => {
-      const photo = vi.fn().mockRejectedValue(withError(404, 'No photo available'));
+      const photo = vi.fn().mockRejectedValue(withError(429, 'Rate limited'));
       expect(await thrown(() => makeController({ photosDisabled: () => false, photo }).placePhoto(user, 'p1', '1', '2'))).toEqual({
-        status: 404, body: { error: 'No photo available' },
+        status: 429, body: { error: 'Rate limited' },
       });
+    });
+
+    // A place without a photo is an empty result, not a 404 — one 404 per photo-less
+    // place gets the user banned by any 404-rate IPS in front of TREK (#1727).
+    it('passes a photo-less place through as a 200 with photoUrl null', async () => {
+      const photo = vi.fn().mockResolvedValue({ photoUrl: null, attribution: null });
+      const res = await makeController({ photosDisabled: () => false, photo }).placePhoto(user, 'node:123', '1', '2');
+      expect(res).toEqual({ photoUrl: null, attribution: null });
     });
 
     it('logs and maps a 5xx service error', async () => {
@@ -244,17 +252,22 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
         json: vi.fn(),
         set: vi.fn(),
         type: vi.fn(),
+        end: vi.fn(),
       };
-      return res as unknown as Response & { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; type: ReturnType<typeof vi.fn> };
+      return res as unknown as Response & { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; type: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> };
     }
 
     beforeEach(() => createReadStream.mockReset());
 
-    it('404 when the photo is not cached', () => {
+    // Places persist this URL in image_url, so an evicted cache entry means one
+    // request per place on a trip render. 404 for each of them is the ban vector
+    // from #1727 — an uncached photo answers 204 with an empty body instead.
+    it('204 without a body when the photo is not cached', () => {
       const res = makeRes();
       makeController({ photoBytesPath: () => null }).placePhotoBytes('p1', res);
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Photo not cached' });
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.end).toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
       expect(createReadStream).not.toHaveBeenCalled();
     });
 
@@ -269,18 +282,22 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       expect(stream.pipe).toHaveBeenCalledWith(res);
     });
 
-    it('falls back to 404 when the read stream errors', () => {
+    it('falls back to an empty 204 when the read stream errors', () => {
       let onError: () => void = () => {};
       const stream = { on: vi.fn((ev: string, cb: () => void) => { if (ev === 'error') onError = cb; return stream; }), pipe: vi.fn() };
       createReadStream.mockReturnValue(stream);
       const res = makeRes();
       makeController({ photoBytesPath: () => '/cache/p1.jpg' }).placePhotoBytes('p1', res);
       onError();
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Photo not cached' });
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.end).toHaveBeenCalled();
+      // The hit path already asked for a month of immutable caching — that header
+      // must not survive onto the empty answer, or the photo stays hidden once it
+      // is back in the cache.
+      expect(res.set).toHaveBeenLastCalledWith('Cache-Control', 'no-store');
     });
 
-    it('does not re-send a 404 when the stream errors after headers were flushed', () => {
+    it('does not re-send a 204 when the stream errors after headers were flushed', () => {
       let onError: () => void = () => {};
       const stream = { on: vi.fn((ev: string, cb: () => void) => { if (ev === 'error') onError = cb; return stream; }), pipe: vi.fn() };
       createReadStream.mockReturnValue(stream);
@@ -289,7 +306,7 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       makeController({ photoBytesPath: () => '/cache/p1.jpg' }).placePhotoBytes('p1', res);
       onError();
       expect(res.status).not.toHaveBeenCalled();
-      expect(res.json).not.toHaveBeenCalled();
+      expect(res.end).not.toHaveBeenCalled();
     });
   });
 

@@ -8,9 +8,12 @@
  */
 import {
   parseOpeningHours,
+  normalizeOpeningPeriods,
+  normalizeSpecialDays,
   buildOsmDetails,
   getMapsKey,
   googleFtidFromMapsUrl,
+  isGooglePlaceId,
   buildUserAgent,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
@@ -25,6 +28,7 @@ const {
   mockCheckSsrf,
   mockCacheGet,
   mockCacheGetErrored,
+  mockCacheMarkError,
   mockCachePut,
   mockCacheGetInFlight,
   mockCacheSetInFlight,
@@ -34,6 +38,7 @@ const {
   mockCheckSsrf: vi.fn(async () => ({ allowed: true })),
   mockCacheGet: vi.fn(() => null as any),
   mockCacheGetErrored: vi.fn(() => false),
+  mockCacheMarkError: vi.fn(),
   mockCachePut: vi.fn(async (placeId: string, _bytes: Buffer, attribution: string | null) => ({
     photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`,
     filePath: `/tmp/${placeId}.jpg`,
@@ -83,7 +88,7 @@ vi.mock('../../../src/services/placePhotoCache', () => ({
   get: (placeId: string) => mockCacheGet(placeId),
   getErrored: (placeId: string) => mockCacheGetErrored(placeId),
   put: (placeId: string, bytes: Buffer, attribution: string | null) => mockCachePut(placeId, bytes, attribution),
-  markError: vi.fn(),
+  markError: (placeId: string, kind?: string) => mockCacheMarkError(placeId, kind),
   getInFlight: (placeId: string) => mockCacheGetInFlight(placeId),
   setInFlight: (placeId: string, p: Promise<any>) => mockCacheSetInFlight(placeId, p),
   serveFilePath: vi.fn(() => null),
@@ -100,6 +105,7 @@ afterEach(() => {
   mockCacheGet.mockReturnValue(null);
   mockCacheGetErrored.mockReset();
   mockCacheGetErrored.mockReturnValue(false);
+  mockCacheMarkError.mockReset();
   mockCachePut.mockReset();
   mockCachePut.mockImplementation(async (placeId: string, _bytes: Buffer, attribution: string | null) => ({
     photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`,
@@ -157,6 +163,84 @@ describe('parseOpeningHours', () => {
     const elapsed = Date.now() - start;
     expect(elapsed).toBeLessThan(100);
   });
+
+  it('MAPS-007b: emits machine-readable periods in Google day numbering (Sunday = 0)', () => {
+    const result = parseOpeningHours('Mo 09:00-18:00; Su 10:00-14:00');
+    expect(result.periods).toEqual([
+      { open: { day: 1, hour: 9, minute: 0 }, close: { day: 1, hour: 18, minute: 0 } },
+      { open: { day: 0, hour: 10, minute: 0 }, close: { day: 0, hour: 14, minute: 0 } },
+    ]);
+  });
+
+  it('MAPS-007c: a period past midnight closes on the following day', () => {
+    const result = parseOpeningHours('Sa 20:00-02:00');
+    expect(result.periods).toEqual([
+      { open: { day: 6, hour: 20, minute: 0 }, close: { day: 0, hour: 2, minute: 0 } },
+    ]);
+  });
+
+  it('MAPS-007d: the OSM 24:00 spelling becomes midnight of the next day', () => {
+    // Google's clock has no hour 24, so "00:00-24:00" is a full day, not a rejected range.
+    const result = parseOpeningHours('Mo 00:00-24:00');
+    expect(result.periods).toEqual([
+      { open: { day: 1, hour: 0, minute: 0 }, close: { day: 2, hour: 0, minute: 0 } },
+    ]);
+  });
+
+  it('MAPS-007e: unusable clock values produce no period', () => {
+    expect(parseOpeningHours('Mo 09:75-18:00').periods).toEqual([]);
+    expect(parseOpeningHours('Mo 09:00-24:30').periods).toEqual([]);
+    expect(parseOpeningHours('Mo closed').periods).toEqual([]);
+  });
+});
+
+// ── normalizeOpeningPeriods / normalizeSpecialDays ────────────────────────────
+
+describe('normalizeOpeningPeriods', () => {
+  it('MAPS-007f: keeps well-formed periods and fills the zeroes proto3 JSON omits', () => {
+    expect(
+      normalizeOpeningPeriods([{ open: { day: 3, hour: 9, minute: 30 }, close: { day: 3, hour: 17 } }]),
+    ).toEqual([{ open: { day: 3, hour: 9, minute: 30 }, close: { day: 3, hour: 17, minute: 0 } }]);
+    // Sunday midnight arrives as an empty object.
+    expect(normalizeOpeningPeriods([{ open: {} }])).toEqual([{ open: { day: 0, hour: 0, minute: 0 }, close: null }]);
+  });
+
+  it('MAPS-007g: a period without a close survives as the round-the-clock marker', () => {
+    expect(normalizeOpeningPeriods([{ open: { day: 0, hour: 0, minute: 0 } }])).toEqual([
+      { open: { day: 0, hour: 0, minute: 0 }, close: null },
+    ]);
+  });
+
+  it('MAPS-007h: drops out-of-range points and periods with an unusable close', () => {
+    expect(normalizeOpeningPeriods([{ open: { day: 7, hour: 9, minute: 0 } }])).toBeNull();
+    expect(normalizeOpeningPeriods([{ open: { day: 1, hour: 24, minute: 0 } }])).toBeNull();
+    // A broken close must not be mistaken for "never closes".
+    expect(
+      normalizeOpeningPeriods([{ open: { day: 1, hour: 9, minute: 0 }, close: { day: 1, hour: 9, minute: 90 } }]),
+    ).toBeNull();
+  });
+
+  it('MAPS-007i: returns null when there is nothing to normalise', () => {
+    expect(normalizeOpeningPeriods(undefined)).toBeNull();
+    expect(normalizeOpeningPeriods([])).toBeNull();
+  });
+});
+
+describe('normalizeSpecialDays', () => {
+  it('MAPS-007j: turns Google date parts into ISO dates without duplicates', () => {
+    expect(
+      normalizeSpecialDays([
+        { date: { year: 2026, month: 12, day: 25 } },
+        { date: { year: 2026, month: 1, day: 1 } },
+        { date: { year: 2026, month: 12, day: 25 } },
+      ]),
+    ).toEqual(['2026-12-25', '2026-01-01']);
+  });
+
+  it('MAPS-007k: skips incomplete or impossible dates and returns null when none are left', () => {
+    expect(normalizeSpecialDays([{}, { date: { year: 2026, month: 13, day: 1 } }, { date: { year: 2026, day: 5 } }])).toBeNull();
+    expect(normalizeSpecialDays(undefined)).toBeNull();
+  });
 });
 
 // ── buildOsmDetails ───────────────────────────────────────────────────────────
@@ -200,6 +284,19 @@ describe('buildOsmDetails', () => {
 
   it('MAPS-014: source is always openstreetmap', () => {
     expect(buildOsmDetails({}, 'node', '1').source).toBe('openstreetmap');
+  });
+
+  it('MAPS-012b: carries the structured periods next to the weekday lines', () => {
+    const result = buildOsmDetails({ opening_hours: 'Mo-Tu 09:00-18:00' }, 'node', '1');
+    expect(result.opening_periods).toEqual([
+      { open: { day: 1, hour: 9, minute: 0 }, close: { day: 1, hour: 18, minute: 0 } },
+      { open: { day: 2, hour: 9, minute: 0 }, close: { day: 2, hour: 18, minute: 0 } },
+    ]);
+  });
+
+  it('MAPS-012c: opening_periods is null when the day lines carry no usable times', () => {
+    expect(buildOsmDetails({}, 'node', '1').opening_periods).toBeNull();
+    expect(buildOsmDetails({ opening_hours: 'Mo closed' }, 'node', '1').opening_periods).toBeNull();
   });
 
   it('MAPS-014b: opening_hours is null when all days have unknown times (all "?")', () => {
@@ -1488,6 +1585,71 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     expect((result.place as any).open_now).toBe(false);
   });
 
+  it('MAPS-041f2: hands the structured opening periods and special days to the client', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'ChIJPeriods',
+          regularOpeningHours: {
+            // Localised display text — the client shows it but must not parse it.
+            weekdayDescriptions: ['月曜日: 9:00～18:00'],
+            openNow: true,
+            periods: [{ open: { day: 1, hour: 9, minute: 0 }, close: { day: 1, hour: 18, minute: 0 } }],
+            specialDays: [{ date: { year: 2026, month: 12, day: 25 } }],
+          },
+        }),
+      }),
+    );
+    const { getPlaceDetails } = await import('../../../src/services/mapsService');
+    const place = (await getPlaceDetails(1, 'ChIJPeriods')).place as any;
+    expect(place.opening_periods).toEqual([
+      { open: { day: 1, hour: 9, minute: 0 }, close: { day: 1, hour: 18, minute: 0 } },
+    ]);
+    expect(place.opening_special_days).toEqual(['2026-12-25']);
+    expect(place.opening_hours).toEqual(['月曜日: 9:00～18:00']);
+  });
+
+  it('MAPS-041f3: opening_periods is null when Google sends no periods', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'ChIJNoPeriods',
+          regularOpeningHours: { weekdayDescriptions: ['Monday: 9:00 AM – 5:00 PM'], openNow: false },
+        }),
+      }),
+    );
+    const { getPlaceDetails } = await import('../../../src/services/mapsService');
+    const place = (await getPlaceDetails(1, 'ChIJNoPeriods')).place as any;
+    expect(place.opening_periods).toBeNull();
+    expect(place.opening_special_days).toBeNull();
+  });
+
+  it('MAPS-041f4: getPlaceDetailsExpanded carries the periods too', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    // expanded=1 cache miss
+    mockDbGet.mockReturnValueOnce(undefined);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'ChIJExpandedPeriods',
+          // A place that never closes: one period, no close point.
+          regularOpeningHours: { openNow: true, periods: [{ open: { day: 0, hour: 0, minute: 0 } }] },
+        }),
+      }),
+    );
+    const { getPlaceDetailsExpanded } = await import('../../../src/services/mapsService');
+    const place = (await getPlaceDetailsExpanded(1, 'ChIJExpandedPeriods')).place as any;
+    expect(place.opening_periods).toEqual([{ open: { day: 0, hour: 0, minute: 0 }, close: null }]);
+  });
+
   it('MAPS-041g: getPlaceDetailsExpanded truncates reviews to first 5 entries', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
     // expanded=1 cache miss
@@ -1508,6 +1670,33 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     const { getPlaceDetailsExpanded } = await import('../../../src/services/mapsService');
     const result = await getPlaceDetailsExpanded(1, 'ChIJMany');
     expect((result.place as any).reviews).toHaveLength(5);
+  });
+
+  // The client sends whatever id the place carries, and the expanded lookup used to
+  // forward all of them — including OSM ids — to Google, which bills the 400
+  // INVALID_ARGUMENT it answers with (#1727).
+  it('MAPS-041h: getPlaceDetailsExpanded serves an OSM id from Overpass instead of Google', async () => {
+    mockDbGet.mockReturnValue({ maps_api_key: 'gkey' });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ elements: [{ tags: { website: 'https://nerja.example' } }] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { getPlaceDetailsExpanded } = await import('../../../src/services/mapsService');
+    const result = await getPlaceDetailsExpanded(1, 'node:5255005321');
+    expect((result.place as any).source).toBe('openstreetmap');
+    expect((result.place as any).website).toBe('https://nerja.example');
+    expect(fetchMock.mock.calls.map((call) => String(call[0])).some((url) => url.includes('places.googleapis.com')))
+      .toBe(false);
+  });
+
+  it('MAPS-041i: getPlaceDetailsExpanded answers a coordinate pseudo-id with no place at all', async () => {
+    mockDbGet.mockReturnValue({ maps_api_key: 'gkey' });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { getPlaceDetailsExpanded } = await import('../../../src/services/mapsService');
+    await expect(getPlaceDetailsExpanded(1, 'coords:48.8,2.3')).resolves.toEqual({ place: null });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -1539,7 +1728,7 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     expect(mockCachePut).toHaveBeenCalledOnce();
   });
 
-  it('MAPS-043: throws 404 when Wikimedia returns nothing and no API key', async () => {
+  it('MAPS-043: resolves with photoUrl null when Wikimedia returns nothing and no API key', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
@@ -1548,7 +1737,10 @@ describe('getPlacePhoto (fetch stubbed)', () => {
       }),
     );
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
-    await expect(getPlacePhoto(999, 'coords:0.0,0.0', 0, 0)).rejects.toMatchObject({ status: 404 });
+    await expect(getPlacePhoto(999, 'coords:0.0,0.0', 0, 0)).resolves.toEqual({
+      photoUrl: null,
+      attribution: null,
+    });
   });
 
   it('MAPS-043b: returns cached photo when disk cache returns a hit', async () => {
@@ -1567,27 +1759,42 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('MAPS-043c: throws 404 from error cache without making a network request', async () => {
+  it('MAPS-043c: serves the negative cache with photoUrl null and no network request', async () => {
     mockCacheGetErrored.mockReturnValue(true);
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const errorId = `coords:error-cache-${Date.now()}`;
-    await expect(getPlacePhoto(999, errorId, 0, 0)).rejects.toMatchObject({ status: 404 });
+    await expect(getPlacePhoto(999, errorId, 0, 0)).resolves.toEqual({ photoUrl: null, attribution: null });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('MAPS-043d: throws 404 when lat/lng are NaN and no API key', async () => {
+  it('MAPS-043d: resolves with photoUrl null when lat/lng are NaN and no API key', async () => {
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const nanId = `coords:nan-test-${Date.now()}`;
-    await expect(getPlacePhoto(999, nanId, NaN, NaN)).rejects.toMatchObject({ status: 404 });
+    await expect(getPlacePhoto(999, nanId, NaN, NaN)).resolves.toEqual({ photoUrl: null, attribution: null });
   });
 
-  it('MAPS-043e: falls through and throws 404 when Wikimedia fetch throws', async () => {
+  it('MAPS-043e: falls through to photoUrl null when the Wikimedia fetch throws', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network fail')));
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const throwId = `coords:throw-test-${Date.now()}`;
-    await expect(getPlacePhoto(999, throwId, 48.8, 2.3, 'Place')).rejects.toMatchObject({ status: 404 });
+    await expect(getPlacePhoto(999, throwId, 48.8, 2.3, 'Place')).resolves.toEqual({
+      photoUrl: null,
+      attribution: null,
+    });
+  });
+
+  it('MAPS-043f: an in-flight lookup that found nothing resolves the waiter with photoUrl null', async () => {
+    mockCacheGetInFlight.mockReturnValue(Promise.resolve(null) as any);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { getPlacePhoto } = await import('../../../src/services/mapsService');
+    await expect(getPlacePhoto(999, 'ChIJInFlight', 48.8, 2.3)).resolves.toEqual({
+      photoUrl: null,
+      attribution: null,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('MAPS-044: returns proxy URL via Google path when API key present and photos exist', async () => {
@@ -1616,7 +1823,7 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     expect(mockCachePut).toHaveBeenCalledOnce();
   });
 
-  it('MAPS-044b: throws 404 when Google details fetch returns non-ok', async () => {
+  it('MAPS-044b: resolves with photoUrl null when Google details fetch returns non-ok', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
     vi.stubGlobal(
       'fetch',
@@ -1628,10 +1835,50 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     );
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const errId = `ChIJErr-${Date.now()}`;
-    await expect(getPlacePhoto(1, errId, 48.8, 2.3)).rejects.toMatchObject({ status: 404 });
+    await expect(getPlacePhoto(1, errId, 48.8, 2.3)).resolves.toEqual({ photoUrl: null, attribution: null });
+    // A rejected provider call says nothing about the place — remember it as a
+    // failed attempt (minutes), not as "this place has no photo" (a day).
+    expect(mockCacheMarkError).toHaveBeenCalledWith(errId, 'provider-error');
   });
 
-  it('MAPS-044c: throws 404 when Google place has no photos', async () => {
+  it('MAPS-044b2: remembers a place both providers came up empty for as a lasting miss', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // Google answers, the place simply has no photos.
+        .mockResolvedValueOnce({ ok: true, text: async () => JSON.stringify({ photos: [] }) })
+        // Wikimedia has no article near the coordinates either.
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ query: { pages: {} } }) }),
+    );
+    const { getPlacePhoto } = await import('../../../src/services/mapsService');
+    const emptyId = `ChIJEmpty-${Date.now()}`;
+    await expect(getPlacePhoto(1, emptyId, 48.8, 2.3)).resolves.toEqual({ photoUrl: null, attribution: null });
+    expect(mockCacheMarkError).toHaveBeenCalledWith(emptyId, 'no-photo');
+  });
+
+  it('MAPS-044b3: a failed Wikimedia image download counts as a failed attempt', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ query: { pages: { '1': { thumbnail: { source: 'https://wiki.org/photo.jpg' } } } } }),
+        })
+        .mockResolvedValueOnce({ ok: false, status: 503, arrayBuffer: async () => new ArrayBuffer(0) }),
+    );
+    const { getPlacePhoto } = await import('../../../src/services/mapsService');
+    const downId = `coords:down-${Date.now()}`;
+    await expect(getPlacePhoto(999, downId, 48.8, 2.3, 'Place')).resolves.toEqual({
+      photoUrl: null,
+      attribution: null,
+    });
+    expect(mockCacheMarkError).toHaveBeenCalledWith(downId, 'provider-error');
+  });
+
+  it('MAPS-044c: resolves with photoUrl null when the Google place has no photos', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
     vi.stubGlobal(
       'fetch',
@@ -1642,10 +1889,10 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     );
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const noPhotoId = `ChIJNone-${Date.now()}`;
-    await expect(getPlacePhoto(1, noPhotoId, 48.8, 2.3)).rejects.toMatchObject({ status: 404 });
+    await expect(getPlacePhoto(1, noPhotoId, 48.8, 2.3)).resolves.toEqual({ photoUrl: null, attribution: null });
   });
 
-  it('MAPS-044d: throws 404 when media endpoint returns non-ok status', async () => {
+  it('MAPS-044d: resolves with photoUrl null when the media endpoint returns non-ok status', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
     const fetchMock = vi
       .fn()
@@ -1664,7 +1911,7 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     vi.stubGlobal('fetch', fetchMock);
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const noUriId = `ChIJXYZ-${Date.now()}`;
-    await expect(getPlacePhoto(1, noUriId, 48.8, 2.3)).rejects.toMatchObject({ status: 404 });
+    await expect(getPlacePhoto(1, noUriId, 48.8, 2.3)).resolves.toEqual({ photoUrl: null, attribution: null });
   });
 
   it('MAPS-044e: returns proxy URL with null attribution when authorAttributions is empty', async () => {
@@ -1747,6 +1994,58 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     expect(result.photoUrl).toBe(`/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`);
     expect(result.attribution).toBe('Wikipedia');
     expect(mockCachePut).toHaveBeenCalledOnce();
+  });
+
+  // OSM ids are what the client sends whenever a place has no google_place_id.
+  // Google rejects them with a billable 400 INVALID_ARGUMENT, so they must go
+  // straight to the Wikimedia fallback like coords: ids already do.
+  it.each(['node:5255005321', 'way:84527326', 'relation:345407'])(
+    'MAPS-044h: skips Google for the OSM id %s even when an API key is configured',
+    async (osmId) => {
+      mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ query: { pages: { '1': { thumbnail: { source: 'https://wiki.org/osm.jpg' } } } } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => new ArrayBuffer(90),
+        });
+      vi.stubGlobal('fetch', fetchMock);
+      const { getPlacePhoto } = await import('../../../src/services/mapsService');
+      const result = await getPlacePhoto(1, osmId, 36.7617, -3.8448, 'Cueva de Nerja');
+      expect(result.photoUrl).toBe(`/api/maps/place-photo/${encodeURIComponent(osmId)}/bytes`);
+      const requested = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(requested.some((url) => url.includes('places.googleapis.com'))).toBe(false);
+    },
+  );
+
+  it('MAPS-044i: an OSM id with no Wikimedia hit resolves with photoUrl null instead of a 404', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: { pages: {} } }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const { getPlacePhoto } = await import('../../../src/services/mapsService');
+    await expect(getPlacePhoto(1, 'node:2481346642', 36.76, -3.84, 'Nerja')).resolves.toEqual({
+      photoUrl: null,
+      attribution: null,
+    });
+    expect(fetchMock.mock.calls.map((call) => String(call[0])).some((url) => url.includes('places.googleapis.com')))
+      .toBe(false);
+  });
+});
+
+describe('isGooglePlaceId', () => {
+  it('MAPS-045: accepts Google place ids and rejects the ids Google cannot resolve', () => {
+    expect(isGooglePlaceId('ChIJLU7jZClu5kcR4PcOOO6p3I0')).toBe(true);
+    expect(isGooglePlaceId('coords:48.8,2.3')).toBe(false);
+    expect(isGooglePlaceId('node:5255005321')).toBe(false);
+    expect(isGooglePlaceId('way:84527326')).toBe(false);
+    expect(isGooglePlaceId('relation:345407')).toBe(false);
+    expect(isGooglePlaceId('https://lh3.googleusercontent.com/photo.jpg')).toBe(false);
+    // The collection views send the bare coordinate pair when a place has no ids.
+    expect(isGooglePlaceId('36.7617499,-3.8448432')).toBe(false);
   });
 });
 

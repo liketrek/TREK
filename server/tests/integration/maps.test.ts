@@ -265,15 +265,43 @@ describe('Maps happy paths (mocked service)', () => {
   it('MAPS-004 — getPlacePhoto error with status returns that status', async () => {
     const { user } = createUser(testDb);
     vi.mocked(mapsService.getPlacePhoto).mockRejectedValueOnce(
-      Object.assign(new Error('Photo not found'), { status: 404 })
+      Object.assign(new Error('Photo provider unavailable'), { status: 503 })
     );
 
     const res = await request(app)
       .get('/api/maps/place-photo/some-place-id?lat=48.8&lng=2.3')
       .set('Cookie', authCookie(user.id));
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(503);
     expect(res.body).toHaveProperty('error');
+  });
+
+  // A photo-less place must answer 200 { photoUrl: null }: one 404 per place turns
+  // a normal itinerary render into a 404 storm that fail2ban/CrowdSec bans (#1727).
+  it('MAPS-004b — a place with no photo answers 200 with photoUrl null', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(mapsService.getPlacePhoto).mockResolvedValueOnce({ photoUrl: null, attribution: null });
+
+    const res = await request(app)
+      .get('/api/maps/place-photo/node%3A5255005321?lat=36.76&lng=-3.84&name=Nerja')
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ photoUrl: null, attribution: null });
+  });
+
+  // Places keep the bytes URL in image_url, so an evicted cache entry means one
+  // request per place on the next trip render — the second half of the same ban
+  // vector. Nothing to serve is an empty 204, not a 404.
+  it('MAPS-004c — the bytes proxy answers 204 for a photo that is not cached', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .get('/api/maps/place-photo/ChIJnot-cached/bytes')
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(204);
+    expect(res.text).toBeFalsy();
   });
 
   it('MAPS-005 — reverseGeocode error returns null values', async () => {

@@ -121,8 +121,9 @@ async function enrichOne(tripId: string, userId: number, place: EnrichablePlace,
      WHERE id = ? AND trip_id = ?`,
   ).run(gpid, gftid, str(match.address), str(match.website), str(match.phone), place.id, tripId);
 
-  // Photo is best-effort: Google often has none, and getPlacePhoto throws 404 in
-  // that case — a missing photo must never abort the rest of the enrichment.
+  // Photo is best-effort: Google often has none, in which case getPlacePhoto
+  // resolves with photoUrl: null. A missing photo (or a provider outage, which
+  // still throws) must never abort the rest of the enrichment.
   try {
     const photo = await getPlacePhoto(userId, gpid, place.lat, place.lng, place.name);
     if (photo?.photoUrl) {

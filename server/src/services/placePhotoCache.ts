@@ -10,7 +10,22 @@ import path from 'node:path';
 // Overridable for tests (mirrors the TREK_DB_FILE seam) so the suite never touches
 // the real uploads tree.
 const GOOGLE_PHOTO_DIR = readEnv().paths.placePhotoDir || path.join(__dirname, '../../uploads/photos/google');
-const ERROR_TTL = 5 * 60 * 1000;
+// How long a "no photo for this place" answer stays remembered. Nothing about it
+// changes until a photo appears upstream, so it is worth keeping: without it every
+// trip open replays the whole provider fan-out, one lookup per place. A day is
+// still short enough that a newly configured API key takes effect overnight.
+// Entries are dropped outright when the place goes away (removeIfUnreferenced /
+// sweepOrphans).
+const MISSING_TTL = 24 * 60 * 60 * 1000;
+// A provider call that failed says nothing about the place — only that the API was
+// unreachable or unhappy just now. It is remembered just long enough to stop a
+// screenful of markers from hammering an API that is down, and only in memory, so
+// a restart retries right away.
+const FAILURE_TTL = 5 * 60 * 1000;
+const recentFailures = new Map<string, number>();
+// Sweep expired failures once the map grows past this. Whatever survives the sweep
+// is younger than FAILURE_TTL and expires on its own shortly after.
+const FAILURE_SWEEP_AT = 500;
 
 // Marker photos are displayed tiny — cap stored images so an oversized source
 // (e.g. a Wikimedia Commons full-res original) can't bloat the cache. Matches
@@ -72,15 +87,36 @@ export function get(placeId: string): CachedPhoto | null {
 }
 
 export function getErrored(placeId: string): boolean {
+  const failedAt = recentFailures.get(placeId);
+  if (failedAt !== undefined) {
+    if (Date.now() - failedAt < FAILURE_TTL) return true;
+    recentFailures.delete(placeId);
+  }
+
   const row = db
     .prepare('SELECT error_at FROM google_place_photo_meta WHERE place_id = ? AND error_at IS NOT NULL')
     .get(placeId) as { error_at: number } | undefined;
 
   if (!row) return false;
-  return Date.now() - row.error_at < ERROR_TTL;
+  return Date.now() - row.error_at < MISSING_TTL;
 }
 
-export function markError(placeId: string): void {
+// Remember that a lookup came back empty. 'no-photo' is the lasting answer — no
+// provider has an image for this place — and is persisted; 'provider-error' is a
+// failed attempt and is only held in memory for a few minutes.
+export function markError(placeId: string, kind: 'no-photo' | 'provider-error' = 'no-photo'): void {
+  if (kind === 'provider-error') {
+    if (recentFailures.size >= FAILURE_SWEEP_AT) {
+      const cutoff = Date.now() - FAILURE_TTL;
+      for (const [id, at] of recentFailures) {
+        if (at <= cutoff) recentFailures.delete(id);
+      }
+    }
+    recentFailures.set(placeId, Date.now());
+    return;
+  }
+
+  recentFailures.delete(placeId);
   knownOnDisk.delete(placeId);
   db.prepare(
     'INSERT OR REPLACE INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, ?)',
@@ -111,6 +147,7 @@ export async function put(placeId: string, bytes: Buffer, attribution: string | 
   await fsPromises.rename(tmp, fp);
 
   knownOnDisk.add(placeId);
+  recentFailures.delete(placeId);
 
   db.prepare(
     'INSERT OR REPLACE INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, ?, ?, NULL)',

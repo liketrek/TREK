@@ -160,6 +160,9 @@ export class MapsController {
     if (!placeId.startsWith('coords:') && this.maps.photosDisabled()) {
       return { photoUrl: null };
     }
+    // A place with no photo resolves to the same { photoUrl: null } body. It is an
+    // empty result, not a missing resource, and one 404 per photo-less place gets
+    // the user's IP banned by any 404-rate IPS in front of TREK (#1727).
     try {
       return await this.maps.photo(user.id, placeId, parseFloat(lat as string), parseFloat(lng as string), name);
     } catch (err: unknown) {
@@ -173,22 +176,35 @@ export class MapsController {
   placePhotoBytes(@Param('placeId') placeId: string, @Res() res: Response): void {
     const fp = this.maps.photoBytesPath(placeId);
     if (!fp) {
-      res.status(404).json({ error: 'Photo not cached' });
+      // Same reasoning as the JSON endpoint above, and the bigger half of #1727:
+      // places keep this URL in image_url, so a trip render asks for one photo per
+      // place and every entry the cache sweep dropped answered 404 — a whole map
+      // worth of them from one IP in one second. An empty 204 leaves the <img>
+      // with nothing to show, exactly like the 404 did.
+      this.emptyPhoto(res);
       return;
     }
     // Stream the cached file directly instead of res.sendFile(): the send library
     // bundled under @nestjs/platform-express rejects absolute Windows paths (drive
     // letter, no `root`) with a NotFoundError that surfaced as an unhandled 500,
     // even though the file exists. A plain read stream serves the bytes
-    // cross-platform; a read error still yields the legacy 404. Cached photos are
-    // always JPEG (placePhotoCache writes `<hash>.jpg`).
+    // cross-platform. Cached photos are always JPEG (placePhotoCache writes
+    // `<hash>.jpg`).
     res.set('Cache-Control', 'public, max-age=2592000, immutable');
     res.type('image/jpeg');
     const stream = createReadStream(fp);
     stream.on('error', () => {
-      if (!res.headersSent) res.status(404).json({ error: 'Photo not cached' });
+      if (!res.headersSent) this.emptyPhoto(res);
     });
     stream.pipe(res);
+  }
+
+  // 204 for "no bytes to serve". Overrides the immutable Cache-Control the hit
+  // path already set — a photo that reappears in the cache must not stay hidden
+  // behind a month-old empty response.
+  private emptyPhoto(res: Response): void {
+    res.set('Cache-Control', 'no-store');
+    res.status(204).end();
   }
 
   @Get('reverse')

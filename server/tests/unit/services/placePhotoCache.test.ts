@@ -1,6 +1,7 @@
 /**
- * Unit tests for placePhotoCache — PPC-001 through PPC-010.
- * Covers the downscale guard in put(), removeIfUnreferenced(), and sweepOrphans().
+ * Unit tests for placePhotoCache — PPC-001 through PPC-012.
+ * Covers the downscale guard in put(), removeIfUnreferenced(), sweepOrphans(),
+ * and the two negative-cache windows.
  * Uses a real in-memory SQLite DB and a throwaway temp upload dir
  * (TREK_PLACE_PHOTO_DIR) so the real uploads tree is never touched.
  */
@@ -154,5 +155,60 @@ describe('placePhotoCache.sweepOrphans()', () => {
 
     expect(cache.sweepOrphans()).toBe(0);
     expect(fs.existsSync(filePathFor('ref-a'))).toBe(true);
+  });
+});
+
+describe('placePhotoCache negative cache', () => {
+  function ageError(placeId: string, ms: number): void {
+    testDb
+      .prepare('UPDATE google_place_photo_meta SET error_at = ? WHERE place_id = ?')
+      .run(Date.now() - ms, placeId);
+  }
+
+  it('PPC-009: a place with no photo stays remembered well past the old five-minute window', () => {
+    cache.markError('photo-less');
+
+    ageError('photo-less', 30 * 60 * 1000);
+    expect(cache.getErrored('photo-less')).toBe(true);
+
+    ageError('photo-less', 5 * 60 * 60 * 1000);
+    expect(cache.getErrored('photo-less')).toBe(true);
+  });
+
+  it('PPC-010: the miss expires once it is a day old', () => {
+    cache.markError('stale-miss');
+    ageError('stale-miss', 24 * 60 * 60 * 1000);
+
+    expect(cache.getErrored('stale-miss')).toBe(false);
+  });
+
+  // A failed provider call says nothing about the place, so it must not inherit the
+  // long window a real "this place has no photo" answer gets.
+  it('PPC-011: a failed provider call is forgotten after minutes and never persisted', () => {
+    vi.useFakeTimers();
+    try {
+      cache.markError('flaky', 'provider-error');
+      expect(cache.getErrored('flaky')).toBe(true);
+      // Nothing on disk — a restart retries instead of inheriting someone's outage.
+      expect(testDb.prepare('SELECT 1 FROM google_place_photo_meta WHERE place_id = ?').get('flaky')).toBeUndefined();
+
+      vi.advanceTimersByTime(5 * 60 * 1000);
+      expect(cache.getErrored('flaky')).toBe(false);
+
+      // The long window belongs to the other case: same age, still remembered.
+      cache.markError('photo-less-too');
+      ageError('photo-less-too', 5 * 60 * 1000);
+      expect(cache.getErrored('photo-less-too')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('PPC-012: a cached photo clears an earlier failed attempt', async () => {
+    cache.markError('recovered', 'provider-error');
+    expect(cache.getErrored('recovered')).toBe(true);
+
+    await cache.put('recovered', await makeJpeg(40, 40), null);
+    expect(cache.getErrored('recovered')).toBe(false);
   });
 });
