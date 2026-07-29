@@ -144,8 +144,12 @@ jobs:
           path: server/coverage/
           retention-days: 7
 
-  client-tests:
-    name: Client Tests
+  client-quality:
+    # Split out of client-tests: the suite takes ~11 minutes, and having the
+    # gates in front of it meant a single lint finding threw away the whole test
+    # signal for that run. Both jobs pay the install/build, which is cheap next
+    # to running the two in series.
+    name: Client Types & Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -171,6 +175,25 @@ jobs:
 
       - name: Page pattern check
         run: cd client && npm run lint:pages
+
+  client-tests:
+    name: Client Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --workspace shared && npm ci --workspace client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
 
       - name: Run tests
         run: cd client && npm run test:coverage
