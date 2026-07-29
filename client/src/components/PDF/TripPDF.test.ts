@@ -912,3 +912,87 @@ describe('downloadTripPDF defaults', () => {
     expect(srcdoc()).toContain('Day 1')
   })
 })
+
+// #1292 — every day started a new page, so a plan of short days printed one
+// sheet per handful of lines. The flowing layout is opt-in and remembered.
+describe('page breaks between days (#1292)', () => {
+  const twoDays = {
+    ...minimalArgs,
+    days: [
+      { id: 1, day_number: 1, title: 'First', date: '2025-06-01' },
+      { id: 2, day_number: 2, title: 'Second', date: '2025-06-02' },
+    ] as any[],
+  }
+
+  beforeEach(() => {
+    localStorage.removeItem('trek_pdf_page_break_per_day')
+  })
+
+  const toggle = () =>
+    document.querySelector<HTMLInputElement>('#pdf-daybreak-toggle input')
+
+  it('FE-PDF-BREAK-001: days break onto their own page by default', async () => {
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+
+    expect(html).toContain('day-section day-break')
+    expect(html).not.toContain('class="pdf-flow"')
+    expect(toggle()!.checked).toBe(true)
+  })
+
+  it('FE-PDF-BREAK-002: the remembered flowing layout comes back on the next export', async () => {
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+
+    // The class stays on the day; the body is what decides whether it breaks.
+    expect(html).toContain('day-section day-break')
+    expect(html).toContain('<body class="pdf-flow">')
+    expect(toggle()!.checked).toBe(false)
+  })
+
+  it('FE-PDF-BREAK-003: the first day never carries a break of its own', async () => {
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+
+    expect(html.indexOf('<table class="day-section">')).toBeGreaterThan(-1)
+    expect(html.match(/day-section day-break/g)).toHaveLength(1)
+  })
+
+  it('FE-PDF-BREAK-004: turning the breaks off is remembered and shown at once', async () => {
+    await downloadTripPDF(twoDays)
+    const box = toggle()!
+    box.checked = false
+    box.dispatchEvent(new Event('change'))
+
+    expect(localStorage.getItem('trek_pdf_page_break_per_day')).toBe('0')
+    const body = getIframe()!.contentDocument?.body
+    if (body) expect(body.classList.contains('pdf-flow')).toBe(true)
+  })
+
+  it('FE-PDF-BREAK-005: turning them back on is remembered too', async () => {
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF(twoDays)
+    const box = toggle()!
+    box.checked = true
+    box.dispatchEvent(new Event('change'))
+
+    expect(localStorage.getItem('trek_pdf_page_break_per_day')).toBe('1')
+    const body = getIframe()!.contentDocument?.body
+    if (body) expect(body.classList.contains('pdf-flow')).toBe(false)
+  })
+
+  it('FE-PDF-BREAK-006: a storage the browser blocks costs the preference, not the export', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
+
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+    expect(html).toContain('day-section day-break')
+    expect(html).not.toContain('class="pdf-flow"')
+
+    const box = toggle()!
+    box.checked = false
+    expect(() => box.dispatchEvent(new Event('change'))).not.toThrow()
+  })
+})

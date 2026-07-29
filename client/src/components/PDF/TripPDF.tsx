@@ -9,6 +9,29 @@ import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry 
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 
+/**
+ * Every day starts a new page by default. On a trip of short days that prints
+ * one sheet per handful of lines, so the preview offers the flowing layout the
+ * in-app view already uses, and remembers which one was picked (#1292).
+ */
+const PAGE_BREAK_KEY = 'trek_pdf_page_break_per_day'
+
+function pageBreakPerDay(): boolean {
+  try {
+    return localStorage.getItem(PAGE_BREAK_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+function rememberPageBreakPerDay(on: boolean): void {
+  try {
+    localStorage.setItem(PAGE_BREAK_KEY, on ? '1' : '0')
+  } catch {
+    // A blocked localStorage costs the preference, not the export.
+  }
+}
+
 function renderLucideIcon(icon:LucideIcon, props = {}) {
   if (!_renderToStaticMarkup) return ''
   return _renderToStaticMarkup(
@@ -150,6 +173,7 @@ interface downloadTripPDFProps {
 // relies on it being an object.
 export async function downloadTripPDF({ trip, days, places, assignments = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale }: downloadTripPDFProps) {
   await ensureRenderer()
+  const breaksPerDay = pageBreakPerDay()
   const loc = _locale || undefined
   const tr = _t || (k => k)
   const sorted = [...(days || [])].sort((a, b) => a.day_number - b.day_number)
@@ -403,7 +427,7 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
     // every page an overflowing day spills onto (#1471). CSS `table-header-group`
     // on a <div> is NOT repeated by Chromium's print engine — only real thead is.
     return `
-      <table class="day-section${di > 0 ? ' page-break' : ''}">
+      <table class="day-section${di > 0 ? ' day-break' : ''}">
         <thead class="day-header"><tr><td>
           <div class="day-header-bar">
             <span class="day-tag">${escHtml(tr('dayplan.dayN', { n: day.day_number })).toUpperCase()}</span>
@@ -505,6 +529,11 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
   /* ── Day ───────────────────────────────────────── */
   /* .day-section is a real <table>; its <thead> day header repeats on overflow pages. */
   .page-break { page-break-before: always; }
+  /* Days break by default; .pdf-flow on <body> is the toggle in the preview (#1292).
+     Flowing days butt against each other without the page edge between them. */
+  .day-break { page-break-before: always; }
+  .pdf-flow .day-break { page-break-before: auto; }
+  .pdf-flow .day-section + .day-section { margin-top: 18px; }
   .day-section { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .day-header-bar {
     background: #0f172a; padding: 11px 28px;
@@ -608,7 +637,7 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
   }
 </style>
 </head>
-<body>
+<body${breaksPerDay ? '' : ' class="pdf-flow"'}>
 
 <!-- Footer on every page -->
 <div class="pdf-footer">
@@ -666,10 +695,14 @@ ${pluginSectionsHtml}
   card.style.cssText = 'width:100%;max-width:1000px;height:95vh;background:var(--bg-card);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);'
 
   const header = document.createElement('div')
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border-primary);flex-shrink:0;'
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border-primary);flex-shrink:0;'
   header.innerHTML = `
-    <span style="font-size:13px;font-weight:600;color:var(--text-primary)">${escHtml(trip?.title || tr('pdf.travelPlan'))}</span>
+    <span style="font-size:13px;font-weight:600;color:var(--text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(trip?.title || tr('pdf.travelPlan'))}</span>
     <div style="display:flex;align-items:center;gap:8px">
+      <label id="pdf-daybreak-toggle" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">
+        <input type="checkbox"${breaksPerDay ? ' checked' : ''} style="margin:0;cursor:pointer">
+        ${escHtml(tr('pdf.pageBreakPerDay'))}
+      </label>
       <button id="pdf-print-btn" style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:inherit">${tr('pdf.saveAsPdf')}</button>
       <button id="pdf-close-btn" style="background:none;border:none;cursor:pointer;color:var(--text-faint);display:flex;padding:4px;border-radius:6px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -693,4 +726,12 @@ ${pluginSectionsHtml}
   if (closeBtn) closeBtn.onclick = () => overlay.remove()
   const printBtn = header.querySelector<HTMLElement>('#pdf-print-btn')
   if (printBtn) printBtn.onclick = () => { iframe.contentWindow?.print() }
+
+  // The two layouts differ by one class, so switching is instant in the preview
+  // and there is no need to re-fetch photos or rebuild the document.
+  const dayBreakBox = header.querySelector<HTMLInputElement>('#pdf-daybreak-toggle input')
+  if (dayBreakBox) dayBreakBox.onchange = () => {
+    rememberPageBreakPerDay(dayBreakBox.checked)
+    iframe.contentDocument?.body.classList.toggle('pdf-flow', !dayBreakBox.checked)
+  }
 }
