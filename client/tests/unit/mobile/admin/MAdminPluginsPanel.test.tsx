@@ -77,6 +77,15 @@ function toastMessages() {
   return toasts.map(t => t.message);
 }
 
+// MSheet binds its Escape listener in an effect, so a key fired the moment the
+// sheet's content appears can land before the listener exists. Retry until the
+// sheet is actually gone rather than pressing once and hoping.
+const escapeUntilGone = (text: string) =>
+  waitFor(() => {
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByText(text)).not.toBeInTheDocument();
+  });
+
 describe('MAdminPluginsPanel — load states', () => {
   it('FE-MOB-PLUGP-001: shows the load error when the plugin list cannot be fetched', async () => {
     server.use(http.get('*/api/admin/plugins', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
@@ -1290,14 +1299,12 @@ describe('MAdminPluginsPanel — edge paths', () => {
     fireEvent.click(screen.getByTestId('plugin-row-menu-btn-trek-gotify'));
     fireEvent.click(screen.getByText('View error log'));
     await screen.findByText('No errors logged.');
-    fireEvent.keyDown(document, { key: 'Escape' });
-    await waitFor(() => expect(screen.queryByText('No errors logged.')).not.toBeInTheDocument());
+    await escapeUntilGone('No errors logged.');
 
     // Allowed hosts → Escape, from the row chip.
     fireEvent.click(screen.getByRole('button', { name: '1 allowed host(s)' }));
     await screen.findByText('No hosts added yet.');
-    fireEvent.keyDown(document, { key: 'Escape' });
-    await waitFor(() => expect(screen.queryByText('No hosts added yet.')).not.toBeInTheDocument());
+    await escapeUntilGone('No hosts added yet.');
   });
 
   it('FE-MOB-PLUGP-087: the hosts sheet closes from its own close button too', async () => {
