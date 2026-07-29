@@ -187,7 +187,7 @@ describe('MAdminDefaultUserSettings', () => {
     await screen.findByText('Default User Settings');
 
     // Typed through fireEvent: the {z}/{x}/{y} placeholders collide with userEvent's key syntax
-    const input = screen.getByPlaceholderText('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    const input = screen.getByPlaceholderText('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
     fireEvent.change(input, { target: { value: 'https://tiles.example.org/{z}/{x}/{y}.png' } });
     fireEvent.blur(input);
 
@@ -207,7 +207,7 @@ describe('MAdminDefaultUserSettings', () => {
 
     const url = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
     await waitFor(() => expect(puts).toEqual([{ map_tile_url: url }]));
-    expect(screen.getByPlaceholderText('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')).toHaveValue(url);
+    expect(screen.getByPlaceholderText('https://tile.openstreetmap.org/{z}/{x}/{y}.png')).toHaveValue(url);
     await waitFor(() => expect(screen.getByRole('button', { name: 'CartoDB Dark' })).toBeInTheDocument());
   });
 
@@ -221,7 +221,7 @@ describe('MAdminDefaultUserSettings', () => {
     await user.click(resetLink('Map Template'));
 
     await waitFor(() => expect(puts).toEqual([{ map_tile_url: null }]));
-    await waitFor(() => expect(screen.getByPlaceholderText('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')).toHaveValue(''));
+    await waitFor(() => expect(screen.getByPlaceholderText('https://tile.openstreetmap.org/{z}/{x}/{y}.png')).toHaveValue(''));
   });
 
   it('FE-MOB-MDUS-014: leaflet hides the GL-only token and style fields', async () => {

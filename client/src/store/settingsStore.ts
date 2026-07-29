@@ -4,6 +4,7 @@ import type { Settings } from '../types'
 import { DEFAULT_APPEARANCE } from '@trek/shared'
 import { getApiErrorMessage } from '../types'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
+import { normalizeTileUrl } from '../utils/tileUrl'
 
 interface SettingsState {
   settings: Settings
@@ -56,6 +57,16 @@ export const DEFAULT_SETTINGS: Settings = {
 // periodic) can all fire a retry at once — collapse them into one in-flight GET.
 let _loadInFlight: Promise<void> | null = null
 
+// Every tile consumer (planner map, journey map, tile prefetcher, the settings
+// preview) reads the template from this store, so the retired
+// {s}.tile.openstreetmap.org host is rewritten here — on the way in from the
+// server and on the way out to it. Rewriting only on read would let a template
+// typed by hand survive in the database until the next load put it back (#1733).
+function withNormalizedTileUrl<T extends Partial<Settings>>(patch: T): T {
+  if (typeof patch.map_tile_url !== 'string') return patch
+  return { ...patch, map_tile_url: normalizeTileUrl(patch.map_tile_url) }
+}
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: { ...DEFAULT_SETTINGS },
   isLoaded: false,
@@ -65,8 +76,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     _loadInFlight = (async () => {
       try {
         const data = await settingsApi.get()
+        // Rewritten here so the Map settings input already shows the host that
+        // still resolves, and persists it on the next save.
+        const incoming = withNormalizedTileUrl({ ...data.settings } as Partial<Settings>)
         set((state) => ({
-          settings: { ...state.settings, ...data.settings },
+          settings: { ...state.settings, ...incoming },
           isLoaded: true,
         }))
       } catch (err: unknown) {
@@ -83,12 +97,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   updateSetting: async (key: keyof Settings, value: Settings[keyof Settings]) => {
+    const next =
+      key === 'map_tile_url' && typeof value === 'string' ? normalizeTileUrl(value) : value
     set((state) => ({
-      settings: { ...state.settings, [key]: value },
+      settings: { ...state.settings, [key]: next },
     }))
-    if (key === 'language') localStorage.setItem('app_language', value as string)
+    if (key === 'language') localStorage.setItem('app_language', next as string)
     try {
-      await settingsApi.set(key, value)
+      await settingsApi.set(key, next)
     } catch (err: unknown) {
       console.error('Failed to save setting:', err)
       throw new Error(getApiErrorMessage(err, 'Error saving setting'))
@@ -109,11 +125,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   updateSettings: async (settingsObj: Partial<Settings>) => {
+    const patch = withNormalizedTileUrl(settingsObj)
     set((state) => ({
-      settings: { ...state.settings, ...settingsObj },
+      settings: { ...state.settings, ...patch },
     }))
     try {
-      await settingsApi.setBulk(settingsObj)
+      await settingsApi.setBulk(patch)
     } catch (err: unknown) {
       console.error('Failed to save settings:', err)
       throw new Error(getApiErrorMessage(err, 'Error saving settings'))

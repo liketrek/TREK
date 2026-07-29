@@ -46,7 +46,10 @@ export default defineConfig({
             // OpenStreetMap tiles (fallback / alternative)
             // Shares the 'map-tiles' cache; keep maxEntries equal to the Carto
             // rule above and MAX_TILES in src/sync/tilePrefetcher.ts (12288).
-            urlPattern: /^https:\/\/[a-c]\.tile\.openstreetmap\.org\/.*/i,
+            // Both spellings have to stay in the pattern: templates are rewritten
+            // onto the apex host (src/utils/tileUrl.ts), but caches filled before
+            // that still hold a/b/c URLs and must keep serving offline.
+            urlPattern: /^https:\/\/(?:[a-c]\.)?tile\.openstreetmap\.org\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles',

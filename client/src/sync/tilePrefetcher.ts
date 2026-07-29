@@ -21,6 +21,7 @@
 import type { Place } from '../types'
 import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
 import { isAuthed } from './authGate'
+import { normalizeTileUrl } from '../utils/tileUrl'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -52,14 +53,21 @@ const TILE_CACHE = 'map-tiles'
 const DEFAULT_TILE_URL =
   'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 
-const SUBDOMAINS = ['a', 'b', 'c', 'd']
+/**
+ * Must stay identical to Leaflet's `subdomains` default ('abc'), because the
+ * index is taken modulo the list length: a fourth entry here shifts the host
+ * for most tiles away from the one the TileLayer will ask for, so the prefetch
+ * fills the cache under URLs the map never requests. It also produced the dead
+ * d.tile.openstreetmap.org lookups in #1733.
+ */
+const SUBDOMAINS = ['a', 'b', 'c']
 
 /**
  * Pick the subdomain from the tile coordinates, the way Leaflet does.
  *
  * It has to be a pure function of x/y: a rotating counter hands the same tile a
  * different host on every run, which both defeats the cache lookup below and
- * stores the tile up to four times under four URLs.
+ * stores the tile once per host.
  */
 function subdomainFor(x: number, y: number): string {
   return SUBDOMAINS[Math.abs(x + y) % SUBDOMAINS.length]
@@ -145,10 +153,14 @@ export function countTiles(bbox: TileBbox, minZoom: number, maxZoom: number): nu
 
 /**
  * Build the concrete tile URL for given z/x/y from a Leaflet template.
- * Rotates through subdomains (a–d).
+ * Rotates through subdomains (a–c).
+ *
+ * The template is normalized first: this function is also reached with a raw
+ * admin default rather than the value from the settings store, so the OSM
+ * sharding rewrite has to happen here too.
  */
 export function buildTileUrl(template: string, z: number, x: number, y: number): string {
-  return template
+  return normalizeTileUrl(template)
     .replace('{z}', String(z))
     .replace('{x}', String(x))
     .replace('{y}', String(y))

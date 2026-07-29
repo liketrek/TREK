@@ -18,7 +18,7 @@ const MAPBOX_STANDARD = 'mapbox://styles/mapbox/standard';
 const MAPBOX_DARK = 'mapbox://styles/mapbox/dark-v11';
 const MAPBOX_NAV_NIGHT = 'mapbox://styles/mapbox/navigation-night-v1';
 const OFM_LIBERTY = 'https://tiles.openfreemap.org/styles/liberty';
-const TILE_PLACEHOLDER = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const TILE_PLACEHOLDER = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 /** Stateful stand-in for the admin defaults endpoint: PUT merges, null deletes. */
 function stubDefaults(initial: Record<string, unknown> = {}) {

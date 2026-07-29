@@ -6,6 +6,7 @@ import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
 import { getApiErrorMessage, type DistanceUnit, type Place } from '../../../types'
+import { normalizeTileUrl } from '../../../utils/tileUrl'
 import {
   MAPBOX_DEFAULT_STYLE,
   defaultStyleForProvider,
@@ -22,7 +23,7 @@ import { MSetSelectRow } from '../settings/MSettingsUi'
 import MSetPickerSheet from '../settings/MSetPickerSheet'
 
 const MAP_PRESETS = [
-  { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
+  { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
   { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
   { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
@@ -76,7 +77,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
     adminApi.getDefaultUserSettings().then((data: Defaults) => {
       const provider = normalizeProvider(data.map_provider)
       setDefaults(data)
-      setMapTileUrl(data.map_tile_url || '')
+      setMapTileUrl(normalizeTileUrl(data.map_tile_url || ''))
       setMapboxToken(data.mapbox_access_token || '')
       setMapboxStyle(provider === 'leaflet' ? (data.mapbox_style || '') : styleForProvider(provider, provider === 'maplibre-gl' ? data.maplibre_style : data.mapbox_style))
       setLoaded(true)
@@ -282,7 +283,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
               value={mapTileUrl}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapTileUrl(e.target.value)}
               onBlur={() => save({ map_tile_url: mapTileUrl })}
-              placeholder="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
           </MAdminField>
 

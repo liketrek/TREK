@@ -29,7 +29,7 @@ vi.mock('../../../../src/components/Settings/MapboxPreview', () => ({
   ),
 }));
 
-const OSM_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 function seedMap(over: Partial<Settings> = {}, updateSettings = vi.fn().mockResolvedValue(undefined)) {
   seedStore(useSettingsStore, {

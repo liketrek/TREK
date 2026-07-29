@@ -24,7 +24,7 @@ interface MapPreset {
 }
 
 const MAP_PRESETS: MapPreset[] = [
-  { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
+  { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
   { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
   { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
@@ -185,7 +185,7 @@ export default function MSettingsMap() {
             className="mt-[6px]"
             value={mapTileUrl}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapTileUrl(e.target.value)}
-            placeholder="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <MSetHint>{t('settings.mapDefaultHint')}</MSetHint>
         </>

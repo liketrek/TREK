@@ -128,7 +128,12 @@ export function applyGlobalMiddleware(
           "https://nominatim.openstreetmap.org", "https://overpass-api.de",
           "https://places.googleapis.com", "https://api.openweathermap.org",
           "https://en.wikipedia.org", "https://commons.wikimedia.org",
-          "https://*.basemaps.cartocdn.com", "https://*.tile.openstreetmap.org",
+          "https://*.basemaps.cartocdn.com",
+          // Both forms: a CSP wildcard host never matches the apex, and OSM
+          // serves everything from the bare tile.openstreetmap.org since it
+          // retired the a/b/c/d shards (#1733). The sharded hosts stay listed
+          // for tile templates users saved before that.
+          "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org",
           "https://unpkg.com", "https://open-meteo.com", "https://api.open-meteo.com",
           "https://geocoding-api.open-meteo.com", "https://api.frankfurter.dev",
           "https://router.project-osrm.org/route/v1/", "https://routing.openstreetmap.de/",
