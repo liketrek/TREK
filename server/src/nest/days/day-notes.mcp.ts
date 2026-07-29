@@ -35,7 +35,9 @@ export class DayNotesMcp {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive(),
       text: z.string().min(1).max(500),
-      time: z.string().max(250).optional().describe('Time label (e.g. "09:00" or "Morning")'),
+      time: z.string().max(250).optional().describe(
+        'Optional subtitle/description rendered as GitHub-flavored Markdown with line breaks, formatting, lists, inline code, and links',
+      ),
       icon: z.string().optional().describe('Emoji icon for the note'),
       color: dayNoteColorSchema.nullable().optional().describe('Predefined note color, or null for the default appearance'),
     },
@@ -63,7 +65,9 @@ export class DayNotesMcp {
       dayId: z.number().int().positive(),
       noteId: z.number().int().positive(),
       text: z.string().min(1).max(500).optional(),
-      time: z.string().max(250).nullable().optional().describe('Time label (e.g. "09:00" or "Morning"), or null to clear'),
+      time: z.string().max(250).nullable().optional().describe(
+        'Optional subtitle/description rendered as GitHub-flavored Markdown with line breaks, formatting, lists, inline code, and links; null clears it',
+      ),
       icon: z.string().optional().describe('Emoji icon for the note'),
       color: dayNoteColorSchema.nullable().optional().describe('Predefined note color, or null for the default appearance'),
     },

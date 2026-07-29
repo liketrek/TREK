@@ -783,6 +783,9 @@ describe('DayPlanSidebar', () => {
     expect(iconCircle).toHaveStyle({ background: '#ef4444' })
     expect(screen.getByText('Colored subtitle').closest('.day-note-markdown')).toHaveStyle({
       color: 'color-mix(in srgb, #ef4444 56%, var(--text-muted))',
+      fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))',
+      fontWeight: '500',
+      lineHeight: '1.4',
     })
     expect(uncolored).toHaveAttribute('data-day-note-color', 'default')
     expect(uncolored).toHaveStyle({ background: 'var(--bg-hover)' })

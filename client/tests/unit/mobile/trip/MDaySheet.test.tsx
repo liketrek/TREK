@@ -354,6 +354,7 @@ describe('MDaySheet', () => {
     expect(titleNode).not.toHaveClass('truncate')
     expect(titleNode).toHaveStyle({
       color: 'color-mix(in srgb, #3b82f6 72%, var(--text-primary))',
+      wordBreak: 'break-word',
     })
     const card = titleNode.closest('button')
     expect(card).toHaveAttribute('data-day-note-color', '#3b82f6')
@@ -363,7 +364,9 @@ describe('MDaySheet', () => {
     expect(card?.getAttribute('style')).toContain(
       'border-color: color-mix(in srgb, #3b82f6 30%, var(--border-faint))',
     )
-    expect(screen.getByText('Colored detail')).toHaveStyle({
+    const detail = screen.getByText('Colored detail')
+    expect(detail).toHaveClass('text-[0.71875rem]', 'font-medium')
+    expect(detail).toHaveStyle({
       color: 'color-mix(in srgb, #3b82f6 56%, var(--text-muted))',
     })
   })

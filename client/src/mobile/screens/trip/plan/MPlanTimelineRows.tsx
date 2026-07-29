@@ -464,7 +464,7 @@ export function NoteRow({ note, chrome, reorder, onEdit }: {
   const { time: noteTime, detail } = splitNoteTime(note.time)
   const time = noteTime ? fmtTime(noteTime, chrome) : ''
   const [title, ...rest] = note.text.split('\n')
-  const sub = [rest.join(' ').trim(), detail].filter(Boolean).join(' · ')
+  const sub = [rest.join('\n').trim(), detail].filter(Boolean).join(' · ')
   const noteColor = getDayNoteColorStyle(note.color)
 
   return (
@@ -496,14 +496,14 @@ export function NoteRow({ note, chrome, reorder, onEdit }: {
           <span
             title={title}
             className="block min-w-0 whitespace-normal break-words text-[0.875rem] font-semibold"
-            style={{ color: noteColor?.accent }}
+            style={{ color: noteColor?.accent, wordBreak: 'break-word' }}
           >
             {title}
           </span>
         </div>
         {sub && (
           <div
-            className="collab-note-md day-note-markdown mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted"
+            className="collab-note-md day-note-markdown mt-px font-geist text-[0.75rem] font-medium leading-[1.45] text-m-muted"
             style={{ color: noteColor?.subtitle }}
           >
             <Markdown

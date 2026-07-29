@@ -285,6 +285,18 @@ describe('Day-note tools — scope gating', () => {
     for (const tool of WRITE_TOOLS) expect(names).toContain(tool);
   });
 
+  it('documents the time field as a Markdown subtitle for automation clients', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const tools = (await h.client.listTools()).tools;
+      const create = tools.find((tool) => tool.name === 'create_day_note');
+      const update = tools.find((tool) => tool.name === 'update_day_note');
+      expect((create?.inputSchema as any).properties.time.description).toContain('GitHub-flavored Markdown');
+      expect((update?.inputSchema as any).properties.time.description).toContain('GitHub-flavored Markdown');
+      expect((update?.inputSchema as any).properties.time.description).toContain('null clears it');
+    });
+  });
+
   it('registers no day-note tools with trips:read only (all three are writes)', async () => {
     const { user } = createUser(testDb);
     const names = await listToolNames(user.id, ['trips:read']);

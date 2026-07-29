@@ -427,13 +427,13 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                           <span className="min-w-0 flex-1">
                             <span
                               className="block whitespace-normal break-words text-[0.8125rem] font-semibold"
-                              style={{ color: noteColor?.accent }}
+                              style={{ color: noteColor?.accent, wordBreak: 'break-word' }}
                             >
                               {note.text}
                             </span>
                             {detail && (
                               <span
-                                className="block truncate font-geist text-[0.65625rem] text-m-muted"
+                                className="block truncate font-geist text-[0.71875rem] font-medium text-m-muted"
                                 style={{ color: noteColor?.subtitle }}
                               >
                                 {detail}

@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import type { DayNoteColor } from '@trek/shared';
 
 export interface User {
   id: number;
@@ -236,7 +237,7 @@ export interface DayNote {
   text: string;
   time?: string | null;
   icon: string;
-  color?: string | null;
+  color?: DayNoteColor | null;
   sort_order: number;
   created_at?: string;
 }
