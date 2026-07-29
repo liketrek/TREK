@@ -1,9 +1,20 @@
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
+import { useLocation } from 'react-router-dom';
 import { render, screen, fireEvent } from '../../helpers/render';
 import MBottomNav from '../../../src/mobile/components/MBottomNav';
 import { useAddonStore } from '../../../src/store/addonStore';
 import { usePluginStore } from '../../../src/store/pluginStore';
+
+function LocationEcho() {
+  const location = useLocation();
+  return <span data-testid="loc">{location.pathname + location.search}</span>;
+}
+
+const nav = (entry: string) =>
+  render(<><MBottomNav /><LocationEcho /></>, { initialEntries: [entry] });
+
+const at = () => screen.getByTestId('loc').textContent;
 
 // FE-MOB-NAV-001 onwards
 
@@ -80,5 +91,93 @@ describe('MBottomNav', () => {
   it('FE-MOB-NAV-009: settings shows the disabled logo slot instead of a create action', () => {
     render(<MBottomNav />, { initialEntries: ['/settings'] });
     expect(screen.queryByRole('button', { name: 'New Trip' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-NAV-010: admin also swaps the "+" for the logo slot', () => {
+    render(<MBottomNav />, { initialEntries: ['/admin'] });
+    expect(screen.queryByRole('button', { name: 'New Trip' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-NAV-011: choosing a More entry navigates and closes the popover', () => {
+    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
+    render(<MBottomNav />, { initialEntries: ['/dashboard'] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: /Journey/ }));
+
+    const more = screen.getByRole('button', { name: 'More' });
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    expect(more).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('FE-MOB-NAV-012: tapping the scrim closes the More popover again', () => {
+    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
+    const { container } = render(<MBottomNav />, { initialEntries: ['/dashboard'] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    const scrim = container.querySelector('.fixed.inset-0') as HTMLElement;
+
+    fireEvent.click(scrim);
+
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: /Collections/ })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-NAV-013: a click inside the popover does not close it', () => {
+    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
+    const { container } = render(<MBottomNav />, { initialEntries: ['/dashboard'] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(container.querySelector('.fixed.inset-0 > div') as HTMLElement);
+
+    expect(screen.getByRole('button', { name: /Journey/ })).toBeInTheDocument();
+  });
+
+  it.each([
+    ['/journey', 'New Journey', '/journey?create=1'],
+    ['/journey/4', 'Add Entry', '/journey/4?create=entry'],
+    ['/collections', 'Add a place', '/collections?create=place'],
+    ['/trips/7', 'Add Place/Activity', '/trips/7?create=place'],
+    ['/dashboard', 'New Trip', '/dashboard?create=1'],
+    ['/atlas', 'Search a country...', '/atlas?search=1'],
+  ])('FE-MOB-NAV-014: the "+" on %s runs "%s"', (route, label, target) => {
+    seedAddons(['journey', 'collections', 'atlas']);
+    nav(route);
+
+    fireEvent.click(screen.getByRole('button', { name: label }));
+
+    expect(at()).toBe(target);
+  });
+
+  it.each([
+    ['finanzplan', 'Add expense', '/trips/7?create=expense'],
+    ['transports', 'Transport', '/trips/7?create=transport'],
+    ['buchungen', 'Manual Booking', '/trips/7?create=reservation'],
+  ])('FE-MOB-NAV-015: the trip "+" follows the %s tab', (tab, label, target) => {
+    sessionStorage.setItem('trip-tab-7', tab);
+    nav('/trips/7');
+
+    fireEvent.click(screen.getByRole('button', { name: label }));
+
+    expect(at()).toBe(target);
+  });
+
+  it('FE-MOB-NAV-016: a dock tab navigates to its route', () => {
+    seedAddons(['vacay', 'atlas']);
+    nav('/dashboard');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Atlas' }));
+
+    expect(at()).toBe('/atlas');
+  });
+
+  it('FE-MOB-NAV-017: a More entry navigates to its route', () => {
+    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
+    nav('/dashboard');
+
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: /Collections/ }));
+
+    expect(at()).toBe('/collections');
   });
 });

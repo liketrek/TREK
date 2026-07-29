@@ -51,4 +51,59 @@ describe('MUserMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: /Color Mode/ }));
     expect(updateSetting).toHaveBeenCalledWith('dark_mode', 'auto');
   });
+
+  it('FE-MOB-MENU-004: auto cycles back to dark', () => {
+    const updateSetting = vi.fn(async () => {});
+    useSettingsStore.setState({ updateSetting });
+    useSettingsStore.setState(s => ({ settings: { ...s.settings, dark_mode: 'auto' } }));
+
+    render(<MUserMenu open onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Color Mode/ }));
+
+    expect(updateSetting).toHaveBeenCalledWith('dark_mode', 'dark');
+  });
+
+  it('FE-MOB-MENU-005: a legacy boolean dark_mode still resolves to dark', () => {
+    const updateSetting = vi.fn(async () => {});
+    useSettingsStore.setState({ updateSetting });
+    useSettingsStore.setState(s => ({ settings: { ...s.settings, dark_mode: true } }));
+
+    render(<MUserMenu open onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Color Mode/ }));
+
+    expect(updateSetting).toHaveBeenCalledWith('dark_mode', 'light');
+  });
+
+  it('FE-MOB-MENU-006: opening settings closes the menu first', () => {
+    const onClose = vi.fn();
+    render(<MUserMenu open onClose={onClose} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-MENU-007: signing out closes the menu and clears the session', async () => {
+    const onClose = vi.fn();
+    const logout = vi.fn(async () => {});
+    useAuthStore.setState({ logout });
+    render(<MUserMenu open onClose={onClose} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(logout).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-MENU-008: an uploaded avatar replaces the initial', () => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      user: { id: 1, username: 'Maurice', email: 'm@trek.app', role: 'user', avatar_url: '/uploads/avatars/m.jpg' } as never,
+    });
+    const { container } = render(<MUserMenu open onClose={() => {}} />);
+
+    expect(container.querySelector('img')).toHaveAttribute('src', '/uploads/avatars/m.jpg');
+  });
 });
