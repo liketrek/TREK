@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import CustomTimePicker from './CustomTimePicker';
@@ -455,6 +456,19 @@ describe('CustomTimePicker branches', () => {
     expect(onChange).toHaveBeenCalledWith('05:30');
   });
 
+  it('FE-W5TP-030: a meridiem typed while 24h is configured survives until blur', () => {
+    render(<CustomTimePicker value="" onChange={onChange} />);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '5:30 pm' } });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('5:30 pm');
+  });
+
+  it('FE-W5TP-031: blur reads a meridiem correctly while 24h is configured', () => {
+    render(<CustomTimePicker value="5:30 pm" onChange={onChange} />);
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(onChange).toHaveBeenCalledWith('17:30');
+  });
+
   it('FE-W5TP-024: the steppers and the clear button highlight on hover', () => {
     use12h();
     render(<CustomTimePicker value="00:30" onChange={onChange} />);
@@ -474,5 +488,98 @@ describe('CustomTimePicker branches', () => {
     expect(clear.style.color).toBe('rgb(239, 68, 68)');
     fireEvent.mouseLeave(clear);
     expect(clear.style.color).toBe('var(--text-faint)');
+  });
+});
+
+// FE-TP1725-001 to -006 — the configured time format decides how a time is shown,
+// including values that were stored with a meridiem (booking check-in/check-out
+// times entered while 12h was set, or carried in by an import).
+describe('CustomTimePicker honours the configured time format', () => {
+  const onChange = vi.fn();
+  const steppers = () => screen.getAllByRole('button').filter(b => b.textContent?.trim() === '');
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetAllStores();
+  });
+
+  const use = (time_format: string) => seedStore(useSettingsStore, { settings: buildSettings({ time_format }) });
+
+  it('FE-TP1725-001: shows a stored meridiem value in 24h', () => {
+    use('24h');
+    render(<CustomTimePicker value="3:00 PM" onChange={onChange} />);
+    expect(screen.getByRole('textbox')).toHaveProperty('value', '15:00');
+  });
+
+  it('FE-TP1725-002: keeps a stored meridiem value in 12h', () => {
+    use('12h');
+    render(<CustomTimePicker value="3:00 PM" onChange={onChange} />);
+    expect(screen.getByRole('textbox')).toHaveProperty('value', '3:00 PM');
+  });
+
+  it('FE-TP1725-003: converts a 24h value for a 12h user', () => {
+    use('12h');
+    render(<CustomTimePicker value="15:00" onChange={onChange} />);
+    expect(screen.getByRole('textbox')).toHaveProperty('value', '3:00 PM');
+  });
+
+  it('FE-TP1725-004: the dropdown steppers start from the converted value', () => {
+    use('24h');
+    render(<CustomTimePicker value="3:00 PM" onChange={onChange} />);
+    fireEvent.click(steppers()[0]);
+    expect(screen.getByText('15')).toBeInTheDocument();
+    expect(screen.getByText('00')).toBeInTheDocument();
+    fireEvent.click(steppers()[1]);
+    expect(onChange).toHaveBeenLastCalledWith('16:00');
+  });
+
+  it('FE-TP1725-005: the empty-field hint follows the setting', () => {
+    use('24h');
+    const { unmount } = render(<CustomTimePicker value="" onChange={onChange} />);
+    expect(screen.getByRole('textbox')).toHaveProperty('placeholder', '00:00');
+    unmount();
+
+    use('12h');
+    render(<CustomTimePicker value="" onChange={onChange} />);
+    expect(screen.getByRole('textbox')).toHaveProperty('placeholder', '2:30 PM');
+  });
+
+  it('FE-TP1725-006: a 24h value is left alone in 24h', () => {
+    use('24h');
+    render(<CustomTimePicker value="14:30" onChange={onChange} />);
+    expect(screen.getByRole('textbox')).toHaveProperty('value', '14:30');
+  });
+
+  // Display alone is not enough: a value stored as "3:00 PM" stays that way in the
+  // database until someone edits the field. The picker hands the parsed HH:MM back to
+  // the form instead, so the next save writes a clean value.
+  const Controlled = ({ initial }: { initial: string }) => {
+    const [v, setV] = useState(initial);
+    return <CustomTimePicker value={v} onChange={nv => { onChange(nv); setV(nv); }} />;
+  };
+
+  it('FE-TP1725-007: a stored meridiem value is handed back as HH:MM without an edit', () => {
+    use('24h');
+    render(<Controlled initial="3:00 PM" />);
+    expect(onChange).toHaveBeenCalledWith('15:00');
+    expect(screen.getByRole('textbox')).toHaveProperty('value', '15:00');
+  });
+
+  it('FE-TP1725-008: typing a meridiem is left alone until the field is left', () => {
+    use('24h');
+    render(<Controlled initial="" />);
+    const input = screen.getByRole('textbox');
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: '5:30 pm' } });
+    expect(input).toHaveProperty('value', '5:30 pm');
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenLastCalledWith('17:30');
+    expect(input).toHaveProperty('value', '17:30');
+  });
+
+  it('FE-TP1725-009: a clean value is not written back', () => {
+    use('24h');
+    render(<Controlled initial="14:30" />);
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

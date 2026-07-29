@@ -220,4 +220,16 @@ describe('splitReservationDateTime', () => {
   it('returns nulls for unrecognized string', () => {
     expect(splitReservationDateTime('garbage')).toEqual({ date: null, time: null })
   })
+
+  // #1725 — slicing the time part to five characters used to swallow the meridiem,
+  // so an afternoon booking came back as a morning one.
+  it('converts a meridiem time part instead of cutting it off', () => {
+    expect(splitReservationDateTime('2026-08-01T3:00 PM')).toEqual({ date: '2026-08-01', time: '15:00' })
+    expect(splitReservationDateTime('2026-08-01T12:30 am')).toEqual({ date: '2026-08-01', time: '00:30' })
+  })
+
+  it('converts a bare meridiem time', () => {
+    expect(splitReservationDateTime('3:00 PM')).toEqual({ date: null, time: '15:00' })
+    expect(splitReservationDateTime('3 PM')).toEqual({ date: null, time: '15:00' })
+  })
 })

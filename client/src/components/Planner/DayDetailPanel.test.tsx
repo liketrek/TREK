@@ -1830,3 +1830,43 @@ describe('DayDetailPanel remaining branches, part two', () => {
     expect(await screen.findByText(/Add accommodation/i)).toBeInTheDocument();
   });
 });
+
+// FE-DDP1725-001 to -003 — the day panel reads times through the shared formatter, so a
+// value that was stored with a meridiem still follows the configured format (#1725).
+describe('DayDetailPanel time format', () => {
+  const meridiemRes = (overrides: Record<string, unknown> = {}) =>
+    buildReservation({
+      id: 9, type: 'event', title: 'Matinee', day_id: 1,
+      reservation_time: '3:00 PM', reservation_end_time: '11:00 PM', status: 'confirmed',
+      ...overrides,
+    });
+
+  it('FE-DDP1725-001: a reservation stored with a meridiem shows in 24h', async () => {
+    render(<DayDetailPanel {...defaultProps} reservations={[meridiemRes()]} />);
+    expect(await screen.findByText('15:00 – 23:00')).toBeInTheDocument();
+  });
+
+  it('FE-DDP1725-002: the same reservation keeps its afternoon in 12h', async () => {
+    seedStore(useSettingsStore, { settings: { time_format: '12h', temperature_unit: 'celsius', blur_booking_codes: false } });
+    render(<DayDetailPanel {...defaultProps} reservations={[meridiemRes()]} />);
+    expect(await screen.findByText('3:00 PM – 11:00 PM')).toBeInTheDocument();
+  });
+
+  it('FE-DDP1725-003: an accommodation check-in stored with a meridiem shows in 24h', async () => {
+    server.use(
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [{
+            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+            start_day_id: 1, end_day_id: 3, check_in: '3:00 PM', check_in_end: null,
+            check_out: '11:00 AM', confirmation: null,
+          }],
+        }),
+      ),
+    );
+    render(<DayDetailPanel {...defaultProps} />);
+
+    expect(await screen.findByText('15:00')).toBeInTheDocument();
+    expect(screen.getByText('11:00')).toBeInTheDocument();
+  });
+});
