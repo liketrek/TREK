@@ -135,9 +135,12 @@ export interface PluginDriver {
   hook<T = unknown>(name: string, fn: string, ...args: unknown[]): Promise<T>;
   /** Call one of the plugin's `mcpTools` by its own (un-namespaced) name, the way an
    * assistant connected over MCP would. USER-INITIATED like a route, so the handler
-   * gets the acting-user ctx. `input` is passed through untouched — the real host does
-   * not validate it against the tool's schema either, which is exactly the case worth
-   * testing. Needs `mcp:tools`. */
+   * gets the acting-user ctx. `input` is passed through untouched — MORE permissive
+   * than the real host, which checks arguments against the parts of the declared
+   * schema it understands (unrecognized constructs pass anything). Schema-shaped
+   * input behaves identically in both; input the mock lets through here may be
+   * rejected before the handler in production, never the reverse — so a handler that
+   * survives the mock's raw input is the one worth having. Needs `mcp:tools`. */
   mcpTool<T = unknown>(name: string, input?: unknown): Promise<T>;
   /** Click one of the plugin's settings-page buttons ("Test connection"). USER-INITIATED,
    * so the handler gets the acting-user ctx — ctx.settings.get() returns the host's

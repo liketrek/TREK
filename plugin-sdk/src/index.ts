@@ -396,8 +396,10 @@ export interface PluginMcpTool {
   inputSchema?: Record<string, unknown>;
   annotations?: McpToolAnnotations;
   /**
-   * Run one call. `input` arrives UNVALIDATED — the schema above steers the model,
-   * it is not a guarantee about what shows up — so check it yourself.
+   * Run one call. `input` is NOT GUARANTEED to be validated: TREK checks arguments
+   * against the parts of your schema it understands, but anything it converted to
+   * "unconstrained" passes through as-is (and the mock host validates nothing) — so
+   * check it yourself.
    *
    * Runs with the calling user bound, exactly like a route: trip reads are
    * membership-checked against them. The call is given 30 s. Return any

@@ -417,8 +417,9 @@ describe('createMockHost', () => {
   });
 
   // An MCP tool is called on behalf of the token's user, so it gets the acting-user ctx
-  // (like a route, unlike a job) — and its input arrives exactly as the model sent it,
-  // because the host does not validate it against the declared schema either.
+  // (like a route, unlike a job) — and the mock passes input through raw. That is MORE
+  // permissive than production (which checks arguments against the parts of the schema
+  // it understands), so a handler that survives this sees no surprises there.
   it('runs an mcpTool with the acting user bound and the input untouched', async () => {
     let seen: unknown;
     const def = definePlugin({
@@ -438,7 +439,8 @@ describe('createMockHost', () => {
       trips: { 1: { members: [7], data: { id: 1, title: 'Rome' } } },
     }).run(def);
 
-    // Deliberately not schema-shaped: the schema steers the model, it guarantees nothing.
+    // Deliberately not schema-shaped: the mock validates nothing, so the handler's own
+    // input checking is what gets exercised.
     const out = await d.mcpTool('lookup', { q: 42, extra: true });
     expect(seen).toEqual({ q: 42, extra: true });
     expect(out).toMatchObject({ trip: { id: 1, title: 'Rome' } });

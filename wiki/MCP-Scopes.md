@@ -6,7 +6,7 @@ OAuth scopes control exactly which data your AI client can read or write in TREK
 
 ## All scopes
 
-TREK defines 27 scopes across 13 groups.
+TREK defines 30 scopes across 15 groups.
 
 | Group | Scope | Permission |
 |---|---|---|

@@ -185,9 +185,10 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
     } else if (req.method === 'invoke.mcpTool') {
       // An assistant connected over MCP called one of the plugin's tools. USER-INITIATED
       // like a route: invCtx carries the user whose token made the MCP call, so trip
-      // reads are membership-checked against them. `input` is whatever the model sent —
-      // the tool's schema steers it but guarantees nothing, so it is passed through
-      // unvalidated by design and the handler is documented to check it.
+      // reads are membership-checked against them. `input` already passed the host's
+      // schema check — but that check is permissive (json-schema-to-zod converts what
+      // it doesn't understand to "unconstrained"), so the handler is documented to
+      // validate its own input regardless.
       const name = req.params.name as string;
       const tool = def.mcpTools?.find((t) => t.name === name);
       if (!tool) throw new Error(`no mcpTool ${name}`);

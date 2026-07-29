@@ -342,7 +342,7 @@ module.exports = definePlugin({
     annotations: { readOnlyHint: true, openWorldHint: true },
     async handler(input, ctx) {
       const { passport, destination } = input ?? {}
-      // input is what the MODEL sent — the schema steers it, it does not enforce it.
+      // input is what the MODEL sent — schema validation is permissive, not a guarantee.
       if (!/^[A-Z]{2}$/.test(passport) || !/^[A-Z]{2}$/.test(destination)) {
         throw new Error('passport and destination must be ISO-3166 alpha-2 codes')
       }

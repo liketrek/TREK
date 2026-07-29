@@ -354,8 +354,9 @@ export interface PluginMcpTool {
   name: string;
   title?: string;
   description: string;
-  /** Plain JSON Schema; the host converts it for the MCP client. Advisory only —
-   *  `input` reaches the handler unvalidated. */
+  /** Plain JSON Schema; the host converts it for the MCP client, which checks
+   *  arguments against the parts it understands — permissively, so `input` is not
+   *  guaranteed to be validated and the handler must check its own. */
   inputSchema?: Record<string, unknown>;
   annotations?: McpToolAnnotations;
   handler(input: unknown, ctx: PluginContext): Promise<unknown> | unknown;

@@ -780,7 +780,8 @@ module.exports = definePlugin({
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
     async handler(input, ctx) {
-      // input is UNVALIDATED — the schema steers the model, it guarantees nothing.
+      // Validation is NOT guaranteed — TREK checks input against the parts of the
+      // schema it understands, anything else passes through — so check it yourself.
       const { passport, destination } = input ?? {}
       if (typeof passport !== 'string' || typeof destination !== 'string') {
         throw new Error('passport and destination must be ISO-3166 alpha-2 codes')
