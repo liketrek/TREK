@@ -19,7 +19,7 @@ A backup is a ZIP archive with these entries:
 | `plugins-data/` | Each installed plugin's own database + files (present only if plugins are installed) |
 | `plugins-code/` | The installed plugin code, so a restore is self-contained (dev-linked plugins are skipped) |
 
-**Not included:** the encryption key. Store your `ENCRYPTION_KEY` separately from the backup ZIP — for example, in a password manager. See [Encryption-Key-Rotation](Encryption-Key-Rotation).
+**Also included:** the at-rest encryption key, unless you supply it through the `ENCRYPTION_KEY` environment variable — in that case the file is not the source of truth and is left out. Bundling it is what makes a backup restorable onto a different install, and it makes the ZIP as sensitive as the key itself: store and transfer it accordingly. See [Encryption-Key-Rotation](Encryption-Key-Rotation).
 
 ## Manual backup
 
@@ -64,7 +64,7 @@ Enable scheduled backups in the **Auto-Backup** section of the Backup tab.
 
 Auto-backup files are named `auto-backup-<timestamp>.zip` (manual backups use `backup-<timestamp>.zip`).
 
-After each auto-backup run, **all** backup files (manual and auto) older than `keep_days` are pruned. Set `keep_days` to `0` to disable pruning entirely.
+After each auto-backup run, **auto-backup files** older than `keep_days` are pruned. Manual backups are never pruned — delete those yourself when you no longer need them. Set `keep_days` to `0` to disable pruning entirely.
 
 ## Before updating TREK
 
