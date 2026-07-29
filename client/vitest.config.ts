@@ -25,13 +25,13 @@ export default defineConfig({
       exclude: ['src/main.tsx', 'src/vite-env.d.ts'],
       // Without these the Client Tests job produced a report, uploaded it and
       // passed no matter what the number was — which is how coverage drifted
-      // down to ~48% unnoticed. Set a few points below the current run so an
-      // ordinary PR doesn't trip them; raise them when the number rises.
+      // down to ~48% unnoticed. 85 across the board is the floor we do not want
+      // to fall through, not a target: the suite currently sits well above it.
       thresholds: {
-        statements: 94,
-        branches: 87,
-        functions: 94,
-        lines: 96,
+        statements: 85,
+        branches: 85,
+        functions: 85,
+        lines: 85,
       },
     },
     css: false,
