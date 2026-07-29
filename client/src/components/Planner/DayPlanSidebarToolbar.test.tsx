@@ -46,8 +46,6 @@ function makeProps(overrides: Partial<React.ComponentProps<typeof DayPlanSidebar
     t,
     locale: 'en-US',
     toast: makeToast(),
-    pdfHover: false,
-    setPdfHover: vi.fn((_v: boolean) => {}),
     icsHover: false,
     setIcsHover: vi.fn((_v: boolean) => {}),
     expandedDays: new Set<number>(),
@@ -97,21 +95,29 @@ describe('DayPlanSidebarToolbar', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('dayplan.pdfError: font missing'))
   })
 
-  it('FE-PLANNER-DPTOOLBAR-003: hovering the PDF button reports the hover state upward', async () => {
+  it('FE-PLANNER-DPTOOLBAR-003: hovering the PDF button shows the export tooltip', async () => {
     const user = userEvent.setup()
-    const setPdfHover = vi.fn((_v: boolean) => {})
-    render(<DayPlanSidebarToolbar {...makeProps({ setPdfHover })} />)
+    render(<DayPlanSidebarToolbar {...makeProps()} />)
+    expect(screen.queryByText('dayplan.pdfTooltip')).not.toBeInTheDocument()
     await user.hover(screen.getByText('dayplan.pdf'))
-    expect(setPdfHover).toHaveBeenCalledWith(true)
+    await waitFor(() => expect(screen.getByText('dayplan.pdfTooltip')).toBeInTheDocument())
     await user.unhover(screen.getByText('dayplan.pdf'))
-    expect(setPdfHover).toHaveBeenCalledWith(false)
+    await waitFor(() => expect(screen.queryByText('dayplan.pdfTooltip')).not.toBeInTheDocument())
   })
 
-  it('FE-PLANNER-DPTOOLBAR-004: pdfHover renders the export tooltip', () => {
-    const { rerender } = render(<DayPlanSidebarToolbar {...makeProps()} />)
-    expect(screen.queryByText('dayplan.pdfTooltip')).not.toBeInTheDocument()
-    rerender(<DayPlanSidebarToolbar {...makeProps({ pdfHover: true })} />)
-    expect(screen.getByText('dayplan.pdfTooltip')).toBeInTheDocument()
+  // The button sits at the right edge of the leftmost pane. Its own tooltip was
+  // anchored with `right: 0` and never wrapped, so a long label ran off the left
+  // of the window. The shared tooltip is portalled and clamped to the viewport.
+  it('FE-PLANNER-DPTOOLBAR-004: the export tooltip stays inside the window', async () => {
+    const user = userEvent.setup()
+    render(<DayPlanSidebarToolbar {...makeProps()} />)
+    await user.hover(screen.getByText('dayplan.pdf'))
+    const tip = await screen.findByText('dayplan.pdfTooltip')
+    expect(tip.closest('[role="tooltip"]')).not.toBeNull()
+    expect(tip.parentElement).toBe(document.body)
+    expect(tip.style.position).toBe('fixed')
+    // Placed once measured, and never to the left of the window edge.
+    await waitFor(() => expect(parseFloat(tip.style.left)).toBeGreaterThanOrEqual(0))
   })
 
   // ── ICS menu ──────────────────────────────────────────────────────────────

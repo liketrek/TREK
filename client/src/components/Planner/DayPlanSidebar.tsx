@@ -195,7 +195,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const [lockedIds, setLockedIds] = useState(new Set())
   const [lockHoverId, setLockHoverId] = useState(null)
   const [undoHover, setUndoHover] = useState(false)
-  const [pdfHover, setPdfHover] = useState(false)
   const [icsHover, setIcsHover] = useState(false)
   const [hoveredAssignmentId, setHoveredAssignmentId] = useState<number | null>(null)
   // Transit rows fold their itinerary out inline (#1065).
@@ -984,8 +983,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     setLockHoverId,
     undoHover,
     setUndoHover,
-    pdfHover,
-    setPdfHover,
     icsHover,
     setIcsHover,
     hoveredAssignmentId,
@@ -1155,8 +1152,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     setLockHoverId,
     undoHover,
     setUndoHover,
-    pdfHover,
-    setPdfHover,
     icsHover,
     setIcsHover,
     hoveredAssignmentId,
@@ -1267,8 +1262,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
         t={t}
         locale={locale}
         toast={toast}
-        pdfHover={pdfHover}
-        setPdfHover={setPdfHover}
         icsHover={icsHover}
         setIcsHover={setIcsHover}
         expandedDays={expandedDays}
