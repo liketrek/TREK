@@ -508,4 +508,36 @@ describe('NoteRow', () => {
     expect(onEdit).toHaveBeenCalledTimes(1)
     expect(screen.getByTestId('reorder')).toBeInTheDocument()
   })
+
+  it('FE-MOB-PLROW-042: renders a one-line title and safe Markdown subtitle', () => {
+    const { container } = render(
+      <NoteRow
+        {...base}
+        note={note({
+          text: 'A deliberately long warning title',
+          time: '**Bold** and [Tickets](https://example.com)\n<b>not active</b>',
+          color: 'violet',
+        })}
+      />,
+    )
+
+    const title = screen.getByTitle('A deliberately long warning title')
+    expect(title).toHaveClass('whitespace-nowrap', 'overflow-hidden', 'text-ellipsis')
+    expect(screen.getByText('Bold', { selector: 'strong' })).toBeInTheDocument()
+    expect(container.querySelector('.day-note-markdown b')).toBeNull()
+    expect(container.querySelector('[data-day-note-color="violet"]')).toBeInTheDocument()
+
+    const link = screen.getByRole('link', { name: 'Tickets' })
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(link).toHaveAttribute('draggable', 'false')
+  })
+
+  it('FE-MOB-PLROW-043: keeps the neutral appearance for missing and unknown colors', () => {
+    const { container, rerender } = render(<NoteRow {...base} note={note({ color: undefined })} />)
+    expect(container.querySelector('[data-day-note-color="default"]')).not.toHaveAttribute('style')
+
+    rerender(<NoteRow {...base} note={note({ color: 'hotpink' })} />)
+    expect(container.querySelector('[data-day-note-color="default"]')).not.toHaveAttribute('style')
+  })
 })

@@ -43,7 +43,7 @@ const { db } = vi.hoisted(() => {
     PRIMARY KEY (assignment_id, user_id));`);
   tmp.exec(`CREATE TABLE day_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     trip_id INTEGER NOT NULL, text TEXT NOT NULL, time TEXT, icon TEXT DEFAULT '📝',
-    sort_order REAL DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+    color TEXT, sort_order REAL DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   // Reorder/insert touch accommodations + reservation restamping.
   tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,
@@ -201,14 +201,18 @@ describe('Days + day-notes e2e (real auth guard + temp SQLite, real day SQL)', (
 
   it('201 create note (real insert: trim, empty-string coercions), 400 on over-long text (before access)', async () => {
     const ok = await request(server).post('/api/trips/5/days/3/notes').set('Cookie', sessionCookie(1))
-      .send({ text: '  Lunch  ', time: '', icon: '', sort_order: 0 });
+      .send({ text: '  Lunch  ', time: '', icon: '', color: 'amber', sort_order: 0 });
     expect(ok.status).toBe(201);
-    expect(ok.body.note).toMatchObject({ day_id: 3, trip_id: 5, text: 'Lunch', time: null, icon: '📝', sort_order: 0 });
+    expect(ok.body.note).toMatchObject({ day_id: 3, trip_id: 5, text: 'Lunch', time: null, icon: '📝', color: 'amber', sort_order: 0 });
     const row = db.prepare('SELECT * FROM day_notes WHERE id = ?').get(ok.body.note.id);
-    expect(row).toMatchObject({ text: 'Lunch', time: null, icon: '📝', sort_order: 0 });
+    expect(row).toMatchObject({ text: 'Lunch', time: null, icon: '📝', color: 'amber', sort_order: 0 });
     const long = await request(server).post('/api/trips/5/days/3/notes').set('Cookie', sessionCookie(1)).send({ text: 'x'.repeat(501) });
     expect(long.status).toBe(400);
     expect(long.body.error).toContain('text');
+    const invalidColor = await request(server).post('/api/trips/5/days/3/notes').set('Cookie', sessionCookie(1))
+      .send({ text: 'Unsafe', color: '#ff00ff' });
+    expect(invalidColor.status).toBe(400);
+    expect(invalidColor.body.error).toContain('color');
   });
 
   it('201 create accepts null time/icon (moveDayNote re-sends the nullable entity fields)', async () => {
@@ -230,14 +234,18 @@ describe('Days + day-notes e2e (real auth guard + temp SQLite, real day SQL)', (
     expect(res.body).toEqual({ error: 'Text required' });
   });
 
-  it('200 update note merges omitted fields from the current row', async () => {
+  it('200 update note merges omitted fields and can change or clear color', async () => {
     const created = await request(server).post('/api/trips/5/days/3/notes').set('Cookie', sessionCookie(1))
-      .send({ text: 'Lunch', time: '12:00' });
+      .send({ text: 'Lunch', time: '12:00', color: 'teal' });
     const id = created.body.note.id;
     const res = await request(server).put(`/api/trips/5/days/3/notes/${id}`).set('Cookie', sessionCookie(1))
-      .send({ icon: '🍜' });
+      .send({ icon: '🍜', color: 'violet' });
     expect(res.status).toBe(200);
-    expect(res.body.note).toMatchObject({ id, text: 'Lunch', time: '12:00', icon: '🍜' });
+    expect(res.body.note).toMatchObject({ id, text: 'Lunch', time: '12:00', icon: '🍜', color: 'violet' });
+    const cleared = await request(server).put(`/api/trips/5/days/3/notes/${id}`).set('Cookie', sessionCookie(1))
+      .send({ color: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.note.color).toBeNull();
     const miss = await request(server).put('/api/trips/5/days/3/notes/9999').set('Cookie', sessionCookie(1)).send({ text: 'x' });
     expect(miss.status).toBe(404);
     expect(miss.body).toEqual({ error: 'Note not found' });

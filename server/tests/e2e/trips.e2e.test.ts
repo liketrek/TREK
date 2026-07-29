@@ -35,7 +35,7 @@ const { db } = vi.hoisted(() => {
     reservation_notes TEXT, reservation_datetime TEXT, assignment_time TEXT, assignment_end_time TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE day_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
-    trip_id INTEGER NOT NULL, text TEXT, time TEXT, icon TEXT, sort_order INTEGER DEFAULT 0,
+    trip_id INTEGER NOT NULL, text TEXT, time TEXT, icon TEXT, color TEXT, sort_order INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   // deleteTrip cleans up synced journey entries before dropping the trip row.
   tmp.exec(`CREATE TABLE journey_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, journey_id INTEGER,

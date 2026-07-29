@@ -1,4 +1,9 @@
-import { dayCreateRequestSchema, dayNoteCreateRequestSchema, dayNoteUpdateRequestSchema } from './day.schema';
+import {
+  dayCreateRequestSchema,
+  dayNoteCreateRequestSchema,
+  dayNoteSchema,
+  dayNoteUpdateRequestSchema,
+} from './day.schema';
 
 import { describe, it, expect } from 'vitest';
 
@@ -25,6 +30,12 @@ describe('dayNoteCreateRequestSchema', () => {
   it('accepts null time/icon (moveDayNote re-sends the nullable entity fields)', () => {
     expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', time: null, icon: null }).success).toBe(true);
   });
+
+  it('keeps color optional and accepts only the predefined palette', () => {
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'Uncolored' }).success).toBe(true);
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'Warning', color: 'rose' }).success).toBe(true);
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'Custom', color: '#ff00ff' }).success).toBe(false);
+  });
 });
 
 describe('dayNoteUpdateRequestSchema', () => {
@@ -36,5 +47,17 @@ describe('dayNoteUpdateRequestSchema', () => {
 
   it('accepts an explicit null time (clears the label)', () => {
     expect(dayNoteUpdateRequestSchema.safeParse({ time: null }).success).toBe(true);
+  });
+
+  it('accepts changing or clearing a color and rejects unknown values', () => {
+    expect(dayNoteUpdateRequestSchema.safeParse({ color: 'violet' }).success).toBe(true);
+    expect(dayNoteUpdateRequestSchema.safeParse({ color: null }).success).toBe(true);
+    expect(dayNoteUpdateRequestSchema.safeParse({ color: 'magenta' }).success).toBe(false);
+  });
+});
+
+describe('dayNoteSchema', () => {
+  it('continues to parse existing notes without a color', () => {
+    expect(dayNoteSchema.safeParse({ id: 1, day_id: 2, text: 'Existing note' }).success).toBe(true);
   });
 });

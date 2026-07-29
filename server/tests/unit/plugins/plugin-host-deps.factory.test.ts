@@ -270,7 +270,7 @@ vi.mock('../../../src/services/collectionsService', () => {
 // Day notes are a constructor-injected stub (same behaviors as the old path mock).
 const dayNotesStub = {
   list: vi.fn((dayId: number, tripId: number) => [{ id: 1, day_id: dayId, trip_id: tripId }]),
-  create: vi.fn((dayId: number, _tripId: number, text: string) => ({ id: 50, day_id: dayId, text })),
+  create: vi.fn((dayId: number, _tripId: number, text: string, _time?: string | null, _icon?: string | null, _sortOrder?: number, color?: string | null) => ({ id: 50, day_id: dayId, text, color: color ?? null })),
   getNote: vi.fn((id: number) => (id === 99 ? undefined : { id, text: 'Old' })),
   update: vi.fn((id: number, _current: unknown, fields: Record<string, unknown>) => ({ id, ...fields })),
   remove: vi.fn(),
@@ -534,9 +534,9 @@ describe('host-deps factory — reservations, day notes, cross-trip + addon read
 
   it('day notes create/update/delete run the wiring; a day/note outside the trip is refused', async () => {
     const h = host('db:write:daynotes');
-    expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 3, input: { text: 'Pack' } })).ok).toBe(true);
+    expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 3, input: { text: 'Pack', color: 'amber' } })).result).toMatchObject({ color: 'amber' });
     expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 88, input: { text: 'x' } })).error.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 5, input: { text: 'y' } })).ok).toBe(true);
+    expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 5, input: { text: 'y', color: 'violet' } })).result).toMatchObject({ color: 'violet' });
     expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 99, input: {} })).error.code).toBe('RESOURCE_FORBIDDEN');
     expect((await call(h, 'daynotes.delete', { tripId: 1, dayId: 3, noteId: 5 })).ok).toBe(true);
     expect((await call(h, 'daynotes.delete', { tripId: 1, dayId: 3, noteId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');

@@ -20,6 +20,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { createTestDb } from '../../helpers/test-db';
+import { runMigrations } from '../../../src/db/migrations';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_PATH = resolve(here, '../../../src/db/migrations.ts');
@@ -189,6 +190,23 @@ describe('migration hygiene — full chain smoke', () => {
     try {
       const row = db.prepare('SELECT version FROM schema_version').get() as { version: number };
       expect(row.version).toBeGreaterThan(0);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('adds the nullable day-note color column to an existing latest-minus-one schema', () => {
+    const db = createTestDb();
+    try {
+      const version = (db.prepare('SELECT version FROM schema_version').get() as { version: number }).version;
+      db.exec('ALTER TABLE day_notes DROP COLUMN color');
+      db.prepare('UPDATE schema_version SET version = ?').run(version - 1);
+
+      runMigrations(db);
+
+      const columns = db.prepare("PRAGMA table_info('day_notes')").all() as Array<{ name: string }>;
+      expect(columns.some(column => column.name === 'color')).toBe(true);
+      expect((db.prepare('SELECT version FROM schema_version').get() as { version: number }).version).toBe(version);
     } finally {
       db.close();
     }

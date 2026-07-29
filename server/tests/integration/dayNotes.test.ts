@@ -87,6 +87,27 @@ describe('Create day note', () => {
     expect(res.status).toBe(201);
     expect(res.body.note.text).toBe('Remember to book tickets');
     expect(res.body.note.time).toBe('09:00');
+    expect(res.body.note.color).toBeNull();
+  });
+
+  it('NOTE-007 - POST persists an allowed color and rejects an unknown color', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+
+    const created = await request(app)
+      .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
+      .set('Cookie', authCookie(user.id))
+      .send({ text: 'Book tickets', color: 'amber' });
+    expect(created.status).toBe(201);
+    expect(created.body.note.color).toBe('amber');
+    expect((testDb.prepare('SELECT color FROM day_notes WHERE id = ?').get(created.body.note.id) as any).color).toBe('amber');
+
+    const invalid = await request(app)
+      .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
+      .set('Cookie', authCookie(user.id))
+      .send({ text: 'Unsafe color', color: '#ff00ff' });
+    expect(invalid.status).toBe(400);
   });
 
   it('NOTE-001 — POST without text returns 400', async () => {
@@ -187,6 +208,32 @@ describe('Update day note', () => {
     expect(res.status).toBe(200);
     expect(res.body.note.text).toBe('New text');
     expect(res.body.note.icon).toBe('🎯');
+  });
+
+  it('NOTE-008 - PUT changes and clears a note color', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+
+    const create = await request(app)
+      .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
+      .set('Cookie', authCookie(user.id))
+      .send({ text: 'Colored note', color: 'teal' });
+    const noteId = create.body.note.id;
+
+    const changed = await request(app)
+      .put(`/api/trips/${trip.id}/days/${day.id}/notes/${noteId}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ color: 'violet' });
+    expect(changed.status).toBe(200);
+    expect(changed.body.note.color).toBe('violet');
+
+    const cleared = await request(app)
+      .put(`/api/trips/${trip.id}/days/${day.id}/notes/${noteId}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ color: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.note.color).toBeNull();
   });
 
   it('NOTE-004 — PUT on non-existent note returns 404', async () => {

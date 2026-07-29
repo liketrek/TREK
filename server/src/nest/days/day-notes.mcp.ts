@@ -3,6 +3,7 @@ import {
   TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   demoDenied, ok,
 } from '@trek/nest-mcp';
+import { dayNoteColorSchema, type DayNoteColor } from '@trek/shared';
 import { z } from 'zod';
 import { isDemoUser } from '../../services/authService';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
@@ -36,19 +37,20 @@ export class DayNotesMcp {
       text: z.string().min(1).max(500),
       time: z.string().max(250).optional().describe('Time label (e.g. "09:00" or "Morning")'),
       icon: z.string().optional().describe('Emoji icon for the note'),
+      color: dayNoteColorSchema.nullable().optional().describe('Predefined note color, or null for the default appearance'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
   })
   async createDayNote(
-    { tripId, dayId, text, time, icon }: { tripId: number; dayId: number; text: string; time?: string; icon?: string },
+    { tripId, dayId, text, time, icon, color }: { tripId: number; dayId: number; text: string; time?: string; icon?: string; color?: DayNoteColor | null },
     ctx: McpContext,
   ) {
     if (isDemoUser(ctx.userId)) return demoDenied();
     if (!this.notes.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.notes.dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
-    const note = this.notes.create(dayId, tripId, text, time, icon);
+    const note = this.notes.create(dayId, tripId, text, time, icon, undefined, color);
     safeBroadcast(tripId, 'dayNote:created', { dayId, note });
     return ok({ note });
   }
@@ -63,12 +65,13 @@ export class DayNotesMcp {
       text: z.string().min(1).max(500).optional(),
       time: z.string().max(250).nullable().optional().describe('Time label (e.g. "09:00" or "Morning"), or null to clear'),
       icon: z.string().optional().describe('Emoji icon for the note'),
+      color: dayNoteColorSchema.nullable().optional().describe('Predefined note color, or null for the default appearance'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
   })
   async updateDayNote(
-    { tripId, dayId, noteId, text, time, icon }: { tripId: number; dayId: number; noteId: number; text?: string; time?: string | null; icon?: string },
+    { tripId, dayId, noteId, text, time, icon, color }: { tripId: number; dayId: number; noteId: number; text?: string; time?: string | null; icon?: string; color?: DayNoteColor | null },
     ctx: McpContext,
   ) {
     if (isDemoUser(ctx.userId)) return demoDenied();
@@ -76,7 +79,7 @@ export class DayNotesMcp {
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const existing = this.notes.getNote(noteId, dayId, tripId);
     if (!existing) return { content: [{ type: 'text' as const, text: 'Note not found.' }], isError: true };
-    const note = this.notes.update(noteId, existing, { text, time: time !== undefined ? time : undefined, icon });
+    const note = this.notes.update(noteId, existing, { text, time: time !== undefined ? time : undefined, icon, color });
     safeBroadcast(tripId, 'dayNote:updated', { dayId, note });
     return ok({ note });
   }

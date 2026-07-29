@@ -236,6 +236,7 @@ export interface DayNote {
   text: string;
   time?: string | null;
   icon: string;
+  color?: string | null;
   sort_order: number;
   created_at?: string;
 }

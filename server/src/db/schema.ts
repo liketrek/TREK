@@ -248,6 +248,7 @@ function createTables(db: Database.Database): void {
       text TEXT NOT NULL,
       time TEXT,
       icon TEXT DEFAULT '📝',
+      color TEXT,
       sort_order REAL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

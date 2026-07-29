@@ -114,7 +114,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
     try {
       await dayNotesApi.delete(tripId, fromDayId, noteId)
       const result = await dayNotesApi.create(tripId, toDayId, {
-        text: note.text, time: note.time, icon: note.icon, sort_order,
+        text: note.text, time: note.time, icon: note.icon, color: note.color, sort_order,
       })
       set(s => ({
         dayNotes: {
