@@ -565,6 +565,10 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
     flex: 1 1 45%; min-width: 200px; margin: 4px 0; padding: 10px;
     border: 2px solid #e2e8f0; border-radius: 12px;
     display: flex; flex-direction: column;
+    /* Place and note cards have said this all along; without it a stay is torn
+       in half by a page edge, its check-in time on one sheet and the hotel name
+       on the next. Rare while every day started a page, common once they flow. */
+    break-inside: avoid; page-break-inside: avoid;
   }
   .day-accommodation-title {
     font-size: 16px; font-weight: 600; text-align: center;

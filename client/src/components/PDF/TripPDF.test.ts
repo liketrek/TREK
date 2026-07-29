@@ -1004,4 +1004,14 @@ describe('page breaks between days (#1292)', () => {
 
     expect(() => toggle()!.click()).not.toThrow()
   })
+
+  // Verified against a real print engine: without this rule Chromium tore a stay
+  // across the page edge, the check-in time on one sheet and the hotel name on
+  // the next. Place and note cards already carried it.
+  it('FE-PDF-BREAK-007: a stay may not be split by a page edge', async () => {
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+    const rule = html.slice(html.indexOf('.day-accommodation {'))
+    expect(rule.slice(0, rule.indexOf('}'))).toContain('break-inside: avoid')
+  })
 })
