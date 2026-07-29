@@ -256,6 +256,30 @@ To get a key: create a free account at [unsplash.com/developers](https://unsplas
 |--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|
 | `TREK_PLACE_PHOTO_DIR`   | Directory where cached Google place photos are stored. Created recursively on boot. Set this to point photo storage at a dedicated mounted volume.                                                                                                     | `uploads/photos/google` |
 | `BACKUP_UPLOAD_LIMIT_MB` | Maximum **compressed** size (in MB) of a restore-backup archive that may be uploaded. Raise it if your backups (which include the `uploads/` directory) exceed the default. Non-positive or invalid values log a warning and fall back to the default. | `500`                   |
+| `TREK_DB_JOURNAL_MODE`   | SQLite [journal mode](https://sqlite.org/pragma.html#pragma_journal_mode): `DELETE`, `TRUNCATE`, `PERSIST`, `MEMORY`, `WAL` or `OFF`. Set `DELETE` when the data directory lives on network storage — see below. Values SQLite doesn't know log a warning and fall back. | `WAL`                   |
+| `TREK_DB_SYNCHRONOUS`    | SQLite [synchronous](https://sqlite.org/pragma.html#pragma_synchronous) level: `OFF`, `NORMAL`, `FULL` or `EXTRA`. The default follows the journal mode — `NORMAL` under WAL (what SQLite itself uses there), `FULL` otherwise, because a rollback journal at `NORMAL` can lose committed transactions on a power cut. | `NORMAL` / `FULL`       |
+
+### Running the database on network storage
+
+WAL is the right mode on a local disk and stays the default. It coordinates readers and writers through a shared-memory
+file (`travel.db-shm`) and memory mapping, and [SQLite's own documentation](https://sqlite.org/wal.html#noshm) says that
+combination is not safe on filesystems that don't implement those primitives properly. In practice that means Azure App
+Service (Linux), and SMB/NFS volumes mounted from a NAS or a PaaS host. If your `data/` directory is one of those, set:
+
+```
+TREK_DB_JOURNAL_MODE=DELETE
+```
+
+The journal mode is written into the database file header, not held per connection, so it survives restarts and applies
+from the next boot onward. The startup log prints what is actually in effect:
+
+```
+[DB] journal_mode=DELETE, synchronous=FULL
+```
+
+The maintenance tools that open the same file — `reset-admin.js` and `scripts/migrate-encryption.ts` — read the same two
+variables, so run them with the same environment (`docker exec` into the container does this for you). Otherwise the
+next key rotation or admin reset would quietly switch the file back to WAL.
 
 ---
 

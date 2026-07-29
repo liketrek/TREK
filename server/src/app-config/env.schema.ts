@@ -116,6 +116,12 @@ export const envSchema = z.object({
 
   // Data / paths
   TREK_DB_FILE: anyString,
+  // The two SQLite pragmas are deliberately unvalidated: a typo here must fall
+  // back and warn rather than abort boot, because reset-admin.js — the way out
+  // of a locked-out instance — reads the same variables and is not covered by
+  // this schema at all. Resolution lives in parsers.resolveDurability().
+  TREK_DB_JOURNAL_MODE: anyString,
+  TREK_DB_SYNCHRONOUS: anyString,
   TREK_WIKI_DIR: anyString,
   TREK_PLACE_PHOTO_DIR: anyString,
   BACKUP_UPLOAD_LIMIT_MB: positiveNumber,

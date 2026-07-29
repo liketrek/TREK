@@ -23,6 +23,7 @@ import {
   parseDurationMs,
   positiveIntOr,
   positiveNumberOr,
+  resolveDurability,
   resolveKeepaliveMs,
   resolveSessionTtlMs,
   stripTrailingSlashes,
@@ -205,8 +206,15 @@ export function deriveBackup(raw: RawEnv) {
 }
 
 export function deriveDb(raw: RawEnv) {
+  const durability = resolveDurability(raw.TREK_DB_JOURNAL_MODE, raw.TREK_DB_SYNCHRONOUS);
   return {
     trekDbFile: raw.TREK_DB_FILE,
+    /** Resolved journal_mode — WAL unless the operator asked for something else (network storage needs DELETE/TRUNCATE). */
+    journalMode: durability.journalMode,
+    /** Resolved synchronous level — NORMAL under WAL (what SQLite already does), FULL under a rollback journal. */
+    synchronous: durability.synchronous,
+    /** Complaints about unusable values; derivation stays side-effect free, so db/durability.ts logs them when it opens the file. */
+    durabilityWarnings: durability.warnings,
   };
 }
 
