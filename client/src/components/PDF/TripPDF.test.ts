@@ -929,7 +929,8 @@ describe('page breaks between days (#1292)', () => {
   })
 
   const toggle = () =>
-    document.querySelector<HTMLInputElement>('#pdf-daybreak-toggle input')
+    document.querySelector<HTMLButtonElement>('#pdf-daybreak-toggle')
+  const isOn = () => toggle()!.getAttribute('aria-checked') === 'true'
 
   it('FE-PDF-BREAK-001: days break onto their own page by default', async () => {
     await downloadTripPDF(twoDays)
@@ -937,7 +938,17 @@ describe('page breaks between days (#1292)', () => {
 
     expect(html).toContain('day-section day-break')
     expect(html).not.toContain('class="pdf-flow"')
-    expect(toggle()!.checked).toBe(true)
+    expect(isOn()).toBe(true)
+  })
+
+  it('FE-PDF-BREAK-001b: the control is the switch from the rest of the app, not a checkbox', async () => {
+    await downloadTripPDF(twoDays)
+    const el = toggle()!
+
+    expect(el.tagName).toBe('BUTTON')
+    expect(el.getAttribute('role')).toBe('switch')
+    expect(el.style.background).toContain('--accent')
+    expect(document.querySelector('#pdf-daybreak-toggle input')).toBeNull()
   })
 
   it('FE-PDF-BREAK-002: the remembered flowing layout comes back on the next export', async () => {
@@ -948,7 +959,9 @@ describe('page breaks between days (#1292)', () => {
     // The class stays on the day; the body is what decides whether it breaks.
     expect(html).toContain('day-section day-break')
     expect(html).toContain('<body class="pdf-flow">')
-    expect(toggle()!.checked).toBe(false)
+    expect(isOn()).toBe(false)
+    // Off uses the neutral track, so the two states are told apart by more than the knob.
+    expect(toggle()!.style.background).toContain('--border-primary')
   })
 
   it('FE-PDF-BREAK-003: the first day never carries a break of its own', async () => {
@@ -961,10 +974,9 @@ describe('page breaks between days (#1292)', () => {
 
   it('FE-PDF-BREAK-004: turning the breaks off is remembered and shown at once', async () => {
     await downloadTripPDF(twoDays)
-    const box = toggle()!
-    box.checked = false
-    box.dispatchEvent(new Event('change'))
+    toggle()!.click()
 
+    expect(isOn()).toBe(false)
     expect(localStorage.getItem('trek_pdf_page_break_per_day')).toBe('0')
     const body = getIframe()!.contentDocument?.body
     if (body) expect(body.classList.contains('pdf-flow')).toBe(true)
@@ -973,10 +985,9 @@ describe('page breaks between days (#1292)', () => {
   it('FE-PDF-BREAK-005: turning them back on is remembered too', async () => {
     localStorage.setItem('trek_pdf_page_break_per_day', '0')
     await downloadTripPDF(twoDays)
-    const box = toggle()!
-    box.checked = true
-    box.dispatchEvent(new Event('change'))
+    toggle()!.click()
 
+    expect(isOn()).toBe(true)
     expect(localStorage.getItem('trek_pdf_page_break_per_day')).toBe('1')
     const body = getIframe()!.contentDocument?.body
     if (body) expect(body.classList.contains('pdf-flow')).toBe(false)
@@ -991,8 +1002,6 @@ describe('page breaks between days (#1292)', () => {
     expect(html).toContain('day-section day-break')
     expect(html).not.toContain('class="pdf-flow"')
 
-    const box = toggle()!
-    box.checked = false
-    expect(() => box.dispatchEvent(new Event('change'))).not.toThrow()
+    expect(() => toggle()!.click()).not.toThrow()
   })
 })

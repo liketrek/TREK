@@ -32,6 +32,14 @@ function rememberPageBreakPerDay(on: boolean): void {
   }
 }
 
+/* The overlay is imperative DOM, so the switch from Settings/ToggleSwitch is
+   rebuilt here rather than rendered — as static markup it would carry no
+   behaviour. Same geometry and the same tokens, so it reads as the same control. */
+const TOGGLE_TRACK = 'position:relative;width:44px;height:24px;min-width:44px;flex-shrink:0;border-radius:12px;border:none;padding:0;cursor:pointer;transition:background 0.2s;'
+const TOGGLE_KNOB = 'position:absolute;top:2px;width:20px;height:20px;border-radius:50%;background:white;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);'
+const trackColour = (on: boolean) => (on ? 'var(--accent, #111827)' : 'var(--border-primary, #d1d5db)')
+const knobOffset = (on: boolean) => (on ? '22px' : '2px')
+
 function renderLucideIcon(icon:LucideIcon, props = {}) {
   if (!_renderToStaticMarkup) return ''
   return _renderToStaticMarkup(
@@ -699,10 +707,10 @@ ${pluginSectionsHtml}
   header.innerHTML = `
     <span style="font-size:13px;font-weight:600;color:var(--text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(trip?.title || tr('pdf.travelPlan'))}</span>
     <div style="display:flex;align-items:center;gap:8px">
-      <label id="pdf-daybreak-toggle" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">
-        <input type="checkbox"${breaksPerDay ? ' checked' : ''} style="margin:0;cursor:pointer">
-        ${escHtml(tr('pdf.pageBreakPerDay'))}
-      </label>
+      <label for="pdf-daybreak-toggle" style="font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">${escHtml(tr('pdf.pageBreakPerDay'))}</label>
+      <button id="pdf-daybreak-toggle" type="button" role="switch" aria-checked="${breaksPerDay}" aria-label="${escHtml(tr('pdf.pageBreakPerDay'))}" style="${TOGGLE_TRACK} background:${trackColour(breaksPerDay)}">
+        <span style="${TOGGLE_KNOB} left:${knobOffset(breaksPerDay)}"></span>
+      </button>
       <button id="pdf-print-btn" style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:inherit">${tr('pdf.saveAsPdf')}</button>
       <button id="pdf-close-btn" style="background:none;border:none;cursor:pointer;color:var(--text-faint);display:flex;padding:4px;border-radius:6px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -729,9 +737,14 @@ ${pluginSectionsHtml}
 
   // The two layouts differ by one class, so switching is instant in the preview
   // and there is no need to re-fetch photos or rebuild the document.
-  const dayBreakBox = header.querySelector<HTMLInputElement>('#pdf-daybreak-toggle input')
-  if (dayBreakBox) dayBreakBox.onchange = () => {
-    rememberPageBreakPerDay(dayBreakBox.checked)
-    iframe.contentDocument?.body.classList.toggle('pdf-flow', !dayBreakBox.checked)
+  const dayBreakSwitch = header.querySelector<HTMLButtonElement>('#pdf-daybreak-toggle')
+  if (dayBreakSwitch) dayBreakSwitch.onclick = () => {
+    const on = dayBreakSwitch.getAttribute('aria-checked') !== 'true'
+    dayBreakSwitch.setAttribute('aria-checked', String(on))
+    dayBreakSwitch.style.background = trackColour(on)
+    const knob = dayBreakSwitch.firstElementChild as HTMLElement | null
+    if (knob) knob.style.left = knobOffset(on)
+    rememberPageBreakPerDay(on)
+    iframe.contentDocument?.body.classList.toggle('pdf-flow', !on)
   }
 }
