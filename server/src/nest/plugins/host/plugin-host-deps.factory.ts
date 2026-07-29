@@ -15,11 +15,11 @@ import pathMod from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { PermissionsService } from '../../permissions/permissions.service';
 import { TripsService, NotFoundError, ValidationError } from '../../trips/trips.service';
-import { createPlace, updatePlace, deletePlace } from '../../../services/placeService';
+import { createPlace, updatePlace, deletePlace, getPlace } from '../../../services/placeService';
 import { AddonsService } from '../../addons/addons.service';
 import { isDemoEmail } from '../../../services/demo';
 import { ADDON_IDS } from '../../../addons';
-import { listJourneys, listEntries as listJournalEntriesSvc, createEntry as createJournalEntrySvc, updateEntry as updateJournalEntrySvc, deleteEntry as deleteJournalEntrySvc, createJourney as createJourneySvc, deleteJourney as deleteJourneySvc } from '../../../services/journeyService';
+import { listJourneys, listEntries as listJournalEntriesSvc, createEntry as createJournalEntrySvc, updateEntry as updateJournalEntrySvc, deleteEntry as deleteJournalEntrySvc, createJourney as createJourneySvc, deleteJourney as deleteJourneySvc, onPlaceCreated, onPlaceUpdated, onPlaceDeleted } from '../../../services/journeyService';
 import { listVisitedCountries, listManuallyVisitedRegions, listBucketList, markCountryVisited, unmarkCountryVisited, markRegionVisited, unmarkRegionVisited, createBucketItem as createBucketItemSvc, deleteBucketItem as deleteBucketItemSvc } from '../../../services/atlasService';
 import { listCollections, getCollection, createCollection, updateCollection, savePlace as saveCollectionPlaceSvc, copyToTrip as copyCollectionToTripSvc, deletePlace as deleteCollectionPlaceSvc } from '../../../services/collectionsService';
 import { BudgetService } from '../../budget/budget.service';
@@ -54,6 +54,13 @@ function mapCollectionError<T>(fn: () => T): T {
     if (status === 400 || status === 409) throw new BadParams(msg);
     throw e;
   }
+}
+
+// Journey mirroring is best-effort on every other path that triggers it
+// (places.service wraps the same hooks, assignments.service wraps the reconcile),
+// so a broken journey link can never turn a successful write into an RPC error.
+function mirrorJourneys(run: () => void): void {
+  try { run(); } catch { /* non-fatal */ }
 }
 
 // --- #858 packing privacy: viewer-scoped fan-out mirrored from
@@ -461,20 +468,34 @@ export class PluginHostDepsFactory {
         return { deleted: true };
       },
       // --- Places (place_edit). Delegate to the same placeService the REST/MCP paths
-      // use, then broadcast the same events so open web sessions update live. ---
+      // use, then broadcast the same events so open web sessions update live, and run
+      // the journey hooks places.controller runs on the same three writes: a journey
+      // linked to the trip carries a skeleton entry per day-assigned place, and
+      // without the hooks it keeps the old title/location — or a dead entry — until
+      // somebody reloads it. ---
       canEditPlaces: (tripId, userId) => this.canEditTripAs('place_edit', tripId, userId),
       createPlace: (tripId, input) => {
         const place = createPlace(String(tripId), input as Parameters<typeof createPlace>[1]);
         this.realtime.broadcast(tripId, 'place:created', { place });
+        mirrorJourneys(() => onPlaceCreated(Number(tripId), place.id));
         return place;
       },
       updatePlace: (tripId, placeId, input) => {
         const place = updatePlace(String(tripId), String(placeId), input as Parameters<typeof updatePlace>[2]);
         if (place === null) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
         this.realtime.broadcast(tripId, 'place:updated', { place });
+        mirrorJourneys(() => onPlaceUpdated(Number(placeId)));
         return place;
       },
       deletePlace: (tripId, placeId) => {
+        // Scope the id to the trip before anything else: onPlaceDeleted keys on the
+        // place alone, so an id belonging to a foreign trip would detach that trip's
+        // journey entries even though the delete below refuses it.
+        if (!getPlace(String(tripId), String(placeId))) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
+        // Ahead of the DELETE, like the REST route and the MCP tool: journey_entries
+        // .source_place_id is ON DELETE SET NULL, so afterwards the hook finds nothing
+        // left to detach and the entries linger as orphans.
+        mirrorJourneys(() => onPlaceDeleted(Number(placeId)));
         const deleted = deletePlace(String(tripId), String(placeId));
         if (!deleted) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
         this.realtime.broadcast(tripId, 'place:deleted', { placeId });
@@ -510,6 +531,7 @@ export class PluginHostDepsFactory {
         if (!this.assignments.placeExists(placeId, tripId)) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
         const assignment = this.assignments.createAssignment(dayId, placeId, notes);
         this.realtime.broadcast(tripId, 'assignment:created', { assignment });
+        this.assignments.reconcile(tripId);
         return assignment;
       },
       unassignPlace: (tripId, assignmentId) => {
@@ -517,8 +539,15 @@ export class PluginHostDepsFactory {
         if (!existing) throw new ForbiddenResource(`no assignment ${assignmentId} on trip ${tripId}`);
         this.assignments.deleteAssignment(assignmentId);
         // Same payload shape as the REST/MCP delete, so client stores can
-        // evict the assignment from the right day.
+        // evict the assignment from the right day. The dayId is what the client
+        // reducer keys the eviction on — without it nothing leaves the day.
         this.realtime.broadcast(tripId, 'assignment:deleted', { assignmentId, dayId: existing.day_id });
+        // Create, delete, move and time re-mirror the linked journey skeletons
+        // afterwards, in the controller and in the MCP tool alike (reorder,
+        // transport and participants don't). Without it an open journey keeps
+        // the removed place until the next reload. No sid — a plugin has no
+        // originating socket.
+        this.assignments.reconcile(tripId);
         return { deleted: true };
       },
       // --- Trip creation (trip_create; owner = acting user). No broadcast — a new trip

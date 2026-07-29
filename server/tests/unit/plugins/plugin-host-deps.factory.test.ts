@@ -79,6 +79,9 @@ vi.mock('../../../src/services/placeService', () => ({
   createPlace: vi.fn((tid: string, body: Record<string, unknown>) => ({ id: 10, trip_id: Number(tid), ...body })),
   updatePlace: vi.fn((_tid: string, pid: string) => (pid === '99' ? null : { id: Number(pid) })),
   deletePlace: vi.fn((_tid: string, pid: string) => pid !== '99'),
+  // Trip-scoped read the delete path uses to reject a foreign id before the
+  // journey hook runs — place 99 belongs to another trip.
+  getPlace: vi.fn((_tid: string, pid: string) => (pid === '99' ? null : { id: Number(pid) })),
   // trips.service (loaded for real since the trip fold) imports listPlaces for
   // its offline bundle — the mock must carry every named export it pulls.
   listPlaces: vi.fn(() => []),
@@ -111,6 +114,7 @@ const assignmentsStub = {
   dayExists: vi.fn((dayId: number) => dayId === 3),
   placeExists: vi.fn((placeId: number) => placeId === 7),
   getAssignmentForTrip: vi.fn((id: number) => (id === 99 ? undefined : { id, day_id: 3 })),
+  reconcile: vi.fn(),
 } as unknown as AssignmentsService;
 // Packing is a constructor-injected stub (same behaviors as the old path mock).
 const packingStub = {
@@ -235,6 +239,10 @@ vi.mock('../../../src/services/journeyService', () => ({
   // Consumed by the real assignments.service.ts module (loaded un-mocked as a
   // factory constructor dep); the instance is stubbed, so this is never called.
   reconcileTripSkeletons: vi.fn(),
+  // The skeleton hooks the place writes fire (#1705).
+  onPlaceCreated: vi.fn(),
+  onPlaceUpdated: vi.fn(),
+  onPlaceDeleted: vi.fn(),
   listJourneys: vi.fn((uid: number) => [{ id: 1, owner: uid }]),
   // journeyId 88 = no access (listEntries self-gates to null); else returns entries
   listEntries: vi.fn((journeyId: number, uid: number) => (journeyId === 88 ? null : [{ id: 10, journey_id: journeyId, author_id: uid }])),
@@ -288,6 +296,8 @@ const vacayStub = {
 import { PluginHostDepsFactory, type PluginCallRouter } from '../../../src/nest/plugins/host/plugin-host-deps.factory';
 import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
 import { db as mockDb } from '../../../src/db/database';
+import { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } from '../../../src/services/journeyService';
+import { deletePlace as deletePlaceSvc } from '../../../src/services/placeService';
 import type { BudgetService } from '../../../src/nest/budget/budget.service';
 import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
@@ -425,6 +435,47 @@ describe('host-deps factory — planner write + metadata deps', () => {
     expect((await call(h, 'places.delete', { tripId: 1, placeId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
+  // #1705: a place write from a plugin has to update a linked journey the same way
+  // the REST route does, otherwise the journey shows the old title (or an entry for
+  // a place that no longer exists) until it is reloaded.
+  it('places writes fire the journey hooks, delete ahead of the row, and skip a foreign id', async () => {
+    const h = host('db:write:places');
+    const created = vi.mocked(onPlaceCreated);
+    const updated = vi.mocked(onPlaceUpdated);
+    const deleted = vi.mocked(onPlaceDeleted);
+    const removePlace = vi.mocked(deletePlaceSvc);
+    [created, updated, deleted, removePlace].forEach((m) => m.mockClear());
+
+    expect((await call(h, 'places.create', { tripId: 1, input: { name: 'P' } })).ok).toBe(true);
+    expect(created).toHaveBeenCalledWith(1, 10);
+
+    expect((await call(h, 'places.update', { tripId: 1, placeId: 5, input: { name: 'Q' } })).ok).toBe(true);
+    expect(updated).toHaveBeenCalledWith(5);
+
+    expect((await call(h, 'places.delete', { tripId: 1, placeId: 5 })).ok).toBe(true);
+    expect(deleted).toHaveBeenCalledWith(5);
+    // source_place_id is ON DELETE SET NULL — after the row is gone the hook has
+    // nothing left to detach, so the order is part of the fix.
+    expect(deleted.mock.invocationCallOrder[0]).toBeLessThan(removePlace.mock.invocationCallOrder[0]);
+
+    // A place on another trip: refused before the hook can touch that trip's journeys.
+    deleted.mockClear();
+    updated.mockClear();
+    expect((await call(h, 'places.delete', { tripId: 1, placeId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(h, 'places.update', { tripId: 1, placeId: 99, input: {} })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deleted).not.toHaveBeenCalled();
+    expect(updated).not.toHaveBeenCalled();
+  });
+
+  // A journey link that blows up must not turn a successful place write into an
+  // RPC error — every other caller of these hooks swallows them too.
+  it('places writes survive a throwing journey hook', async () => {
+    const h = host('db:write:places');
+    const updated = vi.mocked(onPlaceUpdated);
+    updated.mockImplementationOnce(() => { throw new Error('journey db locked'); });
+    expect((await call(h, 'places.update', { tripId: 1, placeId: 5, input: { name: 'Q' } })).ok).toBe(true);
+  });
+
   it('days + itinerary delegate; a day/place/assignment outside the trip is refused', async () => {
     const h = host('db:write:days', 'db:write:itinerary');
     expect((await call(h, 'days.create', { tripId: 1, input: { notes: 'n' } })).ok).toBe(true);
@@ -436,6 +487,28 @@ describe('host-deps factory — planner write + metadata deps', () => {
     expect((await call(h, 'itinerary.assign', { tripId: 1, dayId: 3, placeId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
     expect((await call(h, 'itinerary.unassign', { tripId: 1, assignmentId: 30 })).ok).toBe(true);
     expect((await call(h, 'itinerary.unassign', { tripId: 1, assignmentId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  // #1705: a plugin itinerary write has to reach open sessions exactly like the REST
+  // route. The delete payload needs the dayId the client reducer evicts by, and both
+  // directions run the same journey-skeleton reconcile the controller/MCP tool run.
+  it('itinerary writes carry the dayId the client evicts by and re-mirror linked journeys', async () => {
+    const h = host('db:write:itinerary');
+    const reconcile = vi.mocked(assignmentsStub.reconcile);
+
+    reconcile.mockClear();
+    expect((await call(h, 'itinerary.assign', { tripId: 1, dayId: 3, placeId: 7 })).ok).toBe(true);
+    expect(reconcile).toHaveBeenCalledWith(1);
+
+    reconcile.mockClear();
+    expect((await call(h, 'itinerary.unassign', { tripId: 1, assignmentId: 30 })).ok).toBe(true);
+    expect(broadcast).toHaveBeenCalledWith(1, 'assignment:deleted', { assignmentId: 30, dayId: 3 });
+    expect(reconcile).toHaveBeenCalledWith(1);
+
+    // A refused unassign deletes nothing, so it must not touch the journeys either.
+    reconcile.mockClear();
+    expect((await call(h, 'itinerary.unassign', { tripId: 1, assignmentId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(reconcile).not.toHaveBeenCalled();
   });
 
   it('trips.update: archive/cover need their own permission; service errors map to RPC codes', async () => {
