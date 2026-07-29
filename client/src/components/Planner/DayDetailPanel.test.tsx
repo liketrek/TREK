@@ -1,6 +1,6 @@
-// FE-PLANNER-DAYDETAIL-001 to FE-PLANNER-DAYDETAIL-025
+// FE-PLANNER-DAYDETAIL-001 to FE-PLANNER-DAYDETAIL-079
 import React from 'react';
-import { render, screen, waitFor } from '../../../tests/helpers/render';
+import { render, screen, waitFor, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
+import { usePluginStore } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildAdmin, buildTrip, buildDay, buildPlace, buildReservation } from '../../../tests/helpers/factories';
 import DayDetailPanel from './DayDetailPanel';
@@ -1250,6 +1251,188 @@ describe('DayDetailPanel', () => {
       const timeEl = screen.queryByText(/AM|PM|\d{1,2}:\d{2}/i);
       expect(timeEl).toBeInTheDocument();
     });
+  });
+
+  // ── Header buttons ──────────────────────────────────────────────────────────
+
+  it('FE-PLANNER-DAYDETAIL-069: the collapse and close buttons reset their hover background on leave', async () => {
+    render(<DayDetailPanel {...defaultProps} />);
+    const buttons = screen.getAllByRole('button');
+    const collapse = buttons.find(b => b.getAttribute('title') === 'Collapse')!;
+    const close = buttons[buttons.indexOf(collapse) + 1];
+    for (const btn of [collapse, close]) {
+      act(() => { btn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+      expect(btn.style.background).toBe('var(--bg-hover)');
+      act(() => { btn.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
+      expect(btn.style.background).toBe('var(--bg-secondary)');
+    }
+  });
+
+  // ── Reservation list filtering ──────────────────────────────────────────────
+
+  it('FE-PLANNER-DAYDETAIL-070: hotel bookings are kept out of the day reservation list', async () => {
+    const hotel = buildReservation({ id: 30, title: 'Hotel Stay', type: 'hotel', status: 'confirmed', day_id: 1 } as any);
+    const dinner = buildReservation({ id: 31, title: 'Dinner', type: 'restaurant', status: 'confirmed', day_id: 1 } as any);
+    render(<DayDetailPanel {...defaultProps} reservations={[hotel, dinner]} />);
+    await screen.findByText('Dinner');
+    // The hotel belongs to the accommodation section, not the bookings list.
+    expect(screen.queryByText('Hotel Stay')).not.toBeInTheDocument();
+  });
+
+  // ── Accommodation time formatting ───────────────────────────────────────────
+
+  it('FE-PLANNER-DAYDETAIL-071: an ISO check-in is rendered as a local time, not the raw string', async () => {
+    server.use(
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [{
+            id: 1, place_id: 5, place_name: 'ISO Hotel', place_address: null,
+            start_day_id: 1, end_day_id: 1, check_in: '2025-06-15T14:30:00Z', check_out: null, confirmation: null,
+          }],
+        })),
+    );
+    render(<DayDetailPanel {...defaultProps} />);
+    await screen.findByText('ISO Hotel');
+    expect(screen.getByText(/\d{1,2}:\d{2}/)).toBeInTheDocument();
+    expect(screen.queryByText('2025-06-15T14:30:00Z')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-072: a non-numeric check-in is passed through untouched', async () => {
+    seedStore(useSettingsStore, {
+      settings: { time_format: '12h', temperature_unit: 'celsius', blur_booking_codes: false },
+    });
+    server.use(
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [{
+            id: 1, place_id: 5, place_name: 'Odd Hotel', place_address: null,
+            start_day_id: 1, end_day_id: 1, check_in: 'on arrival', check_out: null, confirmation: null,
+          }],
+        })),
+    );
+    render(<DayDetailPanel {...defaultProps} />);
+    await screen.findByText('Odd Hotel');
+    expect(screen.getByText('on arrival')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-073: an existing accommodation still offers to add another', async () => {
+    server.use(
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [{
+            id: 1, place_id: 5, place_name: 'First Hotel', place_address: null,
+            start_day_id: 1, end_day_id: 1, check_in: '14:00', check_out: '11:00', confirmation: 'X1',
+          }],
+        })),
+    );
+    render(<DayDetailPanel {...defaultProps} />);
+    await screen.findByText('First Hotel');
+    await userEvent.click(await screen.findByText(/Add accommodation/i));
+    await waitFor(() => expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument());
+  });
+
+  // ── Hotel picker ────────────────────────────────────────────────────────────
+
+  it('FE-PLANNER-DAYDETAIL-074: the picker closes on its X button and on a backdrop click', async () => {
+    render(<DayDetailPanel {...defaultProps} />);
+    const open = async () => {
+      await userEvent.click(await screen.findByText(/Add accommodation/i));
+      return await waitFor(() => document.body.querySelector('[style*="z-index: 99999"]') as HTMLElement);
+    };
+    let overlay = await open();
+    // The X sits in the picker header, right after the title.
+    await userEvent.click(within(overlay).getByText(/Add accommodation/i).parentElement!.querySelector('button')!);
+    await waitFor(() => expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeNull());
+
+    overlay = await open();
+    await userEvent.click(overlay);
+    await waitFor(() => expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeNull());
+  });
+
+  it('FE-PLANNER-DAYDETAIL-075: check-in, check-in-until, check-out and confirmation feed the saved accommodation', async () => {
+    const place = buildPlace({ id: 70, name: 'Pension Anna' });
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/accommodations', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({
+          accommodation: { id: 300, place_id: 70, place_name: 'Pension Anna', place_address: null,
+            start_day_id: 1, end_day_id: 1, check_in: '15:00', check_in_end: '20:00', check_out: '10:00', confirmation: 'ZZ-9' },
+        });
+      }),
+    );
+    render(<DayDetailPanel {...defaultProps} places={[place]} />);
+    await userEvent.click(await screen.findByText(/Add accommodation/i));
+    await userEvent.click(await screen.findByRole('button', { name: /Pension Anna/i }));
+
+    const overlay = document.body.querySelector('[style*="z-index: 99999"]') as HTMLElement;
+    const timeInputs = within(overlay).getAllByPlaceholderText(/^(14:00|22:00|11:00)$/);
+    await userEvent.type(timeInputs[0], '15:00');
+    await userEvent.type(timeInputs[1], '20:00');
+    await userEvent.type(timeInputs[2], '10:00');
+    await userEvent.type(within(overlay).getByPlaceholderText('ABC-12345'), 'ZZ-9');
+    await userEvent.click(within(overlay).getByRole('button', { name: /^Save$/i }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body).toMatchObject({ place_id: 70, check_in: '15:00', check_in_end: '20:00', check_out: '10:00', confirmation: 'ZZ-9' });
+  });
+
+  it('FE-PLANNER-DAYDETAIL-076: the category filter narrows the picker list and "All days" clears it', async () => {
+    const categories = [
+      { id: 1, name: 'Hotels', color: '#8b5cf6' },
+      { id: 2, name: 'Sights', color: '#ef4444' },
+    ] as any;
+    const places = [
+      buildPlace({ id: 80, name: 'Hotel Adlon', category_id: 1 } as any),
+      buildPlace({ id: 81, name: 'Brandenburg Gate', category_id: 2 } as any),
+    ];
+    render(<DayDetailPanel {...defaultProps} places={places} categories={categories} />);
+    await userEvent.click(await screen.findByText(/Add accommodation/i));
+    const overlay = document.body.querySelector('[style*="z-index: 99999"]') as HTMLElement;
+
+    await userEvent.click(within(overlay).getByRole('button', { name: 'Hotels' }));
+    expect(within(overlay).getByText('Hotel Adlon')).toBeInTheDocument();
+    expect(within(overlay).queryByText('Brandenburg Gate')).not.toBeInTheDocument();
+
+    // A category with no places falls back to the empty hint.
+    await userEvent.click(within(overlay).getByRole('button', { name: 'Sights' }));
+    expect(within(overlay).queryByText('Hotel Adlon')).not.toBeInTheDocument();
+
+    await userEvent.click(within(overlay).getAllByRole('button', { name: /^All$/ })[1]);
+    expect(within(overlay).getByText('Hotel Adlon')).toBeInTheDocument();
+    expect(within(overlay).getByText('Brandenburg Gate')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-077: hovering an unselected place row highlights it and clears again', async () => {
+    const places = [buildPlace({ id: 90, name: 'Hostel One' })];
+    render(<DayDetailPanel {...defaultProps} places={places} />);
+    await userEvent.click(await screen.findByText(/Add accommodation/i));
+    const row = (await screen.findByText('Hostel One')).closest('button') as HTMLButtonElement;
+    act(() => { row.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+    expect(row.style.background).toBe('var(--bg-hover)');
+    act(() => { row.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
+    expect(row.style.background).toBe('none');
+  });
+
+  it('FE-PLANNER-DAYDETAIL-078: the picker reports when the trip has no places to pick from', async () => {
+    render(<DayDetailPanel {...defaultProps} places={[]} />);
+    await userEvent.click(await screen.findByText(/Add accommodation/i));
+    expect(await screen.findByText('Add places to your trip first')).toBeInTheDocument();
+  });
+
+  // ── Day-detail plugin slot ──────────────────────────────────────────────────
+
+  it('FE-PLANNER-DAYDETAIL-079: a day-detail widget plugin mounts a sandboxed frame scoped to the day', async () => {
+    seedStore(usePluginStore, {
+      plugins: [
+        { id: 'day-notes', name: 'Day Notes', type: 'widget', icon: null, slot: 'day-detail' },
+        { id: 'hero-thing', name: 'Hero', type: 'widget', icon: null, slot: 'hero' },
+      ],
+    });
+    render(<DayDetailPanel {...defaultProps} />);
+    const frame = await waitFor(() => document.querySelector('iframe[src*="day-notes"]') as HTMLIFrameElement);
+    expect(frame).not.toBeNull();
+    expect(document.querySelector('iframe[src*="hero-thing"]')).toBeNull();
   });
 
 });

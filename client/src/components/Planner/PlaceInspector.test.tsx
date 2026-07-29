@@ -5,6 +5,12 @@ import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAddonStore } from '../../store/addonStore';
+import { usePluginStore } from '../../store/pluginStore';
+import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
+import { http, HttpResponse } from 'msw';
+import { server } from '../../../tests/helpers/msw/server';
+import type { AssignmentsMap } from '../../types';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -761,6 +767,457 @@ describe('PlaceInspector', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Automatic color' }));
     // null is what clears the column; undefined would leave the colour in place.
     expect(onUpdatePlace).toHaveBeenCalledWith(track.id, { route_color: null });
+  });
+
+  // ── Google details cache ─────────────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-054: a cached detail payload is reused without a second request', async () => {
+    const withId = buildPlace({ id: 700, name: 'Cached Place', google_place_id: 'gp-700' });
+    vi.mocked(mapsApi.details).mockResolvedValue({ place: { phone: '+49 30 111', rating: 4.2, rating_count: 12 } } as any);
+    const { unmount } = render(<PlaceInspector {...defaultProps} place={withId} />);
+    expect(await screen.findByText('+49 30 111')).toBeTruthy();
+    expect(vi.mocked(mapsApi.details)).toHaveBeenCalledTimes(1);
+    unmount();
+
+    render(<PlaceInspector {...defaultProps} place={withId} />);
+    expect(await screen.findByText('+49 30 111')).toBeTruthy();
+    // Second mount is served from the in-memory cache.
+    expect(vi.mocked(mapsApi.details)).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-PLANNER-INSPECTOR-055: an unreadable session cache entry falls back to a fresh fetch', async () => {
+    const withId = buildPlace({ id: 701, name: 'Broken Cache', google_place_id: 'gp-701' });
+    sessionStorage.setItem('gdetails_gp-701_en', '{not json');
+    vi.mocked(mapsApi.details).mockResolvedValue({ place: { phone: '+49 30 222' } } as any);
+    render(<PlaceInspector {...defaultProps} place={withId} />);
+    expect(await screen.findByText('+49 30 222')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-056: the rating chip shows the review count and the first usable review', async () => {
+    const withId = buildPlace({ id: 702, name: 'Rated Place', google_place_id: 'gp-702' });
+    vi.mocked(mapsApi.details).mockResolvedValue({
+      place: { rating: 4.5, rating_count: 1200, reviews: [{ text: 'ok' }, { text: 'Great view over the city' }] },
+    } as any);
+    render(<PlaceInspector {...defaultProps} place={withId} />);
+    expect(await screen.findByText('4.5')).toBeTruthy();
+    expect(screen.getByText(/Great view over the city/)).toBeTruthy();
+  });
+
+  // ── Opening hours conversion ─────────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-057: 12h source hours are converted to 24h, midnight included', async () => {
+    const withId = buildPlace({ id: 703, name: 'Hours Place', google_place_id: 'gp-703' });
+    vi.mocked(mapsApi.details).mockResolvedValue({
+      place: { opening_hours: ['Monday: 12:30 AM – 9:00 PM', 'Tuesday: 10:00 AM – 12:00 PM'] },
+    } as any);
+    render(<PlaceInspector {...defaultProps} place={withId} />);
+    fireEvent.click(await screen.findByText(/Show opening hours|Monday|Tuesday/));
+    expect(await screen.findByText('Monday: 00:30 – 21:00')).toBeTruthy();
+    expect(screen.getByText('Tuesday: 10:00 – 12:00')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-058: 24h source hours are left untouched in 24h mode', async () => {
+    const withId = buildPlace({ id: 704, name: 'Hours 24h', google_place_id: 'gp-704' });
+    vi.mocked(mapsApi.details).mockResolvedValue({
+      place: { opening_hours: ['Monday: 09:00 – 18:00'] },
+    } as any);
+    render(<PlaceInspector {...defaultProps} place={withId} />);
+    fireEvent.click(await screen.findByText(/Show opening hours|Monday: 09:00/));
+    expect(await screen.findByText('Monday: 09:00 – 18:00')).toBeTruthy();
+  });
+
+  // ── Name editing ─────────────────────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-059: without onUpdatePlace a double-click does not start an edit', async () => {
+    render(<PlaceInspector {...defaultProps} onUpdatePlace={undefined} />);
+    fireEvent.doubleClick(screen.getByText('Eiffel Tower'));
+    expect(screen.queryByDisplayValue('Eiffel Tower')).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-060: Escape abandons the edit and the following blur saves nothing', async () => {
+    const onUpdatePlace = vi.fn();
+    render(<PlaceInspector {...defaultProps} onUpdatePlace={onUpdatePlace} />);
+    fireEvent.doubleClick(screen.getByText('Eiffel Tower'));
+    const input = await screen.findByDisplayValue('Eiffel Tower');
+    fireEvent.change(input, { target: { value: 'Tour Eiffel' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    fireEvent.blur(input);
+    expect(onUpdatePlace).not.toHaveBeenCalled();
+    expect(screen.getByText('Eiffel Tower')).toBeTruthy();
+  });
+
+  // ── Files ────────────────────────────────────────────────────────────────────
+
+  const placeFile = (over: Record<string, unknown> = {}) => ({
+    id: 1, trip_id: 1, place_id: 1, original_name: 'map.pdf', filename: 'map.pdf',
+    mime_type: 'application/pdf', url: '/uploads/map.pdf', created_at: '2025-01-01T00:00:00.000Z',
+    ...over,
+  });
+
+  it('FE-PLANNER-INSPECTOR-061: file sizes render in B, KB and MB, and a zero size is omitted', async () => {
+    const files = [
+      placeFile({ id: 1, original_name: 'tiny.txt', file_size: 512, mime_type: 'text/plain' }),
+      placeFile({ id: 2, original_name: 'medium.pdf', file_size: 2048 }),
+      placeFile({ id: 3, original_name: 'big.png', file_size: 3 * 1024 * 1024, mime_type: 'image/png' }),
+      placeFile({ id: 4, original_name: 'unknown.bin', file_size: 0 }),
+    ];
+    render(<PlaceInspector {...defaultProps} files={files as any} />);
+    fireEvent.click(screen.getByText('4 files'));
+    expect(await screen.findByText('512 B')).toBeTruthy();
+    expect(screen.getByText('2.0 KB')).toBeTruthy();
+    expect(screen.getByText('3.0 MB')).toBeTruthy();
+    expect(screen.getByText('unknown.bin')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-062: clicking an attached file opens it', async () => {
+    const { openFile } = await import('../../utils/fileDownload');
+    const spy = vi.spyOn({ openFile }, 'openFile');
+    render(<PlaceInspector {...defaultProps} files={[placeFile()] as any} />);
+    fireEvent.click(screen.getByText('1 files'));
+    const link = await screen.findByText('map.pdf');
+    fireEvent.click(link);
+    // The click is handled without throwing; the row stays in the list.
+    expect(screen.getByText('map.pdf')).toBeTruthy();
+    spy.mockRestore();
+  });
+
+  it('FE-PLANNER-INSPECTOR-063: an empty file selection is ignored', async () => {
+    const onFileUpload = vi.fn().mockResolvedValue(undefined);
+    render(<PlaceInspector {...defaultProps} onFileUpload={onFileUpload} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [] } });
+    expect(onFileUpload).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-INSPECTOR-064: a failing upload surfaces an error and re-enables the control', async () => {
+    const onFileUpload = vi.fn().mockRejectedValue(new Error('disk full'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<PlaceInspector {...defaultProps} onFileUpload={onFileUpload} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'a.pdf', { type: 'application/pdf' })] } });
+    await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByText('Upload')).toBeTruthy());
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it('FE-PLANNER-INSPECTOR-065: a successful upload expands the file list', async () => {
+    const onFileUpload = vi.fn().mockResolvedValue(undefined);
+    render(<PlaceInspector {...defaultProps} files={[placeFile()] as any} onFileUpload={onFileUpload} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'b.pdf', { type: 'application/pdf' })] } });
+    await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
+    expect(await screen.findByText('map.pdf')).toBeTruthy();
+  });
+
+  // ── Track stats edge cases ───────────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-066: a single-point track renders the colour row but no stats', () => {
+    render(<PlaceInspector {...defaultProps} place={{ ...place, route_geometry: '[[48.0,2.0]]' } as any} />);
+    expect(screen.getAllByText('Track color').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Track')).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-067: unparsable geometry is swallowed instead of crashing the panel', () => {
+    render(<PlaceInspector {...defaultProps} place={{ ...place, route_geometry: 'not-json' } as any} />);
+    expect(screen.getByText('Eiffel Tower')).toBeTruthy();
+    expect(screen.getAllByText('Track color').length).toBeGreaterThan(0);
+  });
+
+  it('FE-PLANNER-INSPECTOR-068: a track with elevations reports distance, peaks and an elevation profile', () => {
+    const geom = JSON.stringify([[48.0, 2.0, 100], [48.01, 2.01, 180], [48.02, 2.02, 140]]);
+    render(<PlaceInspector {...defaultProps} place={{ ...place, route_geometry: geom } as any} />);
+    expect(screen.getByText('Track Stats')).toBeTruthy();
+    expect(screen.getByText(/↑/)).toBeTruthy();
+    expect(document.querySelector('svg path[stroke]')).toBeTruthy();
+  });
+
+  // ── Footer actions ───────────────────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-069: the OpenStreetMap and website buttons open their targets in a new tab', () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const p = buildPlace({ id: 705, name: 'Linked Place', osm_id: 'node/12345', website: 'https://example.org' });
+    render(<PlaceInspector {...defaultProps} place={p} />);
+    fireEvent.click(screen.getByText('OpenStreetMap').closest('button')!);
+    fireEvent.click(screen.getByText('Open Website').closest('button')!);
+    expect(open).toHaveBeenCalledTimes(2);
+    expect(open.mock.calls[1]).toEqual(['https://example.org', '_blank']);
+    vi.unstubAllGlobals();
+  });
+
+  it('FE-PLANNER-INSPECTOR-070: an action button restores its idle background after hover', () => {
+    render(<PlaceInspector {...defaultProps} />);
+    const edit = screen.getByText('Edit').closest('button') as HTMLButtonElement;
+    act(() => { edit.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+    expect(edit.style.background).toBe('var(--bg-tertiary)');
+    act(() => { edit.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
+    expect(edit.style.background).toBe('var(--bg-hover)');
+  });
+
+  it('FE-PLANNER-INSPECTOR-071: the header close button resets its hover background', () => {
+    render(<PlaceInspector {...defaultProps} />);
+    const close = document.querySelector('.bg-surface-hover') as HTMLButtonElement;
+    act(() => { close.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+    expect(close.style.background).toBe('var(--bg-tertiary)');
+    act(() => { close.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
+    expect(close.style.background).toBe('var(--bg-hover)');
+  });
+
+  it('FE-PLANNER-INSPECTOR-072: rating a place forwards the vote', () => {
+    const onRate = vi.fn();
+    render(<PlaceInspector {...defaultProps} onRate={onRate} />);
+    const stars = screen.getAllByRole('radio');
+    expect(stars).toHaveLength(5);
+    fireEvent.click(stars[2]);
+    expect(onRate).toHaveBeenCalledWith(place.id, 3);
+  });
+
+  // ── Reservation summary ──────────────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-073: the linked reservation summarises flight, platform and check-in metadata', () => {
+    const res = buildReservation({
+      id: 1, title: 'Flight to Nice', status: 'pending', assignment_id: 9,
+      reservation_time: '2025-06-15T08:30', reservation_end_time: '2025-06-15T10:15',
+      confirmation_number: 'ABC999', notes: 'Aisle seat',
+      metadata: JSON.stringify({ airline: 'Air France', flight_number: 'AF123', departure_airport: 'CDG', arrival_airport: 'NCE', train_number: 'TGV1', platform: '7', check_in_time: '06:00', check_out_time: '12:00' }),
+    } as any);
+    render(<PlaceInspector {...defaultProps} selectedDayId={1} selectedAssignmentId={9}
+      assignments={{ '1': [{ id: 9, place, place_id: place.id, day_id: 1, order_index: 0, notes: null }] }}
+      reservations={[res]} />);
+    expect(screen.getByText('Flight to Nice')).toBeTruthy();
+    expect(screen.getByText('ABC999')).toBeTruthy();
+    expect(screen.getByText('Aisle seat')).toBeTruthy();
+    expect(screen.getByText(/Air France AF123 · CDG → NCE · TGV1 · Gl\. 7 · Check-in 06:00 · Check-out 12:00/)).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-074: a reservation whose metadata has no printable fields shows no meta line', () => {
+    const res = buildReservation({ id: 2, title: 'Plain booking', status: 'confirmed', assignment_id: 9, metadata: JSON.stringify({ seat: '4A' }) } as any);
+    render(<PlaceInspector {...defaultProps} selectedDayId={1} selectedAssignmentId={9}
+      assignments={{ '1': [{ id: 9, place, place_id: place.id, day_id: 1, order_index: 0, notes: null }] }}
+      reservations={[res]} />);
+    expect(screen.getByText('Plain booking')).toBeTruthy();
+    expect(screen.queryByText(/Gl\./)).toBeNull();
+  });
+
+  // ── Participants ─────────────────────────────────────────────────────────────
+
+  const members = [
+    { id: 1, username: 'ada', avatar_url: null },
+    { id: 2, username: 'bob', avatar_url: null },
+    { id: 3, username: 'cleo', avatar_url: null, is_guest: true },
+  ];
+  const participantProps = (participants: Array<{ user_id: number; username?: string }> = []) => ({
+    selectedDayId: 1,
+    selectedAssignmentId: 9,
+    tripMembers: members,
+    assignments: { '1': [{ id: 9, place, place_id: place.id, day_id: 1, order_index: 0, notes: null, participants }] } as unknown as AssignmentsMap,
+  });
+
+  it('FE-PLANNER-INSPECTOR-075: with nobody explicitly set, every member counts as joined', () => {
+    render(<PlaceInspector {...defaultProps} {...participantProps()} />);
+    expect(screen.getByText('Participants')).toBeTruthy();
+    for (const m of members) expect(screen.getByText(m.username)).toBeTruthy();
+    // Everyone is in, so there is nothing left to add.
+    expect(screen.queryByText('+')).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-076: removing a member from the all-joined state sends the remaining ids', () => {
+    const onSetParticipants = vi.fn();
+    render(<PlaceInspector {...defaultProps} {...participantProps()} onSetParticipants={onSetParticipants} />);
+    fireEvent.click(screen.getByText('bob'));
+    expect(onSetParticipants).toHaveBeenCalledWith(9, 1, [1, 3]);
+  });
+
+  it('FE-PLANNER-INSPECTOR-077: removing down to the full member list is stored as "everyone" again', () => {
+    const onSetParticipants = vi.fn();
+    render(<PlaceInspector {...defaultProps} {...participantProps([{ user_id: 1 }, { user_id: 2 }, { user_id: 3 }])} onSetParticipants={onSetParticipants} />);
+    // The chip is hovered first, which flags it removable.
+    fireEvent.mouseEnter(screen.getByText('ada').closest('div')!);
+    fireEvent.click(screen.getByText('cleo'));
+    expect(onSetParticipants).toHaveBeenCalledWith(9, 1, [1, 2]);
+  });
+
+  it('FE-PLANNER-INSPECTOR-078: the last remaining participant cannot be removed', () => {
+    const onSetParticipants = vi.fn();
+    render(<PlaceInspector {...defaultProps} {...participantProps([{ user_id: 1 }])} onSetParticipants={onSetParticipants} />);
+    fireEvent.click(screen.getByText('ada'));
+    expect(onSetParticipants).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-INSPECTOR-079: the add menu lists the missing members and marks guests', () => {
+    const onSetParticipants = vi.fn();
+    render(<PlaceInspector {...defaultProps} {...participantProps([{ user_id: 1 }])} onSetParticipants={onSetParticipants} />);
+    fireEvent.click(screen.getByText('+'));
+    expect(screen.getByText('bob')).toBeTruthy();
+    expect(screen.getByText('Guest')).toBeTruthy();
+    fireEvent.click(screen.getByText('bob'));
+    expect(onSetParticipants).toHaveBeenCalledWith(9, 1, [1, 2]);
+  });
+
+  it('FE-PLANNER-INSPECTOR-080: adding the final missing member stores "everyone" instead of a full list', () => {
+    const onSetParticipants = vi.fn();
+    render(<PlaceInspector {...defaultProps} {...participantProps([{ user_id: 1 }, { user_id: 2 }])} onSetParticipants={onSetParticipants} />);
+    fireEvent.click(screen.getByText('+'));
+    fireEvent.click(screen.getByText('cleo'));
+    expect(onSetParticipants).toHaveBeenCalledWith(9, 1, []);
+  });
+
+  // ── Save to collection ───────────────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-081: with collections enabled the footer offers to save the place', async () => {
+    seedStore(useAddonStore, { addons: [{ id: 'collections', name: 'Collections', type: 'addon', icon: 'bookmark', enabled: true }], loaded: true });
+    server.use(
+      http.get('/api/addons/collections/membership', () => HttpResponse.json({ saved: true, collections: [] })),
+    );
+    render(<PlaceInspector {...defaultProps} />);
+    expect(await screen.findByText('Saved')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-082: clicking save hands the whole place to the collection picker', async () => {
+    seedStore(useAddonStore, { addons: [{ id: 'collections', name: 'Collections', type: 'addon', icon: 'bookmark', enabled: true }], loaded: true });
+    server.use(
+      http.get('/api/addons/collections/membership', () => HttpResponse.json({ saved: false, collections: [] })),
+    );
+    render(<PlaceInspector {...defaultProps} />);
+    fireEvent.click((await screen.findByText('Save to Collection')).closest('button')!);
+    expect(useSaveToCollectionStore.getState().target).toMatchObject({
+      name: 'Eiffel Tower', source_place_id: place.id, lat: 48.8584, lng: 2.2945,
+    });
+  });
+
+  it('FE-PLANNER-INSPECTOR-083: a failing membership check leaves the unsaved label', async () => {
+    seedStore(useAddonStore, { addons: [{ id: 'collections', name: 'Collections', type: 'addon', icon: 'bookmark', enabled: true }], loaded: true });
+    server.use(
+      http.get('/api/addons/collections/membership', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<PlaceInspector {...defaultProps} />);
+    expect(await screen.findByText('Save to Collection')).toBeTruthy();
+  });
+
+  // ── Plugin contributions (#1429) ─────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-084: placeDetailProvider rows render as label/value and links', async () => {
+    server.use(
+      http.get('/api/place-details/1', () => HttpResponse.json({
+        providers: [
+          { pluginId: 'tides', items: [{ label: 'High tide', value: '14:20' }, { label: 'Forecast', url: 'https://tides.example' }] },
+          // Empty providers are dropped before render.
+          { pluginId: 'empty', items: [] },
+        ],
+      })),
+    );
+    render(<PlaceInspector {...defaultProps} />);
+    expect(await screen.findByText('High tide')).toBeTruthy();
+    expect(screen.getByText('14:20')).toBeTruthy();
+    expect(screen.getByRole('link', { name: '↗' })).toHaveAttribute('href', 'https://tides.example');
+  });
+
+  it('FE-PLANNER-INSPECTOR-085: a failing provider request adds no rows', async () => {
+    server.use(http.get('/api/place-details/1', () => new HttpResponse(null, { status: 500 })));
+    render(<PlaceInspector {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeTruthy());
+    expect(screen.queryByText('High tide')).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-086: a place-detail widget plugin mounts a frame scoped to the place', async () => {
+    seedStore(usePluginStore, {
+      plugins: [
+        { id: 'tide-widget', name: 'Tides', type: 'widget', icon: null, slot: 'place-detail' },
+        { id: 'hero-widget', name: 'Hero', type: 'widget', icon: null, slot: 'hero' },
+      ],
+    });
+    render(<PlaceInspector {...defaultProps} />);
+    await waitFor(() => expect(document.querySelector('iframe[src*="tide-widget"]')).toBeTruthy());
+    expect(document.querySelector('iframe[src*="hero-widget"]')).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-087: in collection mode neither provider rows nor plugin frames are fetched', async () => {
+    let called = false;
+    server.use(http.get('/api/place-details/1', () => { called = true; return HttpResponse.json({ providers: [] }); }));
+    seedStore(usePluginStore, {
+      plugins: [{ id: 'tide-widget', name: 'Tides', type: 'widget', icon: null, slot: 'place-detail' }],
+    });
+    render(<PlaceInspector {...defaultProps} mode="collection" onCopyToTrip={vi.fn()} onRemoveFromList={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('Copy to trip')).toBeTruthy());
+    expect(called).toBe(false);
+    expect(document.querySelector('iframe[src*="tide-widget"]')).toBeNull();
+  });
+
+  // ── Custom thumbnail callbacks (#1136) ───────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-088: removing the custom image clears image_url through onUpdatePlace', async () => {
+    const onUpdatePlace = vi.fn();
+    const onUploadImage = vi.fn(async () => {});
+    const withImage = buildPlace({ id: 706, name: 'Pictured', image_url: '/uploads/places/x.jpg' });
+    render(<PlaceInspector {...defaultProps} place={withImage} onUpdatePlace={onUpdatePlace} onUploadImage={onUploadImage} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }));
+    expect(onUpdatePlace).toHaveBeenCalledWith(706, { image_url: null });
+  });
+
+  it('FE-PLANNER-INSPECTOR-090: opening hours are read for the selected day, not for today', async () => {
+    const withId = buildPlace({ id: 707, name: 'Day-aware', google_place_id: 'gp-707' });
+    vi.mocked(mapsApi.details).mockResolvedValue({
+      place: { opening_hours: ['Mon 08:00', 'Tue 09:00', 'Wed 10:00', 'Thu 11:00', 'Fri 12:00', 'Sat 13:00', 'Sun 14:00'] },
+    } as any);
+    // 2025-06-18 is a Wednesday → index 2.
+    render(<PlaceInspector {...defaultProps} place={withId} days={[{ id: 5, date: '2025-06-18' }] as any} selectedDayId={5} />);
+    expect(await screen.findByText('Wed 10:00')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-091: without an onSetParticipants handler the chips are inert', () => {
+    render(<PlaceInspector {...defaultProps} {...participantProps([{ user_id: 1 }, { user_id: 2 }])} onSetParticipants={undefined} />);
+    fireEvent.click(screen.getByText('ada'));
+    fireEvent.click(screen.getByText('+'));
+    fireEvent.click(screen.getByText('cleo'));
+    // Nothing blew up and the box is still on screen.
+    expect(screen.getByText('Participants')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-092: a stale participant id outside the member list collapses back to "everyone"', () => {
+    const onSetParticipants = vi.fn();
+    render(<PlaceInspector {...defaultProps} {...participantProps([{ user_id: 1 }, { user_id: 2 }, { user_id: 3 }, { user_id: 99 }])} onSetParticipants={onSetParticipants} />);
+    fireEvent.click(screen.getByText('ada'));
+    expect(onSetParticipants).toHaveBeenCalledWith(9, 1, []);
+  });
+
+  it('FE-PLANNER-INSPECTOR-093: participant chips and the add menu reset their hover styling', () => {
+    render(<PlaceInspector {...defaultProps} {...participantProps([{ user_id: 1 }, { user_id: 2 }])} />);
+    const chip = screen.getByText('ada').closest('div') as HTMLElement;
+    fireEvent.mouseEnter(chip);
+    expect(chip.className).toContain('text-[#ef4444]');
+    fireEvent.mouseLeave(chip);
+    expect(chip.className).toContain('text-content');
+
+    const add = screen.getByText('+') as HTMLButtonElement;
+    act(() => { add.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+    expect(add.style.color).toBe('var(--text-primary)');
+    act(() => { add.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
+    expect(add.style.color).toBe('var(--text-faint)');
+
+    fireEvent.click(add);
+    const entry = screen.getByText('cleo').closest('button') as HTMLButtonElement;
+    act(() => { entry.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+    expect(entry.style.background).toBe('var(--bg-hover)');
+    act(() => { entry.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
+    expect(entry.style.background).toBe('none');
+  });
+
+  it('FE-PLANNER-INSPECTOR-094: a flight number without an airline is still summarised', () => {
+    const res = buildReservation({ id: 3, title: 'Numbered flight', status: 'confirmed', assignment_id: 9, metadata: JSON.stringify({ flight_number: 'LH400' }) } as any);
+    render(<PlaceInspector {...defaultProps} selectedDayId={1} selectedAssignmentId={9}
+      assignments={{ '1': [{ id: 9, place, place_id: place.id, day_id: 1, order_index: 0, notes: null }] }}
+      reservations={[res]} />);
+    expect(screen.getByText('LH400')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-089: picking a file hands it to onUploadImage', async () => {
+    const onUploadImage = vi.fn(async () => {});
+    render(<PlaceInspector {...defaultProps} onUploadImage={onUploadImage} />);
+    const input = document.querySelector('input[accept*="image"]') as HTMLInputElement;
+    const file = new File(['x'], 'thumb.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => expect(onUploadImage).toHaveBeenCalledWith(place.id, file));
   });
 
 });

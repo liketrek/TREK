@@ -1,5 +1,5 @@
-// FE-PLANNER-AIRTRAIL-001 to FE-PLANNER-AIRTRAIL-008
-import { render, screen, waitFor } from '../../../tests/helpers/render';
+// FE-PLANNER-AIRTRAIL-001 to FE-PLANNER-AIRTRAIL-020
+import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -9,6 +9,16 @@ import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildReservation } from '../../../tests/helpers/factories';
 import type { AirtrailFlight } from '@trek/shared';
 import AirTrailImportModal, { detectConnections } from './AirTrailImportModal';
+
+const toasts: Array<[string, string]> = [];
+vi.mock('../shared/Toast', () => ({
+  useToast: () => ({
+    success: (m: string) => { toasts.push(['success', m]); return 0; },
+    warning: (m: string) => { toasts.push(['warning', m]); return 0; },
+    error: (m: string) => { toasts.push(['error', m]); return 0; },
+    info: (m: string) => { toasts.push(['info', m]); return 0; },
+  }),
+}));
 
 const flight = (over: Partial<AirtrailFlight> = {}): AirtrailFlight => ({
   id: '101',
@@ -86,6 +96,7 @@ describe('AirTrailImportModal', () => {
   const defaultProps = { isOpen: true, onClose: vi.fn(), tripId: 1 };
 
   beforeEach(() => {
+    toasts.length = 0;
     resetAllStores();
     seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
     seedStore(useTripStore, {
@@ -207,5 +218,131 @@ describe('AirTrailImportModal', () => {
     expect(screen.getAllByText(/^Imported$/)).toHaveLength(2);
     // A chain with an imported member cannot be joined again.
     expect(screen.queryByText(/one flight with a layover/i)).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-AIRTRAIL-012: a failing flight list shows the server error and no rows', async () => {
+    server.use(
+      http.get('/api/integrations/airtrail/flights', () =>
+        HttpResponse.json({ error: 'AirTrail token expired' }, { status: 401 })),
+    );
+    render(<AirTrailImportModal {...defaultProps} />);
+    expect(await screen.findByText('AirTrail token expired')).toBeInTheDocument();
+    expect(screen.queryByText('Finnair AY1502')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-AIRTRAIL-013: a transport error without a message falls back to the generic load error', async () => {
+    server.use(http.get('/api/integrations/airtrail/flights', () => HttpResponse.error()));
+    render(<AirTrailImportModal {...defaultProps} />);
+    expect(await screen.findByText('Could not load your AirTrail flights.')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-AIRTRAIL-014: an empty account shows the empty hint and a disabled import button', async () => {
+    server.use(http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [] })));
+    render(<AirTrailImportModal {...defaultProps} />);
+    expect(await screen.findByText('No flights found in your AirTrail account.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Import 0/i })).toBeDisabled();
+  });
+
+  it('FE-PLANNER-AIRTRAIL-015: flights outside the trip range land in "Other flights" and start unselected', async () => {
+    const user = userEvent.setup();
+    const later = flight({ id: '110', date: '2026-09-20', departure: '2026-09-20T06:00:00.000+00:00', arrival: '2026-09-20T09:30:00.000+00:00', flightNumber: 'AY900' });
+    server.use(
+      http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [flight(), later] })),
+    );
+    render(<AirTrailImportModal {...defaultProps} />);
+    expect(await screen.findByText('During this trip')).toBeInTheDocument();
+    expect(screen.getByText('Other flights')).toBeInTheDocument();
+    // Only the in-range flight is pre-selected.
+    expect(screen.getByRole('button', { name: /Import 1/i })).toBeInTheDocument();
+    // Selecting the out-of-range one manually brings the count up.
+    await user.click(screen.getByText('Finnair AY900'));
+    expect(screen.getByRole('button', { name: /Import 2/i })).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-AIRTRAIL-016: a flight without a date shows its route as the label and no date suffix', async () => {
+    server.use(
+      http.get('/api/integrations/airtrail/flights', () =>
+        HttpResponse.json({ flights: [flight({ id: '201', flightNumber: null, airline: null, date: null, departure: null, arrival: null })] })),
+    );
+    render(<AirTrailImportModal {...defaultProps} />);
+    // Label falls back to the route, and the sub-line carries no ` · <date>` suffix.
+    const rows = await screen.findAllByText('BRU → HEL');
+    expect(rows.length).toBe(2);
+    expect(rows[1].textContent).toBe('BRU → HEL');
+  });
+
+  it('FE-PLANNER-AIRTRAIL-017: a successful import toasts, registers an undo and deletes the created bookings again', async () => {
+    const user = userEvent.setup();
+    const pushUndo = vi.fn();
+    const deleted: number[] = [];
+    server.use(
+      http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [flight()] })),
+      http.post('/api/trips/1/reservations/import/airtrail', () =>
+        HttpResponse.json({ imported: ['101'], skipped: [{ id: '999', reason: 'already-in-trip' }] })),
+      http.get('/api/trips/1/reservations', () => HttpResponse.json({
+        reservations: [buildReservation({ id: 55, type: 'flight', external_source: 'airtrail', external_id: '101' } as any)],
+      })),
+      http.delete('/api/trips/1/reservations/55', () => { deleted.push(55); return HttpResponse.json({ success: true }); }),
+    );
+    render(<AirTrailImportModal {...defaultProps} pushUndo={pushUndo} />);
+    await user.click(await screen.findByRole('button', { name: /Import 1/i }));
+
+    await waitFor(() => expect(pushUndo).toHaveBeenCalled());
+    expect(toasts).toContainEqual(['success', '1 flight(s) imported']);
+    expect(toasts).toContainEqual(['warning', '1 already in this trip, skipped']);
+    expect(pushUndo.mock.calls[0][0]).toBe('Import from AirTrail');
+
+    await pushUndo.mock.calls[0][1]();
+    expect(deleted).toEqual([55]);
+  });
+
+  it('FE-PLANNER-AIRTRAIL-018: an import that creates nothing warns instead of claiming success', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [flight()] })),
+      http.post('/api/trips/1/reservations/import/airtrail', () => HttpResponse.json({ imported: [], skipped: [] })),
+    );
+    render(<AirTrailImportModal {...defaultProps} />);
+    await user.click(await screen.findByRole('button', { name: /Import 1/i }));
+    await waitFor(() => expect(toasts).toContainEqual(['warning', 'Nothing to import.']));
+  });
+
+  it('FE-PLANNER-AIRTRAIL-019: a failing import keeps the dialog open with the server error', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    server.use(
+      http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [flight()] })),
+      http.post('/api/trips/1/reservations/import/airtrail', () =>
+        HttpResponse.json({ error: 'AirTrail unreachable' }, { status: 502 })),
+    );
+    render(<AirTrailImportModal {...defaultProps} onClose={onClose} />);
+    await user.click(await screen.findByRole('button', { name: /Import 1/i }));
+    expect(await screen.findByText('AirTrail unreachable')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-AIRTRAIL-020: a backdrop press-and-release closes, a press inside does not', async () => {
+    const onClose = vi.fn();
+    render(<AirTrailImportModal {...defaultProps} onClose={onClose} />);
+    await screen.findByText('Import from AirTrail');
+    const backdrop = document.querySelector('[style*="z-index: 99999"]') as HTMLElement;
+
+    fireEvent.mouseDown(screen.getByText('Import from AirTrail'));
+    fireEvent.click(backdrop);
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.mouseDown(backdrop);
+    fireEvent.click(backdrop);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-PLANNER-AIRTRAIL-021: reservations from other sources are not treated as AirTrail imports', async () => {
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1, start_date: '2026-08-01', end_date: '2026-08-10' }),
+      reservations: [buildReservation({ type: 'flight', external_source: 'kitinerary', external_id: '101' }) as any],
+    });
+    render(<AirTrailImportModal {...defaultProps} />);
+    await screen.findByText('Finnair AY1502');
+    expect(screen.queryByText(/^Imported$/)).not.toBeInTheDocument();
   });
 });
