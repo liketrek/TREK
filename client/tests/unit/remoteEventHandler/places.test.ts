@@ -64,4 +64,40 @@ describe('remoteEventHandler > places', () => {
     const { assignments } = useTripStore.getState();
     expect(assignments['10']).toHaveLength(0);
   });
+
+  it('FE-WSEVT-PLACE-007: place:updated leaves other places and their assignments untouched', () => {
+    const one = buildPlace({ id: 1, name: 'One' });
+    const two = buildPlace({ id: 2, name: 'Two' });
+    useTripStore.setState({
+      places: [one, two],
+      assignments: {
+        '10': [
+          buildAssignment({ id: 100, place: one, day_id: 10 }),
+          buildAssignment({ id: 200, place: two, day_id: 10 }),
+        ],
+      },
+    });
+    useTripStore.getState().handleRemoteEvent({ type: 'place:updated', place: buildPlace({ id: 2, name: 'Two renamed' }) });
+    const { places, assignments } = useTripStore.getState();
+    expect(places.map(p => p.name)).toEqual(['One', 'Two renamed']);
+    expect(assignments['10'].map(a => a.place?.name)).toEqual(['One', 'Two renamed']);
+  });
+
+  it('FE-WSEVT-PLACE-008: place:deleted keeps assignments of the other places', () => {
+    const one = buildPlace({ id: 1 });
+    const two = buildPlace({ id: 2 });
+    useTripStore.setState({
+      places: [one, two],
+      assignments: {
+        '10': [
+          buildAssignment({ id: 100, place: one, day_id: 10 }),
+          buildAssignment({ id: 200, place: two, day_id: 10 }),
+        ],
+      },
+    });
+    useTripStore.getState().handleRemoteEvent({ type: 'place:deleted', placeId: 1 });
+    const { places, assignments } = useTripStore.getState();
+    expect(places.map(p => p.id)).toEqual([2]);
+    expect(assignments['10'].map(a => a.id)).toEqual([200]);
+  });
 });

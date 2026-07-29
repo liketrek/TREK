@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { TREK_WS_EVENT_NAMES, TREK_WS_TRIP_EVENT_NAMES } from '@trek/shared';
 import { DEXIE_WRITERS, STATE_APPLIERS } from '../../../src/store/slices/remoteEventHandler';
 import { HANDLED_OUTSIDE_TRIP_STORE, IGNORED_WS_EVENTS } from '../../../src/api/wsEventPolicy';
+import { useTripStore } from '../../../src/store/tripStore';
+import { resetAllStores } from '../../helpers/store';
+import { buildPackingItem, buildPlace } from '../../helpers/factories';
 
 /**
  * The exhaustiveness ratchet (roadmap: WS event contract registry). Every
@@ -17,6 +20,10 @@ const handledInStore = new Set<string>([
 ]);
 const handledElsewhere = new Set<string>(HANDLED_OUTSIDE_TRIP_STORE);
 const ignored = new Set<string>(IGNORED_WS_EVENTS);
+
+beforeEach(() => {
+  resetAllStores();
+});
 
 describe('remoteEventHandler > registry parity', () => {
   it('FE-WSEVT-REGISTRY-001: every registry event is handled or explicitly ignored', () => {
@@ -64,5 +71,22 @@ describe('remoteEventHandler > registry parity', () => {
       name => !(name in STATE_APPLIERS),
     );
     expect(writersWithoutApplier).toEqual([]);
+  });
+
+  it('FE-WSEVT-REGISTRY-006: an explicitly ignored event leaves the store untouched', () => {
+    const items = [buildPackingItem({ id: 1 }), buildPackingItem({ id: 2 })];
+    useTripStore.setState({ packingItems: items, places: [buildPlace({ id: 5 })] });
+    // 'packing:reordered' is on IGNORED_WS_EVENTS — the reducer must swallow it
+    // instead of throwing or clearing the slice.
+    useTripStore.getState().handleRemoteEvent({ type: 'packing:reordered', orderedIds: [2, 1] });
+    const state = useTripStore.getState();
+    expect(state.packingItems.map(i => i.id)).toEqual([1, 2]);
+    expect(state.places.map(p => p.id)).toEqual([5]);
+  });
+
+  it('FE-WSEVT-REGISTRY-007: an unknown event name is a no-op', () => {
+    useTripStore.setState({ places: [buildPlace({ id: 5 })] });
+    useTripStore.getState().handleRemoteEvent({ type: 'not:a:real:event', payload: 1 });
+    expect(useTripStore.getState().places.map(p => p.id)).toEqual([5]);
   });
 });

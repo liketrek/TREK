@@ -46,4 +46,15 @@ describe('remoteEventHandler > packing', () => {
     const { packingItems } = useTripStore.getState();
     expect(packingItems).toHaveLength(0);
   });
+
+  it('FE-WSEVT-PACK-005: packing:updated leaves the other items untouched', () => {
+    useTripStore.setState({
+      packingItems: [buildPackingItem({ id: 1, name: 'Sunscreen' }), buildPackingItem({ id: 2, name: 'Hat' })],
+    });
+    useTripStore.getState().handleRemoteEvent({
+      type: 'packing:updated',
+      item: buildPackingItem({ id: 2, name: 'Sun hat' }),
+    });
+    expect(useTripStore.getState().packingItems.map(i => i.name)).toEqual(['Sunscreen', 'Sun hat']);
+  });
 });

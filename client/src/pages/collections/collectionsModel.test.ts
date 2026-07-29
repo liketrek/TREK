@@ -10,6 +10,9 @@ import {
   presentLabels,
   mappablePlaces,
   normalizeLinkUrl,
+  nextStatus,
+  STATUS_META,
+  STATUS_ORDER,
 } from './collectionsModel';
 import type { CollectionLabel } from '@trek/shared';
 
@@ -186,6 +189,25 @@ describe('collectionsModel', () => {
       expect(sortPlaces(places).map(p => p.id)).toEqual([2, 1]);
     });
 
+    it('FE-COLLECTIONS-MODEL-038: name_asc sorts alphabetically, ignoring sort_order', () => {
+      const places = [
+        cp({ id: 1, name: 'Zoo', status: 'idea', sort_order: 0 }),
+        cp({ id: 2, name: 'anchor', status: 'idea', sort_order: 1 }),
+        cp({ id: 3, name: 'Bar', status: 'idea', sort_order: 2 }),
+      ];
+      // localeCompare is case-insensitive here, so "anchor" sorts before "Bar".
+      expect(sortPlaces(places, 'name_asc').map(p => p.name)).toEqual(['anchor', 'Bar', 'Zoo']);
+    });
+
+    it('FE-COLLECTIONS-MODEL-039: name_asc leaves the input array untouched', () => {
+      const places = [
+        cp({ id: 1, name: 'B', status: 'idea' }),
+        cp({ id: 2, name: 'A', status: 'idea' }),
+      ];
+      sortPlaces(places, 'name_asc');
+      expect(places.map(p => p.name)).toEqual(['B', 'A']);
+    });
+
     it('FE-COLLECTIONS-MODEL-013: does not mutate the input array', () => {
       const places = [
         cp({ id: 1, name: 'A', status: 'idea', sort_order: 2 }),
@@ -317,6 +339,32 @@ describe('collectionsModel', () => {
     });
   });
 
+  // ── status metadata + cycle ─────────────────────────────────────────────────
+  describe('status metadata', () => {
+    it('FE-COLLECTIONS-MODEL-040: nextStatus cycles idea → want → visited → idea', () => {
+      expect(nextStatus('idea')).toBe('want');
+      expect(nextStatus('want')).toBe('visited');
+      expect(nextStatus('visited')).toBe('idea');
+    });
+
+    it('FE-COLLECTIONS-MODEL-041: STATUS_ORDER holds every status exactly once', () => {
+      expect(STATUS_ORDER).toEqual(['idea', 'want', 'visited']);
+    });
+
+    it('FE-COLLECTIONS-MODEL-042: every status has a label key, an icon and both colours', () => {
+      for (const status of STATUS_ORDER) {
+        const meta = STATUS_META[status];
+        expect(meta.labelKey).toBe(`collections.status.${status}`);
+        expect(meta.icon).toBeDefined();
+        expect(meta.color).toBeTruthy();
+        expect(meta.coverColor).toMatch(/^#/);
+      }
+      // Each status is visually distinct — no two share an icon.
+      const icons = STATUS_ORDER.map(s => STATUS_META[s].icon);
+      expect(new Set(icons).size).toBe(STATUS_ORDER.length);
+    });
+  });
+
   // ── normalizeLinkUrl ────────────────────────────────────────────────────────
   describe('normalizeLinkUrl', () => {
     it('FE-COLLECTIONS-MODEL-026: prepends https:// to a scheme-less host', () => {
@@ -382,6 +430,23 @@ describe('collectionsModel', () => {
     it('FE-COLLECTIONS-MODEL-035: presentLabels keeps definition order with per-label counts, incl. zero', () => {
       const opts = presentLabels(labels, places);
       expect(opts.map(o => [o.id, o.count])).toEqual([[10, 2], [11, 2], [12, 0]]);
+    });
+
+    it('FE-COLLECTIONS-MODEL-043: a place saved before labels existed (no label_ids) is filtered out, not counted', () => {
+      const legacy = [
+        cp({ id: 7, name: 'Legacy', status: 'idea' }), // no label_ids at all
+        cp({ id: 8, name: 'Tagged', status: 'idea', label_ids: [10] }),
+      ];
+      expect(filterPlaces(legacy, 'all', '', 'all', [10]).map(p => p.id)).toEqual([8]);
+      expect(presentLabels(labels, legacy).map(o => o.count)).toEqual([1, 0, 0]);
+    });
+
+    it('FE-COLLECTIONS-MODEL-044: presentLabels defaults a missing colour to null', () => {
+      expect(presentLabels(labels, [])).toEqual([
+        { id: 10, name: 'Berlin', color: '#f00', count: 0 },
+        { id: 11, name: 'Hamburg', color: '#00f', count: 0 },
+        { id: 12, name: 'Unused', color: null, count: 0 },
+      ]);
     });
   });
 });
