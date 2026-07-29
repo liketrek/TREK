@@ -256,6 +256,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Фото профілю оновлено',
   'settings.avatarRemoved': 'Фото профілю видалено',
   'settings.avatarError': 'Помилка завантаження',
+  'settings.avatarRemoveError': 'Помилка видалення',
   'settings.bookingLabels': 'Підписи маршрутів бронювань',
   'settings.bookingLabelsHint': 'Показує назви станцій / аеропортів на карті. Якщо вимкнено, показується лише значок.',
   'settings.notifyVersionAvailable': 'Доступна нова версія',

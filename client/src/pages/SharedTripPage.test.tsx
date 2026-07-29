@@ -756,8 +756,8 @@ describe('SharedTripPage', () => {
         },
       }));
 
-      // The count is the raw assignment count, including the one whose place is gone.
-      expect(screen.getByText('4 places')).toBeInTheDocument();
+      // The count matches the rendered rows — the assignment whose place is gone is left out.
+      expect(screen.getByText('3 places')).toBeInTheDocument();
       fireEvent.click(screen.getByText('Day One'));
 
       await waitFor(() => expect(screen.getByText('Rue de Rivoli')).toBeInTheDocument());

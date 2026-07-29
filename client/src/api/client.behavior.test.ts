@@ -1,4 +1,4 @@
-// FE-APIWIRE-001 to FE-APIWIRE-035
+// FE-APIWIRE-001 to FE-APIWIRE-036
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { http, HttpResponse } from 'msw'
@@ -183,6 +183,20 @@ describe('client > rate-limit translation', () => {
     server.use(http.get('/api/limited', () => new HttpResponse('slow down', { status: 429 })))
     const err = await captureError(() => apiClient.get('/limited'))
     expect(err.response?.data).toEqual({ error: 'Too many attempts. Please try again later.' })
+  })
+
+  it('FE-APIWIRE-035: an array 429 body is replaced, not grafted onto', async () => {
+    server.use(http.get('/api/limited', () => HttpResponse.json([{ field: 'email' }], { status: 429 })))
+    const err = await captureError(() => apiClient.get('/limited'))
+    expect(err.response?.data).toEqual({ error: 'Too many attempts. Please try again later.' })
+  })
+
+  it('FE-APIWIRE-036: Catalan, Greek and Vietnamese have their own 429 message', async () => {
+    for (const lang of ['ca', 'gr', 'vi']) {
+      localStorage.setItem('app_language', lang)
+      const err = await captureError(() => apiClient.get('/limited'))
+      expect(err.message).not.toBe('Too many attempts. Please try again later.')
+    }
   })
 })
 
@@ -398,6 +412,7 @@ describe('client > adminApi.llmLocalPull', () => {
           read: async () => (i < chunks.length
             ? { done: false, value: encoder.encode(chunks[i++]) }
             : { done: true, value: undefined }),
+          cancel: async () => {},
         }),
       },
     } as unknown as Response
@@ -450,13 +465,26 @@ describe('client > adminApi.llmLocalPull', () => {
       .rejects.toThrow('Pull failed (500)')
   })
 
-  it('FE-APIWIRE-033: a 200 without a readable body is treated as a failure', async () => {
+  it('FE-APIWIRE-036: a throw from onProgress aborts the pull', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(streamingResponse([
+      '{"status":"pulling manifest"}\n{"error":"manifest not found"}\n{"status":"success"}\n',
+    ]))
+    const onProgress = vi.fn((p: { error?: string }) => {
+      if (p.error) throw new Error(p.error)
+    })
+
+    await expect(adminApi.llmLocalPull('http://ollama:11434', 'x', onProgress))
+      .rejects.toThrow('manifest not found')
+    expect(onProgress).toHaveBeenCalledTimes(2)
+  })
+
+  it('FE-APIWIRE-033: a 200 without a readable body reports the missing stream', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true, status: 200, body: null,
       json: async () => ({}),
     } as unknown as Response)
 
     await expect(adminApi.llmLocalPull('http://ollama:11434', 'x', vi.fn()))
-      .rejects.toThrow('Pull failed (200)')
+      .rejects.toThrow('Pull returned no progress stream')
   })
 })

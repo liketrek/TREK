@@ -242,4 +242,20 @@ describe('MNoteSheet', () => {
     expect(screen.getByPlaceholderText('dayplan.noteSubtitle')).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Car' })).toHaveAttribute('aria-pressed', 'true')
   })
+
+  it('FE-MOB-NOTESH-019: a fresh payload object for the same note keeps the typed draft', () => {
+    const planner = buildPlanner({ tripId: 3, selectedDayId: 7 })
+    const onClose = vi.fn()
+    const { rerender } = render(
+      <MNoteSheet planner={planner} open payload={{ dayId: 7, note: NOTE }} onClose={onClose} />,
+    )
+    typeTitle('Buy museum tickets for four')
+    // Same day, same note — only the wrapper object is new (inline payload or a
+    // store refresh), so the draft must survive.
+    rerender(
+      <MNoteSheet planner={planner} open payload={{ dayId: 7, note: { ...NOTE } }} onClose={onClose} />,
+    )
+
+    expect(screen.getByPlaceholderText('dayplan.noteTitle *')).toHaveValue('Buy museum tickets for four')
+  })
 })

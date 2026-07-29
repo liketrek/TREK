@@ -157,6 +157,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Nepodařilo se načíst šablony',
   'admin.packingTemplates.createError': 'Nepodařilo se vytvořit šablonu',
   'admin.packingTemplates.deleteError': 'Nepodařilo se smazat šablonu',
+  'admin.packingTemplates.deleteCategoryError': 'Nepodařilo se smazat kategorii',
+  'admin.packingTemplates.deleteItemError': 'Nepodařilo se smazat položku',
   'admin.packingTemplates.saveError': 'Uložení se nezdařilo',
   'admin.tabs.addons': 'Doplňky',
   'admin.tabs.plugins': 'Pluginy',

@@ -741,7 +741,11 @@ describe('TripPlannerPage — mobile drawers', () => {
 
     act(() => { props('dayPlan').onRouteCalculated({ coordinates: [[1, 2]] }) })
     expect(hookState.setRoute).toHaveBeenCalled()
+
+    // clearing from the drawer resets both slots, same as the desktop sidebar
     act(() => { props('dayPlan').onRouteCalculated(null) })
+    expect(hookState.setRoute).toHaveBeenLastCalledWith(null)
+    expect(hookState.setRouteInfo).toHaveBeenLastCalledWith(null)
 
     act(() => { props('dayPlan').onAddReservation(7) })
     act(() => { props('dayPlan').onAddTransport(7) })

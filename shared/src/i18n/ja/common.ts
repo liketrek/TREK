@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'すべて選択',
   'common.deselectAll': 'すべて解除',
   'common.error': 'エラー',
+  'common.success': '成功',
   'common.unknownError': '不明なエラー',
   'common.tooManyAttempts': '試行回数が多すぎます。時間をおいて再度お試しください。',
   'common.back': '戻る',

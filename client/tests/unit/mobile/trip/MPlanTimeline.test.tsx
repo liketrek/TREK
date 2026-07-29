@@ -315,10 +315,14 @@ describe('MPlanTimeline', () => {
   })
 
   describe('per-segment travel mode', () => {
-    it('FE-MOB-PLTL-017: a connector with an origin assignment opens the mode menu', () => {
-      renderTimeline()
+    /** The timeline only offers the mode menu in edit mode, where many buttons exist. */
+    const renderEditing = () => renderTimeline({}, {}, { mode: 'edit' })
+    const connector = () => screen.getByText('7 min').closest('button') as HTMLElement
 
-      fireEvent.click(screen.getByRole('button'))
+    it('FE-MOB-PLTL-017: a connector with an origin assignment opens the mode menu', () => {
+      renderEditing()
+
+      fireEvent.click(connector())
 
       expect(screen.getByText('Driving')).toBeInTheDocument()
       expect(screen.getByText('Walking')).toBeInTheDocument()
@@ -327,8 +331,8 @@ describe('MPlanTimeline', () => {
     })
 
     it('FE-MOB-PLTL-018: picking a mode sets it on the origin assignment', () => {
-      renderTimeline()
-      fireEvent.click(screen.getByRole('button'))
+      renderEditing()
+      fireEvent.click(connector())
 
       fireEvent.click(screen.getByText('Walking'))
 
@@ -336,8 +340,8 @@ describe('MPlanTimeline', () => {
     })
 
     it('FE-MOB-PLTL-019: the default entry clears the override', () => {
-      renderTimeline()
-      fireEvent.click(screen.getByRole('button'))
+      renderEditing()
+      fireEvent.click(connector())
 
       fireEvent.click(screen.getByText('dayplan.transportMode.useDefault'))
 
@@ -345,8 +349,15 @@ describe('MPlanTimeline', () => {
     })
 
     it('FE-MOB-PLTL-020: read-only members get no tappable connectors', () => {
-      const { container } = renderTimeline({}, { can: vi.fn(() => false) })
+      const { container } = renderTimeline({}, { can: vi.fn(() => false) }, { mode: 'edit' })
 
+      expect(container.querySelector('button')).toBeNull()
+    })
+
+    it('FE-MOB-PLTL-020b: go mode keeps the connectors read-only even with edit rights', () => {
+      const { container } = renderTimeline()
+
+      expect(screen.getByText('7 min').closest('button')).toBeNull()
       expect(container.querySelector('button')).toBeNull()
     })
   })

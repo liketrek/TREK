@@ -263,9 +263,9 @@ describe('packingSlice', () => {
 
     const items = useTripStore.getState().packingItems;
     expect(items.map(i => i.id)).toEqual([2, 1, 3]);
-    // sort_order is reindexed against the requested positions, so the slot the
-    // unknown id occupied leaves a gap until the server's order comes back.
-    expect(items.map(i => i.sort_order)).toEqual([0, 2, 2]);
+    // The unknown id is dropped before reindexing, so the reordered items get a
+    // gapless sequence; the unlisted item keeps its own sort_order.
+    expect(items.map(i => i.sort_order)).toEqual([0, 1, 2]);
   });
 
   it('FE-STORE-PACKING-013: togglePackingItem rolls the checkbox back and notifies on failure', async () => {

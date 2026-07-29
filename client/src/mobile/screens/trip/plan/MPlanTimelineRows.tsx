@@ -222,7 +222,9 @@ function LineBadge({ leg, className = '' }: { leg: TransitLegDisplay; className?
 }
 
 function TransitStrip({ legs }: { legs: TransitLegDisplay[] }) {
-  const shown = legs.filter(l => l.mode !== 'WALK' || (l.duration || 0) >= 60)
+  // Sub-minute walks are noise; a walk without a duration is not — dropping it
+  // would make the strip disagree with the expanded leg list.
+  const shown = legs.filter(l => l.mode !== 'WALK' || l.duration == null || l.duration >= 60)
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-1 text-m-faint">
       {shown.map((leg, i) => (
@@ -231,7 +233,7 @@ function TransitStrip({ legs }: { legs: TransitLegDisplay[] }) {
           {leg.mode === 'WALK' ? (
             <span className="inline-flex items-center gap-[2px] font-geist text-[0.625rem] font-bold">
               <Footprints size={11} strokeWidth={2.2} />
-              {Math.round((leg.duration || 0) / 60)}
+              {leg.duration != null ? Math.round(leg.duration / 60) : ''}
             </span>
           ) : (
             <LineBadge leg={leg} />
@@ -359,12 +361,12 @@ export function TransitRow({ res, transit, dayId, open, chrome, reorder, onToggl
 
 // ── b4) Walk/drive connector between two located places ─────────────────────
 
-export function ConnRow({ seg, onTap }: { seg: RouteSegment; onTap?: (e: MouseEvent) => void }) {
-  // The leg's chosen mode (#1281) drives the icon + duration; tap to change it.
+/** The connector line of a routed leg — the leg's own mode (#1281) picks icon and duration. */
+function TravelLine({ seg }: { seg: RouteSegment }) {
   const mode = seg.mode
   const Icon = mode === 'walking' ? Footprints : mode?.startsWith('plugin:') ? Zap : Car
   const durationText = seg.durationText ?? (mode === 'walking' ? seg.walkingText : seg.drivingText)
-  const inner = (
+  return (
     <>
       <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
       <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
@@ -384,6 +386,11 @@ export function ConnRow({ seg, onTap }: { seg: RouteSegment; onTap?: (e: MouseEv
       <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
     </>
   )
+}
+
+export function ConnRow({ seg, onTap }: { seg: RouteSegment; onTap?: (e: MouseEvent) => void }) {
+  // Tap to change the leg's mode (#1281).
+  const inner = <TravelLine seg={seg} />
   const cls = 'mt-[5px] flex w-full items-center gap-2 py-px text-[color:var(--m-conn)]'
   return onTap
     ? <button type="button" onClick={onTap} className={cls}>{inner}</button>
@@ -421,21 +428,11 @@ export function HotelConnRow({ seg, name, placement }: {
   name: string
   placement: 'top' | 'bottom'
 }) {
+  // Same line as the connectors between two stops, so a bookend leg routed with a
+  // plugin profile or set to walking reads the same as the rest of the day (#1281).
   const travel = (
     <div className="flex items-center gap-2 py-px text-[color:var(--m-conn)]">
-      <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
-      <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
-        <Footprints size={10} strokeWidth={2} />
-        {seg.walkingText}
-      </span>
-      <span className="whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
-        · {seg.distanceText} ·
-      </span>
-      <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
-        <Car size={10} strokeWidth={2} />
-        {seg.drivingText}
-      </span>
-      <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
+      <TravelLine seg={seg} />
     </div>
   )
   const hotel = (

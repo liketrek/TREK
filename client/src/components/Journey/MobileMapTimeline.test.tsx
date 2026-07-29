@@ -198,6 +198,25 @@ describe('MobileMapTimeline', () => {
     }
   })
 
+  it('FE-COMP-JMAPTL-008b: markers arriving after the entries still get the initial focus', () => {
+    vi.useFakeTimers()
+    try {
+      const onEntryClick = vi.fn()
+      const { rerender } = render(
+        <MobileMapTimeline entries={entries} mapEntries={[]} onEntryClick={onEntryClick} />,
+      )
+      act(() => { vi.advanceTimersByTime(500) })
+      expect(mapHandle.focusMarker).not.toHaveBeenCalled()
+
+      rerender(<MobileMapTimeline entries={entries} mapEntries={mapEntries} onEntryClick={onEntryClick} />)
+      act(() => { vi.advanceTimersByTime(500) })
+
+      expect(mapHandle.focusMarker).toHaveBeenCalledWith('1')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('FE-COMP-JMAPTL-009: an entry that has no marker clears the highlight instead', () => {
     vi.useFakeTimers()
     try {

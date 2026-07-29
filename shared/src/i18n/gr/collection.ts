@@ -81,6 +81,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Αντιγραφή σε ταξίδι',
   'collections.copyN': 'Αντιγραφή {count} σε ταξίδι',
   'collections.copyToTripSearch': 'Αναζήτηση ταξιδιών',
+  'collections.searchLists': 'Αναζήτηση λιστών',
   'collections.copyToTripConfirm': 'Αντιγραφή',
   'collections.noTrips': 'Δεν υπάρχουν ταξίδια ακόμα',
   'collections.alreadyInTrip': 'Υπάρχει ήδη σε αυτό το ταξίδι',

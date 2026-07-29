@@ -1,4 +1,4 @@
-// FE-SYNC-PREP-001 to FE-SYNC-PREP-020
+// FE-SYNC-PREP-001 to FE-SYNC-PREP-021
 // prepareForOffline, the idle tile pass and the file-blob caching branches that
 // tests/unit/sync/tripSyncManager.test.ts leaves untouched.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
@@ -248,6 +248,20 @@ describe('tripSyncManager — file blob caching', () => {
     const cached = await offlineDb.blobCache.toArray()
     expect(cached.map(e => e.url)).toEqual(['/api/trips/614/files/907/download'])
     expect((await offlineDb.syncMeta.get(614))!.filesCachedCount).toBe(1)
+  })
+
+  it('FE-SYNC-PREP-021: a trip that lost all its files has its cached-file count reset', async () => {
+    const url = '/api/trips/617/files/908/download'
+    await prepareWithFiles(617, [buildTripFile({ id: 908, trip_id: 617, url, mime_type: 'application/pdf' })])
+    expect((await offlineDb.syncMeta.get(617))!.filesCachedCount).toBe(1)
+
+    // The count is derived from the trip being synced, not from the first file
+    // row, so an empty list still updates the meta.
+    tripSyncManager._resetSyncing()
+    await offlineDb.tripFiles.clear()
+    await prepareWithFiles(617, [])
+
+    expect((await offlineDb.syncMeta.get(617))!.filesCachedCount).toBe(0)
   })
 
   it('FE-SYNC-PREP-016: a file row without a url is ignored', async () => {

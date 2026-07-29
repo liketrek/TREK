@@ -119,7 +119,6 @@ export default function MAdminNotificationsSection({ admin, t }: MAdminNotificat
 
   const testAdminWebhook = async () => {
     const url = smtpValues.admin_webhook_url === '••••••••' ? undefined : smtpValues.admin_webhook_url
-    if (!url && smtpValues.admin_webhook_url !== '••••••••') return
     try {
       if (url) await authApi.updateAppSettings({ admin_webhook_url: url }).catch(() => {})
       const result = await notificationsApi.testWebhook(url)

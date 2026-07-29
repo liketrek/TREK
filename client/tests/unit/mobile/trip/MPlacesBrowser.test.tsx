@@ -10,7 +10,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { AssignmentsMap, Category, Day, Place } from '../../../../src/types'
 
-// FE-MOB-PBROW-001 to FE-MOB-PBROW-029
+// FE-MOB-PBROW-001 to FE-MOB-PBROW-030
 
 const CATEGORIES = [
   { id: 1, name: 'Sights', color: '#123456', icon: 'landmark' },
@@ -241,16 +241,28 @@ describe('MPlacesBrowser', () => {
     expect(screen.getByRole('button', { name: 'common.selectAll' })).toBeEnabled()
   })
 
-  it('FE-MOB-PBROW-018: the bulk category sheet applies the pick and leaves select mode', () => {
+  it('FE-MOB-PBROW-018: the bulk category sheet applies the pick and leaves select mode once it resolved', async () => {
     const { planner } = renderBrowser()
     fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
     fireEvent.click(row('Louvre'))
     fireEvent.click(screen.getByRole('button', { name: 'places.changeCategory' }))
 
     expect(screen.getByRole('dialog', { name: 'Change category' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Food' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Food' })) })
     expect(planner.confirmChangeCategory).toHaveBeenCalledWith([1], 2)
     expect(screen.queryByText(/places.selectionCount/)).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PBROW-018b: a failed bulk category change keeps the selection for a retry', async () => {
+    const planner = makePlanner()
+    ;(planner.confirmChangeCategory as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
+    renderBrowser(planner)
+    fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
+    fireEvent.click(row('Louvre'))
+    fireEvent.click(screen.getByRole('button', { name: 'places.changeCategory' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Food' })) })
+
+    expect(screen.getByText('places.selectionCount:1')).toBeInTheDocument()
   })
 
   it('FE-MOB-PBROW-019: dismissing the category sheet keeps the selection untouched', async () => {
@@ -265,7 +277,7 @@ describe('MPlacesBrowser', () => {
     expect(screen.getByText('places.selectionCount:1')).toBeInTheDocument()
   })
 
-  it('FE-MOB-PBROW-020: the delete confirmation removes the selection in one call', () => {
+  it('FE-MOB-PBROW-020: the delete confirmation removes the selection in one call', async () => {
     const { planner } = renderBrowser()
     fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
     fireEvent.click(row('Louvre'))
@@ -273,9 +285,21 @@ describe('MPlacesBrowser', () => {
     fireEvent.click(screen.getByRole('button', { name: 'places.deleteSelected' }))
 
     expect(screen.getByText('trip.confirm.deletePlaces:2')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'common.delete' })) })
     expect(planner.confirmDeletePlaces).toHaveBeenCalledWith([1, 3])
     expect(screen.queryByText(/places.selectionCount/)).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PBROW-020b: a failed bulk delete keeps the selection for a retry', async () => {
+    const planner = makePlanner()
+    ;(planner.confirmDeletePlaces as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
+    renderBrowser(planner)
+    fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
+    fireEvent.click(row('Louvre'))
+    fireEvent.click(screen.getByRole('button', { name: 'places.deleteSelected' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'common.delete' })) })
+
+    expect(screen.getByText('places.selectionCount:1')).toBeInTheDocument()
   })
 
   it('FE-MOB-PBROW-021: cancelling the delete keeps the selection intact', () => {
@@ -356,5 +380,22 @@ describe('MPlacesBrowser', () => {
       rerender(<MPlacesBrowser planner={makePlanner({ places: [LOUVRE, EIFFEL] } as Partial<TripPlanner>)} shell={shell} />)
     })
     expect(screen.getByText('places.selectionCount:2')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PBROW-030: a selection that only matches the visible pool in size is not "all selected"', () => {
+    renderBrowser()
+    fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
+    fireEvent.click(row('Louvre'))
+    fireEvent.click(row('Eiffel Tower'))
+
+    // Narrow to the two categorised places: two visible, two selected — but not
+    // the same two, so the toolbar must still offer select-all.
+    fireEvent.click(screen.getByRole('button', { name: 'places.allCategories' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sights' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Food' }))
+
+    expect(screen.getByText('places.count:2')).toBeInTheDocument()
+    expect(screen.getByText('places.selectionCount:2')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'common.selectAll' })).toBeInTheDocument()
   })
 })

@@ -5,7 +5,6 @@ import apiClient from '../../../api/client'
 import { continentForCountry } from '@trek/shared'
 import { getApiErrorMessage } from '../../../types'
 import { useToast } from '../../../components/shared/Toast'
-import { countryCodeToFlag } from '../../../pages/atlas/atlasModel'
 import MSheet from '../../components/MSheet'
 import type { AtlasController } from './atlasController'
 
@@ -134,12 +133,15 @@ export default function MAtlasCountryPopup({ atlas }: MAtlasCountryPopupProps) {
         if (remaining.length === 0) delete next[countryCode]
         return next
       })
-      // Drop the country too once no manually-marked region and no trip/place keeps it.
+      // Drop the country too once no visible region is left — how a region was
+      // derived does not matter, the server hides it either way. Countries with
+      // real place/trip data are never hidden server-side (#1490), so removing
+      // them here would only flash and reappear on the next load.
       setData((prev) => {
         if (!prev) return prev
         const c = prev.countries.find((c) => c.code === countryCode)
         if (!c || c.placeCount > 0 || c.tripCount > 0) return prev
-        const remainingRegions = (visitedRegions[countryCode] || []).filter((r) => r.code !== regionCode && r.manuallyMarked)
+        const remainingRegions = (visitedRegions[countryCode] || []).filter((r) => r.code !== regionCode)
         if (remainingRegions.length > 0) return prev
         const cont = continentForCountry(countryCode)
         return {
@@ -184,7 +186,10 @@ export default function MAtlasCountryPopup({ atlas }: MAtlasCountryPopupProps) {
                 className="h-[34px] w-12 rounded-[6px] object-cover shadow-[0_1px_3px_rgba(0,0,0,.25)]"
               />
             ) : (
-              <span className="text-[2.25rem] leading-none">{countryCodeToFlag(a.code)}</span>
+              // flagcdn only serves alpha-2, so anything else gets a neutral placeholder.
+              <span className="flex h-[34px] w-12 items-center justify-center rounded-[6px] bg-[color:var(--m-ic)] text-m-faint">
+                <MapPin size={18} strokeWidth={2} />
+              </span>
             )}
             <div className="mt-3 text-[1.0625rem] font-extrabold text-m-ink">{a.name}</div>
             {a.countryName && (a.type === 'choose-region' || a.type === 'unmark-region') && (

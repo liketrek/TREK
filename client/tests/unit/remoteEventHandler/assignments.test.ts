@@ -266,12 +266,13 @@ describe('remoteEventHandler > assignments', () => {
     expect(useTripStore.getState().assignments['10'].map(a => a.id)).toEqual([2, 1]);
   });
 
-  it('FE-WSEVT-ASSIGN-016: assignment:reordered without orderedIds empties the day list', () => {
+  it('FE-WSEVT-ASSIGN-016: assignment:reordered without orderedIds leaves the day list alone', () => {
+    const existing = buildAssignment({ id: 1, day_id: 10 });
     useTripStore.setState({
       days: [buildDay({ id: 10 })],
-      assignments: { '10': [buildAssignment({ id: 1, day_id: 10 })] },
+      assignments: { '10': [existing] },
     });
     useTripStore.getState().handleRemoteEvent({ type: 'assignment:reordered', dayId: 10 });
-    expect(useTripStore.getState().assignments['10']).toEqual([]);
+    expect(useTripStore.getState().assignments['10']).toEqual([existing]);
   });
 });

@@ -85,7 +85,9 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
       return next
     })
 
-  const allSelected = filtered.length > 0 && selectedIds.size === filtered.length
+  // Compare the ids, not just the counts: a place removed remotely while another
+  // one is selected keeps the sizes equal without the sets matching.
+  const allSelected = filtered.length > 0 && filtered.every(p => selectedIds.has(p.id))
   const toggleAllVisible = () => {
     if (allSelected) setSelectedIds(new Set())
     else setSelectedIds(new Set(filtered.map(p => p.id)))
@@ -334,9 +336,12 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
         count={selectedIds.size}
         categories={categories}
         onClose={() => setCategoryPickerOpen(false)}
-        onPick={categoryId => {
-          planner.confirmChangeCategory([...selectedIds], categoryId)
+        onPick={async categoryId => {
+          const ids = [...selectedIds]
           setCategoryPickerOpen(false)
+          // Drop the selection only once the bulk edit went through — a failed
+          // one has to stay retryable with the same set.
+          try { await planner.confirmChangeCategory(ids, categoryId) } catch { return }
           exitSelectMode()
         }}
       />
@@ -357,9 +362,10 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
         confirmLabel={t('common.delete')}
         cancelLabel={t('common.cancel')}
         danger
-        onConfirm={() => {
-          planner.confirmDeletePlaces([...selectedIds])
+        onConfirm={async () => {
+          const ids = [...selectedIds]
           setConfirmDeleteOpen(false)
+          try { await planner.confirmDeletePlaces(ids) } catch { return }
           exitSelectMode()
         }}
       />

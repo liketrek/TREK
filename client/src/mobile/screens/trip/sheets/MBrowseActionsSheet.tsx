@@ -115,7 +115,8 @@ export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps
                     className={`flex w-full items-center gap-2 px-3 py-[10px] text-left ${i > 0 ? 'border-t border-[color:var(--m-rowbr)]' : ''}`}
                   >
                     <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold">
-                      {d.title || t('planner.dayN', { n: (d.day_number ?? i + 1) || '?' })}
+                      {/* A day_number of 0 is as unusable as a missing one — both take the row position. */}
+                      {d.title || t('planner.dayN', { n: d.day_number || i + 1 })}
                     </span>
                     {d.date && (
                       <span className="flex-none font-geist text-[0.65625rem] font-medium text-m-muted">

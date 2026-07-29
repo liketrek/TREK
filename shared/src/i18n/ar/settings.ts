@@ -239,6 +239,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'تم تحديث صورة الملف الشخصي',
   'settings.avatarRemoved': 'تمت إزالة صورة الملف الشخصي',
   'settings.avatarError': 'فشل الرفع',
+  'settings.avatarRemoveError': 'فشل الحذف',
   'settings.mfa.title': 'المصادقة الثنائية (2FA)',
   'settings.mfa.description':
     'تضيف خطوة ثانية عند تسجيل الدخول. استخدم تطبيق مصادقة (Google Authenticator، Authy، إلخ).',

@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Fikir ve planları kaydetmeye başlayın',
   'collab.notes.all': 'Tüm',
   'collab.notes.titlePlaceholder': 'Not başlığı',
+  'collab.notes.content': 'İçerik',
+  'collab.notes.removeFile': '{name} kaldır',
   'collab.notes.contentPlaceholder': 'Bir şeyler yazın...',
   'collab.notes.categoryPlaceholder': 'Kategori',
   'collab.notes.newCategory': 'Yeni kategori...',

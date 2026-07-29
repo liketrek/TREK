@@ -105,7 +105,8 @@ export function isPackingPlaceholder(item: Pick<PackingItem, 'name'>): boolean {
 
 // ── To-do ────────────────────────────────────────────────────────────────
 
-export type TodoFilter = 'all' | 'my' | 'overdue' | 'done' | string
+export type TodoSmartFilter = 'all' | 'my' | 'overdue' | 'done'
+export type TodoFilter = TodoSmartFilter | string
 
 export function isTodoOverdue(item: TodoItem, today: string): boolean {
   return !!item.due_date && !item.checked && item.due_date < today
@@ -120,9 +121,19 @@ export function filterTodoItems(
 ): TodoItem[] {
   if (filter === 'all') return items.filter(i => !i.checked)
   if (filter === 'done') return items.filter(i => !!i.checked)
-  if (filter === 'my') return items.filter(i => !i.checked && i.assigned_user_id === currentUserId)
+  // No resolved user means nothing is "mine" — matching the todoCounts badge.
+  if (filter === 'my') return currentUserId ? items.filter(i => !i.checked && i.assigned_user_id === currentUserId) : []
   if (filter === 'overdue') return items.filter(i => isTodoOverdue(i, today))
   return items.filter(i => i.category === filter)
+}
+
+/**
+ * Category bucket, addressed by name instead of through `filterTodoItems` — a
+ * category literally called 'all'/'my'/'overdue'/'done' keeps its own rows
+ * rather than collapsing into the smart filter of the same id.
+ */
+export function filterTodoItemsByCategory(items: TodoItem[], category: string): TodoItem[] {
+  return items.filter(i => i.category === category)
 }
 
 /**

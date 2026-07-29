@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Lengtegraad (bijv. 2.3522)',
   'places.formCategory': 'Categorie',
   'places.noCategory': 'Geen categorie',
+  'places.newCategory': 'Nieuwe categorie',
   'places.categoryNamePlaceholder': 'Categorienaam',
   'places.formTime': 'Tijd',
   'places.startTime': 'Starttijd',
@@ -97,5 +98,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Afbeelding wijzigen',
   'places.removeImage': 'Afbeelding verwijderen',
   'places.imageUploadError': 'Afbeelding uploaden mislukt',
+  'places.imageRemoveError': 'Afbeelding verwijderen mislukt',
 };
 export default places;

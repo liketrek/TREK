@@ -301,12 +301,10 @@ describe('useJourneyDetail', () => {
       ],
     }));
     setup();
-    // Three consecutive days for the closed trip, nothing for the open-ended one.
-    // The keys themselves are UTC-shifted (see report), so assert the shape.
+    // Three days for the closed trip, nothing for the open-ended one. The keys are local
+    // dates, so they match the trip's own start/end regardless of the runner's timezone.
     await waitFor(() => expect(latest.tripDates.size).toBe(3));
-    const dates = [...latest.tripDates].sort();
-    expect(new Date(dates[2]).getTime() - new Date(dates[0]).getTime()).toBe(2 * 86400000);
-    expect(dates.some(d => d.startsWith('2026-06'))).toBe(false);
+    expect([...latest.tripDates].sort()).toEqual(['2026-05-01', '2026-05-02', '2026-05-03']);
   });
 
   it('FE-JRN-DETHOOK-020: the desktop two-pane layout locks body scroll and restores it', async () => {

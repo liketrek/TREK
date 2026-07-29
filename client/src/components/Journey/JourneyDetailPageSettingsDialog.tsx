@@ -275,14 +275,17 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
         danger
       />
 
-      {/* Add Trip */}
+      {/* Add Trip — sits inside the backdrop, so its clicks have to be kept
+          from bubbling into the close/discard handler underneath */}
       {showAddTrip && (
-        <AddTripDialog
-          journeyId={journey.id}
-          existingTripIds={journey.trips.map((t: any) => t.trip_id)}
-          onClose={() => setShowAddTrip(false)}
-          onAdded={() => { setShowAddTrip(false); onSaved() }}
-        />
+        <div onClick={e => e.stopPropagation()}>
+          <AddTripDialog
+            journeyId={journey.id}
+            existingTripIds={journey.trips.map((t: any) => t.trip_id)}
+            onClose={() => setShowAddTrip(false)}
+            onAdded={() => { setShowAddTrip(false); onSaved() }}
+          />
+        </div>
       )}
 
       <ConfirmDialog

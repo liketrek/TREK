@@ -28,6 +28,7 @@ export default function MFileTrashSheet({ planner, open, onClose }: MFileTrashSh
   const [files, setFiles] = useState<TripFile[]>([])
   const [loading, setLoading] = useState(false)
   const [busyId, setBusyId] = useState<number | null>(null)
+  const [emptying, setEmptying] = useState(false)
   const [confirmEmpty, setConfirmEmpty] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
@@ -68,11 +69,14 @@ export default function MFileTrashSheet({ planner, open, onClose }: MFileTrashSh
       .finally(() => setBusyId(null))
   }
 
+  // Row actions stay disabled while this runs so a restore cannot race the empty.
   const emptyTrash = () => {
     setConfirmEmpty(false)
+    setEmptying(true)
     filesApi.emptyTrash(tripId)
       .then(() => { setFiles([]); toast.success(t('files.toast.trashEmptied')) })
       .catch(() => toast.error(t('files.toast.deleteError')))
+      .finally(() => setEmptying(false))
   }
 
   return (
@@ -88,7 +92,8 @@ export default function MFileTrashSheet({ planner, open, onClose }: MFileTrashSh
               <button
                 type="button"
                 onClick={() => setConfirmEmpty(true)}
-                className="font-geist text-[0.6875rem] font-bold text-[color:var(--m-st-danger)]"
+                disabled={emptying}
+                className="font-geist text-[0.6875rem] font-bold text-[color:var(--m-st-danger)] disabled:opacity-50"
               >
                 {t('files.emptyTrash')}
               </button>
@@ -127,7 +132,7 @@ export default function MFileTrashSheet({ planner, open, onClose }: MFileTrashSh
                           type="button"
                           aria-label={t('files.restore')}
                           onClick={() => restore(file.id)}
-                          disabled={busy}
+                          disabled={busy || emptying}
                           className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted disabled:opacity-50"
                         >
                           {busy ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} strokeWidth={2} />}
@@ -136,7 +141,7 @@ export default function MFileTrashSheet({ planner, open, onClose }: MFileTrashSh
                           type="button"
                           aria-label={t('common.delete')}
                           onClick={() => setConfirmDeleteId(file.id)}
-                          disabled={busy}
+                          disabled={busy || emptying}
                           className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--m-ic)] text-[color:var(--m-st-danger)] disabled:opacity-50"
                         >
                           <Trash2 size={13} strokeWidth={2} />

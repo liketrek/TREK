@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Hosszúsági fok (pl. 2.3522)',
   'places.formCategory': 'Kategória',
   'places.noCategory': 'Nincs kategória',
+  'places.newCategory': 'Új kategória',
   'places.categoryNamePlaceholder': 'Kategória neve',
   'places.formTime': 'Időpont',
   'places.startTime': 'Kezdés',
@@ -97,5 +98,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Kép módosítása',
   'places.removeImage': 'Kép eltávolítása',
   'places.imageUploadError': 'Nem sikerült feltölteni a képet',
+  'places.imageRemoveError': 'Nem sikerült eltávolítani a képet',
 };
 export default places;

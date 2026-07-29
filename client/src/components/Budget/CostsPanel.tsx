@@ -11,6 +11,7 @@ import { budgetApi } from '../../api/client'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { formatMoney, currencyDecimals, currencyLocale, localizeAmountInput } from '../../utils/formatters'
+import { downloadBlob } from '../../utils/fileDownload'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
@@ -319,13 +320,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
     const bom = '﻿'
     const blob = new Blob([bom + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
     const safeName = (trip?.title || 'trip').replace(/[^a-zA-Z0-9À-ɏ _-]/g, '').trim()
-    a.download = `costs-${safeName}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, `costs-${safeName}.csv`)
   }
 
   // ── small presentational helpers ────────────────────────────────────────
@@ -763,7 +759,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
           <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
             <div className="text-content" style={{ fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600 }}>{fmt(baseTotal(e))}</div>
-            {!isUnfinished && (e.members || []).length > 0 && Math.abs(net) > 0.01 && (
+            {!unfinished && (e.members || []).length > 0 && Math.abs(net) > 0.01 && (
               <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginTop: 2, fontWeight: 500, whiteSpace: 'nowrap', color: net > 0 ? '#16a34a' : '#dc2626' }}>
                 {net > 0 ? t('costs.youLent', { amount: fmt(net) }) : t('costs.youBorrowed', { amount: fmt(-net) })}
               </div>

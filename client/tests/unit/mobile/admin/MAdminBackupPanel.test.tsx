@@ -446,6 +446,14 @@ describe('MAdminBackupPanel', () => {
     expect(screen.queryByText('Failed to load backups')).not.toBeInTheDocument();
   });
 
+  it('FE-MOB-MBKP-028: a 200 without a settings block keeps the built-in defaults', async () => {
+    server.use(http.get('/api/backup/auto-settings', () => HttpResponse.json({ timezone: 'UTC' })));
+    withToast();
+    await screen.findByText('backup-2025-01-15.zip');
+
+    expect(screen.getByRole('switch', { name: 'Enable auto-backup' })).toHaveAttribute('aria-checked', 'false');
+  });
+
   it('FE-MOB-MBKP-027: an unusable server timezone falls back to the raw timestamp', async () => {
     server.use(autoSettingsHandler(DEFAULT_AUTO, 'Not/AZone'));
     render(<MAdminBackupPanel />);

@@ -14,6 +14,7 @@ const undo: TranslationStrings = {
   'undo.lock': 'Ortssperre umgeschaltet',
   'undo.importGpx': 'GPX-Import',
   'undo.importKeyholeMarkup': 'KMZ/KML-Import',
+  'undo.importFiles': 'Datei-Import',
   'undo.importGoogleList': 'Google Maps-Import',
   'undo.importNaverList': 'Naver Maps-Import',
   'undo.addPlace': 'Ort hinzugefügt',

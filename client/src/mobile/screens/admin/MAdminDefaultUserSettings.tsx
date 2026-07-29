@@ -5,7 +5,7 @@ import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
-import type { DistanceUnit, Place } from '../../../types'
+import { getApiErrorMessage, type DistanceUnit, type Place } from '../../../types'
 import {
   MAPBOX_DEFAULT_STYLE,
   defaultStyleForProvider,
@@ -89,7 +89,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
       setDefaults(updated)
       toast.success(t('admin.defaultSettings.saved'))
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('common.error'))
+      toast.error(getApiErrorMessage(err, t('common.error')))
     }
   }
 
@@ -105,7 +105,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
       }
       toast.success(t('admin.defaultSettings.reset'))
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('common.error'))
+      toast.error(getApiErrorMessage(err, t('common.error')))
     }
   }
 
@@ -144,7 +144,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
     transport_mode: null,
     website: null,
     phone: null,
-    created_at: Date(),
+    created_at: new Date().toISOString(),
   }], [])
 
   if (!loaded) {

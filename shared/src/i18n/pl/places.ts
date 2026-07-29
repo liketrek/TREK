@@ -58,6 +58,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Długość (np. 2.3522)',
   'places.formCategory': 'Kategoria',
   'places.noCategory': 'Brak kategorii',
+  'places.newCategory': 'Nowa kategoria',
   'places.categoryNamePlaceholder': 'Nazwa kategorii',
   'places.formTime': 'Godzina',
   'places.startTime': 'Początek',
@@ -97,5 +98,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Zmień zdjęcie',
   'places.removeImage': 'Usuń zdjęcie',
   'places.imageUploadError': 'Nie udało się przesłać zdjęcia',
+  'places.imageRemoveError': 'Nie udało się usunąć zdjęcia',
 };
 export default places;

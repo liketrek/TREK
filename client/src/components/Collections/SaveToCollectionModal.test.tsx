@@ -219,7 +219,7 @@ describe('SaveToCollectionModal', () => {
     expect(useSaveToCollectionStore.getState().version).toBe(0);
   });
 
-  it('FE-COMP-SAVETOCOL-013: a second click on the busy row is ignored while the save runs', async () => {
+  it('FE-COMP-SAVETOCOL-013: every row locks while a save runs', async () => {
     let resolve!: (v: CollectionSaveResult) => void;
     const save = vi.spyOn(collectionsApi, 'savePlace').mockReturnValue(new Promise(r => { resolve = r; }));
     openFor();
@@ -228,7 +228,9 @@ describe('SaveToCollectionModal', () => {
     const wishlist = await screen.findByRole('button', { name: /Wishlist/ });
     fireEvent.click(wishlist);
     expect(wishlist).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /Favorites/ }));
+    const favorites = screen.getByRole('button', { name: /Favorites/ });
+    expect(favorites).toBeDisabled();
+    fireEvent.click(favorites);
     expect(save).toHaveBeenCalledTimes(1);
 
     resolve({});

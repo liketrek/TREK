@@ -196,6 +196,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': '템플릿 불러오기 실패',
   'admin.packingTemplates.createError': '템플릿 생성 실패',
   'admin.packingTemplates.deleteError': '템플릿 삭제 실패',
+  'admin.packingTemplates.deleteCategoryError': '카테고리를 삭제하지 못했습니다',
+  'admin.packingTemplates.deleteItemError': '항목을 삭제하지 못했습니다',
   'admin.packingTemplates.saveError': '저장 실패',
   'admin.tabs.addons': '애드온',
   'admin.tabs.plugins': '플러그인',

@@ -9,6 +9,7 @@ import { useSettingsStore } from '../../../../store/settingsStore'
 import { useExchangeRates } from '../../../../hooks/useExchangeRates'
 import { useTranslation } from '../../../../i18n'
 import { formatMoney } from '../../../../utils/formatters'
+import { downloadBlob } from '../../../../utils/fileDownload'
 import { budgetApi } from '../../../../api/client'
 import MCostSheet from '../sheets/MCostSheet'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
@@ -113,12 +114,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   const handleExportCsv = useCallback(() => {
     const { filename, content } = buildCostsCsv(budgetItems, { base, ctx, locale, tripTitle: trip?.title, t })
     const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, filename)
   }, [budgetItems, base, ctx, locale, trip?.title, t])
 
   // Header intent signals (spec 03 §3.8 addExpense/csvGo) — increment-only
@@ -215,40 +211,32 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
 
       {/* Settle up (spec §3.4) */}
       <div className="mt-2 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
-        <div
-          role="button"
-          tabIndex={0}
-          aria-expanded={settleOpen}
-          onClick={() => setSettleOpen(v => !v)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              setSettleOpen(v => !v)
-            }
-          }}
-          className="flex w-full cursor-pointer items-center gap-[7px]"
-        >
-          <span className="text-[0.875rem] font-extrabold text-m-ink">{t('costs.settleUp')}</span>
-          <CountPill>{flows.length}</CountPill>
-          {canEdit ? (
+        {/* Toggle and "Add payment" are siblings, not nested: a control inside a
+            control reads as one element to a screen reader. */}
+        <div className="flex w-full items-center gap-[7px]">
+          <button
+            type="button"
+            aria-expanded={settleOpen}
+            onClick={() => setSettleOpen(v => !v)}
+            className="flex min-w-0 flex-1 items-center gap-[7px] text-left"
+          >
+            <span className="text-[0.875rem] font-extrabold text-m-ink">{t('costs.settleUp')}</span>
+            <CountPill>{flows.length}</CountPill>
+            {settleOpen ? (
+              <ChevronUp size={14} strokeWidth={2} className="ml-auto flex-none text-m-faint" />
+            ) : (
+              <ChevronDown size={14} strokeWidth={2} className="ml-auto flex-none text-m-faint" />
+            )}
+          </button>
+          {canEdit && (
             <button
               type="button"
-              onClick={e => {
-                e.stopPropagation()
-                setAddPaymentOpen(true)
-              }}
-              className="ml-auto flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[6px] font-[inherit] text-[0.71875rem] font-semibold text-m-muted"
+              onClick={() => setAddPaymentOpen(true)}
+              className="flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[6px] font-[inherit] text-[0.71875rem] font-semibold text-m-muted"
             >
               <Plus size={11} strokeWidth={2.2} />
               {t('costs.addPayment')}
             </button>
-          ) : (
-            <span className="ml-auto" />
-          )}
-          {settleOpen ? (
-            <ChevronUp size={14} strokeWidth={2} className="flex-none text-m-faint" />
-          ) : (
-            <ChevronDown size={14} strokeWidth={2} className="flex-none text-m-faint" />
           )}
         </div>
 

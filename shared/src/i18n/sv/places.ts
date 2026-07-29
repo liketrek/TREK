@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Longitud (t.ex. 2.3522)',
   'places.formCategory': 'Kategori',
   'places.noCategory': 'Ingen kategori',
+  'places.newCategory': 'Ny kategori',
   'places.categoryNamePlaceholder': 'Kategorinamn',
   'places.formTime': 'Tid',
   'places.startTime': 'Börjar',
@@ -97,5 +98,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Byt bild',
   'places.removeImage': 'Ta bort bild',
   'places.imageUploadError': 'Det gick inte att ladda upp bilden',
+  'places.imageRemoveError': 'Det gick inte att ta bort bilden',
 };
 export default places;

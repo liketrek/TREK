@@ -110,7 +110,20 @@ describe('DevNotificationsPanel', () => {
     });
   });
 
-  it('FE-ADMIN-DEVNOTIF-008: error toast shown on API failure', async () => {
+  it('FE-ADMIN-DEVNOTIF-008: the server error field is what the toast shows', async () => {
+    server.use(
+      http.post('/api/admin/dev/test-notification', () =>
+        HttpResponse.json({ error: 'No channel configured' }, { status: 500 }),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<><ToastContainer /><DevNotificationsPanel /></>);
+    await screen.findByText('Type Testing');
+    await user.click(screen.getByText('Simple → Me').closest('button')!);
+    await screen.findByText('No channel configured');
+  });
+
+  it('FE-ADMIN-DEVNOTIF-008b: a failure without an error field falls back to the generic text', async () => {
     server.use(
       http.post('/api/admin/dev/test-notification', () =>
         HttpResponse.json({ message: 'Server error' }, { status: 500 }),
@@ -120,7 +133,7 @@ describe('DevNotificationsPanel', () => {
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     await screen.findByText('Type Testing');
     await user.click(screen.getByText('Simple → Me').closest('button')!);
-    await screen.findByText(/failed|error/i);
+    await screen.findByText('Failed');
   });
 
   it('FE-ADMIN-DEVNOTIF-009: changing trip selector updates payload targetId', async () => {

@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': '開始記錄想法和計劃',
   'collab.notes.all': '全部',
   'collab.notes.titlePlaceholder': '筆記標題',
+  'collab.notes.content': '內容',
+  'collab.notes.removeFile': '移除 {name}',
   'collab.notes.contentPlaceholder': '寫點什麼...',
   'collab.notes.categoryPlaceholder': '分類',
   'collab.notes.newCategory': '新建分類...',

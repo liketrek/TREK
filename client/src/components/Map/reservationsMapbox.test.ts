@@ -264,7 +264,6 @@ describe('ReservationMapboxOverlay lifecycle', () => {
     expect(glMarkers.every(m => m.remove.mock.calls.length > 0)).toBe(true)
     expect(map.listeners('zoomend')).toBe(0)
     expect(map.listeners('moveend')).toBe(0)
-    expect(map.listeners('render')).toBe(0)
     expect(map.removeLayer).toHaveBeenCalledWith(RESERVATION_LINE_LAYER_ID)
     expect(map.removeSource).toHaveBeenCalledWith(RESERVATION_SOURCE_ID)
   })
@@ -287,20 +286,18 @@ describe('ReservationMapboxOverlay lifecycle', () => {
     expect(features(map)).toHaveLength(1)
   })
 
-  it('FE-COMP-RESGL-006: the redraw and rotation handlers are inert once the overlay is destroyed', () => {
+  it('FE-COMP-RESGL-006: the redraw handler is inert once the overlay is destroyed', () => {
     const map = freshMap()
     const overlay = attach(map)
     const handlerFor = (event: string) =>
       map.on.mock.calls.find(c => c[0] === event)?.[1] as Handler
     const rerender = handlerFor('moveend')
-    const rotate = handlerFor('render')
 
     overlay.update([booking()], opts)
     const drawsBefore = map._sources.get(RESERVATION_SOURCE_ID)!.setData.mock.calls.length
     overlay.destroy()
 
     rerender()
-    rotate()
     expect(map._sources.get(RESERVATION_SOURCE_ID)).toBeUndefined()
     expect(drawsBefore).toBeGreaterThan(0)
   })
@@ -700,7 +697,7 @@ describe('ReservationMapboxOverlay transit styling', () => {
 })
 
 describe('ReservationMapboxOverlay frame handler', () => {
-  it('FE-COMP-RESGL-042: a paint frame rotates only — it does not redraw the overlay', () => {
+  it('FE-COMP-RESGL-042: the overlay does not subscribe to paint frames — only camera events redraw it', () => {
     const map = freshMap()
     const overlay = attach(map)
     overlay.update([booking()], opts)
@@ -708,6 +705,7 @@ describe('ReservationMapboxOverlay frame handler', () => {
 
     map.fire('render')
 
+    expect(map.listeners('render')).toBe(0)
     expect(map._sources.get(RESERVATION_SOURCE_ID)!.setData.mock.calls).toHaveLength(drawsBefore)
     expect(glMarkers).toHaveLength(2)
     expect(glMarkers.every(m => m.remove.mock.calls.length === 0)).toBe(true)

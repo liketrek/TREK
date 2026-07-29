@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import tzlookup from 'tz-lookup'
-import { ArrowLeftRight, ArrowRight, Bus, CableCar, ChevronDown, ChevronUp, Clock, Footprints, MapPin, Sailboat, Search, Train, TramFront, TrainFront } from 'lucide-react'
+import { ArrowLeftRight, ArrowRight, Bus, CableCar, ChevronDown, ChevronUp, Clock, Footprints, MapPin, Sailboat, Search, TramFront, TrainFront, TrainFrontTunnel } from 'lucide-react'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { TransitMetaBadges } from './transitDisplay'
 import { transitApi } from '../../api/client'
@@ -39,22 +39,24 @@ export interface PickedPlace { name: string; lat: number; lng: number }
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const MODE_GROUPS: { key: string; labelKey: string; Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>; modes: string }[] = [
-  { key: 'rail', labelKey: 'transit.mode.rail', Icon: Train, modes: 'HIGHSPEED_RAIL,LONG_DISTANCE,NIGHT_RAIL,REGIONAL_RAIL,SUBURBAN' },
-  { key: 'subway', labelKey: 'transit.mode.subway', Icon: TrainFront, modes: 'SUBWAY' },
+  // lucide's `Train` is an alias of TramFront, so rail keeps TrainFront and the
+  // subway takes the tunnel variant — otherwise the chips share a glyph.
+  { key: 'rail', labelKey: 'transit.mode.rail', Icon: TrainFront, modes: 'HIGHSPEED_RAIL,LONG_DISTANCE,NIGHT_RAIL,REGIONAL_RAIL,SUBURBAN' },
+  { key: 'subway', labelKey: 'transit.mode.subway', Icon: TrainFrontTunnel, modes: 'SUBWAY' },
   { key: 'tram', labelKey: 'transit.mode.tram', Icon: TramFront, modes: 'TRAM' },
   { key: 'bus', labelKey: 'transit.mode.bus', Icon: Bus, modes: 'BUS,COACH' },
   { key: 'ferry', labelKey: 'transit.mode.ferry', Icon: Sailboat, modes: 'FERRY' },
   { key: 'cable', labelKey: 'transit.mode.cable', Icon: CableCar, modes: 'FUNICULAR,AERIAL_LIFT' },
 ]
 
+// Only called for non-WALK legs — walking renders its own Footprints inline.
 function legIcon(mode: string) {
-  if (mode === 'WALK') return Footprints
   if (mode === 'BUS' || mode === 'COACH') return Bus
   if (mode === 'TRAM') return TramFront
-  if (mode === 'SUBWAY') return TrainFront
+  if (mode === 'SUBWAY') return TrainFrontTunnel
   if (mode === 'FERRY') return Sailboat
   if (mode === 'FUNICULAR' || mode === 'AERIAL_LIFT') return CableCar
-  return Train
+  return TrainFront
 }
 
 function tzAt(lat: number, lng: number): string {

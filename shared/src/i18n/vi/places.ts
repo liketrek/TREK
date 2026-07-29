@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Kinh độ (ví dụ: 2,3522)',
   'places.formCategory': 'Loại',
   'places.noCategory': 'Không có danh mục',
+  'places.newCategory': 'Danh mục mới',
   'places.categoryNamePlaceholder': 'Tên danh mục',
   'places.formTime': 'Thời gian',
   'places.startTime': 'Bắt đầu',
@@ -97,5 +98,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Đổi ảnh',
   'places.removeImage': 'Xóa ảnh',
   'places.imageUploadError': 'Không thể tải ảnh lên',
+  'places.imageRemoveError': 'Không thể xóa ảnh',
 };
 export default places;

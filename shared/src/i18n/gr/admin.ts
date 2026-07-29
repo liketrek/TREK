@@ -205,6 +205,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Αποτυχία φόρτωσης προτύπων',
   'admin.packingTemplates.createError': 'Αποτυχία δημιουργίας προτύπου',
   'admin.packingTemplates.deleteError': 'Αποτυχία διαγραφής προτύπου',
+  'admin.packingTemplates.deleteCategoryError': 'Αποτυχία διαγραφής κατηγορίας',
+  'admin.packingTemplates.deleteItemError': 'Αποτυχία διαγραφής στοιχείου',
   'admin.packingTemplates.saveError': 'Αποτυχία αποθήκευσης',
   'admin.tabs.addons': 'Πρόσθετα',
   'admin.tabs.plugins': 'Plugins',

@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Seleccionar-ho tot',
   'common.deselectAll': 'Rebutjar la sel·lecció',
   'common.error': 'Error',
+  'common.success': 'Èxit',
   'common.unknownError': 'Error desconegut',
   'common.tooManyAttempts': 'Massa intents. Torna a provar-ho més tard.',
   'common.back': 'Enrere',

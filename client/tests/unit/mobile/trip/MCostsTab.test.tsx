@@ -194,7 +194,7 @@ describe('MCostsTab', () => {
 
   it('FE-MOB-COSTT-006: lists the settle-up flows and names the participants', async () => {
     await renderTab()
-    const settle = up(screen.getByText('costs.settleUp'), 2)
+    const settle = up(screen.getByText('costs.settleUp'), 3)
     expect(within(settle).getByText('$40.00')).toBeInTheDocument()
     expect(within(settle).getByText('$15.00')).toBeInTheDocument()
     expect(within(settle).getByText('$5.00')).toBeInTheDocument()
@@ -205,22 +205,23 @@ describe('MCostsTab', () => {
 
   it('FE-MOB-COSTT-007: shows each member balance with its sign, zero for unknown members', async () => {
     await renderTab()
-    const settle = up(screen.getByText('costs.settleUp'), 2)
+    const settle = up(screen.getByText('costs.settleUp'), 3)
     expect(within(settle).getByText('+$12.50')).toBeInTheDocument()
     expect(within(settle).getByText('−$7.25')).toBeInTheDocument()
     expect(within(settle).getByText('$0.00')).toBeInTheDocument()
     expect(within(settle).getByAltText('')).toHaveAttribute('src', '/uploads/avatars/ada.png')
   })
 
-  it('FE-MOB-COSTT-008: collapses and reopens the settle-up card by click and by keyboard', async () => {
+  it('FE-MOB-COSTT-008: collapses and reopens the settle-up card', async () => {
     await renderTab()
-    const head = screen.getByRole('button', { expanded: true })
+    // The header is a real <button> now, so Enter/Space activation is the
+    // browser's job — no key handler of our own left to exercise.
+    const head = screen.getByRole('button', { name: /costs\.settleUp/ })
+    expect(head).toHaveAttribute('aria-expanded', 'true')
     fireEvent.click(head)
     expect(screen.queryByText('costs.balances')).not.toBeInTheDocument()
-    fireEvent.keyDown(head, { key: 'Enter' })
+    fireEvent.click(head)
     expect(screen.getByText('costs.balances')).toBeInTheDocument()
-    fireEvent.keyDown(head, { key: ' ' })
-    expect(screen.queryByText('costs.balances')).not.toBeInTheDocument()
   })
 
   it('FE-MOB-COSTT-009: celebrates a settlement without open flows', async () => {
@@ -236,7 +237,7 @@ describe('MCostsTab', () => {
     render(<MCostsTab planner={planner()} shell={buildShell()} />)
     await waitFor(() => expect(settlementBases).toEqual(['USD']))
     expect(screen.getByText('costs.everyoneSquare')).toBeInTheDocument()
-    const settle = up(screen.getByText('costs.settleUp'), 2)
+    const settle = up(screen.getByText('costs.settleUp'), 3)
     expect(within(settle).getAllByText('$0.00')).toHaveLength(3)
   })
 
@@ -438,7 +439,9 @@ describe('MCostsTab', () => {
 
     rerender(<MCostsTab planner={p} shell={buildShell({ exportCostsCsvSignal: 1 })} />)
     expect(downloadName).toBe('costs-Tokyo Trip.csv')
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:costs')
+    // The blob URL outlives the click by a beat so the download can start.
+    expect(revokeObjectURL).not.toHaveBeenCalled()
+    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:costs'))
 
     const csv = await blobs[0].text()
     const lines = csv.replace('﻿', '').split('\r\n')

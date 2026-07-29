@@ -98,7 +98,7 @@ describe('SaveTripPlacesToListModal', () => {
     vi.spyOn(collectionsApi, 'list').mockResolvedValue(listResponse(many));
     renderModal();
 
-    const search = await screen.findByPlaceholderText('Search trips');
+    const search = await screen.findByPlaceholderText('Search lists');
     fireEvent.change(search, { target: { value: 'list 4' } });
     expect(screen.getByText('List 4')).toBeInTheDocument();
     expect(screen.queryByText('List 5')).not.toBeInTheDocument();
@@ -110,7 +110,7 @@ describe('SaveTripPlacesToListModal', () => {
   it('FE-COMP-SAVETRIPPL-007: five lists or fewer need no search box', async () => {
     renderModal();
     await screen.findByText('Favorites');
-    expect(screen.queryByPlaceholderText('Search trips')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Search lists')).not.toBeInTheDocument();
   });
 
   it('FE-COMP-SAVETRIPPL-008: picking a list copies every selected place, reports it and closes', async () => {

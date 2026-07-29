@@ -141,8 +141,27 @@ describe('MExportSheet', () => {
     await waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1))
     expect(clickedAnchor().getAttribute('href')).toBe('blob:trek/ics')
     expect(clickedAnchor().download).toBe('Japan 2026.ics')
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:trek/ics')
+    // The object URL outlives the click so slower browsers can still read it.
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+    await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:trek/ics'))
     await waitFor(() => expect(shell.closeSheet).toHaveBeenCalledTimes(1))
+  })
+
+  it('FE-MOB-EXPSH-008b: a second tap while the ics request runs is ignored', async () => {
+    let release: () => void = () => {}
+    server.use(http.get('/api/trips/1/export.ics', async () => {
+      await new Promise<void>(res => { release = res })
+      return HttpResponse.text('BEGIN:VCALENDAR')
+    }))
+    const { shell } = renderSheet()
+    fireEvent.click(screen.getByText('Download .ics'))
+
+    const busy = await screen.findByText('Loading...')
+    fireEvent.click(busy)
+    release()
+
+    await waitFor(() => expect(shell.closeSheet).toHaveBeenCalledTimes(1))
+    expect(clickSpy).toHaveBeenCalledTimes(1)
   })
 
   it('FE-MOB-EXPSH-009: falls back to a generic filename without a trip title', async () => {

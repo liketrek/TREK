@@ -260,6 +260,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Фото профиля обновлено',
   'settings.avatarRemoved': 'Фото профиля удалено',
   'settings.avatarError': 'Ошибка загрузки',
+  'settings.avatarRemoveError': 'Ошибка удаления',
   'settings.bookingLabels': 'Подписи маршрутов бронирований',
   'settings.bookingLabelsHint':
     'Отображает названия станций / аэропортов на карте. Если выключено, показывается только значок.',

@@ -262,12 +262,15 @@ export function useJourneyDetail() {
   const tripDates = useMemo(() => {
     const dates = new Set<string>()
     if (!current?.trips) return dates
+    // The days are walked in local time, so the key has to be built from the local parts —
+    // toISOString() would shift the whole range by a day in every timezone east of UTC.
+    const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     for (const trip of current.trips) {
       if (!trip.start_date || !trip.end_date) continue
       const start = new Date(trip.start_date + 'T00:00:00')
       const end = new Date(trip.end_date + 'T00:00:00')
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        dates.add(d.toISOString().split('T')[0])
+        dates.add(dateKey(d))
       }
     }
     return dates

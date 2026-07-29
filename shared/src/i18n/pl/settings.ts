@@ -229,6 +229,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Zdjęcie profilowe zostało zaktualizowane',
   'settings.avatarRemoved': 'Zdjęcie profilowe zostało usunięte',
   'settings.avatarError': 'Przesyłanie nie powiodło się',
+  'settings.avatarRemoveError': 'Usuwanie nie powiodło się',
   'settings.mfa.title': 'Uwierzytelnianie dwuskładnikowe (2FA)',
   'settings.mfa.description':
     'Dodaje drugi krok, kiedy logujesz się e-mailem i hasłem. Użyj aplikacji uwierzytelniającej (Google Authenticator, Authy, itp.).',

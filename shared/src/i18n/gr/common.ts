@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Επιλογή όλων',
   'common.deselectAll': 'Απο-επιλογή όλων',
   'common.error': 'Σφάλμα',
+  'common.success': 'Επιτυχία',
   'common.unknownError': 'Άγνωστο σφάλμα',
   'common.tooManyAttempts': 'Πολλαπλές προσπάθειες. Παρακαλώ δοκιμάστε αργότερα.',
   'common.back': 'Πίσω',

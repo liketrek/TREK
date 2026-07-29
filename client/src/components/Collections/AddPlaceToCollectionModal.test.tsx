@@ -261,6 +261,14 @@ describe('AddPlaceToCollectionModal', () => {
     expect(screen.getByPlaceholderText('Longitude (e.g. 2.3522)')).toHaveValue('2.3522')
   })
 
+  it('FE-COMP-ADDPLACECOL-015b: the pair is split the same way when pasted into longitude', () => {
+    setup()
+    const lng = screen.getByPlaceholderText('Longitude (e.g. 2.3522)')
+    fireEvent.paste(lng, { clipboardData: { getData: () => '48.8566, 2.3522' } })
+    expect(screen.getByPlaceholderText('Latitude (e.g. 48.8566)')).toHaveValue('48.8566')
+    expect(lng).toHaveValue('2.3522')
+  })
+
   it('FE-COMP-ADDPLACECOL-016: a paste that is not a coordinate pair is left to the input', () => {
     setup()
     const lat = screen.getByPlaceholderText('Latitude (e.g. 48.8566)')

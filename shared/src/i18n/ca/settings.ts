@@ -243,6 +243,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Foto de perfil actualitzada',
   'settings.avatarRemoved': 'Foto de perfil eliminada',
   'settings.avatarError': 'La pujada ha fallat',
+  'settings.avatarRemoveError': "L'eliminació ha fallat",
   'settings.bookingLabels': 'Etiquetes de rutes de reserves',
   'settings.bookingLabelsHint': "Mostra noms d'estacions / aeroports al mapa. Desactivat, només es mostra la icona.",
   'settings.currentPasswordRequired': 'La contrasenya actual és obligatòria',

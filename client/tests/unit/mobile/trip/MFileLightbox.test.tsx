@@ -152,7 +152,7 @@ describe('MFileLightbox', () => {
     fireEvent.click(img)
     expect(onClose).not.toHaveBeenCalled()
     fireEvent.click(img.parentElement as HTMLElement)
-    expect(onClose).toHaveBeenCalled()
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('FE-MOB-FLBOX-012: the close button closes', () => {

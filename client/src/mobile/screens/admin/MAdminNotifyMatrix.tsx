@@ -77,16 +77,18 @@ export default function MAdminNotifyMatrix({ t, toast }: { t: TranslationFn; toa
             key={ch}
             className="w-[44px] flex-none text-center font-geist text-[0.5625rem] font-bold uppercase tracking-[0.04em] text-m-faint"
           >
-            {t(ADMIN_CHANNEL_LABEL_KEYS[ch]) || ch}
+            {t(ADMIN_CHANNEL_LABEL_KEYS[ch])}
           </span>
         ))}
       </div>
       {matrix.event_types.map((eventType) => {
         const implemented = matrix.implemented_combos[eventType] ?? []
+        // Only version_available has a label key so far; anything else keeps its raw id.
+        const labelKey = ADMIN_EVENT_LABEL_KEYS[eventType]
         return (
           <div key={eventType} className="flex items-center gap-1 border-b border-[color:var(--m-rowbr)] py-2">
             <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-m-ink">
-              {t(ADMIN_EVENT_LABEL_KEYS[eventType]) || eventType}
+              {labelKey ? t(labelKey) : eventType}
             </span>
             {visibleChannels.map((ch) => (
               <span key={ch} className="flex w-[44px] flex-none justify-center">

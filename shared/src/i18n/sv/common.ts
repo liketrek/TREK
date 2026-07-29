@@ -28,6 +28,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Välj alla',
   'common.deselectAll': 'Avmarkera alla',
   'common.error': 'Fel',
+  'common.success': 'Klart',
   'common.unknownError': 'Okänt fel',
   'common.tooManyAttempts': 'För många försök. Försök igen senare.',
   'common.back': 'Tillbaka',

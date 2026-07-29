@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { normalizePastedAmount } from './BudgetPanel.helpers'
 
 interface InlineEditCellProps {
   value: string | number | null | undefined
@@ -29,21 +30,7 @@ export default function InlineEditCell({ value, onSave, type = 'text', style = {
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     if (type !== 'number') return
     e.preventDefault()
-    let text = e.clipboardData.getData('text').trim()
-    // Strip everything except digits, dots, commas, minus
-    text = text.replace(/[^\d.,-]/g, '')
-    // Remove all thousand separators (dots or commas before 3-digit groups), keep last separator as decimal
-    const lastComma = text.lastIndexOf(',')
-    const lastDot = text.lastIndexOf('.')
-    const decimalPos = Math.max(lastComma, lastDot)
-    if (decimalPos > -1) {
-      const intPart = text.substring(0, decimalPos).replace(/[.,]/g, '')
-      const decPart = text.substring(decimalPos + 1)
-      text = intPart + '.' + decPart
-    } else {
-      text = text.replace(/[.,]/g, '')
-    }
-    setEditValue(text)
+    setEditValue(normalizePastedAmount(e.clipboardData.getData('text')))
   }
 
   if (editing) {

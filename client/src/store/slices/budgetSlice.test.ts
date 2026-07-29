@@ -264,4 +264,23 @@ describe('budgetSlice', () => {
     expect(useTripStore.getState().budgetItems.map(i => i.id)).toEqual([1, 2]);
     expect(addToast).toHaveBeenCalledWith('Reorder rejected', 'error', undefined);
   });
+
+  it('FE-STORE-BUDGET-017: a reorder whose reload also fails still notifies instead of rejecting', async () => {
+    const a = buildBudgetItem({ id: 1, trip_id: 1 });
+    const b = buildBudgetItem({ id: 2, trip_id: 1 });
+    seedStore(useTripStore, { budgetItems: [a, b] });
+
+    // Offline: the reorder and the recovery read both fail. The caller fires
+    // this without awaiting, so nothing may escape as a rejection.
+    server.use(
+      http.put('/api/trips/1/budget/reorder/items', () => HttpResponse.error()),
+      http.put('/api/trips/1/budget/reorder/categories', () => HttpResponse.error()),
+      http.get('/api/trips/1/budget', () => HttpResponse.error())
+    );
+
+    await expect(useTripStore.getState().reorderBudgetItems(1, [2, 1])).resolves.toBeUndefined();
+    await expect(useTripStore.getState().reorderBudgetCategories(1, ['Transport'])).resolves.toBeUndefined();
+
+    expect(addToast).toHaveBeenCalledTimes(2);
+  });
 });

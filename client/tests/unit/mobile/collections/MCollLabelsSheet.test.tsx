@@ -125,10 +125,10 @@ describe('MCollLabelsSheet', () => {
     expect(screen.getByRole('button', { name: SWATCH_COLORS[0] })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('FE-MOB-CLBLS-009: the trash icon deletes that label', () => {
+  it('FE-MOB-CLBLS-009: the trash icon deletes that label', async () => {
     const { onDelete } = setup()
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[1])
-    expect(onDelete).toHaveBeenCalledWith(2)
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(2))
   })
 
   it('FE-MOB-CLBLS-010: a second submit is swallowed while the first is still running', async () => {
@@ -208,5 +208,21 @@ describe('MCollLabelsSheet', () => {
   it('FE-MOB-CLBLS-018: a closed sheet renders nothing at all', () => {
     setup({ open: false })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-CLBLS-019: a delete waits for the running create instead of overtaking it', async () => {
+    let resolve!: () => void
+    const onCreate = vi.fn<Props['onCreate']>().mockReturnValue(new Promise<void>(r => { resolve = r }))
+    const { onDelete } = setup({ onCreate })
+    fireEvent.change(screen.getByPlaceholderText('e.g. Berlin'), { target: { value: 'Bars' } })
+    fireEvent.click(screen.getByRole('button', { name: /Add label/ }))
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[0])
+    expect(onDelete).not.toHaveBeenCalled()
+
+    resolve()
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Delete' })[0]).not.toBeDisabled())
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[0])
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(1))
   })
 })

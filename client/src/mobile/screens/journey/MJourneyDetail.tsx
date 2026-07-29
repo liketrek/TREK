@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, MapPin, Grid3x3, Upload, MoreHorizontal, Play, Image, Camera } from 'lucide-react'
 import JourneyMap from '../../../components/Journey/JourneyMapAuto'
 import type { JourneyMapAutoHandle } from '../../../components/Journey/JourneyMapAuto'
@@ -47,7 +47,12 @@ export default function MJourneyDetail() {
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const entries = (current?.entries || []).filter(e => !hideSkeletons || e.type !== 'skeleton')
+  // Stable identity: the scroll effect below re-attaches on every change and
+  // would otherwise drop the pending settle timer on any unrelated render.
+  const entries = useMemo(
+    () => (current?.entries || []).filter(e => !hideSkeletons || e.type !== 'skeleton'),
+    [current?.entries, hideSkeletons],
+  )
 
   const syncMapToCard = useCallback((index: number) => {
     const entry = entries[index]

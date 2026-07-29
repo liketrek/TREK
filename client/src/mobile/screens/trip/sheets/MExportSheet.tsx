@@ -21,6 +21,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const dayNotes = useTripStore(s => s.dayNotes)
   const [subscribeOpen, setSubscribeOpen] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
+  const [icsBusy, setIcsBusy] = useState(false)
 
   const exportPdf = async () => {
     if (!planner.trip || pdfBusy) return
@@ -48,6 +49,8 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   }
 
   const downloadIcs = async () => {
+    if (icsBusy) return
+    setIcsBusy(true)
     try {
       const res = await fetch(`/api/trips/${planner.tripId}/export.ics`, { credentials: 'include' })
       if (!res.ok) throw new Error()
@@ -56,11 +59,16 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
       const a = document.createElement('a')
       a.href = url
       a.download = `${planner.trip?.title || 'trip'}.ics`
+      document.body.appendChild(a)
       a.click()
-      URL.revokeObjectURL(url)
+      // Firefox/Safari cancel the download when the object URL is revoked
+      // before they picked the blob up.
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove() }, 100)
       shell.closeSheet()
     } catch {
       planner.toast.error(t('planner.icsExportFailed'))
+    } finally {
+      setIcsBusy(false)
     }
   }
 
@@ -85,7 +93,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
           />
           <ExportRow
             icon={FileDown}
-            title={t('mobileTrip.icsDownload')}
+            title={icsBusy ? t('common.loading') : t('mobileTrip.icsDownload')}
             sub={`${planner.trip?.title || 'trip'}.ics`}
             onClick={() => void downloadIcs()}
           />

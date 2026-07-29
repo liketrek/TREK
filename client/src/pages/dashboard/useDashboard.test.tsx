@@ -322,4 +322,17 @@ describe('useDashboard', () => {
     expect(result.current.spotlight).toBeNull();
     expect(result.current.heroBundle).toBeNull();
   });
+
+  it('FE-HOOK-DASH-026: a new cover reaches the active and the archived list', async () => {
+    const { result } = await mountLoaded();
+
+    act(() => result.current.applyCoverUpdate(101, '/uploads/covers/new-paris.jpg'));
+    act(() => result.current.applyCoverUpdate(103, '/uploads/covers/new-rome.jpg'));
+
+    act(() => result.current.setTripFilter('completed'));
+    expect(result.current.gridTrips[0].cover_image).toBe('/uploads/covers/new-paris.jpg');
+
+    act(() => result.current.setTripFilter('archive'));
+    expect(result.current.gridTrips[0].cover_image).toBe('/uploads/covers/new-rome.jpg');
+  });
 });

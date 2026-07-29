@@ -201,6 +201,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Gagal memuat template',
   'admin.packingTemplates.createError': 'Gagal membuat template',
   'admin.packingTemplates.deleteError': 'Gagal menghapus template',
+  'admin.packingTemplates.deleteCategoryError': 'Gagal menghapus kategori',
+  'admin.packingTemplates.deleteItemError': 'Gagal menghapus item',
   'admin.packingTemplates.saveError': 'Gagal menyimpan',
   'admin.tabs.addons': 'Addon',
   'admin.tabs.plugins': 'Plugins',

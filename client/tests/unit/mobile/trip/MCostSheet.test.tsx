@@ -149,7 +149,7 @@ describe('MCostSheet', () => {
     }))
   })
 
-  it('FE-MOB-COSTSH-005: an expense nobody shares is saved without payers or members', async () => {
+  it('FE-MOB-COSTSH-005: an expense nobody shares is saved without members but keeps its payer', async () => {
     renderSheet()
     fillBasics('Souvenir', '12')
     fireEvent.click(screen.getByRole('button', { name: 'Y You' }))
@@ -157,7 +157,11 @@ describe('MCostSheet', () => {
 
     fireEvent.click(submit())
     await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
-    expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({ payers: [], members: [], member_ids: [] }))
+    // The server derives total_price from the payer sum, so the payer has to go
+    // out even with an empty split — otherwise the entry comes back at 0.
+    expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({
+      payers: [{ user_id: 1, amount: 12 }], members: [], member_ids: [],
+    }))
   })
 
   it('FE-MOB-COSTSH-006: switching the category updates the pressed pill and the payload', async () => {

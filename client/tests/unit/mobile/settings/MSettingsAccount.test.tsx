@@ -191,7 +191,7 @@ describe('MSettingsAccount – profile', () => {
 
     await user.click(screen.getByRole('button', { name: 'Remove Profile Picture' }));
 
-    await screen.findByText('Upload failed');
+    await screen.findByText('Removal failed');
   });
 
   it('FE-MOB-SETACC-012: Save sends the edited fields through updateProfile', async () => {

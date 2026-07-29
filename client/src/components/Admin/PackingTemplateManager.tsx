@@ -115,12 +115,13 @@ export default function PackingTemplateManager() {
       await adminApi.deleteTemplateCategory(expandedId, catId)
       setCategories(prev => prev.filter(c => c.id !== catId))
       setItems(prev => prev.filter(i => i.category_id !== catId))
-    } catch { toast.error(t('admin.packingTemplates.deleteError')) }
+    } catch { toast.error(t('admin.packingTemplates.deleteCategoryError')) }
   }
 
   // Item CRUD
   const handleAddItem = async (catId: number) => {
-    if (!newItemName.trim() || !expandedId) return
+    // The name is already guaranteed non-empty by the button and the Enter handler.
+    if (!expandedId) return
     try {
       const data = await adminApi.addTemplateItem(expandedId, catId, { name: newItemName.trim() })
       setItems(prev => [...prev, data.item])
@@ -143,7 +144,7 @@ export default function PackingTemplateManager() {
     try {
       await adminApi.deleteTemplateItem(expandedId, itemId)
       setItems(prev => prev.filter(i => i.id !== itemId))
-    } catch { toast.error(t('admin.packingTemplates.deleteError')) }
+    } catch { toast.error(t('admin.packingTemplates.deleteItemError')) }
   }
 
   const inputStyle = 'w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent outline-none'

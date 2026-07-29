@@ -77,10 +77,13 @@ describe('placeRepo.update — offline', () => {
     expect(mutation.tempEntityId).toBe(-5)
   })
 
-  it('FE-REPO-PLACE-005: nothing cached — still produces an optimistic row and a null token', async () => {
+  it('FE-REPO-PLACE-005: nothing cached — the optimistic row still carries its trip_id', async () => {
     const { place } = await placeRepo.update(3, '91', { name: 'Ghost' })
-    expect(place).toEqual({ name: 'Ghost', id: 91 })
+    expect(place).toEqual({ name: 'Ghost', id: 91, trip_id: 3 })
     expect((await offlineDb.places.get(91))!.name).toBe('Ghost')
+    // Without trip_id the row would be invisible to every where('trip_id') read
+    // and would survive clearTripData() forever.
+    expect(await offlineDb.places.where('trip_id').equals(3).toArray()).toHaveLength(1)
 
     const [mutation] = await queue()
     expect(mutation.baseUpdatedAt).toBeNull()

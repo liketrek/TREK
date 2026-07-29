@@ -379,14 +379,35 @@ describe('PlaceFormModal', () => {
   });
 
   it('FE-PLANNER-PLACEFORM-024: onCategoryCreated is called when creating a category', async () => {
+    const user = userEvent.setup();
     const onCategoryCreated = vi.fn().mockResolvedValue({ id: 99, name: 'Beaches', color: '#6366f1', icon: 'MapPin' });
-    // Directly invoke handleCreateCategory by setting showNewCategory via the category name input
-    // Since there's no UI trigger for showNewCategory, we test that the prop is accepted
-    // and category creation works by checking the modal renders correctly
+
     render(<PlaceFormModal {...defaultProps} onCategoryCreated={onCategoryCreated} />);
-    expect(screen.getByText('Category')).toBeInTheDocument();
-    // onCategoryCreated not called unless the new-category form is shown and submitted
     expect(onCategoryCreated).not.toHaveBeenCalled();
+
+    // The plus next to the category select swaps in the inline name field.
+    await user.click(screen.getByRole('button', { name: 'New category' }));
+    await user.type(screen.getByPlaceholderText('Category name'), 'Beaches');
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+
+    expect(onCategoryCreated).toHaveBeenCalledWith({ name: 'Beaches', color: '#6366f1', icon: 'MapPin' });
+    // The new category is selected and the inline field closes again.
+    await waitFor(() => expect(screen.queryByPlaceholderText('Category name')).not.toBeInTheDocument());
+  });
+
+  it('FE-PLANNER-PLACEFORM-024b: an empty category name does not call onCategoryCreated', async () => {
+    const user = userEvent.setup();
+    const onCategoryCreated = vi.fn();
+
+    render(<PlaceFormModal {...defaultProps} onCategoryCreated={onCategoryCreated} />);
+    await user.click(screen.getByRole('button', { name: 'New category' }));
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+
+    expect(onCategoryCreated).not.toHaveBeenCalled();
+
+    const inlineRow = screen.getByPlaceholderText('Category name').parentElement!;
+    await user.click(within(inlineRow).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByPlaceholderText('Category name')).not.toBeInTheDocument();
   });
 
   // ── Time section (edit mode only) ────────────────────────────────────────────

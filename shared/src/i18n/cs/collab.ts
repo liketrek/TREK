@@ -55,6 +55,8 @@ const collab: TranslationStrings = {
   'collab.notes.attachFiles': 'Přiložit soubory',
   'collab.notes.noCategoriesYet': 'Zatím žádné kategorie',
   'collab.notes.emptyDesc': 'Vytvořte poznámku a začněte',
+  'collab.notes.content': 'Obsah',
+  'collab.notes.removeFile': 'Odebrat {name}',
   'collab.notes.contentPlaceholder': 'Napište něco...',
   'collab.notes.categoryPlaceholder': 'Kategorie',
   'collab.notes.newCategory': 'Nová kategorie...',

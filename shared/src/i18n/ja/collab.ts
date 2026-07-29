@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'アイデアや計画を書き留めましょう',
   'collab.notes.all': 'すべて',
   'collab.notes.titlePlaceholder': 'ノートのタイトル',
+  'collab.notes.content': '内容',
+  'collab.notes.removeFile': '{name} を削除',
   'collab.notes.contentPlaceholder': '内容を入力…',
   'collab.notes.categoryPlaceholder': 'カテゴリ',
   'collab.notes.newCategory': '新しいカテゴリ…',

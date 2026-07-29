@@ -1,4 +1,4 @@
-// FE-COMP-POIEXPLORE-001 to FE-COMP-POIEXPLORE-016
+// FE-COMP-POIEXPLORE-001 to FE-COMP-POIEXPLORE-018
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
@@ -239,5 +239,35 @@ describe('usePoiExplore', () => {
     await waitFor(() => expect(result.current.pois).toHaveLength(1))
     expect(result.current.errorKeys.size).toBe(0)
     expect(result.current.pois[0].osm_id).toBe('node/9')
+  })
+
+  it('FE-COMP-POIEXPLORE-017: the abandoned category stops loading when the selection moves on', async () => {
+    const first = deferred<PoiResponse>()
+    pois.mockReturnValueOnce(first.promise)
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle('cafe') })
+    expect(result.current.loadingKeys.has('cafe')).toBe(true)
+
+    pois.mockResolvedValue(response([poi({ osm_id: 'node/9', category: 'bar' })]))
+    act(() => { result.current.toggle('bar') })
+
+    await act(async () => { first.reject(Object.assign(new Error('canceled'), { name: 'CanceledError' })) })
+
+    await waitFor(() => expect(result.current.loadingKeys.has('cafe')).toBe(false))
+    expect(result.current.loadingKeys.has('bar')).toBe(false)
+  })
+
+  it('FE-COMP-POIEXPLORE-018: turning the category off stops its spinner as well', async () => {
+    const d = deferred<PoiResponse>()
+    pois.mockReturnValue(d.promise)
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle('cafe') })
+    act(() => { result.current.toggle('cafe') })
+
+    await act(async () => { d.reject(Object.assign(new Error('canceled'), { name: 'CanceledError' })) })
+
+    await waitFor(() => expect(result.current.loadingKeys.size).toBe(0))
   })
 })

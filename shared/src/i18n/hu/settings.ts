@@ -233,6 +233,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profilkép frissítve',
   'settings.avatarRemoved': 'Profilkép eltávolítva',
   'settings.avatarError': 'Feltöltés sikertelen',
+  'settings.avatarRemoveError': 'Eltávolítás sikertelen',
   'settings.mfa.title': 'Kétfaktoros hitelesítés (2FA)',
   'settings.mfa.description':
     'Egy második lépést ad a bejelentkezéshez e-mail és jelszó használatakor. Használj hitelesítő alkalmazást (Google Authenticator, Authy stb.).',

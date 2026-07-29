@@ -434,7 +434,7 @@ describe('useMPlanTimeline', () => {
     expect(useTripStore.getState().reservations.map(r => r.day_positions)).toEqual([{ 2: 0.5 }, undefined])
   })
 
-  it('FE-MOB-PLTL-024: surfaces a failed reorder as an error toast', async () => {
+  it('FE-MOB-PLTL-024: surfaces a failed reorder as an error toast and refetches the day', async () => {
     const actions = buildTripActions()
     actions.reorderAssignments.mockRejectedValue(new Error('offline'))
     const planner = makePlanner({ tripActions: actions })
@@ -442,6 +442,9 @@ describe('useMPlanTimeline', () => {
     await act(async () => { result.current.moveRow(result.current.merged[0], 'down') })
     await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('offline'))
     expect(planner.updateRouteForDay).not.toHaveBeenCalled()
+    // The optimistic positions are dropped by refetching, not undone one by one.
+    expect(actions.refreshDays).toHaveBeenCalledWith(1)
+    expect(actions.loadReservations).toHaveBeenCalledWith(1)
   })
 
   it('FE-MOB-PLTL-025: falls back to the generic message for a non-Error failure', async () => {

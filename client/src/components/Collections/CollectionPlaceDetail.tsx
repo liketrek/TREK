@@ -15,7 +15,7 @@ import { useToast } from '../shared/Toast'
 import { Tooltip } from '../shared/Tooltip'
 import PlaceRating from '../shared/StarRating'
 import { normalizeImageFile } from '../../utils/convertHeic'
-import { getApiErrorMessage } from '../../types'
+import { getApiErrorMessage } from '../../utils/apiError'
 
 function linkHost(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }

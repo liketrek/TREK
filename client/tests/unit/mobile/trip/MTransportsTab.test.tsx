@@ -204,12 +204,14 @@ describe('MTransportsTab', () => {
     expect(openFile).toHaveBeenCalledWith('/uploads/f/201', 'boarding-pass.pdf')
   })
 
-  it('FE-MOB-TRTAB-014: reveals a blurred confirmation code on tap', () => {
+  it('FE-MOB-TRTAB-014: reveals a blurred confirmation code through a real button', () => {
     renderTab(planner({ settings: buildSettings({ time_format: '24h', blur_booking_codes: true }) }))
-    const code = within(cardOf('HND to ITM')).getByText('ABC123')
+    // A button, not a bare div — the reveal has to be reachable by keyboard.
+    const code = within(cardOf('HND to ITM')).getByRole('button', { name: 'ABC123' })
     expect(code).toHaveClass('blur-[4px]')
     fireEvent.click(code)
     expect(code).not.toHaveClass('blur-[4px]')
+    expect(code).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('FE-MOB-TRTAB-015: opens the transport detail sheet from the row', () => {

@@ -14,6 +14,7 @@ const undo: TranslationStrings = {
   'undo.lock': 'تم تبديل قفل المكان',
   'undo.importGpx': 'استيراد GPX',
   'undo.importKeyholeMarkup': 'استيراد KMZ/KML',
+  'undo.importFiles': 'استيراد ملفات',
   'undo.importGoogleList': 'استيراد خرائط Google',
   'undo.importNaverList': 'استيراد خرائط Naver',
   'undo.addPlace': 'تمت إضافة المكان',

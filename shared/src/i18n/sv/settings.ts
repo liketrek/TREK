@@ -276,6 +276,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profilbilden har uppdaterats',
   'settings.avatarRemoved': 'Profilbilden har tagits bort',
   'settings.avatarError': 'Uppladdning misslyckades',
+  'settings.avatarRemoveError': 'Borttagningen misslyckades',
   'settings.mfa.title': 'Tvåfaktorsautentisering (2FA)',
   'settings.mfa.description':
     'Lägger till ett extra steg när du loggar in med e-postadress och lösenord. Använd en autentiseringsapp (Google Authenticator, Authy m.fl.).',

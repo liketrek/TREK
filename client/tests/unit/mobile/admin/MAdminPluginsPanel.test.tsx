@@ -490,6 +490,21 @@ describe('MAdminPluginsPanel — the registry detail sheet', () => {
     expect(screen.queryByText('Connects to')).not.toBeInTheDocument();
   });
 
+  it('FE-MOB-PLUGP-092: the manifest capabilities are chipped before the install decision', async () => {
+    await openDetail({
+      ...registryEntry(),
+      size: null,
+      publishedAt: null,
+      manifest: {
+        ...manifest,
+        capabilities: { widget: { slot: 'hero' }, tripPage: { replaces: ['places'] } },
+      },
+    });
+
+    expect(await screen.findByText('Replaces planner tabs')).toBeInTheDocument();
+    expect(screen.getByText('Boarding-pass widget')).toBeInTheDocument();
+  });
+
   it('FE-MOB-PLUGP-030: a failed detail fetch is reported inside the sheet', async () => {
     mockPanel([], [registryEntry()]);
     server.use(http.get('*/api/admin/plugins/registry/trek-gotify', () =>

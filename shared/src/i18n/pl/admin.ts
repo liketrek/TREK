@@ -152,6 +152,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Nie udało się załadować szablonów',
   'admin.packingTemplates.createError': 'Nie udało się utworzyć szablonu',
   'admin.packingTemplates.deleteError': 'Nie udało się usunąć szablonu',
+  'admin.packingTemplates.deleteCategoryError': 'Nie udało się usunąć kategorii',
+  'admin.packingTemplates.deleteItemError': 'Nie udało się usunąć pozycji',
   'admin.packingTemplates.saveError': 'Nie udało się zapisać szablonu',
   'admin.tabs.addons': 'Dodatki',
   'admin.tabs.plugins': 'Wtyczki',

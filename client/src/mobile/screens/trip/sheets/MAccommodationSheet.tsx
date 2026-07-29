@@ -20,10 +20,11 @@ interface HotelForm {
   check_in_end: string
   check_out: string
   confirmation: string
-  place_id: number | null
+  /** '' = nothing picked yet, which is what keeps the save button disabled. */
+  place_id: number | ''
 }
 
-const EMPTY_FORM: HotelForm = { check_in: '', check_in_end: '', check_out: '', confirmation: '', place_id: null }
+const EMPTY_FORM: HotelForm = { check_in: '', check_in_end: '', check_out: '', confirmation: '', place_id: '' }
 
 /**
  * Add/edit accommodation sheet — the mobile counterpart of the desktop
@@ -60,7 +61,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
         check_in_end: editing.check_in_end || '',
         check_out: editing.check_out || '',
         confirmation: editing.confirmation || '',
-        place_id: editing.place_id ?? null,
+        place_id: editing.place_id ?? '',
       })
     } else {
       const idx = days.findIndex(d => d.id === payload.dayId)
@@ -71,8 +72,10 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, payload.dayId, payload.accId])
 
-  // Cancelling / saving returns to the day sheet it was opened from.
-  const back = () => shell.openSheet('day', { dayId: payload.dayId })
+  // Cancelling / saving returns to the day sheet it was opened from — opened for
+  // an edit there is no dayId in the payload, so fall back to the stay's own
+  // start day instead of leaving the day sheet without one.
+  const back = () => shell.openSheet('day', { dayId: payload.dayId ?? editing?.start_day_id })
 
   const firstId = days[0]?.id
   const lastId = days[days.length - 1]?.id
@@ -89,27 +92,29 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
   const filteredPlaces = categoryFilter != null ? places.filter(p => p.category_id === categoryFilter) : places
 
   const save = async () => {
-    if (!form.place_id || saving) return
     setSaving(true)
+    const body = {
+      place_id: form.place_id,
+      start_day_id: range.start,
+      end_day_id: range.end,
+      check_in: form.check_in || null,
+      check_in_end: form.check_in_end || null,
+      check_out: form.check_out || null,
+      confirmation: form.confirmation || null,
+    }
+    // Only the write itself decides whether the save failed — a refresh that
+    // trips afterwards must not be reported as a failed save.
     try {
-      const body = {
-        place_id: form.place_id,
-        start_day_id: range.start,
-        end_day_id: range.end,
-        check_in: form.check_in || null,
-        check_in_end: form.check_in_end || null,
-        check_out: form.check_out || null,
-        confirmation: form.confirmation || null,
-      }
       if (editing) await accommodationsApi.update(tripId, editing.id, body)
       else await accommodationsApi.create(tripId, body)
-      planner.loadAccommodations()
-      back()
     } catch {
       planner.toast.error(t('common.error'))
+      return
     } finally {
       setSaving(false)
     }
+    planner.loadAccommodations()
+    back()
   }
 
   return (

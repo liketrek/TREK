@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': '経度（例：2.3522）',
   'places.formCategory': 'カテゴリ',
   'places.noCategory': 'カテゴリなし',
+  'places.newCategory': '新しいカテゴリ',
   'places.categoryNamePlaceholder': 'カテゴリ名',
   'places.formTime': '時間',
   'places.startTime': '開始',
@@ -96,5 +97,6 @@ const places: TranslationStrings = {
   'places.changeImage': '画像を変更',
   'places.removeImage': '画像を削除',
   'places.imageUploadError': '画像をアップロードできませんでした',
+  'places.imageRemoveError': '画像を削除できませんでした',
 };
 export default places;

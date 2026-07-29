@@ -56,8 +56,8 @@ export default function CategoryManager() {
     setEditingId(null)
   }
 
+  // The Save button carries disabled={… || !form.name.trim()}, so the name is set here.
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error(t('categories.toast.nameRequired')); return }
     setIsSaving(true)
     try {
       if (editingId) {

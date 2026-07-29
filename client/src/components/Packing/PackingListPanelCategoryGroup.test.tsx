@@ -229,24 +229,28 @@ describe('KategorieGruppe — bulk actions', () => {
     await waitFor(() => expect(puts).toEqual([1]))
   })
 
-  it('FE-W5CAT-012: a throwing toggle during Check All surfaces a save error', async () => {
-    useTripStore.setState({ togglePackingItem: async () => { throw new Error('offline') } })
+  it('FE-W5CAT-012: a failing PUT during Check All is reported by the store, once', async () => {
+    server.use(http.put('/api/trips/1/packing/:itemId', () => new HttpResponse(null, { status: 500 })))
+    seedStore(useTripStore, { packingItems: [buildPackingItem({ id: 1, name: 'Tent', checked: 0 })] })
     const { container } = setup({ items: [buildPackingItem({ id: 1, name: 'Tent', checked: 0 })] })
     openCategoryMenu(container)
 
     fireEvent.click(screen.getByText('Check All'))
 
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Error updating item', 'error', undefined))
+    expect(toastSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('FE-W5CAT-013: a throwing toggle during Uncheck All surfaces a save error', async () => {
-    useTripStore.setState({ togglePackingItem: async () => { throw new Error('offline') } })
+  it('FE-W5CAT-013: a failing PUT during Uncheck All is reported by the store, once', async () => {
+    server.use(http.put('/api/trips/1/packing/:itemId', () => new HttpResponse(null, { status: 500 })))
+    seedStore(useTripStore, { packingItems: [buildPackingItem({ id: 1, name: 'Tent', checked: 1 })] })
     const { container } = setup({ items: [buildPackingItem({ id: 1, name: 'Tent', checked: 1 })] })
     openCategoryMenu(container)
 
     fireEvent.click(screen.getByText('Uncheck All'))
 
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Error updating item', 'error', undefined))
+    expect(toastSpy).toHaveBeenCalledTimes(1)
   })
 
   it('FE-W5CAT-014: Delete List hands the whole category to the panel and closes the menu', async () => {

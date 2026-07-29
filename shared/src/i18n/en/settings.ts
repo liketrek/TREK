@@ -280,6 +280,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profile picture updated',
   'settings.avatarRemoved': 'Profile picture removed',
   'settings.avatarError': 'Upload failed',
+  'settings.avatarRemoveError': 'Removal failed',
   'settings.mfa.title': 'Two-factor authentication (2FA)',
   'settings.mfa.description':
     'Adds a second step when you sign in with email and password. Use an authenticator app (Google Authenticator, Authy, etc.).',

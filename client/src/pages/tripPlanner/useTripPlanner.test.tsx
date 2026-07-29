@@ -396,8 +396,10 @@ describe('useTripPlanner — tabs', () => {
   })
 
   it('FE-TP-HOOK-016: switching to the Costs tab loads the budget items and persists the tab', async () => {
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'budget' }] })
     seedTrip()
     const { result } = await renderPlanner()
+    await waitFor(() => expect(result.current.TRIP_TABS.map(t => t.id)).toContain('finanzplan'))
 
     act(() => { result.current.handleTabChange('finanzplan') })
 
@@ -423,6 +425,18 @@ describe('useTripPlanner — tabs', () => {
     seedTrip()
 
     const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.activeTab).toBe('plan'))
+    expect(sessionStorage.getItem('trip-tab-42')).toBe('plan')
+  })
+
+  it('FE-TP-HOOK-018b: a tab set programmatically is re-validated on the spot', async () => {
+    usePluginStore.setState({ plugins: [], loaded: true })
+    seedTrip()
+
+    const { result } = await renderPlanner()
+
+    act(() => { result.current.setActiveTab('plugin:ghost') })
 
     await waitFor(() => expect(result.current.activeTab).toBe('plan'))
     expect(sessionStorage.getItem('trip-tab-42')).toBe('plan')

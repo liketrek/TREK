@@ -36,15 +36,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-/**
- * Create a round photo-circle marker.
- * Shows image_url if available, otherwise category icon in colored circle.
- */
-function escAttr(s) {
-  if (!s) return ''
-  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
-
 const iconCache = new Map<string, L.DivIcon>()
 
 // Tone dot for a plugin route's via points (charging stops, rest areas) — smaller
@@ -73,6 +64,10 @@ function formatViaDwell(seconds: number): string {
   return h > 0 ? `${h} h ${m} min` : `${m} min`
 }
 
+/**
+ * Create a round photo-circle marker.
+ * Shows image_url if available, otherwise category icon in colored circle.
+ */
 function createPlaceIcon(place, orderNumbers, isSelected) {
   const cacheKey = `${place.id}:${isSelected}:${place.image_url || ''}:${place.category_color || ''}:${place.category_icon || ''}:${orderNumbers?.join(',') || ''}`
   const cached = iconCache.get(cacheKey)
@@ -329,16 +324,6 @@ interface MapClickHandlerProps {
   onClick: ((e: L.LeafletMouseEvent) => void) | null
 }
 
-function ZoomTracker({ onZoomStart, onZoomEnd }: { onZoomStart: () => void; onZoomEnd: () => void }) {
-  const map = useMap()
-  useEffect(() => {
-    map.on('zoomstart', onZoomStart)
-    map.on('zoomend', onZoomEnd)
-    return () => { map.off('zoomstart', onZoomStart); map.off('zoomend', onZoomEnd) }
-  }, [map, onZoomStart, onZoomEnd])
-  return null
-}
-
 const TRACK_CASING_PANE = 'trek-track-casing'
 
 /**
@@ -385,7 +370,7 @@ function MapContextMenuHandler({ onContextMenu }: { onContextMenu: ((e: L.Leafle
 
 // Module-level photo cache shared with PlaceAvatar
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
-import { isCustomPlaceImage } from './placePhoto'
+import { isCustomPlaceImage, photoCacheKey } from './placePhoto'
 import { useAuthStore } from '../../store/authStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import LocationButton from './LocationButton'
@@ -647,7 +632,7 @@ export const MapView = memo(function MapView({
       // photo for it (the request would 404 for OSM-only places and the fetched
       // thumb would shadow the user's own image). (#1136)
       if (isCustomPlaceImage(place.image_url)) continue
-      const cacheKey = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
+      const cacheKey = photoCacheKey(place)
       if (!cacheKey) continue
 
       const cached = getCached(cacheKey)
@@ -693,7 +678,7 @@ export const MapView = memo(function MapView({
 
   const markers = useMemo(() => places.map((place) => {
     const isSelected = place.id === selectedPlaceId
-    const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
+    const pck = photoCacheKey(place)
     // A custom uploaded image wins over the auto-fetched thumb; otherwise fall back.
     const photoUrl = isCustomPlaceImage(place.image_url) ? place.image_url! : ((pck && photoUrls[pck]) || place.image_url || null)
     const orderNumbers = dayOrderMap[place.id] ?? null

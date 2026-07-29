@@ -245,6 +245,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'プロフィール画像を更新しました',
   'settings.avatarRemoved': 'プロフィール画像を削除しました',
   'settings.avatarError': 'アップロードに失敗しました',
+  'settings.avatarRemoveError': '削除に失敗しました',
   'settings.mfa.title': '二要素認証（2FA）',
   'settings.mfa.description': 'サインイン時に追加の認証を行います。',
   'settings.mfa.requiredByPolicy': '管理者により2FAが必須です。',

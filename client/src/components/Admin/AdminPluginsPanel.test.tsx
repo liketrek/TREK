@@ -1242,6 +1242,21 @@ describe('AdminPluginsPanel — Discover cards and the detail modal', () => {
     expect(screen.queryByText('Setup')).not.toBeInTheDocument()
   })
 
+  it('FE-COMP-PLUGINS-PANEL-043b: a manifest that omits the lists still renders the modal', async () => {
+    const detail = manifestDetail({ size: 0 })
+    delete (detail.manifest as Record<string, unknown>).egress
+    delete (detail.manifest as Record<string, unknown>).settings
+    delete (detail.manifest as Record<string, unknown>).permissions
+    discoverWith({}, detail)
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+    fireEvent.click(await screen.findByText('Gotify'))
+
+    expect(await screen.findByText('Needs no special access.')).toBeInTheDocument()
+    expect(screen.queryByText('Connects to')).not.toBeInTheDocument()
+    expect(screen.queryByText('Setup')).not.toBeInTheDocument()
+  })
+
   it('FE-COMP-PLUGINS-PANEL-044: an incompatible entry explains the blocked button in the modal body', async () => {
     discoverWith({ compatible: false, latestCompatible: null, trek: '>=4.0.0', hostVersion: '3.3.0' })
     render(<AdminPluginsPanel />)

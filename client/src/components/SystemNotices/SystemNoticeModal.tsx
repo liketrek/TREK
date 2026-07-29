@@ -77,7 +77,6 @@ interface ContentProps {
   titleId: string;
   bodyId: string;
   isDark: boolean;
-  onDismiss: () => void;
   onDismissAll: () => void;
   onCTA: () => void;
   onSecondaryCTA: () => void;
@@ -90,7 +89,7 @@ interface ContentProps {
   onGoto: (i: number) => void;
 }
 
-function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, titleId, bodyId, isDark, onDismiss, onDismissAll, onCTA, onSecondaryCTA, total, currentPage, canPage, onPrev, onNext, onGoto }: ContentProps) {
+function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, titleId, bodyId, isDark, onDismissAll, onCTA, onSecondaryCTA, total, currentPage, canPage, onPrev, onNext, onGoto }: ContentProps) {
   const { t } = useTranslation();
   const isLastPage = total <= 1 || currentPage === total - 1;
 
@@ -383,9 +382,6 @@ function useSystemNoticeModal(notices: SystemNoticeDTO[]) {
   // Sheet scroll offset at the moment the touch began — used to suppress dismiss-drag
   // when the user is scrolled into content and pans down to scroll back up.
   const scrollTopAtTouchStart = useRef(0);
-  // Keep a ref to the current notice id so dismiss/CTA handlers see the latest value
-  const noticeIdRef = useRef<string | null>(null);
-  noticeIdRef.current = notice?.id ?? null;
 
   // Page-slide animation refs.
   // isPageNavRef: set to true just before a user-initiated page change so the
@@ -532,27 +528,13 @@ function useSystemNoticeModal(notices: SystemNoticeDTO[]) {
     );
   }
 
-  // Dismiss current notice. The store removes it from the array, and the next
-  // notice naturally shifts into notices[idx]. The clamp effect handles the
-  // edge case where idx was pointing at the last item.
-  function handleDismissById(id: string) {
-    setVisible(false);
-    dismiss(id);
-  }
-
-  function handleDismiss() {
-    const id = noticeIdRef.current;
-    if (id) handleDismissById(id);
-  }
-
   // Dismiss every notice in the current modal list — used by the X button and ESC.
   function handleDismissAll() {
     setVisible(false);
     notices.forEach(n => dismiss(n.id));
   }
 
-  function runCta(cta: SystemNoticeDTO['cta']) {
-    if (!cta) { handleDismissAll(); return; }
+  function runCta(cta: NonNullable<SystemNoticeDTO['cta']>) {
     if (cta.kind === 'nav') {
       navigate(cta.href);
       if (notice?.dismissible !== false) handleDismissAll();
@@ -565,8 +547,9 @@ function useSystemNoticeModal(notices: SystemNoticeDTO[]) {
       if (cta.dismissOnAction !== false) handleDismissAll();
     }
   }
-  function handleCTA() { runCta(notice?.cta); }
-  function handleSecondaryCTA() { runCta(notice?.secondaryCta); }
+  // Both buttons only render when the notice carries the matching cta.
+  function handleCTA() { runCta(notice!.cta!); }
+  function handleSecondaryCTA() { runCta(notice!.secondaryCta!); }
 
   function animatedDismissAll() {
     const sheet = sheetRef.current;
@@ -626,7 +609,7 @@ function useSystemNoticeModal(notices: SystemNoticeDTO[]) {
     notice, canPage, isLastPage, language, t, dur, ease,
     touchStartX, touchStartY, dragLockRef, scrollTopAtTouchStart, isPageNavRef,
     stripRef, sheetRef, prevSlotRef, contentWrapperRef, nextSlotRef,
-    announceIndex, handleDismiss, handleDismissAll, handleCTA, handleSecondaryCTA, animatedDismissAll,
+    announceIndex, handleDismissAll, handleCTA, handleSecondaryCTA, animatedDismissAll,
     handlePrev, handleNext, handleGoto,
   };
 }
@@ -635,7 +618,7 @@ type NoticeState = ReturnType<typeof useSystemNoticeModal>;
 
 // Build the NoticeContent props for a given notice + pager slot index.
 function makeContentProps(S: NoticeState, n: SystemNoticeDTO, slotIdx: number): ContentProps {
-  const { t, isDark, canPage, notices, handleDismiss, handleDismissAll, handleCTA, handleSecondaryCTA, handlePrev, handleNext, handleGoto } = S;
+  const { t, isDark, canPage, notices, handleDismissAll, handleCTA, handleSecondaryCTA, handlePrev, handleNext, handleGoto } = S;
   const rawBody = t(n.bodyKey);
   const body = n.bodyParams
     ? Object.entries(n.bodyParams).reduce(
@@ -652,7 +635,6 @@ function makeContentProps(S: NoticeState, n: SystemNoticeDTO, slotIdx: number): 
     titleId: `notice-title-${n.id}`,
     bodyId: `notice-body-${n.id}`,
     isDark,
-    onDismiss: handleDismiss,
     onDismissAll: handleDismissAll,
     onCTA: handleCTA,
     onSecondaryCTA: handleSecondaryCTA,
@@ -823,13 +805,16 @@ function MobileNoticeSheet(S: NoticeState) {
             ref={stripRef}
             style={{ display: 'flex', width: '300%', height: '100%', alignItems: 'stretch', transform: 'translateX(-33.333%)' }}
           >
-            <div ref={prevSlotRef} style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+            {/* The side slots are drag previews only: their pager and CTA are a
+                second copy of the centre ones, so they stay out of the a11y tree
+                and the tab order until they become the centre slot. */}
+            <div ref={prevSlotRef} inert aria-hidden="true" style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
               {prevNotice && <NoticeContent {...makeContentProps(S, prevNotice, idx - 1)} />}
             </div>
             <div ref={contentWrapperRef} style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
               <NoticeContent {...makeContentProps(S, notice, idx)} />
             </div>
-            <div ref={nextSlotRef} style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <div ref={nextSlotRef} inert aria-hidden="true" style={{ width: '33.333%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
               {nextNotice && <NoticeContent {...makeContentProps(S, nextNotice, idx + 1)} />}
             </div>
           </div>

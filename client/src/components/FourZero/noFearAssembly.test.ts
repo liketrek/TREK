@@ -213,6 +213,23 @@ describe('TextAssembly.init', () => {
     expect(main.fills).toHaveLength(0)
   })
 
+  it('FE-NOFEAR-ASM-019: drops the previous targets when a re-init cannot raster', () => {
+    alphaAt = () => 255
+    cycleRandom([0.1])
+
+    const a = new TextAssembly()
+    a.init('X', 'bold 64px Inter', BOX, 1000, 600)
+    expect(a.isReady()).toBe(true)
+
+    contextAvailable = false
+    a.init('X', 'bold 64px Inter', BOX, 1000, 600)
+    expect(a.isReady()).toBe(false)
+
+    const main = makeCtx()
+    a.draw(asCtx(main), 1, 0, 0)
+    expect(main.fills).toHaveLength(0)
+  })
+
   it('FE-NOFEAR-ASM-009: keeps a degenerate box at one raster pixel', () => {
     alphaAt = () => 255
     cycleRandom([0.1, 0.1, 0.1, 0.1, 0.1, 0])

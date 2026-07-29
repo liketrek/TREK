@@ -230,8 +230,8 @@ describe('MTripShell', () => {
     renderShell({ days } as Partial<TripPlanner>)
     expect(screen.getByRole('button', { name: 'planner.dayN:1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'planner.dayN:2' })).toBeInTheDocument()
-    // A day the server sent without a number still gets a chip.
-    expect(screen.getByRole('button', { name: 'planner.dayN:0' })).toBeInTheDocument()
+    // A day the server sent without a number falls back to its position.
+    expect(screen.getByRole('button', { name: 'planner.dayN:3' })).toBeInTheDocument()
   })
 
   it('FE-MOB-SHELL-020: tapping another day selects it and fits the list view', () => {

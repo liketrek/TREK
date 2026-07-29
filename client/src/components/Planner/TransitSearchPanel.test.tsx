@@ -456,7 +456,7 @@ describe('TransitSearchPanel', () => {
     })
     const mixed = {
       ...ITINERARY,
-      legs: [leg('BUS', 'B1'), leg('TRAM', 'M4'), leg('FERRY', 'F10'), leg('FUNICULAR', 'FU'), leg('AERIAL_LIFT', 'AL'), leg('HIGHSPEED_RAIL', 'ICE 599')],
+      legs: [leg('BUS', 'B1'), leg('TRAM', 'M4'), leg('FERRY', 'F10'), leg('FUNICULAR', 'FU'), leg('AERIAL_LIFT', 'AL'), leg('SUBWAY', 'U2'), leg('HIGHSPEED_RAIL', 'ICE 599')],
     }
     transitApiMock.plan.mockResolvedValueOnce({ itineraries: [mixed] })
     render(<TransitSearchPanel {...makeProps()} />)
@@ -469,9 +469,11 @@ describe('TransitSearchPanel', () => {
     expect(icon('F10')).toContain('lucide-sailboat')
     expect(icon('FU')).toContain('lucide-cable-car')
     expect(icon('AL')).toContain('lucide-cable-car')
-    // Anything else (rail and friends) falls through to lucide's `Train`, which
-    // is an alias of TramFront — so rail and tram currently share a glyph.
-    expect(icon('ICE 599')).toContain('lucide-tram-front')
+    expect(icon('U2')).toContain('lucide-train-front-tunnel')
+    // Anything else (rail and friends) falls through to TrainFront, which stays
+    // distinct from the tram glyph.
+    expect(icon('ICE 599')).toContain('lucide-train-front')
+    expect(icon('ICE 599')).not.toContain('tunnel')
   })
 
   it('FE-PLANNER-TRANSIT-026: a leg without a usable timestamp renders an empty time cell, not "Invalid Date"', async () => {

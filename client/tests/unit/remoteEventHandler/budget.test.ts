@@ -146,8 +146,9 @@ describe('remoteEventHandler > budget', () => {
       useTripStore.getState().handleRemoteEvent({ type: 'budget:reordered', orderedIds: [3, 1] });
       const { budgetItems } = useTripStore.getState();
       expect(budgetItems.map(i => i.id)).toEqual([3, 1, 2]);
-      // Only the listed ids get a fresh sort_order; the unlisted item keeps its own.
-      expect(budgetItems.map(i => i.sort_order)).toEqual([0, 1, 1]);
+      // The whole array is reindexed, so re-sorting by sort_order reproduces the
+      // order that was just applied.
+      expect(budgetItems.map(i => i.sort_order)).toEqual([0, 1, 2]);
     });
 
     it('FE-WSEVT-BUDGET-011: an orderedIds entry for an unknown item is dropped', () => {

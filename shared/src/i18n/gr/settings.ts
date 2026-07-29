@@ -280,6 +280,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Η εικόνα προφίλ ενημερώθηκε',
   'settings.avatarRemoved': 'Η εικόνα προφίλ αφαιρέθηκε',
   'settings.avatarError': 'Η μεταφόρτωση απέτυχε',
+  'settings.avatarRemoveError': 'Η αφαίρεση απέτυχε',
   'settings.mfa.title': 'Έλεγχος ταυτότητας δύο παραγόντων (2FA)',
   'settings.mfa.description':
     'Προσθέτει ένα δεύτερο βήμα όταν συνδέεστε με email και κωδικό. Χρησιμοποιήστε μια εφαρμογή authenticator (Google Authenticator, Authy, κ.λπ.).',

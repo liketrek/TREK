@@ -231,6 +231,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profilový obrázek byl aktualizován',
   'settings.avatarRemoved': 'Profilový obrázek byl odstraněn',
   'settings.avatarError': 'Nahrávání se nezdařilo',
+  'settings.avatarRemoveError': 'Odstranění se nezdařilo',
   'settings.mfa.title': 'Dvoufaktorové ověření (2FA)',
   'settings.mfa.description':
     'Přidá druhý stupeň zabezpečení při přihlašování e-mailem a heslem. Použijte aplikaci (Google Authenticator, Authy apod.).',

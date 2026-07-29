@@ -214,6 +214,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Không tải được mẫu',
   'admin.packingTemplates.createError': 'Không tạo được mẫu',
   'admin.packingTemplates.deleteError': 'Không xóa được mẫu',
+  'admin.packingTemplates.deleteCategoryError': 'Không thể xóa danh mục',
+  'admin.packingTemplates.deleteItemError': 'Không thể xóa mục',
   'admin.packingTemplates.saveError': 'Không lưu được',
   'admin.tabs.addons': 'Tiện ích bổ sung',
   'admin.tabs.plugins': 'Plugins',

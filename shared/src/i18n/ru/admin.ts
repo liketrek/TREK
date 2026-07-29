@@ -159,6 +159,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Ошибка загрузки шаблонов',
   'admin.packingTemplates.createError': 'Ошибка создания шаблона',
   'admin.packingTemplates.deleteError': 'Ошибка удаления шаблона',
+  'admin.packingTemplates.deleteCategoryError': 'Не удалось удалить категорию',
+  'admin.packingTemplates.deleteItemError': 'Не удалось удалить элемент',
   'admin.packingTemplates.saveError': 'Ошибка сохранения',
   'admin.tabs.addons': 'Дополнения',
   'admin.tabs.plugins': 'Плагины',

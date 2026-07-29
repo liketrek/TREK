@@ -8,7 +8,7 @@ import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
 import CollectionPicker from '../Collections/CollectionPicker'
 import { useToast } from '../shared/Toast'
-import { Search, Paperclip, X, AlertTriangle, Loader2 } from 'lucide-react'
+import { Search, Paperclip, X, AlertTriangle, Loader2, Plus } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { DEFAULT_FORM, isGoogleMapsUrl, type PlaceFormData } from './PlaceFormModal.helpers'
@@ -747,6 +747,15 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                 style={{ flex: 1 }}
                 size="sm"
               />
+              <button
+                type="button"
+                onClick={() => setShowNewCategory(true)}
+                aria-label={t('places.newCategory')}
+                title={t('places.newCategory')}
+                className="text-gray-500 px-2 hover:text-gray-700"
+              >
+                <Plus size={16} />
+              </button>
             </div>
           ) : (
             <div className="flex gap-2">

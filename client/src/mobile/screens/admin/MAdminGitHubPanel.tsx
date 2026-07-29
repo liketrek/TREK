@@ -6,6 +6,7 @@ import { MAdminButton, MAdminCard } from './MAdminUi'
 
 const REPO = 'mauriceboe/TREK'
 const PER_PAGE = 10
+const MAX_PAGES_PER_LOAD = 5
 
 interface GithubRelease {
   id: number
@@ -39,27 +40,49 @@ export default function MAdminGitHubPanel({ isPrerelease = false }: { isPrerelea
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
 
-  const fetchReleases = async (pageNum = 1, append = false) => {
+  const isShown = (release: GithubRelease) => isPrerelease || !release.prerelease
+
+  const fetchPage = async (pageNum: number) => {
     try {
       const res = await apiClient.get(`/admin/github-releases`, { params: { per_page: PER_PAGE, page: pageNum } })
-      const data = Array.isArray(res.data) ? res.data : []
-      setReleases(prev => append ? [...prev, ...data] : data)
-      setHasMore(data.length === PER_PAGE)
+      return Array.isArray(res.data) ? res.data as GithubRelease[] : []
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error')
+      return null
     }
+  }
+
+  // Keep pulling pages until at least one release survives the prerelease filter,
+  // otherwise a page of nothing but prereleases leaves an empty timeline behind a
+  // "Load more" button. MAX_PAGES_PER_LOAD bounds the walk.
+  const loadFrom = async (startPage: number, append: boolean) => {
+    const collected: GithubRelease[] = []
+    let pageNum = startPage
+    let more = true
+
+    for (let i = 0; i < MAX_PAGES_PER_LOAD; i++) {
+      const data = await fetchPage(pageNum)
+      if (!data) return
+      collected.push(...data)
+      more = data.length === PER_PAGE
+      if (!more || collected.some(isShown)) break
+      pageNum += 1
+    }
+
+    setReleases(prev => append ? [...prev, ...collected] : collected)
+    setHasMore(more)
+    setPage(pageNum)
+    setError(null)
   }
 
   useEffect(() => {
     setLoading(true)
-    fetchReleases(1).finally(() => setLoading(false))
+    loadFrom(1, false).finally(() => setLoading(false))
   }, [])
 
   const handleLoadMore = async () => {
-    const next = page + 1
     setLoadingMore(true)
-    await fetchReleases(next, true)
-    setPage(next)
+    await loadFrom(page + 1, true)
     setLoadingMore(false)
   }
 
@@ -152,7 +175,7 @@ export default function MAdminGitHubPanel({ isPrerelease = false }: { isPrerelea
     { href: 'https://github.com/mauriceboe/TREK/wiki', color: '#6366f1', icon: <BookOpen size={18} className="text-[#6366f1]" />, title: 'Wiki', sub: t('settings.about.wikiHint') },
   ]
 
-  const shownReleases = isPrerelease ? releases : releases.filter(r => !r.prerelease)
+  const shownReleases = releases.filter(isShown)
 
   return (
     <div className="space-y-3">
@@ -188,7 +211,7 @@ export default function MAdminGitHubPanel({ isPrerelease = false }: { isPrerelea
             <Loader2 className="h-6 w-6 animate-spin text-m-muted" />
           </div>
         </MAdminCard>
-      ) : error ? (
+      ) : error && releases.length === 0 ? (
         <MAdminCard>
           <div className="py-4 text-center">
             <p className="text-[0.8125rem] text-m-muted">{t('admin.github.error')}</p>
@@ -300,6 +323,13 @@ export default function MAdminGitHubPanel({ isPrerelease = false }: { isPrerelea
                 })}
               </div>
             </div>
+
+            {/* A failed "Load more" keeps the timeline and stays retryable */}
+            {error && (
+              <p className="pb-1 text-center font-geist text-[0.625rem] text-m-faint">
+                {t('admin.github.error')} — {error}
+              </p>
+            )}
 
             {/* Load more */}
             {hasMore && (

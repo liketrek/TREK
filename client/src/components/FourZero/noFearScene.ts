@@ -144,7 +144,7 @@ export class NoFearScene {
         if (r.length < step * 4) continue // rings too small to survive decimation are visual noise
         const thin: Ring = []
         for (let i = 0; i < r.length; i += step) thin.push(r[i])
-        if (thin.length >= 4) rings.push(thin)
+        rings.push(thin)
       }
       this.rings = rings
       if (signal?.aborted) return

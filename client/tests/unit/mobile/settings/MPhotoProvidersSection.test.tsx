@@ -139,8 +139,10 @@ describe('MPhotoProvidersSection', () => {
   });
 
   it('FE-MOB-PHOTOPROV-006: a connected provider masks the empty secret field', async () => {
+    // The two routes disagree on purpose: with a status route configured that
+    // one decides the badge, so the mask has to appear regardless of ordering.
     server.use(
-      http.get('/api/addons/immich/settings', () => HttpResponse.json({ url: 'https://photos.example.com', connected: true })),
+      http.get('/api/addons/immich/settings', () => HttpResponse.json({ url: 'https://photos.example.com', connected: false })),
       http.get('/api/addons/immich/status', () => HttpResponse.json({ connected: true })),
     );
     seedProviders([immich]);
@@ -182,7 +184,8 @@ describe('MPhotoProvidersSection', () => {
     render(<MPhotoProvidersSection />);
 
     await screen.findByDisplayValue('https://photos.example.com');
-    await user.type(screen.getByPlaceholderText(''), '  fresh-key  ');
+    // The status route reports connected, so the empty secret shows the mask.
+    await user.type(await screen.findByPlaceholderText('••••••••'), '  fresh-key  ');
     await user.click(screen.getByRole('switch', { name: 'Skip SSL certificate verification' }));
     const save = screen.getByRole('button', { name: 'Save' });
     await waitFor(() => expect(save).toBeEnabled());
@@ -274,7 +277,7 @@ describe('MPhotoProvidersSection', () => {
     await screen.findByText('Immich');
     await user.click(screen.getByRole('button', { name: 'Test' }));
 
-    expect(await screen.findByText(/Could not connect to Immich : Auth failed/)).toBeInTheDocument();
+    expect(await screen.findByText('Could not connect to Immich: Auth failed')).toBeInTheDocument();
     expect(screen.getByText('Not connected')).toBeInTheDocument();
   });
 

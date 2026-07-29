@@ -193,7 +193,8 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
         weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
       })
     : null
-  const dayLabel = day?.title || t('planner.dayN', { n: (day?.day_number ?? dayIndex + 1) || '?' })
+  // A day_number of 0 is as unusable as a missing one — both fall back to the row position.
+  const dayLabel = day?.title || t('planner.dayN', { n: day ? day.day_number || dayIndex + 1 : '?' })
   const WeatherIcon = weatherIconFor(weather?.main)
 
   const stayBadge = (acc: (typeof dayAccommodations)[number]) => {

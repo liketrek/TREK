@@ -497,20 +497,6 @@ function Chip({ icon, text, color = 'var(--text-secondary)', bg = 'var(--bg-hove
   )
 }
 
-interface RowProps {
-  icon: React.ReactNode
-  children: React.ReactNode
-}
-
-function Row({ icon, children }: RowProps) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ flexShrink: 0 }}>{icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
-    </div>
-  )
-}
-
 interface ActionButtonProps {
   onClick: () => void
   variant: 'primary' | 'ghost' | 'danger'

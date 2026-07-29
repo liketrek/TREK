@@ -74,6 +74,11 @@ export function usePoiExplore() {
       if (abortRef.current[key] === ctrl) {
         setLoading(key, false)
         delete abortRef.current[key]
+      } else if (!abortRef.current[key]) {
+        // Cancelled with nothing taking over (toggle switched the category, or
+        // turned it off) — no later request will clear this key, so do it here
+        // instead of leaving the pill spinning forever.
+        setLoading(key, false)
       }
     }
   }, [setLoading, setError, locale])

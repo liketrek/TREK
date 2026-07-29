@@ -869,6 +869,23 @@ describe('TripMembersModal', () => {
     await waitFor(() => expect(screen.queryByDisplayValue('Granny')).not.toBeInTheDocument());
   });
 
+  it('FE-COMP-MEMBERS-048b: Enter followed by a blur renames only once', async () => {
+    const user = userEvent.setup();
+    mockRoster([guestRow]);
+    let renames = 0;
+    server.use(http.put('/api/trips/1/guests/:userId', () => { renames++; return HttpResponse.json({ success: true }); }));
+    render(<TripMembersModal {...defaultProps} />);
+
+    await user.click(await screen.findByTitle('Rename'));
+    const input = screen.getByDisplayValue('Grandma');
+    fireEvent.change(input, { target: { value: 'Granny' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.blur(input);
+
+    await waitFor(() => expect(screen.queryByDisplayValue('Granny')).not.toBeInTheDocument());
+    expect(renames).toBe(1);
+  });
+
   it('FE-COMP-MEMBERS-049: Escape cancels a rename and a blank name saves nothing', async () => {
     const user = userEvent.setup();
     mockRoster([guestRow]);

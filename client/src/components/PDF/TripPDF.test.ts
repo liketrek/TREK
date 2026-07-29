@@ -899,4 +899,16 @@ describe('downloadTripPDF defaults', () => {
     expect(endSection).toContain('reservations.span.end: Overnight Bus')
     expect(endSection).not.toContain('22:00')
   })
+
+  it('FE-W5PDF-027: an export without a locale still renders, with lang="en"', async () => {
+    await downloadTripPDF({ ...minimalArgs, locale: '' })
+
+    expect(srcdoc()).toContain('<html lang="en">')
+  })
+
+  it('FE-W5PDF-028: an export without assignments renders the days as empty', async () => {
+    await downloadTripPDF({ ...minimalArgs, assignments: undefined as any })
+
+    expect(srcdoc()).toContain('Day 1')
+  })
 })

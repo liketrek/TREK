@@ -406,7 +406,7 @@ describe('MCollabNotes', () => {
     fireEvent.click(within(chip).getByRole('button'))
 
     await waitFor(() => expect(deletedFiles).toEqual(['1/5']))
-    expect(screen.queryByText('passport.pdf')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('passport.pdf')).not.toBeInTheDocument())
   })
 
   it('FE-MOB-CNOTE-020: a new note uploads its queued files against the created id', async () => {
@@ -425,7 +425,7 @@ describe('MCollabNotes', () => {
     expect(await screen.findByText('Ferry')).toBeInTheDocument()
   })
 
-  it('FE-MOB-CNOTE-021: toasts when detaching an existing file is rejected', async () => {
+  it('FE-MOB-CNOTE-021: keeps the chip and toasts when detaching an existing file is rejected', async () => {
     serveNotes([note(1, {
       title: 'Visa',
       attachments: [{ id: 5, filename: 'p', original_name: 'passport.pdf', url: '/uploads/p' }],
@@ -438,6 +438,7 @@ describe('MCollabNotes', () => {
     fireEvent.click(screen.getByText('Visa'))
     fireEvent.click(within(screen.getByText('passport.pdf')).getByRole('button'))
     await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('common.error'))
+    expect(screen.getByText('passport.pdf')).toBeInTheDocument()
   })
 
   it('FE-MOB-CNOTE-022: the attach tile opens the hidden file picker', async () => {

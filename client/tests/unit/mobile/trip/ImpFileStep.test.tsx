@@ -209,7 +209,7 @@ describe('ImpFileStep', () => {
     expect(planner.toast.success).toHaveBeenCalledWith('places.kmlKmzImported:3')
   })
 
-  it('FE-MOB-IMPF-016: a mixed import labels the undo generically and uses the GPX toast key', async () => {
+  it('FE-MOB-IMPF-016: a mixed import counts each format on its own key and labels the undo neutrally', async () => {
     vi.spyOn(placesApi, 'importGpx').mockResolvedValue({ count: 1, skipped: 0, places: [{ id: 1 }] })
     vi.spyOn(placesApi, 'importMapFile').mockResolvedValue({ count: 2, places: [{ id: 2 }] })
     const { planner, onDone } = renderStep()
@@ -217,8 +217,20 @@ describe('ImpFileStep', () => {
     fireEvent.click(submit())
 
     await waitFor(() => expect(onDone).toHaveBeenCalled())
-    expect(planner.toast.success).toHaveBeenCalledWith('places.gpxImported:3')
-    expect(planner.pushUndo).toHaveBeenCalledWith('undo.importKeyholeMarkup', expect.any(Function))
+    expect(planner.toast.success).toHaveBeenCalledWith('places.gpxImported:1')
+    expect(planner.toast.success).toHaveBeenCalledWith('places.kmlKmzImported:2')
+    expect(planner.pushUndo).toHaveBeenCalledWith('undo.importFiles', expect.any(Function))
+  })
+
+  it('FE-MOB-IMPF-016b: a KML response without a summary still warns when everything was skipped', async () => {
+    vi.spyOn(placesApi, 'importMapFile').mockResolvedValue({ count: 0, skipped: 3, places: [] })
+    const { planner, onDone } = renderStep()
+    pick([kmlFile()])
+    fireEvent.click(submit())
+
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
+    expect(planner.toast.warning).toHaveBeenCalledWith('places.importAllSkipped')
+    expect(planner.toast.success).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-IMPF-017: warns when everything was skipped and registers no undo', async () => {

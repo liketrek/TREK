@@ -245,6 +245,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': '头像已更新',
   'settings.avatarRemoved': '头像已移除',
   'settings.avatarError': '上传失败',
+  'settings.avatarRemoveError': '删除失败',
   'settings.bookingLabels': '预订路线标签',
   'settings.bookingLabelsHint': '在地图上显示车站 / 机场名称。关闭时仅显示图标。',
   'settings.notifyVersionAvailable': '有新版本可用',

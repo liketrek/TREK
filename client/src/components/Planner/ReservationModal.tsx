@@ -214,19 +214,6 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reservation, prefill, isOpen, selectedDayId, defaultAssignmentId, days, places, accommodations])
 
-  // Re-hydrate hotel day range when the accommodations prop arrives after the modal opens
-  // (race: tripAccommodations fetch may complete after isOpen fires, leaving hotel fields empty)
-  useEffect(() => {
-    if (!isOpen || !reservation || reservation.type !== 'hotel' || !reservation.accommodation_id) return
-    const acc = accommodations.find(a => a.id == reservation.accommodation_id)
-    if (!acc) return
-    setForm(prev => {
-      if (prev.hotel_place_id !== '' || prev.hotel_start_day !== '' || prev.hotel_end_day !== '') return prev
-      const accPlace = places.find(p => p.id == acc.place_id)
-      return { ...prev, hotel_place_id: acc.place_id, hotel_start_day: acc.start_day_id, hotel_end_day: acc.end_day_id, hotel_address: accPlace?.address || prev.hotel_address }
-    })
-  }, [accommodations, isOpen, reservation, places])
-
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
   const toggleTraveler = (id: number) => setTravelerIds(prev => {
@@ -807,7 +794,6 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
 }
 
 function formatDate(dateStr, locale) {
-  if (!dateStr) return ''
   const d = new Date(dateStr + 'T00:00:00Z')
   return d.toLocaleDateString(locale || undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }

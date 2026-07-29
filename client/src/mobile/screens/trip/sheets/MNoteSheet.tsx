@@ -38,13 +38,19 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
   // the sheet still shows through its exit animation.
   const [sheetPayload, setSheetPayload] = useState<MNoteSheetPayload | undefined>(undefined)
 
+  // Keyed on what the payload points AT, not on its object identity — a caller
+  // that rebuilds the payload inline (or a store refresh of the note) must not
+  // reseed the fields under the user's fingers.
+  const payloadNoteId = payload?.note?.id
+  const payloadDayId = payload?.dayId
   useEffect(() => {
     if (!open) return
     setSheetPayload(payload)
     setIcon(payload?.note?.icon || 'FileText')
     setTitle(payload?.note?.text || '')
     setDetail(payload?.note?.time || '')
-  }, [open, payload])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, payloadNoteId, payloadDayId])
 
   const note = sheetPayload?.note ?? null
   const dayId = sheetPayload?.dayId ?? selectedDayId

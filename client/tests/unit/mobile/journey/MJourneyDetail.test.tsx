@@ -486,10 +486,8 @@ describe('MJourneyDetail', () => {
 
   it('FE-MOB-JDET-028: a settled carousel scroll re-centres the map on the nearest card', async () => {
     setup();
-    // Let the photo-provider probe land first: its state update re-runs the
-    // carousel effect and would drop the pending scroll-settle timer.
-    await waitFor(() => expect(addonsApi.enabled).toHaveBeenCalled());
-
+    // An unrelated render (here the photo-provider probe resolving) must not
+    // tear the scroll listener down and drop the pending settle timer.
     fireEvent.click(screen.getByText('Kyoto'));
     expect(screen.getByTestId('journey-map')).toHaveAttribute('data-active', '2');
 

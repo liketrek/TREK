@@ -208,13 +208,20 @@ describe('NoFearShow', () => {
     expect(signal.aborted).toBe(true)
   })
 
-  it('FE-NOFEAR-SHOW-005: re-fits the canvas on window resize', () => {
+  it('FE-NOFEAR-SHOW-005: coalesces a resize storm into a single re-fit', () => {
     render(<NoFearShow onClose={vi.fn()} />)
     expect(scene().layout).toHaveBeenCalledTimes(1)
 
-    act(() => { window.dispatchEvent(new Event('resize')) })
+    act(() => {
+      for (let i = 0; i < 20; i++) window.dispatchEvent(new Event('resize'))
+    })
+    // layout() rebakes every static layer, so nothing happens while the drag runs
+    expect(scene().layout).toHaveBeenCalledTimes(1)
+
+    act(() => { vi.advanceTimersByTime(150) })
 
     expect(scene().layout).toHaveBeenCalledTimes(2)
+    expect(scene().layout).toHaveBeenLastCalledWith(800, 600)
   })
 
   it('FE-NOFEAR-SHOW-006: shows no line before the first cue', () => {
@@ -248,10 +255,9 @@ describe('NoFearShow', () => {
     expect(ghost).not.toBeNull()
     expect(ghost?.querySelectorAll('.fz-char-decay')).toHaveLength(LINES.afraid.length)
 
-    // The 1.4s retirement timer captures `lastCue` by reference, and the loop has
-    // already advanced it — so the faded-out ghost node stays in the DOM.
+    // Once its letters have decayed the ghost retires itself.
     act(() => { vi.advanceTimersByTime(1400) })
-    expect(document.querySelector('.fz-line-ghost')).not.toBeNull()
+    expect(document.querySelector('.fz-line-ghost')).toBeNull()
 
     frame(12.1)
     const ghostText = document.querySelector('.fz-line-ghost')?.textContent ?? ''
@@ -572,6 +578,13 @@ describe('NoFearShow', () => {
     frame(76)
     expect(stubs.assembly).toHaveLength(1)
     expect(screen.getByRole('heading', { level: 1 })).not.toHaveClass('fz-word-hidden')
+
+    // Targets are absolute screen coordinates, so a resize invalidates them and
+    // the next frame re-samples the moved title.
+    act(() => { window.dispatchEvent(new Event('resize')) })
+    act(() => { vi.advanceTimersByTime(150) })
+    frame(77)
+    expect(stubs.assembly).toHaveLength(2)
   })
 
   it('FE-NOFEAR-SHOW-031: tears down chrome, listeners and audio on unmount', () => {

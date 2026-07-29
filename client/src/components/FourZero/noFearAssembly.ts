@@ -32,6 +32,10 @@ export class TextAssembly {
     off.width = Math.max(Math.round(box.width * scale), 1)
     off.height = Math.max(Math.round(box.height * scale), 1)
     const c = off.getContext('2d')
+    // A re-init that cannot raster must go quiet rather than keep the previous
+    // run's particles on screen at coordinates that no longer hold.
+    this.ready = false
+    this.particles = []
     if (!c) return
     c.font = font.replace(/(\d+(?:\.\d+)?)px/, (_, n) => `${Number(n) * scale}px`)
     c.textAlign = 'center'
@@ -40,7 +44,6 @@ export class TextAssembly {
     c.fillText(text, off.width / 2, off.height / 2)
     const img = c.getImageData(0, 0, off.width, off.height).data
     const step = 3 // sample grid in raster px — ~800-1400 particles for a title
-    this.particles = []
     for (let y = 0; y < off.height; y += step) {
       for (let x = 0; x < off.width; x += step) {
         if (img[(y * off.width + x) * 4 + 3] > 128) {

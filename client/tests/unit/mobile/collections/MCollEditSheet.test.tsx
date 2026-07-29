@@ -1,4 +1,4 @@
-// FE-MOB-COLEDIT-001 to FE-MOB-COLEDIT-013
+// FE-MOB-COLEDIT-001 to FE-MOB-COLEDIT-014
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -300,5 +300,23 @@ describe('MCollEditSheet', () => {
     expect(screen.queryByRole('button', { name: /collections.deleteList/ })).not.toBeInTheDocument()
     // Switching target re-seeds the form.
     expect(screen.getByPlaceholderText('collections.listNamePlaceholder')).toHaveValue('Julien Tipps')
+  })
+
+  it('FE-MOB-COLEDIT-014: cancelling after a failed cover still hands the created list over', async () => {
+    const user = userEvent.setup()
+    uploadCover.mockRejectedValueOnce(new Error('boom'))
+    const props = baseProps()
+    render(<MCollEditSheet {...props} />)
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    await user.upload(input, new File(['x'], 'cover.png', { type: 'image/png' }))
+    await user.type(screen.getByPlaceholderText('collections.listNamePlaceholder'), 'Kopenhagen')
+    await user.click(screen.getByRole('button', { name: 'collections.create' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('common.error', 'error', undefined))
+
+    // The list exists even though the cover step failed — cancelling must not lose it.
+    await user.click(screen.getByRole('button', { name: 'common.cancel' }))
+    expect(props.onCreated).toHaveBeenCalledWith(11)
+    expect(props.onClose).toHaveBeenCalledTimes(1)
   })
 })

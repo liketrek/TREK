@@ -1270,7 +1270,7 @@ describe('CollabNotes', () => {
   });
 });
 
-// FE-W5CNT-001 to FE-W5CNT-028
+// FE-W5CNT-001 to FE-W5CNT-029
 // Fills in the load/error/attachment/category branches of useCollabNotes and the
 // view modal that the smoke tests above do not reach.
 
@@ -1801,5 +1801,22 @@ describe('CollabNotes details', () => {
     await user.click(screen.getByRole('button', { name: 'Create' }));
     await screen.findByText('Newer note');
     expect(screen.getByText('Older note')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-029: a failing delete reports an error and keeps the note in the list', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 30, title: 'Stubborn note' })] });
+    server.use(
+      http.delete('/api/trips/1/collab/notes/30', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Stubborn note');
+
+    await user.click(screen.getByTitle('Delete'));
+    const dialog = (await screen.findByText('Delete note?')).closest('div.trek-modal-enter') as HTMLElement;
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.getByText('Stubborn note')).toBeInTheDocument();
   });
 });

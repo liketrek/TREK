@@ -1,4 +1,4 @@
-// FE-W4LBX-001 to FE-W4LBX-017
+// FE-W4LBX-001 to FE-W4LBX-019
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { TripFile } from '../../types'
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render'
@@ -207,5 +207,42 @@ describe('ImageLightbox', () => {
     fireEvent.click(screen.getByTestId('video').parentElement!)
 
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('FE-W4LBX-018: Escape reaches the current onClose after a re-render', () => {
+    const first = vi.fn()
+    const second = vi.fn()
+    const { rerender } = render(<ImageLightbox files={IMAGES} initialIndex={0} onClose={first} />)
+
+    rerender(<ImageLightbox files={IMAGES} initialIndex={0} onClose={second} />)
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(second).toHaveBeenCalledOnce()
+    expect(first).not.toHaveBeenCalled()
+  })
+
+  it('FE-W4LBX-019: the strip mints thumbnail tokens only for thumbs in view', async () => {
+    // Every thumbnail costs its own one-shot token, so an off-screen thumb must
+    // stay quiet. The default observer stub never intersects.
+    const { unmount } = render(<ImageLightbox files={IMAGES} initialIndex={0} onClose={() => {}} />)
+    await waitFor(() => expect(getAuthUrl).toHaveBeenCalledWith('/f/a.jpg', 'download'))
+    expect(getAuthUrl).toHaveBeenCalledTimes(1)
+    unmount()
+
+    getAuthUrl.mockClear()
+    const original = globalThis.IntersectionObserver
+    globalThis.IntersectionObserver = class {
+      constructor(private cb: IntersectionObserverCallback) {}
+      observe() { this.cb([{ isIntersecting: true } as IntersectionObserverEntry], this as unknown as IntersectionObserver) }
+      disconnect() {}
+      unobserve() {}
+      takeRecords() { return [] }
+    } as unknown as typeof IntersectionObserver
+    try {
+      render(<ImageLightbox files={IMAGES} initialIndex={0} onClose={() => {}} />)
+      await waitFor(() => expect(getAuthUrl).toHaveBeenCalledWith('/f/c.jpg', 'download'))
+    } finally {
+      globalThis.IntersectionObserver = original
+    }
   })
 })

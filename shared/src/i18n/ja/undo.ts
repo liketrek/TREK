@@ -14,6 +14,7 @@ const undo: TranslationStrings = {
   'undo.lock': '場所のロックを切り替え',
   'undo.importGpx': 'GPXをインポート',
   'undo.importKeyholeMarkup': 'KMZ/KMLをインポート',
+  'undo.importFiles': 'ファイルインポート',
   'undo.importGoogleList': 'Googleマップをインポート',
   'undo.importNaverList': 'Naverマップをインポート',
   'undo.addPlace': '場所を追加',

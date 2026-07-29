@@ -177,6 +177,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'فشل تحميل القوالب',
   'admin.packingTemplates.createError': 'فشل إنشاء القالب',
   'admin.packingTemplates.deleteError': 'فشل حذف القالب',
+  'admin.packingTemplates.deleteCategoryError': 'فشل حذف الفئة',
+  'admin.packingTemplates.deleteItemError': 'فشل حذف العنصر',
   'admin.packingTemplates.saveError': 'فشل الحفظ',
   'admin.tabs.addons': 'الإضافات',
   'admin.tabs.plugins': 'الإضافات الخارجية',

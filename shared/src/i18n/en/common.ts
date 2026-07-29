@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Select all',
   'common.deselectAll': 'Deselect all',
   'common.error': 'Error',
+  'common.success': 'Success',
   'common.unknownError': 'Unknown error',
   'common.tooManyAttempts': 'Too many attempts. Please try again later.',
   'common.back': 'Back',

@@ -349,7 +349,7 @@ describe('MPlaceSheet', () => {
     expect(openPicker).not.toHaveBeenCalled()
 
     await act(async () => { rejectUpdate(new Error('nope')) })
-    await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('Could not upload image'))
+    await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('Could not remove image'))
   })
 
   it('FE-MOB-PLSH-022: hands the place to the save-to-collection picker', () => {
@@ -406,5 +406,22 @@ describe('MPlaceSheet', () => {
     expect(screen.queryByRole('button', { name: 'Save to Collection' })).not.toBeInTheDocument()
     // Read-only members still get the navigation actions.
     expect(screen.getByRole('button', { name: 'Google Maps' })).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLSH-026: collapses the track colour picker again when the sheet closes', () => {
+    const place = { ...PLACE, route_geometry: 'x', route_color: null } as unknown as Place
+    const planner = makePlanner({ selectedPlace: place })
+    const shell = makeShell()
+    const { rerender } = render(<MPlaceSheet planner={planner} shell={shell} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Automatic color/ }))
+    expect(screen.getAllByRole('button', { name: /Automatic color/ })[0]).toHaveAttribute('aria-expanded', 'true')
+
+    // The component stays mounted across selections — only MSheet's children unmount.
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    rerender(<MPlaceSheet planner={makePlanner({ selectedPlace: null })} shell={shell} />)
+    rerender(<MPlaceSheet planner={planner} shell={shell} />)
+
+    expect(screen.getAllByRole('button', { name: /Automatic color/ })[0]).toHaveAttribute('aria-expanded', 'false')
   })
 })

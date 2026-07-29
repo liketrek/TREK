@@ -7,7 +7,7 @@ import MAtlasCountryPopup from '../../../../src/mobile/screens/atlas/MAtlasCount
 import type { AtlasController } from '../../../../src/mobile/screens/atlas/atlasController';
 import type { AtlasData } from '../../../../src/pages/atlas/atlasModel';
 
-// FE-MOB-ATLASPOP-001 to FE-MOB-ATLASPOP-025
+// FE-MOB-ATLASPOP-001 to FE-MOB-ATLASPOP-026
 
 type ConfirmAction = AtlasController['confirmAction'];
 
@@ -53,9 +53,11 @@ describe('MAtlasCountryPopup', () => {
     expect(screen.getByText('atlas.addToBucket')).toBeInTheDocument();
   });
 
-  it('FE-MOB-ATLASPOP-003: a non-ISO2 code falls back to the flag glyph instead of an image', () => {
+  it('FE-MOB-ATLASPOP-003: a non-ISO2 code falls back to a placeholder instead of an image', () => {
     renderPopup({ confirmAction: chooseAction({ code: 'DEU', name: 'Germany' }) });
     expect(document.querySelector('img')).toBeNull();
+    // No flag is available for alpha-3, but the slot must not stay empty.
+    expect(document.querySelector('.lucide-map-pin')).not.toBeNull();
   });
 
   it('FE-MOB-ATLASPOP-004: marking a country appends it to the atlas data and closes the sheet', async () => {
@@ -349,5 +351,26 @@ describe('MAtlasCountryPopup', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
 
     expect(atlas.setConfirmAction).toHaveBeenCalledWith(null);
+  });
+
+  it('FE-MOB-ATLASPOP-026: a place-derived region left behind keeps the country, as on desktop', async () => {
+    const { atlas } = renderPopup({
+      confirmAction: { type: 'unmark-region', code: 'IT', name: 'Lazio', regionCode: 'IT-62' },
+      visitedRegions: {
+        IT: [
+          { code: 'IT-62', name: 'Lazio', placeCount: 0, manuallyMarked: true },
+          { code: 'IT-25', name: 'Lombardia', placeCount: 2 },
+        ],
+      } as VisitedRegions,
+      data: buildAtlasData({
+        countries: [{ code: 'IT', tripCount: 0, placeCount: 0 }],
+        stats: { totalTrips: 0, totalPlaces: 0, totalCountries: 1, totalDays: 0 },
+      }),
+    });
+
+    fireEvent.click(screen.getByText('atlas.unmark'));
+
+    await waitFor(() => expect(atlas.setConfirmAction).toHaveBeenCalledWith(null));
+    expect((atlas.data as AtlasData).countries.map((c) => c.code)).toEqual(['IT']);
   });
 });

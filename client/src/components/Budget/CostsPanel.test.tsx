@@ -170,6 +170,35 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(screen.getByText('Unfinished')).toBeInTheDocument()
   })
 
+  it('shows the net hint on a settled expense row and hides it while unfinished', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    // alice fronted the whole 90 for a two-way split, so she is 45 up.
+    const lent = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
+      total_price: 90,
+      payers: [{ user_id: 1, amount: 90, username: 'alice' }],
+      members: [{ user_id: 1, username: 'alice', paid: 1 }, { user_id: 2, username: 'bob', paid: 0 }],
+    }
+    const unpaid = {
+      ...buildBudgetItem({ trip_id: 1, category: 'lodging', name: 'Hotel' }),
+      total_price: 90,
+      payers: [],
+      members: [{ user_id: 1, username: 'alice', paid: 0 }, { user_id: 2, username: 'bob', paid: 0 }],
+    }
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [lent, unpaid] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+    )
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    const dinnerRow = (await screen.findByText('Dinner')).closest('.exp-row') as HTMLElement
+    expect(within(dinnerRow).getByText(/you lent/)).toHaveTextContent('45')
+
+    const hotelRow = (await screen.findByText('Hotel')).closest('.exp-row') as HTMLElement
+    expect(within(hotelRow).queryByText(/you lent|you borrowed/)).toBeNull()
+  })
+
   it('sums only unfinished expenses in the Outstanding amount card', async () => {
     // Display in the trip's own currency so FX conversion is an identity — keeps the asserted sum deterministic.
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })

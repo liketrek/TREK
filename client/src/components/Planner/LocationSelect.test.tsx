@@ -116,10 +116,10 @@ describe('LocationSelect', () => {
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'Oberkampf');
 
-    // The row falls back to the address for its title and still prints the
-    // address line underneath, so the same text shows up twice.
+    // The row falls back to the address for its title and skips the address
+    // subtitle, so the text shows up once.
     const rows = await screen.findAllByText('12 Rue Oberkampf');
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(1);
 
     await user.click(rows[0]);
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ name: '12 Rue Oberkampf' }));

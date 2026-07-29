@@ -909,6 +909,29 @@ describe('MapViewGL', () => {
     expect(queryByTestId('tooltip')).toBeNull()
   })
 
+  it('FE-COMP-MAPVIEWGL-067: hovering does not rebuild the markers under the cursor (#1404)', async () => {
+    loadOnAttach()
+    const places = [
+      buildMapPlace({ id: 41, lat: 48.41, lng: 2.41 }),
+      buildMapPlace({ id: 42, lat: 48.42, lng: 2.42 }),
+    ]
+
+    const { queryByTestId } = render(<MapViewGL places={places} fitKey={1} />)
+    await act(async () => {})
+    const before = glMarkers.created.length
+    const el = glMarkers.created[0].element
+
+    act(() => { el.dispatchEvent(new MouseEvent('mouseenter', { clientX: 10, clientY: 10 })) })
+    await act(async () => {})
+
+    // The hover card is component state, so it re-renders MapViewGL. The omitted
+    // collection props have to keep their identity across that render — a fresh
+    // `[]`/`{}` default would re-run the reconcile effects and recreate every
+    // marker, and a marker recreated under the pointer never fires mouseleave.
+    expect(queryByTestId('tooltip')).toBeTruthy()
+    expect(glMarkers.created).toHaveLength(before)
+  })
+
   it('FE-COMP-MAPVIEWGL-027: clicking a GPX track selects its place unless a marker or cluster is on top', async () => {
     loadOnAttach()
     const onMarkerClick = vi.fn()
@@ -1586,6 +1609,17 @@ describe('MapViewGL', () => {
 
     expect(photoService.fetchPhoto).toHaveBeenCalledTimes(1)
     expect(photoService.fetchPhoto).toHaveBeenCalledWith('osm-5', '/api/maps/place-photo/abc', 48.5, 2.5, 'Museum')
+  })
+
+  it('FE-COMP-MAPVIEWGL-066: a place with neither provider id nor coordinates has no cache key and is skipped', async () => {
+    render(<MapViewGL places={[
+      buildMapPlace({ id: 98, lat: null, lng: null, image_url: 'https://example.com/a.jpg' }),
+      buildMapPlace({ id: 99, lat: null, lng: null, image_url: 'https://example.com/b.jpg' }),
+    ]} fitKey={1} />)
+    await act(async () => {})
+
+    expect(photoService.fetchPhoto).not.toHaveBeenCalled()
+    expect(photoService.onThumbReady).not.toHaveBeenCalled()
   })
 
   it('FE-COMP-MAPVIEWGL-057: no photos are fetched when place photos are switched off', async () => {

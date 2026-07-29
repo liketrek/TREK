@@ -48,8 +48,8 @@ function normalizeProvider(value: unknown): MapProvider {
   return value === 'mapbox-gl' || value === 'maplibre-gl' ? value : 'leaflet'
 }
 
-function styleForProvider(provider: MapProvider, style?: string | null): string {
-  if (provider === 'leaflet') return style || MAPBOX_DEFAULT_STYLE
+/** Only the GL providers keep a style — Leaflet is handled by its callers. */
+function styleForProvider(provider: GlMapProvider, style?: string | null): string {
   if (provider === 'mapbox-gl' && isOpenFreeMapStyle(style)) return MAPBOX_DEFAULT_STYLE
   return normalizeStyleForProvider(provider, style)
 }

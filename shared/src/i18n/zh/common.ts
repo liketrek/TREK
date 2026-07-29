@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': '全选',
   'common.deselectAll': '取消全选',
   'common.error': '错误',
+  'common.success': '成功',
   'common.unknownError': '未知错误',
   'common.tooManyAttempts': '尝试次数过多，请稍后再试。',
   'common.back': '返回',

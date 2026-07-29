@@ -321,6 +321,21 @@ describe('MFilesTab', () => {
     expect(planner.toast.success).not.toHaveBeenCalled()
   })
 
+  it('FE-MOB-FTAB-021b: one rejected file does not drop the rest of the batch', async () => {
+    const tripActions = buildTripActions()
+    tripActions.addFile
+      .mockRejectedValueOnce(new Error('server-500'))
+      .mockResolvedValueOnce(undefined)
+    const { container, planner } = renderTab({ tripActions } as unknown as Partial<TripPlanner>)
+    fireEvent.change(hiddenInput(container), {
+      target: { files: [makeFile('a.pdf', 'application/pdf'), makeFile('b.pdf', 'application/pdf')] },
+    })
+
+    await waitFor(() => expect(planner.toast.success).toHaveBeenCalledWith('files.uploaded:1'))
+    expect(planner.tripActions.addFile).toHaveBeenCalledTimes(2)
+    expect(planner.toast.error).toHaveBeenCalledWith('files.uploadError')
+  })
+
   it('FE-MOB-FTAB-022: the uploading pill shows while the request is in flight', async () => {
     let release: () => void = () => {}
     const tripActions = buildTripActions()

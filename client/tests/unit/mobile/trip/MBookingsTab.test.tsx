@@ -237,12 +237,14 @@ describe('MBookingsTab', () => {
     expect(screen.queryByText('Kyoto Station')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-BKTAB-018: blurs the confirmation code until it is tapped', () => {
+  it('FE-MOB-BKTAB-018: blurs the confirmation code until its button is used', () => {
     renderTab(planner({ settings: buildSettings({ time_format: '24h', blur_booking_codes: true }) }))
-    const code = within(cardOf('Hotel Granvia')).getByText('HG-77')
+    // A button, not a bare div — the reveal has to be reachable by keyboard.
+    const code = within(cardOf('Hotel Granvia')).getByRole('button', { name: 'HG-77' })
     expect(code).toHaveClass('blur-[4px]')
     fireEvent.click(code)
     expect(code).not.toHaveClass('blur-[4px]')
+    expect(code).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('FE-MOB-BKTAB-019: filters the list by assigned traveler', () => {

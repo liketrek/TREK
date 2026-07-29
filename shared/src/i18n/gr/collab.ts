@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Ξεκινήστε να καταγράφετε ιδέες και σχέδια',
   'collab.notes.all': 'Όλες',
   'collab.notes.titlePlaceholder': 'Τίτλος σημείωσης',
+  'collab.notes.content': 'Περιεχόμενο',
+  'collab.notes.removeFile': 'Αφαίρεση {name}',
   'collab.notes.contentPlaceholder': 'Γράψτε κάτι...',
   'collab.notes.categoryPlaceholder': 'Κατηγορία',
   'collab.notes.newCategory': 'Νέα κατηγορία...',

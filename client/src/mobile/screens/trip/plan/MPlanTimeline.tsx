@@ -46,7 +46,8 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   // Plugin time contributions in the day plan (dayScheduleProvider hook) —
   // slotted under their anchor rows, same as the desktop sidebar.
   const daySchedule = usePluginDaySchedule(planner.tripId)
-  const dayId = tl.day?.id
+  const day = tl.day
+  const dayId = day?.id
   const dayScheduleFor = (anchor: 'assignment' | 'reservation', id: number) =>
     (dayId != null
       ? (anchor === 'assignment' ? daySchedule.byAssignment[dayId]?.[id] : daySchedule.byReservation[dayId]?.[id])
@@ -88,7 +89,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         style={{ top: `calc(var(--m-safe-top, 12px) + ${editing ? 140 : tl.upNext ? 216 : 102}px)` }}
       >
         {(tl.hotelChips.length > 0 || tl.weatherTemp != null) && (
-          <TimelineHeader tl={tl} onOpenDay={() => tl.day && shell.openSheet('day', { dayId: tl.day.id })} />
+          <TimelineHeader tl={tl} onOpenDay={() => day && shell.openSheet('day', { dayId: day.id })} />
         )}
 
         {tl.hotelLegs.top && (
@@ -96,7 +97,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         )}
         {dayId != null && daySchedule.byPosition[dayId]?.start.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
 
-        {tl.rows.map(row => {
+        {day && tl.rows.map(row => {
           switch (row.kind) {
             case 'place':
               return (
@@ -119,7 +120,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                 <Fragment key={row.key}>
                   <TransportRow
                     res={row.res}
-                    dayId={tl.day!.id}
+                    dayId={day.id}
                     chrome={chrome}
                     reorder={reorderFor(row.item)}
                     onOpen={() => {
@@ -136,7 +137,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                   <TransitRow
                     res={row.res}
                     transit={row.transit}
-                    dayId={tl.day!.id}
+                    dayId={day.id}
                     open={tl.openTransitKeys.has(row.key)}
                     chrome={chrome}
                     reorder={reorderFor(row.item)}
@@ -153,11 +154,11 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                   note={row.note}
                   chrome={chrome}
                   reorder={reorderFor(row.item)}
-                  onEdit={() => tl.day && shell.openSheet('note', { dayId: tl.day.id, note: row.note })}
+                  onEdit={() => shell.openSheet('note', { dayId: day.id, note: row.note })}
                 />
               )
             case 'conn':
-              return <ConnRow key={row.key} seg={row.seg} onTap={canEdit && row.assignmentId != null ? e => openLegMenu(e, row.assignmentId!) : undefined} />
+              return <ConnRow key={row.key} seg={row.seg} onTap={editing && row.assignmentId != null ? e => openLegMenu(e, row.assignmentId!) : undefined} />
           }
         })}
 
@@ -179,7 +180,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
             <PlanAction
               icon={PencilLine}
               label={t('mobileTrip.addNoteShort')}
-              onClick={() => tl.day && shell.openSheet('note', { dayId: tl.day.id })}
+              onClick={() => day && shell.openSheet('note', { dayId: day.id })}
             />
             <PlanAction icon={Ticket} label={t('mobileTrip.addBookingShort')} onClick={tl.addBooking} />
             <PlanAction icon={TrainFront} label={t('mobileTrip.addTransportShort')} onClick={tl.addTransport} />

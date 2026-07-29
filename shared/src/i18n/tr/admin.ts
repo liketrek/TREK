@@ -203,6 +203,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Şablonlar yüklenemedi',
   'admin.packingTemplates.createError': 'Şablon oluşturulamadı',
   'admin.packingTemplates.deleteError': 'Şablon silinemedi',
+  'admin.packingTemplates.deleteCategoryError': 'Kategori silinemedi',
+  'admin.packingTemplates.deleteItemError': 'Öğe silinemedi',
   'admin.packingTemplates.saveError': 'Kaydedilemedi',
   'admin.tabs.addons': 'Eklentiler',
   'admin.tabs.plugins': 'Plugins',

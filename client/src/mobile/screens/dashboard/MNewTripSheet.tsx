@@ -215,11 +215,12 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
       setCoverPreview(null)
       return
     }
-    if (!trip?.id) return
+    // Anything else is a cover stored on the trip, so this is the edit sheet.
+    const id = trip!.id
     try {
-      await tripsApi.update(trip.id, { cover_image: null })
+      await tripsApi.update(id, { cover_image: null })
       setCoverPreview(null)
-      onCoverUpdate?.(trip.id, null)
+      onCoverUpdate?.(id, null)
     } catch {
       toast.error(t('dashboard.coverRemoveError'))
     }

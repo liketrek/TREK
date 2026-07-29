@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
-import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { buildAdminToast } from '../../../tests/helpers/mobileAdmin';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n';
@@ -179,5 +179,32 @@ describe('AdminNotificationsPanel', () => {
 
     expect(await screen.findByText('In-App')).toBeInTheDocument();
     expect(screen.queryByText('Ntfy')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMMTX-012: a failing save keeps a toggle that succeeded before it', async () => {
+    servePreferences(matrix());
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.put('/api/admin/notification-preferences', async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return bodies.length === 1 ? HttpResponse.json({ success: true }) : HttpResponse.json({}, { status: 500 });
+      })
+    );
+    const toast = renderPanel();
+
+    await screen.findByText('New version available');
+    const [inappToggle, emailToggle] = screen.getAllByRole('button');
+
+    // Both clicks land before React re-renders, so the second handler still sees the
+    // preferences of the first render.
+    await act(async () => {
+      fireEvent.click(inappToggle); // on -> off, succeeds
+      fireEvent.click(emailToggle); // off -> on, fails
+    });
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error'));
+    expect(bodies[1]).toEqual({ version_available: { inapp: false, email: true } });
+    expect(emailToggle.className).toContain('bg-edge');
+    expect(inappToggle.className).toContain('bg-edge');
   });
 });

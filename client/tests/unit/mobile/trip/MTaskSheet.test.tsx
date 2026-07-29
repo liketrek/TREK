@@ -272,7 +272,9 @@ describe('MTaskSheet', () => {
   it('FE-MOB-TASK-018: keeps a stored category that is not in the offered list', async () => {
     const { actions } = setup({ items: [todo({ category: 'Legacy' })], itemId: 42, categories: ['Admin'] })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Legacy' }))
+    // It has no pill to switch to, so it shows as the active label rather than a button.
+    expect(screen.getByText('Legacy')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Legacy' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'todo.detail.save' }))
 
     await waitFor(() => expect(actions.updateTodoItem).toHaveBeenCalledWith(1, 42, expect.objectContaining({ category: 'Legacy' })))
@@ -288,7 +290,7 @@ describe('MTaskSheet', () => {
     fireEvent.change(screen.getByPlaceholderText('todo.newCategory'), { target: { value: '  Docs  ' } })
     fireEvent.click(screen.getByRole('button', { name: 'common.add' }))
 
-    expect(screen.getByRole('button', { name: 'Docs' })).toBeInTheDocument()
+    expect(screen.getByText('Docs')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'todo.detail.create' }))
     await waitFor(() => expect(actions.addTodoItem).toHaveBeenCalledWith(1, expect.objectContaining({ category: 'Docs' })))
   })
@@ -299,15 +301,15 @@ describe('MTaskSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: /todo.addCategory/ }))
     fireEvent.change(screen.getByPlaceholderText('todo.newCategory'), { target: { value: 'Docs' } })
     fireEvent.keyDown(screen.getByPlaceholderText('todo.newCategory'), { key: 'Enter' })
-    expect(screen.getByRole('button', { name: 'Docs' })).toBeInTheDocument()
+    expect(screen.getByText('Docs')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /todo.addCategory/ }))
     fireEvent.change(screen.getByPlaceholderText('todo.newCategory'), { target: { value: 'Ignored' } })
     fireEvent.keyDown(screen.getByPlaceholderText('todo.newCategory'), { key: 'Escape' })
 
     expect(screen.queryByPlaceholderText('todo.newCategory')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Ignored' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Docs' })).toBeInTheDocument()
+    expect(screen.queryByText('Ignored')).not.toBeInTheDocument()
+    expect(screen.getByText('Docs')).toBeInTheDocument()
   })
 
   it('FE-MOB-TASK-021: keeps the current category when the draft is blank', () => {

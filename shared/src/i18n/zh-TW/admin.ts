@@ -193,6 +193,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': '載入模板失敗',
   'admin.packingTemplates.createError': '建立模板失敗',
   'admin.packingTemplates.deleteError': '刪除模板失敗',
+  'admin.packingTemplates.deleteCategoryError': '刪除分類失敗',
+  'admin.packingTemplates.deleteItemError': '刪除項目失敗',
   'admin.packingTemplates.saveError': '儲存失敗',
   'admin.tabs.addons': '擴充套件',
   'admin.tabs.plugins': '外掛',

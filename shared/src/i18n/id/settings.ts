@@ -269,6 +269,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Foto profil diperbarui',
   'settings.avatarRemoved': 'Foto profil dihapus',
   'settings.avatarError': 'Gagal mengunggah',
+  'settings.avatarRemoveError': 'Gagal menghapus',
   'settings.mfa.title': 'Autentikasi dua faktor (2FA)',
   'settings.mfa.description':
     'Menambahkan langkah kedua saat masuk dengan email dan kata sandi. Gunakan aplikasi autentikator (Google Authenticator, Authy, dll.).',

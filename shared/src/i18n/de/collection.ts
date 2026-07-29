@@ -82,6 +82,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'In Reise kopieren',
   'collections.copyN': '{count} in Reise kopieren',
   'collections.copyToTripSearch': 'Reisen suchen',
+  'collections.searchLists': 'Listen suchen',
   'collections.copyToTripConfirm': 'Kopieren',
   'collections.noTrips': 'Noch keine Reisen',
   'collections.alreadyInTrip': 'Bereits in dieser Reise',

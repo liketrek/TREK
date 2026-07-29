@@ -115,35 +115,35 @@ async function syncTrip(tripId: number): Promise<void> {
 }
 
 /** Cache non-photo file blobs for a trip. Fire-and-forget safe. */
-async function cacheFilesForTrip(files: TripFile[]): Promise<void> {
+async function cacheFilesForTrip(tripId: number, files: TripFile[]): Promise<void> {
   const nonPhotos = files.filter(f => f.url && !isPhoto(f) && !isVideo(f))
-  let cached = 0
+  // `present` is what syncMeta.filesCachedCount reports (files available
+  // offline afterwards); `downloaded` only counts what this run actually wrote.
+  let present = 0
+  let downloaded = 0
 
   for (const file of nonPhotos) {
     // Skip if already cached
     const existing = await offlineDb.blobCache.get(file.url!)
-    if (existing) { cached++; continue }
+    if (existing) { present++; continue }
 
     try {
       const resp = await fetch(file.url!, { credentials: 'include' })
       if (!resp.ok) continue
       const blob = await resp.blob()
       await offlineDb.blobCache.put({ url: file.url!, tripId: file.trip_id, blob, bytes: blob.size, mime: file.mime_type, cachedAt: Date.now() })
-      cached++
+      present++
+      downloaded++
     } catch {
       // Network failure — skip this file, will retry next sync
     }
   }
 
   // Keep the blob cache within its size/count budget after adding new files.
-  if (cached > 0) await enforceBlobBudget().catch(() => {})
+  if (downloaded > 0) await enforceBlobBudget().catch(() => {})
 
-  // Update filesCachedCount in syncMeta
-  const tripId = files[0]?.trip_id
-  if (tripId) {
-    const meta = await offlineDb.syncMeta.get(tripId)
-    if (meta) await upsertSyncMeta({ ...meta, filesCachedCount: cached })
-  }
+  const meta = await offlineDb.syncMeta.get(tripId)
+  if (meta) await upsertSyncMeta({ ...meta, filesCachedCount: present })
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -205,7 +205,7 @@ export const tripSyncManager = {
       const tileUrl = useSettingsStore.getState().settings.map_tile_url || undefined
       for (const trip of toSync) {
         const files = await offlineDb.tripFiles.where('trip_id').equals(trip.id).toArray()
-        cacheFilesForTrip(files).catch(console.error)
+        cacheFilesForTrip(trip.id, files).catch(console.error)
       }
 
       // Map tiles last, and only once the browser goes idle. syncAll runs right
@@ -265,7 +265,7 @@ export const tripSyncManager = {
       for (const trip of toSync) {
         onProgress?.({ phase: 'files', current: ++i, total, label: trip.title })
         const files = await offlineDb.tripFiles.where('trip_id').equals(trip.id).toArray()
-        await cacheFilesForTrip(files).catch(console.error)
+        await cacheFilesForTrip(trip.id, files).catch(console.error)
       }
 
       // 3) Map tiles — awaited, and only when the user opted to store them.

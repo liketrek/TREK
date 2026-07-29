@@ -483,7 +483,7 @@ describe('MAdminPackingTemplateManager', () => {
 
     await user.click(within(categoryHeader('Clothing')).getByRole('button', { name: 'Delete' }));
 
-    await screen.findByText('Failed to delete template');
+    await screen.findByText('Failed to delete');
     expect(screen.getByText('Clothing')).toBeInTheDocument();
   });
 
@@ -671,7 +671,7 @@ describe('MAdminPackingTemplateManager', () => {
     expect(screen.getByText('Shorts')).toBeInTheDocument();
 
     await user.click(within(itemRow('Shorts')).getByRole('button', { name: 'Delete' }));
-    await screen.findByText('Failed to delete template');
+    await screen.findByText('Failed to delete');
     expect(screen.getByText('Shorts')).toBeInTheDocument();
   });
 });

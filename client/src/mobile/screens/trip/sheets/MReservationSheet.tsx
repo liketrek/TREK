@@ -157,8 +157,12 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   const isEndBeforeStart = (() => {
     if (isHotel || !form.end_date || !form.reservation_time) return false
     const sDate = form.reservation_time.split('T')[0]
-    const sTime = form.reservation_time.split('T')[1] || '00:00'
-    return `${form.end_date}T${form.reservation_end_time || '00:00'}` <= `${sDate}T${sTime}`
+    const sTime = form.reservation_time.split('T')[1] || ''
+    const eTime = form.reservation_end_time || ''
+    // Without a time on either side the booking is all-day, so an end on the
+    // start day is fine — only compare the dates there.
+    if (!sTime || !eTime) return form.end_date < sDate
+    return `${form.end_date}T${eTime}` <= `${sDate}T${sTime}`
   })()
 
   const startDate = (form.reservation_time || '').split('T')[0] || ''
@@ -188,7 +192,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   }
 
   const handleSubmit = async () => {
-    if (!form.title.trim() || isSaving) return
+    // Only the costs button reaches this without the footer's date check.
     if (isEndBeforeStart) { toast.error(t('reservations.validation.endBeforeStart')); return }
     const withExpense = expenseIntentRef.current
     expenseIntentRef.current = false

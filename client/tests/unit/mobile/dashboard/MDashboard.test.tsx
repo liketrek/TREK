@@ -63,7 +63,7 @@ function buildDash(over: Record<string, unknown> = {}): Record<string, unknown> 
     setDeleteTrip: vi.fn(),
     copyTrip: null,
     setCopyTrip: vi.fn(),
-    setTrips: vi.fn(),
+    applyCoverUpdate: vi.fn(),
     handleCreate: vi.fn(),
     handleUpdate: vi.fn(),
     confirmDelete: vi.fn(),
@@ -501,18 +501,16 @@ describe('MDashboard', () => {
   });
 
   it('FE-MOB-DASH-035: a cover uploaded in the sheet is patched into the trip list', async () => {
-    const setTrips = vi.fn((updater: (prev: DashboardTrip[]) => DashboardTrip[]) => {
-      expect(updater([buildTrip({ id: 19, cover_image: null })])[0].cover_image).toBe('/uploads/covers/n.jpg');
-    });
+    const applyCoverUpdate = vi.fn();
     vi.spyOn(tripsApi, 'uploadCover').mockResolvedValue({ cover_image: '/uploads/covers/n.jpg' });
-    mocks.dash = buildDash({ showForm: true, editingTrip: buildTrip({ id: 19 }), setTrips });
+    mocks.dash = buildDash({ showForm: true, editingTrip: buildTrip({ id: 19 }), applyCoverUpdate });
     render(<MDashboard />);
 
     fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, {
       target: { files: [new File(['x'], 'c.png', { type: 'image/png' })] },
     });
 
-    await waitFor(() => expect(setTrips).toHaveBeenCalled());
+    await waitFor(() => expect(applyCoverUpdate).toHaveBeenCalledWith(19, '/uploads/covers/n.jpg'));
   });
 
   it('FE-MOB-DASH-036: dismissing the copy sheet clears the pending trip', () => {

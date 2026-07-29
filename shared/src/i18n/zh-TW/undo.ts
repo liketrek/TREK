@@ -14,6 +14,7 @@ const undo: TranslationStrings = {
   'undo.lock': '地點鎖定已切換',
   'undo.importGpx': 'GPX 匯入',
   'undo.importKeyholeMarkup': 'KMZ/KML 匯入',
+  'undo.importFiles': '檔案匯入',
   'undo.importGoogleList': 'Google 地圖匯入',
   'undo.importNaverList': 'Naver 地圖匯入',
   'undo.addPlace': '地點已新增',

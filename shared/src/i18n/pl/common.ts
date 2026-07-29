@@ -12,6 +12,7 @@ const common: TranslationStrings = {
   'common.add': 'Dodaj',
   'common.loading': 'Ładowanie...',
   'common.error': 'Błąd',
+  'common.success': 'Sukces',
   'common.unknownError': 'Nieznany błąd',
   'common.tooManyAttempts': 'Zbyt wiele prób. Spróbuj ponownie później.',
   'common.back': 'Wstecz',

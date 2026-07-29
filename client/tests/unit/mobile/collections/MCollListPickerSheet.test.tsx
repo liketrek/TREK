@@ -102,4 +102,14 @@ describe('MCollListPickerSheet', () => {
     rerender(<Harness {...props} mode={null} />)
     expect(screen.getByText('Duplicate 3 to another list')).toBeInTheDocument()
   })
+
+  it('FE-MOB-CLISTP-011: a rejecting pick unlocks the rows instead of escaping', async () => {
+    const onPick = vi.fn<(id: number) => Promise<void>>().mockRejectedValue(new Error('nope'))
+    setup({ onPick })
+    fireEvent.click(screen.getByRole('button', { name: /Tokyo 2026/ }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /Someday/ })).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: /Someday/ }))
+    await waitFor(() => expect(onPick).toHaveBeenNthCalledWith(2, 2))
+  })
 })

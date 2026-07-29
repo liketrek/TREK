@@ -346,7 +346,7 @@ describe('MAdminDefaultUserSettings', () => {
     await waitFor(() => expect(puts).toEqual([{ mapbox_3d_enabled: false }, { mapbox_quality_mode: true }]));
   });
 
-  it('FE-MOB-MDUS-023: a rejected save surfaces the request error instead of a success toast', async () => {
+  it('FE-MOB-MDUS-023: a rejected save surfaces the server error instead of a success toast', async () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/admin/default-user-settings', () => HttpResponse.json({})),
@@ -357,7 +357,7 @@ describe('MAdminDefaultUserSettings', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Dark' }));
 
-    expect(await screen.findByText(/Request failed with status code 500/)).toBeInTheDocument();
+    expect(await screen.findByText('nope')).toBeInTheDocument();
     expect(screen.queryByText('Default saved')).not.toBeInTheDocument();
   });
 
@@ -372,7 +372,7 @@ describe('MAdminDefaultUserSettings', () => {
 
     await user.click(resetLink('Temperature Unit'));
 
-    expect(await screen.findByText(/Request failed with status code 503/)).toBeInTheDocument();
+    expect(await screen.findByText('nope')).toBeInTheDocument();
     expect(screen.queryByText('Reset to built-in default')).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '°C Celsius' })).toHaveAttribute('aria-selected', 'true');
   });

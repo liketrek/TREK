@@ -697,7 +697,7 @@ describe('PackingTemplateManager', () => {
 
     await user.click(categoryButtons('Clothing')[2]);
 
-    expect(await screen.findByText('Failed to delete template')).toBeInTheDocument();
+    expect(await screen.findByText('Failed to delete category')).toBeInTheDocument();
     expect(screen.getByText('Clothing')).toBeInTheDocument();
     expect(screen.getByText('T-shirt')).toBeInTheDocument();
   });
@@ -798,7 +798,7 @@ describe('PackingTemplateManager', () => {
 
     await user.click(itemButtons('T-shirt')[1]);
 
-    expect(await screen.findByText('Failed to delete template')).toBeInTheDocument();
+    expect(await screen.findByText('Failed to delete item')).toBeInTheDocument();
     expect(screen.getByText('T-shirt')).toBeInTheDocument();
   });
 

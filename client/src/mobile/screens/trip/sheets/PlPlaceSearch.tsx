@@ -85,7 +85,8 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
         const result = await mapsApi.autocomplete(input, language, locationBias, controller.signal)
         setSuggestions(result.suggestions || [])
       } catch (err: unknown) {
-        if (err instanceof Error && (err.name === 'AbortError' || err.name === 'CanceledError')) return
+        // Superseded request — axios rejects an aborted call with CanceledError.
+        if (err instanceof Error && err.name === 'CanceledError') return
         setSuggestions([])
       }
     },

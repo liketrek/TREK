@@ -105,6 +105,9 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
   ko:      '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
   uk:      'Занадто багато спроб. Спробуйте пізніше.',
   sv:      'För många försök. Prova igen senare.',
+  ca:      'Massa intents. Torneu-ho a provar més tard.',
+  gr:      'Πάρα πολλές προσπάθειες. Δοκιμάστε ξανά αργότερα.',
+  vi:      'Quá nhiều lần thử. Vui lòng thử lại sau.',
 }
 
 function translateRateLimit(): string {
@@ -228,9 +231,11 @@ apiClient.interceptors.response.use(
       }
       if (error.response?.status === 429) {
         const translated = translateRateLimit()
-        const data = error.response.data as { error?: string } | undefined
-        if (data && typeof data === 'object') {
-          data.error = translated
+        const data = error.response.data
+        // Only a plain object body carries an `error` field worth overwriting;
+        // an array (a validation-error list) or a string is replaced outright.
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+          (data as { error?: string }).error = translated
         } else {
           error.response.data = { error: translated }
         }
@@ -551,24 +556,35 @@ export const adminApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ baseUrl, model }),
     })
-    if (!res.ok || !res.body) {
+    if (!res.ok) {
       let msg = `Pull failed (${res.status})`
       try { msg = (await res.json())?.error ?? msg } catch { /* non-json */ }
       throw new Error(msg)
     }
+    // An accepted request without a stream can't be followed to completion.
+    if (!res.body) throw new Error('Pull returned no progress stream')
     const reader = res.body.getReader()
     const dec = new TextDecoder()
     let buf = ''
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buf += dec.decode(value, { stream: true })
-      const lines = buf.split('\n')
-      buf = lines.pop() ?? ''
-      for (const line of lines) {
-        if (!line.trim()) continue
-        try { onProgress(JSON.parse(line)) } catch { /* skip partial */ }
+    try {
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        // split() always yields at least one element; the last one is the
+        // trailing (possibly partial) line carried into the next chunk.
+        const lines = buf.split('\n')
+        buf = lines.pop()!
+        for (const line of lines) {
+          if (!line.trim()) continue
+          // Only the parse is swallowed — a throw from onProgress aborts the pull.
+          let frame: { status?: string; total?: number; completed?: number; error?: string }
+          try { frame = JSON.parse(line) } catch { continue }
+          onProgress(frame)
+        }
       }
+    } finally {
+      reader.cancel().catch(() => {})
     }
   },
   checkVersion: () => apiClient.get('/admin/version-check').then(r => r.data),

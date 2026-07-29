@@ -158,6 +158,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Error al cargar plantillas',
   'admin.packingTemplates.createError': 'Error al crear plantilla',
   'admin.packingTemplates.deleteError': 'Error al eliminar plantilla',
+  'admin.packingTemplates.deleteCategoryError': 'No se pudo eliminar la categoría',
+  'admin.packingTemplates.deleteItemError': 'No se pudo eliminar el elemento',
   'admin.packingTemplates.saveError': 'Error al guardar',
   'admin.tabs.addons': 'Complementos',
   'admin.tabs.plugins': 'Plugins',

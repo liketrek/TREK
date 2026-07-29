@@ -266,9 +266,11 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
     }
   },
   'assignment:reordered': (payload, state) => {
+    // No ids means no order to apply — dropping through would wipe the day.
+    if (!payload.orderedIds) return {}
     const dayKey = String(payload.dayId)
     const currentItems = state.assignments[dayKey] || []
-    const orderedIds: number[] = (payload.orderedIds as number[] | undefined) || []
+    const orderedIds = payload.orderedIds as number[]
     const reordered = orderedIds.map((id, idx) => {
       const item = currentItems.find(a => a.id === id)
       return item ? { ...item, order_index: idx } : null
@@ -396,12 +398,14 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
     if (payload.orderedIds) {
       const orderedIds = payload.orderedIds as number[]
       const byId = new Map(state.budgetItems.map(i => [i.id, i]))
-      const reordered = orderedIds.map((id, idx): BudgetItem | null => {
-        const item = byId.get(id)
-        return item ? { ...item, sort_order: idx } : null
-      }).filter((i): i is BudgetItem => i !== null)
+      const reordered = orderedIds
+        .map(id => byId.get(id))
+        .filter((i): i is BudgetItem => i !== undefined)
       const remaining = state.budgetItems.filter(i => !orderedIds.includes(i.id))
-      return { budgetItems: [...reordered, ...remaining] }
+      // A partial orderedIds list leaves the untouched items behind, so index
+      // the whole array — otherwise sort_order and array position disagree and
+      // anything that re-sorts by sort_order undoes the reorder.
+      return { budgetItems: [...reordered, ...remaining].map((item, idx) => ({ ...item, sort_order: idx })) }
     }
     if (payload.orderedCategories) {
       const orderedCategories = payload.orderedCategories as string[]

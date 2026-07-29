@@ -146,7 +146,9 @@ interface downloadTripPDFProps {
   locale: string
 }
 
-export async function downloadTripPDF({ trip, days, places, assignments, categories, dayNotes, reservations = [], t: _t, locale: _locale }: downloadTripPDFProps) {
+// `assignments` is normalised here once — every read below (and fetchPlacePhotos)
+// relies on it being an object.
+export async function downloadTripPDF({ trip, days, places, assignments = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale }: downloadTripPDFProps) {
   await ensureRenderer()
   const loc = _locale || undefined
   const tr = _t || (k => k)
@@ -165,7 +167,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   const photoMap = await fetchPlacePhotos(assignments, places)
 
   const totalAssigned = new Set(
-    Object.values(assignments || {}).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
+    Object.values(assignments).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
   ).size
   // The PDF is a trip-scoped, shareable document, so totals stay in the trip's
   // own currency. Rates are resolved ONCE before any HTML is built so the cover
@@ -173,7 +175,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   // entirely (offline export keeps working), and a failed fetch degrades to
   // per-currency breakdowns instead of mislabeled sums (#1561).
   const tripCur = (trip?.currency || 'EUR').toUpperCase()
-  const allCostEntries: MoneyEntry[] = Object.values(assignments || {})
+  const allCostEntries: MoneyEntry[] = Object.values(assignments)
     .flatMap(a => a)
     .map(a => ({ amount: Number(a.place?.price) || 0, currency: a.place?.currency || tripCur }))
   const needsFx = allCostEntries.some(e => e.amount > 0 && e.currency.toUpperCase() !== tripCur)
@@ -433,7 +435,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
     </div>`
 
   const html = `<!DOCTYPE html>
-<html lang="${loc.split('-')[0]}">
+<html lang="${(loc || 'en').split('-')[0]}">
 <head>
 <meta charset="UTF-8">
 <base href="${window.location.origin}/">

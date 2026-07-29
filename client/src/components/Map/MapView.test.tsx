@@ -1001,6 +1001,15 @@ describe('MapView photo thumbnails', () => {
     expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toContain('/uploads/places/mine.jpg')
   })
 
+  it('FE-COMP-MAPVIEW-076: a place with neither provider id nor coordinates has no cache key and is skipped', () => {
+    render(<MapView places={[
+      buildMapPlace({ id: 25, lat: null, lng: null, image_url: 'https://example.com/a.jpg' }),
+      buildMapPlace({ id: 26, lat: null, lng: null, image_url: 'https://example.com/b.jpg' }),
+    ]} />)
+    expect(thumbCallbacks.size).toBe(0)
+    expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
+  })
+
   it('FE-COMP-MAPVIEW-071: photos are not fetched at all when the feature is off', () => {
     useAuthStore.setState({ placesPhotosEnabled: false })
     render(<MapView places={[buildMapPlace({ id: 24, lat: 48, lng: 2, google_place_id: 'gp-24' })]} />)

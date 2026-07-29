@@ -9,12 +9,17 @@ import type { TodoItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { TabScroller } from './tabChrome'
 import {
-  PRIORITY_COLOR, PRIORITY_LABEL, filterTodoItems, isTodoOverdue, sortTodoRows,
-  todoCategories, todoCategoryOpenCount, todoCounts, type TodoFilter,
+  PRIORITY_COLOR, PRIORITY_LABEL, filterTodoItems, filterTodoItemsByCategory, isTodoOverdue,
+  sortTodoRows, todoCategories, todoCategoryOpenCount, todoCounts, type TodoSmartFilter,
 } from './listsModel'
 import MTaskSheet from './MTaskSheet'
 
-const BUILTIN_FILTERS: TodoFilter[] = ['all', 'my', 'overdue', 'done']
+const BUILTIN_FILTERS: TodoSmartFilter[] = ['all', 'my', 'overdue', 'done']
+
+// The rail holds two kinds of bucket: the four built-ins, addressed by id, and
+// the category buckets, addressed by name — so a category a user called "all"
+// or "done" gets its own bucket instead of the built-in one.
+type ActiveFilter = { kind: 'smart'; id: TodoSmartFilter } | { kind: 'category'; name: string }
 
 /**
  * To-do sub-tab (spec 03 §4.5-4.7): progress card with "New task", the
@@ -29,7 +34,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   const currentUserId = useAuthStore(s => s.user?.id) ?? null
   const tripMembers = planner.tripMembers
 
-  const [filter, setFilter] = useState<TodoFilter>('all')
+  const [active, setActive] = useState<ActiveFilter>({ kind: 'smart', id: 'all' })
   const [sortByPriority, setSortByPriority] = useState(false)
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [creatingTask, setCreatingTask] = useState(false)
@@ -38,12 +43,18 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   const categories = useMemo(() => todoCategories(items), [items])
   const counts = todoCounts(items, currentUserId, today)
   const rows = useMemo(
-    () => sortTodoRows(filterTodoItems(items, filter, currentUserId, today), sortByPriority, today),
-    [items, filter, currentUserId, today, sortByPriority],
+    () => sortTodoRows(
+      active.kind === 'category'
+        ? filterTodoItemsByCategory(items, active.name)
+        : filterTodoItems(items, active.id, currentUserId, today),
+      sortByPriority,
+      today,
+    ),
+    [items, active, currentUserId, today, sortByPriority],
   )
 
   const pct = items.length > 0 ? Math.round((counts.done / items.length) * 100) : 0
-  const defaultCategoryForNew = !BUILTIN_FILTERS.includes(filter) ? filter : null
+  const defaultCategoryForNew = active.kind === 'category' ? active.name : null
 
   const openCreate = () => { setEditingItemId(null); setCreatingTask(true) }
   const openEdit = (id: number) => { setCreatingTask(false); setEditingItemId(id) }
@@ -55,9 +66,9 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
       active ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'
     }`
 
-  const filterLabel = (f: TodoFilter) =>
+  const filterLabel = (f: TodoSmartFilter) =>
     f === 'all' ? t('todo.filter.all') : f === 'my' ? t('todo.filter.my') : f === 'overdue' ? t('todo.filter.overdue') : t('todo.filter.done')
-  const filterCount = (f: TodoFilter) =>
+  const filterCount = (f: TodoSmartFilter) =>
     f === 'all' ? counts.open : f === 'my' ? counts.my : f === 'overdue' ? counts.overdue : counts.done
 
   return (
@@ -87,7 +98,12 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
       {items.length > 0 && (
         <div className="mt-[10px] flex items-center gap-[6px] overflow-x-auto whitespace-nowrap">
           {BUILTIN_FILTERS.map(f => (
-            <button key={f} type="button" onClick={() => setFilter(f)} className={filterPill(filter === f)}>
+            <button
+              key={f}
+              type="button"
+              onClick={() => setActive({ kind: 'smart', id: f })}
+              className={filterPill(active.kind === 'smart' && active.id === f)}
+            >
               {filterLabel(f)}
               <span className="font-geist text-[0.5625rem] opacity-70">{filterCount(f)}</span>
             </button>
@@ -103,7 +119,12 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
           </button>
           {categories.length > 0 && <span className="h-4 w-px flex-none bg-[color:var(--m-rowbr)]" />}
           {categories.map(cat => (
-            <button key={cat} type="button" onClick={() => setFilter(cat)} className={filterPill(filter === cat)}>
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setActive({ kind: 'category', name: cat })}
+              className={filterPill(active.kind === 'category' && active.name === cat)}
+            >
               {cat}
               <span className="font-geist text-[0.5625rem] opacity-70">{todoCategoryOpenCount(items, cat)}</span>
             </button>
@@ -160,7 +181,11 @@ function TaskCard({ item, members, today, onToggle, onOpen }: {
   const assignee = members.find(m => m.id === item.assigned_user_id)
   const prioColor = item.priority ? PRIORITY_COLOR[item.priority] : undefined
   const avatarSrcUrl = assignee ? assignee.avatar_url || avatarSrc(assignee.avatar) : null
-  const dueLabel = item.due_date ? formatDate(item.due_date, locale) || item.due_date : null
+  // formatDate() renders "Invalid Date" for anything it can't parse — a due date
+  // that isn't a real date stays raw instead.
+  const dueLabel = item.due_date
+    ? (Number.isNaN(Date.parse(`${item.due_date}T00:00:00Z`)) ? item.due_date : formatDate(item.due_date, locale))
+    : null
 
   return (
     <div className={`mt-2 flex items-start gap-[10px] rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[11px] ${done ? 'opacity-60' : ''}`}>

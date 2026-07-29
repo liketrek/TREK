@@ -3486,9 +3486,10 @@ describe('DayPlanSidebar', () => {
     await user.click(screen.getByRole('button', { name: /confirm/i }))
     await waitFor(() => expect(vi.mocked(assignmentsApi.updateTime)).toHaveBeenCalledWith(1, 12, { place_time: null, end_time: null }))
     await waitFor(() => expect(onReorder).toHaveBeenCalledWith(10, [11, 12]))
-    // The non-place rows keep their relative slot while the places are rewritten.
+    // The stop really moves past the booking: the bus lands behind both places
+    // instead of keeping its old slot between them.
     await waitFor(() => expect(vi.mocked(reservationsApi.updatePositions)).toHaveBeenCalledWith(
-      1, [{ id: 541, day_plan_position: expect.any(Number) }], 10,
+      1, [{ id: 541, day_plan_position: 1.5 }], 10,
     ))
   })
 
@@ -3704,6 +3705,16 @@ describe('DayPlanSidebar remaining branches', () => {
 
     const row = cardRow(await screen.findByText('Shuttle'))
     expect(row).not.toHaveTextContent('4B')
+  })
+
+  it('FE-W5DPS-004: metadata that is not valid JSON leaves the row standing', async () => {
+    renderWith([buildReservation({
+      id: 604, type: 'bus', title: 'Night bus', day_id: 10,
+      reservation_time: '2025-06-01T09:00:00', metadata: '{not json',
+    }) as Reservation])
+
+    // The parse used to throw during render and took the whole sidebar with it.
+    expect(await screen.findByText('Night bus')).toBeInTheDocument()
   })
 
   it('FE-W5DPS-005: the place menu offers Save to collection only with the addon on', async () => {

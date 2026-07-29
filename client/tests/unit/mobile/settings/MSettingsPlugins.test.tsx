@@ -293,8 +293,7 @@ describe('MSettingsPlugins', () => {
 
     await screen.findByText('Actions');
     await user.click(screen.getByRole('button', { name: 'Test connection' }));
-    // 'common.success' has no English string, so t() echoes the key
-    await screen.findByText('common.success');
+    await screen.findByText('Success');
 
     await user.click(screen.getByRole('button', { name: 'Probe' }));
     await screen.findByText('Error');

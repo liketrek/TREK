@@ -9,7 +9,7 @@ import { buildPlanner, buildTripActions } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen } from '../../../helpers/render'
 
-// FE-MOB-TODO-001 to FE-MOB-TODO-016
+// FE-MOB-TODO-001 to FE-MOB-TODO-019
 
 // The sheet has its own suite; here it only has to report the props the tab feeds it.
 vi.mock('../../../../src/mobile/screens/trip/tabs/MTaskSheet', () => ({
@@ -292,5 +292,28 @@ describe('MTodoListTab', () => {
 
     expect(sheet()).toHaveAttribute('data-open', 'true')
     expect(sheet()).toHaveAttribute('data-item-id', '42')
+  })
+
+  it('FE-MOB-TODO-018: a category named like a built-in filter keeps its own bucket', () => {
+    setup([
+      todo({ id: 1, name: 'Visa', category: 'done' }),
+      todo({ id: 2, name: 'Insurance', category: 'done', checked: 1 }),
+      todo({ id: 3, name: 'Boots' }),
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: 'done1' }))
+
+    expect(screen.getByText('Visa')).toBeInTheDocument()
+    expect(screen.getByText('Insurance')).toBeInTheDocument()
+    expect(screen.queryByText('Boots')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /todo.newItem/ }))
+    expect(sheet()).toHaveAttribute('data-default-category', 'done')
+  })
+
+  it('FE-MOB-TODO-019: shows an unparseable due date as it is stored', () => {
+    setup([todo({ id: 3, name: 'Book flights', due_date: 'sometime' })])
+
+    expect(screen.getByText('sometime')).toBeInTheDocument()
   })
 })

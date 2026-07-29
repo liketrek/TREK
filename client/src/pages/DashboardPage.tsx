@@ -97,18 +97,6 @@ const RES_ICON: Record<string, React.ReactElement> = {
 }
 const RES_TYPE_CLASS: Record<string, string> = { flight: 'flight', hotel: 'hotel', restaurant: 'food' }
 
-// Mobile gets a different boarding-pass treatment (separate card under the hero).
-function useIsMobile(): boolean {
-  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches)
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 720px)')
-    const onChange = () => setMobile(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-  return mobile
-}
-
 export default function DashboardPage(): React.ReactElement {
   // Phones get the mobile screen, everything else the untouched desktop page.
   // Both branches call hooks of their own, so the split lives above them.
@@ -125,16 +113,16 @@ function DashboardPageDesktop(): React.ReactElement {
     loadError, retryLoad,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
-    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
+    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
     allSubOpen, setAllSubOpen,
   } = useDashboard()
 
-  // Per-device dashboard widget visibility (from the appearance config).
-  const isMobile = useIsMobile()
+  // Dashboard widget visibility (from the appearance config). Phones never reach this
+  // component — DashboardPage routes them to MDashboard — so only the desktop set applies.
   const appearanceCfg = useSettingsStore(s => s.settings.appearance)
   const dashCfg = normalizeAppearance(appearanceCfg).dashboard
-  const sideWidgets = isMobile ? dashCfg.mobile : dashCfg.desktop
+  const sideWidgets = dashCfg.desktop
   const showCurrency = sideWidgets.currency
   const showTimezones = sideWidgets.timezones
   const showUpcoming = sideWidgets.upcomingReservations
@@ -145,7 +133,7 @@ function DashboardPageDesktop(): React.ReactElement {
   // Only true dashboard widgets belong here — hero mounts on the boarding pass, and
   // place-detail/day-detail widgets live inside the planner panels, not the sidebar.
   const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero' && p.slot !== 'place-detail' && p.slot !== 'day-detail' && p.slot !== 'reservation-detail')
-  const sidebarVisible = (isMobile || dashCfg.desktop.sidebar) && (showCurrency || showCollections || showTimezones || showUpcoming || widgetPlugins.length > 0)
+  const sidebarVisible = dashCfg.desktop.sidebar && (showCurrency || showCollections || showTimezones || showUpcoming || widgetPlugins.length > 0)
 
   // Plugin-contributed badges on the trip cards (tripCardProvider hook). One fetch for
   // all visible cards; only runs when at least one plugin is active. Fail-safe.
@@ -285,7 +273,7 @@ function DashboardPageDesktop(): React.ReactElement {
           trip={editingTrip}
           onClose={() => { setShowForm(false); setEditingTrip(null) }}
           onSave={editingTrip ? handleUpdate : handleCreate}
-          onCoverUpdate={(tripId, coverUrl) => setTrips(prev => prev.map(t => t.id === tripId ? { ...t, cover_image: coverUrl } : t))}
+          onCoverUpdate={applyCoverUpdate}
         />
       )}
       {deleteTrip && (
@@ -318,7 +306,6 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
   onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
-  const mobile = useIsMobile()
   const heroPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot === 'hero')
   const stop = (e: React.MouseEvent, fn: () => void) => { e.stopPropagation(); fn() }
   const status = getTripStatus(trip)
@@ -398,7 +385,7 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
         <div className="places-preview">
           {places.slice(0, 3).map(p => (
             <div key={p.id} className="place-av">
-              <PlaceAvatar place={p} size={mobile ? 24 : 32} category={{ color: p.category_color ?? undefined, icon: p.category_icon ?? undefined }} />
+              <PlaceAvatar place={p} size={32} category={{ color: p.category_color ?? undefined, icon: p.category_icon ?? undefined }} />
             </div>
           ))}
           {places.length === 0 && <div className="place-more"><MapPin size={15} /></div>}
@@ -410,7 +397,6 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
   )
 
   return (
-    <>
     <section className="hero-trip" onClick={onOpen}>
       {trip.cover_image
         ? <img className="bg" src={trip.cover_image} alt={trip.title} />
@@ -434,24 +420,20 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
           <h2 className="hero-title">{trip.title}</h2>
         </div>
 
-        {!mobile && (
-          <div className="hero-pass-wrap">
-            {heroPlugins.length > 0 && (
-              <div className="hero-pass-overlay" aria-hidden="true">
-                {heroPlugins.map(p => (
-                  <PluginFrame key={p.id} pluginId={p.id} tripId={String(trip.id)} title={p.name} className="hero-overlay-frame" />
-                ))}
-              </div>
-            )}
-            <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>
-              <div className="hero-pass-inner">{passCells}</div>
+        <div className="hero-pass-wrap">
+          {heroPlugins.length > 0 && (
+            <div className="hero-pass-overlay" aria-hidden="true">
+              {heroPlugins.map(p => (
+                <PluginFrame key={p.id} pluginId={p.id} tripId={String(trip.id)} title={p.name} className="hero-overlay-frame" />
+              ))}
             </div>
+          )}
+          <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>
+            <div className="hero-pass-inner">{passCells}</div>
           </div>
-        )}
+        </div>
       </div>
     </section>
-    {mobile && <section className="pass-card" onClick={onOpen}>{passCells}</section>}
-    </>
   )
 }
 
@@ -471,14 +453,13 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit) || 'metric'
   const appearance = useSettingsStore(s => s.settings.appearance)
-  const isMobile = useIsMobile()
   const dash = normalizeAppearance(appearance).dashboard
 
-  // Per-device widget visibility. Atlas + distance are desktop-only tiles.
-  const showAtlas = !isMobile && dash.desktop.atlas
-  const showTrips = isMobile ? dash.mobile.tripsTotal : dash.desktop.tripsTotal
-  const showDays = isMobile ? dash.mobile.daysTraveled : dash.desktop.daysTraveled
-  const showDistance = !isMobile && dash.desktop.distanceFlown
+  // Widget visibility — this row only ever renders on the desktop page.
+  const showAtlas = dash.desktop.atlas
+  const showTrips = dash.desktop.tripsTotal
+  const showDays = dash.desktop.daysTraveled
+  const showDistance = dash.desktop.distanceFlown
   if (!showAtlas && !showTrips && !showDays && !showDistance) return null
 
   // Reflow: the grid spreads the visible tiles to full width (the passport stays

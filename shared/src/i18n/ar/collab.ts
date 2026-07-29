@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'ابدأ بتسجيل الأفكار والخطط',
   'collab.notes.all': 'الكل',
   'collab.notes.titlePlaceholder': 'عنوان الملاحظة',
+  'collab.notes.content': 'المحتوى',
+  'collab.notes.removeFile': 'إزالة {name}',
   'collab.notes.contentPlaceholder': 'اكتب شيئًا...',
   'collab.notes.categoryPlaceholder': 'الفئة',
   'collab.notes.newCategory': 'فئة جديدة...',

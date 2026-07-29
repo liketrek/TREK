@@ -154,10 +154,9 @@ describe('listsModel — to-do', () => {
     expect(filterTodoItems(items, 'Nope', 7, TODAY)).toEqual([]);
   });
 
-  it('FE-MOB-LSTM-020: without a current user "my" collects the unassigned rows', () => {
-    // Same comparison the desktop sidebar does (useTodoList.ts:74): a null user id
-    // matches every unassigned item, unlike todoCounts which zeroes "my" instead.
-    expect(filterTodoItems(items, 'my', null, TODAY).map(i => i.id)).toEqual([1, 3]);
+  it('FE-MOB-LSTM-020: without a current user "my" is empty, like the badge', () => {
+    expect(filterTodoItems(items, 'my', null, TODAY)).toEqual([]);
+    expect(filterTodoItems(items, 'my', null, TODAY)).toHaveLength(todoCounts(items, null, TODAY).my);
   });
 
   it('FE-MOB-LSTM-014: sortTodoRows floats overdue rows up and sinks done rows', () => {

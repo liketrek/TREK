@@ -196,7 +196,6 @@ export default function MapSettingsTab(): React.ReactElement {
     setSaving(true)
     try {
       const glStyle = provider === 'leaflet' ? mapboxStyle : normalizeStyleForProvider(provider, mapboxStyle)
-      setMapboxStyle(glStyle)
       // Save into the active provider's own slot so the other provider's style survives.
       const stylePatch = provider === 'maplibre-gl' ? { maplibre_style: glStyle } : { mapbox_style: glStyle }
       await updateSettings({
@@ -207,6 +206,8 @@ export default function MapSettingsTab(): React.ReactElement {
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
       })
+      // Only mirror the normalized style into the form once it is actually persisted.
+      setMapboxStyle(glStyle)
       toast.success(t('settings.toast.mapSaved'))
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.error'))

@@ -24,7 +24,7 @@ function useCountryNames(language: string): (code: string) => string {
  * loading, the Leaflet map lifecycle (country + sub-national region layers,
  * bucket markers, viewport-driven region fetching), country/region mark/unmark
  * flows and the country search. AtlasPage stays a wiring container that renders
- * the returned state via its presentational SidebarContent/MobileStats helpers.
+ * the returned state via its presentational SidebarContent helper.
  * Behaviour is identical to the previous in-component logic.
  */
 export function useAtlas() {
@@ -351,7 +351,6 @@ export function useAtlas() {
                   <span style="font-size:12px;font-weight:700">${formatDate(c.lastVisit)}</span>
                 </div>
               </div>
-              </div>
             </div>`
           layer.bindTooltip(tooltipHtml, {
             // sticky so the tooltip tracks the cursor; non-sticky anchors it at the feature's
@@ -596,7 +595,6 @@ export function useAtlas() {
   setConfirmActionRef.current = setConfirmAction
 
   const handleUnmarkCountry = (code: string): void => {
-    const country = data?.countries.find(c => c.code === code)
     setConfirmAction({ type: 'unmark', code, name: resolveName(code) })
   }
 

@@ -1,4 +1,4 @@
-// FE-STORE-COLLECTION-001 to FE-STORE-COLLECTION-055
+// FE-STORE-COLLECTION-001 to FE-STORE-COLLECTION-062
 //
 // The store owns the optimistic updates (status, labels, reorder, bulk delete) and the
 // reload chains that follow every mutation, so the API layer is mocked here and the
@@ -310,6 +310,8 @@ describe('collectionStore — list CRUD', () => {
       activeId: 1,
       places: [buildPlace()],
       members: [{ user_id: 5, username: 'bob', status: 'accepted' }],
+      labels: [{ id: 3, collection_id: 1, name: 'Food' }],
+      labelFilter: [3],
     })
 
     await store().deleteCollection(1)
@@ -318,6 +320,9 @@ describe('collectionStore — list CRUD', () => {
     expect(store().activeId).toBeNull()
     expect(store().places).toEqual([])
     expect(store().members).toEqual([])
+    // Labels belong to the deleted list, so they go with it.
+    expect(store().labels).toEqual([])
+    expect(store().labelFilter).toEqual([])
     expect(collectionsApi.list).toHaveBeenCalled()
   })
 
@@ -464,6 +469,31 @@ describe('collectionStore — place mutations', () => {
     expect(collectionsApi.deleteMany).toHaveBeenCalledWith([10, 11])
   })
 
+  it('FE-STORE-COLLECTION-056: deletePlace() puts the row back when the server refuses', async () => {
+    useCollectionStore.setState({ places: [buildPlace({ id: 10 }), buildPlace({ id: 11 })] })
+    vi.mocked(collectionsApi.deletePlace).mockRejectedValue(new Error('nope'))
+
+    await expect(store().deletePlace(10)).rejects.toThrow('nope')
+
+    expect(store().places.map(p => p.id)).toEqual([10, 11])
+    expect(collectionsApi.list).not.toHaveBeenCalled()
+  })
+
+  it('FE-STORE-COLLECTION-057: deleteMany() restores the rows and the selection on failure', async () => {
+    useCollectionStore.setState({
+      places: [buildPlace({ id: 10 }), buildPlace({ id: 11 })],
+      selectedIds: [10],
+      selectMode: true,
+    })
+    vi.mocked(collectionsApi.deleteMany).mockRejectedValue(new Error('nope'))
+
+    await expect(store().deleteMany([10])).rejects.toThrow('nope')
+
+    expect(store().places.map(p => p.id)).toEqual([10, 11])
+    expect(store().selectedIds).toEqual([10])
+    expect(store().selectMode).toBe(true)
+  })
+
   it('FE-STORE-COLLECTION-031: copyToTrip() forwards the payload and returns the dedup report', async () => {
     vi.mocked(collectionsApi.copyToTrip).mockResolvedValue({ copied: 1, skipped: [{ id: 11, name: 'Shibuya' }] })
 
@@ -498,6 +528,28 @@ describe('collectionStore — place mutations', () => {
 
     expect(store().places).toEqual([])
     expect(collectionsApi.get).not.toHaveBeenCalled()
+  })
+
+  it('FE-STORE-COLLECTION-058: moveToList() only drops the places that actually moved', async () => {
+    useCollectionStore.setState({
+      activeId: 1,
+      places: [buildPlace({ id: 10 }), buildPlace({ id: 11 }), buildPlace({ id: 12 })],
+      selectedIds: [10, 11],
+      selectMode: true,
+    })
+    vi.mocked(collectionsApi.get).mockResolvedValue(
+      detail({ places: [buildPlace({ id: 11 }), buildPlace({ id: 12 })] }),
+    )
+    vi.mocked(collectionsApi.updatePlace)
+      .mockResolvedValueOnce(buildPlace({ id: 10 }))
+      .mockRejectedValueOnce(new Error('nope'))
+
+    await expect(store().moveToList([10, 11], 2)).rejects.toThrow('nope')
+
+    // The list is refreshed either way, so the open list matches the server again.
+    expect(collectionsApi.get).toHaveBeenCalledWith(1)
+    expect(store().places.map(p => p.id)).toEqual([11, 12])
+    expect(store().selectedIds).toEqual([])
   })
 
   it('FE-STORE-COLLECTION-034: duplicateToList() re-saves each place into the target list', async () => {
@@ -672,6 +724,42 @@ describe('collectionStore — labels', () => {
     expect(collectionsApi.unassignLabels).toHaveBeenCalledWith([3], [10])
     expect(collectionsApi.assignLabels).not.toHaveBeenCalled()
   })
+  it('FE-STORE-COLLECTION-059: updateLabel() undoes the recolor when the server refuses', async () => {
+    useCollectionStore.setState({ activeId: 1, labels: [{ id: 3, collection_id: 1, name: 'Food', color: '#ef4444' }] })
+    vi.mocked(collectionsApi.updateLabel).mockRejectedValue(new Error('nope'))
+
+    await expect(store().updateLabel(3, { color: '#22c55e' })).rejects.toThrow('nope')
+
+    expect(store().labels[0]!.color).toBe('#ef4444')
+    expect(collectionsApi.get).not.toHaveBeenCalled()
+  })
+
+  it('FE-STORE-COLLECTION-060: deleteLabel() restores the label, its filter and its assignments', async () => {
+    useCollectionStore.setState({
+      activeId: 1,
+      labels: [{ id: 3, collection_id: 1, name: 'Food' }],
+      labelFilter: [3],
+      places: [buildPlace({ id: 10, label_ids: [3] })],
+    })
+    vi.mocked(collectionsApi.deleteLabel).mockRejectedValue(new Error('nope'))
+
+    await expect(store().deleteLabel(3)).rejects.toThrow('nope')
+
+    expect(store().labels.map(l => l.id)).toEqual([3])
+    expect(store().labelFilter).toEqual([3])
+    expect(store().places[0]!.label_ids).toEqual([3])
+  })
+
+  it('FE-STORE-COLLECTION-061: assignLabels() rolls the chips back on failure', async () => {
+    useCollectionStore.setState({ activeId: 1, places: [buildPlace({ id: 10, label_ids: [] })] })
+    vi.mocked(collectionsApi.assignLabels).mockRejectedValue(new Error('nope'))
+
+    await expect(store().assignLabels([3], [10])).rejects.toThrow('nope')
+
+    expect(store().places[0]!.label_ids).toEqual([])
+    expect(collectionsApi.get).not.toHaveBeenCalled()
+  })
+
 })
 
 describe('collectionStore — members and invitations', () => {
@@ -748,6 +836,8 @@ describe('collectionStore — members and invitations', () => {
       activeId: 1,
       places: [buildPlace()],
       members: [{ user_id: 5, username: 'bob', status: 'accepted' }],
+      labels: [{ id: 3, collection_id: 1, name: 'Food' }],
+      labelFilter: [3],
     })
     vi.mocked(collectionsApi.list).mockResolvedValue(listResponse({ collections: [] }))
 
@@ -757,6 +847,9 @@ describe('collectionStore — members and invitations', () => {
     expect(store().activeId).toBeNull()
     expect(store().places).toEqual([])
     expect(store().members).toEqual([])
+    // Labels belong to the list we just left.
+    expect(store().labels).toEqual([])
+    expect(store().labelFilter).toEqual([])
     expect(store().collections).toEqual([])
   })
 

@@ -260,6 +260,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Foto de perfil actualizada',
   'settings.avatarRemoved': 'Foto de perfil eliminada',
   'settings.avatarError': 'Falló la subida',
+  'settings.avatarRemoveError': 'Error al eliminar',
   'settings.bookingLabels': 'Etiquetas de rutas de reservas',
   'settings.bookingLabelsHint':
     'Muestra nombres de estaciones / aeropuertos en el mapa. Desactivado, solo se muestra el icono.',

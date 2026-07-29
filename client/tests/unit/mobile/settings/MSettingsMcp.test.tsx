@@ -149,11 +149,16 @@ describe('MSettingsMcp', () => {
   it('FE-MOB-SETMCP-007: a preset fills the create form and registers the client with split URIs', async () => {
     const user = userEvent.setup();
     let body: Record<string, unknown> | null = null;
+    // The list is re-read after the registration, so the server keeps the
+    // registered client and hands back its normalised name.
+    const registered: unknown[] = [];
     server.use(
       http.post('/api/oauth/clients', async ({ request }) => {
         body = (await request.json()) as Record<string, unknown>;
+        registered.push({ ...OAUTH_CLIENT, id: 'new', name: 'Claude.ai (web)', client_id: 'clid-new' });
         return HttpResponse.json({ client: { ...OAUTH_CLIENT, id: 'new', client_id: 'clid-new', client_secret: 'sec-new' } });
       }),
+      http.get('/api/oauth/clients', () => HttpResponse.json({ clients: registered })),
     );
     renderScreen();
 
@@ -178,8 +183,8 @@ describe('MSettingsMcp', () => {
 
     expect(screen.getByText('clid-new')).toBeInTheDocument();
     expect(screen.getByText('sec-new')).toBeInTheDocument();
-    // The freshly created client is appended to the list without its secret
-    expect(screen.getAllByText('Claude Web').length).toBeGreaterThan(0);
+    // The row comes from the re-read, so it carries the server's name
+    expect(await screen.findByText('Claude.ai (web)')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETMCP-008: the created-client sheet ignores Escape and closes on Done', async () => {

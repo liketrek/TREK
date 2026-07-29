@@ -2,23 +2,34 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen } from '../../../helpers/render'
 import MTripLoadingSplash from '../../../../src/mobile/screens/trip/MTripLoadingSplash'
 
-// FE-MOB-SPLASH-001 to FE-MOB-SPLASH-010
+// FE-MOB-SPLASH-001 to FE-MOB-SPLASH-012
 
 const STEP_MS = 1400
 
 const origMatchMedia = window.matchMedia
 
+/** One shared query object per stub so a test can flip `matches` and notify. */
+let mediaQuery: { matches: boolean; listeners: Set<() => void> }
+
 function stubReducedMotion(matches: boolean) {
+  mediaQuery = { matches, listeners: new Set() }
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches,
+    get matches() { return mediaQuery.matches },
     media: query,
     onchange: null,
     addListener: vi.fn(),
     removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
+    addEventListener: (_type: string, fn: () => void) => mediaQuery.listeners.add(fn),
+    removeEventListener: (_type: string, fn: () => void) => mediaQuery.listeners.delete(fn),
     dispatchEvent: vi.fn(),
   })) as unknown as typeof window.matchMedia
+}
+
+function setReducedMotion(matches: boolean) {
+  act(() => {
+    mediaQuery.matches = matches
+    mediaQuery.listeners.forEach(fn => fn())
+  })
 }
 
 const tick = (ms: number) => act(() => { vi.advanceTimersByTime(ms) })
@@ -122,6 +133,28 @@ describe('MTripLoadingSplash', () => {
 
     const stage = container.querySelector('.trek--dashboard')?.parentElement
     expect(stage?.getAttribute('style')).toBeNull()
+  })
+
+  it('FE-MOB-SPLASH-011: follows the OS setting while the splash is up', () => {
+    const { container } = render(<MTripLoadingSplash title="Japan 2026" />)
+    expect(screen.getByText('Packing your bags...')).toBeInTheDocument()
+
+    setReducedMotion(true)
+
+    expect(screen.getByText('Loading place photos...')).toBeInTheDocument()
+    expect(activeDotIndex(container)).toBe(2)
+
+    tick(STEP_MS * 2)
+    expect(screen.getByText('Loading place photos...')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-SPLASH-012: drops the media listener on unmount', () => {
+    const { unmount } = render(<MTripLoadingSplash title="Japan 2026" />)
+
+    expect(mediaQuery.listeners.size).toBe(1)
+    unmount()
+
+    expect(mediaQuery.listeners.size).toBe(0)
   })
 
   it('FE-MOB-SPLASH-010: clears its beat interval on unmount', () => {

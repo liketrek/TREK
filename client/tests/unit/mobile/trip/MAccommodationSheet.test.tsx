@@ -183,6 +183,12 @@ describe('MAccommodationSheet', () => {
     expect(shell.openSheet).toHaveBeenCalledWith('day', { dayId: 11 })
   })
 
+  it('FE-MOB-ACCSH-011b: an edit opened without a dayId returns to the stay\'s start day', () => {
+    const { shell } = setup(makePlanner(), makeShell({ accId: 77 }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(shell.openSheet).toHaveBeenCalledWith('day', { dayId: 12 })
+  })
+
   it('FE-MOB-ACCSH-012: the All chip spans the whole trip and reaches the payload', async () => {
     const create = vi.spyOn(accommodationsApi, 'create').mockResolvedValue({})
     setup()

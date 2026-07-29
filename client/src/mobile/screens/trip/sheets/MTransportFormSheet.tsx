@@ -194,6 +194,10 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
       // day drag, insertDay or a trip-date shift (mirrors TransportModal).
       const endpointDayId = (ep?: { local_date?: string | null } | null) =>
         editingTransport ? '' : resolveDayId(days, ep?.local_date)
+      // Origin and destination fall back to the reservation's own day columns. An
+      // intermediate stop has none, so when metadata.legs is missing (imported or
+      // MCP-created bookings) its local_date is the only day left to seed from.
+      const stopDayId = (ep?: { local_date?: string | null } | null) => resolveDayId(days, ep?.local_date)
 
       if (type === 'flight') {
         const orderedEps = orderedEndpoints(src)
@@ -206,11 +210,12 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
             const legOut = metaLegs[i]
             const isFirst = i === 0
             const isLast = i === orderedEps.length - 1
+            const stopDay = !isFirst && !isLast ? stopDayId(ep) : ''
             return {
               airport: airportFromEndpoint(ep),
-              arrDayId: legInto?.arr_day_id ?? (endpointDayId(ep) || (isLast ? (src.end_day_id ?? '') : '')),
+              arrDayId: legInto?.arr_day_id ?? (endpointDayId(ep) || (isLast ? (src.end_day_id ?? '') : stopDay)),
               arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
-              depDayId: legOut?.dep_day_id ?? (endpointDayId(ep) || (isFirst ? (src.day_id ?? '') : '')),
+              depDayId: legOut?.dep_day_id ?? (endpointDayId(ep) || (isFirst ? (src.day_id ?? '') : stopDay)),
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               airline: legOut?.airline ?? (isFirst ? (meta.airline ?? '') : ''),
               flight_number: legOut?.flight_number ?? (isFirst ? (meta.flight_number ?? '') : ''),
@@ -243,11 +248,12 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
             const legOut = metaLegs[i]
             const isFirst = i === 0
             const isLast = i === orderedEps.length - 1
+            const stopDay = !isFirst && !isLast ? stopDayId(ep) : ''
             return {
               location: locationFromEndpoint(ep),
-              arrDayId: legInto?.arr_day_id ?? (endpointDayId(ep) || (isLast ? (src.end_day_id ?? '') : '')),
+              arrDayId: legInto?.arr_day_id ?? (endpointDayId(ep) || (isLast ? (src.end_day_id ?? '') : stopDay)),
               arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
-              depDayId: legOut?.dep_day_id ?? (endpointDayId(ep) || (isFirst ? (src.day_id ?? '') : '')),
+              depDayId: legOut?.dep_day_id ?? (endpointDayId(ep) || (isFirst ? (src.day_id ?? '') : stopDay)),
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               train_number: legOut?.train_number ?? (isFirst ? (meta.train_number ?? '') : ''),
               platform: legOut?.platform ?? (isFirst ? (meta.platform ?? '') : ''),
@@ -357,9 +363,13 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
       const firstWp = flightWps[0]
       const lastWp = flightWps[flightWps.length - 1]
       const trainWps = form.type === 'train' ? trainWaypoints : []
-      const firstTrainWp = trainWps[0]
-      const lastTrainWp = trainWps[trainWps.length - 1]
-      const trainStations = form.type === 'train' ? trainWaypoints.filter(w => w.location) : []
+      const trainStations = trainWps.filter(w => w.location)
+      // The day/time anchors have to be the rows that actually become endpoints
+      // (same as the flight path); only a train without a single picked station
+      // falls back to the raw rows so its day and time survive.
+      const trainAnchors = trainStations.length > 0 ? trainStations : trainWps
+      const firstTrainWp = trainAnchors[0]
+      const lastTrainWp = trainAnchors[trainAnchors.length - 1]
       // Per-leg day-plan positions are owned by the day planner — keep them on re-save.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const origLegs: any[] = res ? (parseReservationMetadata(res).legs || []) : []

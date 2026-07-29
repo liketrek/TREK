@@ -117,14 +117,14 @@ describe('MBrowseActionsSheet', () => {
     expect(planner.handleAssignToDay).toHaveBeenCalledWith(77, 2)
   })
 
-  it('FE-MOB-BRACT-011: numbers an untitled, undated day by position and falls back to "?" for a zero', () => {
+  it('FE-MOB-BRACT-011: numbers an untitled, undated day by its position when day_number is missing or zero', () => {
     const days = [
       { id: 9, trip_id: 5, day_number: null, date: null, title: null },
       { id: 10, trip_id: 5, day_number: 0, date: null, title: null },
     ] as unknown as Day[]
     setup({ days }, { sheet: { id: 'bract', payload: { placeId: 77, dayPicker: true } } })
     expect(screen.getByRole('button', { name: 'Day 1' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Day ?' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Day 2' })).toBeInTheDocument()
   })
 
   it('FE-MOB-BRACT-012: delete routes through the planner confirm flow', () => {

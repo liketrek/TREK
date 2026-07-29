@@ -76,6 +76,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Copiar al viatge',
   'collections.copyN': 'Copia {count} al viatge',
   'collections.copyToTripSearch': 'Cercar viatges',
+  'collections.searchLists': 'Cerca llistes',
   'collections.copyToTripConfirm': 'Copiar',
   'collections.noTrips': 'Encara no hi ha viatges',
   'collections.alreadyInTrip': 'Ja es troba en aquest viatge',

@@ -202,7 +202,6 @@ function TripInviteLinkSection({ tripId, t }: { tripId: number; t: (key: string,
   }
 
   const copy = () => {
-    if (!inviteUrl) return
     navigator.clipboard.writeText(inviteUrl)
     setCopied(true)
     if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
@@ -324,7 +323,6 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
   }
 
   const handleAdd = async () => {
-    if (!selectedUserId) return
     setAdding(true)
     try {
       const target = allUsers.find(u => String(u.id) === String(selectedUserId))
@@ -370,7 +368,14 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
     }
   }
 
+  // Enter commits, and the blur that follows would send the same rename a second
+  // time. Only the first commit per editing session goes through; a failed one
+  // reopens the gate so the user can retry from the still-open input.
+  const renameCommittedRef = useRef(false)
+
   const handleRenameGuest = async (userId) => {
+    if (renameCommittedRef.current) return
+    renameCommittedRef.current = true
     const name = renameValue.trim()
     if (!name) { setRenamingGuestId(null); return }
     try {
@@ -378,6 +383,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
       setRenamingGuestId(null)
       await loadMembers(true)
     } catch (err: unknown) {
+      renameCommittedRef.current = false
       toast.error(getApiErrorMessage(err, t('members.guestRenameError')))
     }
   }
@@ -572,7 +578,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
                     autoFocus
                     value={renameValue}
                     onChange={e => setRenameValue(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleRenameGuest(g.id); if (e.key === 'Escape') setRenamingGuestId(null) }}
+                    onKeyDown={e => { if (e.key === 'Enter') handleRenameGuest(g.id); if (e.key === 'Escape') { renameCommittedRef.current = true; setRenamingGuestId(null) } }}
                     onBlur={() => handleRenameGuest(g.id)}
                     maxLength={50}
                     className="bg-surface border border-edge text-content"
@@ -589,7 +595,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
                 {isCurrentOwner && renamingGuestId !== g.id && (
                   <>
                     <button
-                      onClick={() => { setRenamingGuestId(g.id); setRenameValue(g.username) }}
+                      onClick={() => { renameCommittedRef.current = false; setRenamingGuestId(g.id); setRenameValue(g.username) }}
                       title={t('common.rename')}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
                       onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}

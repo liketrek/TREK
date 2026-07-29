@@ -1,4 +1,4 @@
-// FE-MOB-COLADD-001 to FE-MOB-COLADD-014
+// FE-MOB-COLADD-001 to FE-MOB-COLADD-015
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -305,5 +305,21 @@ describe('MCollAddSheet', () => {
     rerender(<MCollAddSheet {...baseProps({ open: false })} />)
     rerender(<MCollAddSheet {...baseProps()} />)
     expect(screen.getByPlaceholderText('common.name')).toHaveValue('')
+  })
+
+  it('FE-MOB-COLADD-015: a list arriving after the open still becomes the default target', async () => {
+    const user = userEvent.setup()
+    const seen = mockSave()
+    const { rerender } = render(<MCollAddSheet {...baseProps({ collectionId: null, lists: [] })} />)
+
+    expect(screen.getByText('collections.noListsYet')).toBeInTheDocument()
+    // The collection list only resolves once the sheet is already open.
+    rerender(<MCollAddSheet {...baseProps({ collectionId: null })} />)
+
+    await user.type(screen.getByPlaceholderText('common.name'), 'Alster')
+    await user.click(screen.getByRole('button', { name: /common.add/ }))
+
+    await waitFor(() => expect(seen.body).toBeDefined())
+    expect(seen.body).toMatchObject({ collection_id: 1 })
   })
 })

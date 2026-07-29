@@ -165,7 +165,7 @@ describe('daysSlice', () => {
       expect(useTripStore.getState().days.map(d => d.id)).toEqual([1, 5]);
     });
 
-    it('FE-TSLICE-DAYS-008: restores the day list and throws when the insert fails', async () => {
+    it('FE-TSLICE-DAYS-008: leaves the day list untouched and throws when the insert fails', async () => {
       seedStore(useTripStore, { days: datedDays() });
       server.use(
         http.post('/api/trips/1/days', () =>
@@ -174,6 +174,7 @@ describe('daysSlice', () => {
       );
 
       await expect(useTripStore.getState().insertDay(1, 2)).rejects.toThrow('Trip is locked');
+      // The insert never writes optimistically, so a failure needs no rollback.
       expect(useTripStore.getState().days.map(d => d.id)).toEqual([1, 2, 3]);
     });
   });

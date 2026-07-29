@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Вибрати все',
   'common.deselectAll': 'Зняти виділення з усіх',
   'common.error': 'Помилка',
+  'common.success': 'Успішно',
   'common.unknownError': 'Невідома помилка',
   'common.tooManyAttempts': 'Занадто багато спроб. Спробуйте пізніше.',
   'common.back': 'Назад',

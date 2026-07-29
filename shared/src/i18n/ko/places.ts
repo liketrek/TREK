@@ -66,6 +66,7 @@ const places: TranslationStrings = {
   'places.formLng': '경도 (예: 2.3522)',
   'places.formCategory': '카테고리',
   'places.noCategory': '카테고리 없음',
+  'places.newCategory': '새 카테고리',
   'places.categoryNamePlaceholder': '카테고리 이름',
   'places.formTime': '시간',
   'places.startTime': '시작',
@@ -95,5 +96,6 @@ const places: TranslationStrings = {
   'places.changeImage': '이미지 변경',
   'places.removeImage': '이미지 제거',
   'places.imageUploadError': '이미지를 업로드할 수 없습니다',
+  'places.imageRemoveError': '이미지를 제거할 수 없습니다',
 };
 export default places;

@@ -108,7 +108,15 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
       </div>
 
       {/* Media + nav */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div
+        className="relative flex min-h-0 flex-1 items-center justify-center"
+        onClick={e => {
+          if (e.target !== e.currentTarget) return
+          // Without this the click also reaches the overlay handler above.
+          e.stopPropagation()
+          onClose()
+        }}
+      >
         {hasPrev && (
           <button
             type="button"

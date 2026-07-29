@@ -454,6 +454,30 @@ describe('MVacaySettingsSheet', () => {
     expect(deleteHolidayCalendar).toHaveBeenCalledWith(6);
   });
 
+  it('FE-MOB-MVACSET-024d: a group calendar keeps its country and its region picker', async () => {
+    const updateHolidayCalendar = vi.fn(async (_id: number, _data: Record<string, unknown>) => {});
+    seedPlan(
+      buildPlan({
+        school_holidays_enabled: true,
+        holiday_calendars: [
+          { id: 7, plan_id: 1, region: 'NL|group:NL-NO', label: 'Noord', color: '#bbf7d0', sort_order: 0, type: 'school_holiday' },
+        ],
+      }),
+      { updateHolidayCalendar },
+    );
+    renderSheet();
+    await waitForCountries();
+
+    // The `|group:` suffix must not leak into the country, or the lookup comes back empty.
+    const country = screen.getByRole('combobox', { name: 'Select country' });
+    expect(country).toHaveValue('NL');
+    const region = await screen.findByRole('combobox', { name: 'Select region (optional)' });
+    expect(region).toHaveValue('NL|group:NL-NO');
+
+    fireEvent.change(region, { target: { value: 'NL|group:NL-ZU' } });
+    expect(updateHolidayCalendar).toHaveBeenCalledWith(7, { region: 'NL|group:NL-ZU' });
+  });
+
   it('FE-MOB-MVACSET-024c: the school draft can be cancelled again', () => {
     seedPlan(buildPlan({ school_holidays_enabled: true }));
     renderSheet();

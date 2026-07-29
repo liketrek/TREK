@@ -1,4 +1,4 @@
-// FE-W4UPQ-001 to FE-W4UPQ-010
+// FE-W4UPQ-001 to FE-W4UPQ-012
 import { describe, it, expect, vi } from 'vitest'
 import { uploadFilesResilient, type UploadOpts, type UploadProgress } from './uploadQueue'
 
@@ -138,5 +138,21 @@ describe('uploadFilesResilient', () => {
 
     expect(uploadOne).not.toHaveBeenCalled()
     expect(res).toEqual({ succeeded: [], failed: [] })
+  })
+
+  it('FE-W4UPQ-012: the bytes of an aborted attempt do not survive into the retry', async () => {
+    const seen: UploadProgress[] = []
+    let attempt = 0
+    const uploadOne = async (f: File, opts: UploadOpts) => {
+      attempt++
+      opts.onUploadProgress({ loaded: f.size / 2, total: f.size } as never)
+      if (attempt === 1) throw new Error('connection reset')
+      return [f.name]
+    }
+
+    await uploadFilesResilient([file('a.txt', 200)], uploadOne, { retries: 1, onProgress: p => { seen.push(p) } })
+
+    // 50% from the aborted attempt, then back to 0 before the retry reports its own.
+    expect(seen.map(p => p.percent)).toEqual([50, 0, 50, 100])
   })
 })

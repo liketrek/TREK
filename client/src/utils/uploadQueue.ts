@@ -67,7 +67,14 @@ export async function uploadFilesResilient<T>(
 
       let items: T[] | null = null
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        if (attempt > 0) await sleep(400 * attempt)
+        if (attempt > 0) {
+          // The aborted attempt's bytes never landed, so drop them before the
+          // retry starts reporting its own — otherwise they'd be counted twice
+          // until the first onUploadProgress of the new attempt arrives.
+          loadedMap.set(i, 0)
+          emitProgress()
+          await sleep(400 * attempt)
+        }
         try {
           items = await uploadOne(file, {
             idempotencyKey,

@@ -10,7 +10,7 @@ import type { Accommodation, Assignment, Day, DayNote, Reservation } from '../..
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-DAYSH-001 to FE-MOB-DAYSH-027
+// FE-MOB-DAYSH-001 to FE-MOB-DAYSH-028
 
 const DAYS = [
   { id: 1, trip_id: 5, day_number: 1, date: '2026-05-01', title: null },
@@ -388,5 +388,14 @@ describe('MDaySheet', () => {
     expect(screen.queryByRole('button', { name: /Add accommodation/ })).not.toBeInTheDocument()
     // The route pill is a view toggle, not an edit — it survives.
     expect(screen.getByRole('button', { name: 'Route' })).toBeInTheDocument()
+  })
+
+  it('FE-MOB-DAYSH-028: numbers an untitled day by its position when day_number is 0', async () => {
+    const days = [
+      { id: 1, trip_id: 5, day_number: 1, date: '2026-05-01', title: null },
+      { id: 2, trip_id: 5, day_number: 0, date: '2026-05-02', title: null },
+    ] as unknown as Day[]
+    await renderSheet(makePlanner({ days, tripAccommodations: [] }))
+    expect(screen.getByRole('dialog', { name: 'Day 2' })).toBeInTheDocument()
   })
 })

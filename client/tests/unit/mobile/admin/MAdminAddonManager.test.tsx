@@ -1,4 +1,4 @@
-// FE-MOB-AADD-001 to FE-MOB-AADD-023
+// FE-MOB-AADD-001 to FE-MOB-AADD-025
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -432,6 +432,26 @@ describe('MAdminAddonManager', () => {
     await user.click(screen.getByRole('button', { name: 'Pull' }));
 
     await screen.findByText('no disk space');
+    expect(screen.getByRole('button', { name: 'Pull' })).toBeEnabled();
+  });
+
+  it('FE-MOB-AADD-025: an error frame in the pull stream aborts the pull', async () => {
+    const user = userEvent.setup();
+    server.use(
+      addonsRoute([llmAddon({ provider: 'local' })]),
+      modelsRoute([]),
+      http.post('/api/admin/llm/local/pull', () => new HttpResponse(
+        '{"status":"pulling manifest"}\n{"error":"manifest not found"}\n',
+        { headers: { 'Content-Type': 'application/x-ndjson' } },
+      )),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+
+    await screen.findByText('No models installed yet — pull one below.');
+    await user.click(screen.getByRole('button', { name: 'Pull' }));
+
+    await screen.findByText('manifest not found');
+    expect(screen.queryByText('Model pulled')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pull' })).toBeEnabled();
   });
 

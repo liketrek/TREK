@@ -8,7 +8,7 @@ import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen } from '../../../helpers/render'
 
-// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-045
+// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-046
 //
 // The sheet's own pickers (airport/location search, day select, time picker) and
 // the embedded transit panel are replaced by minimal controlled stand-ins so the
@@ -448,6 +448,28 @@ describe('MTransportFormSheet', () => {
     ])
   })
 
+  it('FE-MOB-TRFRM-046: a train row without a picked station no longer anchors the arrival', async () => {
+    const handleSaveTransport = makeSave()
+    renderSheet(makePlanner({ handleSaveTransport }))
+    fireEvent.click(screen.getByRole('button', { name: 'reservations.type.train' }))
+    typeTitle('Osaka departure')
+    setValue(locationInputs()[0], 'osaka')
+    setValue(daySelects()[0], '12')
+    setValue(timeInputs()[0], '07:45')
+    // The arrival row carries a day and a time but never gets a station.
+    setValue(daySelects()[1], '13')
+    setValue(timeInputs()[1], '09:12')
+
+    await submit()
+
+    const payload = handleSaveTransport.mock.calls[0][0]
+    expect(payload.endpoints).toEqual([expect.objectContaining({ role: 'from', name: 'Osaka Station' })])
+    expect(payload.day_id).toBe(12)
+    expect(payload.reservation_time).toBe('2026-05-02T07:45')
+    expect(payload.end_day_id).toBeNull()
+    expect(payload.reservation_end_time).toBeNull()
+  })
+
   it('FE-MOB-TRFRM-043: removing a train stop restores the two-station route', () => {
     renderSheet(makePlanner())
     fireEvent.click(screen.getByRole('button', { name: 'reservations.type.train' }))
@@ -470,9 +492,10 @@ describe('MTransportFormSheet', () => {
     renderSheet(makePlanner({ editingTransport }))
 
     expect(locationInputs().map(i => i.value)).toEqual(['Osaka Station', 'Nara Station', 'Kyoto Station'])
-    // The stop's own local_time seeds both its arrival and its departure.
+    // The stop's own local_time and local_date seed both its arrival and its departure —
+    // without metadata.legs the endpoint is the only record of the stop's day.
     expect(timeInputs().map(i => i.value)).toEqual(['08:00', '08:40', '08:40', '09:35'])
-    expect(daySelects().map(s => s.value)).toEqual(['12', '', '', '13'])
+    expect(daySelects().map(s => s.value)).toEqual(['12', '12', '12', '13'])
     expect(screen.getAllByPlaceholderText('ICE 123')[0]).toHaveValue('JR 12')
     expect(screen.getAllByPlaceholderText('42A')[0]).toHaveValue('5B')
   })

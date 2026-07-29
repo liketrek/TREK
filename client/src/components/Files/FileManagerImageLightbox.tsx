@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ExternalLink, Download, X, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import type { TripFile } from '../../types'
@@ -41,7 +41,7 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [onClose])
 
   if (!file) return null
 
@@ -128,11 +128,30 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
 function ThumbImg({ file, active, onClick }: { file: TripFile & { url: string }; active: boolean; onClick: () => void }) {
   const fileIsVideo = isVideo(file.mime_type)
   const [src, setSrc] = useState('')
+  const [visible, setVisible] = useState(false)
+  const ref = useRef<HTMLButtonElement>(null)
+
+  // Each thumbnail costs its own one-shot download token, so the strip only
+  // mints them for the thumbs that actually scroll into view.
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof IntersectionObserver !== 'function') { setVisible(true); return }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); io.disconnect() } }, { rootMargin: '200px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
   // Videos have no stored thumbnail and can't render as an <img>; show a play
   // placeholder and don't mint a download token for them (#823).
-  useEffect(() => { if (!fileIsVideo) getAuthUrl(file.url, 'download').then(setSrc) }, [file.url, fileIsVideo])
+  useEffect(() => {
+    if (!visible || fileIsVideo) return
+    let current = true
+    getAuthUrl(file.url, 'download').then(u => { if (current) setSrc(u) })
+    return () => { current = false }
+  }, [file.url, fileIsVideo, visible])
+
   return (
-    <button onClick={onClick} style={{
+    <button ref={ref} onClick={onClick} style={{
       width: 48, height: 48, borderRadius: 6, overflow: 'hidden', border: active ? '2px solid #fff' : '2px solid transparent',
       opacity: active ? 1 : 0.5, cursor: 'pointer', padding: 0, background: '#111', flexShrink: 0, transition: 'opacity 0.15s',
       display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)',

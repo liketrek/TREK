@@ -560,7 +560,7 @@ describe('AddonManager', () => {
     });
   });
 
-  it('FE-ADMIN-ADDON-027: an error frame in the pull stream is tolerated and the row returns to idle', async () => {
+  it('FE-ADMIN-ADDON-027: an error frame in the pull stream aborts the pull and is reported', async () => {
     const user = userEvent.setup();
     server.use(
       addonsRoute([llmAddon({ provider: 'local' })]),
@@ -575,6 +575,8 @@ describe('AddonManager', () => {
     await screen.findByText('No models installed yet — pull one below.');
     await user.click(screen.getByRole('button', { name: 'Pull' }));
 
+    await screen.findByText('manifest not found');
+    expect(screen.queryByText('Model pulled')).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Pull' })).toBeEnabled());
     expect(screen.queryByText('Pulling…')).not.toBeInTheDocument();
   });

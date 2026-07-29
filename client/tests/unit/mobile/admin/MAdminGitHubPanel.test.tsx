@@ -1,4 +1,4 @@
-// FE-MOB-AGH-001 to FE-MOB-AGH-018
+// FE-MOB-AGH-001 to FE-MOB-AGH-019
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
@@ -252,20 +252,26 @@ describe('MAdminGitHubPanel', () => {
     expect(screen.queryByText('Load more')).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-AGH-017: a failing "Load more" swaps the timeline for the error card', async () => {
+  it('FE-MOB-AGH-017: a failing "Load more" keeps the timeline and can be retried', async () => {
     let calls = 0;
     server.use(
       http.get('/api/admin/github-releases', () => {
         calls += 1;
-        if (calls === 1) return HttpResponse.json(PAGE_1);
-        return HttpResponse.json({ message: 'nope' }, { status: 500 });
+        if (calls === 2) return HttpResponse.json({ message: 'nope' }, { status: 500 });
+        return HttpResponse.json(calls === 1 ? PAGE_1 : PAGE_2);
       }),
     );
     const user = userEvent.setup();
     await renderPanel();
 
     await user.click(screen.getByText('Load more'));
-    await screen.findByText('Failed to load releases');
+    await screen.findByText(/Failed to load releases/);
+    expect(screen.getAllByText(/^v1\.\d\.0$/)).toHaveLength(10);
+
+    // the retry succeeds and clears the error
+    await user.click(screen.getByText('Load more'));
+    expect(await screen.findByText('v0.0.0')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/Failed to load releases/)).not.toBeInTheDocument());
   });
 
   it('FE-MOB-AGH-018: a non-array response is treated as an empty release list', async () => {
@@ -275,5 +281,21 @@ describe('MAdminGitHubPanel', () => {
     expect(screen.getByText('Release History')).toBeInTheDocument();
     expect(screen.queryByText('Load more')).not.toBeInTheDocument();
     expect(screen.queryByText('Latest')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-AGH-019: skips over a full page that only contains prereleases', async () => {
+    const prereleasePage = Array.from({ length: 10 }, (_, i) =>
+      buildRelease({ id: 200 + i, tag_name: `v4.0.0-beta.${i}`, prerelease: true }),
+    );
+    server.use(
+      http.get('/api/admin/github-releases', ({ request }) => {
+        const page = new URL(request.url).searchParams.get('page');
+        return HttpResponse.json(page === '1' ? prereleasePage : PAGE_2);
+      }),
+    );
+    await renderPanel();
+
+    expect(screen.getByText('v0.0.0')).toBeInTheDocument();
+    expect(screen.queryByText('Load more')).not.toBeInTheDocument();
   });
 });

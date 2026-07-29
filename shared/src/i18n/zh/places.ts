@@ -66,6 +66,7 @@ const places: TranslationStrings = {
   'places.formLng': '经度（如 2.3522）',
   'places.formCategory': '分类',
   'places.noCategory': '无分类',
+  'places.newCategory': '新建分类',
   'places.categoryNamePlaceholder': '分类名称',
   'places.formTime': '时间',
   'places.startTime': '开始',
@@ -93,5 +94,6 @@ const places: TranslationStrings = {
   'places.changeImage': '更换图片',
   'places.removeImage': '移除图片',
   'places.imageUploadError': '无法上传图片',
+  'places.imageRemoveError': '无法删除图片',
 };
 export default places;

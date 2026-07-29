@@ -431,6 +431,27 @@ describe('EntryEditor', () => {
     expect(await screen.findByText('No connected photo providers are available.')).toBeInTheDocument()
   })
 
+  it('FE-JRN-EDITOR-019b: leaving the external tab while the providers load does not strand the picker', async () => {
+    server.use(
+      http.get('/api/addons', async () => {
+        await delay(120)
+        return HttpResponse.json({
+          addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', icon: 'camera', enabled: true }],
+        })
+      }),
+      http.get('/api/integrations/memories/immich/status', () => HttpResponse.json({ connected: true })),
+      http.post('/api/integrations/memories/immich/search', () => HttpResponse.json({ assets: [], hasMore: false })),
+    )
+    const user = userEvent.setup()
+    mountEditor(buildEntry({ id: 10 }))
+
+    await user.click(screen.getByRole('button', { name: 'External photos' }))
+    await user.click(screen.getByRole('button', { name: /Upload photos/ }))
+    await user.click(screen.getByRole('button', { name: 'External photos' }))
+
+    expect(await screen.findByTestId('journey-external-provider-immich')).toBeInTheDocument()
+  })
+
   it('FE-JRN-EDITOR-020: queues photos picked from a connected provider and clears them again', async () => {
     useConnectedImmich()
     const user = userEvent.setup()

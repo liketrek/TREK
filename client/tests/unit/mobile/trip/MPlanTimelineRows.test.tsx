@@ -7,7 +7,7 @@ import type { TransitMeta, TransportEntry } from '../../../../src/mobile/screens
 import type { PluginDayScheduleItem } from '../../../../src/api/client'
 import type { Assignment, DayNote, Place, Reservation, RouteSegment, TranslationFn } from '../../../../src/types'
 
-// FE-MOB-PLROW-001 to FE-MOB-PLROW-038
+// FE-MOB-PLROW-001 to FE-MOB-PLROW-041
 
 // Same echo strategy as tests/helpers/mobileTrip: assertions stay on keys, not copy.
 const t: TranslationFn = (key, params) =>
@@ -300,6 +300,21 @@ describe('TransitRow', () => {
     expect(screen.queryByText('transit.min:1 · transit.walkTo:Hotel')).not.toBeInTheDocument()
   })
 
+  it('FE-MOB-PLROW-041: a walk without a duration stays in the strip, like in the expanded list', () => {
+    const transit: TransitMeta = {
+      legs: [
+        { mode: 'WALK', to: { name: 'Shibuya Sta.' } },
+        { mode: 'SUBWAY', line: 'G', duration: 1500, from: { name: 'Shibuya Sta.' }, to: { name: 'Asakusa Sta.' } },
+      ],
+    }
+    const { container } = render(<TransitRow {...base} transit={transit} open={false} />)
+
+    // the strip renders both legs: the footprint chip plus the line badge
+    const strip = container.querySelector('.flex-wrap') as HTMLElement
+    expect(strip.children).toHaveLength(2)
+    expect(screen.getByText('G')).toBeInTheDocument()
+  })
+
   it('FE-MOB-PLROW-023: expanding renders every leg with duration, stops and platform', () => {
     render(<TransitRow {...base} open />)
 
@@ -422,16 +437,31 @@ describe('HotelConnRow', () => {
     const top = container.firstElementChild as HTMLElement
 
     expect(top.children[0].textContent).toBe('Hotel Sacher')
-    expect(top.children[1].textContent).toContain('1 h 5 min')
-    expect(top.children[1].textContent).toContain('· 5.4 km ·')
     expect(top.children[1].textContent).toContain('14 min')
+    expect(top.children[1].textContent).toContain('· 5.4 km')
     unmount()
 
     const bottom = render(<HotelConnRow seg={SEG} name="Hotel Sacher" placement="bottom" />)
       .container.firstElementChild as HTMLElement
 
-    expect(bottom.children[0].textContent).toContain('1 h 5 min')
+    expect(bottom.children[0].textContent).toContain('14 min')
     expect(bottom.children[1].textContent).toBe('Hotel Sacher')
+  })
+
+  it('FE-MOB-PLROW-039: a bookend leg reads its travel mode like every other connector', () => {
+    const seg = { ...SEG, mode: 'plugin:ev/fastest', durationText: '22 min', noteText: '25 min charge' }
+    render(<HotelConnRow seg={seg} name="Hotel Sacher" placement="top" />)
+
+    expect(screen.getByText('22 min')).toBeInTheDocument()
+    expect(screen.getByText('25 min charge')).toBeInTheDocument()
+    expect(screen.queryByText('1 h 5 min')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLROW-040: a walking bookend leg shows the walking duration', () => {
+    render(<HotelConnRow seg={{ ...SEG, mode: 'walking' }} name="Hotel Sacher" placement="bottom" />)
+
+    expect(screen.getByText('1 h 5 min')).toBeInTheDocument()
+    expect(screen.queryByText('14 min')).not.toBeInTheDocument()
   })
 })
 

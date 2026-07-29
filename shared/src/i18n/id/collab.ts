@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Mulai catat ide dan rencana',
   'collab.notes.all': 'Semua',
   'collab.notes.titlePlaceholder': 'Judul catatan',
+  'collab.notes.content': 'Konten',
+  'collab.notes.removeFile': 'Hapus {name}',
   'collab.notes.contentPlaceholder': 'Tulis sesuatu...',
   'collab.notes.categoryPlaceholder': 'Kategori',
   'collab.notes.newCategory': 'Kategori baru...',

@@ -264,6 +264,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profil resmi güncellendi',
   'settings.avatarRemoved': 'Profil resmi kaldırıldı',
   'settings.avatarError': 'Yükleme başarısız oldu',
+  'settings.avatarRemoveError': 'Kaldırma başarısız oldu',
   'settings.mfa.title': 'İki faktörlü kimlik doğrulama (2FA)',
   'settings.mfa.description':
     'E-posta ve şifreyle oturum açtığınızda ikinci bir adım ekler. Bir kimlik doğrulama uygulaması kullanın (Google Authenticator, Authy vb.).',

@@ -226,7 +226,9 @@ describe('MPackingListTab', () => {
     expect(screen.getByText('12 admin.packingTemplates.items')).toBeInTheDocument()
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Beach trip/ })) })
 
-    expect(packingApi.applyTemplate).toHaveBeenCalledWith(3, 91)
+    // The visibility follows the Shared|My-list toggle so the items land where
+    // the user can see them.
+    expect(packingApi.applyTemplate).toHaveBeenCalledWith(3, 91, 'common')
     expect(planner.toast.success).toHaveBeenCalledWith('packing.templateApplied:1')
     expect(useTripStore.getState().packingItems.map(i => i.id)).toEqual([30])
     expect(screen.queryByRole('button', { name: /Beach trip/ })).toBeNull()

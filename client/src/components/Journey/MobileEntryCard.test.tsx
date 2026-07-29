@@ -63,6 +63,11 @@ describe('MobileEntryCard', () => {
     expect(container.querySelector('img')).toHaveAttribute('src', '/api/photos/42/thumbnail')
   })
 
+  it('FE-COMP-JENTRYCARD-003b: a photo carrying only an id also resolves against the api', () => {
+    const { container } = renderCard(buildEntry({ photos: [{ id: 11 }] }))
+    expect(container.querySelector('img')).toHaveAttribute('src', '/api/photos/11/thumbnail')
+  })
+
   it('FE-COMP-JENTRYCARD-004: a public journey builds its own photo url', () => {
     const publicPhotoUrl = (id: number) => `/public/p/${id}.jpg`
     const { container } = renderCard(buildEntry({ photos: [{ photo_id: 7 }] }), { publicPhotoUrl })

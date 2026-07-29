@@ -262,6 +262,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profielfoto bijgewerkt',
   'settings.avatarRemoved': 'Profielfoto verwijderd',
   'settings.avatarError': 'Uploaden mislukt',
+  'settings.avatarRemoveError': 'Verwijderen mislukt',
   'settings.bookingLabels': 'Routelabels voor boekingen',
   'settings.bookingLabelsHint': 'Toon station- / luchthavennamen op de kaart. Indien uit, alleen het icoon.',
   'settings.notifyVersionAvailable': 'Nieuwe versie beschikbaar',

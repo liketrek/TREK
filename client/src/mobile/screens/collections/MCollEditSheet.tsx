@@ -5,7 +5,7 @@ import type { TranslationFn } from '../../../types'
 import { tripsApi } from '../../../api/client'
 import { useCollectionStore } from '../../../store/collectionStore'
 import { useToast } from '../../../components/shared/Toast'
-import { getApiErrorMessage } from '../../../types'
+import { getApiErrorMessage } from '../../../utils/apiError'
 import { normalizeLinkUrl } from '../../../pages/collections/collectionsModel'
 import MSheet from '../../components/MSheet'
 import MCollLinksEditor from './MCollLinksEditor'
@@ -91,6 +91,13 @@ export default function MCollEditSheet({ target, onClose, onCreated, onRequestDe
 
   useEffect(() => () => dropObjectUrl(), [])
 
+  // A create that only failed at the cover step already produced the list —
+  // hand it over on the way out instead of leaving it behind unnoticed.
+  const close = () => {
+    if (createdId != null) onCreated(createdId)
+    onClose()
+  }
+
   const pickCover = (file: File | undefined) => {
     if (!file) return
     dropObjectUrl()
@@ -164,13 +171,13 @@ export default function MCollEditSheet({ target, onClose, onCreated, onRequestDe
   return (
     <MSheet
       open={target != null}
-      onClose={onClose}
+      onClose={close}
       material="opaque"
       ariaLabel={editing ? t('collections.editListTitle') : t('collections.newList')}
     >
       <SheetHeader
         title={editing ? t('collections.editListTitle') : t('collections.newList')}
-        onClose={onClose}
+        onClose={close}
         closeLabel={t('common.close')}
       />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-[14px]">
@@ -271,7 +278,7 @@ export default function MCollEditSheet({ target, onClose, onCreated, onRequestDe
             <Trash2 size={13} strokeWidth={2} /> {t('collections.deleteList')}
           </button>
         )}
-        <CancelPill className="ml-auto" onClick={onClose}>{t('common.cancel')}</CancelPill>
+        <CancelPill className="ml-auto" onClick={close}>{t('common.cancel')}</CancelPill>
         <PrimaryPill onClick={save} disabled={!name.trim() || saving}>
           {saving && <Loader2 size={14} className="animate-spin" />}
           {editing ? t('common.save') : t('collections.create')}

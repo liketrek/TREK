@@ -233,7 +233,8 @@ describe('CollectionPlaceDetail', () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(['x'], 'cover.png', { type: 'image/png' })] } });
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Upload rejected', 'error', undefined));
+    // A rejection without a server payload falls back to the localized message.
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Could not upload image', 'error', undefined));
     // The spinner is gone again, so the control accepts a retry.
     await waitFor(() => expect(document.querySelector('.animate-spin')).toBeNull());
   });

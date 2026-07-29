@@ -343,6 +343,21 @@ describe('MReservationSheet', () => {
     expect(onOpenExpense).not.toHaveBeenCalled()
   })
 
+  it('FE-MOB-RESSH-018b: an all-day booking that ends on its start day is savable', async () => {
+    const { planner } = setup()
+    type(titleField(), 'Museum pass')
+    type(dates()[0], '2026-05-02')
+    type(dates()[1], '2026-05-02')
+
+    expect(screen.queryByText('reservations.validation.endBeforeStart')).toBeNull()
+    fireEvent.click(submitBtn())
+    await waitFor(() => expect(planner.handleSaveReservation).toHaveBeenCalled())
+    expect(savedPayload(planner)).toMatchObject({
+      reservation_time: '2026-05-02',
+      reservation_end_time: '2026-05-02',
+    })
+  })
+
   // ── Editing an existing booking ────────────────────────────────────────────
 
   it('FE-MOB-RESSH-019: editing seeds every field and splits the end timestamp', () => {

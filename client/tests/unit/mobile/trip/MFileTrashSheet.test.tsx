@@ -151,6 +151,22 @@ describe('MFileTrashSheet', () => {
     expect(planner.toast.success).toHaveBeenCalledWith('files.toast.trashEmptied')
   })
 
+  it('FE-MOB-FTRASH-011b: locks the row actions while the empty is in flight', async () => {
+    let release: () => void = () => {}
+    vi.mocked(filesApi.emptyTrash).mockImplementation(() => new Promise(resolve => { release = () => resolve({}) }))
+    renderSheet()
+    await settled()
+    fireEvent.click(screen.getByRole('button', { name: 'files.emptyTrash' }))
+    const confirm = screen.getByRole('dialog', { name: 'files.emptyTrash' })
+    fireEvent.click(within(confirm).getByRole('button', { name: 'files.emptyTrash' }))
+
+    expect(screen.getAllByRole('button', { name: 'files.restore' })[0]).toBeDisabled()
+    expect(screen.getAllByRole('button', { name: 'common.delete' })[0]).toBeDisabled()
+
+    await act(async () => { release() })
+    expect(filesApi.restore).not.toHaveBeenCalled()
+  })
+
   it('FE-MOB-FTRASH-012: reports a failed empty', async () => {
     vi.mocked(filesApi.emptyTrash).mockRejectedValue(new Error('nope'))
     const { planner } = renderSheet()

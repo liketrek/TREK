@@ -80,6 +80,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': '旅行にコピー',
   'collections.copyN': '{count}件を旅行にコピー',
   'collections.copyToTripSearch': '旅行を検索',
+  'collections.searchLists': 'リストを検索',
   'collections.copyToTripConfirm': 'コピー',
   'collections.noTrips': 'まだ旅行がありません',
   'collections.alreadyInTrip': 'この旅行にすでにあります',

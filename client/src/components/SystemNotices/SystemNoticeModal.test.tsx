@@ -1326,7 +1326,7 @@ describe('ModalRenderer', () => {
     expect(dismissSpy).not.toHaveBeenCalled();
   });
 
-  it('FE-SN-MODAL-056: pager buttons of the side slots cannot page past the ends', async () => {
+  it('FE-SN-MODAL-056: the side slots are inert previews, and their pagers cannot page past the ends', async () => {
     stubMatchMedia({ mobile: true });
     const notices = [
       makeNotice({ id: 'n1', titleKey: 'Notice A' }),
@@ -1335,6 +1335,14 @@ describe('ModalRenderer', () => {
     ];
     render(<ModalRenderer notices={notices} />);
     await flushGraceDelay();
+
+    // the side slots carry a second copy of the pager and title, so they are
+    // kept out of the a11y tree and the tab order
+    const { prevSlot, nextSlot } = sheetParts();
+    expect(prevSlot.hasAttribute('inert')).toBe(true);
+    expect(prevSlot.getAttribute('aria-hidden')).toBe('true');
+    expect(nextSlot.hasAttribute('inert')).toBe(true);
+    expect(nextSlot.getAttribute('aria-hidden')).toBe('true');
 
     // the next slot renders page 2's pager, whose "previous" button is enabled —
     // pressing it must not move the sheet below the first page

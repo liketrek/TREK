@@ -549,6 +549,20 @@ describe('JourneyMapGL', () => {
     expect(addTerrainAndSky).not.toHaveBeenCalled()
   })
 
+  it('FE-COMP-JMAPGL-031b: switching the ui language repins the labels without rebuilding the map', () => {
+    withToken({ language: 'gr' })
+    vi.mocked(isStandardFamily).mockReturnValue(true)
+
+    render(<JourneyMapGL checkins={[]} entries={entries} />)
+    const builds = vi.mocked(mapboxgl.Map).mock.calls.length
+    gl.map.setConfigProperty.mockClear()
+
+    act(() => { withToken({ language: 'fr' }) })
+
+    expect(gl.map.setConfigProperty).toHaveBeenCalledWith('basemap', 'language', 'fr')
+    expect(vi.mocked(mapboxgl.Map).mock.calls).toHaveLength(builds)
+  })
+
   it('FE-COMP-JMAPGL-032: sdk failures while configuring the basemap do not break the load', () => {
     withToken()
     vi.mocked(isStandardFamily).mockReturnValue(true)

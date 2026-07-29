@@ -192,7 +192,7 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
           <input value={address} onChange={e => setAddress(e.target.value)} placeholder={t('places.formAddressPlaceholder')} className={coordInputClass} />
           <div className="grid grid-cols-2 gap-2 mt-2">
             <NumericInput mode="signed" value={lat} onValueChange={setLat} onPaste={coordPaste} placeholder={t('places.formLat')} className={coordInputClass} />
-            <NumericInput mode="signed" value={lng} onValueChange={setLng} placeholder={t('places.formLng')} className={coordInputClass} />
+            <NumericInput mode="signed" value={lng} onValueChange={setLng} onPaste={coordPaste} placeholder={t('places.formLng')} className={coordInputClass} />
           </div>
         </div>
 

@@ -323,6 +323,19 @@ describe('JourneySettingsDialog', () => {
     expect(await screen.findByRole('heading', { name: 'Link Trip' })).toBeInTheDocument()
   })
 
+  it('FE-JRN-SETTINGS-019b: closing the link-trip dialog leaves the settings dialog alone', async () => {
+    const user = userEvent.setup()
+    const { onClose } = mountDialog(buildJourney({ trips: [] }))
+
+    await user.click(screen.getByRole('button', { name: 'Add Trip' }))
+    const linkHeading = await screen.findByRole('heading', { name: 'Link Trip' })
+    await user.click(linkHeading.parentElement!.querySelector('button')!)
+
+    expect(screen.queryByRole('heading', { name: 'Link Trip' })).not.toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { name: 'Journey Settings' })).toBeInTheDocument()
+  })
+
   it('FE-JRN-SETTINGS-020: closes straight away when nothing was edited', async () => {
     const user = userEvent.setup()
     const { onClose } = mountDialog()

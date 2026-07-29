@@ -5,7 +5,7 @@ import type { PackingItem, TripMember } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PACKITEM-001 to FE-MOB-PACKITEM-020
+// FE-MOB-PACKITEM-001 to FE-MOB-PACKITEM-024
 
 const ME = 7
 const ANNA = { id: 11, username: 'anna', avatar: 'anna.png', avatar_url: null } as unknown as TripMember
@@ -235,5 +235,16 @@ describe('MPackItemSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
 
     expect(onClose).toHaveBeenCalledTimes(2)
+  })
+
+  it('FE-MOB-PACKITEM-024: a store refresh of the open item keeps the typed draft', () => {
+    const { view, planner, ...props } = setup()
+    fireEvent.change(screen.getByDisplayValue('Rain jacket'), { target: { value: 'Rain shell' } })
+    // packingSlice replaces the item object on every update, so a WebSocket
+    // refresh of the same id must not reseed the fields.
+    const refreshed = buildPlanner({ tripId: 3, packingItems: [packItem()], t: planner.t })
+    view.rerender(<MPackItemSheet {...props} planner={refreshed} />)
+
+    expect(screen.getByDisplayValue('Rain shell')).toBeInTheDocument()
   })
 })

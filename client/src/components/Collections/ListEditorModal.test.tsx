@@ -322,7 +322,8 @@ describe('ListEditorModal', () => {
     const { props } = setup()
     fireEvent.change(screen.getByPlaceholderText('e.g. Tokyo 2025'), { target: { value: 'Oslo' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('boom', 'error', undefined))
+    // A plain failure has no server-provided message, so the translated fallback shows.
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined))
     expect(props.onClose).not.toHaveBeenCalled()
     // The save button releases again so the user can retry.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Create' })).not.toBeDisabled())

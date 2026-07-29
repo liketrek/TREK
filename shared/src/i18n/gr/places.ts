@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Γεωγραφικό Μήκος (π.χ. 2.3522)',
   'places.formCategory': 'Κατηγορία',
   'places.noCategory': 'Χωρίς Κατηγορία',
+  'places.newCategory': 'Νέα κατηγορία',
   'places.categoryNamePlaceholder': 'Όνομα κατηγορίας',
   'places.formTime': 'Ώρα',
   'places.startTime': 'Έναρξη',
@@ -97,5 +98,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Αλλαγή εικόνας',
   'places.removeImage': 'Αφαίρεση εικόνας',
   'places.imageUploadError': 'Δεν ήταν δυνατή η μεταφόρτωση της εικόνας',
+  'places.imageRemoveError': 'Δεν ήταν δυνατή η αφαίρεση της εικόνας',
 };
 export default places;

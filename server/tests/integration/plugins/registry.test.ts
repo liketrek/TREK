@@ -33,6 +33,7 @@ import { db as dbConn } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 
 import { PluginRegistryService, RegistryError, __clearRegistryCacheForTests } from '../../../src/nest/plugins/registry/registry.service';
+import type { ManifestPreview } from '../../../src/nest/plugins/registry/registry.service';
 
 // ── tiny tar.gz builder (wraps the plugin in a codeload-style top dir) ────────
 function tarHeader(name: string, size: number, typeflag = '0'): Buffer {
@@ -179,6 +180,27 @@ describe('PluginRegistryService', () => {
         license: 'MIT', icon: 'Plane',
       },
     });
+  });
+
+  it('detail carries the UI-facing capabilities, so the review sheet can chip a tab takeover', async () => {
+    safeDownload.mockResolvedValue({
+      bytes: Buffer.from(JSON.stringify({
+        id: 'flight-tracker', permissions: [], egress: [],
+        capabilities: { widget: { slot: 'hero' }, tripPage: { replaces: ['places'], position: 3 }, settingsUi: true },
+      })),
+      sha256: 'unused',
+    });
+    const d = (await svc.detail('flight-tracker')) as { manifest: ManifestPreview };
+    expect(d.manifest.capabilities).toEqual({ widget: { slot: 'hero' }, tripPage: { replaces: ['places'] } });
+  });
+
+  it('detail leaves capabilities empty when the manifest declares none', async () => {
+    safeDownload.mockResolvedValue({
+      bytes: Buffer.from(JSON.stringify({ id: 'flight-tracker', permissions: [], capabilities: { widget: {} } })),
+      sha256: 'unused',
+    });
+    const d = (await svc.detail('flight-tracker')) as { manifest: ManifestPreview };
+    expect(d.manifest.capabilities).toEqual({ widget: {} });
   });
 
   it('detail soft-fails the manifest fetch (registry metadata still renders)', async () => {

@@ -86,8 +86,10 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
 
   useEffect(() => {
     if (photoTab !== 'external' || availableProviders.length > 0 || providersLoading) return
-    let cancelled = false
     setProvidersLoading(true)
+    // The discovery is not tied to the open tab, so the result is applied even if
+    // the user left the tab meanwhile — dropping it would leave providersLoading
+    // stuck and block every later run of this effect.
     ;(async () => {
       try {
         const addonsData = await addonsApi.enabled()
@@ -99,14 +101,11 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
             if (response.ok && (await response.json()).connected) connected.push({ id: provider.id, name: provider.name })
           } catch {}
         }
-        if (!cancelled) {
-          setAvailableProviders(connected)
-          if (connected.length > 0) setExternalProvider(current => current || connected[0].id)
-        }
+        setAvailableProviders(connected)
+        if (connected.length > 0) setExternalProvider(current => current || connected[0].id)
       } catch {}
-      if (!cancelled) setProvidersLoading(false)
+      setProvidersLoading(false)
     })()
-    return () => { cancelled = true }
   }, [photoTab, availableProviders.length])
 
   const activeExternalProvider = externalProvider || availableProviders[0]?.id || null

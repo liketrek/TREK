@@ -33,8 +33,6 @@ function makePlanner(overrides: Record<string, unknown> = {}) {
   return buildPlanner({
     reservations: [FLIGHT],
     files: [],
-    // The real planner exposes the visible connection ids as an array.
-    visibleConnections: [],
     ...overrides,
   } as unknown as Parameters<typeof buildPlanner>[0])
 }

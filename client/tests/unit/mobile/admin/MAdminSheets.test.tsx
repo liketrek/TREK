@@ -282,7 +282,7 @@ describe('MAdminSheets', () => {
 
     expect(screen.getByRole('link', { name: 'Open the update guide' })).toHaveAttribute(
       'href',
-      'https://github.com/mauriceboe/TREK/wiki/Updating',
+      'https://github.com/liketrek/TREK/wiki/Updating',
     );
     expect(screen.queryByText(/docker pull/)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View on GitHub' })).toHaveAttribute(

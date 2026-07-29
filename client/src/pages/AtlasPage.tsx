@@ -15,55 +15,6 @@ import { getApiErrorMessage } from '../types'
 import { useIsPhone } from '../mobile/useIsPhone'
 import MAtlas from '../mobile/screens/atlas/MAtlas'
 
-function MobileStats({ data, stats, countries, resolveName, t, dark }: { data: AtlasData | null; stats: AtlasStats; countries: AtlasCountry[]; resolveName: (code: string) => string; t: TranslationFn; dark: boolean }): React.ReactElement {
-  const tp = dark ? '#f1f5f9' : '#0f172a'
-  const tf = dark ? '#475569' : '#94a3b8'
-  const { continents, lastTrip, nextTrip, streak, firstYear, tripsThisYear } = data || {}
-  const CL = { 'Europe': t('atlas.europe'), 'Asia': t('atlas.asia'), 'North America': t('atlas.northAmerica'), 'South America': t('atlas.southAmerica'), 'Africa': t('atlas.africa'), 'Oceania': t('atlas.oceania') }
-  const thisYear = new Date().getFullYear()
-
-  return (
-    <div className="space-y-4">
-      {/* Stats grid */}
-      <div className="grid grid-cols-5 gap-2">
-        {[[stats.totalCountries, t('atlas.countries')], [stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
-          <div key={i} className="text-center py-2">
-            <p className="text-xl font-black tabular-nums" style={{ color: tp }}>{v}</p>
-            <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: tf }}>{l}</p>
-          </div>
-        ))}
-      </div>
-      {/* Continents */}
-      <div className="grid grid-cols-6 gap-1">
-        {['Europe', 'Asia', 'North America', 'South America', 'Africa', 'Oceania'].map(cont => {
-          const count = continents?.[cont] || 0
-          return (
-            <div key={cont} className="text-center py-1">
-              <p className="text-base font-bold tabular-nums" style={{ color: count > 0 ? tp : (dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }}>{count}</p>
-              <p className="text-[8px] font-semibold uppercase" style={{ color: count > 0 ? tf : (dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)') }}>{CL[cont]}</p>
-            </div>
-          )
-        })}
-      </div>
-      {/* Highlights */}
-      <div className="flex gap-3">
-        {streak > 0 && (
-          <div className="text-center flex-1 py-2">
-            <p className="text-xl font-black tabular-nums" style={{ color: tp }}>{streak}</p>
-            <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: tf }}>{streak === 1 ? t('atlas.yearInRow') : t('atlas.yearsInRow')}</p>
-          </div>
-        )}
-        {tripsThisYear > 0 && (
-          <div className="text-center flex-1 py-2">
-            <p className="text-xl font-black tabular-nums" style={{ color: tp }}>{tripsThisYear}</p>
-            <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: tf }}>{tripsThisYear === 1 ? t('atlas.tripIn') : t('atlas.tripsIn')} {thisYear}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export default function AtlasPage(): React.ReactElement {
   const isPhone = useIsPhone()
   return isPhone ? <MAtlas /> : <AtlasPageDesktop />

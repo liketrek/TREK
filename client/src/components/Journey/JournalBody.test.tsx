@@ -66,11 +66,11 @@ describe('JournalBody', () => {
     expect(code!.getAttribute('style')).toContain('rgba(0, 0, 0, 0.06)');
   });
 
-  it('FE-COMP-JOURNALBODY-010: renders fenced code blocks inside a pre element', () => {
+  it('FE-COMP-JOURNALBODY-010: renders fenced code blocks inside a single pre element', () => {
     const { container } = render(<JournalBody text={'```js\nconst a = 1\n```'} />);
-    const pre = container.querySelector('pre');
-    expect(pre).toBeInTheDocument();
-    expect(pre!.querySelector('code')!.textContent).toContain('const a = 1');
+    const pres = container.querySelectorAll('pre');
+    expect(pres).toHaveLength(1);
+    expect(pres[0].querySelector('code')!.textContent).toContain('const a = 1');
   });
 
   it('FE-COMP-JOURNALBODY-011: renders h1 and h3 as plain paragraphs', () => {
@@ -93,7 +93,9 @@ describe('JournalBody', () => {
     const { container } = render(<JournalBody text={'`x`\n\n```js\ny\n```'} dark />);
     const [inline] = Array.from(container.querySelectorAll('code'));
     expect(inline.getAttribute('style')).toContain('rgba(255, 255, 255, 0.08)');
-    // react-markdown supplies its own outer <pre>; the styled one is nested inside.
-    expect(container.querySelectorAll('pre')[1].getAttribute('style')).toContain('rgba(255, 255, 255, 0.05)');
+    // the block styling sits on react-markdown's own <pre>, there is no second one
+    const pres = container.querySelectorAll('pre');
+    expect(pres).toHaveLength(1);
+    expect(pres[0].getAttribute('style')).toContain('rgba(255, 255, 255, 0.05)');
   });
 });

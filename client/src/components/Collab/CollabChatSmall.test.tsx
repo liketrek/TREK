@@ -1,4 +1,4 @@
-// FE-W4CCS-001 to FE-W4CCS-014
+// FE-W4CCS-001 to FE-W4CCS-016
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render'
 import type { ChatReaction } from './CollabChat.types'
@@ -154,5 +154,34 @@ describe('WebsiteThumbnail', () => {
     expect(screen.getByText('link')).toBeInTheDocument()
     await waitFor(() => expect(linkPreview).toHaveBeenCalled())
     expect(screen.getByRole('link')).toHaveAttribute('title', 'not a url')
+  })
+
+  it('FE-W4CCS-015: caches per trip, because the preview endpoint is trip-scoped', async () => {
+    linkPreview.mockResolvedValue({ title: 'Trip 4', image: null })
+    const shared = 'https://example.com/shared'
+    const first = render(<WebsiteThumbnail url={shared} tripId={4} color="#000" />)
+    await waitFor(() => expect(screen.getByRole('link')).toHaveAttribute('title', 'Trip 4'))
+    first.unmount()
+
+    linkPreview.mockResolvedValue({ title: 'Trip 9', image: null })
+    render(<WebsiteThumbnail url={shared} tripId={9} color="#000" />)
+
+    await waitFor(() => expect(screen.getByRole('link')).toHaveAttribute('title', 'Trip 9'))
+    expect(linkPreview).toHaveBeenCalledTimes(2)
+    expect(linkPreview).toHaveBeenLastCalledWith(9, shared)
+  })
+
+  it('FE-W4CCS-016: a broken OG image does not poison the next url', async () => {
+    linkPreview.mockResolvedValue({ title: 'A', image: 'https://cdn.example/a.png' })
+    const { container, rerender } = render(<WebsiteThumbnail url="https://a.example/x" tripId={4} color="#000" />)
+    await waitFor(() => expect(container.querySelector('img')).not.toBeNull())
+    fireEvent.error(container.querySelector('img')!)
+    expect(container.querySelector('img')).toBeNull()
+
+    linkPreview.mockResolvedValue({ title: 'B', image: 'https://cdn.example/b.png' })
+    rerender(<WebsiteThumbnail url="https://b.example/y" tripId={4} color="#000" />)
+
+    await waitFor(() => expect(container.querySelector('img')).not.toBeNull())
+    expect(container.querySelector('img')).toHaveAttribute('src', 'https://cdn.example/b.png')
   })
 })

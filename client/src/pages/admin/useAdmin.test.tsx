@@ -579,6 +579,24 @@ describe('useAdmin', () => {
     });
   });
 
+  it('FE-ADMHOOK-036b: handleSaveUser does nothing without a user in the editor', async () => {
+    let called = false;
+    server.use(
+      http.put('/api/admin/users/:id', () => {
+        called = true;
+        return HttpResponse.json({ user: buildUser({}) });
+      })
+    );
+    const { result } = await mountAdmin();
+
+    await act(async () => {
+      await result.current.handleSaveUser();
+    });
+
+    expect(called).toBe(false);
+    expect(toastCalls).toEqual([]);
+  });
+
   it('FE-ADMHOOK-036: handleSaveUser sends the trimmed fields and replaces the row', async () => {
     let body: Record<string, unknown> | null = null;
     server.use(

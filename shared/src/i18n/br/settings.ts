@@ -148,6 +148,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Foto do perfil atualizada',
   'settings.avatarRemoved': 'Foto do perfil removida',
   'settings.avatarError': 'Falha no envio',
+  'settings.avatarRemoveError': 'Falha ao remover',
   'settings.mfa.title': 'Autenticação em duas etapas (2FA)',
   'settings.mfa.description':
     'Adiciona uma segunda etapa ao entrar com e-mail e senha. Use um app autenticador (Google Authenticator, Authy, etc.).',

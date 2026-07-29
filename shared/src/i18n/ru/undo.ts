@@ -14,6 +14,7 @@ const undo: TranslationStrings = {
   'undo.lock': 'Блокировка места изменена',
   'undo.importGpx': 'Импорт GPX',
   'undo.importKeyholeMarkup': 'Импорт KMZ/KML',
+  'undo.importFiles': 'Импорт файлов',
   'undo.importGoogleList': 'Импорт из Google Maps',
   'undo.importNaverList': 'Импорт из Naver Maps',
   'undo.addPlace': 'Место добавлено',

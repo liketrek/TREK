@@ -107,6 +107,8 @@ interface RegistryDetail extends RegistryItem {
     icon: string | null
     requiredAddons?: string[]
     pluginDependencies?: PluginDep[]
+    /** Display slice of the manifest's capabilities — drives the same chips as an installed row. */
+    capabilities?: { widget?: { slot?: string }; tripPage?: { replaces?: string[] } }
   } | null
 }
 
@@ -309,13 +311,8 @@ const CHIP_PENDING = 'text-[color:var(--m-st-pending)] border-[color:color-mix(i
 const PENDING_CARD = 'border-[color:color-mix(in_srgb,var(--m-st-pending)_28%,transparent)] bg-[color:color-mix(in_srgb,var(--m-st-pending)_10%,transparent)]'
 const ACT_PILL = 'inline-flex flex-none items-center justify-center gap-[5px] whitespace-nowrap rounded-full px-3 py-[7px] text-[0.6875rem] font-bold bg-m-act text-m-actfg disabled:opacity-50'
 
-function ReviewedBadge({ t, compact }: { t: T; compact?: boolean }) {
-  if (compact) return <ShieldCheck size={13} className="shrink-0 text-[color:var(--m-st-confirmed)]" aria-label={t('admin.plugins.reviewed')} />
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-[color:var(--m-st-confirmed)] bg-[color:color-mix(in_srgb,var(--m-st-confirmed)_14%,transparent)]">
-      <ShieldCheck size={11} /> {t('admin.plugins.reviewed')}
-    </span>
-  )
+function ReviewedBadge({ t }: { t: T }) {
+  return <ShieldCheck size={13} className="shrink-0 text-[color:var(--m-st-confirmed)]" aria-label={t('admin.plugins.reviewed')} />
 }
 
 /** Marks a manually-uploaded (sideloaded) plugin: no registry, unsigned, not reviewed. */
@@ -533,7 +530,12 @@ export default function MAdminPluginsPanel() {
     if (!runtimeOn || !Array.from(e.dataTransfer.types).includes('Files')) return
     e.preventDefault(); dragDepth.current++; setDragActive(true)
   }
-  const onDragLeave = () => { if (--dragDepth.current <= 0) { dragDepth.current = 0; setDragActive(false) } }
+  // Mirrors onDragEnter: a leave that had no matching enter (a non-file drag) is ignored
+  // instead of driving the depth counter negative.
+  const onDragLeave = () => {
+    if (dragDepth.current === 0) return
+    if (--dragDepth.current === 0) setDragActive(false)
+  }
   const onDrop = (e: DragEvent) => {
     e.preventDefault(); dragDepth.current = 0; setDragActive(false)
     if (!runtimeOn) return
@@ -1146,7 +1148,7 @@ function InstalledRow({ p, t, busy, hasUpdate, latestVer, blocked, onToggle, onU
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[0.90625rem] font-bold tracking-[-.006em] text-m-ink">{p.name}</span>
             {p.version && <span className="text-[11.5px] font-medium tabular-nums text-m-faint">v{p.version}</span>}
-            {p.reviewed_at && <ReviewedBadge t={t} compact />}
+            {p.reviewed_at && <ReviewedBadge t={t} />}
             {p.source_repo === 'local:upload' && <SideloadedBadge t={t} />}
             {p.source_repo === 'local:link' && <DevLinkBadge t={t} />}
             {/* Registry plugins only — a sideloaded/dev-linked plugin already says something
@@ -1395,7 +1397,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
   }, [item.id])
 
   const manifest = detail?.manifest ?? null
-  const caps = manifest ? deriveCaps(manifest.permissions, {}, t) : []
+  const caps = manifest ? deriveCaps(manifest.permissions, manifest.capabilities ?? {}, t) : []
   const repoUrl = `https://github.com/${item.repo}`
   const homepage = item.homepage && /^https?:\/\//i.test(item.homepage) && item.homepage !== repoUrl ? item.homepage : null
   const sizeKb = detail?.size ? Math.max(1, Math.round(detail.size / 1024)) : null
@@ -1421,7 +1423,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
           <div className="min-w-0 flex-1 pt-8">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-lg font-bold tracking-tight text-m-ink">{item.name}</h3>
-              {item.reviewedAt && <ReviewedBadge t={t} compact />}
+              {item.reviewedAt && <ReviewedBadge t={t} />}
             </div>
             <p className="mt-0.5 text-[12.5px] text-m-faint">{item.author}{item.latest ? ` · v${item.latest}` : ''}</p>
           </div>
