@@ -1,8 +1,14 @@
 import '@testing-library/jest-dom/vitest';
 import 'fake-indexeddb/auto';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { server } from './helpers/msw/server';
+
+// waitFor/findBy* default to 1s, which is enough on a dev machine but not on a
+// 4-core CI runner running the whole suite in parallel forks — a multipart POST
+// through MSW plus an IndexedDB write can exceed it. Still well inside the 15s
+// testTimeout, so a genuinely broken assertion fails, it just takes longer.
+configure({ asyncUtilTimeout: 5000 });
 
 // Mock the websocket module so stores don't try to open real connections
 vi.mock('../src/api/websocket', () => ({
