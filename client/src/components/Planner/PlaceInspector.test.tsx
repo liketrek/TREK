@@ -1211,6 +1211,66 @@ describe('PlaceInspector', () => {
     expect(screen.getByText('LH400')).toBeTruthy();
   });
 
+  // ── Open/closed ring (#1680) ─────────────────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-095: the ring follows the periods, not the cached open_now', async () => {
+    const seoul = buildPlace({ id: 708, name: 'Round the clock', google_place_id: 'gp-708', lat: 37.5665, lng: 126.978 });
+    vi.mocked(mapsApi.details).mockResolvedValue({
+      place: {
+        open_now: false,
+        // A period with no close is Google's round-the-clock place. The weekday lines
+        // arrive in the user's language and are shown, never parsed.
+        opening_hours: ['月曜日: 24 時間営業'],
+        opening_periods: [{ open: { day: 0, hour: 0, minute: 0 } }],
+      },
+    } as any);
+    render(<PlaceInspector {...defaultProps} place={seoul} />);
+    expect(await screen.findByText('Open')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-096: the ring is read in the timezone of the place', async () => {
+    // Sunday 20:00 UTC — already Monday 05:00 in Seoul, still Sunday 22:00 in Paris.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-26T20:00:00Z'));
+    try {
+      const periods = [{ open: { day: 1, hour: 0, minute: 0 }, close: { day: 1, hour: 12, minute: 0 } }];
+      vi.mocked(mapsApi.details).mockResolvedValue({
+        place: { open_now: false, opening_periods: periods },
+      } as any);
+
+      const seoul = buildPlace({ id: 709, name: 'Seoul spot', google_place_id: 'gp-709', lat: 37.5665, lng: 126.978 });
+      const { unmount } = render(<PlaceInspector {...defaultProps} place={seoul} />);
+      expect(await screen.findByText('Open')).toBeTruthy();
+      unmount();
+
+      const paris = buildPlace({ id: 710, name: 'Paris spot', google_place_id: 'gp-710', lat: 48.8566, lng: 2.3522 });
+      render(<PlaceInspector {...defaultProps} place={paris} />);
+      expect(await screen.findByText('Closed')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('FE-PLANNER-INSPECTOR-097: a holiday in the payload leaves the verdict to the server', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // Wednesday 12:00 in Seoul, inside the regular Wednesday period.
+    vi.setSystemTime(new Date('2026-07-29T03:00:00Z'));
+    try {
+      vi.mocked(mapsApi.details).mockResolvedValue({
+        place: {
+          open_now: false,
+          opening_periods: [{ open: { day: 3, hour: 9, minute: 0 }, close: { day: 3, hour: 18, minute: 0 } }],
+          opening_special_days: ['2026-07-29'],
+        },
+      } as any);
+      const seoul = buildPlace({ id: 711, name: 'Holiday spot', google_place_id: 'gp-711', lat: 37.5665, lng: 126.978 });
+      render(<PlaceInspector {...defaultProps} place={seoul} />);
+      expect(await screen.findByText('Closed')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('FE-PLANNER-INSPECTOR-089: picking a file hands it to onUploadImage', async () => {
     const onUploadImage = vi.fn(async () => {});
     render(<PlaceInspector {...defaultProps} onUploadImage={onUploadImage} />);

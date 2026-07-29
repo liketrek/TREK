@@ -29,6 +29,7 @@ import { useTripStore } from '../../store/tripStore'
 import { formatDistance, formatElevation } from '../../utils/units'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 import { getOpenStreetMapUrlForPlace } from './placeOpenStreetMap'
+import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 
 const detailsCache = new Map()
 
@@ -61,10 +62,10 @@ function usePlaceDetails(googlePlaceId, osmId, language) {
   return details
 }
 
-function getWeekdayIndex(dateStr) {
+function getWeekdayIndex(dateStr, timeZone) {
   // weekdayDescriptions[0] = Monday … [6] = Sunday
-  const d = dateStr ? new Date(dateStr + 'T12:00:00') : new Date()
-  const jsDay = d.getDay()
+  if (!dateStr) return placeWeekdayIndex(new Date(), timeZone)
+  const jsDay = new Date(dateStr + 'T12:00:00').getDay()
   return jsDay === 0 ? 6 : jsDay - 1
 }
 
@@ -259,8 +260,18 @@ export default function PlaceInspector({
       ?? dayAssignments.find(a => a.place?.id === place.id))
     : null
 
+  // The weekday lines are display text; the ring is computed from the structured
+  // periods next to them, in the place's own timezone. open_now stays the fallback.
   const openingHours = googleDetails?.opening_hours || null
-  const openNow = googleDetails?.open_now ?? null
+  const detailLat = place.lat ?? googleDetails?.lat
+  const detailLng = place.lng ?? googleDetails?.lng
+  const placeTimeZone = resolvePlaceTimeZone(detailLat, detailLng)
+  const openNow = resolveOpenNow(
+    { periods: googleDetails?.opening_periods, specialDays: googleDetails?.opening_special_days },
+    detailLat,
+    detailLng,
+    googleDetails?.open_now,
+  )
   // Prefer the place's stored ftid; if it has none yet, use the one just fetched from Google.
   const googleMapsUrl = getGoogleMapsUrlForPlace(
     place ? { ...place, google_ftid: place.google_ftid || googleDetails?.google_ftid || null } : null,
@@ -268,7 +279,7 @@ export default function PlaceInspector({
   )
   const openStreetMapUrl = getOpenStreetMapUrlForPlace(place)
   const selectedDay = days?.find(d => d.id === selectedDayId)
-  const weekdayIndex = getWeekdayIndex(selectedDay?.date)
+  const weekdayIndex = getWeekdayIndex(selectedDay?.date, placeTimeZone)
 
   const placeFiles = (files || []).filter(f => String(f.place_id) === String(place.id) || (f.linked_place_ids || []).includes(place.id))
 
