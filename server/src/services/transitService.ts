@@ -302,7 +302,11 @@ export async function plan(q: PlanQuery): Promise<{ itineraries: TransitItinerar
       duration: typeof leg.duration === 'number' ? leg.duration : 0,
       distance: typeof leg.distance === 'number' ? Math.round(leg.distance) : null,
       headsign: leg.headsign || null,
-      line: leg.routeShortName || leg.displayName || null,
+      // displayName is the public identifier MOTIS resolved for the run, taking
+      // the trip number into account where the feed has one. Plenty of operators
+      // (German long distance among them) keep routeShortName as an internal line
+      // number, so preferring it showed "20" instead of "ICE 72" (#1715).
+      line: leg.displayName || leg.routeShortName || null,
       lineColor: safeColor(leg.routeColor),
       lineTextColor: safeColor(leg.routeTextColor),
       agency: leg.agencyName || null,

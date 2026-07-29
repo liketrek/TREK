@@ -142,6 +142,44 @@ describe('plan mapping', () => {
     expect(it.legs[0].distance).toBe(251);
   });
 
+  it('TRANSIT-SVC-011: prefers displayName over routeShortName for the line label', async () => {
+    // German long distance publishes "ICE 72" as displayName while routeShortName
+    // carries an internal line number (#1715).
+    fetchMock.mockResolvedValueOnce(
+      okJson({
+        itineraries: [
+          {
+            startTime: '2026-08-21T12:37:00Z',
+            endTime: '2026-08-21T13:38:00Z',
+            transfers: 1,
+            legs: [
+              {
+                mode: 'HIGHSPEED_RAIL',
+                duration: 1800,
+                routeShortName: '20',
+                displayName: 'ICE 72',
+                from: { name: 'Karlsruhe Hbf', lat: 49, lon: 8.4, departure: '2026-08-21T12:37:00Z' },
+                to: { name: 'Mannheim Hbf', lat: 49.4, lon: 8.4, arrival: '2026-08-21T13:07:00Z' },
+              },
+              {
+                mode: 'RAIL',
+                duration: 1860,
+                routeShortName: 'S9',
+                from: { name: 'Mannheim Hbf', lat: 49.4, lon: 8.4, departure: '2026-08-21T13:07:00Z' },
+                to: { name: 'Frankfurt Flughafen', lat: 50, lon: 8.5, arrival: '2026-08-21T13:38:00Z' },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    const r = await plan({ from: '49.0090,8.4004', to: '50.0510,8.5706' });
+    const [longDistance, regional] = r.itineraries[0].legs;
+    expect(longDistance.line).toBe('ICE 72');
+    // Feeds that only supply routeShortName keep working.
+    expect(regional.line).toBe('S9');
+  });
+
   it('TRANSIT-SVC-008: forwards only whitelisted params and pins directModes=WALK', async () => {
     fetchMock.mockResolvedValueOnce(okJson({ itineraries: [] }));
     await plan({
