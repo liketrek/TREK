@@ -542,6 +542,15 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
   .day-break { page-break-before: always; }
   .pdf-flow .day-break { page-break-before: auto; }
   .pdf-flow .day-section + .day-section { margin-top: 18px; }
+  /* Hold a flowing day together. Without this the header bar can be placed at the
+     foot of a sheet while its content moves to the next one, which then repeats
+     the header (#1471) and reads as the same day printed twice. A day too long
+     for one page still breaks and still repeats its header — the engine only
+     honours this where it can. Days that start a page of their own cannot strand
+     a header, so it is scoped to the flowing layout.
+     Measured, not assumed: break-after on the thead and break-before on the tbody
+     are both ignored by Chromium here. */
+  .pdf-flow .day-section { break-inside: avoid; page-break-inside: avoid; }
   .day-section { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .day-header-bar {
     background: #0f172a; padding: 11px 28px;

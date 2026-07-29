@@ -1014,4 +1014,20 @@ describe('page breaks between days (#1292)', () => {
     const rule = html.slice(html.indexOf('.day-accommodation {'))
     expect(rule.slice(0, rule.indexOf('}'))).toContain('break-inside: avoid')
   })
+
+  // Measured against Chromium: with the days flowing, a header bar could be left
+  // at the foot of a sheet while its content moved on, and the repeat from #1471
+  // then read as the same day printed twice. break-after on the thead and
+  // break-before on the tbody are both ignored; holding the day together is what
+  // works, and a day too long for one page still breaks and still repeats.
+  it('FE-PDF-BREAK-008: a flowing day is held together so its header is never stranded', async () => {
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+
+    expect(html).toContain('.pdf-flow .day-section { break-inside: avoid; page-break-inside: avoid; }')
+    // Scoped: a day that starts its own page cannot strand a header.
+    const at = html.indexOf('.day-section { break-inside: avoid')
+    expect(html.slice(at - 10, at)).toContain('.pdf-flow ')
+  })
 })
