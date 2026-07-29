@@ -15,6 +15,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.geo': 'địa lý',
   'oauth.scope.group.weather': 'Thời tiết',
   'oauth.scope.group.journey': 'Hành trình',
+  'oauth.scope.group.plugins': 'Tiện ích',
   'oauth.scope.trips:read.label': 'Xem chuyến đi & hành trình',
   'oauth.scope.trips:read.description': 'Đọc các chuyến đi, ngày, ghi chú trong ngày và các thành viên',
   'oauth.scope.trips:write.label': 'Chỉnh sửa chuyến đi và hành trình',
@@ -76,6 +77,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Tạo, cập nhật và xóa hành trình cũng như các mục nhập của chúng',
   'oauth.scope.journey:share.label': 'Quản lý liên kết hành trình',
   'oauth.scope.journey:share.description': 'Tạo, cập nhật và thu hồi liên kết chia sẻ công khai cho hành trình',
+  'oauth.scope.plugins:use.label': 'Dùng công cụ của tiện ích',
+  'oauth.scope.plugins:use.description':
+    'Gọi các công cụ do tiện ích đã cài thêm vào — mỗi công cụ hoạt động với quyền mà quản trị viên đã cấp cho tiện ích đó',
   'oauth.authorize.authorizing': 'Đang ủy quyền…',
   'oauth.authorize.loading': 'Đang tải…',
   'oauth.authorize.errorTitle': 'Lỗi ủy quyền',

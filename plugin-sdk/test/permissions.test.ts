@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  grantGaps, grantedHosts, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION,
+  grantGaps, grantedHosts, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION, MCP_TOOLS_PERMISSION,
 } from '../src/permissions.js';
 
 const noop = () => {};
@@ -31,6 +31,7 @@ describe('grantGaps — entry points TREK would never run', () => {
     ['events', { events: [{ on: 'place:created', handler: noop }] }, EVENTS_PERMISSION],
     ['deleteUserData', { deleteUserData: noop }, USER_DATA_PERMISSION],
     ['exportUserData', { exportUserData: noop }, USER_DATA_PERMISSION],
+    ['mcpTools', { mcpTools: [{ name: 'lookup', description: 'd', handler: noop }] }, MCP_TOOLS_PERMISSION],
   ])('flags %s without its grant, and clears once granted', (entryPoint, plugin, permission) => {
     const gaps = grantGaps(plugin, new Set());
     expect(gaps).toHaveLength(1);
@@ -39,7 +40,7 @@ describe('grantGaps — entry points TREK would never run', () => {
   });
 
   it('does not flag an EMPTY jobs/events array — nothing is implemented', () => {
-    expect(grantGaps({ jobs: [], events: [] }, new Set())).toEqual([]);
+    expect(grantGaps({ jobs: [], events: [], mcpTools: [] }, new Set())).toEqual([]);
   });
 
   it('ignores an unknown hooks.* key (the host ignores it too, so it is not a gap)', () => {

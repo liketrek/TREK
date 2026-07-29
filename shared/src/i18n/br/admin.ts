@@ -331,6 +331,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Entregar suas notificações por um canal adicional',
   'admin.plugins.perm.events:subscribe':
     'Reagir a eventos de atividade do núcleo (apenas nome do evento + viagem, nunca o conteúdo)',
+  'admin.plugins.perm.mcp:tools': 'Oferecer suas próprias ferramentas a assistentes de IA conectados ao TREK via MCP',
   'admin.plugins.perm.http:outbound': 'Fazer requisições de saída para os hosts declarados',
   'admin.plugins.perm.db:read:collab':
     'Ler notas, enquetes e mensagens de chat de viagens às quais o usuário atual tem acesso (requer o complemento Collab)',
@@ -443,6 +444,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Adiciona horários ao plano',
   'admin.plugins.cap.geolocation': 'Lê sua localização',
   'admin.plugins.cap.events': 'Reage a atividades',
+  'admin.plugins.cap.mcpTools': 'Adiciona ferramentas de IA',
   'admin.plugins.cap.requiresAddon': 'Requer {addon}',
   'admin.plugins.cap.dependsOn': 'Requer {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Ative primeiro os complementos necessários: {addons}',

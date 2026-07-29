@@ -337,6 +337,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Je meldingen via een extra kanaal bezorgen',
   'admin.plugins.perm.events:subscribe':
     'Reageert op kernactiviteitsgebeurtenissen (alleen gebeurtenisnaam + reis, nooit de inhoud)',
+  'admin.plugins.perm.mcp:tools': 'Eigen tools aanbieden aan AI-assistenten die via MCP met TREK zijn verbonden',
   'admin.plugins.perm.http:outbound': 'Uitgaande verzoeken doen naar de opgegeven hosts',
   'admin.plugins.perm.db:read:collab':
     'Notities, peilingen en chatberichten lezen van reizen waartoe de actieve gebruiker toegang heeft (vereist de Collab-add-on)',
@@ -449,6 +450,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Voegt plantijden toe',
   'admin.plugins.cap.geolocation': 'Leest je locatie',
   'admin.plugins.cap.events': 'Reageert op activiteit',
+  'admin.plugins.cap.mcpTools': 'Voegt AI-tools toe',
   'admin.plugins.cap.requiresAddon': 'Vereist {addon}',
   'admin.plugins.cap.dependsOn': 'Vereist {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Schakel eerst de vereiste add-on(s) in: {addons}',

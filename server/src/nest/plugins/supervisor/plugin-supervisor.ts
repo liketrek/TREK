@@ -7,6 +7,7 @@ import type { Envelope, RpcError, RpcRequest } from '../protocol/envelope';
 import type { PluginRpcHost } from '../host/rpc-host';
 import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
 import { SNAPSHOT_GRANT, type PluginEventMeta } from '../../../plugin-event-sink';
+import { normalizeMcpToolReports, type PluginMcpToolReport } from '../mcp-tool-report';
 import { RpcRateLimiter, DEFAULT_RPC_LIMIT, TokenBucket, DEFAULT_LOG_LIMIT } from '../host/rate-limit';
 
 export interface PluginRouteInfo {
@@ -55,6 +56,7 @@ interface Supervised {
   jobs: ScheduledJob[]; // declared background jobs (id + cron schedule)
   jobTasks?: ReturnType<typeof scheduleJobs>; // live node-cron tasks (only when jobs:run granted)
   hooks: string[]; // provider hooks the plugin implements (e.g. 'placeDetailProvider')
+  mcpTools: PluginMcpToolReport[]; // MCP tool declarations (normalized + capped at load)
   events: string[]; // core events the plugin subscribes to (names or '*')
   exports: string[]; // functions the plugin exposes to dependents (ctx.plugins.call)
   subscriptions: Array<{ plugin: string; event: string }>; // other-plugin events it listens to
@@ -162,6 +164,7 @@ export class PluginSupervisor {
       routes: [],
       jobs: [],
       hooks: [],
+      mcpTools: [],
       events: [],
       exports: [],
       subscriptions: [],
@@ -265,6 +268,27 @@ export class PluginSupervisor {
     const out: string[] = [];
     for (const [id, sup] of this.running) {
       if (sup.status === 'active' && sup.hooks.includes(hook) && sup.granted.has(perm)) out.push(id);
+    }
+    return out;
+  }
+
+  /**
+   * The MCP tools an ACTIVE plugin may advertise — declared at load AND covered by the
+   * `mcp:tools` grant the admin consented to. Same host-side check as providersOf: the
+   * child reports its declarations knowing nothing about grants, so this is the only
+   * place the consent is actually enforced.
+   */
+  mcpToolsOf(id: string): PluginMcpToolReport[] {
+    const sup = this.running.get(id);
+    if (!sup || sup.status !== 'active' || !sup.granted.has('mcp:tools')) return [];
+    return sup.mcpTools;
+  }
+
+  /** Ids of every active plugin currently advertising at least one MCP tool. */
+  mcpToolProviders(): string[] {
+    const out: string[] = [];
+    for (const [id, sup] of this.running) {
+      if (sup.status === 'active' && sup.granted.has('mcp:tools') && sup.mcpTools.length) out.push(id);
     }
     return out;
   }
@@ -583,12 +607,14 @@ export class PluginSupervisor {
           const d = msg.data as {
             routes?: PluginRouteInfo[]; jobs?: ScheduledJob[]; hooks?: string[]; events?: string[];
             exports?: string[]; subscriptions?: Array<{ plugin: string; event: string }>;
+            mcpTools?: unknown;
           };
           sup.routes = d.routes ?? [];
           sup.jobs = Array.isArray(d.jobs)
             ? d.jobs.filter((j): j is ScheduledJob => !!j && typeof j.id === 'string' && typeof j.schedule === 'string')
             : [];
           sup.hooks = d.hooks ?? [];
+          sup.mcpTools = normalizeMcpToolReports(d.mcpTools, sup.id);
           sup.events = d.events ?? [];
           sup.exports = Array.isArray(d.exports) ? d.exports.filter((e): e is string => typeof e === 'string') : [];
           sup.subscriptions = Array.isArray(d.subscriptions)

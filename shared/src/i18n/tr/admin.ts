@@ -382,6 +382,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Bildirimlerinizi ek bir kanal üzerinden iletmek',
   'admin.plugins.perm.events:subscribe':
     'Temel etkinlik olaylarına tepki verir (yalnızca olay adı + seyahat, asla içerik değil)',
+  'admin.plugins.perm.mcp:tools': "TREK'e MCP üzerinden bağlanan yapay zekâ asistanlarına kendi araçlarını sunma",
   'admin.plugins.perm.http:outbound': 'Bildirdiği ana bilgisayarlara giden istekler yapar',
   'admin.plugins.perm.db:read:collab':
     'İşlemi yapan kullanıcının erişebildiği seyahatlerin notlarını, anketlerini ve sohbet mesajlarını okur (Collab eklentisi gerektirir)',
@@ -494,6 +495,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Plana zaman ekler',
   'admin.plugins.cap.geolocation': 'Konumunu okur',
   'admin.plugins.cap.events': 'Etkinliğe tepki verir',
+  'admin.plugins.cap.mcpTools': 'Yapay zekâ aracı ekler',
   'admin.plugins.cap.requiresAddon': '{addon} gerekir',
   'admin.plugins.cap.dependsOn': '{id} {version} gerekir',
   'admin.plugins.dep.addonDisabledToast': 'Önce gerekli eklentileri etkinleştirin: {addons}',

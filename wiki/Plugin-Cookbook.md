@@ -318,6 +318,56 @@ Output is **data**. To store it, push it through a gated write yourself (e.g. `c
 
 ---
 
+## Give an AI assistant a tool
+
+**Needs:** `mcp:tools` (plus whatever the tool itself uses — here `http:outbound`)
+
+The other side of `ai:invoke`: instead of *you* calling a model, a model connected to
+TREK over MCP calls *you*. Declare the tools; the assistant decides when to reach for them.
+
+```js
+module.exports = definePlugin({
+  mcpTools: [{
+    name: 'check_visa',
+    description: 'Look up whether a passport holder needs a visa for a country. '
+      + 'Use before adding international travel to a trip.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        passport: { type: 'string', description: 'ISO-3166 alpha-2, e.g. "UY"' },
+        destination: { type: 'string', description: 'ISO-3166 alpha-2, e.g. "JP"' },
+      },
+      required: ['passport', 'destination'],
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+    async handler(input, ctx) {
+      const { passport, destination } = input ?? {}
+      // input is what the MODEL sent — the schema steers it, it does not enforce it.
+      if (!/^[A-Z]{2}$/.test(passport) || !/^[A-Z]{2}$/.test(destination)) {
+        throw new Error('passport and destination must be ISO-3166 alpha-2 codes')
+      }
+      const res = await ctx.http.fetch(`https://visa.example.com/${passport}/${destination}`)
+      return await res.json()
+    },
+  }],
+})
+```
+
+The assistant sees it as `plugin_<yourId>_check_visa`, and only over a session whose
+token holds the `plugins:use` scope. The handler runs **as the calling user** (trip
+reads are membership-checked, like a route), gets 30 s, and can throw — the message
+goes to the model, which is how it learns to try something else.
+
+Test it the way the host would call it:
+
+```js
+const d = createMockHost({ grants: ['mcp:tools'], actingUserId: 7 }).run(def)
+await expect(d.mcpTool('check_visa', { passport: 'lower', destination: 'JP' }))
+  .rejects.toThrow(/alpha-2/)          // your own validation, not the schema's
+```
+
+---
+
 ## Call a third-party API the user connected
 
 **Needs:** `oauth:client` (and `http:outbound` for the fetch)
@@ -573,4 +623,5 @@ const apiKey = await ctx.settings.get('apiKey')   // undefined when unset or use
 | `routes` | forked server child | `ctx` bound to the HTTP request's user |
 | `jobs` | forked server child, on a schedule | `ctx` with **no** user (can't read user-scoped data) |
 | `hooks` | forked server child, when core asks | `ctx` bound to the user who triggered the read, short timeout |
+| `mcpTools` | forked server child, when an assistant calls | `ctx` bound to the MCP token's user, 30 s timeout |
 | `widget` / `page` | sandboxed iframe (no same-origin) | `postMessage` bridge; calls its own routes via `trek:invoke` |

@@ -352,6 +352,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-card-provider': '대시보드 여행 카드에 작은 배지(상태, 개수) 추가',
   'admin.plugins.perm.hook:notification-channel': '추가 채널을 통해 알림을 전달합니다',
   'admin.plugins.perm.events:subscribe': '핵심 활동 이벤트에 반응 (이벤트 이름과 여행만, 내용은 절대 표시 안 함)',
+  'admin.plugins.perm.mcp:tools': 'MCP로 TREK에 연결된 AI 어시스턴트에 자체 도구 제공',
   'admin.plugins.perm.http:outbound': '선언된 호스트로 아웃바운드 요청 전송',
   'admin.plugins.perm.db:read:collab':
     '현재 사용자가 접근할 수 있는 여행의 메모, 투표 및 채팅 메시지 읽기(Collab 애드온 필요)',
@@ -463,6 +464,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': '계획 시간 추가',
   'admin.plugins.cap.geolocation': '위치 읽기',
   'admin.plugins.cap.events': '활동에 반응',
+  'admin.plugins.cap.mcpTools': 'AI 도구 추가',
   'admin.plugins.cap.requiresAddon': '{addon} 필요',
   'admin.plugins.cap.dependsOn': '{id} {version} 필요',
   'admin.plugins.dep.addonDisabledToast': '필요한 애드온을 먼저 활성화하세요: {addons}',

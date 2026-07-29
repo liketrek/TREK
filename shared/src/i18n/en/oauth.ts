@@ -15,6 +15,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.geo': 'Geo',
   'oauth.scope.group.weather': 'Weather',
   'oauth.scope.group.journey': 'Journey',
+  'oauth.scope.group.plugins': 'Plugins',
   'oauth.scope.trips:read.label': 'View trips & itineraries',
   'oauth.scope.trips:read.description': 'Read trips, days, day notes, and members',
   'oauth.scope.trips:write.label': 'Edit trips & itineraries',
@@ -75,6 +76,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Create, update, and delete journeys and their entries',
   'oauth.scope.journey:share.label': 'Manage journey links',
   'oauth.scope.journey:share.description': 'Create, update, and revoke public share links for journeys',
+  'oauth.scope.plugins:use.label': 'Use plugin tools',
+  'oauth.scope.plugins:use.description':
+    'Call tools added by installed TREK plugins — each one acts with the permissions an admin granted that plugin',
   'oauth.authorize.authorizing': 'Authorizing…',
   'oauth.authorize.loading': 'Loading…',
   'oauth.authorize.errorTitle': 'Authorization Error',

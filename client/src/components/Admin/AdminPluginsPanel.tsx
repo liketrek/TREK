@@ -4,7 +4,7 @@ import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
-  Radio, Luggage, Globe, Image, CalendarDays, Bell,
+  Radio, Luggage, Globe, Image, CalendarDays, Bell, Bot,
   Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed,
 } from 'lucide-react'
 import PluginIcon from '../shared/PluginIcon'
@@ -189,7 +189,7 @@ const PERM_KEYS = [
   'db:create:trips',
   'db:meta',
   'notify:send', 'ai:invoke', 'oauth:client',
-  'events:subscribe', 'jobs:run',
+  'events:subscribe', 'jobs:run', 'mcp:tools',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'hook:map-marker-provider',
   'hook:map-layer-provider', 'hook:route-provider', 'hook:day-schedule-provider', 'geolocation:read',
@@ -250,6 +250,7 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
   if (perms.includes('geolocation:read')) out.push({ icon: LocateFixed, label: t('admin.plugins.cap.geolocation') })
   if (perms.includes('hook:notification-channel')) out.push({ icon: Bell, label: t('admin.plugins.cap.notificationChannel') })
   if (perms.includes('events:subscribe')) out.push({ icon: Radio, label: t('admin.plugins.cap.events') })
+  if (perms.includes('mcp:tools')) out.push({ icon: Bot, label: t('admin.plugins.cap.mcpTools') })
   for (const h of perms.filter(p => p.startsWith('http:outbound:')).map(p => p.slice('http:outbound:'.length)).filter(Boolean)) {
     out.push({ icon: ArrowRight, label: h, net: true })
   }

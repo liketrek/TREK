@@ -1,7 +1,7 @@
 import { PLUGIN_SESSION_MAX_KEYS, PLUGIN_SESSION_MAX_KEY_LENGTH, PLUGIN_SESSION_MAX_VALUE_BYTES } from './index.js';
 import type { PluginContext, PluginDefinition, PluginRequest, PluginResponse, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, User, NotificationMessage, PluginActionResult, PluginSessionStorage } from './index.js';
 import { CHANNEL_EVENTS } from './manifest.js';
-import { PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION } from './permissions.js';
+import { PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION, MCP_TOOLS_PERMISSION } from './permissions.js';
 
 /**
  * A mock PluginContext for unit-testing a plugin without a running TREK
@@ -133,6 +133,12 @@ export interface PluginDriver {
   exportUserData(userId: number): Promise<unknown>;
   /** Invoke a provider hook, e.g. hook('tripCardProvider', 'getCards', [1, 2]). */
   hook<T = unknown>(name: string, fn: string, ...args: unknown[]): Promise<T>;
+  /** Call one of the plugin's `mcpTools` by its own (un-namespaced) name, the way an
+   * assistant connected over MCP would. USER-INITIATED like a route, so the handler
+   * gets the acting-user ctx. `input` is passed through untouched — the real host does
+   * not validate it against the tool's schema either, which is exactly the case worth
+   * testing. Needs `mcp:tools`. */
+  mcpTool<T = unknown>(name: string, input?: unknown): Promise<T>;
   /** Click one of the plugin's settings-page buttons ("Test connection"). USER-INITIATED,
    * so the handler gets the acting-user ctx — ctx.settings.get() returns the host's
    * `userSettings`. Returns the normalized result the user would actually see: a handler
@@ -1507,6 +1513,14 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       // that reads ctx.settings.get() and then deliver to nobody in production.
       return impl[fn](...args, name === 'notificationChannel' ? userlessCtx : ctx) as never;
     },
+    mcpTool: async (name, input) => {
+      needEntry(MCP_TOOLS_PERMISSION, `mcpTool "${name}"`);
+      const tool = (def.mcpTools ?? []).find((t) => t.name === name);
+      if (!tool) throw new Error(`no mcpTool "${name}"`);
+      // The acting-user ctx: an MCP call is made on behalf of the token's user, so the
+      // handler's trip reads are membership-checked exactly like a route's.
+      return (await tool.handler(input, ctx)) as never;
+    },
     action: async (key) => {
       if (opts.declaredActions && !opts.declaredActions.includes(key)) {
         throw new Error(`RESOURCE_FORBIDDEN: plugin did not declare action "${key}"`);
@@ -1550,4 +1564,4 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
 
 // `trek-plugin-sdk/testing` resolves to this module, so re-export what a test needs to
 // assert on a denial: `await expect(h.run(def).job('x')).rejects.toThrow(PermissionDenied)`.
-export { PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION } from './permissions.js';
+export { PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION, MCP_TOOLS_PERMISSION } from './permissions.js';

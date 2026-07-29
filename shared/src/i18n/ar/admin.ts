@@ -342,6 +342,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-card-provider': 'إضافة شارات صغيرة (الحالة، الأعداد) إلى بطاقات الرحلات في لوحة التحكم',
   'admin.plugins.perm.hook:notification-channel': 'تسليم إشعاراتك عبر قناة إضافية',
   'admin.plugins.perm.events:subscribe': 'التفاعل مع أحداث النشاط الأساسية (اسم الحدث والرحلة فقط، دون المحتوى مطلقًا)',
+  'admin.plugins.perm.mcp:tools': 'تقديم أدواته الخاصة لمساعدي الذكاء الاصطناعي المتصلين بـ TREK عبر MCP',
   'admin.plugins.perm.http:outbound': 'إجراء طلبات صادرة إلى المضيفات المُعلنة الخاصة بها',
   'admin.plugins.perm.db:read:collab':
     'قراءة الملاحظات والاستطلاعات ورسائل الدردشة في الرحلات التي يمكن للمستخدم الحالي الوصول إليها (يتطلب إضافة Collab)',
@@ -454,6 +455,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'يضيف أوقات الخطة',
   'admin.plugins.cap.geolocation': 'يقرأ موقعك',
   'admin.plugins.cap.events': 'يتفاعل مع النشاط',
+  'admin.plugins.cap.mcpTools': 'يضيف أدوات ذكاء اصطناعي',
   'admin.plugins.cap.requiresAddon': 'يتطلب {addon}',
   'admin.plugins.cap.dependsOn': 'يحتاج إلى {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'فعّل الإضافات المطلوبة أولاً: {addons}',

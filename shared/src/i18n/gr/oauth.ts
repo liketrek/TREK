@@ -15,6 +15,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.geo': 'Γεωγραφικά',
   'oauth.scope.group.weather': 'Καιρός',
   'oauth.scope.group.journey': 'Ταξίδι',
+  'oauth.scope.group.plugins': 'Πρόσθετα',
   'oauth.scope.trips:read.label': 'Προβολή ταξιδιών & δρομολογίων',
   'oauth.scope.trips:read.description': 'Ανάγνωση ταξιδιών, ημερών, σημειώσεων και μελών',
   'oauth.scope.trips:write.label': 'Επεξεργασία ταξιδιών & δρομολογίων',
@@ -80,6 +81,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Διαχείριση συνδέσμων ταξιδιών',
   'oauth.scope.journey:share.description':
     'Δημιουργία, ενημέρωση και ανάκληση δημόσιων συνδέσμων κοινής χρήσης για ταξίδια',
+  'oauth.scope.plugins:use.label': 'Χρήση εργαλείων πρόσθετων',
+  'oauth.scope.plugins:use.description':
+    'Κλήση εργαλείων που προσθέτουν τα εγκατεστημένα πρόσθετα — καθένα ενεργεί με τα δικαιώματα που έδωσε ένας διαχειριστής σε αυτό το πρόσθετο',
   'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
   'oauth.authorize.loading': 'Loading…', // en-fallback
   'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback

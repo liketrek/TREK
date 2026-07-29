@@ -92,6 +92,12 @@ describe('validateManifest', () => {
     expect(r.ok).toBe(true);
   });
 
+  it('accepts mcp:tools', () => {
+    const r = validateManifest({ ...base, permissions: ['mcp:tools'] });
+    expect(r.errors).toEqual([]);
+    expect(r.ok).toBe(true);
+  });
+
   it('validates capabilities.routeProfiles and ties it to hook:route-provider', () => {
     const profiles = [{ id: 'ev', label: 'EV' }];
     const ok = validateManifest({ ...base, permissions: ['hook:route-provider'], capabilities: { routeProfiles: profiles } });
@@ -373,6 +379,7 @@ describe('createMockHost', () => {
       events: [{ on: 'place:created', handler() { ran.push('event'); } }],
       async deleteUserData() { ran.push('delete'); },
       async exportUserData() { ran.push('export'); return {}; },
+      mcpTools: [{ name: 'lookup', description: 'Look something up', async handler() { ran.push('mcpTool'); } }],
       hooks: {
         warningProvider: { async getWarnings() { ran.push('warn'); return []; } },
         notificationChannel: { async send() { ran.push('send'); }, async test() { ran.push('test'); } },
@@ -389,6 +396,7 @@ describe('createMockHost', () => {
     await expect(d.hook('warningProvider', 'getWarnings', 1)).rejects.toThrow(/requires hook:trip-warning-provider/);
     await expect(d.channel.send({ event: 'todo_due', title: 'T', body: 'B' })).rejects.toThrow(/requires hook:notification-channel/);
     await expect(d.channel.test()).rejects.toThrow(/requires hook:notification-channel/);
+    await expect(d.mcpTool('lookup', {})).rejects.toThrow(/requires mcp:tools/);
 
     // Not one handler ran. That is the production behaviour this mirrors.
     expect(ran).toEqual([]);
@@ -406,6 +414,40 @@ describe('createMockHost', () => {
     await d.event('place:created');
     await d.hook('warningProvider', 'getWarnings', 1);
     expect(ran).toEqual(['job', 'event', 'warn']);
+  });
+
+  // An MCP tool is called on behalf of the token's user, so it gets the acting-user ctx
+  // (like a route, unlike a job) — and its input arrives exactly as the model sent it,
+  // because the host does not validate it against the declared schema either.
+  it('runs an mcpTool with the acting user bound and the input untouched', async () => {
+    let seen: unknown;
+    const def = definePlugin({
+      mcpTools: [{
+        name: 'lookup',
+        description: 'Look something up',
+        inputSchema: { type: 'object', properties: { q: { type: 'string' } }, required: ['q'] },
+        async handler(input, ctx) {
+          seen = input;
+          return { trip: await ctx.trips.getById(1) };
+        },
+      }],
+    });
+    const d = createMockHost({
+      grants: ['mcp:tools', 'db:read:trips'],
+      actingUserId: 7,
+      trips: { 1: { members: [7], data: { id: 1, title: 'Rome' } } },
+    }).run(def);
+
+    // Deliberately not schema-shaped: the schema steers the model, it guarantees nothing.
+    const out = await d.mcpTool('lookup', { q: 42, extra: true });
+    expect(seen).toEqual({ q: 42, extra: true });
+    expect(out).toMatchObject({ trip: { id: 1, title: 'Rome' } });
+  });
+
+  it('rejects an mcpTool name the plugin never declared', async () => {
+    const def = definePlugin({ mcpTools: [{ name: 'lookup', description: 'd', async handler() { return 1; } }] });
+    const d = createMockHost({ grants: ['mcp:tools'] }).run(def);
+    await expect(d.mcpTool('nope')).rejects.toThrow(/no mcpTool "nope"/);
   });
 
   it('exposes the scheduler timers a plugin armed via ctx.scheduler', async () => {

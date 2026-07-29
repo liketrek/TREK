@@ -15,6 +15,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.geo': 'Geo',
   'oauth.scope.group.weather': 'Cuaca',
   'oauth.scope.group.journey': 'Journey',
+  'oauth.scope.group.plugins': 'Plugin',
   'oauth.scope.trips:read.label': 'Lihat perjalanan & itinerari',
   'oauth.scope.trips:read.description': 'Baca perjalanan, hari, catatan harian, dan anggota',
   'oauth.scope.trips:write.label': 'Edit perjalanan & itinerari',
@@ -75,6 +76,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Buat, perbarui, dan hapus Journey beserta entrinya',
   'oauth.scope.journey:share.label': 'Kelola tautan Journey',
   'oauth.scope.journey:share.description': 'Buat, perbarui, dan cabut tautan berbagi publik untuk Journey',
+  'oauth.scope.plugins:use.label': 'Gunakan alat plugin',
+  'oauth.scope.plugins:use.description':
+    'Memanggil alat yang ditambahkan plugin terpasang — masing-masing bertindak dengan izin yang diberikan admin ke plugin tersebut',
   'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
   'oauth.authorize.loading': 'Loading…', // en-fallback
   'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback

@@ -105,12 +105,17 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     const routes = (def.routes ?? []).map((r, i) => ({ i, method: r.method, path: r.path, auth: r.auth !== false }));
     const jobs = (def.jobs ?? []).map((j) => ({ id: j.id, schedule: j.schedule }));
     const hooks = Object.keys((def.hooks ?? {}) as Record<string, unknown>);
+    // MCP tool DECLARATIONS only — the handlers stay here in the child. The host caps
+    // and sanitizes these (mcp-tool-report.ts) before it ever advertises them.
+    const mcpTools = (def.mcpTools ?? []).map((t) => ({
+      name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema, annotations: t.annotations,
+    }));
     const events = (def.events ?? []).map((e) => e.on);
     // Inter-plugin surface: the callable exports this plugin implements, and the
     // other-plugin events it subscribes to (so the host can route fan-out).
     const exportNames = Object.keys((def.exports ?? {}) as Record<string, unknown>);
     const subscriptions = (def.subscriptions ?? []).map((s) => ({ plugin: s.plugin, event: s.event }));
-    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, events, exports: exportNames, subscriptions } });
+    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, mcpTools, events, exports: exportNames, subscriptions } });
     activated = true; // past load: a later async throw is a runtime CRASH, not a load failure
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });
@@ -176,6 +181,17 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       const impl = hooks?.[hookName];
       if (!impl || typeof impl[fnName] !== 'function') throw new Error(`no hook ${hookName}.${fnName}`);
       const result = await impl[fnName](...args, invCtx);
+      respond(true, result);
+    } else if (req.method === 'invoke.mcpTool') {
+      // An assistant connected over MCP called one of the plugin's tools. USER-INITIATED
+      // like a route: invCtx carries the user whose token made the MCP call, so trip
+      // reads are membership-checked against them. `input` is whatever the model sent —
+      // the tool's schema steers it but guarantees nothing, so it is passed through
+      // unvalidated by design and the handler is documented to check it.
+      const name = req.params.name as string;
+      const tool = def.mcpTools?.find((t) => t.name === name);
+      if (!tool) throw new Error(`no mcpTool ${name}`);
+      const result = await tool.handler(req.params.input, invCtx);
       respond(true, result);
     } else if (req.method === 'invoke.action') {
       // A settings-page button the user clicked. USER-INITIATED: invCtx carries the

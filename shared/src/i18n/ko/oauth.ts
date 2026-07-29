@@ -15,6 +15,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.geo': '지리',
   'oauth.scope.group.weather': '날씨',
   'oauth.scope.group.journey': 'Journey',
+  'oauth.scope.group.plugins': '플러그인',
   'oauth.scope.trips:read.label': '여행 및 일정 보기',
   'oauth.scope.trips:read.description': '여행, 날, 일별 메모, 멤버 읽기',
   'oauth.scope.trips:write.label': '여행 및 일정 편집',
@@ -73,6 +74,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Journey 및 항목 만들기, 업데이트, 삭제',
   'oauth.scope.journey:share.label': 'Journey 링크 관리',
   'oauth.scope.journey:share.description': 'Journey의 공개 공유 링크 만들기, 업데이트, 취소',
+  'oauth.scope.plugins:use.label': '플러그인 도구 사용',
+  'oauth.scope.plugins:use.description':
+    '설치된 플러그인이 추가한 도구를 호출합니다. 각 도구는 관리자가 해당 플러그인에 부여한 권한으로 동작합니다',
   'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
   'oauth.authorize.loading': 'Loading…', // en-fallback
   'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback

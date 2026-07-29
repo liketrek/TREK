@@ -385,6 +385,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Mengirim notifikasi Anda melalui saluran tambahan',
   'admin.plugins.perm.events:subscribe':
     'Bereaksi terhadap peristiwa aktivitas inti (hanya nama peristiwa + perjalanan, tidak pernah kontennya)',
+  'admin.plugins.perm.mcp:tools': 'Menawarkan alatnya sendiri ke asisten AI yang terhubung ke TREK melalui MCP',
   'admin.plugins.perm.http:outbound': 'Membuat permintaan keluar ke host yang telah dideklarasikannya',
   'admin.plugins.perm.db:read:collab':
     'Membaca catatan, jajak pendapat, dan pesan obrolan dari perjalanan yang dapat diakses oleh pengguna yang bersangkutan (memerlukan add-on Collab)',
@@ -497,6 +498,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Menambahkan waktu rencana',
   'admin.plugins.cap.geolocation': 'Membaca lokasimu',
   'admin.plugins.cap.events': 'Bereaksi terhadap aktivitas',
+  'admin.plugins.cap.mcpTools': 'Menambah alat AI',
   'admin.plugins.cap.requiresAddon': 'Membutuhkan {addon}',
   'admin.plugins.cap.dependsOn': 'Membutuhkan {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Aktifkan dulu addon yang diperlukan: {addons}',

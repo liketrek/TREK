@@ -15,6 +15,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.geo': 'Geo',
   'oauth.scope.group.weather': 'Väder',
   'oauth.scope.group.journey': 'Journey',
+  'oauth.scope.group.plugins': 'Tillägg',
   'oauth.scope.trips:read.label': 'Visa resor och resplaner',
   'oauth.scope.trips:read.description': 'Läs om resor, dagar, daganteckningar och medlemmar',
   'oauth.scope.trips:write.label': 'Redigera resor och resplaner',
@@ -80,6 +81,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Skapa, uppdatera och ta bort journeys och deras poster',
   'oauth.scope.journey:share.label': 'Hantera journey länkar',
   'oauth.scope.journey:share.description': 'Skapa, uppdatera och återkalla offentliga delningslänkar för journeys',
+  'oauth.scope.plugins:use.label': 'Använda tilläggens verktyg',
+  'oauth.scope.plugins:use.description':
+    'Anropa verktyg som installerade tillägg lägger till — varje verktyg agerar med de rättigheter en administratör gav det tillägget',
   'oauth.authorize.authorizing': 'Autentiserar…',
   'oauth.authorize.loading': 'Laddar…',
   'oauth.authorize.errorTitle': 'Auktoriseringsfel',

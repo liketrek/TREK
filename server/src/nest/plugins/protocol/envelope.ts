@@ -339,6 +339,12 @@ export const KNOWN_PERMISSIONS = [
   'hook:user-data',
   'events:subscribe',
   'jobs:run',
+  // Entry-point permission (no RPC method): lets the plugin's declared `mcpTools` be
+  // advertised on TREK's MCP server and called by a connected assistant. Ungranted,
+  // the tools are never listed and never invocable. It grants no data access of its
+  // own — a tool handler can still only reach what the plugin's OTHER grants allow,
+  // acting as the user whose token made the MCP call.
+  'mcp:tools',
   'http:outbound',
   'notify:send',
   'ai:invoke',

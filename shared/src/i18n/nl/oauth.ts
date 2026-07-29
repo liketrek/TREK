@@ -15,6 +15,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.geo': 'Geo',
   'oauth.scope.group.weather': 'Weer',
   'oauth.scope.group.journey': 'Reisverslag',
+  'oauth.scope.group.plugins': 'Plug-ins',
   'oauth.scope.trips:read.label': 'Reizen en reisplannen bekijken',
   'oauth.scope.trips:read.description': 'Reizen, dagen, notities en leden lezen',
   'oauth.scope.trips:write.label': 'Reizen en reisplannen bewerken',
@@ -77,6 +78,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Reisverslagen en hun vermeldingen aanmaken, bijwerken en verwijderen',
   'oauth.scope.journey:share.label': 'Reisverslag-links beheren',
   'oauth.scope.journey:share.description': 'Publieke deellinks voor reisverslagen aanmaken, bijwerken en intrekken',
+  'oauth.scope.plugins:use.label': 'Plug-intools gebruiken',
+  'oauth.scope.plugins:use.description':
+    'Tools aanroepen die geïnstalleerde plug-ins toevoegen — elke tool handelt met de rechten die een beheerder aan die plug-in heeft gegeven',
   'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
   'oauth.authorize.loading': 'Loading…', // en-fallback
   'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback

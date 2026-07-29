@@ -755,6 +755,78 @@ Notes:
   addresses by default. It relaxes the policy for *every* installed plugin, so enable it only
   if you trust them all.
 
+## MCP tools
+
+TREK ships an MCP server, so an assistant (Claude, or any MCP client) can drive a trip
+through ~200 built-in tools. `mcpTools` puts **your** tools in that same list.
+
+This is not a hook — nothing in core calls it. It is a top-level section like `routes`
+or `jobs`: you declare the tools, and an assistant decides when to call them.
+
+```js
+module.exports = definePlugin({
+  mcpTools: [{
+    name: 'check_visa',                     // snake_case, unique within your plugin
+    title: 'Check visa requirements',
+    description: 'Look up whether a passport holder needs a visa for a country. '
+      + 'Use this before adding international travel to a trip.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        passport: { type: 'string', description: 'ISO-3166 alpha-2 code, e.g. "UY"' },
+        destination: { type: 'string', description: 'ISO-3166 alpha-2 code, e.g. "JP"' },
+      },
+      required: ['passport', 'destination'],
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+    async handler(input, ctx) {
+      // input is UNVALIDATED — the schema steers the model, it guarantees nothing.
+      const { passport, destination } = input ?? {}
+      if (typeof passport !== 'string' || typeof destination !== 'string') {
+        throw new Error('passport and destination must be ISO-3166 alpha-2 codes')
+      }
+      const res = await ctx.http.fetch(`https://visa.example.com/${passport}/${destination}`)
+      return await res.json()      // any JSON-serialisable value; a string passes through as-is
+    },
+  }],
+})
+```
+
+Add `"mcp:tools"` to your manifest `permissions`. Without it your tools are never
+advertised and never callable — silently, like every other ungranted entry point.
+
+**What the assistant sees.** Your tool is namespaced `plugin_<pluginId>_<name>`, so
+`check_visa` in `trip-doctor` is `plugin_trip-doctor_check_visa`. Two plugins can never
+collide, and a built-in tool always wins a name clash.
+
+**Who can call it.** The MCP session's token needs the `plugins:use` OAuth scope (a
+full-access token has it). That scope is the user's consent to reach plugin tools at
+all — what any individual tool can actually *touch* is still bounded by the permissions
+an admin granted your plugin.
+
+**How it runs.** With the calling user bound, exactly like a route: `ctx.trips.*` is
+membership-checked against them. You get 30 s (room to call an external API through
+your declared egress). Throw to fail the call — your message goes back to the model,
+which is how it learns to try something else.
+
+**What the host caps.** ≤16 tools per plugin, ≤64 chars for the namespaced name, title
+≤80, description ≤4096, schema ≤16 KB serialized, result ~100 000 chars. Anything over
+a cap is **dropped whole** rather than truncated into a tool whose description no longer
+matches what it does — so keep them comfortably inside.
+
+**Write the description for a model, not a human.** It and the `description` on each
+schema property are all the model reads before deciding to call you. Say what the tool
+does *and when to reach for it*. TREK understands the common JSON Schema subset
+(objects, strings, numbers, integers, booleans, arrays, enums, nesting, `required`);
+anything more exotic is advertised as unconstrained rather than rejected.
+
+Test one without a running TREK:
+
+```js
+const d = createMockHost({ grants: ['mcp:tools'], actingUserId: 7 }).run(def)
+expect(await d.mcpTool('check_visa', { passport: 'UY', destination: 'JP' })).toMatchObject({ required: false })
+```
+
 ## Settings-page actions
 
 A plugin can put **buttons on its own settings page** — "Test connection", "Sync now",
@@ -1175,6 +1247,7 @@ guard optional `ctx.*` namespaces.
 | `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint, plus a whitelisted entity **snapshot** when the plugin also holds the family's `db:read:*` grant; never a user) |
 | `hook:trip-card-provider` | `hooks.tripCardProvider` — small badges on the dashboard trip cards |
 | `jobs:run` | run declared background `jobs` on their cron schedule **and** `ctx.scheduler` runtime timers → `scheduled` handler (opt-in; no user, so trip reads are refused) |
+| `mcp:tools` | advertise your `mcpTools` on TREK's MCP server as `plugin_<id>_<name>`, callable by a connected assistant (see [MCP tools](#mcp-tools)) |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
 | `http:outbound` or `http:outbound:<host>` | outbound HTTP to `egress[]` hosts |

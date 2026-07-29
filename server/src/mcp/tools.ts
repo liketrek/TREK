@@ -7,6 +7,7 @@ import { registerPlaceTools } from './tools/places';
 import { registerCollectionTools } from './tools/collections';
 import { registerTransportTools } from './tools/transports';
 import { registerMcpPrompts } from './tools/prompts';
+import { registerPluginTools } from './plugin-tools';
 import { getMcpRegistry } from './registry-handoff';
 
 export function registerTools(server: McpServer, userId: number, scopes: string[] | null, isStaticToken = false, getDeprecationNotice: () => string | null = () => null): void {
@@ -57,6 +58,11 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   // (@McpController, attached via the nest-mcp registry below).
 
   registerMcpPrompts(server, userId, isStaticToken);
+
+  // Tools contributed by active plugins (namespaced plugin_<id>_<tool>, gated on the
+  // plugins:use scope). Registered after the built-ins so a plugin can never shadow
+  // one — a colliding name is skipped rather than allowed to win.
+  registerPluginTools(server, userId, scopes);
 
   // Decorator-registered domains (@trek/nest-mcp) — migrating off the legacy
   // registrar fan-out above, one domain at a time. Unset registry (direct
