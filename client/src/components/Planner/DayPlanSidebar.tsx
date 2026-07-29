@@ -34,7 +34,7 @@ import { useDayNotes } from '../../hooks/useDayNotes'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
-import { usePluginDaySchedule, PluginDayScheduleRow, formatScheduleMinutes } from '../Plugins/PluginDaySchedule'
+import { usePluginDaySchedule, usePluginDayTints, dayTintBackground, PluginDayScheduleRow, formatScheduleMinutes } from '../Plugins/PluginDaySchedule'
 import { MobileAddPlaceButton } from './DayPlanSidebarMobileAddPlaceButton'
 import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
 import { DayPlanSidebarNoteModal } from './DayPlanSidebarNoteModal'
@@ -1051,6 +1051,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   const activePlugins = usePluginStore(s => s.plugins)
   // Plugin time contributions in the day plan (dayScheduleProvider hook).
   const daySchedule = usePluginDaySchedule(S.tripId)
+  // Per-day colours from the dayTintProvider hook — e.g. which leg of the trip a
+  // day belongs to. Empty unless a granted plugin provides them.
+  const dayTints = usePluginDayTints(S.tripId)
   const routeProfileOptions = useMemo(() => {
     const opts: Array<{ key: string; label: string }> = [
       { key: 'driving', label: 'Driving' },
@@ -1317,9 +1320,17 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           const merged = mergedItemsMap[day.id] || []
           const dayNoteUi = noteUi[day.id]
           const placeItems = merged.filter(i => i.type === 'place')
+          const dayTint = dayTints[day.id]
+          // Resolved once per day: the header owns a background that its hover
+          // handlers reassign imperatively, so both the base and the hover value have
+          // to be tint-aware or the first hover-out would wipe the colour.
+          const headerTintBg = dayTintBackground(dayTint?.headerTone, '--day-tint-header') ?? 'transparent'
+          const headerTintHoverBg = dayTintBackground(dayTint?.headerTone, '--day-tint-header-hover') ?? 'var(--bg-tertiary)'
 
           return (
-            <div key={day.id} style={{ borderBottom: '1px solid var(--border-faint)' }}>
+            // The card wrapper stays untinted — its three regions (badge, header,
+            // activity list) paint themselves, so a plugin controls them separately.
+            <div key={day.id} title={dayTint?.label || undefined} style={{ borderBottom: '1px solid var(--border-faint)' }}>
               {/* Tages-Header — akzeptiert Drops aus der PlacesSidebar */}
               <div
                 className="dp-day-header"
@@ -1332,7 +1343,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '11px 14px 11px 16px',
                   cursor: 'pointer',
-                  background: isDragTarget ? 'rgba(17,24,39,0.07)' : (isSelected ? 'var(--bg-selected)' : 'transparent'),
+                  background: isDragTarget ? 'rgba(17,24,39,0.07)' : (isSelected ? 'var(--bg-selected)' : headerTintBg),
                   transition: 'background 0.12s',
                   userSelect: 'none',
                   outline: isDragTarget ? '2px dashed rgba(17,24,39,0.25)' : 'none',
@@ -1340,8 +1351,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   borderRadius: isDragTarget ? 8 : 0,
                   touchAction: 'manipulation',
                 }}
-                onMouseEnter={e => { if (!isSelected && !isDragTarget) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = isDragTarget ? 'rgba(17,24,39,0.07)' : 'transparent' }}
+                // A tinted header hovers to a deeper mix of its own tone rather than to
+                // the neutral --bg-tertiary, so hovering reads as a state change on
+                // this day instead of momentarily losing its colour. Selection keeps
+                // winning outright, so a selected day is never ambiguous.
+                onMouseEnter={e => { if (!isSelected && !isDragTarget) e.currentTarget.style.background = headerTintHoverBg }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = isDragTarget ? 'rgba(17,24,39,0.07)' : headerTintBg }}
               >
                 {/* Tages-Badge: Nummer oben, darunter (falls vorhanden) das Wetter des Tages */}
                 {(() => {
@@ -1356,8 +1371,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       flexShrink: 0, alignSelf: 'flex-start',
                       width: hasWeather ? 34 : 26,
                       borderRadius: hasWeather ? 11 : '50%',
-                      background: isSelected ? 'var(--accent)' : 'var(--bg-hover)',
-                      color: isSelected ? 'var(--accent-text)' : 'var(--text-muted)',
+                      // Selection still wins. A tinted badge mixes the tone INTO
+                      // --bg-hover so it stays the same pill component, and takes
+                      // --text-secondary: the number is 11px bold, so 4.5:1 applies
+                      // and --text-muted is already borderline on the untinted pill.
+                      background: isSelected ? 'var(--accent)' : (dayTintBackground(dayTint?.badgeTone, '--day-tint-badge', 'var(--bg-hover)') ?? 'var(--bg-hover)'),
+                      color: isSelected ? 'var(--accent-text)' : (dayTint?.badgeTone ? 'var(--text-secondary)' : 'var(--text-muted)'),
                       display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden',
                     }}>
                       <div style={{ width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>
@@ -1479,7 +1498,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               {/* Aufgeklappte Orte + Notizen */}
               {isExpanded && (
                 <div
-                  style={{ background: 'var(--bg-hover)', paddingTop: 6 }}
+                  // The activity list — the largest region and the one behind the
+                  // densest text, so its tint is the faintest of the three.
+                  style={{ background: dayTintBackground(dayTint?.activityTone, '--day-tint-activity', 'var(--bg-hover)') ?? 'var(--bg-hover)', paddingTop: 6 }}
                   onDragOver={e => { e.preventDefault(); const cur = dropTargetRef.current; if (draggingId && (!cur || cur.startsWith('end-'))) setDropTargetKey(`end-${day.id}`) }}
                   onDrop={e => {
                     e.preventDefault()

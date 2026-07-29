@@ -373,6 +373,8 @@ const admin: TranslationStrings = {
     'Menawarkan profil routing yang dapat digunakan perencana untuk menghitung rute hari (mis. routing mobil listrik dengan pemberhentian pengisian daya)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Melampirkan entri waktu ke rencana hari (pemberhentian pengisian daya, jeda keamanan)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Memberi warna pada hari di rencana hari (misalnya bagian perjalanan mana yang memuat suatu hari)',
   'admin.plugins.perm.geolocation:read':
     'Meminta lokasi terkinimu selama salah satu tampilannya terbuka (browser-mu tetap akan meminta izin terlebih dahulu)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Menambahkan bagian teks ke ekspor PDF perjalanan',
@@ -495,6 +497,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Menggambar di peta',
   'admin.plugins.cap.routing': 'Menyediakan routing',
   'admin.plugins.cap.daySchedule': 'Menambahkan waktu rencana',
+  'admin.plugins.cap.dayTint': 'Mewarnai hari',
   'admin.plugins.cap.geolocation': 'Membaca lokasimu',
   'admin.plugins.cap.events': 'Bereaksi terhadap aktivitas',
   'admin.plugins.cap.requiresAddon': 'Membutuhkan {addon}',

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Zap } from 'lucide-react'
-import { pluginsApi, type PluginDayScheduleItem } from '../../api/client'
+import { pluginsApi, type PluginDayScheduleItem, type PluginDayTint, type PluginDayTintTone } from '../../api/client'
 
 /**
  * Host-rendered rows for the `dayScheduleProvider` plugin hook — time
@@ -60,6 +60,60 @@ export function usePluginDaySchedule(tripId?: number | string | null): PluginDay
     }
     return out
   }, [items])
+}
+
+/** dayId → the per-region tones (and optional tooltip) for that day's card. */
+export type PluginDayTints = Record<number, Omit<PluginDayTint, 'pluginId' | 'dayId'>>
+
+const EMPTY_TINTS: PluginDayTints = {}
+
+/**
+ * Host-rendered day colours for the `dayTintProvider` plugin hook — "day 12 belongs
+ * to the Kanazawa leg". A sibling of usePluginDaySchedule in every respect: same
+ * fail-safe fetch, same vetted-data-only contract. Separate from the schedule hook
+ * because its output is bounded by the trip's day count rather than the schedule
+ * hook's ≤60 items, which a long multi-destination trip would blow straight past.
+ *
+ * The server has already resolved precedence (one tint per day, first granted
+ * provider wins), so this is a flat index — the callers just look a day up.
+ */
+export function usePluginDayTints(tripId?: number | string | null): PluginDayTints {
+  const [tints, setTints] = useState<PluginDayTint[]>([])
+
+  useEffect(() => {
+    if (tripId == null) { setTints([]); return }
+    let alive = true
+    pluginsApi.dayTints(tripId)
+      .then(r => { if (alive) setTints(r.tints || []) })
+      .catch(() => { if (alive) setTints([]) }) // fail-safe: no tints
+    return () => { alive = false }
+  }, [tripId])
+
+  return useMemo(() => {
+    if (tints.length === 0) return EMPTY_TINTS
+    const out: PluginDayTints = {}
+    for (const t of tints) {
+      const { pluginId: _pluginId, dayId: _dayId, ...regions } = t
+      out[t.dayId] = regions
+    }
+    return out
+  }, [tints])
+}
+
+/** The `color-mix` background for one tinted region, or undefined when that region has
+ * no tone — in which case the caller keeps whatever it renders without plugins.
+ *
+ * `alphaVar` names a CSS custom property holding the strength, which varies per theme
+ * AND per region: the tones are fixed hexes, so one alpha cannot serve both themes
+ * (#4F46E5 is itself a dark colour and vanishes on a dark surface at a light theme's
+ * alpha), and a large region behind dense text needs a fainter tint than a small badge. */
+export function dayTintBackground(
+  tone: PluginDayTintTone | undefined,
+  alphaVar: string,
+  base = 'transparent',
+): string | undefined {
+  if (!tone) return undefined
+  return `color-mix(in srgb, ${TONE_COLORS[tone] ?? TONE_COLORS.default} var(${alphaVar}), ${base})`
 }
 
 export function formatScheduleMinutes(minutes: number): string {

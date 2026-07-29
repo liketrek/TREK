@@ -529,6 +529,18 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --accent-hover: #1f2937;          /* hover state of an accent fill */
   --accent-subtle: #f1f5f9;         /* faint accent-tinted surface (chips, selected) */
 
+  /* Strength of a dayTintProvider plugin's colour in each region of a day card.
+     Per-theme because the tones are fixed hexes: the default tone #4F46E5 is itself a
+     dark colour, so a light theme's alpha makes it vanish against the dark sidebar,
+     while warn #f59e0b at the dark alpha would outshine the selected day. Per-region
+     because area and text density differ — the badge is a small bold pill, the
+     activity list is a large surface behind dense rows. Tuned so every region reads
+     above the hover step and below the selected one. */
+  --day-tint-badge: 16%;
+  --day-tint-header: 8%;
+  --day-tint-header-hover: 14%;
+  --day-tint-activity: 6%;
+
   --fs-scale-title: 1;
   --fs-scale-subtitle: 1;
   --fs-scale-body: 1;
@@ -619,6 +631,11 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --accent-on: var(--accent);
   --accent-hover: #d4d4d8;
   --accent-subtle: rgba(255, 255, 255, 0.08);
+
+  --day-tint-badge: 24%;
+  --day-tint-header: 13%;
+  --day-tint-header-hover: 20%;
+  --day-tint-activity: 10%;
 
   --success: #22c55e;  --success-soft: rgba(34, 197, 94, 0.15);
   --danger:  #ef4444;  --danger-soft:  rgba(239, 68, 68, 0.15);

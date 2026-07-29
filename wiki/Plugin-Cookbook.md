@@ -481,6 +481,65 @@ dayScheduleProvider: {
 },
 ```
 
+### Colour-code the days of a multi-destination trip
+
+`hook:day-schedule-provider` can announce "Kanazawa begins" as a row, but it cannot make
+day 12 *look* like it belongs to Kanazawa. `hook:day-tint-provider` does — it colours a
+day card in the Plan sidebar (and that day's mobile chip) with one of the four tones:
+
+```js
+dayTintProvider: {
+  async getDayTints(tripId, ctx) {
+    const legs = await loadLegs(ctx, tripId)          // your own db:own rows
+    const days = await ctx.trips.getDays(tripId)
+    return days
+      .map((d) => ({ d, leg: legs.find((l) => covers(l, d)) }))
+      .filter(({ leg }) => leg)                        // days no leg covers stay untinted
+      .map(({ d, leg }) => ({ dayId: d.id, tone: leg.tone, label: leg.name }))
+  },
+},
+```
+
+Return **one entry per day** — the bound here is the trip's day count, not a fixed item
+cap, so this stays correct on a six-month itinerary where the ≤60-item day-schedule hook
+would tint only the first 60 days.
+
+#### Tint one region instead of the whole card
+
+A day card has three separately tintable regions, and `tone` above is just the shorthand
+that fills all of them. Name them individually when colouring the whole card would fight
+the content — a packed day is much easier to read with only its badge marked:
+
+```js
+// Bold on the badge (and the mobile day chip), plain everywhere else.
+return days.map((d) => ({ dayId: d.id, badgeTone: legTone(d), label: legName(d) }))
+
+// Or: a quiet leg colour on the card, with the activity list left completely alone.
+return days.map((d) => ({
+  dayId: d.id,
+  badgeTone: legTone(d),
+  headerTone: legTone(d),
+  label: legName(d),
+}))
+
+// Or: reserve the activity list for a per-day signal of your own.
+return days.map((d) => ({ dayId: d.id, headerTone: legTone(d), activityTone: overbooked(d) ? 'danger' : undefined }))
+```
+
+| Field | Region |
+|---|---|
+| `badgeTone` | the day-number badge — smallest and boldest; also the mobile day chip |
+| `headerTone` | the day header row (number, title, date, cost); hovering deepens the tint |
+| `activityTone` | the expanded activity list — largest, behind the densest text, tinted faintest |
+
+A region you never name is not tinted and renders exactly as it does without your plugin.
+
+Give the host a tone, never a hex: it picks the alpha per theme *and* per region, so the
+tint stays subtle in both light and dark. `label` becomes the day's tooltip. A day takes
+at most one contribution and it is resolved **whole** — within your list the first entry
+for a day wins, and if another plugin also tints that day the first granted provider
+wins outright, so days never flicker and two plugins can't each own part of one card.
+
 ---
 
 ## Honour account deletion and data export (GDPR)

@@ -369,6 +369,8 @@ const admin: TranslationStrings = {
     'Planlayıcının günlerin rotasını hesaplamak için kullanabileceği rota profilleri sunar (ör. şarj duraklı elektrikli araç rotası)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Gün planına zaman girişleri ekler (şarj durakları, güvenlik tamponları)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Gün planındaki günleri renklendirir (örneğin bir günün yolculuğun hangi etabına ait olduğu)',
   'admin.plugins.perm.geolocation:read':
     'Görünümlerinden biri açıkken canlı konumunu sorar (tarayıcın ayrıca izin ister)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Seyahat PDF dışa aktarımına metin bölümleri ekler',
@@ -492,6 +494,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Haritada çizim yapar',
   'admin.plugins.cap.routing': 'Rota sunar',
   'admin.plugins.cap.daySchedule': 'Plana zaman ekler',
+  'admin.plugins.cap.dayTint': 'Günleri renklendirir',
   'admin.plugins.cap.geolocation': 'Konumunu okur',
   'admin.plugins.cap.events': 'Etkinliğe tepki verir',
   'admin.plugins.cap.requiresAddon': '{addon} gerekir',

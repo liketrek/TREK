@@ -687,6 +687,21 @@ export interface PluginDayScheduleItem {
   tone: 'default' | 'success' | 'warn' | 'danger';
 }
 
+/** The colours a dayTintProvider plugin puts into one day card, so leg membership is
+ * visible while scrolling the itinerary. The card has three separately tintable
+ * regions; an absent one is not tinted and renders exactly as it does with no plugin.
+ * Server-normalized: dayIds checked against the trip, one contribution per day (first
+ * granted provider wins), the `tone` shorthand already resolved into the regions,
+ * labels sanitized + capped. Tone only — the client picks the alpha per theme. */
+export type PluginDayTintTone = 'default' | 'success' | 'warn' | 'danger'
+export interface PluginDayTint {
+  pluginId: string; dayId: number;
+  badgeTone?: PluginDayTintTone;
+  headerTone?: PluginDayTintTone;
+  activityTone?: PluginDayTintTone;
+  label?: string;
+}
+
 /** A route computed by a routeProvider plugin (server-normalized: coordinates
  * range-checked, legs forced to waypoints-1, vias capped). null = provider failed
  * or refused — the caller falls back to straight lines like on an OSRM outage. */
@@ -754,6 +769,10 @@ export const pluginsApi = {
   // hook (charging stops, security buffers). Host-normalized; fail-safe.
   daySchedule: (tripId: number | string) =>
     apiClient.get(`/day-schedule/${tripId}`).then(r => r.data as { items: PluginDayScheduleItem[] }),
+  // Per-day colours plugins put behind the day cards via the dayTintProvider hook
+  // (which leg of the trip a day belongs to). Host-normalized; fail-safe.
+  dayTints: (tripId: number | string) =>
+    apiClient.get(`/day-tints/${tripId}`).then(r => r.data as { tints: PluginDayTint[] }),
   // Text-only sections plugins append to the trip PDF export via the
   // pdfSectionProvider hook. Host-normalized (counts + lengths capped); fail-safe.
   pdfSections: (tripId: number | string) =>

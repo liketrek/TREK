@@ -218,6 +218,7 @@ export const PERMISSION_FAMILIES: PermissionFamily[] = [
       { value: 'hook:map-layer-provider', hint: 'Draw routes, corridors and zones on the trip map' },
       { value: 'hook:route-provider', hint: 'Offer routing profiles the planner can route days with (e.g. EV with charging stops)' },
       { value: 'hook:day-schedule-provider', hint: 'Attach time contributions to the day plan (charging, security, buffers)' },
+      { value: 'hook:day-tint-provider', hint: 'Colour-code days in the day plan (e.g. which leg of the trip each day belongs to)' },
       { value: 'hook:pdf-section-provider', hint: 'Add a section to the exported trip PDF' },
       { value: 'hook:atlas-layer-provider', hint: 'Add a layer to the Atlas map' },
       { value: 'hook:journal-entry-provider', hint: 'Contribute entries to a journey' },

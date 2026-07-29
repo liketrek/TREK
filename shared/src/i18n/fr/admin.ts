@@ -328,6 +328,8 @@ const admin: TranslationStrings = {
     'Proposer des profils de routage avec lesquels le planificateur calcule les itinéraires des jours (p. ex. routage pour véhicule électrique avec arrêts de recharge)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Ajouter des entrées horaires au plan de la journée (arrêts de recharge, marges de sécurité)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Colorer les jours du plan de la journée (par exemple, à quelle étape du voyage appartient un jour)',
   'admin.plugins.perm.geolocation:read':
     "Demander votre position en temps réel tant que l'une de ses vues est ouverte (votre navigateur vous demandera d'abord l'autorisation)",
   'admin.plugins.perm.hook:pdf-section-provider': "Ajouter des sections de texte à l'export PDF du voyage",
@@ -453,6 +455,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Dessine sur la carte',
   'admin.plugins.cap.routing': 'Propose des itinéraires',
   'admin.plugins.cap.daySchedule': 'Ajoute des horaires',
+  'admin.plugins.cap.dayTint': 'Colore les jours',
   'admin.plugins.cap.geolocation': 'Lit votre position',
   'admin.plugins.cap.events': 'Réagit à l’activité',
   'admin.plugins.cap.requiresAddon': 'Nécessite {addon}',

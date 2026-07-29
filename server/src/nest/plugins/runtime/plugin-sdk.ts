@@ -549,6 +549,27 @@ export interface DayScheduleProvider {
   getSchedule(tripId: number, ctx: PluginContext): Promise<DayScheduleContribution[]>;
 }
 
+/** A colour the host paints into one day card in the Plan sidebar (and into that day's
+ * mobile chip) — so a trip split into legs shows its leg membership while you scroll
+ * the itinerary. Tone only, never a hex: the host picks the alpha per theme and per
+ * region. The card has three separately tintable regions; `tone` colours all of them. */
+export interface DayTintContribution {
+  dayId: number;              // must be a day of the requested trip
+  tone?: ContributionTone;    // shorthand for every region not named below
+  badgeTone?: ContributionTone;    // the day-number badge (and the mobile day chip)
+  headerTone?: ContributionTone;   // the day header row
+  activityTone?: ContributionTone; // the expanded activity list
+  label?: string;             // optional tooltip on the day (≤60 chars)
+}
+export interface DayTintProvider {
+  /** Return one entry per day you want coloured. Runs with the current user bound, on
+   * a short timeout; a failing call is skipped. A day takes at most one contribution,
+   * resolved whole: within your own list the first entry for a day wins, and across
+   * plugins the first granted provider wins, so a day never flickers between two
+   * colours and two plugins can never each own part of one card. */
+  getDayTints(tripId: number, ctx: PluginContext): Promise<DayTintContribution[]>;
+}
+
 /** A text-only section the host appends to a trip's PDF export. Declarative only —
  * plain strings the host lays out and escapes; no markup ever reaches the document. */
 export interface PdfSection {
@@ -659,6 +680,7 @@ export interface PluginDefinition {
     mapLayerProvider?: MapLayerProvider;
     routeProvider?: RouteProvider;
     dayScheduleProvider?: DayScheduleProvider;
+    dayTintProvider?: DayTintProvider;
     pdfSectionProvider?: PdfSectionProvider;
     atlasLayerProvider?: AtlasLayerProvider;
     journalEntryProvider?: JournalEntryProvider;

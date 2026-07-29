@@ -361,6 +361,8 @@ const admin: TranslationStrings = {
     'Offer routing profiles the planner can route days with (e.g. EV routing with charging stops)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Attach time entries to the day plan (charging stops, security buffers)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Colour-code days in the day plan (e.g. which leg of the trip a day belongs to)',
   'admin.plugins.perm.geolocation:read':
     'Ask for your live position while one of its views is open (your browser will still ask first)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Append text sections to the trip PDF export',
@@ -483,6 +485,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Draws on the map',
   'admin.plugins.cap.routing': 'Offers routing',
   'admin.plugins.cap.daySchedule': 'Adds plan times',
+  'admin.plugins.cap.dayTint': 'Tints days',
   'admin.plugins.cap.geolocation': 'Reads your position',
   'admin.plugins.cap.events': 'Reacts to activity',
   'admin.plugins.cap.requiresAddon': 'Requires {addon}',

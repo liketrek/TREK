@@ -379,6 +379,8 @@ const admin: TranslationStrings = {
     'Erbjuda ruttprofiler som planeraren kan beräkna dagar med (t.ex. elbilsrutter med laddstopp)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Lägga till tidsposter i dagsplanen (laddstopp, säkerhetsmarginaler)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Färgkoda dagar i dagsplanen (till exempel vilken etapp av resan en dag tillhör)',
   'admin.plugins.perm.geolocation:read':
     'Fråga efter din position i realtid medan en av dess vyer är öppen (din webbläsare frågar dessutom först)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Lägga till textavsnitt i resans PDF-export',
@@ -503,6 +505,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Ritar på kartan',
   'admin.plugins.cap.routing': 'Erbjuder ruttplanering',
   'admin.plugins.cap.daySchedule': 'Lägger till tider i planen',
+  'admin.plugins.cap.dayTint': 'Färgar dagarna',
   'admin.plugins.cap.geolocation': 'Läser din position',
   'admin.plugins.cap.events': 'Reagerar på aktivitet',
   'admin.plugins.cap.requiresAddon': 'Kräver {addon}',

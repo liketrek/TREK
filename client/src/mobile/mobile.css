@@ -32,6 +32,11 @@
   --m-mkfg: #fff;
   --m-trackoff: rgba(16,16,19,.14);
 
+  /* Strength of a dayTintProvider plugin's colour on an inactive day chip. A notch
+   * above the desktop badge: the chip has no neutral base under it, so a softer tint
+   * reads as a rendering artifact rather than a deliberate colour. */
+  --day-tint-chip: 20%;
+
   /* Toggle knob is white on both themes (off-track is translucent enough). */
   --m-knob: #fff;
 
@@ -78,6 +83,7 @@
   --m-mkr: #F5F5F7;
   --m-mkfg: #101013;
   --m-trackoff: rgba(255,255,255,.14);
+  --day-tint-chip: 28%;
 }
 
 /* Geist "subtext" tier weight — single knob. The design's Geist labels/numbers

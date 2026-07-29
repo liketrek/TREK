@@ -325,6 +325,8 @@ const admin: TranslationStrings = {
     'Предоставлять профили маршрутизации, по которым планировщик строит маршруты дней (например, маршрутизация для электромобилей с остановками для зарядки)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Добавлять записи времени в план дня (остановки для зарядки, запас времени на контроль)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Отмечать дни в плане цветом (например, к какому этапу поездки относится день)',
   'admin.plugins.perm.geolocation:read':
     'Запрашивать ваше местоположение в реальном времени, пока открыто одно из его представлений (ваш браузер всё равно спросит разрешение)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Добавлять текстовые разделы в PDF-экспорт поездки',
@@ -449,6 +451,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Рисует на карте',
   'admin.plugins.cap.routing': 'Предоставляет маршрутизацию',
   'admin.plugins.cap.daySchedule': 'Добавляет время в план',
+  'admin.plugins.cap.dayTint': 'Раскрашивает дни',
   'admin.plugins.cap.geolocation': 'Считывает ваше местоположение',
   'admin.plugins.cap.events': 'Реагирует на активность',
   'admin.plugins.cap.requiresAddon': 'Требуется {addon}',

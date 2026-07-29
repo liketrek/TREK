@@ -323,6 +323,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:route-provider':
     'Routing-Profile anbieten, mit denen der Planer Tage berechnet (z. B. E-Auto-Routing mit Ladestopps)',
   'admin.plugins.perm.hook:day-schedule-provider': 'Zeiteinträge an den Tagesplan anhängen (Ladestopps, Puffer)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Tage im Tagesplan farblich markieren (z. B. zu welchem Reiseabschnitt ein Tag gehört)',
   'admin.plugins.perm.geolocation:read':
     'Deinen Live-Standort abfragen, solange eine seiner Ansichten offen ist (dein Browser fragt zusätzlich nach)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Textabschnitte an den PDF-Export einer Reise anhängen',
@@ -448,6 +450,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Zeichnet auf der Karte',
   'admin.plugins.cap.routing': 'Bietet Routing an',
   'admin.plugins.cap.daySchedule': 'Ergänzt Planzeiten',
+  'admin.plugins.cap.dayTint': 'Färbt Tage ein',
   'admin.plugins.cap.geolocation': 'Liest deinen Standort',
   'admin.plugins.cap.events': 'Reagiert auf Aktivität',
   'admin.plugins.cap.requiresAddon': 'Benötigt {addon}',

@@ -329,6 +329,8 @@ const admin: TranslationStrings = {
     'Útvonaltervezési profilok biztosítása, amelyekkel a tervező kiszámítja a napok útvonalát (pl. e-autós útvonaltervezés töltőmegállókkal)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Időbejegyzések hozzáadása a napi tervhez (töltőmegállók, biztonsági ráhagyások)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'A napok színezése a napi tervben (például hogy az út melyik szakaszához tartozik egy nap)',
   'admin.plugins.perm.geolocation:read':
     'Az élő tartózkodási helyed lekérdezése, amíg valamelyik nézete nyitva van (a böngésződ ilyenkor is külön engedélyt kér)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Szöveges szakaszok hozzáfűzése az utazás PDF-exportjához',
@@ -453,6 +455,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Rajzol a térképre',
   'admin.plugins.cap.routing': 'Útvonaltervezést biztosít',
   'admin.plugins.cap.daySchedule': 'Időpontokat ad a tervhez',
+  'admin.plugins.cap.dayTint': 'Színezi a napokat',
   'admin.plugins.cap.geolocation': 'Lekéri a tartózkodási helyedet',
   'admin.plugins.cap.events': 'Reagál a tevékenységre',
   'admin.plugins.cap.requiresAddon': '{addon} szükséges',

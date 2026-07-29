@@ -74,6 +74,20 @@ describe('providersOf enforces the hook:* grant', () => {
     expect(s.providersOf('dayScheduleProvider')).toEqual(['times']);
   });
 
+  it('maps dayTintProvider to hook:day-tint-provider', () => {
+    const s = makeSupervisor();
+    put(s, 'segments', 'active', ['dayTintProvider'], ['hook:day-tint-provider']);
+    put(s, 'ungranted', 'active', ['dayTintProvider'], ['hook:day-schedule-provider']); // wrong grant
+    expect(s.providersOf('dayTintProvider')).toEqual(['segments']);
+  });
+
+  it('returns tint providers in insertion order — the controller lets the first win a contested day', () => {
+    const s = makeSupervisor();
+    put(s, 'first', 'active', ['dayTintProvider'], ['hook:day-tint-provider']);
+    put(s, 'second', 'active', ['dayTintProvider'], ['hook:day-tint-provider']);
+    expect(s.providersOf('dayTintProvider')).toEqual(['first', 'second']);
+  });
+
   it('maps notificationChannel to hook:notification-channel', () => {
     const s = makeSupervisor();
     put(s, 'gotify', 'active', ['notificationChannel'], ['hook:notification-channel']);

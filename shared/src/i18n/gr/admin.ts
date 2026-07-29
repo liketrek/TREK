@@ -376,6 +376,8 @@ const admin: TranslationStrings = {
     'Παροχή προφίλ δρομολόγησης με τα οποία ο σχεδιαστής υπολογίζει τις διαδρομές των ημερών (π.χ. δρομολόγηση ηλεκτρικού οχήματος με στάσεις φόρτισης)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Προσθήκη χρονικών καταχωρίσεων στο πλάνο της ημέρας (στάσεις φόρτισης, περιθώρια ασφαλείας)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Χρωματική σήμανση ημερών στο πλάνο της ημέρας (π.χ. σε ποιο σκέλος του ταξιδιού ανήκει μια ημέρα)',
   'admin.plugins.perm.geolocation:read':
     'Αίτημα της τρέχουσας τοποθεσίας σας όσο μία από τις προβολές του είναι ανοιχτή (το πρόγραμμα περιήγησής σας θα ζητήσει επιπλέον επιβεβαίωση)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Προσθήκη ενοτήτων κειμένου στην εξαγωγή PDF του ταξιδιού',
@@ -501,6 +503,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Σχεδιάζει στον χάρτη',
   'admin.plugins.cap.routing': 'Παρέχει δρομολόγηση',
   'admin.plugins.cap.daySchedule': 'Προσθέτει χρόνους πλάνου',
+  'admin.plugins.cap.dayTint': 'Χρωματίζει τις ημέρες',
   'admin.plugins.cap.geolocation': 'Διαβάζει την τοποθεσία σας',
   'admin.plugins.cap.events': 'Αντιδρά σε δραστηριότητα',
   'admin.plugins.cap.requiresAddon': 'Απαιτεί {addon}',

@@ -341,6 +341,7 @@ const admin: TranslationStrings = {
     'プランナーが日程のルート計算に使えるルーティングプロファイルを提供（例: 充電スポットを経由する EV ルーティング）',
   'admin.plugins.perm.hook:day-schedule-provider':
     '日程プランに時間エントリーを追加（充電ストップ、保安検査のバッファ）',
+  'admin.plugins.perm.hook:day-tint-provider': '日程プランの日付を色分け（例：その日が旅程のどの区間に属するか）',
   'admin.plugins.perm.geolocation:read':
     'このプラグインのビューが開いている間、あなたの現在地を取得（ブラウザでも改めて確認が求められます）',
   'admin.plugins.perm.hook:pdf-section-provider': '旅行の PDF エクスポートにテキストセクションを追加',
@@ -461,6 +462,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': '地図に描画',
   'admin.plugins.cap.routing': 'ルーティングを提供',
   'admin.plugins.cap.daySchedule': '予定時刻を追加',
+  'admin.plugins.cap.dayTint': '日を色分け',
   'admin.plugins.cap.geolocation': '現在地を読み取り',
   'admin.plugins.cap.events': 'アクティビティに反応',
   'admin.plugins.cap.requiresAddon': '{addon}が必要',

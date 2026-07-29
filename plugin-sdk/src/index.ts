@@ -585,6 +585,42 @@ export interface DayScheduleProvider {
   getSchedule(tripId: number, ctx: PluginContext): Promise<DayScheduleContribution[]>;
 }
 
+/** A colour the host paints into one day card in the Plan sidebar (and into that day's
+ * mobile chip) — so a trip split into legs shows its leg membership while you scroll
+ * the itinerary. Tone only, never a hex: the host picks the alpha per theme AND per
+ * region, so the tint stays subtle and readable in both light and dark.
+ *
+ * The card has three separately tintable regions. Set `tone` to colour all of them,
+ * or name regions individually for finer control — e.g. a bold badge marking the leg
+ * with the activity list left plain, so a dense day stays easy to read. */
+export interface DayTintContribution {
+  dayId: number;              // must be a day of the requested trip
+  /** Shorthand: tints every region you do NOT name below. Omit it and only the
+   *  regions you name are tinted. */
+  tone?: ContributionTone;
+  /** The day-number badge — the smallest, boldest mark. Also tints the mobile day chip. */
+  badgeTone?: ContributionTone;
+  /** The day header row (number, title, date, cost). Its hover state deepens the tint. */
+  headerTone?: ContributionTone;
+  /** The expanded activity list — places, bookings and transport for the day. The
+   *  largest surface and the one behind the densest text, so it is tinted faintest. */
+  activityTone?: ContributionTone;
+  label?: string;             // optional tooltip on the day (≤60 chars)
+}
+export interface DayTintProvider {
+  /** Return one tint per day you want coloured — the natural cap is the trip's day
+   * count, so this scales to a six-month itinerary where a per-day dayScheduleProvider
+   * item would hit the ≤60 limit. Runs with the current user bound, on a short
+   * timeout; a failing call is skipped.
+   *
+   * A day takes at most one contribution — it is resolved whole, per day, never
+   * per region. Within your own list the first entry for a day wins; across plugins
+   * the first granted provider wins. Both are deterministic, so a day never flickers
+   * between two colours, and two plugins can never each own part of one card.
+   * Needs `hook:day-tint-provider`. */
+  getDayTints(tripId: number, ctx: PluginContext): Promise<DayTintContribution[]>;
+}
+
 /** A text-only section the host appends to a trip's PDF export. Declarative only —
  * plain strings the host lays out and escapes; no markup ever reaches the document. */
 export interface PdfSection {
@@ -703,6 +739,7 @@ export interface PluginDefinition {
     mapLayerProvider?: MapLayerProvider;
     routeProvider?: RouteProvider;
     dayScheduleProvider?: DayScheduleProvider;
+    dayTintProvider?: DayTintProvider;
     pdfSectionProvider?: PdfSectionProvider;
     atlasLayerProvider?: AtlasLayerProvider;
     journalEntryProvider?: JournalEntryProvider;

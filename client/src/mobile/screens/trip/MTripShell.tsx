@@ -12,6 +12,7 @@ import MPlacesBrowser from './places/MPlacesBrowser'
 import MTripTabPanel from './tabs/MTripTabPanel'
 import MTripSheets from './sheets/MTripSheets'
 import MTripLoadingSplash from './MTripLoadingSplash'
+import { usePluginDayTints, dayTintBackground } from '../../../components/Plugins/PluginDaySchedule'
 import type { Day } from '../../../types'
 
 /**
@@ -176,6 +177,10 @@ export default function MTripShell({
   const planner = useTripPlanner()
   const { t, language, tripId, days, trip, navigate, packingItems, todoItems } = planner
 
+  // Per-day colours from the dayTintProvider plugin hook — the mobile counterpart
+  // of the desktop day-card wash, carried on the day chips. Empty without a plugin.
+  const dayTints = usePluginDayTints(tripId)
+
   const [view, setView] = useState<MTripView>('plan')
   const [mode, setMode] = useState<MTripMode>('go')
   const [browseFromEdit, setBrowseFromEdit] = useState(false)
@@ -300,12 +305,18 @@ export default function MTripShell({
           <div className="flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
             {days.map((day, idx) => {
               const active = day.id === planner.selectedDayId
+              const tint = dayTints[day.id]
               return (
                 <button
                   key={day.id}
                   type="button"
                   onClick={() => onDayChipTap(day.id)}
                   aria-current={active ? 'true' : undefined}
+                  title={tint?.label || undefined}
+                  // The chip is mobile's day-number badge, so it follows badgeTone.
+                  // Inactive chips only — an inline background would otherwise beat
+                  // the active chip's bg-m-act class.
+                  style={active ? undefined : { background: dayTintBackground(tint?.badgeTone, '--day-tint-chip') }}
                   className={`flex-1 whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold ${
                     active ? 'bg-m-act text-m-actfg shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]' : 'text-m-ink'
                   }`}

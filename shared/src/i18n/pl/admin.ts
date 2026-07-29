@@ -320,6 +320,8 @@ const admin: TranslationStrings = {
     'Udostępnianie profili trasowania, za pomocą których planer wyznacza trasy dni (np. trasowanie aut elektrycznych z postojami na ładowanie)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Dołączanie wpisów czasowych do planu dnia (postoje na ładowanie, bufory czasowe)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Oznaczanie dni w planie dnia kolorami (na przykład do którego etapu podróży należy dany dzień)',
   'admin.plugins.perm.geolocation:read':
     'Odczytywanie Twojej aktualnej lokalizacji, gdy otwarty jest któryś z jego widoków (przeglądarka i tak zapyta o zgodę)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Dołączanie sekcji tekstowych do eksportu PDF podróży',
@@ -445,6 +447,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Rysuje na mapie',
   'admin.plugins.cap.routing': 'Oferuje trasowanie',
   'admin.plugins.cap.daySchedule': 'Uzupełnia czasy planu',
+  'admin.plugins.cap.dayTint': 'Koloruje dni',
   'admin.plugins.cap.geolocation': 'Odczytuje Twoją lokalizację',
   'admin.plugins.cap.events': 'Reaguje na aktywność',
   'admin.plugins.cap.requiresAddon': 'Wymaga {addon}',

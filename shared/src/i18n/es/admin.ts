@@ -326,6 +326,8 @@ const admin: TranslationStrings = {
     'Ofrecer perfiles de ruta con los que el planificador puede calcular los días (p. ej. rutas para vehículos eléctricos con paradas de carga)',
   'admin.plugins.perm.hook:day-schedule-provider':
     'Añadir entradas de tiempo al plan del día (paradas de carga, márgenes de seguridad)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Colorear los días del plan del día (por ejemplo, a qué tramo del viaje pertenece un día)',
   'admin.plugins.perm.geolocation:read':
     'Consultar tu ubicación en tiempo real mientras una de sus vistas esté abierta (tu navegador también pedirá permiso)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Añadir secciones de texto a la exportación PDF del viaje',
@@ -450,6 +452,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': 'Dibuja en el mapa',
   'admin.plugins.cap.routing': 'Ofrece rutas',
   'admin.plugins.cap.daySchedule': 'Añade horarios al plan',
+  'admin.plugins.cap.dayTint': 'Colorea los días',
   'admin.plugins.cap.geolocation': 'Lee tu ubicación',
   'admin.plugins.cap.events': 'Reacciona a la actividad',
   'admin.plugins.cap.requiresAddon': 'Requiere {addon}',

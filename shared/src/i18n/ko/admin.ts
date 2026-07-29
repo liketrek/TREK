@@ -342,6 +342,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:route-provider':
     '플래너가 일자 경로 계산에 사용할 라우팅 프로필 제공(예: 충전소 경유 전기차 라우팅)',
   'admin.plugins.perm.hook:day-schedule-provider': '일자 계획에 시간 항목 추가(충전 정차, 보안 검색 여유 시간)',
+  'admin.plugins.perm.hook:day-tint-provider': '일자 계획에서 날짜를 색으로 구분(예: 해당 날짜가 여행의 어느 구간인지)',
   'admin.plugins.perm.geolocation:read':
     '해당 플러그인 화면이 열려 있는 동안 실시간 위치 요청 (브라우저에서 추가로 확인함)',
   'admin.plugins.perm.hook:pdf-section-provider': '여행 PDF 내보내기에 텍스트 섹션 추가',
@@ -461,6 +462,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mapLayers': '지도에 그리기',
   'admin.plugins.cap.routing': '라우팅 제공',
   'admin.plugins.cap.daySchedule': '계획 시간 추가',
+  'admin.plugins.cap.dayTint': '날짜 색상 표시',
   'admin.plugins.cap.geolocation': '위치 읽기',
   'admin.plugins.cap.events': '활동에 반응',
   'admin.plugins.cap.requiresAddon': '{addon} 필요',
