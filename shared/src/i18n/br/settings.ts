@@ -24,7 +24,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modelo de mapa',
   'settings.mapTemplatePlaceholder.select': 'Selecione o modelo...',
   'settings.mapDefaultHint': 'Deixe vazio para OpenStreetMap (padrão)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL do modelo de blocos do mapa',
   'settings.mapProvider': 'Provedor de mapa',
   'settings.mapProviderHint': 'Afeta os mapas do Planejador de Viagem e Diário. Atlas sempre usa Leaflet.',

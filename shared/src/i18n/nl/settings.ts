@@ -24,7 +24,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Kaartsjabloon',
   'settings.mapTemplatePlaceholder.select': 'Selecteer sjabloon...',
   'settings.mapDefaultHint': 'Laat leeg voor OpenStreetMap (standaard)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-sjabloon voor kaarttegels',
   'settings.mapProvider': 'Kaartprovider',
   'settings.mapProviderHint': 'Geldt voor Trip Planner en Journey kaarten. Atlas gebruikt altijd Leaflet.',

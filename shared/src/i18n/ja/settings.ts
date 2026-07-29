@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '地図テンプレート',
   'settings.mapTemplatePlaceholder.select': 'テンプレートを選択…',
   'settings.mapDefaultHint': '空欄の場合は OpenStreetMap（既定）を使用',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '地図タイルのURLテンプレート',
   'settings.mapProvider': '地図プロバイダー',
   'settings.mapProviderHint': '旅程プランナーと日記地図に影響します。Atlas は常に Leaflet を使用します。',

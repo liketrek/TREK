@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Harita Şablonu',
   'settings.mapTemplatePlaceholder.select': 'Şablon seçin...',
   'settings.mapDefaultHint': 'OpenStreetMap için boş bırakın (varsayılan)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Harita kutucukları için URL şablonu',
   'settings.mapProvider': 'Harita Sağlayıcısı',
   'settings.mapProviderHint': 'Seyahat planlayıcı ve Journey haritalarını etkiler. Atlas her zaman Leaflet kullanır.',

@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Šablona mapy',
   'settings.mapTemplatePlaceholder.select': 'Vyberte šablonu...',
   'settings.mapDefaultHint': 'Ponechte prázdné pro OpenStreetMap (výchozí)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL šablony pro mapové dlaždice',
   'settings.mapProvider': 'Poskytovatel mapy',
   'settings.mapProviderHint': 'Ovlivňuje mapy v Trip Planneru a Journey. Atlas vždy používá Leaflet.',

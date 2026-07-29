@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '地图模板',
   'settings.mapTemplatePlaceholder.select': '选择模板...',
   'settings.mapDefaultHint': '留空则使用 OpenStreetMap（默认）',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '地图瓦片 URL 模板',
   'settings.mapProvider': '地图提供商',
   'settings.mapProviderHint': '影响行程规划器和旅程地图。足迹始终使用 Leaflet。',

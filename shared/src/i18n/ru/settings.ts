@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Шаблон карты',
   'settings.mapTemplatePlaceholder.select': 'Выберите шаблон...',
   'settings.mapDefaultHint': 'Оставьте пустым для OpenStreetMap (по умолчанию)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-шаблон для тайлов карты',
   'settings.mapProvider': 'Провайдер карты',
   'settings.mapProviderHint': 'Применяется к Trip Planner и Journey. Atlas всегда использует Leaflet.',

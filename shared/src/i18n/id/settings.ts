@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Template Peta',
   'settings.mapTemplatePlaceholder.select': 'Pilih template...',
   'settings.mapDefaultHint': 'Kosongkan untuk OpenStreetMap (default)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Template URL untuk tile peta',
   'settings.mapProvider': 'Penyedia peta',
   'settings.mapProviderHint': 'Berlaku untuk peta Trip Planner dan Journey. Atlas selalu menggunakan Leaflet.',

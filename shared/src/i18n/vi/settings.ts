@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Mẫu bản đồ',
   'settings.mapTemplatePlaceholder.select': 'Chọn mẫu...',
   'settings.mapDefaultHint': 'Để trống cho OpenStreetMap (mặc định)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Mẫu URL cho ô bản đồ',
   'settings.mapProvider': 'Nhà cung cấp bản đồ',
   'settings.mapProviderHint':

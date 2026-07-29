@@ -24,7 +24,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Karten-Vorlage',
   'settings.mapTemplatePlaceholder.select': 'Vorlage auswählen...',
   'settings.mapDefaultHint': 'Leer lassen für OpenStreetMap (Standard)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-Template für die Kartenkacheln',
   'settings.mapProvider': 'Kartenanbieter',
   'settings.mapProviderHint': 'Gilt für Trip Planner und Journey. Atlas nutzt immer Leaflet.',

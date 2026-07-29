@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modèle de carte',
   'settings.mapTemplatePlaceholder.select': 'Sélectionner un modèle…',
   'settings.mapDefaultHint': 'Laissez vide pour OpenStreetMap (par défaut)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': "Modèle d'URL pour les tuiles de carte",
   'settings.mapProvider': 'Fournisseur de carte',
   'settings.mapProviderHint': 'Affecte les cartes Trip Planner et Journey. Atlas utilise toujours Leaflet.',

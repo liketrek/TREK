@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Kartmall',
   'settings.mapTemplatePlaceholder.select': 'Välj mall...',
   'settings.mapDefaultHint': 'Lämna fältet tomt för OpenStreetMap (standard)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-mall för kartrutor',
   'settings.mapProvider': 'Kartleverantör',
   'settings.mapProviderHint': 'Påverkar resplaneraren och resedagbokens kartor. Atlas använder alltid Leaflet.',

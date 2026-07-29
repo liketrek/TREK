@@ -32,7 +32,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Map Template',
   'settings.mapTemplatePlaceholder.select': 'Select template...',
   'settings.mapDefaultHint': 'Leave empty for OpenStreetMap (default)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL template for map tiles',
   'settings.mapProvider': 'Map Provider',
   'settings.mapProviderHint': 'Affects Trip Planner and Journey maps. Atlas always uses Leaflet.',

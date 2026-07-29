@@ -24,7 +24,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Шаблон карти',
   'settings.mapTemplatePlaceholder.select': 'Виберіть шаблон...',
   'settings.mapDefaultHint': 'Залиште порожнім для OpenStreetMap (за замовчуванням)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-шаблон для тайлів карти',
   'settings.mapProvider': 'Провайдер карти',
   'settings.mapProviderHint': 'Застосовується до Trip Planner та Journey. Atlas завжди використовує Leaflet.',

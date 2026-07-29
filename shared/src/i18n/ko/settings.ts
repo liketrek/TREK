@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '지도 템플릿',
   'settings.mapTemplatePlaceholder.select': '템플릿 선택...',
   'settings.mapDefaultHint': '비워두면 OpenStreetMap (기본값) 사용',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '지도 타일 URL 템플릿',
   'settings.mapProvider': '지도 공급자',
   'settings.mapProviderHint': '여행 플래너 및 Journey 지도에 영향을 줍니다. Atlas는 항상 Leaflet을 사용합니다.',

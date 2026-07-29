@@ -14,7 +14,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Plantilla del mapa',
   'settings.mapTemplatePlaceholder.select': 'Selecciona una plantilla...',
   'settings.mapDefaultHint': 'Deixa-ho buit per a OpenStreetMap (per defecte)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': "Plantilla d'URL per als mosaics del mapa",
   'settings.mapProvider': 'Proveïdor de mapa',
   'settings.mapProviderHint': 'Afecta els mapes de Trip Planner i Journey. Atles sempre utilitza Leaflet.',
