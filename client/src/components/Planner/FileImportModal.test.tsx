@@ -2,6 +2,7 @@
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
+import { readMultipart } from '../../../tests/helpers/multipart';
 import { useTripStore } from '../../store/tripStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildTrip } from '../../../tests/helpers/factories';
@@ -127,11 +128,11 @@ describe('FileImportModal', () => {
     let flags: Record<string, string> = {};
     server.use(
       http.post('/api/trips/3/places/import/gpx', async ({ request }) => {
-        const fd = await request.formData();
+        const { fields } = await readMultipart(request);
         flags = {
-          waypoints: String(fd.get('importWaypoints')),
-          routes: String(fd.get('importRoutes')),
-          tracks: String(fd.get('importTracks')),
+          waypoints: fields.importWaypoints,
+          routes: fields.importRoutes,
+          tracks: fields.importTracks,
         };
         return HttpResponse.json({ count: 4, skipped: 0, places: [{ id: 11 }, { id: 12 }] });
       }),

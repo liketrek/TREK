@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/rende
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
+import { readMultipart } from '../../../tests/helpers/multipart';
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { saveImportFiles } from '../../db/offlineDb';
@@ -111,8 +112,7 @@ describe('BookingImportModal', () => {
     let sentMode: string | null = null;
     server.use(
       http.post('/api/trips/4/reservations/import/booking/async', async ({ request }) => {
-        const fd = await request.formData();
-        sentMode = String(fd.get('mode'));
+        sentMode = (await readMultipart(request)).fields.mode ?? null;
         return HttpResponse.json({ jobId: 'job-42' });
       }),
     );
@@ -132,8 +132,7 @@ describe('BookingImportModal', () => {
     server.use(
       http.get('/api/health/features', () => HttpResponse.json({ bookingImport: true, aiParsing: true })),
       http.post('/api/trips/4/reservations/import/booking/async', async ({ request }) => {
-        const fd = await request.formData();
-        sentMode = String(fd.get('mode'));
+        sentMode = (await readMultipart(request)).fields.mode ?? null;
         return HttpResponse.json({ jobId: 'job-ai' });
       }),
     );
