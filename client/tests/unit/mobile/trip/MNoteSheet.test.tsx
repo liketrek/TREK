@@ -258,4 +258,16 @@ describe('MNoteSheet', () => {
 
     expect(screen.getByPlaceholderText('dayplan.noteTitle *')).toHaveValue('Buy museum tickets for four')
   })
+
+  it('FE-MOB-NOTESH-020: the Markdown toolbar formats selected subtitle text', () => {
+    renderSheet()
+    const detail = screen.getByPlaceholderText('dayplan.noteSubtitle') as HTMLTextAreaElement
+    fireEvent.change(detail, { target: { value: 'Tickets' } })
+    detail.setSelectionRange(0, 7)
+
+    fireEvent.click(screen.getByRole('button', { name: 'dayplan.markdown.link' }))
+
+    expect(screen.getByRole('toolbar', { name: 'dayplan.markdown.toolbar' })).toBeInTheDocument()
+    expect(detail).toHaveValue('[Tickets](https://)')
+  })
 })

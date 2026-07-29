@@ -846,6 +846,23 @@ describe('DayPlanSidebar', () => {
     expect(updater(mockDayNotesState.noteUi)['10'].color).toBe('#f97316')
   })
 
+  it('FE-PLANNER-DAYPLAN-036b: note modal toolbar formats the selected subtitle text', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    mockDayNotesState.noteUi = {
+      '10': { mode: 'add', text: 'Tickets', time: 'Book tickets', icon: 'Ticket' },
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
+
+    const subtitle = screen.getByPlaceholderText('Daily Note') as HTMLTextAreaElement
+    subtitle.setSelectionRange(5, 12)
+    fireEvent.click(screen.getByRole('button', { name: 'Bold' }))
+
+    expect(screen.getByRole('toolbar', { name: 'Markdown formatting' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Bold|Italic|Strikethrough|list|code|Link/i })).toHaveLength(7)
+    const updater = mockDayNotesState.setNoteUi.mock.calls[0][0]
+    expect(updater(mockDayNotesState.noteUi)['10'].time).toBe('Book **tickets**')
+  })
+
   // ── Budget footer ───────────────────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-037: budget footer shows total cost when places have prices', () => {

@@ -1,6 +1,8 @@
+import { useRef } from 'react'
 import ReactDOM from 'react-dom'
 import type { DayNoteColor } from '../../types'
 import { DAY_NOTE_COLOR_OPTIONS, NOTE_ICONS } from './DayPlanSidebar.constants'
+import { DayNoteMarkdownToolbar } from './DayNoteMarkdownToolbar'
 
 interface NoteModalUi {
   mode: 'add' | 'edit'
@@ -20,6 +22,8 @@ interface DayPlanSidebarNoteModalProps {
 }
 
 export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cancelNote, saveNote, t }: DayPlanSidebarNoteModalProps) {
+  const noteTextareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({})
+
   return (
     <>
       {Object.entries(noteUi).map(([dayId, ui]) => ui && ReactDOM.createPortal(
@@ -89,7 +93,15 @@ export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cance
               className="text-content"
               style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, border: `1px solid ${!ui.text?.trim() ? 'var(--border-primary)' : 'var(--border-primary)'}`, borderRadius: 8, padding: '8px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' }}
             />
+            <DayNoteMarkdownToolbar
+              getTextarea={() => noteTextareaRefs.current[dayId] ?? null}
+              value={ui.time}
+              maxLength={250}
+              onChange={time => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], time } }))}
+              t={t}
+            />
             <textarea
+              ref={element => { noteTextareaRefs.current[dayId] = element }}
               value={ui.time}
               maxLength={250}
               rows={3}
