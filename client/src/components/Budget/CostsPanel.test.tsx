@@ -1274,7 +1274,7 @@ describe('CostsPanel — remaining paths', () => {
     await screen.findByText('Tip')
     fireEvent.click(screen.getByTitle('Export CSV'))
 
-    const lines = (await exported!.text()).replace(/^﻿/, '').split('\r\n')
+    const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
     expect(lines[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Note')
     // Oldest first, dateless rows leading.
     expect(lines[1]).toBe(';Tip;Tips;5.00;EUR;5.00;')
