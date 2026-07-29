@@ -12,9 +12,13 @@ vi.mock('../../db/offlineDb', () => ({ saveImportFiles: vi.fn(async () => {}) })
 
 const defaultProps = { isOpen: true, onClose: vi.fn(), tripId: 4 };
 
+// A file that is actually uploaded has to carry as many bytes as it reports —
+// a size that lies leaves the multipart body and its length disagreeing, and the
+// upload then fails to parse. Only the oversize case fakes the number, and that
+// file is rejected by validateFile before it is ever sent.
 const eml = (name = 'booking.eml', size = 100) => {
-  const f = new File(['x'], name, { type: 'message/rfc822' });
-  Object.defineProperty(f, 'size', { value: size });
+  const f = new File(['x'.repeat(Math.min(size, 4096))], name, { type: 'message/rfc822' });
+  if (size > 4096) Object.defineProperty(f, 'size', { value: size });
   return f;
 };
 

@@ -19,9 +19,11 @@ vi.mock('../shared/Toast', () => ({
 
 const defaultProps = { isOpen: true, onClose: vi.fn(), tripId: 3 };
 
+// See BookingImportModal.test.tsx: a file that is really uploaded must carry as
+// many bytes as it reports, otherwise the multipart body and its length disagree.
 const gpx = (name = 'route.gpx', size = 100) => {
-  const f = new File(['<gpx/>'], name, { type: 'application/gpx+xml' });
-  Object.defineProperty(f, 'size', { value: size });
+  const f = new File(['<gpx/>'.padEnd(Math.min(size, 4096), ' ')], name, { type: 'application/gpx+xml' });
+  if (size > 4096) Object.defineProperty(f, 'size', { value: size });
   return f;
 };
 const kml = (name = 'places.kml') => new File(['<kml/>'], name, { type: 'application/vnd.google-earth.kml+xml' });
