@@ -3667,3 +3667,83 @@ describe('DayPlanSidebar', () => {
     expect(row.style.opacity).toBe('1')
   })
 })
+
+// FE-W5DPS-001 to FE-W5DPS-006 — booking subtitles, the collections entry in the
+// place menu and the accommodation ordering on a hotel-change day.
+describe('DayPlanSidebar remaining branches', () => {
+  const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+
+  const renderWith = (reservations: Reservation[], overrides = {}) => {
+    seedStore(useTripStore, { reservations })
+    return render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations, ...overrides })} />)
+  }
+
+  it('FE-W5DPS-001: a flight without an airline still shows its flight number', async () => {
+    renderWith([buildReservation({
+      id: 601, type: 'flight', title: 'Hop', day_id: 10,
+      reservation_time: '2025-06-01T09:00:00', metadata: JSON.stringify({ flight_number: 'AF900' }),
+    }) as Reservation])
+
+    expect(await screen.findByText('AF900')).toBeInTheDocument()
+  })
+
+  it('FE-W5DPS-002: a train shows its train number', async () => {
+    renderWith([buildReservation({
+      id: 602, type: 'train', title: 'ICE', day_id: 10,
+      reservation_time: '2025-06-01T09:00:00', metadata: JSON.stringify({ train_number: 'ICE 599' }),
+    }) as Reservation])
+
+    expect(await screen.findByText('ICE 599')).toBeInTheDocument()
+  })
+
+  it('FE-W5DPS-003: a booking without usable metadata gets no subtitle', async () => {
+    renderWith([buildReservation({
+      id: 603, type: 'bus', title: 'Shuttle', day_id: 10,
+      reservation_time: '2025-06-01T09:00:00', metadata: JSON.stringify({ seat: '4B' }),
+    }) as Reservation])
+
+    const row = cardRow(await screen.findByText('Shuttle'))
+    expect(row).not.toHaveTextContent('4B')
+  })
+
+  it('FE-W5DPS-005: the place menu offers Save to collection only with the addon on', async () => {
+    const user = userEvent.setup()
+    const place = buildPlace({ id: 1, name: 'Louvre' })
+    const assignments = { '10': [buildAssignment({ id: 11, day_id: 10, order_index: 0, place })] }
+    const { unmount } = render(<DayPlanSidebar {...makeDefaultProps({ days: [day], places: [place], assignments })} />)
+
+    fireEvent.contextMenu(dragRow(screen.getByText('Louvre')))
+    expect(contextMenu().queryByText(/save to/i)).not.toBeInTheDocument()
+    unmount()
+
+    const { useAddonStore } = await import('../../store/addonStore')
+    seedStore(useAddonStore, {
+      addons: [{ id: 'collections', name: 'Collections', type: 'trip', icon: '', enabled: true }],
+      loaded: true,
+    })
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], places: [place], assignments })} />)
+
+    fireEvent.contextMenu(dragRow(screen.getByText('Louvre')))
+    await user.click(contextMenu().getByText(/save to/i))
+
+    const { useSaveToCollectionStore } = await import('../../store/saveToCollectionStore')
+    expect(useSaveToCollectionStore.getState().target).not.toBeNull()
+  })
+
+  it('FE-W5DPS-006: a hotel-change day lists the departing stay before the arriving one', async () => {
+    const dayBefore = buildDay({ id: 9, date: '2025-05-31', title: 'Day 0' })
+    const dayAfter = buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' })
+    const accommodations = [
+      { id: 1, place_id: 5, place_name: 'Arriving Inn', start_day_id: 10, end_day_id: 11 },
+      { id: 2, place_id: 6, place_name: 'Departing Inn', start_day_id: 9, end_day_id: 10 },
+    ] as unknown as Accommodation[]
+
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [dayBefore, day, dayAfter], accommodations, selectedDayId: 10,
+    })} />)
+
+    const body = document.body.textContent ?? ''
+    expect(body.indexOf('Departing Inn')).toBeGreaterThan(-1)
+    expect(body.indexOf('Departing Inn')).toBeLessThan(body.indexOf('Arriving Inn'))
+  })
+})

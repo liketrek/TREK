@@ -991,7 +991,8 @@ describe('TodoListPanel — mobile layout', () => {
   it('FE-COMP-TODO-078: the mobile new task sheet inherits the active list filter', async () => {
     const items = [buildTodoItem({ id: 60, name: 'Task', category: 'Errands', checked: 0 })];
     const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
-    clickFilter('Errands');
+    // On mobile the list filter is icon-only, so the label lives in the title.
+    fireEvent.click(screen.getByTitle('Errands'));
     rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
     await screen.findByText('Create task');
 

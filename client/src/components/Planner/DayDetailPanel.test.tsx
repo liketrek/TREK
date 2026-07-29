@@ -1,6 +1,6 @@
 // FE-PLANNER-DAYDETAIL-001 to FE-PLANNER-DAYDETAIL-079
 import React from 'react';
-import { render, screen, waitFor, within, act } from '../../../tests/helpers/render';
+import { fireEvent, render, screen, waitFor, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -1435,4 +1435,398 @@ describe('DayDetailPanel', () => {
     expect(document.querySelector('iframe[src*="hero-thing"]')).toBeNull();
   });
 
+});
+
+// FE-W5DDP-001 to FE-W5DDP-013 — the remaining formatting, reservation-row and
+// hotel-picker branches of the day panel.
+describe('DayDetailPanel remaining branches', () => {
+  const hotel = (overrides: Record<string, unknown> = {}) => ({
+    id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+    start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
+    ...overrides,
+  });
+
+  it('FE-W5DDP-001: reservation times follow the 12h preference around midnight and noon', async () => {
+    seedStore(useSettingsStore, { settings: { time_format: '12h', temperature_unit: 'celsius', blur_booking_codes: false } });
+    render(
+      <DayDetailPanel
+        {...defaultProps}
+        reservations={[
+          buildReservation({ id: 9, type: 'event', title: 'Night Show', day_id: 1, reservation_time: '00:15', reservation_end_time: '12:45', status: 'confirmed' }),
+          buildReservation({ id: 10, type: 'tour', title: 'Afternoon Tour', day_id: 1, reservation_time: '14:30', reservation_end_time: null, status: 'pending' }),
+        ]}
+      />,
+    );
+
+    expect(await screen.findByText('12:15 AM – 12:45 PM')).toBeInTheDocument();
+    expect(screen.getByText('2:30 PM')).toBeInTheDocument();
+  });
+
+  it('FE-W5DDP-002: a reservation without any time shows no time span', async () => {
+    render(
+      <DayDetailPanel
+        {...defaultProps}
+        reservations={[buildReservation({ id: 9, type: 'event', title: 'Open Ticket', day_id: 1, reservation_time: null, reservation_end_time: null })]}
+      />,
+    );
+
+    const row = (await screen.findByText('Open Ticket')).closest('div[style*="border-radius: 8px"]') as HTMLElement;
+    expect(row.textContent).toBe('Open Ticket');
+  });
+
+  it('FE-W5DDP-003: an unknown reservation type falls back to the generic icon and names its place', async () => {
+    const place = buildPlace({ id: 10, name: 'Opera House' });
+    render(
+      <DayDetailPanel
+        {...defaultProps}
+        assignments={{ '1': [{ id: 77, day_id: 1, place }] as never }}
+        reservations={[
+          buildReservation({ id: 9, type: 'submarine', title: 'Deep Dive', assignment_id: 77, day_id: null }),
+          buildReservation({ id: 11, type: 'hotel', title: 'Hidden Hotel', day_id: 1 }),
+          buildReservation({ id: 12, type: 'flight', title: 'Other Day Flight', day_id: 2 }),
+        ]}
+      />,
+    );
+
+    const row = (await screen.findByText('Deep Dive')).closest('div[style*="border-radius: 8px"]') as HTMLElement;
+    expect(row.querySelector('svg')?.getAttribute('class')).toMatch(/file-text/);
+    expect(row).toHaveTextContent('Opera House');
+    // hotels are shown in the accommodation block, other days are not shown at all
+    expect(screen.queryByText('Hidden Hotel')).not.toBeInTheDocument();
+    expect(screen.queryByText('Other Day Flight')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5DDP-004: a hotel photo, a check-in window and a confirmation code all render', async () => {
+    server.use(
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({ accommodations: [hotel({ place_image: '/uploads/places/hotel.jpg', check_in_end: '18:00', confirmation: 'ABC123' })] }),
+      ),
+    );
+    render(<DayDetailPanel {...defaultProps} />);
+
+    expect(await screen.findByText('14:00 – 18:00')).toBeInTheDocument();
+    expect(screen.getByText('ABC123')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/uploads/places/hotel.jpg"]')).not.toBeNull();
+  });
+
+  it('FE-W5DDP-005: a blurred booking code unblurs on hover and toggles on click', async () => {
+    seedStore(useSettingsStore, { settings: { time_format: '24h', temperature_unit: 'celsius', blur_booking_codes: true } });
+    server.use(
+      http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [hotel({ accommodation_id: 1 })] })),
+    );
+    render(
+      <DayDetailPanel
+        {...defaultProps}
+        reservations={[buildReservation({ id: 40, type: 'hotel', title: 'Grand Hotel Booking', accommodation_id: 1, status: 'confirmed', confirmation_number: 'XY99' })]}
+      />,
+    );
+
+    const code = await screen.findByText('#XY99');
+    expect(code.style.filter).toBe('blur(4px)');
+
+    fireEvent.mouseEnter(code);
+    expect(code.style.filter).toBe('none');
+    fireEvent.mouseLeave(code);
+    expect(code.style.filter).toBe('blur(4px)');
+
+    fireEvent.click(code);
+    expect(code.style.filter).toBe('none');
+    fireEvent.click(code);
+    expect(code.style.filter).toBe('blur(4px)');
+  });
+
+  it('FE-W5DDP-006: saving the edit picker updates the accommodation and reloads the list', async () => {
+    const user = userEvent.setup();
+    const onAccommodationChange = vi.fn();
+    let updateBody: Record<string, unknown> | null = null;
+    let listCalls = 0;
+    server.use(
+      http.get('/api/trips/1/accommodations', () => {
+        listCalls += 1;
+        return HttpResponse.json({
+          accommodations: [hotel(listCalls > 1 ? { place_name: 'Reloaded Hotel' } : {})],
+        });
+      }),
+      http.put('/api/trips/1/accommodations/1', async ({ request }) => {
+        updateBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ accommodation: hotel() });
+      }),
+    );
+
+    render(<DayDetailPanel {...defaultProps} places={[buildPlace({ id: 5, name: 'Grand Hotel' })]} onAccommodationChange={onAccommodationChange} />);
+    await screen.findByText('Grand Hotel');
+    await user.click(screen.getAllByRole('button').find(b => b.querySelector('svg')?.getAttribute('class')?.includes('pencil')) as HTMLElement);
+    await user.click(await screen.findByText(/^Save$/i));
+
+    await waitFor(() => expect(updateBody).not.toBeNull());
+    expect(updateBody).toMatchObject({ place_id: 5, start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null });
+    await waitFor(() => expect(screen.getByText('Reloaded Hotel')).toBeInTheDocument());
+    expect(onAccommodationChange).toHaveBeenCalled();
+  });
+
+  it('FE-W5DDP-007: the hotel picker filters the place list by category', async () => {
+    const user = userEvent.setup();
+    const museums = { id: 3, name: 'Museums', color: '#ff0000' };
+    render(
+      <DayDetailPanel
+        {...defaultProps}
+        categories={[museums] as never}
+        places={[
+          buildPlace({ id: 10, name: 'Maison Blanche', category_id: 3 }),
+          buildPlace({ id: 11, name: 'Chez Nous', category_id: 4 }),
+        ]}
+      />,
+    );
+    await user.click(await screen.findByText(/Add accommodation/i));
+
+    expect(screen.getByRole('button', { name: /Chez Nous/ })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Museums' }));
+    expect(screen.queryByRole('button', { name: /Chez Nous/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Maison Blanche/ })).toBeInTheDocument();
+
+    const filterRow = screen.getByRole('button', { name: 'Museums' }).parentElement as HTMLElement;
+    await user.click(within(filterRow).getByRole('button', { name: /^All$/ }));
+    expect(screen.getByRole('button', { name: /Chez Nous/ })).toBeInTheDocument();
+  });
+
+  it('FE-W5DDP-008: the day-range pickers badge dated days, titled days and nothing else', async () => {
+    const user = userEvent.setup();
+    const dated = buildDay({ id: 1, trip_id: 1, date: '2025-06-15', title: 'Day in Paris' });
+    const titled = buildDay({ id: 2, trip_id: 1, date: null, title: 'Free Day' });
+    const bare = buildDay({ id: 3, trip_id: 1, date: null, title: null });
+
+    render(<DayDetailPanel {...defaultProps} day={dated} days={[dated, titled, bare]} places={[buildPlace({ id: 10, name: 'Maison Blanche' })]} />);
+    await user.click(await screen.findByText(/Add accommodation/i));
+
+    // open the "from" select — the option rows carry the badges
+    const range = screen.getByText('Apply to days').parentElement as HTMLElement;
+    await user.click(within(range).getAllByRole('button')[0]);
+
+    expect(screen.getAllByText('Jun 15').length).toBeGreaterThanOrEqual(1);
+    const freeDay = screen.getAllByRole('button', { name: /Free Day/ });
+    expect(freeDay.some(b => b.textContent?.includes('Day 2'))).toBe(true);
+    expect(screen.getAllByRole('button', { name: /^Day 3$/ }).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('FE-W5DDP-009: a day without a title falls back to its position and hides the pencil', () => {
+    const bare = buildDay({ id: 2, trip_id: 1, date: null, title: null });
+    render(<DayDetailPanel {...defaultProps} day={bare} days={[defaultProps.day, bare]} />);
+
+    expect(screen.getByText('Day 2')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Edit')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5DDP-010: renaming a day that is not in the list still commits the draft', async () => {
+    const user = userEvent.setup();
+    const onUpdateDayTitle = vi.fn();
+    const orphan = buildDay({ id: 9, trip_id: 1, date: null, title: null });
+    render(<DayDetailPanel {...defaultProps} day={orphan} days={[]} onUpdateDayTitle={onUpdateDayTitle} />);
+
+    expect(screen.getByText('Day ?')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('Edit'));
+    const input = await screen.findByPlaceholderText('Day ?');
+    await user.type(input, 'Named Later');
+    fireEvent.blur(input);
+
+    expect(onUpdateDayTitle).toHaveBeenCalledWith(9, 'Named Later');
+  });
+
+  it('FE-W5DDP-011: an unmapped weather condition falls back to the cloud icon', async () => {
+    server.use(
+      http.get('/api/weather/detailed', () =>
+        HttpResponse.json({
+          main: 'Sandstorm', temp: 30, description: 'blowing sand', type: 'forecast',
+          hourly: [{ hour: 9, main: 'Sandstorm', temp: 28, precipitation_probability: 0 }],
+        }),
+      ),
+    );
+    render(<DayDetailPanel {...defaultProps} lat={48.85} lng={2.35} />);
+
+    expect(await screen.findByText('blowing sand')).toBeInTheDocument();
+    expect(document.querySelectorAll('svg[class*="lucide-cloud"]').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('FE-W5DDP-012: an ISO check-in timestamp is rendered in local time', async () => {
+    server.use(
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({ accommodations: [hotel({ check_in: '2025-06-15T14:00', check_out: null })] }),
+      ),
+    );
+    render(<DayDetailPanel {...defaultProps} />);
+
+    expect(await screen.findByText('14:00')).toBeInTheDocument();
+  });
+
+  it('FE-W5DDP-013: the collapsed header keeps the title and the date on one line', async () => {
+    const user = userEvent.setup();
+    const onToggleCollapse = vi.fn();
+    const { rerender } = render(<DayDetailPanel {...defaultProps} collapsed={false} onToggleCollapse={onToggleCollapse} />);
+
+    await user.click(screen.getByTitle('Collapse'));
+    expect(onToggleCollapse).toHaveBeenCalled();
+
+    rerender(<DayDetailPanel {...defaultProps} collapsed onToggleCollapse={onToggleCollapse} />);
+    const header = screen.getByText('Day in Paris').closest('div') as HTMLElement;
+    expect(header).toHaveTextContent(/Sunday, June 15/);
+    expect(screen.getByTitle('Expand')).toBeInTheDocument();
+  });
+});
+
+// FE-W5DDP-014 to FE-W5DDP-020
+describe('DayDetailPanel remaining branches, part two', () => {
+  const hotel = (overrides: Record<string, unknown> = {}) => ({
+    id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+    start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
+    ...overrides,
+  });
+
+  it('FE-W5DDP-014: an unblurred booking code stays readable and pending bookings look different', async () => {
+    server.use(
+      http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [hotel()] })),
+    );
+    render(
+      <DayDetailPanel
+        {...defaultProps}
+        reservations={[buildReservation({ id: 40, type: 'hotel', title: 'Grand Hotel Booking', accommodation_id: 1, status: 'pending', confirmation_number: 'XY99' })]}
+      />,
+    );
+
+    const code = await screen.findByText('#XY99');
+    expect(code.style.filter).toBe('none');
+    expect(code.style.cursor).toBe('default');
+
+    fireEvent.mouseEnter(code);
+    fireEvent.click(code);
+    fireEvent.mouseLeave(code);
+    expect(code.style.filter).toBe('none');
+    expect(screen.getByText('Pending')).toBeInTheDocument();
+  });
+
+  it('FE-W5DDP-015: mobile mode lifts the panel and works without a ResizeObserver', () => {
+    vi.stubGlobal('ResizeObserver', undefined);
+    try {
+      const { container } = render(<DayDetailPanel {...defaultProps} mobile collapsed />);
+      const panel = container.firstElementChild as HTMLElement;
+
+      expect(panel.style.zIndex).toBe('10000');
+      expect(document.documentElement.style.getPropertyValue('--day-panel-h')).not.toBe('');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('FE-W5DDP-016: with coordinates the reservations block gets its own divider', async () => {
+    render(
+      <DayDetailPanel
+        {...defaultProps}
+        lat={48.85}
+        lng={2.35}
+        reservations={[buildReservation({ id: 9, type: 'event', title: 'Late Entry', day_id: 1, reservation_time: null, reservation_end_time: '22:30' })]}
+      />,
+    );
+
+    expect(await screen.findByText('Late Entry')).toBeInTheDocument();
+    expect(screen.getByText('– 22:30')).toBeInTheDocument();
+  });
+
+  it('FE-W5DDP-017: moving the start day past the end day drags the end day with it', async () => {
+    const user = userEvent.setup();
+    const d1 = buildDay({ id: 1, trip_id: 1, date: '2025-06-15', title: 'Day in Paris' });
+    const d2 = buildDay({ id: 2, trip_id: 1, date: '2025-06-16', title: 'Day Two' });
+    render(<DayDetailPanel {...defaultProps} day={d1} days={[d1, d2]} places={[buildPlace({ id: 10, name: 'Maison Blanche' })]} />);
+    await user.click(await screen.findByText(/Add accommodation/i));
+
+    const range = screen.getByText('Apply to days').parentElement as HTMLElement;
+    const [fromSelect, toSelect] = within(range).getAllByRole('button');
+
+    await user.click(fromSelect);
+    await user.click(screen.getAllByRole('button', { name: /Day Two/ })[0]);
+    expect(within(range).getAllByRole('button')[1]).toHaveTextContent('Day Two');
+
+    await user.click(within(range).getAllByRole('button')[1] === toSelect ? toSelect : within(range).getAllByRole('button')[1]);
+    await user.click(screen.getAllByRole('button', { name: /Day in Paris/ })[0]);
+    expect(within(range).getAllByRole('button')[0]).toHaveTextContent('Day in Paris');
+
+    // moving each end back inside the range leaves the other one alone
+    await user.click(within(range).getAllByRole('button')[1]);
+    await user.click(screen.getAllByRole('button', { name: /Day Two/ })[0]);
+    expect(within(range).getAllByRole('button')[0]).toHaveTextContent('Day in Paris');
+
+    await user.click(within(range).getAllByRole('button')[0]);
+    await user.click(screen.getAllByRole('button', { name: /Day in Paris/ })[0]);
+    expect(within(range).getAllByRole('button')[1]).toHaveTextContent('Day Two');
+  });
+
+  it('FE-W5DDP-018: the picked place keeps its highlight on hover and shows its photo', async () => {
+    const user = userEvent.setup();
+    const withPhoto = buildPlace({ id: 10, name: 'Maison Blanche', image_url: '/uploads/places/mb.jpg', address: null });
+    const other = buildPlace({ id: 11, name: 'Chez Nous' });
+    render(<DayDetailPanel {...defaultProps} places={[withPhoto, other]} />);
+    await user.click(await screen.findByText(/Add accommodation/i));
+
+    const picked = screen.getByRole('button', { name: /Maison Blanche/ });
+    await user.click(picked);
+    expect(picked.style.background).toBe('var(--bg-hover)');
+
+    fireEvent.mouseEnter(picked);
+    fireEvent.mouseLeave(picked);
+    expect(picked.style.background).toBe('var(--bg-hover)');
+    expect(document.querySelector('img[src="/uploads/places/mb.jpg"]')).not.toBeNull();
+  });
+
+  it('FE-W5DDP-019: a category without a colour falls back to the default filter highlight', async () => {
+    const user = userEvent.setup();
+    render(
+      <DayDetailPanel
+        {...defaultProps}
+        categories={[{ id: 3, name: 'Uncoloured', color: null }] as never}
+        places={[buildPlace({ id: 10, name: 'Maison Blanche', category_id: 3 })]}
+      />,
+    );
+    await user.click(await screen.findByText(/Add accommodation/i));
+
+    const chip = screen.getByRole('button', { name: 'Uncoloured' });
+    await user.click(chip);
+    expect(chip.style.background).toBe('var(--text-primary)');
+  });
+
+  it('FE-W5DDP-022: a plugin column for this day is appended above the reservations', async () => {
+    server.use(
+      http.get('/api/view-contributions/day/1', () =>
+        HttpResponse.json({ contributions: [{ kind: 'column', pluginId: 'sun', entityId: 1, label: 'Daylight', value: '15h 20m', tone: 'default' }] }),
+      ),
+    );
+    render(<DayDetailPanel {...defaultProps} />);
+
+    expect(await screen.findByText('15h 20m')).toBeInTheDocument();
+  });
+
+  it('FE-W5DDP-021: a collapsed untitled day falls back to its position, or to ? when it has none', () => {
+    const bare = buildDay({ id: 2, trip_id: 1, date: null, title: null });
+    const { unmount } = render(<DayDetailPanel {...defaultProps} day={bare} days={[defaultProps.day, bare]} collapsed />);
+    expect(screen.getByText('Day 2')).toBeInTheDocument();
+    unmount();
+
+    render(<DayDetailPanel {...defaultProps} day={bare} days={[]} collapsed />);
+    expect(screen.getByText('Day ?')).toBeInTheDocument();
+  });
+
+  it('FE-W5DDP-020: an empty reload after the edit-save clears the accommodation', async () => {
+    const user = userEvent.setup();
+    let listCalls = 0;
+    server.use(
+      http.get('/api/trips/1/accommodations', () => {
+        listCalls += 1;
+        return listCalls === 1 ? HttpResponse.json({ accommodations: [hotel()] }) : HttpResponse.json({});
+      }),
+      http.put('/api/trips/1/accommodations/1', () => HttpResponse.json({ accommodation: hotel() })),
+    );
+
+    render(<DayDetailPanel {...defaultProps} places={[buildPlace({ id: 5, name: 'Grand Hotel' })]} />);
+    await screen.findByText('Grand Hotel');
+    await user.click(screen.getAllByRole('button').find(b => b.querySelector('svg')?.getAttribute('class')?.includes('pencil')) as HTMLElement);
+    await user.click(await screen.findByText(/^Save$/i));
+
+    expect(await screen.findByText(/Add accommodation/i)).toBeInTheDocument();
+  });
 });

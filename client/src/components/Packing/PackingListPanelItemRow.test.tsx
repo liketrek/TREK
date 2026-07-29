@@ -1,4 +1,4 @@
-// FE-W5ROW-001 to FE-W5ROW-055
+// FE-W5ROW-001 to FE-W5ROW-056
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { ComponentProps } from 'react'
 import { http, HttpResponse } from 'msw'
@@ -142,6 +142,26 @@ describe('ArtikelZeile — basics', () => {
   })
 })
 
+describe('ArtikelZeile — quantity', () => {
+  it('FE-W5ROW-005a: committing the inline quantity saves it', async () => {
+    let body: Record<string, unknown> | null = null
+    server.use(
+      http.put('/api/trips/1/packing/1', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ item: buildPackingItem({ id: 1, quantity: 3 }) })
+      }),
+    )
+    const { container } = setup({ item: buildPackingItem({ id: 1, name: 'Tent', quantity: null } as Partial<PackingItem>) })
+
+    const qty = container.querySelector<HTMLInputElement>('.packing-row-inline-actions input')!
+    expect(qty).toHaveValue('1')
+    fireEvent.change(qty, { target: { value: '3' } })
+    fireEvent.blur(qty)
+
+    await waitFor(() => expect(body).toMatchObject({ quantity: 3 }))
+  })
+})
+
 describe('ArtikelZeile — renaming', () => {
   it('FE-W5ROW-006: Enter commits the new name', async () => {
     let body: Record<string, unknown> | null = null
@@ -186,6 +206,22 @@ describe('ArtikelZeile — renaming', () => {
 
     expect(screen.queryByDisplayValue('Tarp')).toBeNull()
     expect(screen.getByText('Tent')).toBeInTheDocument()
+  })
+
+  it('FE-W5ROW-008a: a blanked placeholder row falls back to an empty field', async () => {
+    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }) })
+    fireEvent.click(screen.getByText('...'))
+
+    const input = screen.getByPlaceholderText('...')
+    fireEvent.change(input, { target: { value: 'Tent' } })
+    fireEvent.keyDown(input, { key: 'Escape' })
+    fireEvent.click(screen.getByText('...'))
+    expect(screen.getByPlaceholderText('...')).toHaveValue('')
+
+    fireEvent.change(screen.getByPlaceholderText('...'), { target: { value: '   ' } })
+    fireEvent.blur(screen.getByPlaceholderText('...'))
+
+    await waitFor(() => expect(screen.getByText('...')).toBeInTheDocument())
   })
 
   it('FE-W5ROW-009: a failing rename surfaces a save error', async () => {
@@ -605,6 +641,33 @@ describe('ArtikelZeile — weight and bag', () => {
     expect(selected.style.background).toBe('var(--bg-tertiary)')
   })
 
+  it('FE-W5ROW-040a: hovering the selected bag entry leaves it untouched', () => {
+    const { container } = setup({
+      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 7 } as Partial<PackingItem>),
+      bagTrackingEnabled: true,
+      bags: BAGS,
+    })
+    fireEvent.click(bagButton(container))
+    const selected = screen.getByRole('button', { name: 'Carry-on' })
+
+    fireEvent.mouseEnter(selected)
+    expect(selected.style.background).toBe('var(--bg-tertiary)')
+    fireEvent.mouseLeave(selected)
+    expect(selected.style.background).toBe('var(--bg-tertiary)')
+  })
+
+  it('FE-W5ROW-040b: a bag id the trip no longer knows falls back to the neutral border', () => {
+    const { container } = setup({
+      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 99 } as Partial<PackingItem>),
+      bagTrackingEnabled: true,
+      bags: BAGS,
+    })
+
+    const trigger = bagButton(container)
+    expect(trigger.style.border).toBe('2.5px solid var(--border-primary)')
+    expect(trigger.style.background).toBe('var(--border-primary)30')
+  })
+
   it('FE-W5ROW-041: creating a bag inline assigns it right away', async () => {
     const created = { id: 12, name: 'Duffel', color: '#f97316' } as unknown as PackingBag
     const onCreateBag = vi.fn(async () => created)
@@ -680,6 +743,52 @@ describe('ArtikelZeile — weight and bag', () => {
     fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => expect(onCreateBag).toHaveBeenCalled())
+    await waitFor(() => expect(screen.queryByPlaceholderText('Bag name...')).toBeNull())
+    expect(called).toBe(false)
+  })
+
+  it('FE-W5ROW-045a: a failing assign after an inline create surfaces a save error', async () => {
+    const created = { id: 14, name: 'Duffel', color: '#f97316' } as unknown as PackingBag
+    const onCreateBag = vi.fn(async () => created)
+    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
+    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, onCreateBag })
+    fireEvent.click(bagButton(container))
+    fireEvent.click(screen.getByText('Add bag'))
+
+    const input = screen.getByPlaceholderText('Bag name...')
+    fireEvent.change(input, { target: { value: 'Duffel' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
+  })
+
+  it('FE-W5ROW-045b: the confirm button also reports a failing assign', async () => {
+    const created = { id: 15, name: 'Crate', color: '#f97316' } as unknown as PackingBag
+    const onCreateBag = vi.fn(async () => created)
+    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
+    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, onCreateBag })
+    fireEvent.click(bagButton(container))
+    fireEvent.click(screen.getByText('Add bag'))
+    const confirm = screen.getByPlaceholderText('Bag name...').nextElementSibling as HTMLButtonElement
+
+    fireEvent.change(screen.getByPlaceholderText('Bag name...'), { target: { value: 'Crate' } })
+    fireEvent.click(confirm)
+
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
+  })
+
+  it('FE-W5ROW-045c: the confirm button closes the form when creation is refused', async () => {
+    const onCreateBag = vi.fn(async () => undefined)
+    let called = false
+    server.use(http.put('/api/trips/1/packing/1', () => { called = true; return HttpResponse.json({ item: buildPackingItem() }) }))
+    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, onCreateBag })
+    fireEvent.click(bagButton(container))
+    fireEvent.click(screen.getByText('Add bag'))
+    const confirm = screen.getByPlaceholderText('Bag name...').nextElementSibling as HTMLButtonElement
+
+    fireEvent.change(screen.getByPlaceholderText('Bag name...'), { target: { value: 'Crate' } })
+    fireEvent.click(confirm)
+
     await waitFor(() => expect(screen.queryByPlaceholderText('Bag name...')).toBeNull())
     expect(called).toBe(false)
   })
@@ -798,6 +907,40 @@ describe('ArtikelZeile — overflow menu', () => {
     expect(called).toBe(false)
   })
 
+  it('FE-W5ROW-053a: a failing clear from the menu surfaces a save error', async () => {
+    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
+    const { container } = setup({
+      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 7 } as Partial<PackingItem>),
+      bagTrackingEnabled: true,
+      bags: BAGS,
+    })
+    fireEvent.click(overflowTrigger(container))
+
+    fireEvent.click(menu(container).getAllByRole('button', { name: 'Carry-on', hidden: true })[0])
+
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
+  })
+
+  it('FE-W5ROW-053b: clearing the menu weight stores null', async () => {
+    let body: Record<string, unknown> | null = null
+    server.use(
+      http.put('/api/trips/1/packing/1', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ item: buildPackingItem({ id: 1 }) })
+      }),
+    )
+    const { container } = setup({
+      item: buildPackingItem({ id: 1, name: 'Tent', weight_grams: 400 } as Partial<PackingItem>),
+      bagTrackingEnabled: true,
+      bags: BAGS,
+    })
+    fireEvent.click(overflowTrigger(container))
+
+    fireEvent.change(fieldOf(container, 'Total weight'), { target: { value: '' } })
+
+    await waitFor(() => expect(body).toMatchObject({ weight_grams: null }))
+  })
+
   it('FE-W5ROW-054: the menu list submenu moves the item and can be collapsed again', async () => {
     let body: Record<string, unknown> | null = null
     server.use(
@@ -821,6 +964,18 @@ describe('ArtikelZeile — overflow menu', () => {
     await waitFor(() => expect(body).toMatchObject({ category: 'Docs' }))
   })
 
+  it('FE-W5ROW-054a: an uncategorized item marks the default list in the submenu', () => {
+    const { container } = setup({
+      item: buildPackingItem({ id: 1, name: 'Soap', category: null }),
+      categories: ['Other', 'Gear'],
+    })
+    fireEvent.click(overflowTrigger(container))
+    fireEvent.click(menuButton(container, 'Move to List'))
+
+    expect(menuButton(container, 'Other')).toHaveStyle({ background: 'var(--bg-tertiary)' })
+    expect(menuButton(container, 'Gear')).not.toHaveStyle({ background: 'var(--bg-tertiary)' })
+  })
+
   it('FE-W5ROW-055: the menu carries its own share control', () => {
     const onSetSharing = vi.fn()
     const { container } = setup({
@@ -842,15 +997,13 @@ describe('ArtikelZeile — overflow menu', () => {
   })
 
   it('FE-W5ROW-056: menu entries highlight on hover, the active one stays put', () => {
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', category: 'Gear', bag_id: 8 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-      bags: BAGS,
-    })
+    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
     fireEvent.click(overflowTrigger(container))
-    const active = screen.getByRole('button', { name: 'Trolley' })
-    const plain = screen.getByRole('button', { name: 'Carry-on' })
-    const danger = screen.getByText('Delete').closest('button')!
+    fireEvent.click(menuButton(container, 'Move to List'))
+    // "Gear" is the item's current list, so its submenu entry renders as active.
+    const active = menuButton(container, 'Gear')
+    const plain = menuButton(container, 'Carry-on')
+    const danger = menu(container).getByText('Delete').closest('button')!
 
     fireEvent.mouseEnter(plain)
     expect(plain.style.background).toBe('var(--bg-tertiary)')

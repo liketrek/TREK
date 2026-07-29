@@ -724,7 +724,6 @@ describe('TripMembersModal', () => {
   });
 
   it('FE-COMP-MEMBERS-042: transferring ownership reloads the app', async () => {
-    const user = userEvent.setup();
     const onClose = vi.fn();
     const reload = vi.fn();
     Object.defineProperty(window, 'location', { value: { ...window.location, reload }, writable: true, configurable: true });

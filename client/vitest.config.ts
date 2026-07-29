@@ -28,10 +28,10 @@ export default defineConfig({
       // down to ~48% unnoticed. Set a few points below the current run so an
       // ordinary PR doesn't trip them; raise them when the number rises.
       thresholds: {
-        statements: 90,
-        branches: 82,
-        functions: 89,
-        lines: 92,
+        statements: 94,
+        branches: 87,
+        functions: 94,
+        lines: 96,
       },
     },
     css: false,

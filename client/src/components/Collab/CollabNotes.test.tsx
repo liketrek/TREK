@@ -1270,7 +1270,7 @@ describe('CollabNotes', () => {
   });
 });
 
-// FE-W5CNT-001 to FE-W5CNT-026
+// FE-W5CNT-001 to FE-W5CNT-028
 // Fills in the load/error/attachment/category branches of useCollabNotes and the
 // view modal that the smoke tests above do not reach.
 
@@ -1602,7 +1602,10 @@ describe('CollabNotes details', () => {
 
   it('FE-W5CNT-020: a failing upload during an edit reports an error', async () => {
     const user = userEvent.setup();
-    serveNotes({ notes: [buildNote({ id: 3, title: 'Edit me' })] });
+    serveNotesSequence([
+      { notes: [buildNote({ id: 3, title: 'Edit me' })] },
+      [buildNote({ id: 3, title: 'Ignored reload' })],
+    ]);
     server.use(
       http.put('/api/trips/1/collab/notes/3', () =>
         HttpResponse.json({ note: buildNote({ id: 3, title: 'Edit me' }) }),
@@ -1616,6 +1619,7 @@ describe('CollabNotes details', () => {
     pasteFile('nope.png');
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.queryByText('Ignored reload')).not.toBeInTheDocument();
   });
 
   it('FE-W5CNT-021: a failing attachment removal reports an error', async () => {
@@ -1645,15 +1649,17 @@ describe('CollabNotes details', () => {
         buildNote({ id: 1, title: 'No timestamps', updated_at: null, created_at: null }),
         buildNote({ id: 2, title: 'Pinned one', pinned: true }),
         buildNote({ id: 3, title: 'Created only', updated_at: null, created_at: '2025-06-02T10:00:00.000Z' }),
+        buildNote({ id: 4, title: 'Also undated', updated_at: null, created_at: null }),
       ],
     });
+    const known = ['No timestamps', 'Pinned one', 'Created only', 'Also undated'];
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Pinned one');
     const titles = Array.from(document.querySelectorAll('span'))
       .filter(el => el.childElementCount === 0)
       .map(el => el.textContent)
-      .filter(text => ['No timestamps', 'Pinned one', 'Created only'].includes(text ?? ''));
-    expect(titles).toEqual(['Pinned one', 'Created only', 'No timestamps']);
+      .filter(text => known.includes(text ?? ''));
+    expect(titles).toEqual(['Pinned one', 'Created only', 'No timestamps', 'Also undated']);
   });
 
   it('FE-W5CNT-023: clicking the active category pill clears the filter again', async () => {
@@ -1723,7 +1729,7 @@ describe('CollabNotes details', () => {
         content: 'See attachments',
         attachments: [
           { id: 1, filename: 'a.png', original_name: 'map.png', mime_type: 'image/png', url: '/uploads/map.png' },
-          { id: 2, filename: 'b.txt', original_name: 'itinerary.txt', mime_type: 'text/plain', url: '/uploads/itinerary.txt' },
+          { id: 2, filename: 'b.zip', original_name: 'itinerary.zip', mime_type: 'application/zip', url: '/uploads/itinerary.zip' },
           { id: 3, filename: 'c', url: '/uploads/c' },
         ],
       })],
@@ -1740,15 +1746,16 @@ describe('CollabNotes details', () => {
     // Unknown mime type and missing name fall back to a "?" tile
     expect(within(modal).getByText('?')).toBeInTheDocument();
 
-    const txtTile = within(modal).getByTitle('itinerary.txt');
-    expect(txtTile.style.background).toBe('var(--bg-secondary)');
-    fireEvent.mouseEnter(txtTile);
-    expect(txtTile.style.transform).toBe('scale(1.06)');
-    fireEvent.mouseLeave(txtTile);
-    expect(txtTile.style.transform).toBe('scale(1)');
-    fireEvent.click(txtTile);
+    const zipTile = within(modal).getByTitle('itinerary.zip');
+    expect(zipTile.style.background).toBe('var(--bg-secondary)');
+    expect(within(modal).getByText('ZIP')).toBeInTheDocument();
+    fireEvent.mouseEnter(zipTile);
+    expect(zipTile.style.transform).toBe('scale(1.06)');
+    fireEvent.mouseLeave(zipTile);
+    expect(zipTile.style.transform).toBe('scale(1)');
+    fireEvent.click(zipTile);
     // FilePreviewPortal shows a download action for non-image files
-    expect(await screen.findByText('Download itinerary.txt')).toBeInTheDocument();
+    expect(await screen.findByText('Download itinerary.zip')).toBeInTheDocument();
 
     const image = await waitFor(() => {
       const img = modal.querySelector('img[alt="map.png"]') as HTMLImageElement | null;
@@ -1760,6 +1767,39 @@ describe('CollabNotes details', () => {
     fireEvent.mouseLeave(image);
     expect(image.style.transform).toBe('scale(1)');
     fireEvent.click(image);
-    await waitFor(() => expect(screen.queryByText('Download itinerary.txt')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('Download itinerary.zip')).not.toBeInTheDocument());
+  });
+  it('FE-W5CNT-027: a create response for a note already in the list is not added twice', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 20, title: 'Fresh note' })] });
+    server.use(
+      http.post('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({ note: buildNote({ id: 20, title: 'Fresh note' }) }),
+      ),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Fresh note');
+    await user.click(screen.getByText('New Note'));
+    await user.type(await screen.findByPlaceholderText('Note title'), 'Fresh note');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(screen.queryByPlaceholderText('Note title')).not.toBeInTheDocument());
+    expect(screen.getAllByText('Fresh note')).toHaveLength(1);
+  });
+
+  it('FE-W5CNT-028: a second note created elsewhere is prepended to the existing list', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 20, title: 'Older note' })] });
+    server.use(
+      http.post('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({ note: buildNote({ id: 21, title: 'Newer note' }) }),
+      ),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Older note');
+    await user.click(screen.getByText('New Note'));
+    await user.type(await screen.findByPlaceholderText('Note title'), 'Newer note');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await screen.findByText('Newer note');
+    expect(screen.getByText('Older note')).toBeInTheDocument();
   });
 });

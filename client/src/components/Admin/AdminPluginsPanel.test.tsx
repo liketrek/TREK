@@ -1306,3 +1306,544 @@ describe('AdminPluginsPanel — security footer', () => {
     expect(screen.getByText('What "Signed" means')).toBeInTheDocument()
   })
 })
+
+// FE-W5PLG-001 to FE-W5PLG-014 — toolbar filters and sorting, the error-log and
+// allowed-hosts dialogs, and the drag-to-install overlay.
+describe('AdminPluginsPanel toolbar and dialogs', () => {
+  const row = (over: Record<string, unknown> = {}) => plugin({
+    id: 'a-widget', name: 'Alpha Widget', description: 'a widget', type: 'widget',
+    version: '1.0.0', status: 'active', enabled: 1, operatorEgress: false,
+    ...over,
+  })
+
+  function mockPanel(rows: Record<string, unknown>[], registry: unknown = []) {
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({ enabled: true, devLink: false, plugins: rows })),
+      http.get('*/api/admin/plugins/registry', () => HttpResponse.json(registry)),
+    )
+  }
+
+  const three = () => [
+    row(),
+    row({ id: 'b-integration', name: 'Beta Bridge', description: 'a bridge', type: 'integration', enabled: 0, status: 'inactive' }),
+    row({ id: 'c-page', name: 'Gamma Page', description: 'a page', type: 'page', enabled: 1, status: 'error', last_error: 'boom' }),
+  ]
+
+  const pickFilter = async (user: ReturnType<typeof userEvent.setup>, filter: RegExp, option: RegExp) => {
+    await user.click(screen.getByTitle(filter))
+    await user.click(screen.getByRole('button', { name: option }))
+  }
+
+  it('FE-W5PLG-001: the search box narrows the installed list by name and description', async () => {
+    const user = userEvent.setup()
+    mockPanel(three())
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.type(screen.getByPlaceholderText(/search/i), 'bridge')
+
+    await waitFor(() => expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument())
+    expect(screen.getByText('Beta Bridge')).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-002: a search with no hits shows the no-match state', async () => {
+    const user = userEvent.setup()
+    mockPanel(three())
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.type(screen.getByPlaceholderText(/search/i), 'zzzz')
+
+    expect(await screen.findByText(/no.*match/i)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-003: the type filter keeps only plugins of that type', async () => {
+    const user = userEvent.setup()
+    mockPanel(three())
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await pickFilter(user, /^Type:/, /^Widget$/)
+
+    await waitFor(() => expect(screen.queryByText('Beta Bridge')).not.toBeInTheDocument())
+    expect(screen.getByText('Alpha Widget')).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-004: the status filter separates active, off and errored plugins', async () => {
+    const user = userEvent.setup()
+    mockPanel(three())
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await pickFilter(user, /^Status:/, /^Active$/)
+    await waitFor(() => expect(screen.queryByText('Beta Bridge')).not.toBeInTheDocument())
+    expect(screen.queryByText('Gamma Page')).not.toBeInTheDocument()
+
+    await pickFilter(user, /^Status:/, /^Off$/)
+    await waitFor(() => expect(screen.getByText('Beta Bridge')).toBeInTheDocument())
+    expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument()
+
+    await pickFilter(user, /^Status:/, /^Error$/)
+    await waitFor(() => expect(screen.getByText('Gamma Page')).toBeInTheDocument())
+    expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-005: the update filter and the updates-first sort both use the registry version', async () => {
+    const user = userEvent.setup()
+    mockPanel(three(), [{ id: 'c-page', name: 'Gamma Page', latest: '9.9.9' }])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await waitFor(() => expect(screen.getByText(/updates? available/i)).toBeInTheDocument())
+
+    await pickFilter(user, /^Sort:/, /^Updates first$/)
+    await waitFor(() => {
+      const names = screen.getAllByText(/Alpha Widget|Beta Bridge|Gamma Page/).map(e => e.textContent)
+      expect(names[0]).toBe('Gamma Page')
+    })
+
+    await pickFilter(user, /^Status:/, /^Update available$/)
+    await waitFor(() => expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument())
+    expect(screen.getByText('Gamma Page')).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-006: switching tabs snaps a tab-only sort key back to name', async () => {
+    const user = userEvent.setup()
+    mockPanel(three(), [{ id: 'c-page', name: 'Gamma Page', latest: '9.9.9' }])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await pickFilter(user, /^Sort:/, /^Updates first$/)
+    expect(screen.getByTitle(/^Sort: Updates first$/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: /Discover/ }))
+    await waitFor(() => expect(screen.getByTitle(/^Sort: Name$/)).toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-007: the registry sorts by downloads and by review date', async () => {
+    const user = userEvent.setup()
+    const reg = [
+      { id: 'r-old', name: 'Old Tool', author: 'a', description: 'd', type: 'widget', downloadCount: 10, reviewedAt: '2024-01-01T00:00:00Z' },
+      { id: 'r-new', name: 'New Tool', author: 'b', description: 'd', type: 'widget', downloadCount: 999, reviewedAt: '2026-01-01T00:00:00Z' },
+    ]
+    mockPanel(three(), reg)
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await user.click(screen.getByRole('tab', { name: /Discover/ }))
+    await screen.findByText('Old Tool')
+
+    await pickFilter(user, /^Sort:/, /^Most downloads$/)
+    await waitFor(() => {
+      const names = screen.getAllByText(/^(Old|New) Tool$/).map(e => e.textContent)
+      expect(names[0]).toBe('New Tool')
+    })
+
+    await pickFilter(user, /^Sort:/, /^Recently updated$/)
+    await waitFor(() => {
+      const names = screen.getAllByText(/^(Old|New) Tool$/).map(e => e.textContent)
+      expect(names[0]).toBe('New Tool')
+    })
+
+    await pickFilter(user, /^Sort:/, /^Name$/)
+    await waitFor(() => {
+      const names = screen.getAllByText(/^(Old|New) Tool$/).map(e => e.textContent)
+      expect(names[0]).toBe('New Tool')
+    })
+  })
+
+  it('FE-W5PLG-008: the registry search and type filter narrow the discover grid', async () => {
+    const user = userEvent.setup()
+    const reg = [
+      { id: 'r-a', name: 'Mapper', author: 'ann', description: 'maps things', type: 'widget' },
+      { id: 'r-b', name: 'Poster', author: 'bob', description: 'posts things', type: 'page' },
+    ]
+    mockPanel(three(), reg)
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await user.click(screen.getByRole('tab', { name: /Discover/ }))
+    await screen.findByText('Mapper')
+
+    await pickFilter(user, /^Type:/, /^Page$/)
+    await waitFor(() => expect(screen.queryByText('Mapper')).not.toBeInTheDocument())
+    expect(screen.getByText('Poster')).toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText(/search/i), 'ann')
+    await waitFor(() => expect(screen.queryByText('Poster')).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-009: the error log lists both levels and closes again', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    server.use(
+      http.get('*/api/admin/plugins/a-widget/errors', () =>
+        HttpResponse.json({ errors: [
+          { level: 'error', ts: '2026-01-01 10:00', message: 'exploded' },
+          { level: 'warn', ts: '2026-01-01 10:01', message: 'wobbled' },
+        ] }),
+      ),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    await user.click(screen.getByRole('button', { name: /view error log/i }))
+
+    expect(await screen.findByText('exploded')).toBeInTheDocument()
+    expect(screen.getByText('wobbled')).toBeInTheDocument()
+    expect(screen.getByText('error')).toBeInTheDocument()
+    expect(screen.getByText('warn')).toBeInTheDocument()
+
+    const dialog = screen.getByText('exploded').closest('.fixed') as HTMLElement
+    await user.click(within(dialog).getAllByRole('button')[0])
+    await waitFor(() => expect(screen.queryByText('exploded')).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-010: an empty error log says so and the backdrop closes it', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    server.use(
+      http.get('*/api/admin/plugins/a-widget/errors', () => HttpResponse.json({ errors: [] })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    await user.click(screen.getByRole('button', { name: /view error log/i }))
+
+    const empty = await screen.findByText(/no errors/i)
+    fireEvent.click(empty.closest('.fixed') as HTMLElement)
+    await waitFor(() => expect(screen.queryByText(/no errors/i)).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-011: a plugin whose runtime cannot take extra hosts says so', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    server.use(
+      http.get('*/api/admin/plugins/a-widget/egress-hosts', () => HttpResponse.json({ supported: false, hosts: [] })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    await user.click(screen.getByRole('button', { name: /allowed hosts/i }))
+
+    expect(await screen.findByText(/does not|not supported|no outbound/i)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-012: a failing egress lookup still opens the dialog in the unsupported state', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    server.use(
+      http.get('*/api/admin/plugins/a-widget/egress-hosts', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    await user.click(screen.getByRole('button', { name: /allowed hosts/i }))
+
+    expect(await screen.findByText(/a-widget —/)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-013: dragging a file over the panel arms the drop overlay', async () => {
+    mockPanel([row()])
+    const { container } = render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    const panel = container.firstElementChild as HTMLElement
+
+    fireEvent.dragEnter(panel, { dataTransfer: { types: ['Files'] } })
+    expect(await screen.findByText(/drop.*to (upload|install)/i)).toBeInTheDocument()
+
+    // nested enter/leave pairs must not disarm it early
+    fireEvent.dragEnter(panel, { dataTransfer: { types: ['Files'] } })
+    fireEvent.dragLeave(panel)
+    expect(screen.getByText(/drop.*to (upload|install)/i)).toBeInTheDocument()
+
+    fireEvent.dragLeave(panel)
+    await waitFor(() => expect(screen.queryByText(/drop.*to (upload|install)/i)).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-014: dropping a plugin archive uploads it', async () => {
+    let uploaded = false
+    mockPanel([row()])
+    server.use(
+      http.post('*/api/admin/plugins/upload', () => { uploaded = true; return HttpResponse.json({ id: 'a-widget' }) }),
+    )
+    const { container } = render(
+      <>
+        <AdminPluginsPanel />
+        <ToastContainer />
+      </>,
+    )
+    await screen.findByText('Alpha Widget')
+    const panel = container.firstElementChild as HTMLElement
+
+    const file = new File(['zip'], 'plugin.zip', { type: 'application/zip' })
+    fireEvent.drop(panel, { dataTransfer: { files: [file] } })
+
+    await waitFor(() => expect(uploaded).toBe(true))
+  })
+
+  it('FE-W5PLG-015: the click-away layer closes an open filter menu', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    const { container } = render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTitle(/^Type:/))
+    expect(screen.getByRole('button', { name: /^Widget$/ })).toBeInTheDocument()
+
+    const layer = container.querySelector('.fixed.inset-0.z-20') as HTMLElement
+    fireEvent.click(layer)
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Widget$/ })).not.toBeInTheDocument())
+  })
+})
+
+// FE-W5PLG-016 to FE-W5PLG-023 — registry cards, the detail modal and the
+// dependency chips of an installed row.
+describe('AdminPluginsPanel registry cards and dependency chips', () => {
+  const row = (over: Record<string, unknown> = {}) => plugin({
+    id: 'a-widget', name: 'Alpha Widget', description: 'a widget', type: 'widget',
+    version: '1.0.0', status: 'active', enabled: 1, operatorEgress: false,
+    permissions: JSON.stringify([]),
+    ...over,
+  })
+
+  const regItem = (over: Record<string, unknown> = {}) => ({
+    id: 'r-a', name: 'Mapper', author: 'ann', description: 'maps things', type: 'widget',
+    latest: '2.0.0', repo: 'ann/mapper', signed: true, ...over,
+  })
+
+  function mockPanel(rows: Record<string, unknown>[], registry: unknown = []) {
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({ enabled: true, devLink: false, plugins: rows })),
+      http.get('*/api/admin/plugins/registry', () => HttpResponse.json(registry)),
+    )
+  }
+
+  const openDiscover = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole('tab', { name: /Discover/ }))
+  }
+
+  it('FE-W5PLG-016: leaving Discover snaps the downloads sort back to name', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()], [regItem({ downloadCount: 5 })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await openDiscover(user)
+    await user.click(screen.getByTitle(/^Sort:/))
+    await user.click(screen.getByRole('button', { name: /^Most downloads$/ }))
+    expect(screen.getByTitle(/^Sort: Most downloads$/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: /Installed/ }))
+    await waitFor(() => expect(screen.getByTitle(/^Sort: Name$/)).toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-017: an outrun release offers the newest compatible version instead of a dead button', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()], [
+      regItem({ id: 'r-old', name: 'Older Fit', compatible: false, latestCompatible: '1.4.0', trek: '>=4', hostVersion: '3.5.0' }),
+      regItem({ id: 'r-dead', name: 'No Fit', compatible: false, latestCompatible: null, trek: null }),
+    ])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await openDiscover(user)
+
+    const offer = await screen.findByRole('button', { name: /^Install 1\.4\.0$/ })
+    expect(offer).not.toBeDisabled()
+    expect(offer).toHaveAttribute('title', expect.stringContaining('3.5.0'))
+
+    const dead = screen.getByRole('button', { name: /^Incompatible$/ })
+    expect(dead).toBeDisabled()
+    expect(dead.getAttribute('title')).toBeTruthy()
+  })
+
+  it('FE-W5PLG-018: an already installed registry entry cannot be installed again', async () => {
+    const user = userEvent.setup()
+    mockPanel([row({ id: 'r-a', name: 'Mapper' })], [regItem({ reviewedAt: '2026-01-01T00:00:00Z', downloadCount: 1234 })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Mapper')
+    await openDiscover(user)
+
+    expect(await screen.findByText('1.2k')).toBeInTheDocument()
+    const installBtn = screen.getAllByRole('button', { name: /^Installed$/ })[0]
+    expect(installBtn).toBeDisabled()
+  })
+
+  it('FE-W5PLG-019: a registry card opens its detail modal by click and by keyboard', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()], [regItem({ reviewedAt: '2026-01-01T00:00:00Z', homepage: 'https://mapper.example' })])
+    server.use(
+      http.get('*/api/admin/plugins/registry/r-a', () =>
+        HttpResponse.json({ size: 4096, manifest: { icon: 'Map', permissions: ['db:read:trips'], egress: ['api.mapper.example'], operatorEgress: false, settings: [] } })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await openDiscover(user)
+
+    const card = screen.getByText('Mapper').closest('[role="button"]') as HTMLElement
+    fireEvent.keyDown(card, { key: 'Enter' })
+    expect(await screen.findByRole('heading', { name: 'Mapper' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('heading', { name: 'Mapper' }).closest('.fixed') as HTMLElement)
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Mapper' })).not.toBeInTheDocument())
+
+    fireEvent.keyDown(card, { key: ' ' })
+    expect(await screen.findByRole('heading', { name: 'Mapper' })).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-020: a failing detail fetch still shows the modal shell', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()], [regItem()])
+    server.use(
+      http.get('*/api/admin/plugins/registry/r-a', () => HttpResponse.json({ error: 'gone' }, { status: 404 })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await openDiscover(user)
+
+    await user.click(screen.getByText('Mapper'))
+
+    expect(await screen.findByRole('heading', { name: 'Mapper' })).toBeInTheDocument()
+    expect(screen.getByText(/ann · v2\.0\.0/)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-021: dependency chips flag a disabled addon and a missing plugin', async () => {
+    mockPanel([row({
+      dependencies: { requiredAddons: ['budget', 'vacay'], pluginDependencies: [{ id: 'dep-a', version: '^1' }, { id: 'dep-b', version: '^2' }] },
+      dependencyStatus: 'blocked',
+      dependencyIssues: { disabledAddons: ['vacay'], missing: [{ id: 'dep-a' }], versionMismatch: [{ id: 'dep-b' }] },
+    })])
+    render(<AdminPluginsPanel />)
+
+    await screen.findByText('Alpha Widget')
+    expect(screen.getByText(/budget/)).toBeInTheDocument()
+    expect(screen.getByText(/vacay/)).toBeInTheDocument()
+    expect(screen.getByText(/dep-a/)).toBeInTheDocument()
+    expect(screen.getByText(/dep-b/)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-022: a plugin whose TREK range is unknown still gets an incompatibility chip', async () => {
+    mockPanel([row({ dependencyStatus: 'hostIncompatible', trekRange: null, hostVersion: null })])
+    render(<AdminPluginsPanel />)
+
+    await screen.findByText('Alpha Widget')
+    expect(screen.getByText(/does not say which trek/i)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-023: a registry-sourced row links to its repository and issue tracker', async () => {
+    const user = userEvent.setup()
+    mockPanel([row({ source_repo: 'ann/mapper', reviewed_at: '2026-01-01T00:00:00Z', version: null, description: null, status: 'weird' })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    const repo = screen.getByRole('link', { name: /source|repository/i })
+    expect(repo).toHaveAttribute('href', 'https://github.com/ann/mapper')
+    expect(screen.getByRole('link', { name: /issue/i })).toHaveAttribute('href', 'https://github.com/ann/mapper/issues')
+
+    await user.click(repo)
+    await waitFor(() => expect(screen.queryByRole('link', { name: /issue/i })).not.toBeInTheDocument())
+  })
+})
+
+// FE-W5PLG-024 to FE-W5PLG-028 — the signature dialog's fingerprint rendering
+// and the remaining dialog dismissals.
+describe('AdminPluginsPanel signature fingerprints and dismissals', () => {
+  const blocked = (over: Record<string, unknown> = {}) => plugin({
+    source_repo: 'acme/gotify', signed: true, keyFingerprint: 'OLDKEYaa…aaaaaaaa',
+    updateBlock: { code: 'SIGNATURE_KEY_CHANGED', detail: 'the signing key changed', version: '2.0.0' },
+    ...over,
+  })
+
+  function mockPanel(row: Record<string, unknown>, registry: unknown[] = []) {
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({ enabled: true, devLink: false, plugins: [row] })),
+      http.get('*/api/admin/plugins/registry', () => HttpResponse.json(registry)),
+    )
+  }
+
+  it('FE-W5PLG-024: a long new key is shown head…tail next to the pinned one', async () => {
+    const key = 'untrusted comment: minisign key\nRWQf6LRCGA9iA1234567890ABCDEFGH'
+    mockPanel(blocked(), [{ id: 'trek-gotify', name: 'Gotify', author: 'acme', description: 'd', type: 'integration', latest: '2.0.0', authorPublicKey: key }])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    fireEvent.click(await screen.findByRole('button', { name: /review/i }))
+
+    expect(await screen.findByText('OLDKEYaa…aaaaaaaa')).toBeInTheDocument()
+    expect(screen.getByText('RWQf6LRC…ABCDEFGH')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /trust the new key/i })).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-025: a short key is shown in full and a missing pinned key falls back to a dash', async () => {
+    mockPanel(blocked({ keyFingerprint: null }), [
+      { id: 'trek-gotify', name: 'Gotify', author: 'acme', description: 'd', type: 'integration', latest: '2.0.0', authorPublicKey: 'SHORTKEY' },
+    ])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    fireEvent.click(await screen.findByRole('button', { name: /review/i }))
+
+    expect(await screen.findByText('SHORTKEY')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-026: without a registry entry there is no key to offer and no override', async () => {
+    mockPanel(blocked())
+    render(<AdminPluginsPanel />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /review/i }))
+
+    expect(await screen.findByText('OLDKEYaa…aaaaaaaa')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /trust the new key/i })).not.toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-027: an incomplete signature gets its own explanation and closes on the backdrop', async () => {
+    mockPanel(blocked({ updateBlock: { code: 'SIGNATURE_INCOMPLETE', detail: 'only half signed', version: '2.0.0' } }))
+    render(<AdminPluginsPanel />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /review/i }))
+    const detail = await screen.findByText('only half signed')
+
+    fireEvent.click(detail.closest('.fixed') as HTMLElement)
+    await waitFor(() => expect(screen.queryByText('only half signed')).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-028: the allowed-hosts dialog closes from its header button and its backdrop', async () => {
+    const user = userEvent.setup()
+    mockPanel(plugin({ egressHostCount: 1 }))
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/egress-hosts', () =>
+        HttpResponse.json({ supported: true, hosts: ['gotify.mydomain.com'] })),
+    )
+    render(<AdminPluginsPanel />)
+
+    await user.click(await screen.findByRole('button', { name: /1 allowed host/i }))
+    const host = await screen.findByText('gotify.mydomain.com')
+    const dialog = host.closest('.fixed') as HTMLElement
+
+    await user.click(within(dialog).getAllByRole('button')[0])
+    await waitFor(() => expect(screen.queryByText('gotify.mydomain.com')).not.toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /1 allowed host/i }))
+    const reopened = (await screen.findByText('gotify.mydomain.com')).closest('.fixed') as HTMLElement
+    fireEvent.click(reopened)
+    await waitFor(() => expect(screen.queryByText('gotify.mydomain.com')).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-029: a drop without a file is ignored', async () => {
+    let uploaded = false
+    mockPanel(plugin())
+    server.use(
+      http.post('*/api/admin/plugins/upload', () => { uploaded = true; return HttpResponse.json({ id: 'x' }) }),
+    )
+    const { container } = render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    fireEvent.drop(container.firstElementChild as HTMLElement, { dataTransfer: { files: [] } })
+
+    await waitFor(() => expect(uploaded).toBe(false))
+  })
+})

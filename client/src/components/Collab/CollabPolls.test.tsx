@@ -274,7 +274,7 @@ describe('CollabPolls', () => {
   });
 });
 
-// FE-W5CPL-001 to FE-W5CPL-026
+// FE-W5CPL-001 to FE-W5CPL-028
 // Covers the deadline maths, the voter chips, the error paths of every mutation
 // and the WebSocket handler branches that the smoke tests above skip.
 
@@ -410,7 +410,7 @@ describe('CollabPolls details', () => {
       polls: [buildPoll({
         is_closed: true,
         options: [
-          { id: 1, text: 'Paris', voters: [{ user_id: 4, username: '', avatar_url: null }] },
+          { id: 1, text: 'Paris', voters: [{ user_id: null, username: '', avatar_url: null }] },
           { id: 2, text: 'Rome', voters: [] },
         ],
       })],
@@ -448,9 +448,9 @@ describe('CollabPolls details', () => {
     expect(screen.getAllByText('Closed')).toHaveLength(2);
   });
 
-  it('FE-W5CPL-014: closing a poll marks it closed and moves it out of the active list', async () => {
+  it('FE-W5CPL-014: closing a poll marks it closed and leaves the other one open', async () => {
     let closeCalled = false;
-    servePolls({ polls: [buildPoll({ id: 5 })] });
+    servePolls({ polls: [buildPoll({ id: 5 }), buildPoll({ id: 6, question: 'Stays open?' })] });
     server.use(
       http.put('/api/trips/1/collab/polls/5/close', () => {
         closeCalled = true;
@@ -459,11 +459,38 @@ describe('CollabPolls details', () => {
     );
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
-    await screen.findByText('Best destination?');
-    await user.click(screen.getByTitle(/close/i));
+    await screen.findByText('Stays open?');
+
+    // Both action buttons highlight on hover
+    const closeBtn = screen.getAllByTitle('Close')[0];
+    fireEvent.mouseEnter(closeBtn);
+    expect(closeBtn.style.color).toBe('var(--text-primary)');
+    fireEvent.mouseLeave(closeBtn);
+    expect(closeBtn.style.color).toBe('var(--text-faint)');
+    const deleteBtn = screen.getAllByTitle('Delete')[0];
+    fireEvent.mouseEnter(deleteBtn);
+    expect(deleteBtn.style.color).toBe('rgb(239, 68, 68)');
+    fireEvent.mouseLeave(deleteBtn);
+    expect(deleteBtn.style.color).toBe('var(--text-faint)');
+
+    await user.click(closeBtn);
     await waitFor(() => expect(closeCalled).toBe(true));
-    expect(await screen.findByText(/closed/i)).toBeInTheDocument();
-    expect(screen.queryByTitle(/close/i)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText('Closed')).toHaveLength(2));
+    expect(screen.getAllByTitle('Close')).toHaveLength(1);
+  });
+
+  it('FE-W5CPL-027: a failing poll request falls back to the empty state', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+  });
+
+  it('FE-W5CPL-028: a payload without a polls key yields an empty list', async () => {
+    servePolls({});
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
   });
 
   it('FE-W5CPL-015: a failing close shows an error and leaves the poll open', async () => {

@@ -590,6 +590,7 @@ describe('BudgetCategoryTable — member chips', () => {
 
     fireEvent.click(editors[0])
     fireEvent.click(screen.getByText('bob'))
+    fireEvent.click(editors[0]) // picking an option leaves the dropdown open
     fireEvent.click(editors[1])
     fireEvent.click(screen.getByText('bob'))
 

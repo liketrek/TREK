@@ -1115,3 +1115,218 @@ describe('PlaceFormModal', () => {
     expect(warning).not.toHaveTextContent('Timeless Event');
   });
 });
+
+// FE-W5PFM-001 to FE-W5PFM-014 — the remaining prefill, response-shape and
+// error branches of the place form.
+describe('PlaceFormModal remaining branches', () => {
+  it('FE-W5PFM-001: an existing place with empty fields opens on the defaults', () => {
+    const place = buildPlace({
+      name: null, description: null, address: null, lat: null, lng: null,
+      category_id: null, notes: null, transport_mode: null, website: null,
+    });
+    render(<PlaceFormModal {...defaultProps} place={place} />);
+
+    expect(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i)).toHaveValue('');
+    expect(screen.getByPlaceholderText(/Latitude/i)).toHaveValue('');
+    expect(screen.getByPlaceholderText(/Longitude/i)).toHaveValue('');
+    expect(screen.getByPlaceholderText('https://...')).toHaveValue('');
+  });
+
+  it('FE-W5PFM-002: prefilled coordinates without a name only fill the coordinates', () => {
+    render(<PlaceFormModal {...defaultProps} prefillCoords={{ lat: 48.8584, lng: 2.2945 }} />);
+
+    expect(screen.getByPlaceholderText(/Latitude/i)).toHaveValue('48.8584');
+    expect(screen.getByPlaceholderText(/Longitude/i)).toHaveValue('2.2945');
+    expect(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i)).toHaveValue('');
+    expect(screen.getByPlaceholderText(/Street, City, Country/i)).toHaveValue('');
+  });
+
+  it('FE-W5PFM-003: an autocomplete response without a suggestions array shows no dropdown', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/maps/autocomplete', () => HttpResponse.json({})));
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+    expect(screen.queryByText('Eiffel Tower, Paris')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5PFM-004: an aborted autocomplete is swallowed without logging', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const user = userEvent.setup();
+    const gate: { release?: () => void } = {};
+    let seen = 0;
+    server.use(
+      http.post('/api/maps/autocomplete', async () => {
+        seen += 1;
+        if (seen === 1) await new Promise<void>(res => { gate.release = res; });
+        return HttpResponse.json({
+          suggestions: [{ placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+        });
+      }),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search places...');
+    await user.type(searchInput, 'Eiff');
+    await waitFor(() => expect(seen).toBe(1));
+    // The second query aborts the still-open first one
+    await user.type(searchInput, 'el tower');
+    await waitFor(() => expect(seen).toBe(2));
+    gate.release?.();
+
+    expect(await screen.findByText('Paris, France')).toBeInTheDocument();
+    expect(screen.getAllByText('Eiffel Tower')).toHaveLength(1);
+    expect(consoleError).not.toHaveBeenCalledWith('Autocomplete failed:', expect.anything());
+    consoleError.mockRestore();
+  });
+
+  it('FE-W5PFM-005: a resolved URL without a name or address keeps the form values', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/resolve-url', () => HttpResponse.json({ lat: 48.853, lng: 2.3499 })),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Kept Name');
+    await user.type(screen.getByPlaceholderText('Search places...'), 'https://maps.google.com/maps?q=x');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByDisplayValue('48.853')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i)).toHaveValue('Kept Name');
+  });
+
+  it('FE-W5PFM-006: a search response without a places array renders no results', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/maps/search', () => HttpResponse.json({})));
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'nowhere');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Search places...')).toHaveValue('nowhere'));
+    expect(screen.queryByRole('button', { name: /nowhere/i })).not.toBeInTheDocument();
+  });
+
+  it('FE-W5PFM-007: picking a bare search result leaves the typed fields alone', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Bare Result' }] })),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText(/Street, City, Country/i), 'Rue de Rivoli');
+    await user.type(screen.getByPlaceholderText('Search places...'), 'bare');
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByText('Bare Result'));
+
+    expect(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i)).toHaveValue('Bare Result');
+    expect(screen.getByPlaceholderText(/Street, City, Country/i)).toHaveValue('Rue de Rivoli');
+    expect(screen.getByPlaceholderText(/Latitude/i)).toHaveValue('');
+  });
+
+  it('FE-W5PFM-008: a place sharing only the name is flagged as a duplicate', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [buildPlace({ name: 'Louvre', lat: null, lng: null })] });
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'louvre');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('Louvre'), 'warning', undefined);
+
+    // The second click is the explicit confirmation
+    await user.click(screen.getByRole('button', { name: /Add anyway/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+
+    delete window.__addToast;
+  });
+
+  it('FE-W5PFM-009: a place sharing only the coordinates is flagged as a duplicate', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [buildPlace({ name: null, lat: 48.8584, lng: 2.2945 })] });
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Tour Eiffel');
+    await user.type(screen.getByPlaceholderText(/Latitude/i), '48.85841');
+    await user.type(screen.getByPlaceholderText(/Longitude/i), '2.29451');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    // the existing place has no name, so the warning falls back to the typed one
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('Tour Eiffel'), 'warning', undefined);
+
+    delete window.__addToast;
+  });
+
+  it('FE-W5PFM-010: a rejected save without an Error surfaces the generic message', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockRejectedValue('nope');
+    const onClose = vi.fn();
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} onClose={onClose} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Louvre');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to save', 'error', undefined));
+    expect(onClose).not.toHaveBeenCalled();
+
+    delete window.__addToast;
+  });
+
+  it('FE-W5PFM-011: pasting a coordinate pair into latitude fills both fields', () => {
+    render(<PlaceFormModal {...defaultProps} />);
+    const lat = screen.getByPlaceholderText(/Latitude/i);
+
+    fireEvent.paste(lat, { clipboardData: { getData: () => ' 48.8584, 2.2945 ' } });
+    expect(screen.getByPlaceholderText(/Latitude/i)).toHaveValue('48.8584');
+    expect(screen.getByPlaceholderText(/Longitude/i)).toHaveValue('2.2945');
+  });
+
+  it('FE-W5PFM-012: pasting anything else into latitude is left to the input', () => {
+    render(<PlaceFormModal {...defaultProps} />);
+    const lat = screen.getByPlaceholderText(/Latitude/i);
+
+    fireEvent.paste(lat, { clipboardData: { getData: () => 'not a coordinate' } });
+    expect(screen.getByPlaceholderText(/Longitude/i)).toHaveValue('');
+  });
+
+  it('FE-W5PFM-013: a missing category list still renders the no-category option', () => {
+    render(<PlaceFormModal {...defaultProps} categories={null} />);
+
+    expect(screen.getByText(/No category/i)).toBeInTheDocument();
+  });
+
+  it('FE-W5PFM-014: an open-ended assignment collapses to a point in time', () => {
+    const current = buildPlace({ name: 'My Event', place_time: '11:30', end_time: '' });
+    const spanning = buildPlace({ name: 'Spanning Event', place_time: '11:00', end_time: '12:00' });
+    const earlier = buildPlace({ name: 'Earlier Event', place_time: '11:00', end_time: '' });
+
+    render(
+      <PlaceFormModal
+        {...defaultProps}
+        place={current}
+        assignmentId={10}
+        dayAssignments={[
+          buildAssignment({ id: 10, day_id: 5, place: current }),
+          buildAssignment({ id: 20, day_id: 5, place: spanning }),
+          buildAssignment({ id: 30, day_id: 5, place: earlier }),
+        ]}
+      />,
+    );
+
+    const warning = screen.getByText(/Time overlap with:/i).closest('div') as HTMLElement;
+    expect(warning).toHaveTextContent('Spanning Event');
+    expect(warning).not.toHaveTextContent('Earlier Event');
+  });
+});

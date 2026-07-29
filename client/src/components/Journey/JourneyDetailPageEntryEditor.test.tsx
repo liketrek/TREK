@@ -1,4 +1,4 @@
-// FE-JRN-EDITOR-001 to FE-JRN-EDITOR-039
+// FE-JRN-EDITOR-001 to FE-JRN-EDITOR-040
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
@@ -422,7 +422,7 @@ describe('EntryEditor', () => {
   })
 
   it('FE-JRN-EDITOR-019: reports that no external provider is connected', async () => {
-    server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [] })))
+    server.use(http.get('/api/addons', () => HttpResponse.json({})))
     const user = userEvent.setup()
     mountEditor(buildEntry({ id: 10 }))
 
@@ -559,6 +559,8 @@ describe('EntryEditor', () => {
     expect(galleryImg.getAttribute('src')).toBe('/api/photos/200/original')
 
     const stripImg = container.querySelector('img[src="/api/photos/100/thumbnail"]') as HTMLImageElement
+    fireEvent.error(stripImg)
+    expect(stripImg.getAttribute('src')).toBe('/api/photos/100/original')
     fireEvent.error(stripImg)
     expect(stripImg.getAttribute('src')).toBe('/api/photos/100/original')
   })
@@ -712,7 +714,8 @@ describe('EntryEditor', () => {
     const user = userEvent.setup()
     mountEditor(buildEntry({
       id: 10,
-      photos: [{ ...buildPhoto(100), provider: 'immich', asset_id: 'asset-1' }],
+      // The locally uploaded photo carries no provider and must be ignored here.
+      photos: [buildPhoto(99), { ...buildPhoto(100), provider: 'immich', asset_id: 'asset-1' }],
     }))
 
     await user.click(screen.getByRole('button', { name: 'External photos' }))
@@ -725,11 +728,24 @@ describe('EntryEditor', () => {
   it('FE-JRN-EDITOR-035: falls back to the day-wide provider search without a place name', async () => {
     useConnectedImmich()
     const user = userEvent.setup()
-    mountEditor(buildEntry({ id: 10, location_lat: 41.9, location_lng: 12.5 }))
+    mountEditor(buildEntry({ location_lat: 41.9, location_lng: 12.5 }))
 
     await user.click(screen.getByRole('button', { name: 'External photos' }))
 
     expect(await screen.findByText('All photos from this day')).toBeInTheDocument()
+    expect(await screen.findByTestId('journey-external-provider-immich')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-040: ignores a link call that comes back without a photo', async () => {
+    server.use(http.post('/api/journeys/entries/10/link-photo', () => HttpResponse.json(null)))
+    const user = userEvent.setup()
+    const { container } = mountEditor(buildEntry({ id: 10 }), { galleryPhotos: [buildGalleryPhoto(200)] })
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }))
+    await user.click(screen.getAllByAltText('')[0])
+
+    await waitFor(() => expect(screen.getAllByAltText('')).toHaveLength(1))
+    expect(container.querySelector('.w-20.h-20')).not.toBeInTheDocument()
   })
 
   it('FE-JRN-EDITOR-036: shows the upload progress while photos are in flight', async () => {
@@ -794,5 +810,9 @@ describe('EntryEditor', () => {
     await user.click(amazing)
     expect(amazing.className).not.toContain('border-zinc-200')
     expect(amazing.getAttribute('style')).toBeTruthy()
+
+    await user.click(amazing)
+    expect(amazing.className).toContain('border-zinc-200')
+    expect(amazing.getAttribute('style')).toBe('')
   })
 })

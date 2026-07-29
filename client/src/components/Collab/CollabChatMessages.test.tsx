@@ -1,4 +1,4 @@
-// FE-W5CCM-001 to FE-W5CCM-022
+// FE-W5CCM-001 to FE-W5CCM-024
 // ChatMessages is a pure presentational component — every piece of state arrives
 // as a prop from useCollabChat, so the tests drive it directly instead of going
 // through CollabChat (that path is covered in CollabChat.test.tsx).

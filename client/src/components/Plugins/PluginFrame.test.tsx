@@ -412,6 +412,45 @@ describe('PluginFrame', () => {
       expect(geo.clearWatch).not.toHaveBeenCalled();
       expect(answerFor(posted, 'g11')).toMatchObject({ cleared: true });
     });
+
+    it('FE-PLUGINS-FRAME-056: a fix arriving after clear + revoke is dropped without a second clearWatch', () => {
+      let tick: ((p: unknown) => void) | null = null;
+      let boom: ((e: unknown) => void) | null = null;
+      geo.watchPosition.mockImplementation((ok: (p: unknown) => void, fail: (e: unknown) => void) => {
+        tick = ok; boom = fail; return 7;
+      });
+      const { iframe, posted } = mount(true);
+
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g12', action: 'watch' });
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g13', action: 'clear' });
+      act(() => grant(false));
+      geo.clearWatch.mockClear();
+      const before = posted.length;
+
+      // Stale callbacks from the released watch: nothing is posted, and the
+      // already-cleared watch id is not cleared a second time.
+      act(() => tick!({ coords: { latitude: 1, longitude: 2, accuracy: 5, heading: null, speed: null }, timestamp: 1 }));
+      act(() => boom!({ code: 1, PERMISSION_DENIED: 1, TIMEOUT: 3 }));
+
+      expect(posted.length).toBe(before);
+      expect(geo.clearWatch).not.toHaveBeenCalled();
+    });
+
+    it('FE-PLUGINS-FRAME-057: a position resolved after the frame navigated is never delivered', () => {
+      let ok: ((p: unknown) => void) | null = null;
+      let fail: ((e: unknown) => void) | null = null;
+      geo.getCurrentPosition.mockImplementation((o: (p: unknown) => void, f: (e: unknown) => void) => { ok = o; fail = f; });
+      const { iframe, posted } = mount(true);
+
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g14' });
+      act(() => { fireEvent.load(iframe); });
+      act(() => { fireEvent.load(iframe); }); // self-navigation while the fix was pending
+
+      act(() => ok!({ coords: { latitude: 1, longitude: 2, accuracy: 5, heading: null, speed: null }, timestamp: 1 }));
+      act(() => fail!({ code: 1, PERMISSION_DENIED: 1, TIMEOUT: 3 }));
+
+      expect(posted.filter((m) => m.type === 'trek:geolocation:result')).toHaveLength(0);
+    });
   });
 
   it('FE-PLUGINS-FRAME-020: brokered plugin session state round-trips through host sessionStorage', () => {
@@ -477,5 +516,347 @@ describe('PluginFrame', () => {
       expect(set(`key-${index}`, `key-${index}`, index)).toMatchObject({ type: 'trek:response' });
     }
     expect(set('too-many', 'key-32', 32)).toMatchObject({ type: 'trek:error', code: 'SESSION_KEY_LIMIT' });
+  });
+
+  it('FE-PLUGINS-FRAME-029: session:remove drops only the addressed key', () => {
+    const { iframe, posted } = mountFrame();
+    fromFrame(iframe, { type: 'trek:session:set', requestId: 'a', key: 'keep', value: 1 });
+    fromFrame(iframe, { type: 'trek:session:set', requestId: 'b', key: 'drop', value: 2 });
+    fromFrame(iframe, { type: 'trek:session:remove', requestId: 'c', key: 'drop' });
+    fromFrame(iframe, { type: 'trek:session:get', requestId: 'd', key: 'drop' });
+    fromFrame(iframe, { type: 'trek:session:get', requestId: 'e', key: 'keep' });
+
+    expect(answerFor(posted, 'c')).toMatchObject({ type: 'trek:response' });
+    expect(answerFor(posted, 'd')).toMatchObject({ type: 'trek:response', data: undefined });
+    expect(answerFor(posted, 'e')).toMatchObject({ type: 'trek:response', data: 1 });
+  });
+
+  it('FE-PLUGINS-FRAME-030: a value that is not JSON-serialisable is refused', () => {
+    const { iframe, posted } = mountFrame();
+    fromFrame(iframe, { type: 'trek:session:set', requestId: 's1', key: 'k', value: undefined });
+    expect(answerFor(posted, 's1')).toMatchObject({ type: 'trek:error', code: 'SESSION_INVALID_VALUE' });
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('FE-PLUGINS-FRAME-031: session requests without a requestId are dropped silently', () => {
+    const { iframe, posted } = mountFrame();
+    fromFrame(iframe, { type: 'trek:session:get', key: 'k' });
+    fromFrame(iframe, { type: 'trek:session:set', key: 'k', value: 1 });
+    fromFrame(iframe, { type: 'trek:session:remove', key: 'k' });
+    fromFrame(iframe, { type: 'trek:session:clear' });
+    expect(posted).toHaveLength(0);
+  });
+
+  it('FE-PLUGINS-FRAME-032: unreadable stored JSON surfaces as SESSION_STORAGE_ERROR', () => {
+    sessionStorage.setItem('trek:plugin-session:7:demo:plugin:broken', '{not json');
+    const { iframe, posted } = mountFrame();
+    fromFrame(iframe, { type: 'trek:session:get', requestId: 's1', key: 'broken' });
+    expect(answerFor(posted, 's1')).toMatchObject({ type: 'trek:error', code: 'SESSION_STORAGE_ERROR' });
+    expect(String(answerFor(posted, 's1')!.message)).not.toBe('session storage failed');
+  });
+
+  it('FE-PLUGINS-FRAME-033: a non-Error storage failure still yields a message', () => {
+    const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw 'nope'; });
+    try {
+      const { iframe, posted } = mountFrame();
+      fromFrame(iframe, { type: 'trek:session:remove', requestId: 's1', key: 'k' });
+      expect(answerFor(posted, 's1')).toMatchObject({
+        type: 'trek:error',
+        code: 'SESSION_STORAGE_ERROR',
+        message: 'session storage failed',
+      });
+    } finally {
+      removeItem.mockRestore();
+    }
+  });
+
+  describe('trek:session:clear', () => {
+    it('FE-PLUGINS-FRAME-034: wipes only this plugin scope, leaving TREK and trip keys alone', () => {
+      const { iframe, posted } = mountFrame({ tripId: '42' });
+      fromFrame(iframe, { type: 'trek:session:set', requestId: 'a', key: 'x', value: 1 });
+      fromFrame(iframe, { type: 'trek:session:set', requestId: 'b', key: 'y', value: 2 });
+      fromFrame(iframe, { type: 'trek:session:set', requestId: 'c', key: 'z', value: 3, scope: 'trip' });
+      sessionStorage.setItem('trek:some-app-state', 'keep me');
+
+      fromFrame(iframe, { type: 'trek:session:clear', requestId: 'clr' });
+
+      expect(answerFor(posted, 'clr')).toMatchObject({ type: 'trek:response', data: undefined });
+      fromFrame(iframe, { type: 'trek:session:get', requestId: 'g1', key: 'x' });
+      fromFrame(iframe, { type: 'trek:session:get', requestId: 'g2', key: 'z', scope: 'trip' });
+      expect(answerFor(posted, 'g1')).toMatchObject({ data: undefined });
+      expect(answerFor(posted, 'g2')).toMatchObject({ data: 3 });
+      expect(sessionStorage.getItem('trek:some-app-state')).toBe('keep me');
+    });
+
+    it('FE-PLUGINS-FRAME-035: trip scope without a trip context is refused', () => {
+      const { iframe, posted } = mountFrame();
+      fromFrame(iframe, { type: 'trek:session:clear', requestId: 'clr', scope: 'trip' });
+      expect(answerFor(posted, 'clr')).toMatchObject({ type: 'trek:error', code: 'NO_TRIP_CONTEXT' });
+    });
+
+    it('FE-PLUGINS-FRAME-036: a storage failure is reported with the underlying message', () => {
+      const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+        throw new Error('quota');
+      });
+      try {
+        sessionStorage.setItem('trek:plugin-session:7:demo:plugin:x', '1');
+        const { iframe, posted } = mountFrame();
+        fromFrame(iframe, { type: 'trek:session:clear', requestId: 'clr' });
+        expect(answerFor(posted, 'clr')).toMatchObject({
+          type: 'trek:error',
+          code: 'SESSION_STORAGE_ERROR',
+          message: 'quota',
+        });
+      } finally {
+        removeItem.mockRestore();
+      }
+    });
+
+    it('FE-PLUGINS-FRAME-058: a non-Error storage failure falls back to a generic message', () => {
+      const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw 'nope'; });
+      try {
+        sessionStorage.setItem('trek:plugin-session:7:demo:plugin:x', '1');
+        const { iframe, posted } = mountFrame();
+        fromFrame(iframe, { type: 'trek:session:clear', requestId: 'clr' });
+        expect(answerFor(posted, 'clr')).toMatchObject({
+          type: 'trek:error',
+          code: 'SESSION_STORAGE_ERROR',
+          message: 'session storage failed',
+        });
+      } finally {
+        removeItem.mockRestore();
+      }
+    });
+  });
+
+  describe('message gating', () => {
+    it('FE-PLUGINS-FRAME-037: non-object payloads are ignored', () => {
+      const { iframe, posted } = mountFrame();
+      fromFrame(iframe, null);
+      fromFrame(iframe, 'trek:navigate');
+      expect(navigate).not.toHaveBeenCalled();
+      expect(posted).toHaveLength(0);
+    });
+
+    it('FE-PLUGINS-FRAME-038: a frame that navigated itself loses the bridge', () => {
+      const { iframe, posted } = mountFrame();
+      act(() => { fireEvent.load(iframe); });
+      act(() => { fireEvent.load(iframe); }); // self-navigation: second document
+
+      fromFrame(iframe, { type: 'trek:navigate', to: '/dashboard' });
+      fromFrame(iframe, { type: 'trek:context:request' });
+
+      expect(navigate).not.toHaveBeenCalled();
+      // Only the very first load delivered a context; nothing after that.
+      expect(posted.filter((m) => m.type === 'trek:context')).toHaveLength(1);
+    });
+
+    it('FE-PLUGINS-FRAME-039: a non-string navigation target is ignored', () => {
+      const { iframe } = mountFrame();
+      fromFrame(iframe, { type: 'trek:navigate', to: 42 });
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('FE-PLUGINS-FRAME-040: an empty notification is dropped and an unknown level falls back to info', () => {
+      const { iframe } = mountFrame();
+      fromFrame(iframe, { type: 'trek:notify' });
+      fromFrame(iframe, { type: 'trek:notify', message: '' });
+      expect(Object.values(toast).some((f) => f.mock.calls.length > 0)).toBe(false);
+
+      fromFrame(iframe, { type: 'trek:notify', level: 'critical', message: 'fallback' });
+      expect(toast.info).toHaveBeenCalledWith('fallback');
+    });
+
+    it('FE-PLUGINS-FRAME-041: openExternal without a url is ignored', () => {
+      const open = vi.spyOn(window, 'open').mockReturnValue(null);
+      const { iframe } = mountFrame();
+      fromFrame(iframe, { type: 'trek:openExternal' });
+      expect(open).not.toHaveBeenCalled();
+      open.mockRestore();
+    });
+  });
+
+  describe('trek:confirm', () => {
+    it('FE-PLUGINS-FRAME-042: a request without a requestId never opens a dialog', () => {
+      const { iframe } = mountFrame();
+      fromFrame(iframe, { type: 'trek:confirm', message: 'Delete?' });
+      expect(screen.queryByText('Delete?')).toBeNull();
+    });
+
+    it('FE-PLUGINS-FRAME-043: the dialog title leads with the host-controlled plugin name', async () => {
+      const { iframe } = mountFrame({ title: 'Trip To-Dos' });
+      act(() => { fromFrame(iframe, { type: 'trek:confirm', requestId: 'c1', title: 'Really?', message: 'Wipe list' }); });
+      expect(await screen.findByText('Trip To-Dos — Really?')).toBeInTheDocument();
+    });
+
+    it('FE-PLUGINS-FRAME-044: a second confirm is refused while one is open, and cancel answers false', async () => {
+      const { iframe, posted } = mountFrame();
+      act(() => { fromFrame(iframe, { type: 'trek:confirm', requestId: 'c1', message: 'First', cancelLabel: 'No thanks' }); });
+      await screen.findByText('No thanks');
+
+      fromFrame(iframe, { type: 'trek:confirm', requestId: 'c2', message: 'Second' });
+      expect(answerFor(posted, 'c2')).toMatchObject({ type: 'trek:confirm:result', confirmed: false });
+      expect(screen.queryByText('Second')).toBeNull();
+
+      fireEvent.click(screen.getByText('No thanks'));
+      expect(answerFor(posted, 'c1')).toMatchObject({ type: 'trek:confirm:result', confirmed: false });
+    });
+
+    it('FE-PLUGINS-FRAME-045: non-string labels are dropped and danger defaults to true', async () => {
+      const { iframe } = mountFrame();
+      act(() => {
+        fromFrame(iframe, { type: 'trek:confirm', requestId: 'c1', title: 1, message: 2, confirmLabel: 3, cancelLabel: 4 });
+      });
+      // Falls back to the ConfirmDialog defaults, and the title is the plugin id.
+      expect(await screen.findByText('demo')).toBeInTheDocument();
+    });
+  });
+
+  describe('trek:invoke failures', () => {
+    it('FE-PLUGINS-FRAME-046: an HTTP failure is relayed with its status and message', async () => {
+      invoke.mockRejectedValueOnce(Object.assign(new Error('bad gateway'), { response: { status: 502 } }));
+      const { iframe, posted } = mountFrame();
+
+      fromFrame(iframe, { type: 'trek:invoke', requestId: 'r1', sub: '/x' });
+
+      await waitFor(() => expect(answerFor(posted, 'r1')).toBeTruthy());
+      expect(answerFor(posted, 'r1')).toMatchObject({ type: 'trek:error', code: 502, message: 'bad gateway' });
+    });
+
+    it('FE-PLUGINS-FRAME-047: a failure without status or message falls back to generic values', async () => {
+      invoke.mockRejectedValueOnce({});
+      const { iframe, posted } = mountFrame();
+
+      fromFrame(iframe, { type: 'trek:invoke', requestId: 'r2', sub: '/x' });
+
+      await waitFor(() => expect(answerFor(posted, 'r2')).toBeTruthy());
+      expect(answerFor(posted, 'r2')).toMatchObject({ type: 'trek:error', code: 'error', message: 'invoke failed' });
+    });
+  });
+
+  describe('context inputs', () => {
+    it('FE-PLUGINS-FRAME-048: mirrors dark mode, RTL, compact density and the resolved accent', () => {
+      const html = document.documentElement;
+      html.classList.add('dark');
+      html.setAttribute('dir', 'rtl');
+      html.dataset.scheme = 'indigo';
+      html.dataset.density = 'compact';
+      html.setAttribute('data-no-transparency', '');
+      html.setAttribute('data-reduce-motion', '');
+      html.style.setProperty('--accent', '#123456');
+
+      const { iframe, posted } = mountFrame();
+      fromFrame(iframe, { type: 'trek:context:request' });
+
+      const ctx = posted.find((m) => m.type === 'trek:context')!;
+      expect(ctx.theme).toBe('dark');
+      expect(ctx.dir).toBe('rtl');
+      expect(ctx.appearance).toMatchObject({
+        scheme: 'indigo',
+        density: 'compact',
+        noTransparency: true,
+        reducedMotion: true,
+      });
+      expect((ctx.tokens as Record<string, string>)['--accent']).toBe('#123456');
+    });
+
+    it('FE-PLUGINS-FRAME-059: the trek:ready handshake delivers the context too', () => {
+      const { iframe, posted } = mountFrame({ tripId: '9' });
+      fromFrame(iframe, { type: 'trek:ready' });
+
+      const ctx = posted.find((m) => m.type === 'trek:context')!;
+      expect(ctx).toBeTruthy();
+      expect(ctx.tripId).toBe('9');
+      expect(ctx.hostOrigin).toBe(window.location.origin);
+    });
+
+    it('FE-PLUGINS-FRAME-049: without a signed-in user the identity fields are null', () => {
+      host.user = null;
+      const { iframe, posted } = mountFrame();
+      fromFrame(iframe, { type: 'trek:context:request' });
+
+      const ctx = posted.find((m) => m.type === 'trek:context')!;
+      expect(ctx.userId).toBeNull();
+      expect(ctx.user).toBeNull();
+    });
+
+    it('FE-PLUGINS-FRAME-050: currency resolves user setting → trip currency → EUR', () => {
+      host.settings = { ...DEFAULT_SETTINGS, default_currency: '' };
+      host.trip = { currency: 'jpy' };
+      const withTrip = mountFrame();
+      fromFrame(withTrip.iframe, { type: 'trek:context:request' });
+      expect((withTrip.posted.find((m) => m.type === 'trek:context')!.formats as Record<string, unknown>).currency).toBe('JPY');
+      withTrip.unmount();
+
+      host.trip = null;
+      const bare = mountFrame();
+      fromFrame(bare.iframe, { type: 'trek:context:request' });
+      expect((bare.posted.find((m) => m.type === 'trek:context')!.formats as Record<string, unknown>).currency).toBe('EUR');
+    });
+  });
+
+  describe('live appearance sync', () => {
+    const contexts = (posted: Array<Record<string, unknown>>) => posted.filter((m) => m.type === 'trek:context');
+
+    it('FE-PLUGINS-FRAME-051: a theme change re-posts the context', async () => {
+      const { iframe, posted } = mountFrame();
+      act(() => { fireEvent.load(iframe); });
+      expect(contexts(posted)).toHaveLength(1);
+
+      act(() => { document.documentElement.classList.add('dark'); });
+
+      await waitFor(() => expect(contexts(posted).length).toBe(2));
+      expect(contexts(posted)[1].theme).toBe('dark');
+    });
+
+    it('FE-PLUGINS-FRAME-052: a mutation that does not change the look is not re-posted', async () => {
+      const html = document.documentElement;
+      const { iframe, posted } = mountFrame();
+      act(() => { fireEvent.load(iframe); });
+
+      act(() => { html.dataset.density = 'compact'; });
+      await waitFor(() => expect(contexts(posted).length).toBe(2));
+
+      // Re-writing the same value still fires a mutation record, but the
+      // appearance signature is unchanged — no second delivery.
+      act(() => { html.setAttribute('data-density', 'compact'); });
+      await new Promise((r) => setTimeout(r, 0));
+      expect(contexts(posted)).toHaveLength(2);
+    });
+
+    it('FE-PLUGINS-FRAME-053: a navigated frame is not re-styled', async () => {
+      const { iframe, posted } = mountFrame();
+      act(() => { fireEvent.load(iframe); });
+      act(() => { fireEvent.load(iframe); });
+      const before = contexts(posted).length;
+
+      act(() => { document.documentElement.classList.add('dark'); });
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(contexts(posted)).toHaveLength(before);
+    });
+  });
+
+  describe('websocket forwarding', () => {
+    it('FE-PLUGINS-FRAME-054: the plugin\'s own broadcasts pass, other plugins\' do not', () => {
+      const { iframe, posted } = mountFrame({ tripId: '42' });
+      act(() => { fireEvent.load(iframe); });
+      const emit = [...wsListeners][0];
+
+      emit({ type: 'plugin:other:ping', tripId: 42 });
+      emit({ type: 'plugin:demo:ping', tripId: 42 });
+      emit({ type: 'place_created', tripId: null });
+
+      const events = posted.filter((m) => m.type === 'trek:event');
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({ event: 'plugin:demo:ping', tripId: '42' });
+    });
+
+    it('FE-PLUGINS-FRAME-055: nothing is forwarded before the first document load', () => {
+      const { posted } = mountFrame({ tripId: '42' });
+      const emit = [...wsListeners][0];
+      emit({ type: 'place_created', tripId: 42 });
+      expect(posted.filter((m) => m.type === 'trek:event')).toHaveLength(0);
+    });
   });
 });
