@@ -1,5 +1,5 @@
-// FE-COMP-ACCOUNT-001 to FE-COMP-ACCOUNT-012
-import { render, screen, waitFor } from '../../../tests/helpers/render';
+// FE-COMP-ACCOUNT-001 to FE-COMP-ACCOUNT-069
+import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -532,5 +532,351 @@ describe('AccountTab – Role / OIDC display', () => {
     });
     render(<AccountTab />);
     expect(screen.getByText('SSO')).toBeInTheDocument();
+  });
+});
+
+// ── Backup codes handoff (049–055) ────────────────────────────────────────────
+
+const BACKUP_KEY = 'trek_mfa_backup_codes_pending';
+
+function seedMfaUser() {
+  seedStore(useAuthStore, {
+    user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }),
+  });
+}
+
+describe('AccountTab – Backup codes', () => {
+  it('FE-COMP-ACCOUNT-049: a corrupt sessionStorage payload is dropped instead of rendered', async () => {
+    sessionStorage.setItem(BACKUP_KEY, 'not-json');
+    seedMfaUser();
+    render(<AccountTab />);
+
+    await waitFor(() => expect(sessionStorage.getItem(BACKUP_KEY)).toBeNull());
+    expect(screen.queryByText('Backup codes')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-ACCOUNT-050: a payload that is not a list of codes is ignored but kept', () => {
+    sessionStorage.setItem(BACKUP_KEY, JSON.stringify({ codes: ['AAAA-1111'] }));
+    seedMfaUser();
+    render(<AccountTab />);
+
+    expect(screen.queryByText('Backup codes')).not.toBeInTheDocument();
+    expect(sessionStorage.getItem(BACKUP_KEY)).not.toBeNull();
+  });
+
+  it('FE-COMP-ACCOUNT-051: a blocked clipboard toasts an error', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+      writable: true,
+      configurable: true,
+    });
+    sessionStorage.setItem(BACKUP_KEY, JSON.stringify(['AAAA-1111']));
+    seedMfaUser();
+    render(<><ToastContainer /><AccountTab /></>);
+
+    await user.click(await screen.findByRole('button', { name: 'Copy codes' }));
+
+    await screen.findByText('Error');
+  });
+
+  it('FE-COMP-ACCOUNT-052: Download TXT builds a blob, names the file and revokes the URL', async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:codes');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    let downloadName = '';
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        downloadName = this.download;
+      });
+    sessionStorage.setItem(BACKUP_KEY, JSON.stringify(['AAAA-1111']));
+    seedMfaUser();
+    render(<AccountTab />);
+
+    await user.click(await screen.findByRole('button', { name: 'Download TXT' }));
+
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(downloadName).toBe('trek-mfa-backup-codes.txt');
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:codes');
+    expect(document.querySelector('a[download]')).toBeNull();
+
+    createObjectURL.mockRestore();
+    revokeObjectURL.mockRestore();
+    anchorClick.mockRestore();
+  });
+
+  it('FE-COMP-ACCOUNT-053: Print writes the codes into the popup and triggers print', async () => {
+    const user = userEvent.setup();
+    const written: string[] = [];
+    const print = vi.fn();
+    const popup = {
+      document: { open: vi.fn(), write: (html: string) => written.push(html), close: vi.fn() },
+      focus: vi.fn(),
+      print,
+    };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    sessionStorage.setItem(BACKUP_KEY, JSON.stringify(['AAAA-1111', 'BBBB-2222']));
+    seedMfaUser();
+    render(<AccountTab />);
+
+    await user.click(await screen.findByRole('button', { name: 'Print / PDF' }));
+
+    expect(openSpy).toHaveBeenCalledWith('', '_blank', 'width=900,height=700');
+    expect(written.join('')).toContain('AAAA-1111\nBBBB-2222');
+    expect(popup.document.close).toHaveBeenCalled();
+    expect(print).toHaveBeenCalled();
+    openSpy.mockRestore();
+  });
+
+  it('FE-COMP-ACCOUNT-054: a blocked popup leaves printing a no-op', async () => {
+    const user = userEvent.setup();
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+    sessionStorage.setItem(BACKUP_KEY, JSON.stringify(['AAAA-1111']));
+    seedMfaUser();
+    render(<AccountTab />);
+
+    await user.click(await screen.findByRole('button', { name: 'Print / PDF' }));
+
+    expect(openSpy).toHaveBeenCalled();
+    expect(screen.getByText('Backup codes')).toBeInTheDocument();
+    openSpy.mockRestore();
+  });
+
+  it('FE-COMP-ACCOUNT-055: dismissing the codes also clears sessionStorage', async () => {
+    const user = userEvent.setup();
+    sessionStorage.setItem(BACKUP_KEY, JSON.stringify(['AAAA-1111']));
+    seedMfaUser();
+    render(<AccountTab />);
+
+    await user.click(await screen.findByRole('button', { name: 'OK' }));
+
+    expect(sessionStorage.getItem(BACKUP_KEY)).toBeNull();
+    expect(screen.queryByText('Backup codes')).not.toBeInTheDocument();
+  });
+});
+
+// ── Avatar upload / removal (056–060) ─────────────────────────────────────────
+
+describe('AccountTab – Avatar upload', () => {
+  it('FE-COMP-ACCOUNT-056: picking a file uploads it and resets the input', async () => {
+    const user = userEvent.setup();
+    const uploadAvatar = vi.fn().mockResolvedValue(undefined);
+    seedStore(useAuthStore, { uploadAvatar });
+    render(<><ToastContainer /><AccountTab /></>);
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['avatar'], 'me.png', { type: 'image/png' });
+    await user.upload(input, file);
+
+    expect(uploadAvatar).toHaveBeenCalledWith(file);
+    await screen.findByText('Profile picture updated');
+    expect(input.value).toBe('');
+  });
+
+  it('FE-COMP-ACCOUNT-057: a failing upload toasts the avatar error', async () => {
+    const user = userEvent.setup();
+    seedStore(useAuthStore, { uploadAvatar: vi.fn().mockRejectedValue(new Error('too big')) });
+    render(<><ToastContainer /><AccountTab /></>);
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(input, new File(['avatar'], 'me.png', { type: 'image/png' }));
+
+    await screen.findByText('Upload failed');
+  });
+
+  it('FE-COMP-ACCOUNT-058: a change event without a file uploads nothing', () => {
+    const uploadAvatar = vi.fn().mockResolvedValue(undefined);
+    seedStore(useAuthStore, { uploadAvatar });
+    render(<AccountTab />);
+
+    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement);
+
+    expect(uploadAvatar).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-ACCOUNT-059: the remove button deletes the avatar', async () => {
+    const user = userEvent.setup();
+    const deleteAvatar = vi.fn().mockResolvedValue(undefined);
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', avatar_url: 'https://example.com/a.jpg' }),
+      deleteAvatar,
+    });
+    render(<><ToastContainer /><AccountTab /></>);
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const removeBtn = fileInput.parentElement!.querySelectorAll('button')[1];
+    await user.click(removeBtn);
+
+    expect(deleteAvatar).toHaveBeenCalled();
+    await screen.findByText('Profile picture removed');
+  });
+
+  it('FE-COMP-ACCOUNT-060: a failing removal toasts the avatar error', async () => {
+    const user = userEvent.setup();
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', avatar_url: 'https://example.com/a.jpg' }),
+      deleteAvatar: vi.fn().mockRejectedValue(new Error('nope')),
+    });
+    render(<><ToastContainer /><AccountTab /></>);
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.click(fileInput.parentElement!.querySelectorAll('button')[1]);
+
+    await screen.findByText('Upload failed');
+  });
+});
+
+// ── MFA error paths (061–064) ─────────────────────────────────────────────────
+
+describe('AccountTab – MFA error paths', () => {
+  it('FE-COMP-ACCOUNT-061: a failing MFA setup surfaces the server error', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/auth/mfa/setup', () => HttpResponse.json({ error: 'Setup unavailable' }, { status: 500 })),
+    );
+    render(<><ToastContainer /><AccountTab /></>);
+
+    await user.click(screen.getByText('Set up authenticator'));
+
+    await screen.findByText('Setup unavailable');
+    expect(screen.getByText('Set up authenticator')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-ACCOUNT-062: cancelling the setup drops the QR code and the secret', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/auth/mfa/setup', () => HttpResponse.json({ qr_svg: '<svg>qr</svg>', secret: 'ABCDEF123' })),
+    );
+    render(<AccountTab />);
+
+    await user.click(screen.getByText('Set up authenticator'));
+    await screen.findByText('ABCDEF123');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByText('ABCDEF123')).not.toBeInTheDocument();
+    expect(screen.getByText('Set up authenticator')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-ACCOUNT-063: a rejected enable keeps the QR step and toasts the error', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/auth/mfa/setup', () => HttpResponse.json({ qr_svg: '<svg>qr</svg>', secret: 'ABCDEF123' })),
+      http.post('/api/auth/mfa/enable', () => HttpResponse.json({ error: 'Invalid code' }, { status: 400 })),
+    );
+    render(<><ToastContainer /><AccountTab /></>);
+
+    await user.click(screen.getByText('Set up authenticator'));
+    await screen.findByText('ABCDEF123');
+    await user.type(screen.getByPlaceholderText('6-digit code'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Enable 2FA' }));
+
+    await screen.findByText('Invalid code');
+    expect(screen.getByText('ABCDEF123')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-ACCOUNT-064: a rejected disable toasts the error and keeps 2FA on', async () => {
+    const user = userEvent.setup();
+    seedMfaUser();
+    server.use(
+      http.post('/api/auth/mfa/disable', () => HttpResponse.json({ error: 'Wrong code' }, { status: 400 })),
+    );
+    render(<><ToastContainer /><AccountTab /></>);
+
+    const passwordInputs = document.querySelectorAll('input[type="password"]');
+    await user.type(passwordInputs[passwordInputs.length - 1], 'mypassword');
+    await user.type(screen.getByPlaceholderText('6-digit code'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Disable 2FA' }));
+
+    await screen.findByText('Wrong code');
+    expect(screen.getByText('2FA is enabled on your account.')).toBeInTheDocument();
+  });
+});
+
+// ── Modals, hover and field edits (065–068) ───────────────────────────────────
+
+function backdropOf(title: string): HTMLElement {
+  return screen.getByText(title).closest('div[class*="rgba"]') as HTMLElement;
+}
+
+describe('AccountTab – Modals and field edits', () => {
+  it('FE-COMP-ACCOUNT-065: the confirm modal closes on the backdrop but not on the card', async () => {
+    const user = userEvent.setup();
+    render(<AccountTab />);
+    await user.click(screen.getByText('Delete account'));
+    await screen.findByText('Delete your account?');
+
+    await user.click(screen.getByText('Delete your account?'));
+    expect(screen.getByText('Delete your account?')).toBeInTheDocument();
+
+    fireEvent.click(backdropOf('Delete your account?'));
+    expect(screen.queryByText('Delete your account?')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-ACCOUNT-066: the blocked modal closes on the backdrop', async () => {
+    const user = userEvent.setup();
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', role: 'admin' }),
+    });
+    render(<AccountTab />);
+    await user.click(screen.getByText('Delete account'));
+    await screen.findByText('Deletion not possible');
+
+    fireEvent.click(backdropOf('Deletion not possible'));
+
+    expect(screen.queryByText('Deletion not possible')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-ACCOUNT-067: a failing deletion toasts the error and closes the modal', async () => {
+    const user = userEvent.setup();
+    const logout = vi.fn();
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', role: 'user' }),
+      logout,
+    });
+    server.use(
+      http.delete('/api/auth/me', () => HttpResponse.json({ error: 'Account is locked' }, { status: 400 })),
+    );
+    render(<><ToastContainer /><AccountTab /></>);
+
+    await user.click(screen.getByText('Delete account'));
+    await screen.findByText('Delete your account?');
+    await user.click(screen.getByText('Delete permanently'));
+
+    await screen.findByText('Account is locked');
+    expect(logout).not.toHaveBeenCalled();
+    expect(screen.queryByText('Delete your account?')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-ACCOUNT-068: editing the email field feeds the profile save', async () => {
+    const user = userEvent.setup();
+    const updateProfile = vi.fn().mockResolvedValue(undefined);
+    seedStore(useAuthStore, { updateProfile });
+    render(<AccountTab />);
+
+    const emailInput = screen.getByDisplayValue('test@example.com');
+    await user.clear(emailInput);
+    await user.type(emailInput, 'new@example.com');
+    await user.click(screen.getByRole('button', { name: /save profile/i }));
+
+    expect(updateProfile).toHaveBeenCalledWith({ username: 'testuser', email: 'new@example.com' });
+  });
+
+  it('FE-COMP-ACCOUNT-069: hover styling on the password and camera buttons is reverted on leave', () => {
+    render(<AccountTab />);
+
+    const passwordBtn = screen.getByText('Update password').closest('button') as HTMLElement;
+    fireEvent.mouseEnter(passwordBtn);
+    expect(passwordBtn.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(passwordBtn);
+    expect(passwordBtn.style.background).toBe('var(--bg-card)');
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const cameraBtn = fileInput.nextElementSibling as HTMLElement;
+    fireEvent.mouseEnter(cameraBtn);
+    expect(cameraBtn.style.transform).toBe('scale(1.15)');
+    fireEvent.mouseLeave(cameraBtn);
+    expect(cameraBtn.style.transform).toBe('scale(1)');
+    expect(cameraBtn.style.opacity).toBe('1');
   });
 });

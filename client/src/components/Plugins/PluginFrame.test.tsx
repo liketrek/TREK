@@ -1,4 +1,4 @@
-// FE-PLUGINS-FRAME-001 to 012
+// FE-PLUGINS-FRAME-001 to 046
 import { render, cleanup, waitFor, fireEvent, screen, act } from '@testing-library/react';
 import PluginFrame from './PluginFrame';
 import { usePluginStore } from '../../store/pluginStore';
@@ -8,11 +8,22 @@ const toast = { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn(
 const invoke = vi.fn((..._args: unknown[]) => Promise.resolve({ ok: true }));
 const wsListeners = new Set<(ev: Record<string, unknown>) => void>();
 
+// Host state the frame mirrors into its context. Mutable so a single test can
+// change one input (no user, another currency) without a second mock factory.
+const DEFAULT_USER = { id: 7, username: 'ada', avatar_url: null, role: 'admin' };
+const DEFAULT_SETTINGS = { default_currency: 'EUR', time_format: '24h', distance_unit: 'metric', temperature_unit: 'celsius', blur_booking_codes: true };
+const host = vi.hoisted(() => ({
+  user: { id: 7, username: 'ada', avatar_url: null, role: 'admin' } as Record<string, unknown> | null,
+  settings: { default_currency: 'EUR', time_format: '24h', distance_unit: 'metric', temperature_unit: 'celsius', blur_booking_codes: true } as Record<string, unknown>,
+  trip: null as Record<string, unknown> | null,
+}));
+
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }));
 vi.mock('../shared/Toast', () => ({ useToast: () => toast }));
 vi.mock('../../i18n', () => ({ useTranslation: () => ({ locale: 'en', t: (k: string) => k }) }));
-vi.mock('../../store/authStore', () => ({ useAuthStore: (sel: (s: unknown) => unknown) => sel({ user: { id: 7, username: 'ada', avatar_url: null, role: 'admin' } }) }));
-vi.mock('../../store/settingsStore', () => ({ useSettingsStore: (sel: (s: unknown) => unknown) => sel({ settings: { default_currency: 'EUR', time_format: '24h', distance_unit: 'metric', temperature_unit: 'celsius', blur_booking_codes: true } }) }));
+vi.mock('../../store/authStore', () => ({ useAuthStore: (sel: (s: unknown) => unknown) => sel({ user: host.user }) }));
+vi.mock('../../store/settingsStore', () => ({ useSettingsStore: (sel: (s: unknown) => unknown) => sel({ settings: host.settings }) }));
+vi.mock('../../store/tripStore', () => ({ useTripStore: (sel: (s: unknown) => unknown) => sel({ trip: host.trip }) }));
 vi.mock('../../api/client', () => ({ pluginsApi: { invoke: (id: string, sub: string, init?: unknown) => invoke(id, sub, init) } }));
 vi.mock('../../api/websocket', () => ({
   addListener: (fn: (ev: Record<string, unknown>) => void) => wsListeners.add(fn),
@@ -23,6 +34,19 @@ function fromFrame(frame: HTMLIFrameElement, data: unknown) {
   window.dispatchEvent(new MessageEvent('message', { source: frame.contentWindow, data } as MessageEventInit));
 }
 
+/** Mount a frame and capture everything the host posts into it. */
+function mountFrame(props: Partial<Parameters<typeof PluginFrame>[0]> = {}) {
+  const view = render(<PluginFrame pluginId="demo" {...props} />);
+  const iframe = view.container.querySelector('iframe')!;
+  const posted: Array<Record<string, unknown>> = [];
+  (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+    posted.push(m as Record<string, unknown>);
+  return { ...view, iframe, posted };
+}
+
+const answerFor = (posted: Array<Record<string, unknown>>, requestId: string) =>
+  posted.find((m) => m.requestId === requestId);
+
 afterEach(() => {
   cleanup();
   sessionStorage.clear();
@@ -30,6 +54,17 @@ afterEach(() => {
   Object.values(toast).forEach((f) => f.mockClear());
   invoke.mockClear();
   wsListeners.clear();
+  host.user = { ...DEFAULT_USER };
+  host.settings = { ...DEFAULT_SETTINGS };
+  host.trip = null;
+  const html = document.documentElement;
+  html.classList.remove('dark');
+  html.removeAttribute('dir');
+  html.removeAttribute('style');
+  html.removeAttribute('data-scheme');
+  html.removeAttribute('data-density');
+  html.removeAttribute('data-no-transparency');
+  html.removeAttribute('data-reduce-motion');
 });
 
 describe('PluginFrame', () => {
@@ -316,6 +351,66 @@ describe('PluginFrame', () => {
       // No further position leaks, and the OS watch is released.
       expect(posted.length).toBe(before);
       expect(geo.clearWatch).toHaveBeenCalledWith(7);
+    });
+
+    it('FE-PLUGINS-FRAME-023: a request without a requestId is dropped before the browser API', () => {
+      const { iframe, posted } = mount(true);
+      fromFrame(iframe, { type: 'trek:geolocation' });
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: '' });
+      expect(posted.filter((m) => m.type === 'trek:geolocation:result')).toHaveLength(0);
+      expect(geo.getCurrentPosition).not.toHaveBeenCalled();
+    });
+
+    it('FE-PLUGINS-FRAME-024: reports "unsupported" when the browser has no geolocation', () => {
+      const own = Object.getOwnPropertyDescriptor(navigator, 'geolocation');
+      delete (navigator as unknown as { geolocation?: unknown }).geolocation;
+      try {
+        const { iframe, posted } = mount(true);
+        fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g7' });
+        expect(answerFor(posted, 'g7')).toMatchObject({ error: 'unsupported' });
+      } finally {
+        if (own) Object.defineProperty(navigator, 'geolocation', own);
+      }
+    });
+
+    it('FE-PLUGINS-FRAME-025: maps the browser error codes onto the bridge vocabulary', () => {
+      const codes: Array<[number, string]> = [[1, 'denied'], [3, 'timeout'], [2, 'unavailable']];
+      for (const [code, expected] of codes) {
+        geo.getCurrentPosition.mockImplementation((_ok: unknown, fail: (e: unknown) => void) =>
+          fail({ code, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 }));
+        const { iframe, posted, unmount } = mount(true);
+        fromFrame(iframe, { type: 'trek:geolocation', requestId: `e${code}` });
+        expect(answerFor(posted, `e${code}`)).toMatchObject({ error: expected });
+        unmount();
+      }
+    });
+
+    it('FE-PLUGINS-FRAME-026: a watch error is streamed as an update, not a result', () => {
+      let boom: ((e: unknown) => void) | null = null;
+      geo.watchPosition.mockImplementation((_ok: unknown, fail: (e: unknown) => void) => { boom = fail; return 7; });
+      const { iframe, posted } = mount(true);
+
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g8', action: 'watch' });
+      act(() => boom!({ code: 3, PERMISSION_DENIED: 1, TIMEOUT: 3 }));
+
+      expect(posted.find((m) => m.type === 'trek:geolocation:update')).toMatchObject({ error: 'timeout' });
+    });
+
+    it('FE-PLUGINS-FRAME-027: a second watch replaces the first one', () => {
+      const { iframe } = mount(true);
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g9', action: 'watch' });
+      expect(geo.clearWatch).not.toHaveBeenCalled();
+
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g10', action: 'watch' });
+      expect(geo.clearWatch).toHaveBeenCalledWith(7);
+      expect(geo.watchPosition).toHaveBeenCalledTimes(2);
+    });
+
+    it('FE-PLUGINS-FRAME-028: clear without a running watch still confirms', () => {
+      const { iframe, posted } = mount(true);
+      fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g11', action: 'clear' });
+      expect(geo.clearWatch).not.toHaveBeenCalled();
+      expect(answerFor(posted, 'g11')).toMatchObject({ cleared: true });
     });
   });
 

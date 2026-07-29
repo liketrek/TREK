@@ -1,10 +1,11 @@
-// FE-COMP-TODO-001 to FE-COMP-TODO-015
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
+// FE-COMP-TODO-001 to FE-COMP-TODO-052
+import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildTodoItem } from '../../../tests/helpers/factories';
 import TodoListPanel from './TodoListPanel';
@@ -415,5 +416,831 @@ describe('TodoListPanel', () => {
     })];
     render(<TodoListPanel tripId={1} items={items} />);
     expect(screen.getByText('This is a task description')).toBeInTheDocument();
+  });
+});
+
+// ── Members served to the detail/new panes (owner + a member + a guest) ────────
+const MEMBERS_RESPONSE = {
+  owner: { id: 1, username: 'alice', avatar: null },
+  members: [
+    { id: 2, username: 'bob', avatar: 'bob.png' },
+    { id: 3, username: 'gus', avatar: null, is_guest: true },
+  ],
+  current_user_id: 1,
+};
+
+function withMembers() {
+  server.use(http.get('/api/trips/:id/members', () => HttpResponse.json(MEMBERS_RESPONSE)));
+}
+
+function dragOverRow(row: Element) {
+  fireEvent.dragOver(row, { dataTransfer: { dropEffect: '' } });
+}
+
+/** Pick an option out of the CustomSelect dropdown, which renders into a body portal. */
+function pickOption(label: string | RegExp) {
+  const dropdown = document.querySelector('div[style*="z-index: 99999"]') as HTMLElement;
+  fireEvent.click(within(dropdown).getByRole('button', { name: label }));
+}
+
+/**
+ * The sidebar filters are an inline component, so every re-render (the members
+ * fetch resolving, for one) swaps the button element. userEvent's async steps can
+ * land on the detached node — fireEvent stays atomic.
+ */
+function clickFilter(name: RegExp | string) {
+  fireEvent.click(screen.getByRole('button', { name }));
+}
+
+describe('TodoListPanel — sidebar', () => {
+  it('FE-COMP-TODO-030: hovering an inactive filter highlights it and leaving clears it', () => {
+    render(<TodoListPanel tripId={1} items={[]} />);
+    const done = screen.getByRole('button', { name: /^Done/ });
+
+    fireEvent.mouseEnter(done);
+    expect(done.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(done);
+    expect(done.style.background).toBe('transparent');
+  });
+
+  it('FE-COMP-TODO-031: the active filter keeps its highlight on mouse-out', () => {
+    render(<TodoListPanel tripId={1} items={[]} />);
+    const all = screen.getByRole('button', { name: /^All/ });
+
+    fireEvent.mouseLeave(all);
+    // 'all' is the active filter, so the hover handlers must leave it alone.
+    expect(all.style.background).toBe('var(--bg-hover)');
+  });
+
+  it('FE-COMP-TODO-032: hovering the priority sort toggles its background only while off', async () => {
+    const user = userEvent.setup();
+    render(<TodoListPanel tripId={1} items={[]} />);
+    const sort = screen.getByRole('button', { name: 'Priority' });
+
+    fireEvent.mouseEnter(sort);
+    expect(sort.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(sort);
+    expect(sort.style.background).toBe('transparent');
+
+    await user.click(sort);
+    fireEvent.mouseEnter(sort);
+    // Active sort keeps its amber tint instead of the neutral hover.
+    expect(sort.style.background).toBe('rgba(245, 158, 11, 0.07)');
+  });
+
+  it('FE-COMP-TODO-033: Escape abandons the new-list input', async () => {
+    const user = userEvent.setup();
+    render(<TodoListPanel tripId={1} items={[]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Add list' }));
+    const input = await screen.findByPlaceholderText('List name');
+    await user.type(input, 'Errands');
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add list' })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-034: confirming a list that already exists just closes the input', async () => {
+    const user = userEvent.setup();
+    let posted = false;
+    server.use(http.post('/api/trips/1/todo', () => { posted = true; return HttpResponse.json({ item: buildTodoItem() }); }));
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ name: 'Task', category: 'Errands', checked: 0 })]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Add list' }));
+    const input = await screen.findByPlaceholderText('List name');
+    await user.type(input, 'Errands');
+    fireEvent.click(input.nextElementSibling as HTMLElement);
+
+    expect(posted).toBe(false);
+    expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-035: without edit rights the list cannot be extended', () => {
+    seedStore(usePermissionsStore, { permissions: { packing_edit: 'admin' } });
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ name: 'Task', checked: 0 })]} />);
+
+    expect(screen.queryByRole('button', { name: 'Add list' })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-036: selecting a list filter titles the pane with the list name', () => {
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ name: 'Task', category: 'Errands', checked: 0 })]} />);
+
+    clickFilter(/Errands/);
+
+    expect(screen.getByRole('heading', { name: 'Errands' })).toBeInTheDocument();
+  });
+});
+
+describe('TodoListPanel — drag to reorder', () => {
+  const rows = () => Array.from(document.querySelectorAll('[draggable="true"]')).map(h => h.parentElement!);
+
+  it('FE-COMP-TODO-037: dropping a task onto another persists the new global order', async () => {
+    let ordered: number[] | null = null;
+    server.use(
+      http.put('/api/trips/1/todo/reorder', async ({ request }) => {
+        ordered = ((await request.json()) as { orderedIds: number[] }).orderedIds;
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    const items = [
+      buildTodoItem({ id: 1, name: 'First', checked: 0 }),
+      buildTodoItem({ id: 2, name: 'Second', checked: 0 }),
+      buildTodoItem({ id: 3, name: 'Done one', checked: 1 }),
+      buildTodoItem({ id: 4, name: 'Third', checked: 0 }),
+    ];
+    render(<TodoListPanel tripId={1} items={items} />);
+
+    const [first, , third] = rows();
+    fireEvent.dragStart(document.querySelectorAll('[draggable="true"]')[0], { dataTransfer: { effectAllowed: '' } });
+    dragOverRow(third);
+    fireEvent.drop(third);
+
+    // The checked task is filtered out of the view but keeps its slot in the payload.
+    await waitFor(() => expect(ordered).toEqual([2, 4, 3, 1]));
+    expect(first).toBeTruthy();
+  });
+
+  it('FE-COMP-TODO-038: dropping a task on itself changes nothing', async () => {
+    let called = false;
+    server.use(http.put('/api/trips/1/todo/reorder', () => { called = true; return HttpResponse.json({ success: true }); }));
+    const items = [buildTodoItem({ id: 1, name: 'First', checked: 0 }), buildTodoItem({ id: 2, name: 'Second', checked: 0 })];
+    render(<TodoListPanel tripId={1} items={items} />);
+
+    const handles = document.querySelectorAll('[draggable="true"]');
+    fireEvent.dragStart(handles[0], { dataTransfer: { effectAllowed: '' } });
+    fireEvent.drop(handles[0].parentElement!);
+
+    expect(called).toBe(false);
+  });
+
+  it('FE-COMP-TODO-039: ending a drag without a drop clears the drag state', () => {
+    const items = [buildTodoItem({ id: 1, name: 'First', checked: 0 }), buildTodoItem({ id: 2, name: 'Second', checked: 0 })];
+    render(<TodoListPanel tripId={1} items={items} />);
+
+    const handles = document.querySelectorAll('[draggable="true"]');
+    fireEvent.dragStart(handles[0], { dataTransfer: { effectAllowed: '' } });
+    dragOverRow(handles[1].parentElement!);
+    expect((handles[0].parentElement as HTMLElement).style.opacity).toBe('0.4');
+    expect((handles[1].parentElement as HTMLElement).style.boxShadow).toBe('inset 3px 0 0 0 var(--accent)');
+
+    fireEvent.dragEnd(handles[0]);
+    expect((handles[0].parentElement as HTMLElement).style.opacity).toBe('1');
+    expect((handles[1].parentElement as HTMLElement).style.boxShadow).toBe('none');
+  });
+
+  it('FE-COMP-TODO-040: sorting by priority disables the drag handles', async () => {
+    const user = userEvent.setup();
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 1, name: 'First', checked: 0 })]} />);
+    expect(document.querySelectorAll('[draggable="true"]')).toHaveLength(1);
+
+    await user.click(screen.getByRole('button', { name: 'Priority' }));
+
+    expect(document.querySelectorAll('[draggable="true"]')).toHaveLength(0);
+  });
+});
+
+describe('TodoListPanel — detail pane', () => {
+  const openDetail = async (user: ReturnType<typeof userEvent.setup>, item = buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })) => {
+    render(<TodoListPanel tripId={1} items={[item]} />);
+    await user.click(screen.getByText(item.name));
+    await screen.findByText('Task');
+  };
+
+  it('FE-COMP-TODO-041: description, priority and due date are saved together', async () => {
+    const user = userEvent.setup();
+    withMembers();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/todo/40', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
+      }),
+    );
+    await openDetail(user);
+
+    await user.type(screen.getByPlaceholderText('Description (optional)'), 'via the coast');
+    await user.click(screen.getByRole('button', { name: 'P2' }));
+    await user.click(screen.getByRole('button', { name: 'Date' }));
+    await user.click(screen.getAllByRole('button').find(b => b.textContent?.trim() === '12')!);
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.description).toBe('via the coast');
+    expect(put!.priority).toBe(2);
+    expect(String(put!.due_date)).toMatch(/^\d{4}-\d{2}-12$/);
+  });
+
+  it('FE-COMP-TODO-042: the + button swaps the list select for a free-text field', async () => {
+    const user = userEvent.setup();
+    withMembers();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/todo/40', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
+      }),
+    );
+    await openDetail(user);
+
+    await user.click(screen.getByRole('button', { name: 'List name' }));
+    await user.type(await screen.findByPlaceholderText('List name'), 'Logistics');
+    await user.keyboard('{Enter}');
+
+    // Enter closes the inline editor and the typed list is offered as a new option.
+    expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
+    expect(screen.getByText(/^Logistics/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.category).toBe('Logistics');
+  });
+
+  it('FE-COMP-TODO-043: Escape in the inline list editor clears the typed list', async () => {
+    const user = userEvent.setup();
+    withMembers();
+    await openDetail(user);
+
+    await user.click(screen.getByRole('button', { name: 'List name' }));
+    await user.type(await screen.findByPlaceholderText('List name'), 'Logistics');
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
+    expect(screen.queryByText('Logistics')).not.toBeInTheDocument();
+    // Nothing changed, so saving stays disabled.
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  });
+
+  it('FE-COMP-TODO-044: picking an existing list from the dropdown marks the task changed', async () => {
+    const user = userEvent.setup();
+    withMembers();
+    render(<TodoListPanel tripId={1} items={[
+      buildTodoItem({ id: 40, name: 'Plan route', checked: 0 }),
+      buildTodoItem({ id: 41, name: 'Other', category: 'Errands', checked: 0 }),
+    ]} />);
+    await user.click(screen.getByText('Plan route'));
+    await screen.findByText('Task');
+
+    const pane = screen.getByText('Task').closest('div[style*="border-left"]') as HTMLElement;
+    await user.click(within(pane).getByRole('button', { name: 'No list' }));
+    pickOption('Errands');
+
+    expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled();
+  });
+
+  it('FE-COMP-TODO-045: a guest assignee is labelled as a guest and persisted', async () => {
+    const user = userEvent.setup();
+    withMembers();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/todo/40', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
+      }),
+    );
+    await openDetail(user);
+    await screen.findByRole('button', { name: 'Unassigned' });
+
+    await user.click(screen.getByRole('button', { name: 'Unassigned' }));
+    await user.click(await screen.findByRole('button', { name: /gus · Guest/ }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.assigned_user_id).toBe(3);
+  });
+
+  it('FE-COMP-TODO-046: a failing save surfaces the error as a toast', async () => {
+    const user = userEvent.setup();
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    server.use(http.put('/api/trips/1/todo/40', () => HttpResponse.json({ error: 'Nope' }, { status: 500 })));
+    await openDetail(user);
+
+    const nameInput = screen.getByDisplayValue('Plan route');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Renamed');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Nope', 'error', undefined));
+    delete window.__addToast;
+  });
+
+  it('FE-COMP-TODO-047: a failing delete surfaces the error and keeps the pane open', async () => {
+    const user = userEvent.setup();
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    server.use(http.delete('/api/trips/1/todo/40', () => HttpResponse.json({ error: 'Locked' }, { status: 409 })));
+    await openDetail(user);
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Locked', 'error', undefined));
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+    delete window.__addToast;
+  });
+
+  it('FE-COMP-TODO-048: a read-only viewer gets no save or delete actions', async () => {
+    const user = userEvent.setup();
+    seedStore(usePermissionsStore, { permissions: { packing_edit: 'admin' } });
+    await openDetail(user);
+
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('Plan route')).toBeDisabled();
+  });
+
+  it('FE-COMP-TODO-049: switching the selected task reloads the pane fields', async () => {
+    const user = userEvent.setup();
+    withMembers();
+    render(<TodoListPanel tripId={1} items={[
+      buildTodoItem({ id: 40, name: 'Plan route', description: 'coast', checked: 0 }),
+      buildTodoItem({ id: 41, name: 'Book ferry', description: null, checked: 0 }),
+    ]} />);
+
+    await user.click(screen.getByText('Plan route'));
+    expect(await screen.findByDisplayValue('coast')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Book ferry'));
+    await waitFor(() => expect(screen.queryByDisplayValue('coast')).not.toBeInTheDocument());
+    expect(screen.getByDisplayValue('Book ferry')).toBeInTheDocument();
+  });
+});
+
+describe('TodoListPanel — new task pane', () => {
+  const openNew = async (items = [] as ReturnType<typeof buildTodoItem>[]) => {
+    const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
+    rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
+    await screen.findByText('Create task');
+    return rerender;
+  };
+
+  it('FE-COMP-TODO-050: Enter in the name field creates the task', async () => {
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/todo', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 77, name: 'Pack bags' }) });
+      }),
+    );
+    await openNew();
+
+    await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags{Enter}');
+
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.name).toBe('Pack bags');
+    // A created task closes the pane and becomes the selection.
+    await waitFor(() => expect(screen.queryByText('Create task')).not.toBeInTheDocument());
+  });
+
+  it('FE-COMP-TODO-051: an empty name neither posts nor enables the button', async () => {
+    const user = userEvent.setup();
+    let posted = false;
+    server.use(http.post('/api/trips/1/todo', () => { posted = true; return HttpResponse.json({ item: buildTodoItem() }); }));
+    await openNew();
+
+    await user.type(screen.getByPlaceholderText('Task name'), '{Enter}');
+
+    expect(screen.getByRole('button', { name: 'Create task' })).toBeDisabled();
+    expect(posted).toBe(false);
+  });
+
+  it('FE-COMP-TODO-052: description, list, priority, due date and assignee are all posted', async () => {
+    const user = userEvent.setup();
+    withMembers();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/todo', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 78, name: 'Pack bags' }) });
+      }),
+    );
+    await openNew();
+    await screen.findByRole('button', { name: 'Unassigned' });
+
+    await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags');
+    await user.type(screen.getByPlaceholderText('Description (optional)'), 'rain gear');
+    await user.click(screen.getByRole('button', { name: 'List name' }));
+    await user.type(await screen.findByPlaceholderText('List name'), 'Prep ');
+    await user.keyboard('{Enter}');
+    await user.click(screen.getByRole('button', { name: 'P1' }));
+    await user.click(screen.getByRole('button', { name: 'Date' }));
+    await user.click(screen.getAllByRole('button').find(b => b.textContent?.trim() === '9')!);
+    await user.click(screen.getByRole('button', { name: 'Unassigned' }));
+    pickOption('bob');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.description).toBe('rain gear');
+    expect(posted!.category).toBe('Prep'); // trimmed
+    expect(posted!.priority).toBe(1);
+    expect(posted!.assigned_user_id).toBe(2);
+    expect(String(posted!.due_date)).toMatch(/^\d{4}-\d{2}-09$/);
+  });
+
+  it('FE-COMP-TODO-053: Escape in the inline list editor drops the typed list', async () => {
+    const user = userEvent.setup();
+    await openNew();
+
+    await user.click(screen.getByRole('button', { name: 'List name' }));
+    await user.type(await screen.findByPlaceholderText('List name'), 'Prep');
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
+    expect(screen.queryByText('Prep')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-054: the active list filter preselects the new task’s list', async () => {
+    const items = [buildTodoItem({ id: 60, name: 'Task', category: 'Errands', checked: 0 })];
+    const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
+    clickFilter(/Errands/);
+    rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
+    await screen.findByText('Create task');
+
+    const pane = document.querySelector('.trek-modal-backdrop') as HTMLElement;
+    expect(within(pane).getByRole('button', { name: 'Errands' })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-055: a failing create surfaces the error as a toast', async () => {
+    const user = userEvent.setup();
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    server.use(http.post('/api/trips/1/todo', () => HttpResponse.json({ error: 'Rejected' }, { status: 400 })));
+    await openNew();
+
+    await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Rejected', 'error', undefined));
+    // The pane stays open so the user can retry.
+    expect(screen.getByRole('button', { name: 'Create task' })).toBeInTheDocument();
+    delete window.__addToast;
+  });
+
+  it('FE-COMP-TODO-056: closing the new task pane via the backdrop discards it', async () => {
+    const user = userEvent.setup();
+    await openNew();
+
+    await user.click(document.querySelector('.trek-modal-backdrop')!);
+
+    expect(screen.queryByText('Create task')).not.toBeInTheDocument();
+  });
+});
+
+describe('TodoListPanel — mobile layout', () => {
+  beforeEach(() => {
+    Object.defineProperty(window, 'innerWidth', { value: 500, writable: true, configurable: true });
+  });
+
+  it('FE-COMP-TODO-057: the sidebar collapses to icons without the progress card', () => {
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ name: 'Task', checked: 1 })]} />);
+
+    expect(screen.queryByText('Tasks')).not.toBeInTheDocument();
+    expect(screen.queryByText(/completed/)).not.toBeInTheDocument();
+    // Labels move into titles so the icons stay tappable.
+    expect(screen.getByTitle('All')).toBeInTheDocument();
+    expect(screen.getByTitle('Priority')).toBeInTheDocument();
+    expect(screen.getByTitle('Add list')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-058: an open task opens as a bottom sheet that the backdrop closes', async () => {
+    const user = userEvent.setup();
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 50, name: 'Plan route', checked: 0 })]} />);
+
+    await user.click(screen.getByText('Plan route'));
+    const sheet = await screen.findByText('Task');
+    const backdrop = sheet.closest('div[style*="position: fixed"]') as HTMLElement;
+    expect(backdrop).toBeTruthy();
+
+    await user.click(backdrop);
+    await waitFor(() => expect(screen.queryByText('Save changes')).not.toBeInTheDocument());
+  });
+
+  it('FE-COMP-TODO-059: the new task pane opens as a bottom sheet', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
+    rerender(<TodoListPanel tripId={1} items={[]} addItemSignal={1} />);
+    await screen.findByText('Create task');
+
+    const backdrop = document.querySelector('.trek-modal-backdrop') as HTMLElement;
+    expect(backdrop.style.alignItems).toBe('flex-end');
+
+    await user.click(backdrop);
+    expect(screen.queryByText('Create task')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-060: mobile filters show their counts as corner badges', () => {
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ name: 'Old', checked: 0, due_date: '2020-01-01' })]} />);
+
+    expect(within(screen.getByTitle('Overdue')).getByText('1')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-074: list filters keep their colour dot but drop their label', () => {
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ name: 'Task', category: 'Errands', checked: 0 })]} />);
+
+    const filters = screen.getAllByRole('button');
+    const listFilter = filters.find(b => b.getAttribute('title') === 'Errands')!;
+    expect(listFilter).toBeInTheDocument();
+    expect(listFilter.textContent).toBe('1');
+    expect((listFilter.firstElementChild as HTMLElement).style.background).toBe('rgb(59, 130, 246)');
+  });
+
+  it('FE-COMP-TODO-075: the detail sheet closes via its own X and ignores taps inside it', async () => {
+    const user = userEvent.setup();
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 50, name: 'Plan route', checked: 0 })]} />);
+
+    await user.click(screen.getByText('Plan route'));
+    const header = await screen.findByText('Task');
+
+    await user.click(header);
+    expect(screen.getByText('Save changes')).toBeInTheDocument();
+
+    await user.click(header.parentElement!.querySelectorAll('button')[0]);
+    await waitFor(() => expect(screen.queryByText('Save changes')).not.toBeInTheDocument());
+  });
+
+  it('FE-COMP-TODO-076: creating from the mobile sheet closes it and selects the new task', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/trips/1/todo', () => HttpResponse.json({ item: buildTodoItem({ id: 90, name: 'Pack bags' }) })));
+    const items = [buildTodoItem({ id: 90, name: 'Pack bags', checked: 0 })];
+    const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
+    rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
+    await screen.findByText('Create task');
+
+    await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+
+    // onCreated closes the sheet and opens the detail sheet on the created task.
+    await screen.findByText('Task');
+    expect(screen.queryByText('Create task')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-077: the mobile new task sheet closes via its own X', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
+    rerender(<TodoListPanel tripId={1} items={[]} addItemSignal={1} />);
+    const header = await screen.findByText('New task');
+
+    await user.click(header);
+    expect(screen.getByText('Create task')).toBeInTheDocument();
+
+    await user.click(header.parentElement!.querySelectorAll('button')[0]);
+    expect(screen.queryByText('Create task')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-078: the mobile new task sheet inherits the active list filter', async () => {
+    const items = [buildTodoItem({ id: 60, name: 'Task', category: 'Errands', checked: 0 })];
+    const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
+    clickFilter('Errands');
+    rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
+    await screen.findByText('Create task');
+
+    const pane = document.querySelector('.trek-modal-backdrop') as HTMLElement;
+    expect(within(pane).getByRole('button', { name: 'Errands' })).toBeInTheDocument();
+  });
+});
+
+describe('TodoListPanel — remaining paths', () => {
+  it('FE-COMP-TODO-062: ticking a task writes the new checked state back', async () => {
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/todo/5', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 5, name: 'Toggle', checked: 1 }) });
+      }),
+    );
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 5, name: 'Toggle', checked: 0 })]} />);
+
+    const row = screen.getByText('Toggle').closest('div[style*="cursor: pointer"]') as HTMLElement;
+    fireEvent.click(within(row).getAllByRole('button')[0]);
+
+    await waitFor(() => expect(put).toEqual({ checked: true }));
+  });
+
+  it('FE-COMP-TODO-063: a task dragged out of the current view is not reordered', () => {
+    let called = false;
+    server.use(http.put('/api/trips/1/todo/reorder', () => { called = true; return HttpResponse.json({ success: true }); }));
+    render(<TodoListPanel tripId={1} items={[
+      buildTodoItem({ id: 1, name: 'Loose', checked: 0 }),
+      buildTodoItem({ id: 2, name: 'Filed', category: 'Errands', checked: 0 }),
+    ]} />);
+
+    fireEvent.dragStart(document.querySelectorAll('[draggable="true"]')[0], { dataTransfer: { effectAllowed: '' } });
+    clickFilter(/Errands/);
+    fireEvent.drop(document.querySelectorAll('[draggable="true"]')[0].parentElement!);
+
+    expect(called).toBe(false);
+  });
+
+  it('FE-COMP-TODO-064: hovering the active filter and the active sort leaves them styled', async () => {
+    const user = userEvent.setup();
+    render(<TodoListPanel tripId={1} items={[]} />);
+
+    const all = screen.getByRole('button', { name: /^All/ });
+    fireEvent.mouseEnter(all);
+    expect(all.style.background).toBe('var(--bg-hover)');
+
+    const sort = screen.getByRole('button', { name: 'Priority' });
+    await user.click(sort);
+    fireEvent.mouseLeave(sort);
+    expect(sort.style.background).toBe('rgba(245, 158, 11, 0.07)');
+  });
+
+  it('FE-COMP-TODO-065: clearing the task name blocks the save', async () => {
+    const user = userEvent.setup();
+    let put = false;
+    server.use(http.put('/api/trips/1/todo/40', () => { put = true; return HttpResponse.json({ item: buildTodoItem({ id: 40 }) }); }));
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} />);
+    await user.click(screen.getByText('Plan route'));
+
+    await user.clear(await screen.findByDisplayValue('Plan route'));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(put).toBe(false);
+  });
+
+  it('FE-COMP-TODO-066: the check button closes the inline list editor in both panes', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} addItemSignal={0} />);
+
+    await user.click(screen.getByText('Plan route'));
+    await user.click(await screen.findByRole('button', { name: 'List name' }));
+    let input = await screen.findByPlaceholderText('List name');
+    await user.type(input, 'Logistics');
+    fireEvent.click(input.nextElementSibling as HTMLElement);
+    expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
+    expect(screen.getByText(/^Logistics/)).toBeInTheDocument();
+
+    rerender(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} addItemSignal={1} />);
+    await screen.findByText('Create task');
+    await user.click(screen.getByRole('button', { name: 'List name' }));
+    input = await screen.findByPlaceholderText('List name');
+    await user.type(input, 'Prep');
+    fireEvent.click(input.nextElementSibling as HTMLElement);
+    expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
+    expect(screen.getByText(/^Prep/)).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-067: the new task pane can pick an existing list from the dropdown', async () => {
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/todo', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 80 }) });
+      }),
+    );
+    const items = [buildTodoItem({ id: 60, name: 'Task', category: 'Errands', checked: 0 })];
+    const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
+    rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
+    await screen.findByText('Create task');
+
+    const pane = document.querySelector('.trek-modal-backdrop') as HTMLElement;
+    await user.type(within(pane).getByPlaceholderText('Task name'), 'Buy stamps');
+    await user.click(within(pane).getByRole('button', { name: 'No list' }));
+    pickOption('Errands');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.category).toBe('Errands');
+  });
+
+  it('FE-COMP-TODO-068: clearing the assignee stores null in both panes', async () => {
+    const user = userEvent.setup();
+    withMembers();
+    let put: Record<string, unknown> | null = null;
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/todo/40', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
+      }),
+      http.post('/api/trips/1/todo', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 81 }) });
+      }),
+    );
+    const items = [buildTodoItem({ id: 40, name: 'Plan route', assigned_user_id: 2, checked: 0 })];
+    const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
+
+    await user.click(screen.getByText('Plan route'));
+    await user.click(await screen.findByRole('button', { name: 'bob' }));
+    pickOption('Unassigned');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.assigned_user_id).toBeNull();
+
+    rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
+    await screen.findByText('Create task');
+    const pane = document.querySelector('.trek-modal-backdrop') as HTMLElement;
+    await user.type(within(pane).getByPlaceholderText('Task name'), 'Buy stamps');
+    await user.click(within(pane).getByRole('button', { name: 'Unassigned' }));
+    pickOption('bob');
+    await user.click(within(pane).getByRole('button', { name: 'bob' }));
+    pickOption('Unassigned');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.assigned_user_id).toBeNull();
+  });
+
+  it('FE-COMP-TODO-069: a rejection that is not an Error falls back to the generic message', async () => {
+    const user = userEvent.setup();
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    // The store always wraps failures in an Error; a bare throw is the only way
+    // into the fallback message.
+    const reject = async () => { throw 'boom' };
+    useTripStore.setState({ updateTodoItem: reject, deleteTodoItem: reject });
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} />);
+    await user.click(screen.getByText('Plan route'));
+
+    const nameInput = await screen.findByDisplayValue('Plan route');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Renamed');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+
+    addToast.mockClear();
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    delete window.__addToast;
+  });
+
+  it('FE-COMP-TODO-070: a create rejected without an Error keeps the pane open', async () => {
+    const user = userEvent.setup();
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    const reject = async () => { throw 'boom' };
+    useTripStore.setState({ addTodoItem: reject });
+    const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
+    rerender(<TodoListPanel tripId={1} items={[]} addItemSignal={1} />);
+    await screen.findByText('Create task');
+
+    await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.getByRole('button', { name: 'Create task' })).toBeInTheDocument();
+    delete window.__addToast;
+  });
+
+  it('FE-COMP-TODO-073: a create that yields no id keeps the pane open', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/trips/1/todo', () => HttpResponse.json({ item: {} })));
+    const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
+    rerender(<TodoListPanel tripId={1} items={[]} addItemSignal={1} />);
+    await screen.findByText('Create task');
+
+    await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Create task' })).not.toBeDisabled());
+    expect(screen.getByText('New task')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-071: the new task pane closes via its own X', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
+    rerender(<TodoListPanel tripId={1} items={[]} addItemSignal={1} />);
+    await screen.findByText('Create task');
+
+    const pane = document.querySelector('.trek-modal-backdrop') as HTMLElement;
+    // The header X is the only button without an accessible name.
+    await user.click(within(pane).getAllByRole('button').find(b => !b.textContent?.trim())!);
+
+    expect(screen.queryByText('Create task')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-072: clicking inside a pane does not dismiss it', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
+    rerender(<TodoListPanel tripId={1} items={[]} addItemSignal={1} />);
+    await screen.findByText('Create task');
+
+    await user.click(screen.getByText('New task'));
+
+    expect(screen.getByText('Create task')).toBeInTheDocument();
+  });
+});
+
+describe('TodoListPanel — plugin contributions', () => {
+  it('FE-COMP-TODO-061: a plugin column is appended under the contributing task', async () => {
+    server.use(
+      http.get('/api/view-contributions/todos/1', () =>
+        HttpResponse.json({
+          contributions: [
+            { kind: 'column', pluginId: 'p1', id: 'c1', entityId: 12, label: 'Weather', value: 'Rainy', tone: 'default' },
+          ],
+        })
+      ),
+    );
+    render(<TodoListPanel tripId={1} items={[
+      buildTodoItem({ id: 12, name: 'Hike', checked: 0 }),
+      buildTodoItem({ id: 13, name: 'Swim', checked: 0 }),
+    ]} />);
+
+    expect(await screen.findByText('Weather')).toBeInTheDocument();
+    expect(screen.getByText('Rainy')).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-006
+// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-027
 
 vi.mock('../../api/websocket', () => ({
   connect: vi.fn(),
@@ -49,7 +49,7 @@ vi.mock('leaflet', () => {
 });
 
 import React from 'react';
-import { render } from '../../../tests/helpers/render';
+import { render, act, fireEvent } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useSettingsStore } from '../../store/settingsStore';
 import { buildSettings } from '../../../tests/helpers/factories';
@@ -70,6 +70,12 @@ const mixedEntries = [
   ...entriesWithCoords,
   ...entriesWithoutCoords,
 ];
+
+// The leaflet mock hands out one shared map/marker instance, so every render
+// resolves to the same spy object.
+const mockedMap = () => vi.mocked(L.map).mock.results[0].value;
+const mockedMarker = (i = 0) => vi.mocked(L.marker).mock.results[i].value;
+const divIconHtml = (i: number) => String(vi.mocked(L.divIcon).mock.calls[i][0].html);
 
 beforeEach(() => {
   resetAllStores();
@@ -226,5 +232,261 @@ describe('JourneyMap', () => {
     expect(buttons.length).toBe(2);
     expect(buttons[0].textContent).toBe('+');
     expect(buttons[1].textContent).toBe('−');
+  });
+
+  it('FE-COMP-JOURNEYMAP-013: skips entries without coordinates but keeps the rest', () => {
+    render(
+      <JourneyMap checkins={[]} entries={mixedEntries} />
+    );
+    // Only the two entries with real lat/lng become markers
+    expect(L.marker).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-COMP-JOURNEYMAP-014: highlightMarker scales the pin up and lifts its z-index', () => {
+    const ref = React.createRef<JourneyMapHandle>();
+    render(<JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} />);
+    const iconsBefore = vi.mocked(L.divIcon).mock.calls.length;
+
+    act(() => { ref.current!.highlightMarker('e1'); });
+
+    expect(divIconHtml(iconsBefore)).toContain('scale(1.2)');
+    expect(mockedMarker().setZIndexOffset).toHaveBeenCalledWith(1000);
+  });
+
+  it('FE-COMP-JOURNEYMAP-015: highlighting a second marker resets the previous one', () => {
+    const ref = React.createRef<JourneyMapHandle>();
+    render(<JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} />);
+    act(() => { ref.current!.highlightMarker('e1'); });
+    const iconsBefore = vi.mocked(L.divIcon).mock.calls.length;
+
+    act(() => { ref.current!.highlightMarker('e2'); });
+
+    // First the old pin is redrawn unhighlighted, then the new one highlighted
+    expect(divIconHtml(iconsBefore)).toContain('scale(1)');
+    expect(divIconHtml(iconsBefore + 1)).toContain('scale(1.2)');
+    expect(mockedMarker().setZIndexOffset).toHaveBeenCalledWith(0);
+  });
+
+  it('FE-COMP-JOURNEYMAP-016: highlightMarker ignores ids that have no marker', () => {
+    const ref = React.createRef<JourneyMapHandle>();
+    render(<JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} />);
+    const iconsBefore = vi.mocked(L.divIcon).mock.calls.length;
+
+    act(() => { ref.current!.highlightMarker('does-not-exist'); });
+
+    expect(vi.mocked(L.divIcon).mock.calls.length).toBe(iconsBefore);
+  });
+
+  it('FE-COMP-JOURNEYMAP-017: focusMarker flies to the pin, never below zoom 12', () => {
+    const ref = React.createRef<JourneyMapHandle>();
+    render(<JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} />);
+
+    act(() => { ref.current!.focusMarker('e2'); });
+
+    // getZoom() is stubbed at 10, so the floor of 12 wins
+    expect(mockedMap().flyTo).toHaveBeenCalledWith({ lat: 0, lng: 0 }, 12, { duration: 0.5 });
+  });
+
+  it('FE-COMP-JOURNEYMAP-018: focusMarker swallows leaflet errors when the map has no view yet', () => {
+    const ref = React.createRef<JourneyMapHandle>();
+    render(<JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} />);
+    vi.mocked(mockedMap().getZoom).mockImplementationOnce(() => { throw new Error('Set map center and zoom first'); });
+
+    expect(() => act(() => { ref.current!.focusMarker('e1'); })).not.toThrow();
+    expect(mockedMap().flyTo).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-JOURNEYMAP-019: invalidateSize forwards to the leaflet map', () => {
+    const ref = React.createRef<JourneyMapHandle>();
+    render(<JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} />);
+    const before = vi.mocked(mockedMap().invalidateSize).mock.calls.length;
+
+    act(() => { ref.current!.invalidateSize(); });
+
+    expect(vi.mocked(mockedMap().invalidateSize).mock.calls.length).toBe(before + 1);
+  });
+
+  it('FE-COMP-JOURNEYMAP-020: a trail draws its own dashed polyline', () => {
+    render(
+      <JourneyMap
+        checkins={[]}
+        entries={entriesWithCoords}
+        trail={[{ lat: 48.85, lng: 2.35 }, { lat: 50.0, lng: 8.0 }, { lat: 52.52, lng: 13.4 }]}
+      />
+    );
+    // trail polyline first, route polyline second
+    const trailCall = vi.mocked(L.polyline).mock.calls[0];
+    expect(trailCall[0]).toEqual([[48.85, 2.35], [50.0, 8.0], [52.52, 13.4]]);
+    expect(trailCall[1]).toMatchObject({ dashArray: '6 4', color: '#6366f1' });
+  });
+
+  it('FE-COMP-JOURNEYMAP-021: a single-point trail is not drawn', () => {
+    render(
+      <JourneyMap checkins={[]} entries={entriesWithoutCoords} trail={[{ lat: 1, lng: 2 }]} />
+    );
+    expect(L.polyline).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-JOURNEYMAP-022: fullScreen enables wheel zoom and drops the route polyline', () => {
+    render(
+      <JourneyMap checkins={[]} entries={entriesWithCoords} fullScreen />
+    );
+    expect(vi.mocked(L.map).mock.calls[0][1]).toMatchObject({ scrollWheelZoom: true });
+    // The connecting route line is a sidebar-only decoration
+    expect(L.polyline).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-JOURNEYMAP-023: clicking a marker reports the entry id', () => {
+    const onMarkerClick = vi.fn();
+    render(
+      <JourneyMap checkins={[]} entries={entriesWithCoords} onMarkerClick={onMarkerClick} />
+    );
+    const handler = vi.mocked(mockedMarker().on).mock.calls.find(c => c[0] === 'click')?.[1] as () => void;
+    act(() => { handler(); });
+    expect(onMarkerClick).toHaveBeenCalledWith('e1');
+  });
+
+  it('FE-COMP-JOURNEYMAP-024: without any coordinates the map falls back to the world view', () => {
+    const origRAF = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => { cb(0); return 0; };
+    try {
+      render(<JourneyMap checkins={[]} entries={entriesWithoutCoords} />);
+      expect(mockedMap().setView).toHaveBeenCalledWith([30, 0], 2);
+      expect(mockedMap().fitBounds).not.toHaveBeenCalled();
+    } finally {
+      globalThis.requestAnimationFrame = origRAF;
+    }
+  });
+
+  it('FE-COMP-JOURNEYMAP-025: paddingBottom widens the bottom fit padding', () => {
+    const origRAF = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => { cb(0); return 0; };
+    try {
+      render(<JourneyMap checkins={[]} entries={entriesWithCoords} paddingBottom={200} />);
+      expect(mockedMap().fitBounds).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ paddingBottomRight: [50, 200] }),
+      );
+    } finally {
+      globalThis.requestAnimationFrame = origRAF;
+    }
+  });
+
+  it('FE-COMP-JOURNEYMAP-026: dark mode picks the dark basemap', () => {
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} dark />);
+    expect(vi.mocked(L.tileLayer).mock.calls[0][0]).toContain('dark_all');
+  });
+
+  it('FE-COMP-JOURNEYMAP-027: a configured tile url overrides the default basemap', () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ map_tile_url: 'https://tiles.test/{z}/{x}/{y}.png' }) });
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
+    expect(vi.mocked(L.tileLayer).mock.calls[0][0]).toBe('https://tiles.test/{z}/{x}/{y}.png');
+  });
+
+  it('FE-COMP-JOURNEYMAP-028: the activeMarkerId prop flies to that marker after the settle delay', () => {
+    vi.useFakeTimers();
+    try {
+      render(<JourneyMap checkins={[]} entries={entriesWithCoords} activeMarkerId="e2" />);
+      expect(mockedMap().flyTo).not.toHaveBeenCalled();
+      act(() => { vi.advanceTimersByTime(60); });
+      expect(mockedMap().flyTo).toHaveBeenCalledWith({ lat: 0, lng: 0 }, 12, { duration: 0.5 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('FE-COMP-JOURNEYMAP-029: activeMarkerId falls back to setView while the map has no view yet', () => {
+    vi.useFakeTimers();
+    try {
+      render(<JourneyMap checkins={[]} entries={entriesWithCoords} activeMarkerId="e1" />);
+      vi.mocked(mockedMap().getZoom).mockImplementationOnce(() => { throw new Error('Set map center and zoom first'); });
+      act(() => { vi.advanceTimersByTime(60); });
+      expect(mockedMap().setView).toHaveBeenCalledWith({ lat: 0, lng: 0 }, 12);
+      expect(mockedMap().flyTo).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('FE-COMP-JOURNEYMAP-030: an activeMarkerId with no marker does not move the camera', () => {
+    vi.useFakeTimers();
+    try {
+      render(<JourneyMap checkins={[]} entries={entriesWithCoords} activeMarkerId="ghost" />);
+      act(() => { vi.advanceTimersByTime(60); });
+      expect(mockedMap().flyTo).not.toHaveBeenCalled();
+      expect(mockedMap().setView).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('FE-COMP-JOURNEYMAP-031: the deferred resize fires 200ms after mount', () => {
+    vi.useFakeTimers();
+    try {
+      render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
+      const before = vi.mocked(mockedMap().invalidateSize).mock.calls.length;
+      act(() => { vi.advanceTimersByTime(250); });
+      expect(vi.mocked(mockedMap().invalidateSize).mock.calls.length).toBeGreaterThan(before);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('FE-COMP-JOURNEYMAP-032: the zoom buttons drive the leaflet map', () => {
+    const { container } = render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
+    const buttons = container.querySelectorAll('button');
+    fireEvent.click(buttons[0]);
+    fireEvent.click(buttons[1]);
+    expect(mockedMap().zoomIn).toHaveBeenCalledTimes(1);
+    expect(mockedMap().zoomOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-COMP-JOURNEYMAP-033: height 9999 stretches the wrapper to the full container', () => {
+    const { container } = render(<JourneyMap checkins={[]} entries={entriesWithCoords} height={9999} />);
+    expect((container.firstChild as HTMLElement).style.height).toBe('100%');
+  });
+
+  it('FE-COMP-JOURNEYMAP-034: per-day colours and labels reach the pin svg', () => {
+    render(
+      <JourneyMap
+        checkins={[]}
+        entries={[{ id: 'e9', lat: 40.4, lng: -3.7, title: 'Madrid', mood: null, entry_date: '2025-06-04', dayColor: '#ff0055', dayLabel: 4 }]}
+      />
+    );
+    const html = divIconHtml(0);
+    expect(html).toContain('#ff0055');
+    expect(html).toContain('>4<');
+  });
+
+  it('FE-COMP-JOURNEYMAP-035: entries are ordered by date, not by array position', () => {
+    render(
+      <JourneyMap
+        checkins={[]}
+        entries={[
+          { id: 'late', lat: 52.52, lng: 13.405, title: 'Berlin', mood: null, entry_date: '2025-06-09' },
+          { id: 'early', lat: 48.8566, lng: 2.3522, title: 'Paris', mood: null, entry_date: '2025-06-01' },
+        ]}
+      />
+    );
+    const tooltipTitles = vi.mocked(mockedMarker().bindTooltip).mock.calls.map(c => c[0]);
+    expect(tooltipTitles).toEqual(['Paris', 'Berlin']);
+  });
+
+  it('FE-COMP-JOURNEYMAP-036: an untitled entry still gets a tooltip label', () => {
+    render(
+      <JourneyMap
+        checkins={[]}
+        entries={[{ id: 'e0', lat: 1, lng: 2, title: null, mood: null, entry_date: '2025-06-01' }]}
+      />
+    );
+    expect(mockedMarker().bindTooltip).toHaveBeenCalledWith('Entry', expect.objectContaining({ direction: 'top' }));
+  });
+
+  it('FE-COMP-JOURNEYMAP-037: unmounting tears the leaflet map down', () => {
+    const { unmount } = render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
+    const map = mockedMap();
+    const before = vi.mocked(map.remove).mock.calls.length;
+    unmount();
+    expect(vi.mocked(map.remove).mock.calls.length).toBe(before + 1);
   });
 });

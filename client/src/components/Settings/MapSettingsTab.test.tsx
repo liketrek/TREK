@@ -1,5 +1,5 @@
-// FE-COMP-MAP-001 to FE-COMP-MAP-017
-import { render, screen, waitFor } from '../../../tests/helpers/render';
+// FE-COMP-MAP-001 to FE-COMP-MAP-030
+import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -12,6 +12,23 @@ import MapSettingsTab from './MapSettingsTab';
 vi.mock('../Map/MapView', () => ({
   MapView: ({ onMapClick }: { onMapClick?: (info: { latlng: { lat: number; lng: number } }) => void }) => (
     <div data-testid="map-view" onClick={() => onMapClick?.({ latlng: { lat: 51.5, lng: -0.1 } })} />
+  ),
+}));
+
+// The GL preview boots a real mapbox/maplibre instance; the tab only cares that
+// it gets the right provider/style, so render those as data attributes.
+vi.mock('./MapboxPreview', () => ({
+  default: ({ provider, style, token, enable3d, quality }: {
+    provider?: string; style: string; token?: string; enable3d: boolean; quality?: boolean;
+  }) => (
+    <div
+      data-testid="gl-preview"
+      data-provider={provider}
+      data-style={style}
+      data-token={token}
+      data-3d={String(enable3d)}
+      data-quality={String(quality)}
+    />
   ),
 }));
 
@@ -136,5 +153,198 @@ describe('MapSettingsTab', () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue('https://custom.tiles/{z}/{x}/{y}.png')).toBeInTheDocument();
     });
+  });
+});
+
+// ── Provider switching and GL settings (018–030) ──────────────────────────────
+
+const MAPBOX_STANDARD = 'mapbox://styles/mapbox/standard';
+const OFM_LIBERTY = 'https://tiles.openfreemap.org/styles/liberty';
+
+/** The style preset picker sitting above the raw style input. */
+function styleDropdown(): HTMLElement {
+  return screen.getByText('Map Style').closest('div')!.querySelector('div.relative') as HTMLElement;
+}
+
+/** The ToggleSwitch belonging to a labelled GL option row. */
+function toggleFor(label: string): HTMLElement {
+  let el: HTMLElement | null = screen.getByText(label);
+  while (el && !el.querySelector('button')) el = el.parentElement;
+  return el!.querySelector('button') as HTMLElement;
+}
+
+describe('MapSettingsTab – GL providers', () => {
+  it('FE-COMP-MAP-018: picking Mapbox GL reveals the token field, the style picker and the preview', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+
+    await user.click(screen.getByText('Mapbox GL'));
+
+    expect(screen.getByText('Mapbox Access Token')).toBeInTheDocument();
+    expect(screen.getByText('Map Style')).toBeInTheDocument();
+    expect(screen.queryByText('Map Template')).not.toBeInTheDocument();
+    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-provider', 'mapbox-gl');
+    expect(screen.getByDisplayValue(MAPBOX_STANDARD)).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-019: the style picker lists presets with their tag chips and applies the pick', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+    await user.click(screen.getByText('Mapbox GL'));
+
+    const dropdown = styleDropdown();
+    await user.click(within(dropdown).getByRole('button'));
+
+    expect(within(dropdown).getByText('Satellite Streets')).toBeInTheDocument();
+    expect(within(dropdown).getAllByText('Apple-like').length).toBeGreaterThan(0);
+
+    await user.click(within(dropdown).getByText('Streets'));
+
+    expect(screen.getByDisplayValue('mapbox://styles/mapbox/streets-v12')).toBeInTheDocument();
+    expect(within(dropdown).queryByText('Satellite Streets')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-020: a mousedown outside the style picker closes it', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+    await user.click(screen.getByText('Mapbox GL'));
+
+    const dropdown = styleDropdown();
+    await user.click(within(dropdown).getByRole('button'));
+    expect(within(dropdown).getByText('Satellite Streets')).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    expect(within(dropdown).queryByText('Satellite Streets')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-021: a custom style falls back to the picker placeholder', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+    await user.click(screen.getByText('Mapbox GL'));
+
+    const styleInput = screen.getByDisplayValue(MAPBOX_STANDARD);
+    await user.clear(styleInput);
+    await user.type(styleInput, 'mapbox://styles/me/custom');
+
+    expect(within(styleDropdown()).getByText('Select a Mapbox style')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-022: MapLibre needs no token and swaps in the OpenFreeMap presets', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+
+    await user.click(screen.getByText('MapLibre GL'));
+
+    expect(screen.queryByText('Mapbox Access Token')).not.toBeInTheDocument();
+    expect(screen.queryByText('3D Buildings & Terrain')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue(OFM_LIBERTY)).toBeInTheDocument();
+    expect(screen.getByText('Preset or OpenFreeMap style URL. OpenFreeMap styles work without a token.')).toBeInTheDocument();
+    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-provider', 'maplibre-gl');
+  });
+
+  it('FE-COMP-MAP-023: switching from MapLibre back to Mapbox drops the OpenFreeMap style', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+
+    await user.click(screen.getByText('MapLibre GL'));
+    expect(screen.getByDisplayValue(OFM_LIBERTY)).toBeInTheDocument();
+
+    await user.click(screen.getByText('Mapbox GL'));
+
+    expect(screen.getByDisplayValue(MAPBOX_STANDARD)).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-024: switching back to Leaflet restores the tile-template fields', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+
+    await user.click(screen.getByText('Mapbox GL'));
+    await user.click(screen.getByText('Leaflet'));
+
+    expect(screen.getByText('Map Template')).toBeInTheDocument();
+    expect(screen.queryByTestId('gl-preview')).not.toBeInTheDocument();
+    expect(screen.getByTestId('map-view')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-025: the token typed into the field reaches the preview', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+    await user.click(screen.getByText('Mapbox GL'));
+
+    await user.type(screen.getByPlaceholderText('pk.eyJ1Ijoi...'), 'pk.token');
+
+    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-token', 'pk.token');
+  });
+
+  it('FE-COMP-MAP-026: the 3D and quality toggles drive the preview', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+    await user.click(screen.getByText('Mapbox GL'));
+
+    const preview = () => screen.getByTestId('gl-preview');
+    expect(preview()).toHaveAttribute('data-3d', 'true');
+    expect(preview()).toHaveAttribute('data-quality', 'false');
+
+    await user.click(toggleFor('3D Buildings & Terrain'));
+    expect(preview()).toHaveAttribute('data-3d', 'false');
+
+    await user.click(toggleFor('High Quality Mode'));
+    expect(preview()).toHaveAttribute('data-quality', 'true');
+  });
+
+  it('FE-COMP-MAP-027: saving under Mapbox writes the mapbox_style slot', async () => {
+    const user = userEvent.setup();
+    const updateSettings = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings(), updateSettings });
+    render(<MapSettingsTab />);
+
+    await user.click(screen.getByText('Mapbox GL'));
+    await user.click(screen.getByText('Save Map'));
+
+    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
+      map_provider: 'mapbox-gl',
+      mapbox_style: MAPBOX_STANDARD,
+    }));
+    expect(updateSettings.mock.calls[0][0]).not.toHaveProperty('maplibre_style');
+  });
+
+  it('FE-COMP-MAP-028: saving under MapLibre writes the maplibre_style slot instead', async () => {
+    const user = userEvent.setup();
+    const updateSettings = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings(), updateSettings });
+    render(<MapSettingsTab />);
+
+    await user.click(screen.getByText('MapLibre GL'));
+    await user.click(screen.getByText('Save Map'));
+
+    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
+      map_provider: 'maplibre-gl',
+      maplibre_style: OFM_LIBERTY,
+    }));
+    expect(updateSettings.mock.calls[0][0]).not.toHaveProperty('mapbox_style');
+  });
+
+  it('FE-COMP-MAP-029: a stored GL provider is restored from the settings', () => {
+    seedStore(useSettingsStore, {
+      settings: buildSettings({
+        map_provider: 'maplibre-gl',
+        maplibre_style: 'https://tiles.openfreemap.org/styles/bright',
+      }),
+    });
+    render(<MapSettingsTab />);
+
+    expect(screen.getByDisplayValue('https://tiles.openfreemap.org/styles/bright')).toBeInTheDocument();
+    expect(within(styleDropdown()).getByText('OpenFreeMap Bright')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-030: picking a Leaflet template fills the tile URL input', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+
+    await user.click(screen.getByText('Select template...'));
+    await user.click(await screen.findByText('CartoDB Dark'));
+
+    expect(screen.getByDisplayValue('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png')).toBeInTheDocument();
   });
 });

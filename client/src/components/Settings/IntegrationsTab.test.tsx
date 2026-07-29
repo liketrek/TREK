@@ -1,4 +1,4 @@
-// FE-COMP-INTEGRATIONS-001 to FE-COMP-INTEGRATIONS-032
+// FE-COMP-INTEGRATIONS-001 to FE-COMP-INTEGRATIONS-047
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -650,5 +650,308 @@ describe('IntegrationsTab', () => {
     await user.type(screen.getByPlaceholderText(/https:\/\/your-app/i), 'http://localhost');
     await user.click(screen.getByRole('button', { name: /Register Client/i }));
     await screen.findByText(/Failed to register/i);
+  });
+});
+
+// ── Copy buttons, cancels and the remaining failure toasts (033–047) ──────────
+
+const oneClient = [
+  {
+    id: 'c-1',
+    client_id: 'cid-1',
+    name: 'Existing Client',
+    redirect_uris: ['http://localhost'],
+    allowed_scopes: ['trips:read'],
+    created_at: '2025-01-01T00:00:00Z',
+  },
+];
+const oneSession = [
+  { id: 42, client_name: 'Session App', scopes: ['trips:read'], access_token_expires_at: '2025-12-31T00:00:00Z' },
+];
+const oneToken = [
+  { id: 1, name: 'Token One', token_prefix: 'tk_one', created_at: '2025-01-01T00:00:00.000Z', last_used_at: null },
+];
+
+async function openTokensTab(user: ReturnType<typeof userEvent.setup>) {
+  await screen.findByText('MCP Configuration');
+  await user.click(screen.getByRole('button', { name: /API Tokens/i }));
+}
+
+/** The copy button inside a config panel — labelled, unlike the icon-only ones. */
+function labelledCopyButton(): HTMLElement {
+  return screen.getAllByRole('button', { name: /^Copy$/i })
+    .find(b => b.textContent?.trim() === 'Copy') as HTMLElement;
+}
+
+describe('IntegrationsTab – copy actions and cancels', () => {
+  it('FE-COMP-INTEGRATIONS-033: the OAuth client config can be expanded and copied', async () => {
+    const user = userEvent.setup();
+    enableMcp();
+    render(<IntegrationsTab />);
+    await screen.findByText('MCP Configuration');
+    const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+
+    await user.click(screen.getByRole('button', { name: /Client Configuration/i }));
+    await user.click(labelledCopyButton());
+
+    expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('mcp'));
+    await screen.findByRole('button', { name: /Copied!/i });
+  });
+
+  it('FE-COMP-INTEGRATIONS-034: the API-token client config can be expanded and copied', async () => {
+    const user = userEvent.setup();
+    enableMcp();
+    render(<IntegrationsTab />);
+    await openTokensTab(user);
+    const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+
+    await user.click(screen.getByRole('button', { name: /Client Configuration/i }));
+    await user.click(labelledCopyButton());
+
+    expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('mcp'));
+    await screen.findByRole('button', { name: /Copied!/i });
+  });
+
+  it('FE-COMP-INTEGRATIONS-035: Cancel closes the create-token modal', async () => {
+    const user = userEvent.setup();
+    enableMcp();
+    render(<IntegrationsTab />);
+    await openTokensTab(user);
+
+    await user.click(screen.getByRole('button', { name: /Create New Token/i }));
+    await screen.findByText('Create API Token');
+    await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
+
+    expect(screen.queryByText('Create API Token')).toBeNull();
+  });
+
+  it('FE-COMP-INTEGRATIONS-036: the freshly created token can be copied from the modal', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/auth/mcp-tokens', () =>
+        HttpResponse.json({
+          token: { id: 7, name: 'Fresh', token_prefix: 'tk_fresh', raw_token: 'tk_fresh_raw_secret', created_at: '2025-01-01T00:00:00.000Z' },
+        }),
+      ),
+    );
+    enableMcp();
+    render(<IntegrationsTab />);
+    await openTokensTab(user);
+    await user.click(screen.getByRole('button', { name: /Create New Token/i }));
+    await user.type(screen.getByPlaceholderText(/Claude Desktop/i), 'Fresh');
+    await user.click(screen.getByRole('button', { name: /^Create Token$/i }));
+    await screen.findByText('Token Created');
+
+    const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    const copyBtns = screen.getAllByTitle('Copy');
+    await user.click(copyBtns[copyBtns.length - 1]);
+
+    expect(writeSpy).toHaveBeenCalledWith('tk_fresh_raw_secret');
+  });
+
+  it('FE-COMP-INTEGRATIONS-037: Cancel closes the register-client modal', async () => {
+    const user = userEvent.setup();
+    enableMcp();
+    render(<IntegrationsTab />);
+    await screen.findByText('MCP Configuration');
+
+    await user.click(screen.getByRole('button', { name: /New Client/i }));
+    await screen.findByText('Register OAuth Client');
+    await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
+
+    expect(screen.queryByText('Register OAuth Client')).toBeNull();
+  });
+
+  it('FE-COMP-INTEGRATIONS-038: the machine-client checkbox drops the redirect-URI field', async () => {
+    const user = userEvent.setup();
+    enableMcp();
+    render(<IntegrationsTab />);
+    await screen.findByText('MCP Configuration');
+    await user.click(screen.getByRole('button', { name: /New Client/i }));
+    await screen.findByText('Register OAuth Client');
+
+    expect(screen.getByPlaceholderText(/https:\/\/your-app/i)).toBeInTheDocument();
+    await user.click(screen.getAllByRole('checkbox')[0]);
+
+    expect(screen.queryByPlaceholderText(/https:\/\/your-app/i)).toBeNull();
+    await user.type(screen.getByPlaceholderText(/Claude Web, My MCP App/i), 'Robot');
+    expect(screen.getByRole('button', { name: /Register Client/i })).toBeEnabled();
+  });
+
+  it('FE-COMP-INTEGRATIONS-039: the created client id and secret can both be copied', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/oauth/clients', () =>
+        HttpResponse.json({
+          client: {
+            id: 'new-1',
+            client_id: 'cid-new',
+            client_secret: 'secret-new',
+            name: 'Copyable',
+            redirect_uris: ['http://localhost'],
+            allowed_scopes: ['trips:read'],
+            created_at: '2025-01-01T00:00:00Z',
+          },
+        }),
+      ),
+    );
+    enableMcp();
+    render(<IntegrationsTab />);
+    await screen.findByText('MCP Configuration');
+    await user.click(screen.getByRole('button', { name: /New Client/i }));
+    await user.type(screen.getByPlaceholderText(/Claude Web, My MCP App/i), 'Copyable');
+    await user.type(screen.getByPlaceholderText(/https:\/\/your-app/i), 'http://localhost');
+    await user.click(screen.getByRole('button', { name: /Register Client/i }));
+    await screen.findByText('cid-new');
+
+    const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    const copyBtns = screen.getAllByRole('button').filter(b => b.querySelector('svg') && !b.textContent?.trim());
+    await user.click(copyBtns[copyBtns.length - 2]);
+    expect(writeSpy).toHaveBeenCalledWith('cid-new');
+
+    await user.click(copyBtns[copyBtns.length - 1]);
+    expect(writeSpy).toHaveBeenCalledWith('secret-new');
+  });
+
+  it('FE-COMP-INTEGRATIONS-040: Cancel keeps the OAuth client and closes the delete modal', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/oauth/clients', () => HttpResponse.json({ clients: oneClient })));
+    enableMcp();
+    render(<IntegrationsTab />);
+    await screen.findByText('Existing Client');
+
+    await user.click(screen.getByTitle('Delete Client'));
+    await screen.findByRole('heading', { name: 'Delete Client' });
+    await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
+
+    expect(screen.queryByRole('heading', { name: 'Delete Client' })).toBeNull();
+    expect(screen.getByText('Existing Client')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-INTEGRATIONS-041: Cancel closes the rotate-secret modal', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/oauth/clients', () => HttpResponse.json({ clients: oneClient })));
+    enableMcp();
+    render(<IntegrationsTab />);
+    await screen.findByText('Existing Client');
+
+    await user.click(screen.getByTitle('Rotate Secret'));
+    await screen.findByRole('heading', { name: 'Rotate Secret' });
+    await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
+
+    expect(screen.queryByRole('heading', { name: 'Rotate Secret' })).toBeNull();
+  });
+
+  it('FE-COMP-INTEGRATIONS-042: the rotated secret can be copied and dismissed', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/oauth/clients', () => HttpResponse.json({ clients: oneClient })),
+      http.post('/api/oauth/clients/c-1/rotate', () => HttpResponse.json({ client_secret: 'rotated-xyz' })),
+    );
+    enableMcp();
+    render(<IntegrationsTab />);
+    await screen.findByText('Existing Client');
+    await user.click(screen.getByTitle('Rotate Secret'));
+    const rotateBtns = await screen.findAllByRole('button', { name: /^Rotate$/i });
+    await user.click(rotateBtns[rotateBtns.length - 1]);
+    await screen.findByText('New Secret Generated');
+
+    const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    const copyBtn = screen.getAllByRole('button').filter(b => b.querySelector('svg') && !b.textContent?.trim());
+    await user.click(copyBtn[copyBtn.length - 1]);
+    expect(writeSpy).toHaveBeenCalledWith('rotated-xyz');
+
+    await user.click(screen.getByRole('button', { name: /^Done$/i }));
+    expect(screen.queryByText('New Secret Generated')).toBeNull();
+  });
+
+  it('FE-COMP-INTEGRATIONS-043: Cancel keeps the session and closes the revoke modal', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/oauth/sessions', () => HttpResponse.json({ sessions: oneSession })));
+    enableMcp();
+    render(<IntegrationsTab />);
+    await screen.findByText('Session App');
+
+    await user.click(screen.getByText('Revoke'));
+    await screen.findByText('Revoke Session');
+    await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
+
+    expect(screen.queryByText('Revoke Session')).toBeNull();
+    expect(screen.getByText('Session App')).toBeInTheDocument();
+  });
+});
+
+describe('IntegrationsTab – failure toasts', () => {
+  it('FE-COMP-INTEGRATIONS-044: a failing token creation toasts', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/auth/mcp-tokens', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    enableMcp();
+    render(<><ToastContainer /><IntegrationsTab /></>);
+    await openTokensTab(user);
+
+    await user.click(screen.getByRole('button', { name: /Create New Token/i }));
+    await user.type(screen.getByPlaceholderText(/Claude Desktop/i), 'Doomed');
+    await user.click(screen.getByRole('button', { name: /^Create Token$/i }));
+
+    await screen.findByText('Failed to create token');
+  });
+
+  it('FE-COMP-INTEGRATIONS-045: a failing token deletion toasts and keeps the token', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/auth/mcp-tokens', () => HttpResponse.json({ tokens: oneToken })),
+      http.delete('/api/auth/mcp-tokens/1', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+    enableMcp();
+    render(<><ToastContainer /><IntegrationsTab /></>);
+    await openTokensTab(user);
+    await screen.findByText('Token One');
+
+    await user.click(screen.getByTitle('Delete Token'));
+    const confirmBtns = await screen.findAllByRole('button', { name: /^Delete Token$/i });
+    await user.click(confirmBtns.find(b => !b.title) ?? confirmBtns[confirmBtns.length - 1]);
+
+    await screen.findByText('Failed to delete token');
+    expect(screen.getByText('Token One')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-INTEGRATIONS-046: failing client deletion and rotation both toast', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/oauth/clients', () => HttpResponse.json({ clients: oneClient })),
+      http.delete('/api/oauth/clients/c-1', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.post('/api/oauth/clients/c-1/rotate', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+    enableMcp();
+    render(<><ToastContainer /><IntegrationsTab /></>);
+    await screen.findByText('Existing Client');
+
+    await user.click(screen.getByTitle('Delete Client'));
+    const deleteBtns = await screen.findAllByRole('button', { name: /^Delete Client$/i });
+    await user.click(deleteBtns[deleteBtns.length - 1]);
+    await screen.findByText('Failed to delete OAuth client');
+
+    await user.click(screen.getByTitle('Rotate Secret'));
+    const rotateBtns = await screen.findAllByRole('button', { name: /^Rotate$/i });
+    await user.click(rotateBtns[rotateBtns.length - 1]);
+    await screen.findByText('Failed to rotate client secret');
+  });
+
+  it('FE-COMP-INTEGRATIONS-047: a failing session revoke toasts and keeps the session', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/oauth/sessions', () => HttpResponse.json({ sessions: oneSession })),
+      http.delete('/api/oauth/sessions/42', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+    enableMcp();
+    render(<><ToastContainer /><IntegrationsTab /></>);
+    await screen.findByText('Session App');
+
+    await user.click(screen.getByText('Revoke'));
+    const revokeBtns = await screen.findAllByRole('button', { name: /^Revoke$/i });
+    await user.click(revokeBtns[revokeBtns.length - 1]);
+
+    await screen.findByText('Failed to revoke session');
+    expect(screen.getByText('Session App')).toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
-// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-027
-import { render, screen, within } from '../../../tests/helpers/render';
+// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-048
+import { render, screen, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -176,5 +176,222 @@ describe('DisplaySettingsTab', () => {
     await user.click(screen.getByText('°F Fahrenheit'));
     const fahrenheitBtn = screen.getByText('°F Fahrenheit').closest('button')!;
     expect(fahrenheitBtn.style.border).toContain('var(--text-primary)');
+  });
+});
+
+// ── Display currency (033–034) ────────────────────────────────────────────────
+
+function seedFailing(message = 'Server error') {
+  const updateSetting = vi.fn().mockRejectedValue(new Error(message));
+  seedStore(useSettingsStore, { settings: buildSettings({ language: 'en' }), updateSetting });
+  return updateSetting;
+}
+
+/** The block of buttons belonging to one labelled setting. */
+function optionBlock(label: RegExp): HTMLElement {
+  return screen.getByText(label).closest('div') as HTMLElement;
+}
+
+describe('DisplaySettingsTab – Display currency', () => {
+  it('FE-COMP-DISPLAY-033: picking "Trip currency" clears the personal display currency', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ default_currency: 'USD' }), updateSetting });
+    render(<DisplaySettingsTab />);
+
+    await user.click(screen.getByRole('button', { name: /USD/ }));
+    await user.click(await screen.findByText('Trip currency'));
+
+    expect(updateSetting).toHaveBeenCalledWith('default_currency', '');
+  });
+
+  it('FE-COMP-DISPLAY-034: a rejected currency change surfaces the error', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockRejectedValue(new Error('Currency locked'));
+    seedStore(useSettingsStore, { settings: buildSettings({ default_currency: 'USD' }), updateSetting });
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(screen.getByRole('button', { name: /USD/ }));
+    await user.click(await screen.findByText('Trip currency'));
+
+    await screen.findByText('Currency locked');
+  });
+});
+
+// ── Compact language dropdown (035–039) ───────────────────────────────────────
+
+function mobileLangWrap(): HTMLElement {
+  return screen.getByText('Language').closest('div')!.querySelector('.sm\\:hidden') as HTMLElement;
+}
+
+describe('DisplaySettingsTab – Compact language picker', () => {
+  it('FE-COMP-DISPLAY-035: the compact trigger shows the active language and opens the list', async () => {
+    const user = userEvent.setup();
+    render(<DisplaySettingsTab />);
+    const wrap = mobileLangWrap();
+
+    expect(within(wrap).getAllByRole('button')).toHaveLength(1);
+    expect(within(wrap).getByText('English')).toBeInTheDocument();
+
+    await user.click(within(wrap).getByRole('button'));
+
+    expect(within(wrap).getAllByRole('button').length).toBeGreaterThan(1);
+  });
+
+  it('FE-COMP-DISPLAY-036: picking a language from the list saves it and closes the list', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'en' }), updateSetting });
+    render(<DisplaySettingsTab />);
+    const wrap = mobileLangWrap();
+
+    await user.click(within(wrap).getByRole('button'));
+    await user.click(within(wrap).getByText('Deutsch').closest('button')!);
+
+    expect(updateSetting).toHaveBeenCalledWith('language', 'de');
+    expect(within(wrap).getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('FE-COMP-DISPLAY-037: a rejected pick from the list surfaces the error', async () => {
+    const user = userEvent.setup();
+    seedFailing('Language locked');
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+    const wrap = mobileLangWrap();
+
+    await user.click(within(wrap).getByRole('button'));
+    await user.click(within(wrap).getByText('Deutsch').closest('button')!);
+
+    await screen.findByText('Language locked');
+  });
+
+  it('FE-COMP-DISPLAY-048: a rejected pick from the desktop grid surfaces the error', async () => {
+    const user = userEvent.setup();
+    seedFailing('Language locked');
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(screen.getByText('Deutsch'));
+
+    await screen.findByText('Language locked');
+  });
+
+  it('FE-COMP-DISPLAY-038: a mousedown outside the picker closes it', async () => {
+    const user = userEvent.setup();
+    render(<DisplaySettingsTab />);
+    const wrap = mobileLangWrap();
+
+    await user.click(within(wrap).getByRole('button'));
+    expect(within(wrap).getAllByRole('button').length).toBeGreaterThan(1);
+
+    fireEvent.mouseDown(document.body);
+
+    expect(within(wrap).getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('FE-COMP-DISPLAY-039: a mousedown inside the picker keeps it open', async () => {
+    const user = userEvent.setup();
+    render(<DisplaySettingsTab />);
+    const wrap = mobileLangWrap();
+
+    await user.click(within(wrap).getByRole('button'));
+    fireEvent.mouseDown(within(wrap).getByText('Deutsch'));
+
+    expect(within(wrap).getAllByRole('button').length).toBeGreaterThan(1);
+  });
+});
+
+// ── Map & privacy toggles (040–047) ───────────────────────────────────────────
+
+describe('DisplaySettingsTab – Map and privacy toggles', () => {
+  it('FE-COMP-DISPLAY-040: turning booking route labels off persists false', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ map_booking_labels: true }), updateSetting });
+    render(<DisplaySettingsTab />);
+
+    await user.click(within(optionBlock(/booking route labels/i)).getByText(/^Off$/));
+
+    expect(updateSetting).toHaveBeenCalledWith('map_booking_labels', false);
+  });
+
+  it('FE-COMP-DISPLAY-041: a rejected booking-labels change surfaces the error', async () => {
+    const user = userEvent.setup();
+    seedFailing('Labels locked');
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(within(optionBlock(/booking route labels/i)).getByText(/^On$/));
+
+    await screen.findByText('Labels locked');
+  });
+
+  it('FE-COMP-DISPLAY-042: a rejected always-show-routes change surfaces the error', async () => {
+    const user = userEvent.setup();
+    seedFailing('Routes locked');
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(within(optionBlock(/always show booking routes/i)).getByText(/^On$/));
+
+    await screen.findByText('Routes locked');
+  });
+
+  it('FE-COMP-DISPLAY-043: the POI pill defaults to On and can be turned off', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings(), updateSetting });
+    render(<DisplaySettingsTab />);
+    const block = optionBlock(/explore places on the map/i);
+
+    expect(within(block).getByText(/^On$/).closest('button')!.style.border).toContain('var(--text-primary)');
+    await user.click(within(block).getByText(/^Off$/));
+
+    expect(updateSetting).toHaveBeenCalledWith('map_poi_pill_enabled', false);
+  });
+
+  it('FE-COMP-DISPLAY-044: a rejected POI pill change surfaces the error', async () => {
+    const user = userEvent.setup();
+    seedFailing('POI locked');
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(within(optionBlock(/explore places on the map/i)).getByText(/^Off$/));
+
+    await screen.findByText('POI locked');
+  });
+
+  it('FE-COMP-DISPLAY-045: turning blur booking codes on persists true', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ blur_booking_codes: false }), updateSetting });
+    render(<DisplaySettingsTab />);
+
+    await user.click(within(optionBlock(/blur booking codes/i)).getByText(/^On$/));
+
+    expect(updateSetting).toHaveBeenCalledWith('blur_booking_codes', true);
+  });
+
+  it('FE-COMP-DISPLAY-046: the accommodation optimisation defaults to On and can be turned off', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings(), updateSetting });
+    render(<DisplaySettingsTab />);
+    const block = optionBlock(/optimize route from accommodation/i);
+
+    expect(within(block).getByText(/^On$/).closest('button')!.style.border).toContain('var(--text-primary)');
+    await user.click(within(block).getByText(/^Off$/));
+
+    expect(updateSetting).toHaveBeenCalledWith('optimize_from_accommodation', false);
+  });
+
+  it('FE-COMP-DISPLAY-047: rejected blur, optimisation, distance and time-format changes all toast', async () => {
+    const user = userEvent.setup();
+    seedFailing('Nope');
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(within(optionBlock(/blur booking codes/i)).getByText(/^On$/));
+    await screen.findByText('Nope');
+
+    await user.click(within(optionBlock(/optimize route from accommodation/i)).getByText(/^Off$/));
+    await user.click(screen.getByText('mi Imperial'));
+    await user.click(screen.getByRole('button', { name: /24h/ }));
+
+    expect(screen.getAllByText('Nope').length).toBeGreaterThan(0);
   });
 });

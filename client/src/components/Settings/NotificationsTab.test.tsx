@@ -851,3 +851,284 @@ describe('NotificationsTab — plugin channels', () => {
     expect(screen.queryByText('Gotify')).not.toBeInTheDocument();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ntfy credentials, webhook edge cases and channel-test failures (015–029)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ntfyMatrix = {
+  preferences: { trip_invite: { inapp: true, ntfy: true } },
+  channels: [
+    { id: 'inapp', source: 'builtin', labelKey: 'settings.notificationPreferences.inapp', active: true, configured: true },
+    { id: 'ntfy', source: 'builtin', labelKey: 'settings.notificationPreferences.ntfy', active: true, configured: true },
+  ],
+  event_types: ['trip_invite'],
+  implemented_combos: { trip_invite: ['inapp', 'ntfy'] },
+  defaults: { ntfyServer: 'https://ntfy.example.org' },
+};
+
+const webhookMatrix = {
+  preferences: { trip_invite: { inapp: true, webhook: true } },
+  channels: [
+    { id: 'inapp', source: 'builtin', labelKey: 'settings.notificationPreferences.inapp', active: true, configured: true },
+    { id: 'webhook', source: 'builtin', labelKey: 'settings.notificationPreferences.webhook', active: true, configured: true },
+  ],
+  event_types: ['trip_invite'],
+  implemented_combos: { trip_invite: ['inapp', 'webhook'] },
+};
+
+function mockNtfy(settings: Record<string, unknown> = {}) {
+  server.use(
+    http.get('*/api/notifications/preferences', () => HttpResponse.json(ntfyMatrix)),
+    http.get('*/api/settings', () => HttpResponse.json({ settings })),
+  );
+}
+
+function tokenInput(): HTMLInputElement {
+  return document.querySelector('input[type="password"]') as HTMLInputElement;
+}
+
+describe('NotificationsTab — ntfy credentials', () => {
+  beforeEach(() => {
+    resetAllStores();
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
+  });
+
+  it('FE-COMP-NOTIFICATIONS-015: a stored token is masked and the server default fills the placeholder', async () => {
+    mockNtfy({ ntfy_topic: 'alerts', ntfy_token: '••••••••' });
+    render(<NotificationsTab />);
+
+    expect(await screen.findByDisplayValue('alerts')).toBeInTheDocument();
+    expect(tokenInput()).toHaveValue('');
+    expect(tokenInput()).toHaveAttribute('placeholder', '••••••••');
+    expect(screen.getByPlaceholderText('https://ntfy.example.org')).toHaveValue('');
+  });
+
+  it('FE-COMP-NOTIFICATIONS-016: saving sends topic and server but omits the untouched token', async () => {
+    const user = userEvent.setup();
+    let body: { settings: Record<string, unknown> } | null = null;
+    mockNtfy({ ntfy_topic: 'alerts', ntfy_token: '••••••••' });
+    server.use(
+      http.post('*/api/settings/bulk', async ({ request }) => {
+        body = (await request.json()) as { settings: Record<string, unknown> };
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await user.type(await screen.findByPlaceholderText('https://ntfy.example.org'), 'https://ntfy.self.host');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await screen.findByText('Ntfy settings saved');
+    expect(body!.settings).toEqual({ ntfy_topic: 'alerts', ntfy_server: 'https://ntfy.self.host' });
+  });
+
+  it('FE-COMP-NOTIFICATIONS-017: a freshly typed token is sent and switches the field to masked', async () => {
+    const user = userEvent.setup();
+    let body: { settings: Record<string, unknown> } | null = null;
+    mockNtfy({ ntfy_topic: 'alerts' });
+    server.use(
+      http.post('*/api/settings/bulk', async ({ request }) => {
+        body = (await request.json()) as { settings: Record<string, unknown> };
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<NotificationsTab />);
+
+    await screen.findByDisplayValue('alerts');
+    await user.type(tokenInput(), 'tk_secret');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(body!.settings).toMatchObject({ ntfy_token: 'tk_secret' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument());
+  });
+
+  it('FE-COMP-NOTIFICATIONS-018: a failing ntfy save toasts the generic error', async () => {
+    const user = userEvent.setup();
+    mockNtfy({ ntfy_topic: 'alerts' });
+    server.use(
+      http.post('*/api/settings/bulk', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await screen.findByDisplayValue('alerts');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await screen.findByText('Error');
+  });
+
+  it('FE-COMP-NOTIFICATIONS-019: Clear wipes the stored token and hides the button', async () => {
+    const user = userEvent.setup();
+    let body: { key: string; value: unknown } | null = null;
+    mockNtfy({ ntfy_topic: 'alerts', ntfy_token: '••••••••' });
+    server.use(
+      http.put('*/api/settings', async ({ request }) => {
+        body = (await request.json()) as { key: string; value: unknown };
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await user.click(await screen.findByRole('button', { name: 'Clear' }));
+
+    await screen.findByText('Access token cleared');
+    expect(body).toEqual({ key: 'ntfy_token', value: '' });
+    expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-NOTIFICATIONS-020: a failing clear keeps the token and toasts', async () => {
+    const user = userEvent.setup();
+    mockNtfy({ ntfy_topic: 'alerts', ntfy_token: '••••••••' });
+    server.use(
+      http.put('*/api/settings', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await user.click(await screen.findByRole('button', { name: 'Clear' }));
+
+    await screen.findByText('Error');
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-NOTIFICATIONS-021: a successful test posts topic and server, and never the masked token', async () => {
+    const user = userEvent.setup();
+    let body: Record<string, unknown> | null = null;
+    mockNtfy({ ntfy_topic: 'alerts', ntfy_server: 'https://ntfy.sh', ntfy_token: '••••••••' });
+    server.use(
+      http.post('*/api/notifications/test-ntfy', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await screen.findByDisplayValue('alerts');
+    await user.click(screen.getByRole('button', { name: 'Test' }));
+
+    await screen.findByText('Test ntfy notification sent successfully');
+    expect(body).toEqual({ topic: 'alerts', server: 'https://ntfy.sh', token: null });
+  });
+
+  it('FE-COMP-NOTIFICATIONS-022: a refused test shows the message the server returned', async () => {
+    const user = userEvent.setup();
+    mockNtfy({ ntfy_topic: 'alerts' });
+    server.use(
+      http.post('*/api/notifications/test-ntfy', () => HttpResponse.json({ success: false, error: 'Topic not found' })),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await screen.findByDisplayValue('alerts');
+    await user.click(screen.getByRole('button', { name: 'Test' }));
+
+    await screen.findByText('Topic not found');
+  });
+
+  it('FE-COMP-NOTIFICATIONS-023: a network error during the test falls back to the generic message', async () => {
+    const user = userEvent.setup();
+    mockNtfy({ ntfy_topic: 'alerts' });
+    server.use(
+      http.post('*/api/notifications/test-ntfy', () => HttpResponse.json({ error: 'down' }, { status: 500 })),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await screen.findByDisplayValue('alerts');
+    await user.click(screen.getByRole('button', { name: 'Test' }));
+
+    await screen.findByText('Test ntfy notification failed');
+  });
+
+  it('FE-COMP-NOTIFICATIONS-024: without a topic the test button stays disabled', async () => {
+    mockNtfy({});
+    render(<NotificationsTab />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Test' })).toBeDisabled());
+    expect(screen.getByPlaceholderText('my-trek-alerts')).toHaveValue('');
+  });
+});
+
+describe('NotificationsTab — webhook and channel-test failures', () => {
+  beforeEach(() => {
+    resetAllStores();
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
+    server.use(
+      http.get('*/api/notifications/preferences', () => HttpResponse.json(webhookMatrix)),
+      http.get('*/api/settings', () => HttpResponse.json({ settings: { webhook_url: '••••••••' } })),
+    );
+  });
+
+  it('FE-COMP-NOTIFICATIONS-025: saving an empty URL unsets the stored webhook', async () => {
+    const user = userEvent.setup();
+    let body: { key: string; value: unknown } | null = null;
+    server.use(
+      http.put('*/api/settings', async ({ request }) => {
+        body = (await request.json()) as { key: string; value: unknown };
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    const input = await screen.findByRole('textbox');
+    expect(input).toHaveAttribute('placeholder', '••••••••');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await screen.findByText('Webhook URL saved');
+    expect(body).toEqual({ key: 'webhook_url', value: '' });
+    await waitFor(() =>
+      expect(screen.getByRole('textbox')).toHaveAttribute('placeholder', 'https://discord.com/api/webhooks/...'),
+    );
+  });
+
+  it('FE-COMP-NOTIFICATIONS-026: a failing webhook save toasts the generic error', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.put('*/api/settings', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await screen.findByRole('textbox');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await screen.findByText('Error');
+  });
+
+  it('FE-COMP-NOTIFICATIONS-027: a network error during the webhook test falls back to the generic message', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('*/api/notifications/test-webhook', () => HttpResponse.json({ error: 'down' }, { status: 500 })),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await screen.findByRole('textbox');
+    await user.click(screen.getByRole('button', { name: 'Test' }));
+
+    await screen.findByText('Test webhook failed');
+  });
+
+  it('FE-COMP-NOTIFICATIONS-028: a refused plugin channel test reports the returned error', async () => {
+    const user = userEvent.setup();
+    mockMatrix(pluginMatrix());
+    server.use(
+      http.post('*/api/notifications/test/:channelId', () =>
+        HttpResponse.json({ success: false, error: 'Gotify rejected the token' }),
+      ),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await user.click(await screen.findByRole('button', { name: /send test/i }));
+
+    await screen.findByText('Gotify rejected the token');
+  });
+
+  it('FE-COMP-NOTIFICATIONS-029: a plugin channel test that errors out falls back to the generic message', async () => {
+    const user = userEvent.setup();
+    mockMatrix(pluginMatrix());
+    server.use(
+      http.post('*/api/notifications/test/:channelId', () => HttpResponse.json({ error: 'down' }, { status: 500 })),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+
+    await user.click(await screen.findByRole('button', { name: /send test/i }));
+
+    await screen.findByText('Test failed.');
+  });
+});

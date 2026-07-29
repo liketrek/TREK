@@ -1,10 +1,12 @@
 import React from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '../../../tests/helpers/render'
-import { fireEvent, waitFor } from '@testing-library/react'
+import { act, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace, buildReservation } from '../../../tests/helpers/factories'
+import { useAuthStore } from '../../store/authStore'
+import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import * as photoService from '../../services/photoService'
 
 const mapMock = vi.hoisted(() => ({
@@ -16,7 +18,34 @@ const mapMock = vi.hoisted(() => ({
   off: vi.fn(),
   panBy: vi.fn(),
   latLngToContainerPoint: vi.fn(() => ({ x: 0, y: 0, distanceTo: () => 1000 })),
+  // Panes: jsdom has none, so keep them in a map the pane tests can read back.
+  panes: new Map<string, HTMLElement>(),
+  getPane: vi.fn(function (this: void, name: string) { return mapMock.panes.get(name) }),
+  createPane: vi.fn(function (this: void, name: string) {
+    const el = document.createElement('div')
+    mapMock.panes.set(name, el)
+    return el
+  }),
+  getBounds: vi.fn(() => ({ getSouth: () => 47, getWest: () => 1, getNorth: () => 49, getEast: () => 3 })),
+  whenReady: vi.fn((cb: () => void) => { cb() }),
 }))
+
+// Live-location fixture; tests flip this before rendering.
+const geoMock = vi.hoisted(() => ({
+  position: null as { lat: number; lng: number; accuracy: number; heading: number | null } | null,
+  mode: 'off' as 'off' | 'show' | 'follow',
+  error: null as string | null,
+  cycleMode: vi.fn(),
+  setMode: vi.fn(),
+}))
+
+vi.mock('../../hooks/useGeolocation', () => ({
+  useGeolocation: () => geoMock,
+}))
+
+// onThumbReady callbacks are captured so a test can play back a photo landing
+// after the map already rendered.
+const thumbCallbacks = vi.hoisted(() => new Map<string, (thumb: string) => void>())
 
 vi.mock('react-leaflet', () => ({
   // center/zoom are surfaced so tests can assert the camera the map is built with.
@@ -24,11 +53,15 @@ vi.mock('react-leaflet', () => ({
     <div data-testid="map-container" data-center={JSON.stringify(center)} data-zoom={zoom}>{children}</div>
   ),
   TileLayer: () => <div data-testid="tile-layer" />,
-  Marker: ({ children, eventHandlers, position }: any) => (
+  Marker: ({ children, eventHandlers, position, icon, zIndexOffset }: any) => (
     <div
       data-testid="marker"
       data-lat={position[0]}
       data-lng={position[1]}
+      data-zindex={zIndexOffset}
+      // The divIcon mock hands its options straight back, so the generated
+      // marker HTML is assertable without a real Leaflet.
+      data-icon-html={icon?.html ?? ''}
       onClick={() => eventHandlers?.click?.()}
     >
       <button
@@ -36,6 +69,14 @@ vi.mock('react-leaflet', () => ({
         // A real mouseover never bubbles as a click to the marker, so the
         // hover-simulation must not trigger the marker's click handler.
         onClick={(e: any) => { e.stopPropagation(); eventHandlers?.mouseover?.({ originalEvent: { clientX: 100, clientY: 100 } }) }}
+      />
+      <button
+        data-testid="marker-move-trigger"
+        onClick={(e: any) => { e.stopPropagation(); eventHandlers?.mousemove?.({ originalEvent: { clientX: 150, clientY: 160 } }) }}
+      />
+      <button
+        data-testid="marker-out-trigger"
+        onClick={(e: any) => { e.stopPropagation(); eventHandlers?.mouseout?.() }}
       />
       {children}
     </div>
@@ -64,27 +105,42 @@ vi.mock('react-leaflet', () => ({
 }))
 
 vi.mock('react-leaflet-cluster', () => ({
-  default: ({ children }: any) => <div data-testid="cluster-group">{children}</div>,
+  // The real cluster group calls iconCreateFunction itself; the probe button
+  // lets a test invoke it with a chosen child count.
+  default: ({ children, iconCreateFunction }: any) => (
+    <div data-testid="cluster-group">
+      <button
+        data-testid="cluster-icon-probe"
+        onClick={(e: any) => {
+          const count = Number(e.currentTarget.getAttribute('data-count') || 0)
+          const icon = iconCreateFunction?.({ getChildCount: () => count })
+          e.currentTarget.setAttribute('data-icon-html', icon?.html ?? '')
+        }}
+      />
+      {children}
+    </div>
+  ),
 }))
 
-vi.mock('leaflet', () => ({
-  default: {
-    divIcon: vi.fn(() => ({})),
+vi.mock('leaflet', () => {
+  const divIcon = vi.fn((options: any) => ({ ...options }))
+  const leaflet = {
+    divIcon,
     Icon: { Default: { prototype: {}, mergeOptions: vi.fn() } },
     latLngBounds: vi.fn(() => ({ isValid: () => true })),
     point: vi.fn((x: number, y: number) => [x, y]),
-  },
-  divIcon: vi.fn(() => ({})),
-  Icon: { Default: { prototype: {}, mergeOptions: vi.fn() } },
-  latLngBounds: vi.fn(() => ({ isValid: () => true })),
-  point: vi.fn((x: number, y: number) => [x, y]),
-}))
+  }
+  return { default: leaflet, ...leaflet }
+})
 
 vi.mock('../../services/photoService', () => ({
   getCached: vi.fn(() => null),
   isLoading: vi.fn(() => false),
   fetchPhoto: vi.fn(),
-  onThumbReady: vi.fn(() => () => {}),
+  onThumbReady: vi.fn((key: string, cb: (thumb: string) => void) => {
+    thumbCallbacks.set(key, cb)
+    return () => { thumbCallbacks.delete(key) }
+  }),
   getAllThumbs: vi.fn(() => ({})),
 }))
 
@@ -102,9 +158,17 @@ function buildMapPlace(overrides: Record<string, any> = {}) {
   } as any
 }
 
+const ORIGINAL_WIDTH = window.innerWidth
+
 afterEach(() => {
   vi.clearAllMocks()
   resetAllStores()
+  mapMock.panes.clear()
+  thumbCallbacks.clear()
+  geoMock.position = null
+  geoMock.mode = 'off'
+  geoMock.error = null
+  Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: ORIGINAL_WIDTH })
 })
 
 describe('MapView', () => {
@@ -455,5 +519,492 @@ describe('MapView', () => {
     } as any)
     render(<MapView reservations={[reservation]} visibleConnectionIds={[42]} />)
     expect(screen.getAllByTestId('polyline').length).toBeGreaterThan(0)
+  })
+
+  it('FE-COMP-MAPVIEW-073: a category icon that throws leaves the marker circle intact', () => {
+    // Icon components come from a lookup table a plugin can extend; one that
+    // throws must not take the whole map down, only its own glyph.
+    const key = '__ExplodingIcon'
+    CATEGORY_ICON_MAP[key] = (() => { throw new Error('icon blew up') }) as unknown as typeof CATEGORY_ICON_MAP['MapPin']
+    try {
+      render(<MapView places={[buildMapPlace({ id: 5, lat: 48, lng: 2, category_icon: key })]} />)
+      const html = screen.getByTestId('marker').getAttribute('data-icon-html') || ''
+      expect(html).toContain('border-radius:50%')
+      expect(html).not.toContain('<svg')
+    } finally {
+      delete CATEGORY_ICON_MAP[key]
+    }
+  })
+})
+
+// ── FE-COMP-MAPVIEW-030 onwards ───────────────────────────────────────────────
+
+const leafletMock = async () => ((await import('leaflet')).default) as unknown as {
+  divIcon: ReturnType<typeof vi.fn>
+  latLngBounds: ReturnType<typeof vi.fn>
+}
+
+const iconHtmlOf = (el: HTMLElement) => el.getAttribute('data-icon-html') || ''
+const markersWithZ = (z: string) => screen.queryAllByTestId('marker').filter(m => m.getAttribute('data-zindex') === z)
+const handlerFor = (event: string) => mapMock.on.mock.calls.find(c => c[0] === event)?.[1] as (() => void) | undefined
+
+function buildPoi(overrides: Record<string, any> = {}) {
+  return {
+    osm_id: 'node/1',
+    name: 'Café Central',
+    lat: 48.21,
+    lng: 16.36,
+    category: 'cafe',
+    poi_type: 'cafe',
+    address: null,
+    website: null,
+    phone: null,
+    opening_hours: null,
+    cuisine: null,
+    source: 'openstreetmap',
+    ...overrides,
+  }
+}
+
+describe('MapView clusters and badges', () => {
+  it('FE-COMP-MAPVIEW-030: the cluster icon grows with the number of markers it hides', () => {
+    render(<MapView places={[buildMapPlace({ id: 1, lat: 48, lng: 2 })]} />)
+    const probe = screen.getByTestId('cluster-icon-probe')
+
+    const iconFor = (count: number) => {
+      probe.setAttribute('data-count', String(count))
+      fireEvent.click(probe)
+      return probe.getAttribute('data-icon-html') || ''
+    }
+
+    expect(iconFor(4)).toContain('width:36px')
+    expect(iconFor(4)).toContain('<span>4</span>')
+    expect(iconFor(20)).toContain('width:42px')
+    expect(iconFor(120)).toContain('width:48px')
+  })
+
+  it('FE-COMP-MAPVIEW-031: a place on one day gets a single order badge', () => {
+    render(<MapView places={[buildMapPlace({ id: 3, lat: 48, lng: 2 })]} dayOrderMap={{ 3: [2] }} />)
+    const html = iconHtmlOf(screen.getAllByTestId('marker')[0])
+    expect(html).toContain('>2</span>')
+    expect(html).toContain('height:18px')
+  })
+
+  it('FE-COMP-MAPVIEW-032: a place visited on several days gets a wider combined badge', () => {
+    render(<MapView places={[buildMapPlace({ id: 4, lat: 48, lng: 2 })]} dayOrderMap={{ 4: [1, 3] }} />)
+    const html = iconHtmlOf(screen.getAllByTestId('marker')[0])
+    expect(html).toContain('>1 · 3</span>')
+    expect(html).toContain('height:16px')
+  })
+})
+
+describe('MapView explore POIs', () => {
+  it('FE-COMP-MAPVIEW-033: renders a pin per POI in its category colour with a name tooltip', () => {
+    render(<MapView pois={[buildPoi()]} />)
+    const poiMarker = markersWithZ('500')[0]
+    expect(poiMarker).toBeTruthy()
+    expect(iconHtmlOf(poiMarker)).toContain('#B45309') // cafe
+    expect(poiMarker.textContent).toContain('Café Central')
+  })
+
+  it('FE-COMP-MAPVIEW-034: clicking a POI hands the whole POI back to the caller', () => {
+    const onPoiClick = vi.fn()
+    const poi = buildPoi({ osm_id: 'node/7' })
+    render(<MapView pois={[poi]} onPoiClick={onPoiClick} />)
+    fireEvent.click(markersWithZ('500')[0])
+    expect(onPoiClick).toHaveBeenCalledWith(poi)
+  })
+
+  it('FE-COMP-MAPVIEW-035: an unknown POI category falls back to grey and draws no glyph', () => {
+    render(<MapView pois={[buildPoi({ osm_id: 'node/8', category: 'not-a-category' })]} />)
+    const html = iconHtmlOf(markersWithZ('500')[0])
+    expect(html).toContain('#6b7280')
+    expect(html).not.toContain('<svg')
+  })
+
+  it('FE-COMP-MAPVIEW-036: POIs of one category share a single cached icon', async () => {
+    const L = await leafletMock()
+    render(<MapView pois={[
+      buildPoi({ osm_id: 'node/10', category: 'museum' }),
+      buildPoi({ osm_id: 'node/11', category: 'museum', lat: 48.3 }),
+    ]} />)
+    const poiIcons = L.divIcon.mock.calls.filter(c => JSON.stringify((c[0] as { iconSize: number[] }).iconSize) === '[26,26]')
+    expect(markersWithZ('500')).toHaveLength(2)
+    expect(poiIcons).toHaveLength(1)
+  })
+})
+
+describe('MapView plugin route vias', () => {
+  const via = (overrides: Record<string, any> = {}) => ({ lat: 48.5, lng: 2.5, tone: 'default', ...overrides })
+
+  it('FE-COMP-MAPVIEW-037: draws a tone dot for each via point', () => {
+    render(<MapView routeVias={[via({ tone: 'success' }), via({ tone: 'danger', lat: 48.7 })]} />)
+    const vias = markersWithZ('800')
+    expect(vias).toHaveLength(2)
+    expect(iconHtmlOf(vias[0])).toContain('#10b981')
+    expect(iconHtmlOf(vias[1])).toContain('#ef4444')
+  })
+
+  it('FE-COMP-MAPVIEW-038: an unknown tone falls back to the default indigo', () => {
+    render(<MapView routeVias={[via({ tone: 'chartreuse' })]} />)
+    expect(iconHtmlOf(markersWithZ('800')[0])).toContain('#4F46E5')
+  })
+
+  it('FE-COMP-MAPVIEW-039: vias of the same tone share one cached icon', async () => {
+    const L = await leafletMock()
+    render(<MapView routeVias={[via({ tone: 'warn' }), via({ tone: 'warn', lat: 48.9 })]} />)
+    const viaIcons = L.divIcon.mock.calls.filter(c => JSON.stringify((c[0] as { iconSize: number[] }).iconSize) === '[13,13]')
+    expect(markersWithZ('800')).toHaveLength(2)
+    expect(viaIcons).toHaveLength(1)
+  })
+
+  it('FE-COMP-MAPVIEW-040: a via tooltip joins its label and its dwell time', () => {
+    render(<MapView routeVias={[via({ label: 'Supercharger', dwellSeconds: 5400 })]} />)
+    expect(markersWithZ('800')[0].textContent).toContain('Supercharger · 1 h 30 min')
+  })
+
+  it('FE-COMP-MAPVIEW-041: a dwell under an hour is shown in minutes alone', () => {
+    render(<MapView routeVias={[via({ dwellSeconds: 1500 })]} />)
+    expect(markersWithZ('800')[0].textContent).toContain('25 min')
+  })
+
+  it('FE-COMP-MAPVIEW-042: a bare via carries no tooltip at all', () => {
+    render(<MapView routeVias={[via()]} />)
+    expect(markersWithZ('800')[0].textContent).toBe('')
+  })
+
+  it('FE-COMP-MAPVIEW-074: a via with a label but no dwell shows the label alone', () => {
+    render(<MapView routeVias={[via({ label: 'Rest area' })]} />)
+    expect(markersWithZ('800')[0].textContent).toBe('Rest area')
+  })
+})
+
+describe('MapView map event wiring', () => {
+  it('FE-COMP-MAPVIEW-043: reports the viewport bbox once the map is ready and again on every move', () => {
+    const onViewportChange = vi.fn()
+    render(<MapView onViewportChange={onViewportChange} />)
+    expect(onViewportChange).toHaveBeenCalledWith({ south: 47, west: 1, north: 49, east: 3 })
+
+    const moveend = handlerFor('moveend')
+    const zoomend = handlerFor('zoomend')
+    expect(moveend).toBeTypeOf('function')
+    moveend!()
+    zoomend!()
+    expect(onViewportChange).toHaveBeenCalledTimes(3)
+  })
+
+  it('FE-COMP-MAPVIEW-044: no viewport callback means no listeners at all', () => {
+    render(<MapView />)
+    expect(mapMock.on.mock.calls.some(c => c[0] === 'moveend')).toBe(false)
+  })
+
+  it('FE-COMP-MAPVIEW-045: unmounting detaches the viewport listeners', () => {
+    const { unmount } = render(<MapView onViewportChange={vi.fn()} />)
+    unmount()
+    expect(mapMock.off).toHaveBeenCalledWith('moveend', expect.any(Function))
+    expect(mapMock.off).toHaveBeenCalledWith('zoomend', expect.any(Function))
+  })
+
+  it('FE-COMP-MAPVIEW-046: a map-click handler is attached and detached again', () => {
+    const onMapClick = vi.fn()
+    const { unmount } = render(<MapView onMapClick={onMapClick} />)
+    expect(mapMock.on).toHaveBeenCalledWith('click', onMapClick)
+    unmount()
+    expect(mapMock.off).toHaveBeenCalledWith('click', onMapClick)
+  })
+
+  it('FE-COMP-MAPVIEW-047: without a click handler nothing is bound', () => {
+    render(<MapView onMapClick={null} />)
+    expect(mapMock.on.mock.calls.some(c => c[0] === 'click')).toBe(false)
+  })
+
+  it('FE-COMP-MAPVIEW-048: a context-menu handler is attached and detached again', () => {
+    const onMapContextMenu = vi.fn()
+    const { unmount } = render(<MapView onMapContextMenu={onMapContextMenu} />)
+    expect(mapMock.on).toHaveBeenCalledWith('contextmenu', onMapContextMenu)
+    unmount()
+    expect(mapMock.off).toHaveBeenCalledWith('contextmenu', onMapContextMenu)
+  })
+
+  it('FE-COMP-MAPVIEW-049: changing the center prop moves the camera there', () => {
+    const places = [buildMapPlace({ id: 1, lat: 48, lng: 2 })]
+    const { rerender } = render(<MapView places={places} center={[48, 2]} zoom={9} />)
+    mapMock.setView.mockClear()
+
+    rerender(<MapView places={places} center={[35.01, 135.76]} zoom={11} />)
+    expect(mapMock.setView).toHaveBeenCalledWith([35.01, 135.76], 11)
+
+    // The same center again must not re-issue the camera move.
+    mapMock.setView.mockClear()
+    rerender(<MapView places={places} center={[35.01, 135.76]} zoom={11} />)
+    expect(mapMock.setView).not.toHaveBeenCalled()
+  })
+})
+
+describe('MapView track casing pane (#776)', () => {
+  it('FE-COMP-MAPVIEW-050: creates the casing pane under the overlay pane and draws casings into it', () => {
+    render(<MapView places={[buildMapPlace({
+      id: 1, lat: 48, lng: 2, route_geometry: '[[48.0,2.0],[49.0,3.0]]', route_color: '#059669',
+    })]} />)
+
+    expect(mapMock.createPane).toHaveBeenCalledWith('trek-track-casing')
+    expect(mapMock.panes.get('trek-track-casing')!.style.zIndex).toBe('398')
+
+    const casing = screen.getAllByTestId('polyline')
+      .find(el => JSON.parse(el.getAttribute('data-path-options') || '{}').weight === 6.5)
+    expect(casing!.getAttribute('data-pane')).toBe('trek-track-casing')
+  })
+
+  it('FE-COMP-MAPVIEW-072: a renderer without pane support still draws every track', () => {
+    const paneless = mapMock as unknown as Record<string, unknown>
+    const { getPane, createPane } = paneless
+    delete paneless.getPane
+    delete paneless.createPane
+    try {
+      render(<MapView places={[buildMapPlace({
+        id: 1, lat: 48, lng: 2, route_geometry: '[[48.0,2.0],[49.0,3.0]]',
+      })]} />)
+      // Casing, line and hit area are all mounted — just in insertion order.
+      expect(screen.getAllByTestId('polyline')).toHaveLength(3)
+      const casing = screen.getAllByTestId('polyline')
+        .find(el => JSON.parse(el.getAttribute('data-path-options') || '{}').weight === 6.5)
+      expect(casing!.getAttribute('data-pane')).toBe('')
+    } finally {
+      paneless.getPane = getPane
+      paneless.createPane = createPane
+    }
+  })
+})
+
+describe('MapView selection panning (#921)', () => {
+  it('FE-COMP-MAPVIEW-051: pans to the padding-corrected point when the map can project', () => {
+    const projectable = mapMock as unknown as Record<string, unknown>
+    const add = vi.fn(() => ({ x: 5, y: 6 }))
+    projectable.project = vi.fn(() => ({ add }))
+    projectable.unproject = vi.fn(() => [49, 4])
+    try {
+      const places = [buildMapPlace({ id: 8, lat: 48, lng: 2 })]
+      const { rerender } = render(<MapView places={places} selectedPlaceId={null} />)
+      rerender(<MapView places={places} selectedPlaceId={8} />)
+
+      expect(projectable.project).toHaveBeenCalledWith([48, 2])
+      // The offset is half the difference between the two padding corners.
+      expect(add).toHaveBeenCalledWith([0, 0])
+      expect(mapMock.panTo).toHaveBeenCalledWith([49, 4], { animate: true })
+    } finally {
+      delete projectable.project
+      delete projectable.unproject
+    }
+  })
+
+  it('FE-COMP-MAPVIEW-052: falls back to a plain pan when the map cannot project', () => {
+    const places = [buildMapPlace({ id: 9, lat: 48, lng: 2 })]
+    const { rerender } = render(<MapView places={places} selectedPlaceId={null} />)
+    rerender(<MapView places={places} selectedPlaceId={9} />)
+    expect(mapMock.panTo).toHaveBeenCalledWith([48, 2], { animate: true })
+  })
+
+  it('FE-COMP-MAPVIEW-053: a selected place without coordinates is not panned to', () => {
+    const places = [buildMapPlace({ id: 10, lat: null, lng: null })]
+    const { rerender } = render(<MapView places={places} selectedPlaceId={null} />)
+    rerender(<MapView places={places} selectedPlaceId={10} />)
+    expect(mapMock.panTo).not.toHaveBeenCalled()
+  })
+})
+
+describe('MapView hover card', () => {
+  const place = () => buildMapPlace({ id: 12, name: 'Eiffel Tower', lat: 48.85, lng: 2.29 })
+
+  it('FE-COMP-MAPVIEW-054: mousemove keeps the card following the cursor', () => {
+    render(<MapView places={[place()]} />)
+    fireEvent.click(screen.getByTestId('marker-move-trigger'))
+    const card = screen.getByTestId('tooltip')
+    expect(card.textContent).toContain('Eiffel Tower')
+    expect(card.style.left).toBe('164px') // 150 + 14
+    expect(card.style.top).toBe('150px')  // 160 - 10
+  })
+
+  it('FE-COMP-MAPVIEW-055: mouseout clears the card', () => {
+    render(<MapView places={[place()]} />)
+    fireEvent.click(screen.getByTestId('marker-hover-trigger'))
+    expect(screen.getByTestId('tooltip')).toBeTruthy()
+
+    fireEvent.click(screen.getByTestId('marker-out-trigger'))
+    expect(screen.queryByTestId('tooltip')).toBeNull()
+  })
+
+  it('FE-COMP-MAPVIEW-056: scrolling the page drops the card so it cannot get orphaned', () => {
+    render(<MapView places={[place()]} />)
+    fireEvent.click(screen.getByTestId('marker-hover-trigger'))
+    expect(screen.getByTestId('tooltip')).toBeTruthy()
+
+    fireEvent.scroll(window)
+    expect(screen.queryByTestId('tooltip')).toBeNull()
+  })
+
+  it('FE-COMP-MAPVIEW-057: hoverDisabled suppresses the card entirely', () => {
+    render(<MapView places={[place()]} hoverDisabled />)
+    fireEvent.click(screen.getByTestId('marker-hover-trigger'))
+    fireEvent.click(screen.getByTestId('marker-move-trigger'))
+    expect(screen.queryByTestId('tooltip')).toBeNull()
+  })
+})
+
+describe('MapView live location', () => {
+  const fix = (over: Record<string, any> = {}) => ({ lat: 48.2, lng: 16.37, accuracy: 25, heading: null, ...over })
+
+  it('FE-COMP-MAPVIEW-058: no fix means no dot, circle or heading cone', () => {
+    render(<MapView />)
+    expect(screen.queryByTestId('circle-marker')).toBeNull()
+    expect(screen.queryByTestId('circle')).toBeNull()
+  })
+
+  it('FE-COMP-MAPVIEW-059: a fix draws the blue dot and its accuracy circle', () => {
+    geoMock.position = fix()
+    geoMock.mode = 'show'
+    render(<MapView />)
+    expect(screen.getByTestId('circle-marker')).toBeTruthy()
+    expect(screen.getByTestId('circle')).toBeTruthy()
+  })
+
+  it('FE-COMP-MAPVIEW-060: a city-level fix draws the dot but no accuracy circle', () => {
+    geoMock.position = fix({ accuracy: 900 })
+    geoMock.mode = 'show'
+    render(<MapView />)
+    expect(screen.getByTestId('circle-marker')).toBeTruthy()
+    expect(screen.queryByTestId('circle')).toBeNull()
+  })
+
+  it('FE-COMP-MAPVIEW-061: a compass heading adds a rotated cone marker', () => {
+    geoMock.position = fix({ heading: 135 })
+    geoMock.mode = 'show'
+    render(<MapView />)
+    const cone = screen.getAllByTestId('marker').find(m => iconHtmlOf(m).includes('rotate(135deg)'))
+    expect(cone).toBeTruthy()
+  })
+
+  it('FE-COMP-MAPVIEW-062: show mode recentres once and then leaves the camera alone', () => {
+    geoMock.position = fix()
+    geoMock.mode = 'show'
+    const { rerender } = render(<MapView />)
+    expect(mapMock.setView).toHaveBeenCalledWith([48.2, 16.37], 15)
+
+    mapMock.setView.mockClear()
+    geoMock.position = fix({ lat: 48.25 })
+    // A prop change forces the re-render the new fix would otherwise not cause.
+    rerender(<MapView hoverDisabled />)
+    expect(mapMock.setView).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-MAPVIEW-063: follow mode recentres on every fix at navigation zoom', () => {
+    geoMock.position = fix()
+    geoMock.mode = 'follow'
+    render(<MapView />)
+    expect(mapMock.setView).toHaveBeenCalledWith([48.2, 16.37], 16, { animate: true, duration: 0.35 })
+  })
+
+  it('FE-COMP-MAPVIEW-064: a mobile viewport gets the location button, desktop does not', () => {
+    render(<MapView />)
+    expect(screen.queryByRole('button', { name: 'Show my location' })).toBeNull()
+
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 420 })
+    geoMock.mode = 'show'
+    render(<MapView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Follow my location' }))
+    expect(geoMock.cycleMode).toHaveBeenCalled()
+  })
+})
+
+describe('MapView bounds fitting', () => {
+  it('FE-COMP-MAPVIEW-065: a day-detail fit nudges the map down once the animation ran (#1348)', async () => {
+    const places = [
+      buildMapPlace({ id: 1, lat: 48, lng: 2 }),
+      buildMapPlace({ id: 2, lat: 48.2, lng: 2.2 }),
+    ]
+    const { rerender } = render(<MapView places={places} dayPlaces={places} fitKey={1} hasDayDetail />)
+    rerender(<MapView places={places} dayPlaces={places} fitKey={2} hasDayDetail />)
+
+    expect(mapMock.fitBounds).toHaveBeenCalled()
+    await waitFor(() => expect(mapMock.panBy).toHaveBeenCalledWith([0, 150], { animate: true }), { timeout: 2000 })
+  })
+
+  it('FE-COMP-MAPVIEW-066: a fitKey that never changed is not re-fitted', async () => {
+    const L = await leafletMock()
+    L.latLngBounds.mockClear()
+    render(<MapView places={[buildMapPlace({ id: 1, lat: 48, lng: 2 })]} fitKey={-1} />)
+    expect(L.latLngBounds).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-MAPVIEW-067: an invalid bounds object is ignored instead of throwing', async () => {
+    const L = await leafletMock()
+    L.latLngBounds.mockImplementationOnce(() => ({ isValid: () => false }))
+    const places = [buildMapPlace({ id: 1, lat: 48, lng: 2 })]
+    const { rerender } = render(<MapView places={places} fitKey={1} />)
+    mapMock.fitBounds.mockClear()
+    rerender(<MapView places={places} fitKey={2} />)
+    expect(mapMock.fitBounds).not.toHaveBeenCalled()
+  })
+})
+
+describe('MapView photo thumbnails', () => {
+  const THUMB = 'data:image/jpeg;base64,THUMBDATA'
+
+  it('FE-COMP-MAPVIEW-068: a photo that arrives after mount is folded into the marker icon', async () => {
+    render(<MapView places={[buildMapPlace({ id: 21, lat: 48, lng: 2, google_place_id: 'gp-21' })]} />)
+    const deliver = thumbCallbacks.get('gp-21')
+    expect(deliver).toBeTypeOf('function')
+
+    // Two deliveries in one frame collapse into a single re-render.
+    act(() => { deliver!(THUMB); deliver!(THUMB) })
+    await waitFor(() => expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toContain(THUMB))
+  })
+
+  it('FE-COMP-MAPVIEW-069: re-delivering the same thumb does not change the icon', async () => {
+    render(<MapView places={[buildMapPlace({ id: 22, lat: 48, lng: 2, google_place_id: 'gp-22' })]} />)
+    const deliver = thumbCallbacks.get('gp-22')!
+    act(() => { deliver(THUMB) })
+    await waitFor(() => expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toContain(THUMB))
+
+    const before = iconHtmlOf(screen.getAllByTestId('marker')[0])
+    act(() => { deliver(THUMB) })
+    await waitFor(() => expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toBe(before))
+  })
+
+  it('FE-COMP-MAPVIEW-075: an unchanged batch keeps the previous photo state object', () => {
+    // Same case as above, but with the batching frame under the test's control so
+    // the "nothing changed" path in the state updater really runs before teardown.
+    const frames: FrameRequestCallback[] = []
+    const flush = () => { frames.splice(0).forEach(cb => cb(0)) }
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb))
+    vi.stubGlobal('cancelAnimationFrame', () => { frames.length = 0 })
+    try {
+      render(<MapView places={[buildMapPlace({ id: 24, lat: 48, lng: 2, google_place_id: 'gp-24' })]} />)
+      const deliver = thumbCallbacks.get('gp-24')!
+
+      act(() => { deliver(THUMB) })
+      act(flush)
+      const withThumb = iconHtmlOf(screen.getAllByTestId('marker')[0])
+      expect(withThumb).toContain(THUMB)
+
+      act(() => { deliver(THUMB) })
+      act(flush)
+      expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toBe(withThumb)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('FE-COMP-MAPVIEW-070: a place with a custom uploaded image is never auto-fetched', () => {
+    render(<MapView places={[buildMapPlace({ id: 23, lat: 48, lng: 2, image_url: '/uploads/places/mine.jpg' })]} />)
+    expect(thumbCallbacks.size).toBe(0)
+    expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
+    expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toContain('/uploads/places/mine.jpg')
+  })
+
+  it('FE-COMP-MAPVIEW-071: photos are not fetched at all when the feature is off', () => {
+    useAuthStore.setState({ placesPhotosEnabled: false })
+    render(<MapView places={[buildMapPlace({ id: 24, lat: 48, lng: 2, google_place_id: 'gp-24' })]} />)
+    expect(thumbCallbacks.size).toBe(0)
+    expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
   })
 })
