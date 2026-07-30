@@ -10,7 +10,7 @@ vi.mock('../../api/client', () => ({
   pluginsApi: { daySchedule: (tripId: number | string) => daySchedule(tripId) },
 }))
 
-import { usePluginDaySchedule, formatScheduleMinutes, PluginDayScheduleRow } from './PluginDaySchedule'
+import { usePluginDaySchedule, formatScheduleMinutes, PluginDayScheduleRow, dayTintBackground, dayTinted } from './PluginDaySchedule'
 
 function item(overrides: Partial<PluginDayScheduleItem> = {}): PluginDayScheduleItem {
   return { pluginId: 'ev', id: 'i1', dayId: 1, label: 'Charging', tone: 'default', ...overrides }
@@ -135,6 +135,47 @@ describe('usePluginDaySchedule', () => {
 
     rerender({ id: 2 })
     await waitFor(() => expect(daySchedule).toHaveBeenLastCalledWith(2))
+  })
+})
+
+describe('dayTintBackground', () => {
+  it('FE-W4PDS-015: mixes a tone at the region\'s own alpha, over the caller\'s base', () => {
+    expect(dayTintBackground({ headerTone: 'warn' }, 'header', '--day-tint-header'))
+      .toBe('color-mix(in srgb, #f59e0b var(--day-tint-header), transparent)')
+    expect(dayTintBackground({ badgeTone: 'danger' }, 'badge', '--day-tint-badge', 'var(--bg-hover)'))
+      .toBe('color-mix(in srgb, #ef4444 var(--day-tint-badge), var(--bg-hover))')
+  })
+
+  it('FE-W4PDS-016: clamps a plugin\'s own colour into the theme\'s lightness band', () => {
+    // The plugin owns the hue and the chroma (`c h` pass through); only `l` is bounded,
+    // so no colour it sends can wash out on the light sidebar or vanish on the dark one.
+    expect(dayTintBackground({ badgeColor: '#00ff00' }, 'badge', '--day-tint-badge'))
+      .toBe('color-mix(in srgb, oklch(from #00ff00 clamp(var(--day-tint-l-min), l, var(--day-tint-l-max)) c h) var(--day-tint-badge), transparent)')
+  })
+
+  it('FE-W4PDS-017: paints a region\'s colour over its tone', () => {
+    // The server never sends both, but the precedence has to be unambiguous here too.
+    const bg = dayTintBackground({ badgeTone: 'danger', badgeColor: '#123456' }, 'badge', '--a')
+    expect(bg).toContain('#123456')
+    expect(bg).not.toContain('#ef4444')
+  })
+
+  it('FE-W4PDS-018: leaves an unpainted region alone so the caller keeps its own look', () => {
+    expect(dayTintBackground(undefined, 'header', '--day-tint-header')).toBeUndefined()
+    // Named elsewhere on the card, but not here — this region must stay untouched.
+    expect(dayTintBackground({ badgeTone: 'success' }, 'activity', '--day-tint-activity')).toBeUndefined()
+  })
+
+  it('FE-W4PDS-019: falls back to the default hex for an unknown tone', () => {
+    expect(dayTintBackground({ headerTone: 'nope' as 'default' }, 'header', '--a'))
+      .toBe('color-mix(in srgb, #4F46E5 var(--a), transparent)')
+  })
+
+  it('FE-W4PDS-020: dayTinted reports either channel, per region', () => {
+    expect(dayTinted({ badgeTone: 'success' }, 'badge')).toBe(true)
+    expect(dayTinted({ badgeColor: '#123456' }, 'badge')).toBe(true)
+    expect(dayTinted({ badgeColor: '#123456' }, 'header')).toBe(false)
+    expect(dayTinted(undefined, 'badge')).toBe(false)
   })
 })
 

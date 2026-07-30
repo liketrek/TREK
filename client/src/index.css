@@ -541,6 +541,19 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --day-tint-header-hover: 14%;
   --day-tint-activity: 6%;
 
+  /* The OKLCH lightness band a plugin's OWN colour is clamped into before it is mixed,
+     so "any hex" cannot mean "a day nobody can read". The band brackets the four tones
+     above (L 0.51–0.77) rather than tightening around them: an ordinary choice passes
+     through untouched, and a hex equal to a tone renders exactly like that tone. Only
+     the extremes move — here, a near-white that would otherwise wash out against the
+     sidebar's own near-white surfaces.
+
+     This bounds a colour, it does not boost one: hue and chroma are never touched, so a
+     near-white GREY still lands as a faint tint. That is the intended trade — the
+     failure this must prevent is an unreadable card, not an understated one. */
+  --day-tint-l-min: 0.40;
+  --day-tint-l-max: 0.78;
+
   --fs-scale-title: 1;
   --fs-scale-subtitle: 1;
   --fs-scale-body: 1;
@@ -636,6 +649,12 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --day-tint-header: 13%;
   --day-tint-header-hover: 20%;
   --day-tint-activity: 10%;
+
+  /* Shifted up, and the reason the band is per theme at all: here the failure is a
+     near-BLACK tint disappearing into the dark sidebar, while a pale one reads fine.
+     Inherited by the mobile chips too — mobile.css sets only their alpha. */
+  --day-tint-l-min: 0.48;
+  --day-tint-l-max: 0.88;
 
   --success: #22c55e;  --success-soft: rgba(34, 197, 94, 0.15);
   --danger:  #ef4444;  --danger-soft:  rgba(239, 68, 68, 0.15);

@@ -587,24 +587,39 @@ export interface DayScheduleProvider {
 
 /** A colour the host paints into one day card in the Plan sidebar (and into that day's
  * mobile chip) — so a trip split into legs shows its leg membership while you scroll
- * the itinerary. Tone only, never a hex: the host picks the alpha per theme AND per
- * region, so the tint stays subtle and readable in both light and dark.
+ * the itinerary.
  *
- * The card has three separately tintable regions. Set `tone` to colour all of them,
- * or name regions individually for finer control — e.g. a bold badge marking the leg
- * with the activity list left plain, so a dense day stays easy to read. */
+ * Pick a `tone` from the shared palette, or send your own `#rrggbb` when four tones
+ * cannot keep your legs apart — a twenty-stop trip needs twenty colours. Either way
+ * you choose the hue and the host chooses the weight: it sets the alpha per theme and
+ * per region and clamps a colour's lightness into a band that reads on both the light
+ * and the dark sidebar. So the tint always lands as a wash behind the day, never as a
+ * fill, and no colour you send can make a day unreadable. Anything that is not exactly
+ * six hex digits is ignored (`#RGB` shorthand and CSS names included).
+ *
+ * The card has three separately tintable regions. Set `tone` / `color` to paint all of
+ * them, or name regions individually for finer control — e.g. a bold badge marking the
+ * leg with the activity list left plain, so a dense day stays easy to read.
+ *
+ * Colour is decoration, not information: pair it with `label` (and with a
+ * dayScheduleProvider row where it matters) so the meaning survives for anyone who
+ * cannot tell your legs apart by hue. */
 export interface DayTintContribution {
   dayId: number;              // must be a day of the requested trip
-  /** Shorthand: tints every region you do NOT name below. Omit it and only the
-   *  regions you name are tinted. */
+  /** Shorthands: paint every region you do NOT name below. Omit both and only the
+   *  regions you name are tinted. `color` wins over `tone` at the same level. */
   tone?: ContributionTone;
+  color?: string;             // your own colour, `#rrggbb` only
   /** The day-number badge — the smallest, boldest mark. Also tints the mobile day chip. */
   badgeTone?: ContributionTone;
+  badgeColor?: string;
   /** The day header row (number, title, date, cost). Its hover state deepens the tint. */
   headerTone?: ContributionTone;
+  headerColor?: string;
   /** The expanded activity list — places, bookings and transport for the day. The
    *  largest surface and the one behind the densest text, so it is tinted faintest. */
   activityTone?: ContributionTone;
+  activityColor?: string;
   label?: string;             // optional tooltip on the day (≤60 chars)
 }
 export interface DayTintProvider {

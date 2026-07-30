@@ -316,7 +316,7 @@ export default function MTripShell({
                   // The chip is mobile's day-number badge, so it follows badgeTone.
                   // Inactive chips only — an inline background would otherwise beat
                   // the active chip's bg-m-act class.
-                  style={active ? undefined : { background: dayTintBackground(tint?.badgeTone, '--day-tint-chip') }}
+                  style={active ? undefined : { background: dayTintBackground(tint, 'badge', '--day-tint-chip') }}
                   className={`flex-1 whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold ${
                     active ? 'bg-m-act text-m-actfg shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]' : 'text-m-ink'
                   }`}

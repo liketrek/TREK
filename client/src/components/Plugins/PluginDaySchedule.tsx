@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Zap } from 'lucide-react'
-import { pluginsApi, type PluginDayScheduleItem, type PluginDayTint, type PluginDayTintTone } from '../../api/client'
+import { pluginsApi, type PluginDayScheduleItem, type PluginDayTint } from '../../api/client'
 
 /**
  * Host-rendered rows for the `dayScheduleProvider` plugin hook — time
@@ -62,8 +62,12 @@ export function usePluginDaySchedule(tripId?: number | string | null): PluginDay
   }, [items])
 }
 
-/** dayId → the per-region tones (and optional tooltip) for that day's card. */
-export type PluginDayTints = Record<number, Omit<PluginDayTint, 'pluginId' | 'dayId'>>
+/** dayId → the per-region paint (and optional tooltip) for that day's card. */
+export type PluginDayTintRegions = Omit<PluginDayTint, 'pluginId' | 'dayId'>
+export type PluginDayTints = Record<number, PluginDayTintRegions>
+
+/** The three separately tintable regions of a day card. */
+export type PluginDayTintRegion = 'badge' | 'header' | 'activity'
 
 const EMPTY_TINTS: PluginDayTints = {}
 
@@ -100,20 +104,43 @@ export function usePluginDayTints(tripId?: number | string | null): PluginDayTin
   }, [tints])
 }
 
-/** The `color-mix` background for one tinted region, or undefined when that region has
- * no tone — in which case the caller keeps whatever it renders without plugins.
+/** True when a plugin paints this region at all — the callers that change more than a
+ * background (the badge switches its text colour) need this without rebuilding the
+ * background string. */
+export function dayTinted(tint: PluginDayTintRegions | undefined, region: PluginDayTintRegion): boolean {
+  return Boolean(tint?.[`${region}Tone`] || tint?.[`${region}Color`])
+}
+
+/** A plugin's own colour, pulled into the lightness band the current theme can render.
+ * The plugin owns the hue and the chroma — only `l` is touched, and only when it falls
+ * outside the band, so an ordinary colour comes through exactly as sent.
+ *
+ * Without this, "any hex" means any plugin can paint a day nobody can read: near-white
+ * washes out against the light sidebar, near-black turns the dark one to mud. The band
+ * is a CSS variable rather than a constant here because the answer is per theme. */
+const clampLightness = (color: string) =>
+  `oklch(from ${color} clamp(var(--day-tint-l-min), l, var(--day-tint-l-max)) c h)`
+
+/** The `color-mix` background for one tinted region, or undefined when no plugin paints
+ * it — in which case the caller keeps whatever it renders without plugins.
  *
  * `alphaVar` names a CSS custom property holding the strength, which varies per theme
  * AND per region: the tones are fixed hexes, so one alpha cannot serve both themes
  * (#4F46E5 is itself a dark colour and vanishes on a dark surface at a light theme's
- * alpha), and a large region behind dense text needs a fainter tint than a small badge. */
+ * alpha), and a large region behind dense text needs a fainter tint than a small badge.
+ * A plugin's own colour rides the same alphas — it chooses the hue, not the weight. */
 export function dayTintBackground(
-  tone: PluginDayTintTone | undefined,
+  tint: PluginDayTintRegions | undefined,
+  region: PluginDayTintRegion,
   alphaVar: string,
   base = 'transparent',
 ): string | undefined {
-  if (!tone) return undefined
-  return `color-mix(in srgb, ${TONE_COLORS[tone] ?? TONE_COLORS.default} var(${alphaVar}), ${base})`
+  const color = tint?.[`${region}Color`]
+  const tone = tint?.[`${region}Tone`]
+  // Server-resolved: a region carries a colour or a tone, never both.
+  const paint = color ? clampLightness(color) : tone ? (TONE_COLORS[tone] ?? TONE_COLORS.default) : undefined
+  if (!paint) return undefined
+  return `color-mix(in srgb, ${paint} var(${alphaVar}), ${base})`
 }
 
 export function formatScheduleMinutes(minutes: number): string {

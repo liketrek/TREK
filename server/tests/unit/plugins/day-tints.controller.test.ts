@@ -90,6 +90,63 @@ describe('DayTintsController', () => {
     expect(out[1]).toEqual({ pluginId: 'p1', dayId: 11, headerTone: 'default' });
   });
 
+  it('spreads a `color` shorthand across all three regions, lower-cased', async () => {
+    const { c } = controller(() => [{ dayId: 10, color: '#A1B2C3' }]);
+    const out = (await c.get('1', req(5))).tints;
+    expect(out[0]).toMatchObject({ badgeColor: '#a1b2c3', headerColor: '#a1b2c3', activityColor: '#a1b2c3' });
+  });
+
+  it('gives a region exactly one paint — a colour beats a tone at the same level', async () => {
+    // Both set on the badge: the colour is the more specific request, and the tone
+    // must not ride along, or the client has a tie to break.
+    const { c } = controller(() => [{ dayId: 10, badgeTone: 'danger', badgeColor: '#00ff00' }]);
+    const out = (await c.get('1', req(5))).tints;
+    expect(out[0]).toEqual({ pluginId: 'p1', dayId: 10, badgeColor: '#00ff00' });
+    expect(out[0].badgeTone).toBeUndefined();
+  });
+
+  it('lets a named region override the shorthand across channels, both ways', async () => {
+    const { c } = controller(() => [
+      { dayId: 10, color: '#112233', badgeTone: 'danger' },  // tone overrides a colour shorthand
+      { dayId: 11, tone: 'warn', badgeColor: '#112233' },    // colour overrides a tone shorthand
+    ]);
+    const out = (await c.get('1', req(5))).tints;
+    expect(out[0]).toMatchObject({ badgeTone: 'danger', headerColor: '#112233', activityColor: '#112233' });
+    expect(out[0].badgeColor).toBeUndefined();
+    expect(out[1]).toMatchObject({ badgeColor: '#112233', headerTone: 'warn', activityTone: 'warn' });
+  });
+
+  it('accepts ONLY #rrggbb — a CSS colour cannot be smuggled in as a string', async () => {
+    // The value ends up inside a `color-mix()` in an inline `background`, which takes a
+    // layer list: a string that closes the paren early could append a url() layer and
+    // beacon every viewer of the trip. None of these may reach the client as a colour.
+    const evil = 'red 50%, transparent), url(https://evil.example/x.png';
+    const { c } = controller(() => [
+      { dayId: 10, badgeColor: evil, headerColor: 'rebeccapurple', activityColor: '#abc' },
+      { dayId: 11, color: 'rgb(1,2,3)', headerColor: '#12345', activityColor: '#1234567' },
+    ]);
+    const out = (await c.get('1', req(5))).tints;
+    expect(JSON.stringify(out)).not.toContain('evil.example');
+    for (const t of out) {
+      expect(t.badgeColor).toBeUndefined();
+      expect(t.headerColor).toBeUndefined();
+      expect(t.activityColor).toBeUndefined();
+    }
+    // Rejected, but the regions still asked to be tinted — they degrade like a bogus
+    // tone does rather than silently rendering plain.
+    expect(out[0]).toMatchObject({ badgeTone: 'default', headerTone: 'default', activityTone: 'default' });
+    // A junk shorthand paints nothing, so the badge — which named neither channel —
+    // stays untinted, while the two regions that did name one degrade to `default`.
+    expect(out[1]).toMatchObject({ headerTone: 'default', activityTone: 'default' });
+    expect(out[1].badgeTone).toBeUndefined();
+  });
+
+  it('keeps a valid sibling when only one channel of a region is junk', async () => {
+    const { c } = controller(() => [{ dayId: 10, badgeColor: 'chartreuse', badgeTone: 'success' }]);
+    const out = (await c.get('1', req(5))).tints;
+    expect(out[0]).toEqual({ pluginId: 'p1', dayId: 10, badgeTone: 'success' });
+  });
+
   it('treats an entry with no tone at all as "tint this day", default everywhere', async () => {
     const { c } = controller(() => [{ dayId: 10 }, { dayId: 11, tone: undefined }]);
     const out = (await c.get('1', req(5))).tints;

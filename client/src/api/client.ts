@@ -691,14 +691,23 @@ export interface PluginDayScheduleItem {
  * visible while scrolling the itinerary. The card has three separately tintable
  * regions; an absent one is not tinted and renders exactly as it does with no plugin.
  * Server-normalized: dayIds checked against the trip, one contribution per day (first
- * granted provider wins), the `tone` shorthand already resolved into the regions,
- * labels sanitized + capped. Tone only — the client picks the alpha per theme. */
+ * granted provider wins), the `tone` / `color` shorthands already resolved into the
+ * regions, labels sanitized + capped.
+ *
+ * A region carries EITHER a tone from the fixed palette or the plugin's own colour,
+ * never both — the server picked the winner. `*Color` is guaranteed `#rrggbb` (nothing
+ * else survives normalization, because it lands inside a CSS value); the client still
+ * owns how strongly it renders — alpha per theme and per region, lightness clamped
+ * into a readable band. */
 export type PluginDayTintTone = 'default' | 'success' | 'warn' | 'danger'
 export interface PluginDayTint {
   pluginId: string; dayId: number;
   badgeTone?: PluginDayTintTone;
+  badgeColor?: string;
   headerTone?: PluginDayTintTone;
+  headerColor?: string;
   activityTone?: PluginDayTintTone;
+  activityColor?: string;
   label?: string;
 }
 

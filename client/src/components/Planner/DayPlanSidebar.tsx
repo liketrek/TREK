@@ -34,7 +34,7 @@ import { useDayNotes } from '../../hooks/useDayNotes'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
-import { usePluginDaySchedule, usePluginDayTints, dayTintBackground, PluginDayScheduleRow, formatScheduleMinutes } from '../Plugins/PluginDaySchedule'
+import { usePluginDaySchedule, usePluginDayTints, dayTintBackground, dayTinted, PluginDayScheduleRow, formatScheduleMinutes } from '../Plugins/PluginDaySchedule'
 import { MobileAddPlaceButton } from './DayPlanSidebarMobileAddPlaceButton'
 import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
 import { DayPlanSidebarNoteModal } from './DayPlanSidebarNoteModal'
@@ -1324,8 +1324,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           // Resolved once per day: the header owns a background that its hover
           // handlers reassign imperatively, so both the base and the hover value have
           // to be tint-aware or the first hover-out would wipe the colour.
-          const headerTintBg = dayTintBackground(dayTint?.headerTone, '--day-tint-header') ?? 'transparent'
-          const headerTintHoverBg = dayTintBackground(dayTint?.headerTone, '--day-tint-header-hover') ?? 'var(--bg-tertiary)'
+          const headerTintBg = dayTintBackground(dayTint, 'header', '--day-tint-header') ?? 'transparent'
+          const headerTintHoverBg = dayTintBackground(dayTint, 'header', '--day-tint-header-hover') ?? 'var(--bg-tertiary)'
 
           return (
             // The card wrapper stays untinted — its three regions (badge, header,
@@ -1375,8 +1375,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       // --bg-hover so it stays the same pill component, and takes
                       // --text-secondary: the number is 11px bold, so 4.5:1 applies
                       // and --text-muted is already borderline on the untinted pill.
-                      background: isSelected ? 'var(--accent)' : (dayTintBackground(dayTint?.badgeTone, '--day-tint-badge', 'var(--bg-hover)') ?? 'var(--bg-hover)'),
-                      color: isSelected ? 'var(--accent-text)' : (dayTint?.badgeTone ? 'var(--text-secondary)' : 'var(--text-muted)'),
+                      background: isSelected ? 'var(--accent)' : (dayTintBackground(dayTint, 'badge', '--day-tint-badge', 'var(--bg-hover)') ?? 'var(--bg-hover)'),
+                      color: isSelected ? 'var(--accent-text)' : (dayTinted(dayTint, 'badge') ? 'var(--text-secondary)' : 'var(--text-muted)'),
                       display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden',
                     }}>
                       <div style={{ width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>
@@ -1500,7 +1500,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                 <div
                   // The activity list — the largest region and the one behind the
                   // densest text, so its tint is the faintest of the three.
-                  style={{ background: dayTintBackground(dayTint?.activityTone, '--day-tint-activity', 'var(--bg-hover)') ?? 'var(--bg-hover)', paddingTop: 6 }}
+                  style={{ background: dayTintBackground(dayTint, 'activity', '--day-tint-activity', 'var(--bg-hover)') ?? 'var(--bg-hover)', paddingTop: 6 }}
                   onDragOver={e => { e.preventDefault(); const cur = dropTargetRef.current; if (draggingId && (!cur || cur.startsWith('end-'))) setDropTargetKey(`end-${day.id}`) }}
                   onDrop={e => {
                     e.preventDefault()

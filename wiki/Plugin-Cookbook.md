@@ -485,7 +485,8 @@ dayScheduleProvider: {
 
 `hook:day-schedule-provider` can announce "Kanazawa begins" as a row, but it cannot make
 day 12 *look* like it belongs to Kanazawa. `hook:day-tint-provider` does — it colours a
-day card in the Plan sidebar (and that day's mobile chip) with one of the four tones:
+day card in the Plan sidebar (and that day's mobile chip), with one of the four tones or
+with a colour of your own:
 
 ```js
 dayTintProvider: {
@@ -503,6 +504,35 @@ dayTintProvider: {
 Return **one entry per day** — the bound here is the trip's day count, not a fixed item
 cap, so this stays correct on a six-month itinerary where the ≤60-item day-schedule hook
 would tint only the first 60 days.
+
+#### Bring your own colour
+
+Four tones cannot keep a twenty-stop trip's legs apart. Send `color` instead — `#rrggbb`
+only, and nothing else survives (`#abc`, `rgb(...)` and CSS names are all ignored,
+because the value ends up inside a CSS colour the host builds):
+
+```js
+// One hue per leg, from your own palette.
+return days.map((d) => ({ dayId: d.id, color: legColor(d), label: legName(d) }))
+
+// Mix freely: your colour on the badge, a shared tone for the rest of the card.
+return days.map((d) => ({ dayId: d.id, tone: 'default', badgeColor: legColor(d) }))
+```
+
+Each region takes `<region>Color` alongside `<region>Tone`. Within one region a colour
+wins over a tone, and anything you name on a region beats the shorthand — so the second
+example above tints the badge with your colour and the header and activity list with
+`default`.
+
+You choose the hue; the host still chooses the weight. It sets the alpha per theme and
+per region and clamps the colour's lightness into a band that reads on both the light
+and the dark sidebar, so the tint always lands as a wash behind the day rather than a
+fill, and no colour you send can make a day unreadable. An ordinary mid-range colour
+comes through as you sent it; only the extremes (near-white, near-black) are pulled in.
+
+Colour is decoration, not information — pair it with `label` (and a day-schedule row
+where the meaning matters) so it still works for anyone who can't tell your legs apart
+by hue.
 
 #### Tint one region instead of the whole card
 
@@ -528,17 +558,16 @@ return days.map((d) => ({ dayId: d.id, headerTone: legTone(d), activityTone: ove
 
 | Field | Region |
 |---|---|
-| `badgeTone` | the day-number badge — smallest and boldest; also the mobile day chip |
-| `headerTone` | the day header row (number, title, date, cost); hovering deepens the tint |
-| `activityTone` | the expanded activity list — largest, behind the densest text, tinted faintest |
+| `badgeTone` / `badgeColor` | the day-number badge — smallest and boldest; also the mobile day chip |
+| `headerTone` / `headerColor` | the day header row (number, title, date, cost); hovering deepens the tint |
+| `activityTone` / `activityColor` | the expanded activity list — largest, behind the densest text, tinted faintest |
 
 A region you never name is not tinted and renders exactly as it does without your plugin.
 
-Give the host a tone, never a hex: it picks the alpha per theme *and* per region, so the
-tint stays subtle in both light and dark. `label` becomes the day's tooltip. A day takes
-at most one contribution and it is resolved **whole** — within your list the first entry
-for a day wins, and if another plugin also tints that day the first granted provider
-wins outright, so days never flicker and two plugins can't each own part of one card.
+`label` becomes the day's tooltip. A day takes at most one contribution and it is
+resolved **whole** — within your list the first entry for a day wins, and if another
+plugin also tints that day the first granted provider wins outright, so days never
+flicker and two plugins can't each own part of one card.
 
 ---
 
