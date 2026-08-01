@@ -17,6 +17,10 @@ import { z } from 'zod';
  * Day note entity (server day_notes table / dayNoteService). `sort_order` is
  * SQLite REAL; `icon` defaults to a note emoji.
  */
+export const DAY_NOTE_COLOR_VALUES = ['#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'] as const;
+export const dayNoteColorSchema = z.enum(DAY_NOTE_COLOR_VALUES);
+export type DayNoteColor = z.infer<typeof dayNoteColorSchema>;
+
 export const dayNoteSchema = z.object({
   id: z.number(),
   day_id: z.number(),
@@ -24,6 +28,7 @@ export const dayNoteSchema = z.object({
   text: z.string(),
   time: z.string().nullable().optional(),
   icon: z.string().nullable().optional(),
+  color: dayNoteColorSchema.nullable().optional(),
   sort_order: z.number().optional(),
   created_at: z.string().optional(),
 });
@@ -85,6 +90,7 @@ export const dayNoteCreateRequestSchema = z.object({
   text: z.string().min(1).max(500),
   time: z.string().max(250).nullable().optional(),
   icon: z.string().nullable().optional(),
+  color: dayNoteColorSchema.nullable().optional(),
   sort_order: z.number().optional(),
 });
 export type DayNoteCreateRequest = z.infer<typeof dayNoteCreateRequestSchema>;
@@ -93,6 +99,7 @@ export const dayNoteUpdateRequestSchema = z.object({
   text: z.string().max(500).optional(),
   time: z.string().max(250).nullable().optional(),
   icon: z.string().nullable().optional(),
+  color: dayNoteColorSchema.nullable().optional(),
   sort_order: z.number().optional(),
 });
 export type DayNoteUpdateRequest = z.infer<typeof dayNoteUpdateRequestSchema>;

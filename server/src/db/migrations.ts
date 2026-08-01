@@ -3830,6 +3830,10 @@ function runMigrations(db: Database.Database): void {
       const hasRouteColor = db.prepare("SELECT 1 FROM pragma_table_info('places') WHERE name = 'route_color'").get();
       if (!hasRouteColor) db.exec('ALTER TABLE places ADD COLUMN route_color TEXT');
     },
+    () => {
+      const hasColor = db.prepare("SELECT 1 FROM pragma_table_info('day_notes') WHERE name = 'color'").get();
+      if (!hasColor) db.exec('ALTER TABLE day_notes ADD COLUMN color TEXT');
+    },
   ];
 
   if (currentVersion < migrations.length) {

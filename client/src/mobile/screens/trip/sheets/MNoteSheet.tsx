@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import MSheet from '../../../components/MSheet'
+import { DayNoteMarkdownToolbar } from '../../../../components/Planner/DayNoteMarkdownToolbar'
 import { NOTE_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { useTripStore } from '../../../../store/tripStore'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
@@ -34,6 +35,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
   const [title, setTitle] = useState('')
   const [detail, setDetail] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const detailRef = useRef<HTMLTextAreaElement | null>(null)
   // Open-time snapshot — the payload disappears with shell.sheet on close, but
   // the sheet still shows through its exit animation.
   const [sheetPayload, setSheetPayload] = useState<MNoteSheetPayload | undefined>(undefined)
@@ -131,7 +133,16 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
         />
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('dayplan.noteSubtitle')}</Eyebrow>
+        <DayNoteMarkdownToolbar
+          getTextarea={() => detailRef.current}
+          value={detail}
+          maxLength={DETAIL_MAX}
+          onChange={setDetail}
+          t={t}
+          mobile
+        />
         <textarea
+          ref={detailRef}
           value={detail}
           onChange={e => setDetail(e.target.value)}
           rows={3}

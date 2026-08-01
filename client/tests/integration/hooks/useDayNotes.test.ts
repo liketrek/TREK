@@ -44,6 +44,7 @@ describe('useDayNotes', () => {
     expect(result.current.noteUi[DAY_ID]).toMatchObject({
       mode: 'add',
       text: '',
+      color: null,
       sortOrder: 0, // maxKey(-1) + 1 = 0
     });
   });
@@ -67,7 +68,7 @@ describe('useDayNotes', () => {
   });
 
   it('FE-HOOK-DAYNOTES-005: openEditNote sets mode=edit with note data', () => {
-    const note = buildDayNote({ id: 99, text: 'Hello', time: '10:00', icon: 'Star' });
+    const note = buildDayNote({ id: 99, text: 'Hello', time: '10:00', icon: 'Star', color: '#8b5cf6' });
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
     act(() => {
@@ -80,6 +81,7 @@ describe('useDayNotes', () => {
       text: 'Hello',
       time: '10:00',
       icon: 'Star',
+      color: '#8b5cf6',
     });
   });
 
@@ -123,8 +125,10 @@ describe('useDayNotes', () => {
 
   it('FE-HOOK-DAYNOTES-008: saveNote in add mode calls addDayNote and clears UI', async () => {
     const createdNote = buildDayNote({ day_id: DAY_ID, text: 'New note' });
+    let capturedBody: Record<string, unknown> = {};
     server.use(
-      http.post('/api/trips/:id/days/:dayId/notes', async () => {
+      http.post('/api/trips/:id/days/:dayId/notes', async ({ request }) => {
+        capturedBody = await request.json() as Record<string, unknown>;
         return HttpResponse.json({ note: createdNote });
       })
     );
@@ -133,7 +137,7 @@ describe('useDayNotes', () => {
 
     act(() => {
       result.current.setNoteUi({
-        [DAY_ID]: { mode: 'add', text: 'New note', time: '', icon: 'FileText', sortOrder: 0 },
+        [DAY_ID]: { mode: 'add', text: 'New note', time: '', icon: 'FileText', color: '#f59e0b', sortOrder: 0 },
       });
     });
 
@@ -142,14 +146,17 @@ describe('useDayNotes', () => {
     });
 
     // UI should be cleared after successful save
+    expect(capturedBody.color).toBe('#f59e0b');
     expect(result.current.noteUi[DAY_ID]).toBeUndefined();
   });
 
   it('FE-HOOK-DAYNOTES-009: saveNote in edit mode calls updateDayNote and clears UI', async () => {
     const noteId = 55;
     const updatedNote = buildDayNote({ id: noteId, day_id: DAY_ID, text: 'Updated' });
+    let capturedBody: Record<string, unknown> = {};
     server.use(
-      http.put('/api/trips/:id/days/:dayId/notes/:noteId', async () => {
+      http.put('/api/trips/:id/days/:dayId/notes/:noteId', async ({ request }) => {
+        capturedBody = await request.json() as Record<string, unknown>;
         return HttpResponse.json({ note: updatedNote });
       })
     );
@@ -158,7 +165,7 @@ describe('useDayNotes', () => {
 
     act(() => {
       result.current.setNoteUi({
-        [DAY_ID]: { mode: 'edit', noteId, text: 'Updated', time: '', icon: 'FileText' },
+        [DAY_ID]: { mode: 'edit', noteId, text: 'Updated', time: '', icon: 'FileText', color: null },
       });
     });
 
@@ -166,6 +173,7 @@ describe('useDayNotes', () => {
       await result.current.saveNote(DAY_ID);
     });
 
+    expect(capturedBody.color).toBeNull();
     expect(result.current.noteUi[DAY_ID]).toBeUndefined();
   });
 

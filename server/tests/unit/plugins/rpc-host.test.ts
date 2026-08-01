@@ -500,11 +500,13 @@ describe('PluginRpcHost — capability enforcement', () => {
 
   it('daynotes.create needs db:write:daynotes + day_edit, membership-checked, text required', async () => {
     const host = new PluginRpcHost('p', new Set(['db:write:daynotes']), deps);
-    const good = await host.dispatch(req('daynotes.create', { tripId: 1, dayId: 5, input: { text: 'Pack sunscreen' } }), 42);
+    const good = await host.dispatch(req('daynotes.create', { tripId: 1, dayId: 5, input: { text: 'Pack sunscreen', color: '#f59e0b' } }), 42);
     expect(ok(good)).toBe(true);
-    expect(deps.createDayNote).toHaveBeenCalledWith(1, 5, expect.objectContaining({ text: 'Pack sunscreen' }));
+    expect(deps.createDayNote).toHaveBeenCalledWith(1, 5, expect.objectContaining({ text: 'Pack sunscreen', color: '#f59e0b' }));
     const bad = await host.dispatch(req('daynotes.create', { tripId: 1, dayId: 5, input: { text: '  ' } }), 42);
     expect((bad as RpcError).error.code).toBe('BAD_PARAMS');
+    const invalidColor = await host.dispatch(req('daynotes.create', { tripId: 1, dayId: 5, input: { text: 'x', color: '#ff00ff' } }), 42);
+    expect((invalidColor as RpcError).error.code).toBe('BAD_PARAMS');
     const forbidden = await host.dispatch(req('daynotes.create', { tripId: 2, dayId: 5, input: { text: 'x' } }), 42);
     expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
   });

@@ -710,12 +710,12 @@ export class TripsService {
 
       const oldNotes = this.db.prepare('SELECT * FROM day_notes WHERE trip_id = ?').all(sourceTripId) as any[];
       const insertNote = this.db.prepare(`
-        INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order, color)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
       for (const n of oldNotes) {
         const newDayId = dayMap.get(n.day_id);
-        if (newDayId) insertNote.run(newDayId, newTripId, n.text, n.time, n.icon, n.sort_order);
+        if (newDayId) insertNote.run(newDayId, newTripId, n.text, n.time, n.icon, n.sort_order, n.color);
       }
 
       const oldTodos = this.db.prepare('SELECT * FROM todo_items WHERE trip_id = ?').all(sourceTripId) as any[];

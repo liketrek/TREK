@@ -1,8 +1,11 @@
 import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, Ticket, X, Zap } from 'lucide-react'
 import type { ReactNode, MouseEvent } from 'react'
+import Markdown from 'react-markdown'
+import remarkBreaks from 'remark-breaks'
+import remarkGfm from 'remark-gfm'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
-import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
+import { RES_ICONS, getDayNoteColorStyle, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { getDisplayTimeForDay, getSpanPhase } from '../../../../utils/dayMerge'
 import { formatTime, splitReservationDateTime } from '../../../../utils/formatters'
 import { transportSubtitle, type TransitMeta, type TransportEntry } from './planTimelineModel'
@@ -461,7 +464,8 @@ export function NoteRow({ note, chrome, reorder, onEdit }: {
   const { time: noteTime, detail } = splitNoteTime(note.time)
   const time = noteTime ? fmtTime(noteTime, chrome) : ''
   const [title, ...rest] = note.text.split('\n')
-  const sub = [rest.join(' ').trim(), detail].filter(Boolean).join(' · ')
+  const sub = [rest.join('\n').trim(), detail].filter(Boolean).join(' · ')
+  const noteColor = getDayNoteColorStyle(note.color)
 
   return (
     <div
@@ -469,17 +473,61 @@ export function NoteRow({ note, chrome, reorder, onEdit }: {
       className={`my-[2px] flex items-center gap-2.5 ${chrome.editing ? 'cursor-pointer' : ''}`}
     >
       {!chrome.editing && (
-        <AvatarRing>
-          <Icon size={14} strokeWidth={2} className="text-m-muted" />
-        </AvatarRing>
+        noteColor ? (
+          <span
+            className="flex h-[30px] w-[30px] flex-none items-center justify-center overflow-hidden rounded-full border-[1.5px]"
+            style={{ background: noteColor.swatch, borderColor: noteColor.border }}
+          >
+            <Icon size={14} strokeWidth={2} color={noteColor.iconForeground} />
+          </span>
+        ) : (
+          <AvatarRing>
+            <Icon size={14} strokeWidth={2} className="text-m-muted" />
+          </AvatarRing>
+        )
       )}
-      <div className="min-w-0 flex-1 rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[7px]">
+      <div
+        data-day-note-color={noteColor?.id || 'default'}
+        className="min-w-0 flex-1 rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[7px]"
+        style={noteColor ? { background: noteColor.background, borderColor: noteColor.border } : undefined}
+      >
         <div className="flex items-center gap-1.5">
           {time && <span className={TIME_CHIP}>{time}</span>}
-          <span className="min-w-0 text-[0.875rem] font-semibold">{title}</span>
+          <span
+            title={title}
+            className="block min-w-0 whitespace-normal break-words text-[0.875rem] font-semibold"
+            style={{ color: noteColor?.accent, wordBreak: 'break-word' }}
+          >
+            {title}
+          </span>
         </div>
         {sub && (
-          <div className="mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted">{sub}</div>
+          <div
+            className="collab-note-md day-note-markdown mt-px font-geist text-[0.75rem] font-medium leading-[1.45] text-m-muted"
+            style={{ color: noteColor?.subtitle }}
+          >
+            <Markdown
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+              components={{
+                a: ({ node: _node, ...props }) => (
+                  <a
+                    {...props}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    draggable={false}
+                    onClick={e => e.stopPropagation()}
+                    onDoubleClick={e => e.stopPropagation()}
+                    onPointerDown={e => e.stopPropagation()}
+                    onMouseDown={e => e.stopPropagation()}
+                    onDragStart={e => { e.preventDefault(); e.stopPropagation() }}
+                    style={{ color: noteColor?.accent }}
+                  />
+                ),
+              }}
+            >
+              {sub}
+            </Markdown>
+          </div>
         )}
       </div>
       {chrome.editing && <span className="flex flex-none items-center gap-1.5">{reorder}</span>}

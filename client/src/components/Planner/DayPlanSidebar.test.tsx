@@ -705,6 +705,95 @@ describe('DayPlanSidebar', () => {
     expect(screen.getByText('Pack sunscreen')).toBeInTheDocument()
   })
 
+  it('FE-PLANNER-DAYPLAN-033a: note title stays on one visual line with a full-value tooltip', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const title = 'A very long reminder title that should only truncate visually'
+    mockDayNotesState.dayNotes = {
+      '10': [buildDayNote({ id: 55, day_id: 10, text: title })],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
+
+    expect(screen.getByText(title)).toHaveStyle({
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    })
+    expect(screen.getByText(title)).toHaveAttribute('title', title)
+  })
+
+  it('FE-PLANNER-DAYPLAN-033b: note subtitle renders multiline GFM and secure interactive links', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    mockDayNotesState.dayNotes = {
+      '10': [buildDayNote({
+        id: 55,
+        day_id: 10,
+        text: 'Tickets',
+        time: '**Bold** and *italic* and ~~gone~~\n\n- first\n- second\n\n1. one\n2. two\n\n`code`\n\n[Tickets](https://example.com)\nnext line',
+      })],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
+
+    const markdown = document.querySelector('.day-note-markdown') as HTMLElement
+    expect(markdown.querySelector('strong')).toHaveTextContent('Bold')
+    expect(markdown.querySelector('em')).toHaveTextContent('italic')
+    expect(markdown.querySelector('del')).toHaveTextContent('gone')
+    expect(markdown.querySelector('ul')).toBeInTheDocument()
+    expect(markdown.querySelector('ol')).toBeInTheDocument()
+    expect(markdown.querySelector('code')).toHaveTextContent('code')
+    expect(markdown.querySelector('br')).toBeInTheDocument()
+
+    const link = screen.getByRole('link', { name: 'Tickets' })
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(link).toHaveAttribute('draggable', 'false')
+
+    fireEvent.dragStart(link, { dataTransfer: emptyDataTransfer })
+    fireEvent.click(link)
+    expect(emptyDataTransfer.setData).not.toHaveBeenCalled()
+    expect(mockDayNotesState.openEditNote).not.toHaveBeenCalled()
+  })
+
+  it('FE-PLANNER-DAYPLAN-033c: note subtitle does not activate raw HTML', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    mockDayNotesState.dayNotes = {
+      '10': [buildDayNote({ id: 55, day_id: 10, text: 'Safe note', time: '<img src=x onerror=alert(1)>**still safe**' })],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
+
+    const markdown = document.querySelector('.day-note-markdown') as HTMLElement
+    expect(markdown.querySelector('img')).toBeNull()
+    expect(markdown.querySelector('strong')).toHaveTextContent('still safe')
+  })
+
+  it('FE-PLANNER-DAYPLAN-033d: colored notes use the allowlisted tint while default and unknown colors stay neutral', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    mockDayNotesState.dayNotes = {
+      '10': [
+        buildDayNote({ id: 55, day_id: 10, text: 'Colored', time: 'Colored subtitle', color: '#ef4444', sort_order: 0 }),
+        buildDayNote({ id: 56, day_id: 10, text: 'Default', color: null, sort_order: 1 }),
+        buildDayNote({ id: 57, day_id: 10, text: 'Unknown', color: 'hotpink' as any, sort_order: 2 }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
+
+    const colored = cardRow(screen.getByText('Colored'))
+    const uncolored = cardRow(screen.getByText('Default'))
+    const unknown = cardRow(screen.getByText('Unknown'))
+    expect(colored).toHaveAttribute('data-day-note-color', '#ef4444')
+    const iconCircle = Array.from(colored.querySelectorAll('div')).find(element => element.style.width === '28px' && element.style.borderRadius === '50%')
+    expect(iconCircle).toHaveStyle({ background: '#ef4444' })
+    expect(screen.getByText('Colored subtitle').closest('.day-note-markdown')).toHaveStyle({
+      color: 'color-mix(in srgb, #ef4444 56%, var(--text-muted))',
+      fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))',
+      fontWeight: '500',
+      lineHeight: '1.4',
+    })
+    expect(uncolored).toHaveAttribute('data-day-note-color', 'default')
+    expect(uncolored).toHaveStyle({ background: 'var(--bg-hover)' })
+    expect(unknown).toHaveAttribute('data-day-note-color', 'default')
+    expect(unknown).toHaveStyle({ background: 'var(--bg-hover)' })
+  })
+
   it('FE-PLANNER-DAYPLAN-034: right-click on note opens context menu', () => {
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     mockDayNotesState.dayNotes = {
@@ -737,6 +826,42 @@ describe('DayPlanSidebar', () => {
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
     await user.click(screen.getByRole('button', { name: /cancel/i }))
     expect(mockDayNotesState.cancelNote).toHaveBeenCalledWith(10)
+  })
+
+  it('FE-PLANNER-DAYPLAN-036a: note modal exposes preset swatches and the title limit', async () => {
+    const user = userEvent.setup()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    mockDayNotesState.noteUi = {
+      '10': { mode: 'edit', text: 'Hello', time: '', icon: 'FileText', color: '#ef4444' },
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
+
+    const firstColor = screen.getByRole('button', { name: 'Color 1: #ef4444' })
+    expect(firstColor).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByRole('button', { name: /^Color \d+:/ })).toHaveLength(6)
+    const titleInput = screen.getByDisplayValue('Hello')
+    expect(titleInput).toHaveAttribute('maxlength', '500')
+
+    await user.click(screen.getByRole('button', { name: 'Color 2: #f97316' }))
+    const updater = mockDayNotesState.setNoteUi.mock.calls[0][0]
+    expect(updater(mockDayNotesState.noteUi)['10'].color).toBe('#f97316')
+  })
+
+  it('FE-PLANNER-DAYPLAN-036b: note modal toolbar formats the selected subtitle text', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    mockDayNotesState.noteUi = {
+      '10': { mode: 'add', text: 'Tickets', time: 'Book tickets', icon: 'Ticket' },
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
+
+    const subtitle = screen.getByPlaceholderText('Daily Note') as HTMLTextAreaElement
+    subtitle.setSelectionRange(5, 12)
+    fireEvent.click(screen.getByRole('button', { name: 'Bold' }))
+
+    expect(screen.getByRole('toolbar', { name: 'Markdown formatting' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Bold|Italic|Strikethrough|list|code|Link/i })).toHaveLength(7)
+    const updater = mockDayNotesState.setNoteUi.mock.calls[0][0]
+    expect(updater(mockDayNotesState.noteUi)['10'].time).toBe('Book **tickets**')
   })
 
   // ── Budget footer ───────────────────────────────────────────────────────

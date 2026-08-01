@@ -4,6 +4,7 @@ import {
   ShoppingBag, Bookmark, Hotel, Utensils, Users, Sailboat, Bike, CarTaxiFront, Route, TramFront,
   Wine, ParkingSquare, Fuel, Footprints, Mountain, Waves, Sun, Umbrella, Music, Landmark, Gift,
 } from 'lucide-react'
+import { DAY_NOTE_COLOR_VALUES, type DayNoteColor } from '@trek/shared'
 
 export const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, bus: Bus, ferry: Sailboat, bicycle: Bike, taxi: CarTaxiFront, transit: TramFront, transport_other: Route, event: Ticket, tour: Users, parking: ParkingSquare, other: FileText }
 
@@ -43,6 +44,33 @@ export const NOTE_ICONS = [
 ]
 const NOTE_ICON_MAP = Object.fromEntries(NOTE_ICONS.map(({ id, Icon }) => [id, Icon]))
 export function getNoteIcon(iconId) { return NOTE_ICON_MAP[iconId] || FileText }
+
+export const DAY_NOTE_COLOR_OPTIONS: ReadonlyArray<{
+  id: DayNoteColor | null
+  swatch: string
+  labelKey: string | null
+  iconForeground: string
+}> = [
+  { id: null, swatch: 'var(--bg-hover)', labelKey: 'settings.appearance.scheme.default', iconForeground: 'var(--text-muted)' },
+  ...DAY_NOTE_COLOR_VALUES.map(color => ({
+    id: color,
+    swatch: color,
+    labelKey: null,
+    iconForeground: ['#f97316', '#f59e0b', '#10b981'].includes(color) ? '#111827' : '#ffffff',
+  })),
+]
+
+export function getDayNoteColorStyle(color: DayNoteColor | string | null | undefined) {
+  const preset = DAY_NOTE_COLOR_OPTIONS.find(option => option.id !== null && option.id === color)
+  if (!preset) return null
+  return {
+    ...preset,
+    background: `color-mix(in srgb, ${preset.swatch} 10%, var(--bg-hover))`,
+    border: `color-mix(in srgb, ${preset.swatch} 30%, var(--border-faint))`,
+    accent: `color-mix(in srgb, ${preset.swatch} 72%, var(--text-primary))`,
+    subtitle: `color-mix(in srgb, ${preset.swatch} 56%, var(--text-muted))`,
+  }
+}
 
 export const TYPE_ICONS = {
   flight: '✈️', hotel: '🏨', restaurant: '🍽️', train: '🚆',

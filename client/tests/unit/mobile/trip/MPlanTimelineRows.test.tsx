@@ -508,4 +508,53 @@ describe('NoteRow', () => {
     expect(onEdit).toHaveBeenCalledTimes(1)
     expect(screen.getByTestId('reorder')).toBeInTheDocument()
   })
+
+  it('FE-MOB-PLROW-042: renders the full mobile title and a colored safe Markdown subtitle', () => {
+    const { container } = render(
+      <NoteRow
+        {...base}
+        note={note({
+          text: 'A deliberately long warning title',
+          time: '**Bold** and [Tickets](https://example.com)\n<b>not active</b>',
+          color: '#8b5cf6',
+        })}
+      />,
+    )
+
+    const title = screen.getByTitle('A deliberately long warning title')
+    expect(title).toHaveClass('whitespace-normal', 'break-words')
+    expect(title).toHaveStyle({ wordBreak: 'break-word' })
+    expect(screen.getByText('Bold', { selector: 'strong' })).toBeInTheDocument()
+    expect(container.querySelector('.day-note-markdown b')).toBeNull()
+    expect(container.querySelector('[data-day-note-color="#8b5cf6"]')).toBeInTheDocument()
+    expect(container.querySelector('.day-note-markdown')).toHaveStyle({
+      color: 'color-mix(in srgb, #8b5cf6 56%, var(--text-muted))',
+    })
+    expect(container.querySelector('.day-note-markdown')).toHaveClass('text-[0.75rem]', 'font-medium')
+
+    const link = screen.getByRole('link', { name: 'Tickets' })
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(link).toHaveAttribute('draggable', 'false')
+  })
+
+  it('FE-MOB-PLROW-042a: preserves legacy note-text line breaks in the Markdown subtitle', () => {
+    const { container } = render(
+      <NoteRow {...base} note={note({ text: 'Title\nfirst legacy line\nsecond legacy line', time: null })} />,
+    )
+
+    expect(screen.getByTitle('Title')).toBeInTheDocument()
+    const markdown = container.querySelector('.day-note-markdown')
+    expect(markdown).toHaveTextContent('first legacy line')
+    expect(markdown).toHaveTextContent('second legacy line')
+    expect(markdown?.querySelector('br')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLROW-043: keeps the neutral appearance for missing and unknown colors', () => {
+    const { container, rerender } = render(<NoteRow {...base} note={note({ color: undefined })} />)
+    expect(container.querySelector('[data-day-note-color="default"]')).not.toHaveAttribute('style')
+
+    rerender(<NoteRow {...base} note={note({ color: 'hotpink' })} />)
+    expect(container.querySelector('[data-day-note-color="default"]')).not.toHaveAttribute('style')
+  })
 })

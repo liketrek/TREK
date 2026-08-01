@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import type { DayNoteCreateRequest, DayNoteUpdateRequest, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { readEnv } from '../../../app-config';
 import { RealtimeService } from '../../realtime/realtime.service';
 import { isUpdateConflict } from '../../../services/conflictResult';
@@ -747,15 +747,15 @@ export class PluginHostDepsFactory {
       // same dayNote:* events the REST controller emits so open sessions update live. ---
       createDayNote: (tripId, dayId, input) => {
         if (!this.dayNotes.dayExists(dayId, tripId)) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
-        const i = input as { text?: string; time?: string; icon?: string; sort_order?: number };
-        const note = this.dayNotes.create(dayId, tripId, i.text ?? '', i.time, i.icon, i.sort_order);
+        const i = input as DayNoteCreateRequest;
+        const note = this.dayNotes.create(dayId, tripId, i.text, i.time, i.icon, i.sort_order, i.color);
         this.realtime.broadcast(tripId, 'dayNote:created', { dayId, note }, undefined);
         return note;
       },
       updateDayNote: (tripId, dayId, noteId, input) => {
         const current = this.dayNotes.getNote(noteId, dayId, tripId);
         if (!current) throw new ForbiddenResource(`no note ${noteId} on day ${dayId}`);
-        const note = this.dayNotes.update(noteId, current as never, input as { text?: string; time?: string; icon?: string; sort_order?: number });
+        const note = this.dayNotes.update(noteId, current as never, input as DayNoteUpdateRequest);
         this.realtime.broadcast(tripId, 'dayNote:updated', { dayId, note }, undefined);
         return note;
       },

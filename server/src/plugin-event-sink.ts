@@ -78,7 +78,7 @@ const ENTITY_SNAPSHOT: Readonly<Record<string, { key: string; fields: readonly s
   accommodation: { key: 'accommodation', fields: ['id', 'trip_id', 'place_id', 'start_day_id', 'end_day_id', 'check_in', 'check_in_end', 'check_out', 'confirmation', 'notes'] },
   budget: { key: 'item', fields: ['id', 'trip_id', 'category', 'name', 'total_price', 'persons', 'days', 'note', 'sort_order'] },
   packing: { key: 'item', fields: ['id', 'trip_id', 'name', 'checked', 'category', 'sort_order'] },
-  dayNote: { key: 'note', fields: ['id', 'day_id', 'trip_id', 'text', 'time', 'icon', 'sort_order'] },
+  dayNote: { key: 'note', fields: ['id', 'day_id', 'trip_id', 'text', 'time', 'icon', 'color', 'sort_order'] },
   file: { key: 'file', fields: ['id', 'trip_id', 'place_id', 'reservation_id', 'original_name', 'file_size', 'mime_type', 'description'] },
   assignment: { key: 'assignment', fields: ['id', 'day_id', 'place_id', 'order_index', 'notes', 'assignment_time', 'assignment_end_time'] },
   trip: { key: 'trip', fields: ['id', 'title', 'description', 'start_date', 'end_date', 'currency', 'cover_image', 'is_archived', 'reminder_days'] },

@@ -120,21 +120,21 @@ describe('dayNotesSlice', () => {
     expect(useTripStore.getState().dayNotes['5'].map(n => n.id)).toEqual([13]);
   });
 
-  it('FE-TSLICE-NOTES-006: moveDayNote carries text, time and icon over to the target day', async () => {
-    const note = buildDayNote({ id: 10, day_id: 1, text: 'Ferry', time: '08:15', icon: '⛴️' });
+  it('FE-TSLICE-NOTES-006: moveDayNote carries text, time, icon and color over to the target day', async () => {
+    const note = buildDayNote({ id: 10, day_id: 1, text: 'Ferry', time: '08:15', icon: '⛴️', color: '#3b82f6' });
     seedStore(useTripStore, { dayNotes: { '1': [note], '2': [] } });
 
     let created: Record<string, unknown> = {};
     server.use(
       http.post('/api/trips/1/days/2/notes', async ({ request }) => {
         created = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ note: buildDayNote({ id: 11, day_id: 2, text: 'Ferry', time: '08:15', icon: '⛴️' }) });
+        return HttpResponse.json({ note: buildDayNote({ id: 11, day_id: 2, text: 'Ferry', time: '08:15', icon: '⛴️', color: '#3b82f6' }) });
       }),
     );
 
     await useTripStore.getState().moveDayNote(1, 1, 2, 10, 3);
 
-    expect(created).toMatchObject({ text: 'Ferry', time: '08:15', icon: '⛴️', sort_order: 3 });
+    expect(created).toMatchObject({ text: 'Ferry', time: '08:15', icon: '⛴️', color: '#3b82f6', sort_order: 3 });
     expect(useTripStore.getState().dayNotes['1']).toHaveLength(0);
     expect(useTripStore.getState().dayNotes['2'][0].id).toBe(11);
   });

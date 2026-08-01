@@ -12,6 +12,7 @@ import ConfirmDialog from '../shared/ConfirmDialog'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import WeatherWidget from '../Weather/WeatherWidget'
 import { useToast } from '../shared/Toast'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -32,7 +33,7 @@ import {
 import { formatDate, formatTime, dayTotalCost, formatMoneySum, splitReservationDateTime } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
-import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
+import { RES_ICONS, getDayNoteColorStyle, getNoteIcon } from './DayPlanSidebar.constants'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
 import { usePluginDaySchedule, PluginDayScheduleRow, formatScheduleMinutes } from '../Plugins/PluginDaySchedule'
 import { MobileAddPlaceButton } from './DayPlanSidebarMobileAddPlaceButton'
@@ -2148,11 +2149,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       // Notizkarte
                       const note = item.data
                       const NoteIcon = getNoteIcon(note.icon)
+                      const noteColor = getDayNoteColorStyle(note.color)
                       const noteIdx = idx
                       return (
                         <React.Fragment key={`note-${note.id}`}>
                         <div
                           className="dp-row"
+                          data-day-note-color={noteColor?.id || 'default'}
                           draggable={canEditDays && !dragDisabled}
                           onDragStart={e => { if (!canEditDays || dragDisabled) { e.preventDefault(); return } e.dataTransfer.setData('noteId', String(note.id)); e.dataTransfer.setData('fromDayId', String(day.id)); e.dataTransfer.effectAllowed = 'move'; dragDataRef.current = { noteId: String(note.id), fromDayId: String(day.id) }; setDraggingId(`note-${note.id}`) }}
                           onDragEnd={() => { setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null }}
@@ -2215,9 +2218,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             padding: '7px 8px 7px 2px',
                             margin: '1px 8px',
                             borderRadius: 6,
-                            border: '1px solid var(--border-faint)',
+                            border: `1px solid ${noteColor?.border || 'var(--border-faint)'}`,
                             borderTop: showDropLine ? '2px solid var(--text-primary)' : undefined,
-                            background: 'var(--bg-hover)',
+                            background: noteColor?.background || 'var(--bg-hover)',
                             opacity: draggingId === `note-${note.id}` ? 0.4 : 1,
                             transition: 'background 0.1s', cursor: 'grab', userSelect: 'none',
                           }}
@@ -2225,15 +2228,37 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           {canEditDays && !dragDisabled && <div className="dp-grip" style={{ flexShrink: 0, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', opacity: 0.3, transition: 'opacity 0.15s', cursor: 'grab' }}>
                             <GripVertical size={13} strokeWidth={1.8} />
                           </div>}
-                          <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'var(--bg-hover)', overflow: 'hidden' }}>
-                            <NoteIcon size={13} strokeWidth={1.8} color="var(--text-muted)" />
+                          <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: noteColor?.swatch || 'var(--bg-hover)', overflow: 'hidden' }}>
+                            <NoteIcon size={13} strokeWidth={1.8} color={noteColor?.iconForeground || 'var(--text-muted)'} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                            <span title={note.text} style={{ display: 'block', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, color: noteColor?.accent || 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {note.text}
                             </span>
                             {note.time && (
-                              <div className="collab-note-md" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, color: 'var(--text-faint)', lineHeight: '1.3', marginTop: 2, wordBreak: 'break-word' }}><Markdown remarkPlugins={[remarkGfm]}>{note.time}</Markdown></div>
+                              <div className="collab-note-md day-note-markdown" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 500, color: noteColor?.subtitle || 'var(--text-faint)', lineHeight: '1.4', marginTop: 2, wordBreak: 'break-word' }}>
+                                <Markdown
+                                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                                  components={{
+                                    a: ({ node: _node, ...props }) => (
+                                      <a
+                                        {...props}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        draggable={false}
+                                        onClick={e => e.stopPropagation()}
+                                        onDoubleClick={e => e.stopPropagation()}
+                                        onPointerDown={e => e.stopPropagation()}
+                                        onMouseDown={e => e.stopPropagation()}
+                                        onDragStart={e => { e.preventDefault(); e.stopPropagation() }}
+                                        style={{ color: noteColor?.accent }}
+                                      />
+                                    ),
+                                  }}
+                                >
+                                  {note.time}
+                                </Markdown>
+                              </div>
                             )}
                           </div>
                           {canEditDays && <div className="note-edit-buttons" style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: 0, transition: 'opacity 0.15s' }}>

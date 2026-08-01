@@ -10,6 +10,7 @@ import {
   packingCreateItemRequestSchema, packingUpdateItemRequestSchema,
   collectionCreateRequestSchema, collectionUpdateRequestSchema,
   collectionSavePlaceRequestSchema, collectionCopyToTripRequestSchema,
+  dayNoteCreateRequestSchema, dayNoteUpdateRequestSchema,
 } from '@trek/shared';
 import {
   KNOWN_METHODS,
@@ -791,18 +792,21 @@ export class PluginRpcHost {
         const tripId = num(p.tripId, 'tripId');
         const dayId = num(p.dayId, 'dayId');
         const actor = this.requireActor(uid, 'day note');
-        const input = asPayload(p.input);
-        if (typeof input.text !== 'string' || input.text.trim() === '') throw new BadParams('note text is required');
+        const parsed = dayNoteCreateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid day note: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        if (parsed.data.text.trim() === '') throw new BadParams('note text is required');
         this.requireTripEdit(tripId, actor, deps.canEditDays);
-        return deps.createDayNote(tripId, dayId, input);
+        return deps.createDayNote(tripId, dayId, parsed.data as Record<string, unknown>);
       });
       this.methods.set('daynotes.update', (p, uid) => {
         const tripId = num(p.tripId, 'tripId');
         const dayId = num(p.dayId, 'dayId');
         const noteId = num(p.noteId, 'noteId');
         const actor = this.requireActor(uid, 'day note');
+        const parsed = dayNoteUpdateRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid day note: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
         this.requireTripEdit(tripId, actor, deps.canEditDays);
-        return deps.updateDayNote(tripId, dayId, noteId, asPayload(p.input));
+        return deps.updateDayNote(tripId, dayId, noteId, parsed.data as Record<string, unknown>);
       });
       this.methods.set('daynotes.delete', (p, uid) => {
         const tripId = num(p.tripId, 'tripId');

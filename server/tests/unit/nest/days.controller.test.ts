@@ -138,7 +138,7 @@ describe('DayNotesController (parity with the legacy /api/.../days/:dayId/notes 
     const create = vi.fn().mockReturnValue({ id: 7 }); const broadcast = vi.fn();
     const svc = notesSvc({ dayExists: vi.fn().mockReturnValue(true), create, broadcast } as Partial<DayNotesService>);
     expect(new DayNotesController(svc).create(user, '5', '3', { text: 'Lunch', time: '12:00' }, 'sock')).toEqual({ note: { id: 7 } });
-    expect(create).toHaveBeenCalledWith('3', '5', 'Lunch', '12:00', undefined, undefined);
+    expect(create).toHaveBeenCalledWith('3', '5', 'Lunch', '12:00', undefined, undefined, undefined);
     expect(broadcast).toHaveBeenCalledWith('5', 'dayNote:created', { dayId: 3, note: { id: 7 } }, 'sock');
   });
 

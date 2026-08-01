@@ -1,11 +1,15 @@
+import { useRef } from 'react'
 import ReactDOM from 'react-dom'
-import { NOTE_ICONS } from './DayPlanSidebar.constants'
+import type { DayNoteColor } from '../../types'
+import { DAY_NOTE_COLOR_OPTIONS, NOTE_ICONS } from './DayPlanSidebar.constants'
+import { DayNoteMarkdownToolbar } from './DayNoteMarkdownToolbar'
 
 interface NoteModalUi {
   mode: 'add' | 'edit'
   icon: string
   text: string
   time: string
+  color?: DayNoteColor | null
 }
 
 interface DayPlanSidebarNoteModalProps {
@@ -18,6 +22,8 @@ interface DayPlanSidebarNoteModalProps {
 }
 
 export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cancelNote, saveNote, t }: DayPlanSidebarNoteModalProps) {
+  const noteTextareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({})
+
   return (
     <>
       {Object.entries(noteUi).map(([dayId, ui]) => ui && ReactDOM.createPortal(
@@ -45,6 +51,36 @@ export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cance
                 </button>
               ))}
             </div>
+            <div role="group" aria-label={t('categories.color')} style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+              {DAY_NOTE_COLOR_OPTIONS.map((option, index) => {
+                const selected = (ui.color ?? null) === option.id
+                const label = option.labelKey ? t(option.labelKey) : `${t('categories.color')} ${index}: ${option.id}`
+                return (
+                  <button
+                    key={option.id || 'default'}
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={selected}
+                    title={label}
+                    onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], color: option.id } }))}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      border: selected ? '2px solid var(--text-primary)' : '2px solid var(--border-faint)',
+                      background: option.swatch,
+                      cursor: 'pointer',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {option.id === null && <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-faint)' }} />}
+                  </button>
+                )
+              })}
+            </div>
             <input
               ref={noteInputRef}
               type="text"
@@ -53,10 +89,19 @@ export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cance
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveNote(Number(dayId)) } if (e.key === 'Escape') cancelNote(Number(dayId)) }}
               placeholder={t('dayplan.noteTitle') + ' *'}
               required
+              maxLength={500}
               className="text-content"
               style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, border: `1px solid ${!ui.text?.trim() ? 'var(--border-primary)' : 'var(--border-primary)'}`, borderRadius: 8, padding: '8px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' }}
             />
+            <DayNoteMarkdownToolbar
+              getTextarea={() => noteTextareaRefs.current[dayId] ?? null}
+              value={ui.time}
+              maxLength={250}
+              onChange={time => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], time } }))}
+              t={t}
+            />
             <textarea
+              ref={element => { noteTextareaRefs.current[dayId] = element }}
               value={ui.time}
               maxLength={250}
               rows={3}
