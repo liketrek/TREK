@@ -14,6 +14,15 @@ export function katColor(kat: string, allCategories?: string[]): string {
 export const itemWeight = (i: { weight_grams?: number | null; quantity?: number | null }): number =>
   (i.weight_grams || 0) * (i.quantity || 1)
 
+/**
+ * How full a bag's bar reads. A bag with a weight limit is measured against that limit —
+ * that is the number an airline cares about. Without one there is nothing absolute to
+ * measure against, so bags are shown relative to the heaviest one and stay comparable.
+ * Lives here because three surfaces draw this bar and one of them used to forget the limit.
+ */
+export const bagFillPct = (bagWeight: number, limitGrams: number | null | undefined, heaviestBagWeight: number): number =>
+  Math.min(100, Math.round((bagWeight / (limitGrams || Math.max(heaviestBagWeight, 1))) * 100))
+
 // Parse CSV line respecting quoted values (e.g. "Shirt, blue" stays as one field)
 export const parseCsvLine = (line: string): string[] => {
   const parts: string[] = []

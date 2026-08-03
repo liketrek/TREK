@@ -1,6 +1,6 @@
 import { X, Plus } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
-import { itemWeight } from './packingListPanel.helpers'
+import { bagFillPct, itemWeight } from './packingListPanel.helpers'
 import { BagCard } from './PackingListPanelBagCard'
 
 export function BagModal(S: PackingState) {
@@ -8,6 +8,8 @@ export function BagModal(S: PackingState) {
     setShowBagModal, t, bags, items, tripId, tripMembers, canEdit, handleDeleteBag, handleUpdateBag, handleSetBagMembers,
     showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag,
   } = S
+  // Reference for bags without a limit of their own — computed once instead of per bag.
+  const heaviestBagWeight = Math.max(...bags.map(b => items.filter(i => i.bag_id === b.id).reduce((s, i) => s + itemWeight(i), 0)), 1)
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 140, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflowY: 'auto' }}
       onClick={() => setShowBagModal(false)}>
@@ -21,8 +23,7 @@ export function BagModal(S: PackingState) {
         {bags.map(bag => {
           const bagItems = items.filter(i => i.bag_id === bag.id)
           const totalWeight = bagItems.reduce((sum, i) => sum + itemWeight(i), 0)
-          const maxWeight = Math.max(...bags.map(b => items.filter(i => i.bag_id === b.id).reduce((s, i) => s + itemWeight(i), 0)), 1)
-          const pct = Math.min(100, Math.round((totalWeight / maxWeight) * 100))
+          const pct = bagFillPct(totalWeight, bag.weight_limit_grams, heaviestBagWeight)
           return (
             <BagCard key={bag.id} bag={bag} bagItems={bagItems} totalWeight={totalWeight} pct={pct} tripId={tripId} tripMembers={tripMembers} canEdit={canEdit} onDelete={() => handleDeleteBag(bag.id)} onUpdate={handleUpdateBag} onSetMembers={handleSetBagMembers} t={t} />
           )

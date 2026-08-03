@@ -247,4 +247,33 @@ describe('MBagsSheet', () => {
 
     expect(onClose).toHaveBeenCalled()
   })
+
+  // #207: the limit was storable and readable but had nowhere to be typed in.
+  it('FE-MOB-BAGS-020: a limit typed in kg is stored in grams', () => {
+    const { onUpdateBag } = setup({ bags: [bag({ id: 1, name: 'Backpack' })] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'packing.setBagLimit' }))
+    const input = screen.getByLabelText('packing.bagLimit')
+    fireEvent.change(input, { target: { value: '7.5' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(onUpdateBag).toHaveBeenCalledWith(1, { weight_limit_grams: 7500 })
+  })
+
+  it('FE-MOB-BAGS-021: emptying the field clears the limit instead of storing zero', () => {
+    const { onUpdateBag } = setup({ bags: [bag({ id: 1, name: 'Backpack', weight_limit_grams: 20000 })] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'packing.bagLimit' }))
+    const input = screen.getByLabelText('packing.bagLimit')
+    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(onUpdateBag).toHaveBeenCalledWith(1, { weight_limit_grams: null })
+  })
+
+  it('FE-MOB-BAGS-022: read-only mode offers no way to set a limit', () => {
+    setup({ canEdit: false, bags: [bag({ id: 1, name: 'Backpack' })] })
+
+    expect(screen.queryByRole('button', { name: 'packing.setBagLimit' })).toBeNull()
+  })
 })

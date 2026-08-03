@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { katColor, itemWeight, parseCsvLine, parseImportLines } from './packingListPanel.helpers'
+import { katColor, itemWeight, bagFillPct, parseCsvLine, parseImportLines } from './packingListPanel.helpers'
 import { KAT_COLORS } from './packingListPanel.constants'
 
 describe('packingListPanel.helpers', () => {
@@ -43,6 +43,27 @@ describe('packingListPanel.helpers', () => {
     it('treats null weight/quantity as their defaults', () => {
       expect(itemWeight({ weight_grams: null, quantity: null })).toBe(0)
       expect(itemWeight({ weight_grams: 100, quantity: null })).toBe(100)
+    })
+  })
+
+  describe('bagFillPct', () => {
+    it('measures against the bag limit when there is one', () => {
+      expect(bagFillPct(5000, 20000, 99999)).toBe(25)
+      expect(bagFillPct(20000, 20000, 1)).toBe(100)
+    })
+
+    it('never reports more than full', () => {
+      expect(bagFillPct(30000, 20000, 1)).toBe(100)
+    })
+
+    it('falls back to the heaviest bag when no limit is set', () => {
+      expect(bagFillPct(2500, null, 5000)).toBe(50)
+      expect(bagFillPct(2500, undefined, 5000)).toBe(50)
+      expect(bagFillPct(0, 0, 5000)).toBe(0)
+    })
+
+    it('does not divide by zero on an empty trip', () => {
+      expect(bagFillPct(0, null, 0)).toBe(0)
     })
   })
 
