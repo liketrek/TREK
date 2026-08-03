@@ -472,6 +472,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         items={items}
         tripMembers={tripMembers}
         canEdit={canEdit}
+        currentUserId={currentUserId}
         onCreateBag={createBag}
         onUpdateBag={updateBag}
         onDeleteBag={deleteBag}

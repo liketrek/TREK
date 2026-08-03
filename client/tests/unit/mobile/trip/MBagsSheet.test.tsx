@@ -276,4 +276,43 @@ describe('MBagsSheet', () => {
 
     expect(screen.queryByRole('button', { name: 'packing.setBagLimit' })).toBeNull()
   })
+
+  // #1767: an item somebody shared with me is theirs to carry, so it must not land in my
+  // bag totals — while the common pool stays everyone's.
+  it('FE-MOB-BAGS-023: an item shared with me is not added to my bag weight', () => {
+    setup({
+      currentUserId: 1,
+      bags: [bag({ id: 1, name: 'Backpack' })],
+      items: [
+        item({ id: 1, name: 'Mine', bag_id: 1, weight_grams: 200, is_private: 1, owner_id: 1 } as Partial<PackingItem>),
+        item({ id: 2, name: 'Binoculars', bag_id: 1, weight_grams: 300, is_private: 1, owner_id: 2 } as Partial<PackingItem>),
+      ],
+    })
+
+    expect(within(rowFor('Backpack')).getByText('200 g')).toBeInTheDocument()
+    expect(within(rowFor('Backpack')).getByText('1 admin.packingTemplates.items')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-BAGS-024: common items still count for everyone', () => {
+    setup({
+      currentUserId: 1,
+      bags: [bag({ id: 1, name: 'Backpack' })],
+      items: [
+        item({ id: 1, name: 'First-aid kit', bag_id: 1, weight_grams: 500, is_private: 0, owner_id: 2 } as Partial<PackingItem>),
+      ],
+    })
+
+    expect(within(rowFor('Backpack')).getByText('500 g')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-BAGS-025: without a known viewer nothing is filtered out', () => {
+    setup({
+      bags: [bag({ id: 1, name: 'Backpack' })],
+      items: [
+        item({ id: 1, name: 'Binoculars', bag_id: 1, weight_grams: 300, is_private: 1, owner_id: 2 } as Partial<PackingItem>),
+      ],
+    })
+
+    expect(within(rowFor('Backpack')).getByText('300 g')).toBeInTheDocument()
+  })
 })
