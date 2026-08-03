@@ -170,7 +170,7 @@ export class PackingService {
 
   createItem(
     tripId: string | number,
-    data: { name: string; category?: string; checked?: boolean; quantity?: number; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
+    data: { name: string; category?: string; checked?: boolean; quantity?: number; weight_grams?: number | null; bag_id?: number | null; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
     ownerId?: number,
   ) {
     const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?', tripId)!;
@@ -180,8 +180,8 @@ export class PackingService {
 
     const itemId = this.db.transaction(() => {
       const result = this.db.run(
-        'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
-        tripId, data.name, data.checked ? 1 : 0, data.category || 'Other', sortOrder, qty, isPrivate, ownerId ?? null
+        'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity, weight_grams, bag_id, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+        tripId, data.name, data.checked ? 1 : 0, data.category || 'Other', sortOrder, qty, data.weight_grams ?? null, data.bag_id ?? null, isPrivate, ownerId ?? null
       );
       const id = Number(result.lastInsertRowid);
       // "Shared with specific people" — record the recipients it covers.
@@ -253,7 +253,7 @@ export class PackingService {
 
   /** Loads an item scoped to its trip (the trip-access check happens in the controller). */
   private getItemInTrip(tripId: string | number, id: string | number) {
-    return this.db.get<{ id: number; owner_id: number | null; is_private: number; name: string; category: string | null; quantity: number }>(
+    return this.db.get<{ id: number; owner_id: number | null; is_private: number; name: string; category: string | null; quantity: number; weight_grams: number | null; bag_id: number | null }>(
       'SELECT * FROM packing_items WHERE id = ? AND trip_id = ?', id, tripId
     );
   }
@@ -305,11 +305,37 @@ export class PackingService {
     return this.enrichItems([this.db.get('SELECT * FROM packing_items WHERE id = ?', id)])[0];
   }
 
-  /** Clone a (Common) item onto the caller's Personal list as a private starting point. */
+  /**
+   * A copy keeps the original's bag only when that bag is the caller's to pack: one nobody
+   * owns, or one they belong to. Inheriting someone else's bag would drop the copy into
+   * their luggage and inflate their weight (#207).
+   */
+  private bagForCloner(tripId: string | number, bagId: number | null, userId: number): number | null {
+    if (bagId == null) return null;
+    const bag = this.db.get<{ user_id: number | null }>('SELECT user_id FROM packing_bags WHERE id = ? AND trip_id = ?', bagId, tripId);
+    if (!bag) return null;
+    if (bag.user_id === userId) return bagId;
+    const members = this.db.all<{ user_id: number }>('SELECT user_id FROM packing_bag_members WHERE bag_id = ?', bagId);
+    if (bag.user_id == null && members.length === 0) return bagId; // shared bag, nobody's in particular
+    return members.some(m => m.user_id === userId) ? bagId : null;
+  }
+
+  /**
+   * Clone a (Common) item onto the caller's Personal list as a private starting point.
+   * Weight comes along — it is a property of the thing, and re-entering it by hand for
+   * every traveller was the whole complaint in #207.
+   */
   cloneItem(tripId: string | number, id: string | number, userId: number) {
     const item = this.getItemInTrip(tripId, id);
     if (!item) return null;
-    return this.createItem(tripId, { name: item.name, category: item.category || undefined, quantity: item.quantity, visibility: 'personal' }, userId);
+    return this.createItem(tripId, {
+      name: item.name,
+      category: item.category || undefined,
+      quantity: item.quantity,
+      weight_grams: item.weight_grams,
+      bag_id: this.bagForCloner(tripId, item.bag_id, userId),
+      visibility: 'personal',
+    }, userId);
   }
 
   deleteItem(tripId: string | number, id: string | number) {

@@ -60,7 +60,7 @@ vi.mock('../../../src/nest/notifications/notifications.bridge', () => ({ send })
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, createTrip } from '../../helpers/factories';
+import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { PackingService } from '../../../src/nest/packing/packing.service';
@@ -583,6 +583,61 @@ describe('three-tier packing sharing (#858)', () => {
     // The clone is the cloner's alone.
     expect(names(svc.listItems(trip.id, owner.id) as any[])).toEqual(['Travel adapter']);     // owner sees only the common one
     expect(names(svc.listItems(trip.id, cloner.id) as any[])).toEqual(['Travel adapter', 'Travel adapter']); // common + own clone
+  });
+
+  // #207: "one person curates the list, everyone copies it" meant re-entering every
+  // weight by hand, because a copy arrived empty.
+  it('PACK-SVC-073: cloneItem carries the weight over', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: cloner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const common = svc.createItem(trip.id, { name: 'Tent', visibility: 'common', weight_grams: 2400, quantity: 2 }, owner.id) as any;
+
+    const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
+
+    expect(clone.weight_grams).toBe(2400);
+    expect(clone.quantity).toBe(2);
+  });
+
+  it('PACK-SVC-074: cloneItem keeps a bag nobody owns', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: cloner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const bag = svc.createBag(trip.id, { name: 'Car boot' }) as any;
+    const common = svc.createItem(trip.id, { name: 'Cool box', visibility: 'common', weight_grams: 3000, bag_id: bag.id }, owner.id) as any;
+
+    const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
+
+    expect(clone.bag_id).toBe(bag.id);
+  });
+
+  it('PACK-SVC-075: cloneItem drops a bag that belongs to someone else', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: cloner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, cloner.id);
+    const bag = svc.createBag(trip.id, { name: 'Owner backpack' }) as any;
+    svc.setBagMembers(trip.id, bag.id, [owner.id]);
+    const common = svc.createItem(trip.id, { name: 'Rope', visibility: 'common', weight_grams: 900, bag_id: bag.id }, owner.id) as any;
+
+    const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
+
+    // Weight still comes along — only the foreign bag is dropped, so the copy cannot
+    // land in someone else's luggage and inflate their total.
+    expect(clone.weight_grams).toBe(900);
+    expect(clone.bag_id).toBeNull();
+  });
+
+  it('PACK-SVC-076: cloneItem keeps a bag the cloner is a member of', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: cloner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, cloner.id);
+    const bag = svc.createBag(trip.id, { name: 'Shared duffel' }) as any;
+    svc.setBagMembers(trip.id, bag.id, [owner.id, cloner.id]);
+    const common = svc.createItem(trip.id, { name: 'Stove', visibility: 'common', bag_id: bag.id }, owner.id) as any;
+
+    expect((svc.cloneItem(trip.id, common.id, cloner.id) as any).bag_id).toBe(bag.id);
   });
 });
 
