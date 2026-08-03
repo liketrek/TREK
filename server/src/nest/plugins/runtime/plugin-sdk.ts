@@ -551,14 +551,23 @@ export interface DayScheduleProvider {
 
 /** A colour the host paints into one day card in the Plan sidebar (and into that day's
  * mobile chip) — so a trip split into legs shows its leg membership while you scroll
- * the itinerary. Tone only, never a hex: the host picks the alpha per theme and per
- * region. The card has three separately tintable regions; `tone` colours all of them. */
+ * the itinerary. A region takes a `tone` from the shared palette or the plugin's own
+ * `#rrggbb` `color` (exactly six hex digits — anything else is ignored); either way
+ * the host picks the alpha per theme and per region and clamps a colour's lightness,
+ * so the tint always lands as a readable wash. The card has three separately tintable
+ * regions; the `tone`/`color` shorthands fill every region not named, and `color` wins
+ * over `tone` at the same level. The regions follow the DESKTOP card — mobile honours
+ * only the badge (as the day chip). */
 export interface DayTintContribution {
   dayId: number;              // must be a day of the requested trip
   tone?: ContributionTone;    // shorthand for every region not named below
+  color?: string;             // own-colour shorthand, `#rrggbb` only
   badgeTone?: ContributionTone;    // the day-number badge (and the mobile day chip)
+  badgeColor?: string;
   headerTone?: ContributionTone;   // the day header row
+  headerColor?: string;
   activityTone?: ContributionTone; // the expanded activity list
+  activityColor?: string;
   label?: string;             // optional tooltip on the day (≤60 chars)
 }
 export interface DayTintProvider {

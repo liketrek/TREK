@@ -564,6 +564,11 @@ return days.map((d) => ({ dayId: d.id, headerTone: legTone(d), activityTone: ove
 
 A region you never name is not tinted and renders exactly as it does without your plugin.
 
+The regions follow the **desktop** day card. On mobile only the badge renders, as the
+day chip's tint — header and activity tints do not show on phones. Keep whatever every
+user must see on the badge (or the shorthands, which include it), and treat the finer
+regions as desktop refinement.
+
 `label` becomes the day's tooltip. A day takes at most one contribution and it is
 resolved **whole** — within your list the first entry for a day wins, and if another
 plugin also tints that day the first granted provider wins outright, so days never

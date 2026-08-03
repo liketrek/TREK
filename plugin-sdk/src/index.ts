@@ -601,6 +601,12 @@ export interface DayScheduleProvider {
  * them, or name regions individually for finer control — e.g. a bold badge marking the
  * leg with the activity list left plain, so a dense day stays easy to read.
  *
+ * The regions map onto the DESKTOP day card's layout. The mobile day strip is built
+ * differently and honours only the badge region, as the day chip's tint; header and
+ * activity tints do not render on phones. So treat the badge (or the shorthands, which
+ * include it) as the one region every user sees, and the finer regions as desktop
+ * refinement.
+ *
  * Colour is decoration, not information: pair it with `label` (and with a
  * dayScheduleProvider row where it matters) so the meaning survives for anyone who
  * cannot tell your legs apart by hue. */
