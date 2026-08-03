@@ -207,5 +207,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Můžu to vzít taky',
   'packing.alsoBringingStop': 'Neberu to',
   'packing.cloneToMine': 'Kopírovat do mého seznamu',
+  'packing.bagLimit': 'Hmotnostní limit',
+  'packing.setBagLimit': 'Nastavit limit',
 };
 export default packing;

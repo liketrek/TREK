@@ -206,5 +206,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Eu também posso levar',
   'packing.alsoBringingStop': 'Não vou levar',
   'packing.cloneToMine': 'Copiar para minha lista',
+  'packing.bagLimit': 'Limite de peso',
+  'packing.setBagLimit': 'Definir limite',
 };
 export default packing;

@@ -207,5 +207,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Saya juga bisa membawanya',
   'packing.alsoBringingStop': 'Saya tidak membawanya',
   'packing.cloneToMine': 'Salin ke daftar saya',
+  'packing.bagLimit': 'Batas berat',
+  'packing.setBagLimit': 'Atur batas',
 };
 export default packing;

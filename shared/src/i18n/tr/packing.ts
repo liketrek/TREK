@@ -117,5 +117,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Ben de getirebilirim',
   'packing.alsoBringingStop': 'Getirmiyorum',
   'packing.cloneToMine': 'Listeme kopyala',
+  'packing.bagLimit': 'Ağırlık limiti',
+  'packing.setBagLimit': 'Limit belirle',
 };
 export default packing;

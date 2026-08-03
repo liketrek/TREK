@@ -208,5 +208,7 @@ const packing: TranslationStrings = {
   'packing.itemName': 'Nom',
   'packing.itemQuantity': 'Quantitat',
   'packing.itemWeight': 'Pes (g)',
+  'packing.bagLimit': 'Límit de pes',
+  'packing.setBagLimit': 'Defineix un límit',
 };
 export default packing;

@@ -206,5 +206,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': '저도 가져갈 수 있어요',
   'packing.alsoBringingStop': '안 가져갈게요',
   'packing.cloneToMine': '내 목록으로 복사',
+  'packing.bagLimit': '무게 제한',
+  'packing.setBagLimit': '제한 설정',
 };
 export default packing;

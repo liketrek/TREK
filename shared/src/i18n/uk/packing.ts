@@ -206,5 +206,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Я теж можу принести',
   'packing.alsoBringingStop': 'Я не принесу',
   'packing.cloneToMine': 'Копіювати до мого списку',
+  'packing.bagLimit': 'Обмеження ваги',
+  'packing.setBagLimit': 'Задати ліміт',
 };
 export default packing;

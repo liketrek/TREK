@@ -206,5 +206,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'يمكنني إحضاره أيضًا',
   'packing.alsoBringingStop': 'لن أحضره',
   'packing.cloneToMine': 'نسخ إلى قائمتي',
+  'packing.bagLimit': 'حد الوزن',
+  'packing.setBagLimit': 'تعيين حد',
 };
 export default packing;
