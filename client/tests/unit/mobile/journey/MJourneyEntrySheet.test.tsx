@@ -57,7 +57,7 @@ describe('MJourneyEntrySheet quick capture', () => {
     });
     const { props } = setup();
 
-    await waitFor(() => expect(mapsApi.reverse).toHaveBeenCalledWith(1.3521, 103.8198));
+    await waitFor(() => expect(mapsApi.reverse).toHaveBeenCalledWith(1.3521, 103.8198, 'en'));
     expect(weatherApi.getCurrent).toHaveBeenCalledWith(1.3521, 103.8198, 'en');
     await waitFor(() => expect(screen.getByDisplayValue('Singapore')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -115,12 +115,15 @@ describe('MJourneyEntrySheet quick capture', () => {
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
-        getCurrentPosition: vi.fn((_success, failure) => failure({ message: 'Permission denied' })),
+        getCurrentPosition: vi.fn((_success, failure) => failure({
+          code: 1, message: 'Permission denied',
+          PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3,
+        })),
       },
     });
     const { props } = setup();
 
-    expect(await screen.findByText('Permission denied')).toBeInTheDocument();
+    expect(await screen.findByText('Location access was denied. Allow it in your browser settings and try again.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() =>
@@ -839,11 +842,11 @@ describe('MJourneyEntrySheet quick capture edge cases', () => {
     vi.restoreAllMocks();
   });
 
-  it('FE-MOB-JENTRY-031: falls back to a generic error when the device has no geolocation', () => {
+  it('FE-MOB-JENTRY-031: shows a translated error when the device has no geolocation', async () => {
     Object.defineProperty(navigator, 'geolocation', { configurable: true, value: undefined });
     mountSheet(buildEntry({ entry_time: '09:07' }), { quickCapture: true });
 
-    expect(screen.getByText('Error')).toBeInTheDocument();
+    expect(await screen.findByText('Could not determine your location.')).toBeInTheDocument();
   });
 
   it('FE-MOB-JENTRY-032: skips the location lookup when the entry already has coordinates', () => {
@@ -937,13 +940,50 @@ describe('MJourneyEntrySheet quick capture edge cases', () => {
     expect(await screen.findByDisplayValue('Fresh')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Stale')).not.toBeInTheDocument();
 
-    // The abandoned watcher must not be able to paint an error either, and a
-    // failure without a message falls back to the generic label.
+    // Late failures must not paint anything: the stale lookup was abandoned
+    // by the effect restart, and the fresh lookup's one-shot promise already
+    // resolved with a position, so a trailing error callback is a no-op.
     await act(async () => {
       failures[0]({ message: 'stale failure' } as GeolocationPositionError);
       failures[1]({ message: '' } as GeolocationPositionError);
     });
     expect(screen.queryByText('stale failure')).not.toBeInTheDocument();
-    expect(screen.getByText('Error')).toBeInTheDocument();
+    expect(screen.queryByText('Could not determine your location.')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Location access was denied/)).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-039: the location field button fills the device position and reverse geocodes it', async () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn((s: PositionCallback) =>
+          s({ coords: { latitude: 41.9, longitude: 12.5 } } as GeolocationPosition)),
+      },
+    });
+    vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: 'Colosseum', address: 'Rome, Italy' });
+    mountSheet(buildEntry());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use my current location' }));
+
+    expect(await screen.findByDisplayValue('Colosseum')).toBeInTheDocument();
+    expect(mapsApi.reverse).toHaveBeenCalledWith(41.9, 12.5, 'en');
+  });
+
+  it('FE-MOB-JENTRY-040: the location field button surfaces a translated denial inline', async () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn((_s: PositionCallback, e: PositionErrorCallback) =>
+          e({
+            code: 1, message: 'denied',
+            PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3,
+          } as GeolocationPositionError)),
+      },
+    });
+    mountSheet(buildEntry());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use my current location' }));
+
+    expect(await screen.findByText('Location access was denied. Allow it in your browser settings and try again.')).toBeInTheDocument();
   });
 });
