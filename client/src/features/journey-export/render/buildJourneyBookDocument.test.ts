@@ -7,6 +7,7 @@ vi.mock('marked', () => ({
 }))
 
 import { buildJourneyBookDocument } from './buildJourneyBookDocument'
+import { createJourneyExportModel } from '../model/journeyExportModel'
 import type { JourneyDetail } from '../../../store/journeyStore'
 
 function buildJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
@@ -46,7 +47,7 @@ function buildJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
 
 describe('buildJourneyBookDocument', () => {
   it('builds a complete document and estimates cover, entry, and closing pages', () => {
-    const result = buildJourneyBookDocument(buildJourney())
+    const result = buildJourneyBookDocument(createJourneyExportModel(buildJourney()))
 
     expect(result.html).toContain('<!DOCTYPE html>')
     expect(result.html).toContain('Iceland Ring Road')
@@ -75,14 +76,14 @@ describe('buildJourneyBookDocument', () => {
       ],
     })
 
-    const result = buildJourneyBookDocument(journey)
+    const result = buildJourneyBookDocument(createJourneyExportModel(journey))
 
     expect(result.html).not.toContain('Not published')
     expect(result.estimatedPageCount).toBe(3)
   })
 
   it('preserves the original English labels and Inter font', () => {
-    const result = buildJourneyBookDocument(buildJourney())
+    const result = buildJourneyBookDocument(createJourneyExportModel(buildJourney()))
 
     expect(result.html).toContain('Journey Book')
     expect(result.html).toContain('Day 1')

@@ -16,10 +16,13 @@ afterEach(() => {
 })
 
 describe('showJourneyExportPreview', () => {
-  it('renders the document with its default, escaped preview labels', () => {
+  it('renders the document with supplied, escaped preview labels', () => {
     showJourneyExportPreview({
       title: '<img src=x onerror=alert(1)> Iceland',
       document: exportDocument,
+      saveLabel: 'Save as PDF',
+      closeLabel: 'Close',
+      pagesLabel: 'pages',
     })
 
     const preview = overlay()
@@ -50,7 +53,13 @@ describe('showJourneyExportPreview', () => {
     preview.querySelector<HTMLButtonElement>('#journey-pdf-close')!.click()
     expect(document.getElementById('journey-pdf-overlay')).toBeNull()
 
-    showJourneyExportPreview({ title: 'Iceland Ring Road', document: exportDocument })
+    showJourneyExportPreview({
+      title: 'Iceland Ring Road',
+      document: exportDocument,
+      saveLabel: 'Save as PDF',
+      closeLabel: 'Close',
+      pagesLabel: 'pages',
+    })
     overlay().click()
     expect(document.getElementById('journey-pdf-overlay')).toBeNull()
   })

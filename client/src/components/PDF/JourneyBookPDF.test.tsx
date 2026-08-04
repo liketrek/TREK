@@ -1,6 +1,6 @@
 // FE-COMP-JOURNEYPDF-001 to FE-COMP-JOURNEYPDF-006
 //
-// JourneyBookPDF.tsx exports an async function `downloadJourneyBookPDF(journey)`
+// JourneyBookPDF.tsx exports an async function `downloadJourneyBookPDF(journey, t)`
 // that renders a PDF preview in an srcdoc iframe overlay (Safari-safe pattern).
 // Tests verify the overlay DOM structure and HTML content.
 
@@ -87,6 +87,12 @@ function getIframe(): HTMLIFrameElement | null {
   return getOverlay()?.querySelector('iframe') ?? null;
 }
 
+const t = (key: string) => ({
+  'journey.pdf.saveAsPdf': 'Save as PDF',
+  'common.close': 'Close',
+  'journey.pdf.pages': 'pages',
+}[key] ?? key);
+
 // ── Setup ────────────────────────────────────────────────────────────────────
 
 afterEach(() => {
@@ -98,13 +104,13 @@ afterEach(() => {
 
 describe('downloadJourneyBookPDF', () => {
   it('FE-COMP-JOURNEYPDF-001: appends overlay to document body', async () => {
-    await downloadJourneyBookPDF(buildJourney());
+    await downloadJourneyBookPDF(buildJourney(), t);
     expect(getOverlay()).not.toBeNull();
     expect(document.body.contains(getOverlay())).toBe(true);
   });
 
   it('FE-COMP-JOURNEYPDF-002: overlay contains an iframe with srcdoc HTML', async () => {
-    await downloadJourneyBookPDF(buildJourney());
+    await downloadJourneyBookPDF(buildJourney(), t);
     const iframe = getIframe();
     expect(iframe).not.toBeNull();
     const html = iframe!.srcdoc;
@@ -113,20 +119,31 @@ describe('downloadJourneyBookPDF', () => {
   });
 
   it('FE-COMP-JOURNEYPDF-003: overlay has close and save buttons', async () => {
-    await downloadJourneyBookPDF(buildJourney());
+    await downloadJourneyBookPDF(buildJourney(), t);
     const overlay = getOverlay()!;
     expect(overlay.querySelector('#journey-pdf-close')).not.toBeNull();
     expect(overlay.querySelector('#journey-pdf-save')).not.toBeNull();
   });
 
+  it('uses the caller translation function for every preview label', async () => {
+    const translate = vi.fn((key: string) => `translated:${key}`);
+
+    await downloadJourneyBookPDF(buildJourney(), translate);
+
+    expect(translate).toHaveBeenCalledWith('journey.pdf.saveAsPdf');
+    expect(translate).toHaveBeenCalledWith('common.close');
+    expect(translate).toHaveBeenCalledWith('journey.pdf.pages');
+    expect(getOverlay()!.textContent).toContain('translated:journey.pdf.pages');
+  });
+
   it('FE-COMP-JOURNEYPDF-004: HTML contains the journey title', async () => {
-    await downloadJourneyBookPDF(buildJourney());
+    await downloadJourneyBookPDF(buildJourney(), t);
     const html = getIframe()!.srcdoc;
     expect(html).toContain('Iceland Ring Road');
   });
 
   it('FE-COMP-JOURNEYPDF-005: HTML contains entry content', async () => {
-    await downloadJourneyBookPDF(buildJourney());
+    await downloadJourneyBookPDF(buildJourney(), t);
     const html = getIframe()!.srcdoc;
     expect(html).toContain('Golden Circle');
     // Story text is rendered via markdown
@@ -138,7 +155,7 @@ describe('downloadJourneyBookPDF', () => {
 
   it('FE-COMP-JOURNEYPDF-006: handles empty entries gracefully', async () => {
     const journey = buildJourney({ entries: [] });
-    await downloadJourneyBookPDF(journey);
+    await downloadJourneyBookPDF(journey, t);
     expect(getOverlay()).not.toBeNull();
     const html = getIframe()!.srcdoc;
     expect(html).toContain('Iceland Ring Road');
@@ -150,7 +167,7 @@ describe('downloadJourneyBookPDF', () => {
   it('FE-COMP-JOURNEYPDF-007: sanitises HTML injected via an entry story and keeps the iframe script-free', async () => {
     const journey = buildJourney();
     journey.entries[0].story = 'Hello <script>alert(1)</script> <img src=x onerror="alert(2)"> world';
-    await downloadJourneyBookPDF(journey);
+    await downloadJourneyBookPDF(journey, t);
     const iframe = getIframe()!;
     const html = iframe.srcdoc;
 

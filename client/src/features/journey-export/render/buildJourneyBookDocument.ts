@@ -1,8 +1,9 @@
-// Legacy Journey Book document renderer. Keeping this pure makes layout rules
-// independently testable and lets the preview UI evolve without changing print output.
 import { marked } from 'marked'
 import { sanitizeRichTextHtml } from '@trek/shared'
-import type { JourneyDetail, JourneyEntry, JourneyPhoto } from '../../../store/journeyStore'
+import type { JourneyExportEntry, JourneyExportModel, JourneyExportPhoto } from '../model/journeyExportModel'
+
+// Legacy Journey Book document renderer. Keeping this pure makes layout rules
+// independently testable and lets the preview UI evolve without changing print output.
 
 export interface JourneyBookDocument {
   html: string
@@ -27,8 +28,8 @@ function abs(url: string | null | undefined): string {
   return window.location.origin + (url.startsWith('/') ? '' : '/') + url
 }
 
-function pSrc(p: JourneyPhoto): string {
-  return abs(`/api/photos/${p.photo_id}/original`)
+function pSrc(photo: JourneyExportPhoto): string {
+  return abs(`/api/photos/${photo.photo_id}/original`)
 }
 
 function fmtDate(d: string): string {
@@ -36,8 +37,8 @@ function fmtDate(d: string): string {
   return date.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-function groupByDate(entries: JourneyEntry[]): Map<string, JourneyEntry[]> {
-  const groups = new Map<string, JourneyEntry[]>()
+function groupByDate(entries: JourneyExportEntry[]): Map<string, JourneyExportEntry[]> {
+  const groups = new Map<string, JourneyExportEntry[]>()
   for (const e of entries) {
     if (!e.entry_date) continue
     if (!groups.has(e.entry_date)) groups.set(e.entry_date, [])
@@ -46,7 +47,7 @@ function groupByDate(entries: JourneyEntry[]): Map<string, JourneyEntry[]> {
   return groups
 }
 
-function renderProscons(entry: JourneyEntry): string {
+function renderProscons(entry: JourneyExportEntry): string {
   const pc = entry.pros_cons
   if (!pc) return ''
   const pros = pc.pros?.filter(p => p.trim()) || []
@@ -59,7 +60,7 @@ function renderProscons(entry: JourneyEntry): string {
   </div></div>`
 }
 
-function renderPhotoBlock(photos: JourneyPhoto[]): string {
+function renderPhotoBlock(photos: JourneyExportPhoto[]): string {
   if (photos.length === 0) return ''
   if (photos.length === 1) {
     return `<div class="entry-photo-single"><img src="${pSrc(photos[0])}" /></div>`
@@ -77,10 +78,10 @@ function renderPhotoBlock(photos: JourneyPhoto[]): string {
   </div>`
 }
 
-export function buildJourneyBookDocument(journey: JourneyDetail): JourneyBookDocument {
-  const entries = (journey.entries || []).filter(e => e.type !== 'skeleton')
+export function buildJourneyBookDocument(journey: JourneyExportModel): JourneyBookDocument {
+  const entries = journey.entries
   const allPhotos = entries.flatMap(e => e.photos || [])
-  const coverUrl = journey.cover_image ? abs(`/uploads/${journey.cover_image}`) : (allPhotos[0] ? pSrc(allPhotos[0]) : '')
+  const coverUrl = journey.coverImage ? abs(`/uploads/${journey.coverImage}`) : (allPhotos[0] ? pSrc(allPhotos[0]) : '')
 
   const grouped = groupByDate(entries)
   const dates = [...grouped.keys()].sort()
