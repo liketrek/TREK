@@ -222,6 +222,7 @@ describe('CostsPanel — settlements in the ledger', () => {
   })
 
   it('records a recorded-total expense with nobody to split with (#1286)', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
     let posted: Record<string, unknown> | null = null
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
@@ -239,11 +240,12 @@ describe('CostsPanel — settlements in the ledger', () => {
     await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Hotel')
     await user.type(screen.getAllByPlaceholderText('0,00')[0], '120') // total only, paid on-site later
 
-    // Deselect everyone — the cost is recorded without a split (the bug: this was blocked).
-    // The participant toggles are buttons; the same names also appear as plain text in
-    // the Balances sidebar, so target the buttons specifically.
-    await user.click(screen.getByRole('button', { name: /alice/i }))
-    await user.click(screen.getByRole('button', { name: /bob/i }))
+    // Deselect everyone so the cost carries no split, and mark it as unpaid: a picked
+    // payer now always goes out (#1766), so "nobody paid" must be said explicitly.
+    await user.click(screen.getByRole('button', { name: 'Y You' }))
+    await user.click(screen.getByRole('button', { name: 'B bob' }))
+    await user.click(screen.getByRole('button', { name: 'You' })) // open the Who-paid select
+    pickOption('No one paid yet')
 
     const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
     const submit = addBtns[addBtns.length - 1] // footer submit
@@ -254,6 +256,40 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(posted!.total_price).toBe(120)
     expect(posted!.member_ids).toEqual([])
     expect(posted!.payers).toEqual([])
+  })
+
+  it('keeps a picked payer when nobody splits the expense (#1766)', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Flight' }), id: 11 } })
+      }),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Flight')
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '100')
+
+    // A personal expense: alice (the default "You" payer) fronted it, but nobody shares
+    // the split. The web used to drop the payer once no participants remained.
+    await user.click(screen.getByRole('button', { name: 'Y You' }))
+    await user.click(screen.getByRole('button', { name: 'B bob' }))
+
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
+    const submit = addBtns[addBtns.length - 1] // footer submit
+    expect(submit).not.toBeDisabled()
+    await user.click(submit)
+
+    await waitFor(() => expect(posted).toBeTruthy())
+    expect(posted!.member_ids).toEqual([])
+    expect(posted!.payers).toEqual([{ user_id: 1, amount: 100 }])
   })
 
   it('keeps "no one paid yet" when reopening a payer-less expense (#1533)', async () => {
