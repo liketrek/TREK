@@ -1,5 +1,16 @@
 import type { JourneyEntry } from '../../store/journeyStore'
 import { GRADIENTS } from './JourneyDetailPage.constants'
+import { GeoOnceError } from '../../hooks/useGeolocation'
+
+// Shared by the desktop entry editor and the mobile entry sheet so a failed
+// one-shot position fix surfaces the same translated message everywhere.
+export function geoOnceErrorKey(err: unknown): string {
+  const code = err instanceof GeoOnceError ? err.code : 'unavailable'
+  return code === 'permission-denied' ? 'journey.editor.locationPermissionDenied'
+    : code === 'timeout' ? 'journey.editor.locationTimeout'
+    : code === 'insecure-context' ? 'journey.editor.locationInsecureContext'
+    : 'journey.editor.locationUnavailable'
+}
 
 export function pickGradient(id: number): string {
   return GRADIENTS[id % GRADIENTS.length]

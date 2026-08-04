@@ -5,11 +5,11 @@ import { type ResilientResult, type UploadProgress } from '../../utils/uploadQue
 import { useTranslation } from '../../i18n'
 import { journeyApi, mapsApi, addonsApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
-import { getCurrentPositionOnce, GeoOnceError } from '../../hooks/useGeolocation'
+import { getCurrentPositionOnce } from '../../hooks/useGeolocation'
 import { getApiErrorMessage } from '../../types'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
-import { photoUrl, isValidGeoPoint } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
+import { photoUrl, isValidGeoPoint, geoOnceErrorKey } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import MarkdownToolbar from './MarkdownToolbar'
 import { DatePicker } from './JourneyDetailPageDatePicker'
 import { ProviderPicker, type ProviderPhotoGroup } from './JourneyDetailPageProviderPicker'
@@ -222,12 +222,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
         if (name) setLocationName(prev => (prev === fallbackName ? name : prev))
       } catch { /* best effort — keep the coordinate fallback */ }
     } catch (err) {
-      const code = err instanceof GeoOnceError ? err.code : 'unavailable'
-      toast.error(
-        code === 'permission-denied' ? t('journey.editor.locationPermissionDenied')
-          : code === 'timeout' ? t('journey.editor.locationTimeout')
-          : code === 'insecure-context' ? t('journey.editor.locationInsecureContext')
-          : t('journey.editor.locationUnavailable'))
+      toast.error(t(geoOnceErrorKey(err)))
     } finally {
       setLocating(false)
     }

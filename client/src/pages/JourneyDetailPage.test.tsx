@@ -3940,5 +3940,59 @@ describe('JourneyDetailPage', () => {
         );
       });
     });
+
+    it('keeps a search result picked while the reverse geocode is in flight', async () => {
+      stubGeoSuccess();
+      let releaseReverse!: () => void;
+      const reverseGate = new Promise<void>(resolve => { releaseReverse = resolve; });
+      let reverseReturned = false;
+      server.use(
+        http.get('/api/maps/reverse', async () => {
+          await reverseGate;
+          reverseReturned = true;
+          return HttpResponse.json({ name: 'Colosseum', address: 'Rome, Italy' });
+        }),
+        http.post('/api/maps/search', () => {
+          return HttpResponse.json({
+            places: [{ name: 'Vatican City', address: 'Vatican, Rome', lat: 41.9, lng: 12.45 }],
+            source: 'osm',
+          });
+        }),
+      );
+
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await renderAndWait();
+      await openEntryEditor(user);
+
+      await user.click(screen.getByRole('button', { name: 'Use my current location' }));
+
+      const locationInput = screen.getByPlaceholderText('Search location...');
+      await waitFor(() => {
+        expect(locationInput).toHaveValue('41.90000, 12.50000');
+      });
+
+      // With the reverse geocode still pending, search for and pick a place
+      await user.type(locationInput, 'Vatican');
+      vi.advanceTimersByTime(500);
+      await waitFor(() => {
+        expect(screen.getByText('Vatican City')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('Vatican City'));
+      await waitFor(() => {
+        expect(locationInput).toHaveValue('Vatican City');
+      });
+
+      // Now let the reverse geocode land; it must not overwrite the pick.
+      // If the guard regresses, the input flips to 'Colosseum' and the
+      // inner waitFor resolves, failing the rejects assertion.
+      releaseReverse();
+      await waitFor(() => {
+        expect(reverseReturned).toBe(true);
+      });
+      await expect(
+        waitFor(() => expect(locationInput).toHaveValue('Colosseum'), { timeout: 300 }),
+      ).rejects.toThrow();
+      expect(locationInput).toHaveValue('Vatican City');
+    });
   });
 });

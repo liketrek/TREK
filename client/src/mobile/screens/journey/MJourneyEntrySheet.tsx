@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Plus, Image, X, MapPin, Trash2, CheckCircle2, MinusCircle } from 'lucide-react'
+import { Camera, Plus, Image, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import { useTranslation } from '../../../i18n'
@@ -7,9 +7,10 @@ import { useToast } from '../../../components/shared/Toast'
 import { journeyApi, mapsApi, weatherApi } from '../../../api/client'
 import { getApiErrorMessage } from '../../../types'
 import { normalizeImageFiles } from '../../../utils/convertHeic'
+import { getCurrentPositionOnce } from '../../../hooks/useGeolocation'
 import type { ResilientResult, UploadProgress } from '../../../utils/uploadQueue'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto } from '../../../store/journeyStore'
-import { photoUrl } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
+import { photoUrl, geoOnceErrorKey } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import JournalBody from '../../../components/Journey/JournalBody'
 import { journeyWeatherCategory, MOBILE_MOODS, MOBILE_WEATHERS } from './mobileJourneyMeta'
 
@@ -43,7 +44,7 @@ interface MJourneyEntrySheetProps {
 export default function MJourneyEntrySheet({
   entry, galleryPhotos, quickCapture = false, readOnly = false, onClose, onSave, onUploadPhotos, onDelete, onDone,
 }: MJourneyEntrySheetProps) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const toast = useToast()
 
   const [title, setTitle] = useState(entry.title || '')
@@ -77,40 +78,35 @@ export default function MJourneyEntrySheet({
 
   useEffect(() => {
     if (!quickCapture || readOnly || entry.location_lat != null || entry.location_lng != null) return
-    if (!navigator.geolocation) {
-      setLocationError(t('common.error'))
-      return
-    }
 
     let active = true
     setLocating(true)
-    navigator.geolocation.getCurrentPosition(async position => {
-      const lat = position.coords.latitude
-      const lng = position.coords.longitude
-      if (!active) return
-      setLocationLat(lat)
-      setLocationLng(lng)
+    getCurrentPositionOnce({ enableHighAccuracy: true, maximumAge: 60_000, timeout: 10_000 })
+      .then(async pos => {
+        if (!active) return
+        setLocationLat(pos.lat)
+        setLocationLng(pos.lng)
 
-      const [placeResult, weatherResult] = await Promise.allSettled([
-        mapsApi.reverse(lat, lng),
-        weatherApi.getCurrent(lat, lng, 'en'),
-      ])
-      if (!active) return
-      if (placeResult.status === 'fulfilled') {
-        setLocationName(placeResult.value.name || placeResult.value.address || '')
-      }
-      if (weatherResult.status === 'fulfilled' && !weatherResult.value.error) {
-        setWeather(current => current || journeyWeatherCategory(weatherResult.value.main, weatherResult.value.description))
-      }
-      setLocating(false)
-    }, error => {
-      if (!active) return
-      setLocationError(error.message || t('common.error'))
-      setLocating(false)
-    }, { enableHighAccuracy: true, maximumAge: 60_000, timeout: 10_000 })
+        const [placeResult, weatherResult] = await Promise.allSettled([
+          mapsApi.reverse(pos.lat, pos.lng, language),
+          weatherApi.getCurrent(pos.lat, pos.lng, 'en'),
+        ])
+        if (!active) return
+        if (placeResult.status === 'fulfilled') {
+          setLocationName(placeResult.value.name || placeResult.value.address || '')
+        }
+        if (weatherResult.status === 'fulfilled' && !weatherResult.value.error) {
+          setWeather(current => current || journeyWeatherCategory(weatherResult.value.main, weatherResult.value.description))
+        }
+        setLocating(false)
+      }, err => {
+        if (!active) return
+        setLocationError(t(geoOnceErrorKey(err)))
+        setLocating(false)
+      })
 
     return () => { active = false }
-  }, [quickCapture, readOnly, entry.location_lat, entry.location_lng, entry.entry_date, t])
+  }, [quickCapture, readOnly, entry.location_lat, entry.location_lng, entry.entry_date, t, language])
 
   const isDirty =
     title !== (entry.title || '') ||
@@ -203,6 +199,36 @@ export default function MJourneyEntrySheet({
         setLocationResults([])
       }
     }, 400)
+  }
+
+  const handleUseCurrentLocation = async () => {
+    if (locating) return
+    setLocating(true)
+    setLocationError('')
+    try {
+      const pos = await getCurrentPositionOnce()
+      // Fill coordinates right away; the name is refined below once the
+      // reverse geocode comes back.
+      const fallbackName = `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`
+      if (locationTimerRef.current) clearTimeout(locationTimerRef.current)
+      setLocationLat(pos.lat)
+      setLocationLng(pos.lng)
+      setLocationName(fallbackName)
+      setLocationQuery('')
+      setLocationResults([])
+      setShowLocationResults(false)
+      try {
+        const data = await mapsApi.reverse(pos.lat, pos.lng, language)
+        const name = data.name || data.address
+        // Only replace the coordinate fallback — don't clobber a search
+        // result the user may have picked while the reverse call was in flight.
+        if (name) setLocationName(prev => (prev === fallbackName ? name : prev))
+      } catch { /* best effort — keep the coordinate fallback */ }
+    } catch (err) {
+      setLocationError(t(geoOnceErrorKey(err)))
+    } finally {
+      setLocating(false)
+    }
   }
 
   const addTag = () => {
@@ -510,6 +536,19 @@ export default function MJourneyEntrySheet({
               className="min-w-0 flex-1 bg-transparent font-geist text-[0.75rem] text-m-ink outline-none placeholder:text-m-faint"
             />
             {locationLat != null && <MapPin size={13} className="flex-none text-m-muted" />}
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                disabled={locating}
+                aria-label={t('journey.editor.useCurrentLocation')}
+                className="flex-none p-1 -m-1 text-m-muted disabled:opacity-50"
+              >
+                {locating
+                  ? <span className="block h-[13px] w-[13px] animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-muted" />
+                  : <Locate size={13} strokeWidth={2.2} />}
+              </button>
+            )}
           </div>
           {showLocationResults && locationResults.length > 0 && (
             <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-[200px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_16px_40px_-18px_rgba(0,0,0,.5)]">
