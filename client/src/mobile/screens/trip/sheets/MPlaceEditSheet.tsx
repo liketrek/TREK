@@ -187,8 +187,10 @@ export default function MPlaceEditSheet({ planner }: MPlaceEditSheetProps) {
     }
   }
 
+  // End before start blocks the save — tied to the values, not to which entry
+  // point opened the sheet.
   const hasTimeError = Boolean(
-    sheetPlace && form.place_time && form.end_time &&
+    form.place_time && form.end_time &&
     form.place_time.length >= 5 && form.end_time.length >= 5 &&
     form.end_time <= form.place_time,
   )

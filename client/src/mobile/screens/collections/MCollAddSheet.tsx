@@ -6,7 +6,7 @@ import { mapsApi } from '../../../api/client'
 import { collectionsApi } from '../../../api/collections'
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
-import { getApiErrorMessage } from '../../../types'
+import { getApiErrorMessage } from '../../../utils/apiError'
 import { STATUS_ORDER } from '../../../pages/collections/collectionsModel'
 import MSheet from '../../components/MSheet'
 import MCollCategoryPicker from './MCollCategoryPicker'
@@ -51,14 +51,18 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
   useEffect(() => {
     if (open) return
     setQuery(''); setResults([]); setPicked(null); setName(''); setCategoryId(null); setStatus('idea'); setDescription('')
+    setTargetId(null)
   }, [open])
 
   // Opened from a specific list → target is fixed; from "All Saved" (no active
   // list) → default to the sole list if there is one, else pick it in-sheet.
+  // The lists may still be loading when the sheet opens, so the default is
+  // applied again once they arrive — without overruling a pick already made.
   useEffect(() => {
-    if (open) setTargetId(collectionId ?? (lists.length === 1 ? lists[0].id : null))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, collectionId])
+    if (!open) return
+    if (collectionId != null) { setTargetId(collectionId); return }
+    setTargetId(prev => (prev != null && lists.some(l => l.id === prev) ? prev : (lists.length === 1 ? lists[0].id : null)))
+  }, [open, collectionId, lists])
 
   const search = async () => {
     if (!query.trim() || searching) return

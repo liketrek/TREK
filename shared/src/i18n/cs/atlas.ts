@@ -54,5 +54,9 @@ const atlas: TranslationStrings = {
   'atlas.placeVisited': 'Navštívené místo',
   'atlas.placesVisited': 'Navštívená místa',
   'atlas.searchCountry': 'Hledat zemi...',
+  'atlas.planned': 'Plánováno',
+  'atlas.showPlanned': 'Zobrazit plánované země',
+  'atlas.plannedFor': 'Plánováno na',
+  'atlas.antarctica': 'Antarktida',
 };
 export default atlas;

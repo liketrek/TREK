@@ -28,29 +28,31 @@ const { testDb, dbMock } = vi.hoisted(() => {
   return { testDb: db, dbMock: mock };
 });
 
-const { geocodeMock, planMock, broadcastMock, notifyBookingChangeMock } = vi.hoisted(() => ({
-  geocodeMock: vi.fn(),
-  planMock: vi.fn(),
+const { broadcastMock } = vi.hoisted(() => ({
   broadcastMock: vi.fn(),
-  notifyBookingChangeMock: vi.fn(),
 }));
 
 vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/services/transitService', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../src/services/transitService')>()),
-  geocode: geocodeMock,
-  plan: planMock,
-}));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-vi.mock('../../../src/nest/reservations/reservations.bridge', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../src/nest/reservations/reservations.bridge')>()),
-  notifyBookingChange: notifyBookingChangeMock,
-}));
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
 }));
+
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import { TransitService } from '../../../src/nest/transit/transit.service';
+
+// The transit tools live on the DI-discovered transit.mcp.ts since the transit
+// fold; the test registry builds a real TransitService (and injects a real
+// ReservationsService over the mocked db proxy), so stub the provider methods
+// on the prototype (no auto-restore in the vitest config — these survive
+// across tests, exactly like the old module mocks did).
+const geocodeMock = vi.spyOn(TransitService.prototype, 'geocode');
+const planMock = vi.spyOn(TransitService.prototype, 'plan');
+const notifyBookingChangeMock = vi
+  .spyOn(ReservationsService.prototype, 'notifyBookingChange')
+  .mockImplementation(() => {});
 
 const from = { name: 'Namba', lat: 34.667, lng: 135.501 };
 const to = { name: 'Umeda', lat: 34.702, lng: 135.496 };
@@ -118,7 +120,8 @@ beforeEach(() => {
   geocodeMock.mockReset();
   planMock.mockReset();
   broadcastMock.mockReset();
-  notifyBookingChangeMock.mockReset();
+  // mockReset would fall back to the real notification write — keep it stubbed.
+  notifyBookingChangeMock.mockReset().mockImplementation(() => {});
   delete process.env.DEMO_MODE;
   invalidatePermissionsCache();
 });

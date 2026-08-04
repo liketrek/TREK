@@ -165,9 +165,9 @@ export default function NotificationsTab(): React.ReactElement {
       await settingsApi.setBulk({
         ntfy_topic: ntfyTopic,
         ntfy_server: ntfyServer,
-        ...(ntfyToken && ntfyToken !== '••••••••' ? { ntfy_token: ntfyToken } : {}),
+        ...(ntfyToken ? { ntfy_token: ntfyToken } : {}),
       })
-      if (ntfyToken && ntfyToken !== '••••••••') setNtfyTokenIsSet(true)
+      if (ntfyToken) setNtfyTokenIsSet(true)
       toast.success(t('settings.ntfyUrl.saved'))
     } catch {
       toast.error(t('common.error'))
@@ -194,7 +194,9 @@ export default function NotificationsTab(): React.ReactElement {
       const result = await notificationsApi.testNtfy({
         topic: ntfyTopic,
         server: ntfyServer || null,
-        token: ntfyToken && ntfyToken !== '••••••••' ? ntfyToken : null,
+        // A stored token is only masked in the placeholder, never in state — sending
+        // null makes the server fall back to the saved one.
+        token: ntfyToken || null,
       })
       if (result.success) toast.success(t('settings.ntfyUrl.testSuccess'))
       else toast.error(result.error || t('settings.ntfyUrl.testFailed'))

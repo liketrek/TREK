@@ -76,6 +76,21 @@ describe('ConfirmDialog', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it('FE-COMP-CONFIRM-009: a rejecting async onConfirm does not escape as an unhandled rejection', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    const failing = vi.fn(() => Promise.reject(new Error('delete failed')));
+
+    render(<ConfirmDialog isOpen={true} onClose={onClose} onConfirm={failing} />);
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }));
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(failing).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(unhandled).not.toHaveBeenCalled();
+    process.off('unhandledRejection', unhandled);
+  });
+
   it('FE-COMP-CONFIRM-008: clicking backdrop calls onClose', async () => {
     const user = userEvent.setup();
     render(<ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} message="msg" />);

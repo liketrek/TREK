@@ -20,14 +20,16 @@ vi.mock('../../../src/services/apiKeyCrypto', () => ({ decrypt_api_key: (v: stri
 const { sendMailMock } = vi.hoisted(() => ({ sendMailMock: vi.fn().mockResolvedValue({ accepted: ['a@b.c'] }) }));
 vi.mock('nodemailer', () => ({ default: { createTransport: vi.fn(() => ({ sendMail: sendMailMock, verify: vi.fn() })) } }));
 vi.stubGlobal('fetch', vi.fn());
-vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
+vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../../src/utils/ssrfGuard', () => ({ checkSsrf: vi.fn(async () => ({ allowed: true, resolvedIp: '1.2.3.4' })), createPinnedDispatcher: vi.fn(() => ({})) }));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, setAppSetting, setNotificationChannels } from '../../helpers/factories';
-import { send } from '../../../src/services/notificationService';
+// The send dispatcher is DI-native since the notifications fold; drive it
+// through the same outside-container entry point the scheduler uses.
+import { send } from '../../../src/nest/notifications/notifications.bridge';
 import { getPreferencesMatrix } from '../../../src/services/notificationPreferencesService';
 import {
   setPluginChannelSource,

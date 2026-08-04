@@ -26,7 +26,16 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { PLACE_IMAGE_UPLOAD } from '../common/place-image-upload';
 import { placeImageUrl } from '../../services/placeImage';
 import { isDemoEmail } from '../../services/demo';
-import { PlaceRatingDto } from './places.dto';
+import {
+  PlaceBulkDeleteDto,
+  PlaceBulkUpdateDto,
+  PlaceCreateDto,
+  PlaceImportGpxDto,
+  PlaceImportListDto,
+  PlaceImportMapDto,
+  PlaceRatingDto,
+  PlaceUpdateDto,
+} from './places.dto';
 
 const STRING_LIMITS: Record<string, number> = { name: 200, description: 2000, address: 500, notes: 2000 };
 const UPLOAD = { storage: memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } };
@@ -63,6 +72,16 @@ function parseBool(v: unknown, defaultVal: boolean): boolean {
  * bodies; the journey create/update/delete hooks; and WebSocket broadcasts with
  * the forwarded X-Socket-Id. The /import/* and /bulk-delete routes are declared
  * before /:id so the static segments win over the param.
+ *
+ * Bodies validate against the @trek/shared place schemas via the DTO classes in
+ * places.dto.ts + the global ZodValidationPipe (400 with the standard
+ * `{ error }` envelope on mismatch). That replaced three bespoke checks —
+ * 'Place name is required', 'ids must be an array of numbers' and
+ * 'URL is required' — and, because a pipe runs before the handler, a malformed
+ * body now 400s ahead of the trip-access 404 / permission 403 it used to follow.
+ * Same trade the todo and trips migrations took. The length and route_color
+ * guards below stay in the handler: the place body is a deliberately open
+ * record, so the pipe passes their inputs through untouched.
  */
 @Controller('api/trips/:tripId/places')
 @UseGuards(JwtAuthGuard)
@@ -99,16 +118,13 @@ export class PlacesController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: Record<string, unknown> & { name?: string },
+    @Body() body: PlaceCreateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     validateLengths(body);
     validateRouteColor(body);
     this.requireEdit(trip, user);
-    if (!body.name) {
-      throw new HttpException({ error: 'Place name is required' }, 400);
-    }
     const place = this.places.create(tripId, body as never);
     this.places.broadcast(tripId, 'place:created', { place }, socketId);
     this.places.onCreated(tripId, place.id);
@@ -121,7 +137,7 @@ export class PlacesController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @UploadedFile() file: Express.Multer.File | undefined,
-    @Body() body: Record<string, unknown>,
+    @Body() body: PlaceImportGpxDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
@@ -151,7 +167,7 @@ export class PlacesController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @UploadedFile() file: Express.Multer.File | undefined,
-    @Body() body: Record<string, unknown>,
+    @Body() body: PlaceImportMapDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
@@ -181,22 +197,20 @@ export class PlacesController {
   }
 
   @Post('import/google-list')
-  async importGoogle(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body('url') url: unknown, @Body('enrich') enrich: unknown, @Headers('x-socket-id') socketId?: string) {
-    return this.importList('google', user, tripId, url, enrich, socketId);
+  async importGoogle(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: PlaceImportListDto, @Headers('x-socket-id') socketId?: string) {
+    return this.importList('google', user, tripId, body, socketId);
   }
 
   @Post('import/naver-list')
-  async importNaver(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body('url') url: unknown, @Body('enrich') enrich: unknown, @Headers('x-socket-id') socketId?: string) {
-    return this.importList('naver', user, tripId, url, enrich, socketId);
+  async importNaver(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: PlaceImportListDto, @Headers('x-socket-id') socketId?: string) {
+    return this.importList('naver', user, tripId, body, socketId);
   }
 
   /** Shared google/naver list import — identical flow, different provider + error string. */
-  private async importList(provider: 'google' | 'naver', user: User, tripId: string, url: unknown, enrich: unknown, socketId?: string) {
+  private async importList(provider: 'google' | 'naver', user: User, tripId: string, body: PlaceImportListDto, socketId?: string) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!url || typeof url !== 'string') {
-      throw new HttpException({ error: 'URL is required' }, 400);
-    }
+    const { url, enrich } = body;
     // Opt-in: re-resolve each imported place via the Places API to fill in
     // photo / address / website / phone and persist a google_place_id (#886).
     const opts = { enrich: parseBool(enrich, false), userId: user.id };
@@ -224,18 +238,21 @@ export class PlacesController {
   bulkDelete(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body('ids') ids: unknown,
+    @Body() body: PlaceBulkDeleteDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!Array.isArray(ids) || ids.some((v) => typeof v !== 'number')) {
-      throw new HttpException({ error: 'ids must be an array of numbers' }, 400);
-    }
+    const { ids } = body;
     if (ids.length === 0) {
       return { deleted: [], count: 0 };
     }
-    for (const id of ids) this.places.onDeleted(id);
+    // Scope the ids to the trip before the hook: onPlaceDeleted keys on the
+    // place id alone, so an id from another trip would detach that trip's
+    // journey entries even though removeMany below refuses it. Still ahead of
+    // the DELETE — journey_entries.source_place_id is ON DELETE SET NULL, so
+    // afterwards there is nothing left to detach.
+    for (const id of this.places.scopedIds(tripId, ids)) this.places.onDeleted(id);
     const deleted = this.places.removeMany(tripId, ids);
     for (const id of deleted) {
       this.places.broadcast(tripId, 'place:deleted', { placeId: id }, socketId);
@@ -248,15 +265,12 @@ export class PlacesController {
   bulkUpdate(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { ids?: unknown; category_id?: unknown },
+    @Body() body: PlaceBulkUpdateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
     const { ids } = body;
-    if (!Array.isArray(ids) || ids.some((v) => typeof v !== 'number')) {
-      throw new HttpException({ error: 'ids must be an array of numbers' }, 400);
-    }
     if (ids.length === 0) {
       return { updated: [], count: 0 };
     }
@@ -364,7 +378,7 @@ export class PlacesController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: PlaceUpdateDto,
     @Headers('x-socket-id') socketId?: string,
     @Headers('x-base-updated-at') ifMatch?: string,
   ) {
@@ -391,7 +405,12 @@ export class PlacesController {
   remove(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    this.places.onDeleted(Number(id)); // sync before actual delete
+    // Scope the id to the trip before the hook (see bulkDelete), then sync the
+    // journey ahead of the actual delete.
+    if (!this.places.get(tripId, id)) {
+      throw new HttpException({ error: 'Place not found' }, 404);
+    }
+    this.places.onDeleted(Number(id));
     if (!this.places.remove(tripId, id)) {
       throw new HttpException({ error: 'Place not found' }, 404);
     }

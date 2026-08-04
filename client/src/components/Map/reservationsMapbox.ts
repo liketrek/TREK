@@ -102,7 +102,9 @@ interface TransportItem {
   waypoints: ReservationEndpoint[]
   type: TransportType
   arcs: [number, number][][]
-  primaryArc: [number, number][]
+  // Route ("VIE → LHR") and duration/distance line. Computed on every update but
+  // not drawn since the stats badge was dropped; computeDuration still guards the
+  // non-finite date that used to blank the trip (#1620).
   mainLabel: string | null
   subLabel: string | null
 }
@@ -136,8 +138,6 @@ function buildItems(reservations: Reservation[]): TransportItem[] {
       arcs.push(...segArcs)
       distanceKm += haversineKm([a.lat, a.lng], [b.lat, b.lng])
     }
-    const primaryIdx = arcs.reduce((best, seg, idx, all) => seg.length > all[best].length ? idx : best, 0)
-    const primaryArc = arcs[primaryIdx] ?? []
     const duration = computeDuration(from, to, r.reservation_time || null, r.reservation_end_time || null)
     const distance = `${Math.round(distanceKm)} km`
     const mainLabel = waypoints.every(w => w.code)
@@ -145,7 +145,7 @@ function buildItems(reservations: Reservation[]): TransportItem[] {
       : (from.code && to.code ? `${from.code} → ${to.code}` : null)
     const subParts = [duration, distance].filter(Boolean) as string[]
     const subLabel = subParts.length > 0 ? subParts.join(' · ') : null
-    out.push({ res: r, from, to, waypoints, type, arcs, primaryArc, mainLabel, subLabel })
+    out.push({ res: r, from, to, waypoints, type, arcs, mainLabel, subLabel })
   }
   return out
 }
@@ -165,32 +165,11 @@ function endpointMarkerHtml(type: TransportType, label: string | null): string {
   "><span style="display:inline-flex;align-items:center;">${svg}</span>${labelHtml}</div>`
 }
 
-function buildStatsHtml(mainLabel: string | null, subLabel: string | null): { html: string; width: number; height: number } {
-  const estWidth = Math.max(
-    mainLabel ? mainLabel.length * 6.5 : 0,
-    subLabel ? subLabel.length * 5.5 : 0,
-  ) + 22
-  const hasBoth = !!mainLabel && !!subLabel
-  const height = hasBoth ? 36 : 22
-  const main = mainLabel ? `<span style="font-size:12px;font-weight:700;line-height:1;display:block">${escapeHtml(mainLabel)}</span>` : ''
-  const sub = subLabel ? `<span style="font-size:10px;font-weight:500;line-height:1;opacity:0.85;display:block${hasBoth ? ';margin-top:4px' : ''}">${escapeHtml(subLabel)}</span>` : ''
-  const html = `<div class="trek-stats-inner" style="
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    width:100%;height:100%;
-    padding:0 11px;border-radius:999px;
-    background:rgba(17,24,39,0.92);color:#fff;
-    box-shadow:0 2px 6px rgba(0,0,0,0.25);
-    border:1px solid ${TRANSPORT_COLOR}aa;
-    font-family:var(--font-system);
-    white-space:nowrap;box-sizing:border-box;pointer-events:none;
-    transform-origin:center;will-change:transform;
-  ">${main}${sub}</div>`
-  return { html, width: estWidth, height }
-}
-
 // ── overlay manager ──────────────────────────────────────────────────────
 export interface ReservationOverlayOptions {
   showConnections: boolean
+  // Accepted for call-site compatibility only: the floating route/duration badge
+  // on the arc is no longer drawn, so nothing is gated on this.
   showStats: boolean
   showEndpointLabels: boolean
   onEndpointClick?: (reservationId: number) => void
@@ -212,7 +191,6 @@ export class ReservationMapboxOverlay {
   private opts: ReservationOverlayOptions
   private MarkerCtor: MarkerConstructor
   private endpointMarkers: GlMarker[] = []
-  private statsMarkers: { marker: GlMarker; arc: [number, number][] }[] = []
   private rerender: () => void
   private destroyed = false
 
@@ -224,7 +202,6 @@ export class ReservationMapboxOverlay {
     this.setupLayer()
     map.on('zoomend', this.rerender)
     map.on('moveend', this.rerender)
-    map.on('render', this.updateStatsRotation)
   }
 
   update(reservations: Reservation[], opts: ReservationOverlayOptions, roadRoutes?: Map<number, [number, number][]>) {
@@ -238,11 +215,8 @@ export class ReservationMapboxOverlay {
     this.destroyed = true
     this.map.off('zoomend', this.rerender)
     this.map.off('moveend', this.rerender)
-    this.map.off('render', this.updateStatsRotation)
     this.endpointMarkers.forEach(m => m.remove())
     this.endpointMarkers = []
-    this.statsMarkers.forEach(s => s.marker.remove())
-    this.statsMarkers = []
     try {
       if (this.map.getLayer(RESERVATION_LINE_LAYER_ID)) this.map.removeLayer(RESERVATION_LINE_LAYER_ID)
       if (this.map.getSource(RESERVATION_SOURCE_ID)) this.map.removeSource(RESERVATION_SOURCE_ID)
@@ -386,34 +360,7 @@ export class ReservationMapboxOverlay {
       }
     }
 
-    // Stats badge removed — the floating route/duration label on the arc is no
-    // longer drawn; only the connection line and the airport markers remain.
-    this.statsMarkers.forEach(s => s.marker.remove())
-    this.statsMarkers = []
-  }
-
-  // Match the Leaflet overlay's "rotate the label along the arc" look.
-  // We pick a short segment straddling the arc midpoint, measure the
-  // screen angle between those two projected points, and clamp it to
-  // [-90°, 90°] so text never renders upside-down.
-  private updateStatsRotation = () => {
-    if (this.destroyed) return
-    for (const entry of this.statsMarkers) {
-      const { marker, arc } = entry
-      if (arc.length < 2) continue
-      const midIdx = Math.floor(arc.length / 2)
-      const a = arc[Math.max(0, midIdx - 2)]!
-      const b = arc[Math.min(arc.length - 1, midIdx + 2)]!
-      try {
-        const pa = this.map.project([a[1], a[0]])
-        const pb = this.map.project([b[1], b[0]])
-        let angle = Math.atan2(pb.y - pa.y, pb.x - pa.x) * 180 / Math.PI
-        if (angle > 90) angle -= 180
-        if (angle < -90) angle += 180
-        const el = marker.getElement()
-        const inner = el.querySelector('.trek-stats-inner') as HTMLElement | null
-        if (inner) inner.style.transform = `rotate(${angle}deg)`
-      } catch { /* map not ready / projection failure */ }
-    }
+    // No stats badge: the floating route/duration label on the arc was removed,
+    // so a rendered overlay is the connection lines plus the airport markers.
   }
 }

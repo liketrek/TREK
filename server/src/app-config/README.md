@@ -63,7 +63,7 @@ PORT, HOST, TRUST_PROXY, SESSION_DURATION(_REMEMBER), MCP_SESSION_TTL,
 MCP_MAX_SESSION_PER_USER, MCP_SSE_KEEPALIVE, TREK_PLUGIN_RPC_*/LOG_*/MAX_RSS_MB,
 TREK_PLUGIN_REGISTRY_URL, TREK_WIKI_DIR*, TREK_PLACE_PHOTO_DIR, BACKUP_*,
 TRANSIT_API_URL, LOG_LEVEL*, ALLOW_INTERNAL_NETWORK*, DEFAULT_LANGUAGE,
-TREK_DB_FILE, ENCRYPTION_KEY.
+TREK_DB_FILE, TREK_DB_JOURNAL_MODE, TREK_DB_SYNCHRONOUS, ENCRYPTION_KEY.
 (* frozen today because the consuming module captures it at import; tests that
 override these set them at file top, before the SUT import.)
 
@@ -85,7 +85,13 @@ ADMIN_PASSWORD, IDEMPOTENCY_TTL_SECONDS, MCP_RATE_LIMIT (request-path check).
   `plugins/host/plugin-audit.ts`.
 - `src/config.ts` ENCRYPTION_KEY/JWT_SECRET resolution — key material with file
   persistence and runtime rotation, not env config.
-- Standalone scripts (`reset-admin.js`, `scripts/*`) and `tests/**`.
+- Standalone scripts (`reset-admin.js`, `scripts/*`) and `tests/**`. Note that
+  `reset-admin.js` and `scripts/migrate-encryption.ts` open the database file
+  read-write and therefore re-implement `TREK_DB_JOURNAL_MODE` /
+  `TREK_DB_SYNCHRONOUS` inline (the journal mode lives in the file header, so
+  they must agree with the server). Neither can import this layer — the image
+  ships `dist/`, not `src/` — so the defaults in `parsers.resolveDurability()`
+  and in those two files move together.
 
 The exemption list is enforced by the `no-restricted-syntax` ban on
 `process.env` in `eslint.config.mjs` — keep the two lists in sync.

@@ -54,5 +54,9 @@ const atlas: TranslationStrings = {
   'atlas.month': '月份',
   'atlas.addToBucketHint': '儲存為想去的地方',
   'atlas.bucketWhen': '你計劃什麼時候去？',
+  'atlas.planned': '計劃中',
+  'atlas.showPlanned': '顯示計劃中的國家',
+  'atlas.plannedFor': '計劃於',
+  'atlas.antarctica': '南極洲',
 };
 export default atlas;

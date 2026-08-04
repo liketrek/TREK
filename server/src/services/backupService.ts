@@ -143,14 +143,25 @@ export function listBackups(): BackupInfo[] {
 // Create backup
 // ---------------------------------------------------------------------------
 
-export async function createBackup(): Promise<BackupInfo> {
+/**
+ * Writes a full backup zip and returns its BackupInfo.
+ *
+ * `prefix` picks the filename scheme. The scheduler passes 'auto-backup' because
+ * everything downstream tells the two apart by name: cleanupOldBackups() prunes
+ * only auto-backup-*.zip, and the admin panel badges them as automatic. Manual
+ * backups keep the default.
+ */
+export async function createBackup(prefix: 'backup' | 'auto-backup' = 'backup'): Promise<BackupInfo> {
   ensureBackupsDir();
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const filename = `backup-${timestamp}.zip`;
+  const filename = `${prefix}-${timestamp}.zip`;
   const outputPath = path.join(backupsDir, filename);
-  const pdataSnap = path.join(backupsDir, `.plugins-snap-${timestamp}`);
-  const dbSnap = path.join(backupsDir, `.travel-snap-${timestamp}.db`);
+  // The scratch names carry the prefix too: a scheduled run and a manual one that
+  // start in the same second would otherwise share a snapshot path, and the first
+  // to finish would delete the other's staging copy mid-archive.
+  const pdataSnap = path.join(backupsDir, `.plugins-snap-${prefix}-${timestamp}`);
+  const dbSnap = path.join(backupsDir, `.travel-snap-${prefix}-${timestamp}.db`);
 
   try {
     try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}

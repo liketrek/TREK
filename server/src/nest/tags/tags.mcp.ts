@@ -5,7 +5,7 @@ import {
   demoDenied, errorResult, ok,
 } from '@trek/nest-mcp';
 import { z } from 'zod';
-import { isDemoUser } from '../../services/authService';
+import { AuthService } from '../auth/auth.service';
 import { TagsService } from './tags.service';
 
 /**
@@ -16,7 +16,7 @@ import { TagsService } from './tags.service';
  */
 @McpController()
 export class TagsMcp {
-  constructor(private readonly tags: TagsService) {}
+  constructor(private readonly tags: TagsService, private readonly auth: AuthService) {}
 
   @Tool({
     name: 'list_tags',
@@ -41,7 +41,7 @@ export class TagsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async createTag({ name, color }: { name: string; color?: string }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const tag = this.tags.create(ctx.userId, name, color);
     return ok({ tag });
   }
@@ -58,7 +58,7 @@ export class TagsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async updateTag({ tagId, name, color }: { tagId: number; name?: string; color?: string }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.tags.getByIdAndUser(tagId, ctx.userId)) return errorResult('Tag not found.');
     const tag = this.tags.update(tagId, name, color);
     if (!tag) return errorResult('Tag not found.');
@@ -75,7 +75,7 @@ export class TagsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async deleteTag({ tagId }: { tagId: number }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.tags.getByIdAndUser(tagId, ctx.userId)) return errorResult('Tag not found.');
     this.tags.remove(tagId);
     return ok({ success: true });

@@ -72,7 +72,6 @@ interface VacayApi {
   declineInvite: (planId: number) => Promise<unknown>
   cancelInvite: (userId: number) => Promise<unknown>
   dissolve: () => Promise<unknown>
-  availableUsers: () => Promise<{ users: VacayUser[] }>
   getYears: () => Promise<VacayYearsResponse>
   addYear: (year: number) => Promise<VacayYearsResponse>
   removeYear: (year: number) => Promise<VacayYearsResponse>
@@ -81,7 +80,6 @@ interface VacayApi {
   toggleCompanyHoliday: (date: string) => Promise<unknown>
   getStats: (year: number) => Promise<VacayStatsResponse>
   updateStats: (year: number, days: number, targetUserId?: number) => Promise<unknown>
-  getCountries: () => Promise<{ countries: string[] }>
   getHolidays: (year: number, country: string) => Promise<VacayHolidayRaw[]>
   getSchoolHolidays: (year: number, country: string, subdivision?: string | null, group?: string | null) => Promise<VacaySchoolHolidayRaw[]>
   addHolidayCalendar: (data: { region: string; color?: string; label?: string | null; type?: 'public_holiday' | 'school_holiday' }) => Promise<{ calendar: VacayHolidayCalendar }>
@@ -91,7 +89,6 @@ interface VacayApi {
   share: (userId: number) => Promise<unknown>
   removeShare: (shareId: number) => Promise<unknown>
   updateShare: (shareId: number, hidden: boolean) => Promise<unknown>
-  shareAvailableUsers: () => Promise<{ users: VacayUser[] }>
   getSharedCalendars: (year: number) => Promise<{ calendars: SharedVacayCalendar[] }>
   getYearSettings: () => Promise<{ settings: VacayYearSettings }>
   updateYearSettings: (data: VacayYearSettingsRequest) => Promise<{ settings: VacayYearSettings }>
@@ -106,7 +103,6 @@ const api: VacayApi = {
   declineInvite: (planId) => ax.post('/addons/vacay/invite/decline', { plan_id: planId } satisfies VacayInviteActionRequest).then((r: AxiosResponse) => r.data),
   cancelInvite: (userId) => ax.post('/addons/vacay/invite/cancel', { user_id: userId }).then((r: AxiosResponse) => r.data),
   dissolve: () => ax.post('/addons/vacay/dissolve').then((r: AxiosResponse) => r.data),
-  availableUsers: () => ax.get('/addons/vacay/available-users').then((r: AxiosResponse) => r.data),
   getYears: () => ax.get('/addons/vacay/years').then((r: AxiosResponse) => r.data),
   addYear: (year) => ax.post('/addons/vacay/years', { year } satisfies VacayAddYearRequest).then((r: AxiosResponse) => r.data),
   removeYear: (year) => ax.delete(`/addons/vacay/years/${year}`).then((r: AxiosResponse) => r.data),
@@ -115,7 +111,6 @@ const api: VacayApi = {
   toggleCompanyHoliday: (date) => ax.post('/addons/vacay/entries/company-holiday', { date } satisfies VacayCompanyHolidayRequest).then((r: AxiosResponse) => r.data),
   getStats: (year) => ax.get(`/addons/vacay/stats/${year}`).then((r: AxiosResponse) => r.data),
   updateStats: (year, days, targetUserId) => ax.put(`/addons/vacay/stats/${year}`, { vacation_days: days, target_user_id: targetUserId } satisfies VacayUpdateStatsRequest).then((r: AxiosResponse) => r.data),
-  getCountries: () => ax.get('/addons/vacay/holidays/countries').then((r: AxiosResponse) => r.data),
   getHolidays: (year, country) => ax.get(`/addons/vacay/holidays/${year}/${country}`).then((r: AxiosResponse) => r.data),
   getSchoolHolidays: (year, country, subdivision, group) => {
     const params = new URLSearchParams()
@@ -130,7 +125,6 @@ const api: VacayApi = {
   share: (userId) => ax.post('/addons/vacay/shares', { user_id: userId } satisfies VacayShareRequest).then((r: AxiosResponse) => r.data),
   removeShare: (shareId) => ax.delete(`/addons/vacay/shares/${shareId}`).then((r: AxiosResponse) => r.data),
   updateShare: (shareId, hidden) => ax.put(`/addons/vacay/shares/${shareId}`, { hidden } satisfies VacayShareUpdateRequest).then((r: AxiosResponse) => r.data),
-  shareAvailableUsers: () => ax.get('/addons/vacay/shares/available-users').then((r: AxiosResponse) => r.data),
   getSharedCalendars: (year) => ax.get(`/addons/vacay/shares/calendars/${year}`).then((r: AxiosResponse) => r.data),
   getYearSettings: () => ax.get('/addons/vacay/year-settings').then((r: AxiosResponse) => r.data),
   updateYearSettings: (data) => ax.put('/addons/vacay/year-settings', data satisfies VacayYearSettingsRequest).then((r: AxiosResponse) => r.data),

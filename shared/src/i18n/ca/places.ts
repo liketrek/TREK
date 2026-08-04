@@ -65,6 +65,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Longitud (p. ex. 2.3522)',
   'places.formCategory': 'Categoria',
   'places.noCategory': 'Sense categoria',
+  'places.newCategory': 'Categoria nova',
   'places.categoryNamePlaceholder': 'Nom de la categoria',
   'places.formTime': 'Hora',
   'places.startTime': 'Inici',
@@ -98,5 +99,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Canvia la imatge',
   'places.removeImage': 'Elimina la imatge',
   'places.imageUploadError': "No s'ha pogut pujar la imatge",
+  'places.imageRemoveError': "No s'ha pogut eliminar la imatge",
 };
 export default places;

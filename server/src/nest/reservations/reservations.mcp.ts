@@ -4,7 +4,7 @@ import {
   demoDenied, errorResult, ok,
 } from '@trek/nest-mcp';
 import { z } from 'zod';
-import { isDemoUser } from '../../services/authService';
+import { AuthService } from '../auth/auth.service';
 import { BudgetService } from '../budget/budget.service';
 import { placeExists, getAssignmentForTrip } from '../assignments/assignments.bridge';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
@@ -32,6 +32,7 @@ export class ReservationsMcp {
     private readonly reservations: ReservationsService,
     private readonly days: DaysService,
     private readonly budget: BudgetService,
+    private readonly auth: AuthService,
   ) {}
 
   @Tool({
@@ -67,7 +68,7 @@ export class ReservationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
 
@@ -141,7 +142,7 @@ export class ReservationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
     const existing = this.reservations.getReservation(reservationId, tripId);
@@ -172,7 +173,7 @@ export class ReservationsMcp {
     access: { group: 'reservations', mode: 'write' },
   })
   async deleteReservation({ tripId, reservationId }: { tripId: number; reservationId: number }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
     const { deleted, accommodationDeleted } = this.reservations.remove(reservationId, tripId);
@@ -202,7 +203,7 @@ export class ReservationsMcp {
     { tripId, positions, dayId }: { tripId: number; positions: { id: number; day_plan_position: number }[]; dayId?: number },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
     this.reservations.updatePositions(tripId, positions, dayId);
@@ -232,7 +233,7 @@ export class ReservationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
     const current = this.reservations.getReservation(reservationId, tripId);

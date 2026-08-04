@@ -206,5 +206,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Jag kan ta med det också',
   'packing.alsoBringingStop': 'Jag tar inte med det',
   'packing.cloneToMine': 'Kopiera till min lista',
+  'packing.bagLimit': 'Viktgräns',
+  'packing.setBagLimit': 'Ange gräns',
 };
 export default packing;

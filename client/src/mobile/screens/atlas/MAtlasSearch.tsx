@@ -15,6 +15,8 @@ interface MAtlasSearchProps {
   /** Shown while the query is empty: recently visited + bucket countries. */
   suggestions: CountryOption[]
   isVisited: (code: string) => boolean
+  /** Countries that only appear via a trip which hasn't started yet (#1048). */
+  isPlanned: (code: string) => boolean
   isOnBucketList: (code: string) => boolean
   onSelect: (code: string) => void
 }
@@ -32,6 +34,7 @@ export default function MAtlasSearch({
   options,
   suggestions,
   isVisited,
+  isPlanned,
   isOnBucketList,
   onSelect,
 }: MAtlasSearchProps) {
@@ -91,6 +94,8 @@ export default function MAtlasSearch({
               <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">{r.label}</span>
               {isVisited(r.code) ? (
                 <span className={statusCls}>{t('mobileAtlas.visited')}</span>
+              ) : isPlanned(r.code) ? (
+                <span className={statusCls}>{t('mobileAtlas.planned')}</span>
               ) : isOnBucketList(r.code) ? (
                 <span className={statusCls}>{t('atlas.bucketTab')}</span>
               ) : null}

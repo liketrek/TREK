@@ -48,7 +48,7 @@ vi.mock('../../../src/nest/addons/addons.bridge', () => ({
 }));
 
 // share_vacay_calendar fires a user notification after inserting; stub it out
-vi.mock('../../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../../../src/nest/notifications/notifications.bridge', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';

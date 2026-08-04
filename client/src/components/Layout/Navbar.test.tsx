@@ -1,5 +1,5 @@
 // FE-COMP-NAVBAR-001 to FE-COMP-NAVBAR-028
-import { render, screen, waitFor } from '../../../tests/helpers/render';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -321,5 +321,241 @@ describe('Navbar', () => {
     });
     const { container } = render(<Navbar />);
     expect(container.querySelector('.lucide-blocks')).not.toBeNull();
+  });
+});
+
+// FE-W5NAV-001 to FE-W5NAV-012 — scroll/dark styling, the addon-name fallback,
+// the prerelease badge, the theme-transition timer and the hover styling that
+// the behavioural tests above leave untouched.
+describe('Navbar styling and menu details', () => {
+  const nav = () => document.querySelector('nav') as HTMLElement;
+
+  beforeEach(() => {
+    document.documentElement.classList.remove('trek-theme-transitioning');
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+  });
+
+  it('FE-W5NAV-001: the bar goes translucent once the page is scrolled', () => {
+    render(<Navbar />);
+    expect(nav().style.backdropFilter).toBe('blur(20px)');
+
+    Object.defineProperty(window, 'scrollY', { value: 40, configurable: true });
+    fireEvent.scroll(window);
+
+    expect(nav().style.backdropFilter).toBe('blur(28px) saturate(180%)');
+    expect(nav().style.background).toBe('rgba(255, 255, 255, 0.72)');
+  });
+
+  it('FE-W5NAV-002: dark mode swaps the bar and logo assets', () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'dark' }) });
+    render(<Navbar />);
+
+    expect(nav().style.background).toBe('rgba(9, 9, 11, 0.95)');
+    expect(document.querySelector('img[src="/logo-light.svg"]')).not.toBeNull();
+
+    Object.defineProperty(window, 'scrollY', { value: 40, configurable: true });
+    fireEvent.scroll(window);
+    expect(nav().style.background).toBe('rgba(9, 9, 11, 0.78)');
+  });
+
+  it('FE-W5NAV-003: a scrolled body counts as scrolled too', () => {
+    render(<Navbar />);
+    Object.defineProperty(document.body, 'scrollTop', { value: 30, configurable: true });
+    fireEvent.scroll(document.body);
+
+    expect(nav().style.backdropFilter).toBe('blur(28px) saturate(180%)');
+    Object.defineProperty(document.body, 'scrollTop', { value: 0, configurable: true });
+  });
+
+  it('FE-W5NAV-004: no addons are loaded while nobody is signed in', () => {
+    const loadAddons = vi.fn(async () => {});
+    seedStore(useAuthStore, { user: null, isAuthenticated: false });
+    seedStore(useAddonStore, { loadAddons });
+    render(<Navbar />);
+
+    expect(loadAddons).not.toHaveBeenCalled();
+    expect(screen.queryByText('testuser')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5NAV-005: a catalogued addon uses its translated name, an unknown one its own', () => {
+    seedStore(useAddonStore, {
+      addons: [
+        { id: 'budget', name: 'Budget', icon: 'Briefcase', type: 'global', enabled: true },
+        { id: 'trip-doctor', name: 'Trip Doctor', icon: 'NoSuchIcon', type: 'global', enabled: true },
+        { id: 'weather', name: 'Weather', icon: 'Globe', type: 'integration', enabled: true },
+        { id: 'atlas', name: 'Atlas', icon: 'Globe', type: 'global', enabled: false },
+      ],
+    });
+    render(<Navbar />);
+
+    expect(screen.getByRole('link', { name: /^Costs$/ })).toHaveAttribute('href', '/budget');
+    expect(screen.getByRole('link', { name: /^Trip Doctor$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Weather$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Atlas$/ })).not.toBeInTheDocument();
+  });
+
+  it('FE-W5NAV-006: the active tab keeps its colour on hover, inactive tabs brighten', () => {
+    seedStore(useAddonStore, {
+      addons: [{ id: 'vacay', name: 'Vacay', icon: 'CalendarDays', type: 'global', enabled: true }],
+    });
+    render(<Navbar />, { initialEntries: ['/dashboard'] });
+
+    const active = screen.getByRole('link', { name: /my trips/i });
+    const inactive = screen.getByRole('link', { name: /vacay/i });
+    expect(active.style.background).toBe('var(--bg-card)');
+    expect(inactive.style.background).toBe('transparent');
+
+    fireEvent.mouseEnter(active);
+    fireEvent.mouseLeave(active);
+    expect(active.style.color).toBe('var(--text-primary)');
+
+    fireEvent.mouseEnter(inactive);
+    expect(inactive.style.color).toBe('var(--text-primary)');
+    fireEvent.mouseLeave(inactive);
+    expect(inactive.style.color).toBe('var(--text-muted)');
+  });
+
+  it('FE-W5NAV-007: trip pages swap the tab pill for the centre notice slot', () => {
+    seedStore(useAddonStore, {
+      addons: [{ id: 'vacay', name: 'Vacay', icon: 'CalendarDays', type: 'global', enabled: true }],
+    });
+    render(<Navbar tripTitle="Japan 2027" />);
+
+    expect(document.getElementById('trek-nav-center-slot')).not.toBeNull();
+    expect(document.querySelector('.trek-nav-pill')).toBeNull();
+  });
+
+  it('FE-W5NAV-008: the prerelease badge only shows with a version and the flag set', () => {
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser' }),
+      isAuthenticated: true,
+      isPrerelease: true,
+      appVersion: '3.5.0-rc1',
+    });
+    const { unmount } = render(<Navbar />);
+    expect(screen.getByText('3.5.0-rc1')).toBeInTheDocument();
+    unmount();
+
+    seedStore(useAuthStore, { isPrerelease: true, appVersion: null });
+    render(<Navbar />);
+    expect(screen.queryByText('3.5.0-rc1')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5NAV-009: the back, share and theme buttons reset their hover background', () => {
+    render(<Navbar showBack onBack={vi.fn()} onShare={vi.fn()} />);
+
+    const back = screen.getByRole('button', { name: /back/i });
+    fireEvent.mouseEnter(back);
+    expect(back.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(back);
+    expect(back.style.background).toBe('transparent');
+
+    const share = screen.getByRole('button', { name: /share/i });
+    fireEvent.mouseEnter(share);
+    expect(share.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(share);
+    expect(share.style.background).toBe('var(--bg-card)');
+
+    const theme = document.querySelector('button[title]') as HTMLElement;
+    fireEvent.mouseEnter(theme);
+    expect(theme.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(theme);
+    expect(theme.style.background).toBe('transparent');
+  });
+
+  it('FE-W5NAV-010: toggling the theme twice restarts the transition class timer', () => {
+    const updateSetting = vi.fn(async () => {});
+    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: false }), updateSetting });
+    render(<Navbar />);
+    const theme = document.querySelector('button[title]') as HTMLElement;
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(theme);
+      expect(document.documentElement.classList.contains('trek-theme-transitioning')).toBe(true);
+
+      act(() => { vi.advanceTimersByTime(200); });
+      fireEvent.click(theme); // restarts the pending timer
+      act(() => { vi.advanceTimersByTime(200); });
+      expect(document.documentElement.classList.contains('trek-theme-transitioning')).toBe(true);
+
+      act(() => { vi.advanceTimersByTime(200); });
+      expect(document.documentElement.classList.contains('trek-theme-transitioning')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('FE-W5NAV-011: unmounting with a pending transition cancels its timer', () => {
+    const updateSetting = vi.fn(async () => {});
+    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: false }), updateSetting });
+    const { unmount } = render(<Navbar />);
+    const theme = document.querySelector('button[title]') as HTMLElement;
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(theme);
+      const clear = vi.spyOn(window, 'clearTimeout');
+      unmount();
+      expect(clear).toHaveBeenCalled();
+      clear.mockRestore();
+    } finally {
+      vi.useRealTimers();
+      document.documentElement.classList.remove('trek-theme-transitioning');
+    }
+  });
+
+  it('FE-W5NAV-012: every entry in the open user menu resets its hover background', async () => {
+    const user = userEvent.setup();
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'adminuser', role: 'admin' }),
+      isAuthenticated: true,
+      appVersion: '3.5.0',
+    });
+    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'dark' }) });
+    render(<Navbar />);
+    await user.click(screen.getByText('adminuser'));
+
+    for (const name of [/^Settings$/, /^Help$/, /^Admin$/]) {
+      const link = screen.getByRole('link', { name });
+      fireEvent.mouseEnter(link);
+      expect(link.style.background).toBe('var(--bg-hover)');
+      fireEvent.mouseLeave(link);
+      expect(link.style.background).toBe('transparent');
+    }
+
+    const discord = screen.getByTitle('Discord');
+    fireEvent.mouseEnter(discord);
+    expect(discord.style.background).toBe('rgba(88, 101, 242, 0.125)');
+    fireEvent.mouseLeave(discord);
+    expect(discord.style.background).toBe('var(--bg-tertiary)');
+
+    expect(document.querySelector('img[src="/text-light.svg"]')).not.toBeNull();
+  });
+
+  it('FE-W5NAV-013: following any menu entry closes the menu', async () => {
+    const user = userEvent.setup();
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'adminuser', role: 'admin' }),
+      isAuthenticated: true,
+    });
+    render(<Navbar />);
+
+    for (const name of [/^Settings$/, /^Help$/, /^Admin$/]) {
+      await user.click(screen.getByText('adminuser'));
+      await user.click(screen.getByRole('link', { name }));
+      expect(screen.queryByRole('link', { name: /^Settings$/ })).not.toBeInTheDocument();
+    }
+  });
+
+  it('FE-W5NAV-014: a rejected theme update is swallowed', async () => {
+    const updateSetting = vi.fn(() => Promise.reject(new Error('offline')));
+    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: false }), updateSetting });
+    render(<Navbar />);
+
+    fireEvent.click(document.querySelector('button[title]') as HTMLElement);
+
+    await waitFor(() => expect(updateSetting).toHaveBeenCalledWith('dark_mode', 'dark'));
+    document.documentElement.classList.remove('trek-theme-transitioning');
   });
 });

@@ -47,6 +47,9 @@ export * from './oidc/oidc.schema';
 export * from './oauth/oauth.schema';
 export * from './admin/admin.schema';
 
+// Realtime WS event contract registry (event names + payload schemas)
+export * from './realtime/events.schema';
+
 // Sanitisation helpers — used by the client today, scoped here so the server
 // has them ready if rich-text input ever ships.
 export * from './sanitize/sanitize';

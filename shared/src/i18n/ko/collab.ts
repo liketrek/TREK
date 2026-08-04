@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': '아이디어와 계획을 기록하세요',
   'collab.notes.all': '전체',
   'collab.notes.titlePlaceholder': '메모 제목',
+  'collab.notes.content': '내용',
+  'collab.notes.removeFile': '{name} 제거',
   'collab.notes.contentPlaceholder': '내용을 입력하세요...',
   'collab.notes.categoryPlaceholder': '카테고리',
   'collab.notes.newCategory': '새 카테고리...',

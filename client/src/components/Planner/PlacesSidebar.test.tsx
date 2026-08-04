@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { placesApi } from '../../api/client';
+import { installTouchDragBridge } from '../../utils/touchDragBridge';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildPlace, buildCategory, buildDay, buildAssignment } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
@@ -620,34 +621,36 @@ describe('Google Maps list import', () => {
 
 });
 
-// #1432: a tablet is a touch device at a desktop width. Before the fix, isTouch didn't
-// exist and drag was gated on width alone, so on an iPad the rows stayed draggable and a
-// scroll swipe started an HTML5 drag, which raised the drop-to-import overlay instead of
-// scrolling. These cases pin the desktop-width + coarse-pointer combination.
-describe('touch device at desktop width (#1432)', () => {
-  const touchProps = { ...defaultProps, isMobile: false, isTouch: true };
+// #1616: a tablet is a coarse pointer at a desktop width, and it sees both panes, so
+// it has somewhere to drag a place to. A coarse pointer used to switch the drag off by
+// itself, which left the reporter's iPad selecting text instead of picking up a row.
+// Width is the only gate now: below lg the places live in their own tab.
+describe('touch device at desktop width (#1616)', () => {
+  const tabletProps = { ...defaultProps, isMobile: false };
 
-  it('FE-PLANNER-SIDEBAR-044: place rows are not draggable', () => {
+  it('FE-PLANNER-SIDEBAR-044: place rows are draggable and opt into the touch bridge', () => {
     const place = buildPlace({ id: 7, name: 'Tablet Place' });
-    render(<PlacesSidebar {...touchProps} places={[place]} />);
+    const { container } = render(<PlacesSidebar {...tabletProps} places={[place]} />);
     const placeRow = screen.getByText('Tablet Place').closest('div[draggable]')!;
-    expect(placeRow.getAttribute('draggable')).toBe('false');
-  });
-
-  it('FE-PLANNER-SIDEBAR-045: dragging over the sidebar does not raise the drop-to-import overlay', () => {
-    const place = buildPlace({ id: 7, name: 'Tablet Place' });
-    const { container } = render(<PlacesSidebar {...touchProps} places={[place]} />);
-    fireEvent.dragEnter(container.firstChild as HTMLElement);
-    expect(screen.queryByText('Drop to import')).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-SIDEBAR-046: a mouse-driven desktop keeps drag and the drop-to-import overlay', () => {
-    const place = buildPlace({ id: 7, name: 'Desktop Place' });
-    const { container } = render(<PlacesSidebar {...defaultProps} isTouch={false} places={[place]} />);
-    const placeRow = screen.getByText('Desktop Place').closest('div[draggable]')!;
     expect(placeRow.getAttribute('draggable')).toBe('true');
+    expect((container.firstChild as HTMLElement).hasAttribute('data-touch-drag')).toBe(true);
+  });
+
+  it('FE-PLANNER-SIDEBAR-045: dragging over the sidebar raises the drop-to-import overlay', () => {
+    const place = buildPlace({ id: 7, name: 'Tablet Place' });
+    const { container } = render(<PlacesSidebar {...tabletProps} places={[place]} />);
     fireEvent.dragEnter(container.firstChild as HTMLElement);
     expect(screen.getByText('Drop to import')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-SIDEBAR-046: below lg the rows stay undraggable and the bridge stays out', () => {
+    const place = buildPlace({ id: 7, name: 'Narrow Place' });
+    const { container } = render(<PlacesSidebar {...defaultProps} isMobile places={[place]} />);
+    const placeRow = screen.getByText('Narrow Place').closest('div[draggable]')!;
+    expect(placeRow.getAttribute('draggable')).toBe('false');
+    expect((container.firstChild as HTMLElement).hasAttribute('data-touch-drag')).toBe(false);
+    fireEvent.dragEnter(container.firstChild as HTMLElement);
+    expect(screen.queryByText('Drop to import')).not.toBeInTheDocument();
   });
 });
 
@@ -668,5 +671,42 @@ describe('track colour legend (#776)', () => {
     const row = screen.getByText('Plain Place').closest('div[draggable]')!;
     const strokes = Array.from(row.querySelectorAll('span')).filter(el => (el as HTMLElement).style.borderRadius === '999px');
     expect(strokes).toHaveLength(0);
+  });
+});
+
+// #1616 — the other half of the reporter's gesture: the pickup. A tablet cannot
+// start an HTML5 drag with a finger, so the bridge's long press has to do it, and
+// the row has to hand over the placeId the day plan reads back on drop.
+describe('picking a place up with a finger (#1616)', () => {
+  it('FE-PLANNER-SIDEBAR-047: a long press on a place row starts a drag carrying its id', async () => {
+    const place = buildPlace({ id: 42, name: 'Tablet Place' });
+    render(<PlacesSidebar {...defaultProps} isMobile={false} places={[place]} />);
+    const teardown = installTouchDragBridge();
+    try {
+      const row = screen.getByText('Tablet Place').closest('[draggable="true"]')!;
+      fireEvent.touchStart(row, { touches: [{ identifier: 1, clientX: 20, clientY: 40 }] });
+      await new Promise(resolve => setTimeout(resolve, 400));
+      expect(window.__dragData).toEqual({ placeId: '42' });
+    } finally {
+      teardown();
+      window.__dragData = null;
+    }
+  });
+
+  it('FE-PLANNER-SIDEBAR-048: a swipe down the list scrolls instead of picking the row up', async () => {
+    const place = buildPlace({ id: 42, name: 'Tablet Place' });
+    render(<PlacesSidebar {...defaultProps} isMobile={false} places={[place]} />);
+    const teardown = installTouchDragBridge();
+    try {
+      const row = screen.getByText('Tablet Place').closest('[draggable="true"]')!;
+      fireEvent.touchStart(row, { touches: [{ identifier: 1, clientX: 20, clientY: 40 }] });
+      const moved = fireEvent.touchMove(document, { touches: [{ identifier: 1, clientX: 20, clientY: 140 }] });
+      await new Promise(resolve => setTimeout(resolve, 400));
+      expect(moved).toBe(true);
+      expect(window.__dragData).toBeFalsy();
+    } finally {
+      teardown();
+      window.__dragData = null;
+    }
   });
 });

@@ -9,8 +9,6 @@ import { DatabaseService } from '../../../../src/nest/database/database.service'
 vi.mock('../../../../src/websocket', () => ({ broadcast: vi.fn() }));
 const permissionsStub = { checkPermission: vi.fn(() => true) };
 vi.mock('../../../../src/services/tripAccess', () => ({ verifyTripAccess: vi.fn() }));
-vi.mock('../../../../src/services/placeService', () => ({ createPlace: vi.fn() }));
-vi.mock('../../../../src/services/mapsService', () => ({ searchNominatim: vi.fn() }));
 
 import { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
 
@@ -21,7 +19,13 @@ function make(opts: { kit?: boolean; ai?: boolean; extract?: any; parse?: any })
   const extractor = { isAvailable: () => opts.kit ?? false, extract: vi.fn(opts.extract ?? (async () => [])) };
   const llmParse = { isAvailable: () => opts.ai ?? false, parse: vi.fn(opts.parse ?? (async () => ({ kiItems: [], warnings: [] }))) };
   const reservations = { create: vi.fn() };
-  return { svc: new BookingImportService(extractor as any, llmParse as any, new DatabaseService(dbConn), reservations as never, permissionsStub as never), extractor, llmParse, reservations };
+  // budget/addons/realtime/maps ride the confirm() path only — the preview()
+  // tests never reach them, so stubs beyond the positional slots aren't needed.
+  const maps = { searchNominatim: vi.fn() };
+  // Places became a constructor dep with the place DI fold (was a path mock of
+  // services/placeService); only confirm() reaches it, so a bare create stub does.
+  const places = { create: vi.fn() };
+  return { svc: new BookingImportService(extractor as any, llmParse as any, new DatabaseService(dbConn), reservations as never, permissionsStub as never, undefined as never, undefined as never, undefined as never, maps as never, places as never), extractor, llmParse, reservations, maps, places };
 }
 
 beforeEach(() => vi.clearAllMocks());

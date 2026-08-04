@@ -81,6 +81,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'نسخ إلى رحلة',
   'collections.copyN': 'نسخ {count} إلى رحلة',
   'collections.copyToTripSearch': 'البحث عن الرحلات',
+  'collections.searchLists': 'بحث في القوائم',
   'collections.copyToTripConfirm': 'نسخ',
   'collections.noTrips': 'لا توجد رحلات بعد',
   'collections.alreadyInTrip': 'موجود بالفعل في هذه الرحلة',

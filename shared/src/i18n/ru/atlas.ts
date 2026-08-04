@@ -54,5 +54,9 @@ const atlas: TranslationStrings = {
   'atlas.month': 'Месяц',
   'atlas.addToBucketHint': 'Сохранить как место для посещения',
   'atlas.bucketWhen': 'Когда вы планируете поехать?',
+  'atlas.planned': 'Запланировано',
+  'atlas.showPlanned': 'Показать запланированные страны',
+  'atlas.plannedFor': 'Запланировано на',
+  'atlas.antarctica': 'Антарктида',
 };
 export default atlas;

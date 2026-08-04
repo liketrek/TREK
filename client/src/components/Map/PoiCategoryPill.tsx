@@ -33,7 +33,9 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, pointerEvents: 'auto', ...frosted }}>
         {POI_CATEGORIES.map(cat => {
           const on = active.has(cat.key)
-          const loading = loadingKeys?.has(cat.key)
+          // Only an active category can be loading — a deselected one whose fetch
+          // is still winding down must not keep spinning.
+          const loading = on && !!loadingKeys?.has(cat.key)
           return (
             <Tooltip key={cat.key} label={t(cat.labelKey)} placement="bottom">
               <button

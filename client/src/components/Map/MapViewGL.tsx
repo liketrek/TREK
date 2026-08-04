@@ -7,7 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
-import { isCustomPlaceImage } from './placePhoto'
+import { isCustomPlaceImage, photoCacheKey } from './placePhoto'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
@@ -72,6 +72,20 @@ interface RouteSegment {
   walkingText?: string
   drivingText?: string
 }
+
+// Stable identities for the omitted collection props. An inline `= []` / `= {}`
+// default allocates a fresh object on every render, and these props sit in the
+// dependency arrays of the imperative reconcile effects below — so every render,
+// including one caused only by the hover tooltip's state, would tear down and
+// rebuild every marker. That is the "marker recreated under the cursor,
+// mouseleave never fires" case (#1404).
+const NO_PLACES: Place[] = []
+const NO_ROUTE_VIAS: RouteVia[] = []
+const NO_ROUTE_SEGMENTS: RouteSegment[] = []
+const NO_DAY_ORDER: Record<number, number[] | null> = {}
+const NO_RESERVATIONS: Reservation[] = []
+const NO_CONNECTION_IDS: number[] = []
+const NO_POIS: Poi[] = []
 
 interface Props {
   places: Place[]
@@ -315,12 +329,12 @@ function createPoiMarkerElement(category: string): HTMLDivElement {
 }
 
 export function MapViewGL({
-  places = [],
-  dayPlaces = [],
+  places = NO_PLACES,
+  dayPlaces = NO_PLACES,
   tripId,
-  routeVias = [],
+  routeVias = NO_ROUTE_VIAS,
   route = null,
-  routeSegments = [],
+  routeSegments = NO_ROUTE_SEGMENTS,
   selectedPlaceId = null,
   hoverDisabled = false,
   onMarkerClick,
@@ -329,17 +343,17 @@ export function MapViewGL({
   center = DEFAULT_MAP_CENTER,
   zoom = DEFAULT_MAP_ZOOM,
   fitKey = 0,
-  dayOrderMap = {},
+  dayOrderMap = NO_DAY_ORDER,
   leftWidth = 0,
   rightWidth = 0,
   hasInspector = false,
   hasDayDetail = false,
-  reservations = [],
-  visibleConnectionIds = [],
+  reservations = NO_RESERVATIONS,
+  visibleConnectionIds = NO_CONNECTION_IDS,
   showTransitRoutes = true,
   showReservationStats = false,
   onReservationClick,
-  pois = [],
+  pois = NO_POIS,
   onPoiClick,
   onViewportChange,
   glProvider = 'mapbox-gl',
@@ -816,12 +830,12 @@ export function MapViewGL({
       if (ev.touches.length !== 1) { cancelLongPress(); return }
       if ((ev.target as HTMLElement).closest('.mapboxgl-marker, .maplibregl-marker')) return
       const t = ev.touches[0]
-      lpStart = { x: t.clientX, y: t.clientY }
+      const start = { x: t.clientX, y: t.clientY }
+      lpStart = start
       lpTimer = window.setTimeout(() => {
         lpTimer = null
-        if (!lpStart) return
         const rect = canvas.getBoundingClientRect()
-        const lngLat = map.unproject([lpStart.x - rect.left, lpStart.y - rect.top])
+        const lngLat = map.unproject([start.x - rect.left, start.y - rect.top])
         lpStart = null
         // Only suppress the tap when OUR fire opened the form — if the native
         // contextmenu beat us to it (dedupe), no click needs swallowing.
@@ -945,7 +959,7 @@ export function MapViewGL({
       // photo for it (that request would 404 for OSM-only places and, worse, the
       // fetched thumb would shadow the user's own image). (#1136)
       if (isCustomPlaceImage(place.image_url)) continue
-      const cacheKey = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
+      const cacheKey = photoCacheKey(place)
       if (!cacheKey) continue
       const cached = getCached(cacheKey)
       if (cached?.thumbDataUrl) {
@@ -1002,7 +1016,7 @@ export function MapViewGL({
 
       visiblePlaces.forEach(place => {
         const orderNumbers = dayOrderMap[place.id] ?? null
-        const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
+        const pck = photoCacheKey(place)
         // A custom image wins over the auto-fetched thumb; otherwise fall back to it.
         const photoUrl = isCustomPlaceImage(place.image_url) ? place.image_url! : ((pck && photoUrls[pck]) || place.image_url || null)
         const selected = place.id === selectedPlaceId

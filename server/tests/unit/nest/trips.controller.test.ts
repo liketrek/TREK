@@ -15,8 +15,9 @@ vi.mock('../../../src/services/unsplashService', () => ({
 
 import { TripsController } from '../../../src/nest/trips/trips.controller';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
-import { NotFoundError, ValidationError } from '../../../src/services/tripService';
+import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
 import type { User } from '../../../src/types';
+import { tripCreateRequestSchema, tripTransferOwnershipRequestSchema } from '@trek/shared';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const req = { headers: {} } as Request;
@@ -74,9 +75,12 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
   });
 
   describe('POST / (create)', () => {
-    it('403 without trip_create, 400 without title', () => {
+    it('403 without trip_create; a missing title 400s in the ZodValidationPipe', () => {
       expect(thrown(() => tc(svc({ can: vi.fn().mockReturnValue(false) })).create(user, { title: 'T' }, req))).toEqual({ status: 403, body: { error: 'No permission to create trips' } });
-      expect(thrown(() => tc(svc()).create(user, {}, req))).toEqual({ status: 400, body: { error: 'Title is required' } });
+      // The hand-rolled 'Title is required' 400 moved into the global pipe
+      // (trips DTO ratchet) — the schema rejects a missing/empty title.
+      expect(tripCreateRequestSchema.safeParse({}).success).toBe(false);
+      expect(tripCreateRequestSchema.safeParse({ title: '' }).success).toBe(false);
     });
 
     it('infers end_date from start_date (+6 days) and creates', () => {
@@ -186,13 +190,13 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
 
   describe('POST /:id/copy', () => {
     it('403 without trip_create, 404 without access', () => {
-      expect(thrown(() => tc(svc({ can: vi.fn().mockReturnValue(false) })).copy(user, '9', undefined, req))).toEqual({ status: 403, body: { error: 'No permission to create trips' } });
-      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) })).copy(user, '9', undefined, req))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+      expect(thrown(() => tc(svc({ can: vi.fn().mockReturnValue(false) })).copy(user, '9', {}, req))).toEqual({ status: 403, body: { error: 'No permission to create trips' } });
+      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) })).copy(user, '9', {}, req))).toEqual({ status: 404, body: { error: 'Trip not found' } });
     });
 
     it('copies + returns the new trip', () => {
       const s = svc({ copy: vi.fn().mockReturnValue(42), getCopiedTrip: vi.fn().mockReturnValue({ id: 42 }) } as Partial<TripsService>);
-      expect(tc(s).copy(user, '9', 'Copy', req)).toEqual({ trip: { id: 42 } });
+      expect(tc(s).copy(user, '9', { title: 'Copy' }, req)).toEqual({ trip: { id: 42 } });
     });
   });
 
@@ -227,26 +231,26 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
     });
 
     it('POST 403 without member_manage, else adds + notifies', () => {
-      expect(thrown(() => tc(svc({ can: vi.fn().mockReturnValue(false) })).addMember(user, '9', 'bob@x.y'))).toEqual({ status: 403, body: { error: 'No permission to manage members' } });
+      expect(thrown(() => tc(svc({ can: vi.fn().mockReturnValue(false) })).addMember(user, '9', { identifier: 'bob@x.y' }))).toEqual({ status: 403, body: { error: 'No permission to manage members' } });
       const addMember = vi.fn().mockReturnValue({ member: { id: 2, email: 'bob@x.y' }, targetUserId: 2, tripTitle: 'T' });
       const notifyInvite = vi.fn();
       const s = svc({ addMember, notifyInvite } as Partial<TripsService>);
-      expect(tc(s).addMember(user, '9', 'bob@x.y')).toEqual({ member: { id: 2, email: 'bob@x.y' } });
+      expect(tc(s).addMember(user, '9', { identifier: 'bob@x.y' })).toEqual({ member: { id: 2, email: 'bob@x.y' } });
       expect(notifyInvite).toHaveBeenCalledWith('9', user, 2, 'T', 'bob@x.y');
     });
 
     it('POST 404 without trip access', () => {
       const s = svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) });
-      expect(thrown(() => tc(s).addMember(user, '9', 'bob@x.y'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+      expect(thrown(() => tc(s).addMember(user, '9', { identifier: 'bob@x.y' }))).toEqual({ status: 404, body: { error: 'Trip not found' } });
     });
 
     it('POST maps NotFoundError to 404, ValidationError to 400, re-throws others', () => {
       const nf = svc({ addMember: vi.fn().mockImplementation(() => { throw new NotFoundError('no user'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(nf).addMember(user, '9', 'bob@x.y'))).toEqual({ status: 404, body: { error: 'no user' } });
+      expect(thrown(() => tc(nf).addMember(user, '9', { identifier: 'bob@x.y' }))).toEqual({ status: 404, body: { error: 'no user' } });
       const ve = svc({ addMember: vi.fn().mockImplementation(() => { throw new ValidationError('already a member'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(ve).addMember(user, '9', 'bob@x.y'))).toEqual({ status: 400, body: { error: 'already a member' } });
+      expect(thrown(() => tc(ve).addMember(user, '9', { identifier: 'bob@x.y' }))).toEqual({ status: 400, body: { error: 'already a member' } });
       const other = svc({ addMember: vi.fn().mockImplementation(() => { throw new Error('boom'); }) } as Partial<TripsService>);
-      expect(() => tc(other).addMember(user, '9', 'bob@x.y')).toThrow('boom');
+      expect(() => tc(other).addMember(user, '9', { identifier: 'bob@x.y' })).toThrow('boom');
     });
 
     it('DELETE 404 without trip access', () => {
@@ -266,18 +270,20 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
   describe('POST /:id/transfer (#973)', () => {
     it('404 without trip access', () => {
       const s = svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) });
-      expect(thrown(() => tc(s).transferOwnership(user, '9', 2, req))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+      expect(thrown(() => tc(s).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 404, body: { error: 'Trip not found' } });
     });
 
     it('403 when the requester is not the owner', () => {
       // access.user_id (5) differs from the requesting user (1)
       const s = svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) });
-      expect(thrown(() => tc(s).transferOwnership(user, '9', 2, req))).toEqual({ status: 403, body: { error: 'Only the owner can transfer ownership' } });
+      expect(thrown(() => tc(s).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 403, body: { error: 'Only the owner can transfer ownership' } });
     });
 
-    it('400 when newOwnerId is not a number', () => {
-      const s = svc();
-      expect(thrown(() => tc(s).transferOwnership(user, '9', 'nope' as unknown as number, req))).toEqual({ status: 400, body: { error: 'newOwnerId is required' } });
+    it('a non-numeric newOwnerId 400s in the ZodValidationPipe', () => {
+      // The hand-rolled 'newOwnerId is required' 400 moved into the global
+      // pipe (trips DTO ratchet) — the schema rejects non-numeric ids.
+      expect(tripTransferOwnershipRequestSchema.safeParse({ newOwnerId: 'nope' }).success).toBe(false);
+      expect(tripTransferOwnershipRequestSchema.safeParse({}).success).toBe(false);
     });
 
     it('transfers, audits and broadcasts the refreshed trip', () => {
@@ -285,37 +291,40 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
       const get = vi.fn().mockReturnValue({ id: 9, user_id: 2 });
       const broadcast = vi.fn();
       const s = svc({ transferOwnership, get, broadcast } as Partial<TripsService>);
-      expect(tc(s).transferOwnership(user, '9', 2, req, 'sock')).toEqual({ success: true });
+      expect(tc(s).transferOwnership(user, '9', { newOwnerId: 2 }, req, 'sock')).toEqual({ success: true });
       expect(transferOwnership).toHaveBeenCalledWith('9', 2, user.id);
       expect(broadcast).toHaveBeenCalledWith('9', 'trip:updated', { trip: { id: 9, user_id: 2 } }, 'sock');
     });
 
     it('maps NotFoundError to 404 and ValidationError to 400', () => {
       const nf = svc({ transferOwnership: vi.fn().mockImplementation(() => { throw new NotFoundError('User not found'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(nf).transferOwnership(user, '9', 2, req))).toEqual({ status: 404, body: { error: 'User not found' } });
+      expect(thrown(() => tc(nf).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 404, body: { error: 'User not found' } });
       const ve = svc({ transferOwnership: vi.fn().mockImplementation(() => { throw new ValidationError('New owner must be a trip member'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(ve).transferOwnership(user, '9', 2, req))).toEqual({ status: 400, body: { error: 'New owner must be a trip member' } });
+      expect(thrown(() => tc(ve).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 400, body: { error: 'New owner must be a trip member' } });
     });
   });
 
   describe('guests (#1362)', () => {
     it('404 without access, 403 for a non-owner, 400 without a name; else creates', () => {
-      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) })).createGuest(user, '9', 'Anna'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) })).createGuest(user, '9', { name: 'Anna' }))).toEqual({ status: 404, body: { error: 'Trip not found' } });
       // access.user_id (5) ≠ requester (1) → not the owner
-      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).createGuest(user, '9', 'Anna'))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
-      expect(thrown(() => tc(svc()).createGuest(user, '9', '  '))).toEqual({ status: 400, body: { error: 'Guest name is required' } });
+      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).createGuest(user, '9', { name: 'Anna' }))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
+      // A whitespace-only name still 400s with the legacy body — the service
+      // throws after trimming (the schema only enforces 1..50 chars).
+      const wsGuest = svc({ createGuest: vi.fn().mockImplementation(() => { throw new ValidationError('Guest name is required'); }) } as Partial<TripsService>);
+      expect(thrown(() => tc(wsGuest).createGuest(user, '9', { name: '  ' }))).toEqual({ status: 400, body: { error: 'Guest name is required' } });
       const createGuest = vi.fn().mockReturnValue({ member: { id: 7, username: 'Anna', is_guest: true } });
       const s = svc({ createGuest } as Partial<TripsService>);
-      expect(tc(s).createGuest(user, '9', 'Anna')).toEqual({ member: { id: 7, username: 'Anna', is_guest: true } });
+      expect(tc(s).createGuest(user, '9', { name: 'Anna' })).toEqual({ member: { id: 7, username: 'Anna', is_guest: true } });
       expect(createGuest).toHaveBeenCalledWith('9', 'Anna', user.id);
     });
 
     it('rename: 403 non-owner, 404 when the guest is missing, else success', () => {
-      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).renameGuest(user, '9', '7', 'Bob'))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
+      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).renameGuest(user, '9', '7', { name: 'Bob' }))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
       const miss = svc({ renameGuest: vi.fn().mockReturnValue(false) } as Partial<TripsService>);
-      expect(thrown(() => tc(miss).renameGuest(user, '9', '7', 'Bob'))).toEqual({ status: 404, body: { error: 'Guest not found' } });
+      expect(thrown(() => tc(miss).renameGuest(user, '9', '7', { name: 'Bob' }))).toEqual({ status: 404, body: { error: 'Guest not found' } });
       const ok = svc({ renameGuest: vi.fn().mockReturnValue(true) } as Partial<TripsService>);
-      expect(tc(ok).renameGuest(user, '9', '7', 'Bob')).toEqual({ success: true });
+      expect(tc(ok).renameGuest(user, '9', '7', { name: 'Bob' })).toEqual({ success: true });
     });
 
     it('delete: 403 non-owner, 404 when the guest is missing, else success', () => {
@@ -328,7 +337,7 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
 
     it('maps a ValidationError from createGuest to 400', () => {
       const ve = svc({ createGuest: vi.fn().mockImplementation(() => { throw new ValidationError('Guest name must be 50 characters or fewer'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(ve).createGuest(user, '9', 'x'.repeat(60)))).toEqual({ status: 400, body: { error: 'Guest name must be 50 characters or fewer' } });
+      expect(thrown(() => tc(ve).createGuest(user, '9', { name: 'x'.repeat(60) }))).toEqual({ status: 400, body: { error: 'Guest name must be 50 characters or fewer' } });
     });
   });
 
@@ -390,6 +399,6 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
 
   it('POST /:id/copy maps a copy failure to 500', () => {
     const s = svc({ copy: vi.fn().mockImplementation(() => { throw new Error('boom'); }) } as Partial<TripsService>);
-    expect(thrown(() => tc(s).copy(user, '9', undefined, req))).toEqual({ status: 500, body: { error: 'Failed to copy trip' } });
+    expect(thrown(() => tc(s).copy(user, '9', {}, req))).toEqual({ status: 500, body: { error: 'Failed to copy trip' } });
   });
 });

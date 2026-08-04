@@ -5,8 +5,10 @@ import { useSettingsStore } from '../../store/settingsStore'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, normalizeRegionName, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
-import { continentForCountry } from '@trek/shared'
+import { A2_TO_A3, countryStatus, isCountryVisible, normalizeRegionName, withCountryMarkedVisited, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
+import { continentForCountry, type VisitStatus } from '@trek/shared'
+
+const PLANNED_KEY = 'trek_atlas_show_planned'
 
 function useCountryNames(language: string): (code: string) => string {
   const [resolver, setResolver] = useState<(code: string) => string>(() => (code: string) => code)
@@ -24,7 +26,7 @@ function useCountryNames(language: string): (code: string) => string {
  * loading, the Leaflet map lifecycle (country + sub-national region layers,
  * bucket markers, viewport-driven region fetching), country/region mark/unmark
  * flows and the country search. AtlasPage stays a wiring container that renders
- * the returned state via its presentational SidebarContent/MobileStats helpers.
+ * the returned state via its presentational SidebarContent helper.
  * Behaviour is identical to the previous in-component logic.
  */
 export function useAtlas() {
@@ -67,12 +69,22 @@ export function useAtlas() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
   const [countryDetail, setCountryDetail] = useState<CountryDetail | null>(null)
   const [geoData, setGeoData] = useState<GeoJsonFeatureCollection | null>(null)
-  const [visitedRegions, setVisitedRegions] = useState<Record<string, { code: string; name: string; placeCount: number; manuallyMarked?: boolean }[]>>({})
+  const [visitedRegions, setVisitedRegions] = useState<Record<string, { code: string; name: string; placeCount: number; manuallyMarked?: boolean; status?: VisitStatus }[]>>({})
   const [pluginLayers, setPluginLayers] = useState<PluginAtlasLayer[]>([])
   const pluginLayerRef = useRef<L.GeoJSON | null>(null)
   const regionLayerRef = useRef<L.GeoJSON | null>(null)
   const regionGeoCache = useRef<Record<string, GeoJsonFeatureCollection>>({})
   const [showRegions, setShowRegions] = useState(false)
+  // Countries you only plan to visit stay off the map until asked for — the atlas is a
+  // record of where you have been, not of where you booked a flight to (#1048).
+  const [showPlanned, setShowPlanned] = useState<boolean>(() => {
+    try { return localStorage.getItem(PLANNED_KEY) === '1' } catch { return false }
+  })
+  const togglePlanned = () => setShowPlanned(v => {
+    const next = !v
+    try { localStorage.setItem(PLANNED_KEY, next ? '1' : '0') } catch { /* private mode — keep the toggle working anyway */ }
+    return next
+  })
   const [regionGeoLoaded, setRegionGeoLoaded] = useState(0)
   const regionTooltipRef = useRef<HTMLDivElement>(null)
   const loadCountryDetailRef = useRef<(code: string) => void>(() => {})
@@ -97,6 +109,11 @@ export function useAtlas() {
   const [atlas_country_search, set_atlas_country_search] = useState('')
   const [atlas_country_results, set_atlas_country_results] = useState<{ code: string; label: string }[]>([])
   const [atlas_country_open, set_atlas_country_open] = useState(false)
+
+  // visitedCountries drives the colour palette and every "how many" number;
+  // visibleCountries drives what the map paints and what stays clickable.
+  const visitedCountries = useMemo(() => (data?.countries ?? []).filter(c => countryStatus(c) === 'visited'), [data])
+  const visibleCountries = useMemo(() => (data?.countries ?? []).filter(c => isCountryVisible(c, showPlanned)), [data, showPlanned])
 
   const atlas_country_options = useMemo(() => {
     if (!geoData) return []
@@ -291,9 +308,10 @@ export function useAtlas() {
   useEffect(() => {
     if (!mapInstance.current || !geoData || !data) return
 
-    const visitedA3 = new Set(data.countries.map(c => A2_TO_A3[c.code]).filter(Boolean))
+    const visitedA3 = new Set(visibleCountries.map(c => A2_TO_A3[c.code]).filter(Boolean))
+    const plannedA3 = new Set(visibleCountries.filter(c => countryStatus(c) !== 'visited').map(c => A2_TO_A3[c.code]).filter(Boolean))
     const countryMap = {}
-    data.countries.forEach(c => { if (A2_TO_A3[c.code]) countryMap[A2_TO_A3[c.code]] = c })
+    visibleCountries.forEach(c => { if (A2_TO_A3[c.code]) countryMap[A2_TO_A3[c.code]] = c })
 
     // Preserve current map view
     const currentCenter = mapInstance.current.getCenter()
@@ -305,8 +323,10 @@ export function useAtlas() {
 
     // Generate deterministic color per country code
     const VISITED_COLORS = ['#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#ef4444','#3b82f6','#22c55e','#06b6d4','#f43f5e','#a855f7','#10b981','#0ea5e9','#e11d48','#0d9488','#7c3aed','#2563eb','#dc2626','#059669','#d946ef']
-    // Assign colors in order of visit (by index in countries array) so no two neighbors share a color easily
-    const visitedA3List = [...visitedA3]
+    // Assign colors in order of visit (by index in countries array) so no two neighbors share a color easily.
+    // Built from the visited countries only — if planned ones took part, flipping the toggle
+    // would shift every index and reshuffle the colours of the whole map.
+    const visitedA3List = [...new Set(visitedCountries.map(c => A2_TO_A3[c.code]).filter(Boolean))]
     const colorMap = {}
     visitedA3List.forEach((a3, i) => { colorMap[a3] = VISITED_COLORS[i % VISITED_COLORS.length] })
     const colorForCode = (a3) => colorMap[a3] || VISITED_COLORS[0]
@@ -319,6 +339,17 @@ export function useAtlas() {
       bubblingMouseEvents: false,
       style: (feature) => {
         const a3 = feature.properties?.ADM0_A3 || feature.properties?.ISO_A3 || feature.properties?.['ISO3166-1-Alpha-3'] || feature.id
+        // Planned countries read as an outline rather than a fill: dashed border, muted
+        // wash. Deliberately not one of the VISITED_COLORS, so "been there" stays distinct.
+        if (plannedA3.has(a3)) {
+          return {
+            fillColor: dark ? '#818cf8' : '#4f46e5',
+            fillOpacity: 0.38,
+            color: dark ? '#818cf8' : '#4f46e5',
+            weight: 1,
+            dashArray: '6 4',
+          }
+        }
         const visited = visitedA3.has(a3)
         return {
           fillColor: visited ? colorForCode(a3) : (dark ? '#1e1e2e' : '#e2e8f0'),
@@ -334,23 +365,31 @@ export function useAtlas() {
           country_layer_by_a2_ref.current[c.code] = layer
           const name = resolveName(c.code)
           const formatDate = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString(getLocaleForLanguage(language), { month: 'short', year: 'numeric' }) }
-          const tooltipHtml = `
-            <div style="display:flex;flex-direction:column;gap:8px;min-width:160px">
-              <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:6px;border-bottom:1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}">${name}</div>
-              <div style="display:flex;gap:14px">
-                <div><span style="font-size:16px;font-weight:800">${c.tripCount}</span> <span style="font-size:10px;opacity:0.5;text-transform:uppercase;letter-spacing:0.05em">${c.tripCount === 1 ? t('atlas.tripSingular') : t('atlas.tripPlural')}</span></div>
-                <div><span style="font-size:16px;font-weight:800">${c.placeCount}</span> <span style="font-size:10px;opacity:0.5;text-transform:uppercase;letter-spacing:0.05em">${c.placeCount === 1 ? t('atlas.placeVisited') : t('atlas.placesVisited')}</span></div>
-              </div>
-              <div style="display:flex;gap:2px;border-top:1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'};padding-top:8px">
-                <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+          // "First trip / Last trip" is simply wrong for a country you haven't reached yet —
+          // a planned one gets a single departure date instead.
+          const planned = countryStatus(c) !== 'visited'
+          const datesHtml = planned
+            ? `<div style="flex:1;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;opacity:0.4">${t('atlas.plannedFor')}</span>
+                  <span style="font-size:12px;font-weight:700">${formatDate(c.firstVisit)}</span>
+                </div>`
+            : `<div style="flex:1;display:flex;flex-direction:column;gap:2px">
                   <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;opacity:0.4">${t('atlas.firstVisit')}</span>
                   <span style="font-size:12px;font-weight:700">${formatDate(c.firstVisit)}</span>
                 </div>
                 <div style="flex:1;display:flex;flex-direction:column;gap:2px">
                   <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;opacity:0.4">${t('atlas.lastVisitLabel')}</span>
                   <span style="font-size:12px;font-weight:700">${formatDate(c.lastVisit)}</span>
-                </div>
+                </div>`
+          const tooltipHtml = `
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:160px">
+              <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:6px;border-bottom:1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}">${name}${planned ? ` <span style="font-size:9px;font-weight:700;opacity:0.55;letter-spacing:0.06em">· ${t('atlas.planned')}</span>` : ''}</div>
+              <div style="display:flex;gap:14px">
+                <div><span style="font-size:16px;font-weight:800">${c.tripCount}</span> <span style="font-size:10px;opacity:0.5;text-transform:uppercase;letter-spacing:0.05em">${c.tripCount === 1 ? t('atlas.tripSingular') : t('atlas.tripPlural')}</span></div>
+                <div><span style="font-size:16px;font-weight:800">${c.placeCount}</span> <span style="font-size:10px;opacity:0.5;text-transform:uppercase;letter-spacing:0.05em">${c.placeCount === 1 ? t('atlas.placeVisited') : t('atlas.placesVisited')}</span></div>
               </div>
+              <div style="display:flex;gap:2px;border-top:1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'};padding-top:8px">
+                ${datesHtml}
               </div>
             </div>`
           layer.bindTooltip(tooltipHtml, {
@@ -396,7 +435,7 @@ export function useAtlas() {
 
     // Restore map view after re-render
     mapInstance.current.setView(currentCenter, currentZoom, { animate: false })
-  }, [geoData, data, dark])
+  }, [geoData, data, dark, visibleCountries, visitedCountries])
 
   // Render plugin tint layers (atlasLayerProvider hook) — a dashed wash over the
   // countries a plugin flagged, in its own non-interactive pane above the country
@@ -453,29 +492,41 @@ export function useAtlas() {
 
     if (Object.keys(regionGeoCache.current).length === 0) return
 
-    // Build set of visited region codes and per-country name sets
+    // Build set of visited region codes and per-country name sets. Regions follow their
+    // country's status, so zooming into a planned country can't reveal "visited" regions.
     const visitedRegionCodes = new Set<string>()
+    const plannedRegionCodes = new Set<string>()
     const visitedRegionNamesByCountry = new Map<string, Set<string>>()
+    const plannedRegionNamesByCountry = new Map<string, Set<string>>()
     const regionPlaceCounts: Record<string, number> = {}
     for (const [countryCode, regions] of Object.entries(visitedRegions)) {
       const names = new Set<string>()
+      const plannedNames = new Set<string>()
       for (const r of regions) {
-        visitedRegionCodes.add(r.code)
-        names.add(normalizeRegionName(r.name))
+        const planned = (r.status ?? 'visited') !== 'visited'
+        if (planned && !showPlanned) continue
+        if (planned) {
+          plannedRegionCodes.add(r.code)
+          plannedNames.add(normalizeRegionName(r.name))
+        } else {
+          visitedRegionCodes.add(r.code)
+          names.add(normalizeRegionName(r.name))
+        }
         regionPlaceCounts[r.code] = r.placeCount
         regionPlaceCounts[`${countryCode}:${normalizeRegionName(r.name)}`] = r.placeCount
       }
       visitedRegionNamesByCountry.set(countryCode, names)
+      plannedRegionNamesByCountry.set(countryCode, plannedNames)
     }
 
     // Match feature by ISO code OR region name scoped to the feature's country. Names are
     // normalized (diacritics/dash variants folded) since the geocoder's cached region_name
     // and the bundled boundaries' name don't always agree on accenting (e.g. a cached
     // "Ile-de-France" must still match the bundle's "Île-de-France") (#atlas-region-match).
-    const isVisitedFeature = (f: any) => {
-      if (visitedRegionCodes.has(f.properties?.iso_3166_2)) return true
+    const matchesRegions = (f: any, codes: Set<string>, namesByCountry: Map<string, Set<string>>) => {
+      if (codes.has(f.properties?.iso_3166_2)) return true
       const countryA2 = (f.properties?.iso_a2 || '').toUpperCase()
-      const countryNames = visitedRegionNamesByCountry.get(countryA2)
+      const countryNames = namesByCountry.get(countryA2)
       if (!countryNames) return false
       const name = normalizeRegionName(f.properties?.name || '')
       if (countryNames.has(name)) return true
@@ -483,6 +534,8 @@ export function useAtlas() {
       if (nameEn && countryNames.has(nameEn)) return true
       return false
     }
+    const isVisitedFeature = (f: any) => matchesRegions(f, visitedRegionCodes, visitedRegionNamesByCountry)
+    const isPlannedFeature = (f: any) => matchesRegions(f, plannedRegionCodes, plannedRegionNamesByCountry)
 
     // Include ALL region features — visited ones get colored fill, unvisited get outline only
     const allFeatures: any[] = []
@@ -495,12 +548,14 @@ export function useAtlas() {
 
     // Use same colors as country layer
     const VISITED_COLORS = ['#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#ef4444','#3b82f6','#22c55e','#06b6d4','#f43f5e','#a855f7','#10b981','#0ea5e9','#e11d48','#0d9488','#7c3aed','#2563eb','#dc2626','#059669','#d946ef']
-    const countryA3Set = data ? data.countries.map(c => A2_TO_A3[c.code]).filter(Boolean) : []
+    // Same source as the country layer's palette (visited only), or the two layers would
+    // hand the same country different colours.
+    const countryA3Set = [...new Set(visitedCountries.map(c => A2_TO_A3[c.code]).filter(Boolean))]
     const countryColorMap: Record<string, string> = {}
     countryA3Set.forEach((a3, i) => { countryColorMap[a3] = VISITED_COLORS[i % VISITED_COLORS.length] })
     // Map country A2 code to country color
     const a2ColorMap: Record<string, string> = {}
-    if (data) data.countries.forEach(c => { if (A2_TO_A3[c.code] && countryColorMap[A2_TO_A3[c.code]]) a2ColorMap[c.code] = countryColorMap[A2_TO_A3[c.code]] })
+    visitedCountries.forEach(c => { if (A2_TO_A3[c.code] && countryColorMap[A2_TO_A3[c.code]]) a2ColorMap[c.code] = countryColorMap[A2_TO_A3[c.code]] })
 
     const mergedGeo = { type: 'FeatureCollection', features: allFeatures }
 
@@ -512,6 +567,15 @@ export function useAtlas() {
       pane: 'regionPane',
       style: (feature) => {
         const countryA2 = (feature?.properties?.iso_a2 || '').toUpperCase()
+        if (isPlannedFeature(feature)) {
+          return {
+            fillColor: dark ? '#818cf8' : '#4f46e5',
+            fillOpacity: 0.4,
+            color: dark ? '#818cf8' : '#4f46e5',
+            weight: 1,
+            dashArray: '6 4',
+          }
+        }
         const visited = isVisitedFeature(feature)
         return visited ? {
           fillColor: a2ColorMap[countryA2] || '#6366f1',
@@ -587,7 +651,9 @@ export function useAtlas() {
     if (mapInstance.current.getZoom() >= 6) {
       regionLayerRef.current.addTo(mapInstance.current)
     }
-  }, [regionGeoLoaded, visitedRegions, dark, t])
+    // visitedCountries belongs here: the region colours are derived from it, and without
+    // the dep this effect kept painting regions from a stale country list.
+  }, [regionGeoLoaded, visitedRegions, dark, t, visitedCountries, showPlanned])
 
   const handleMarkCountry = (code: string, name: string): void => {
     setConfirmAction({ type: 'choose', code, name })
@@ -596,7 +662,6 @@ export function useAtlas() {
   setConfirmActionRef.current = setConfirmAction
 
   const handleUnmarkCountry = (code: string): void => {
-    const country = data?.countries.find(c => c.code === code)
     setConfirmAction({ type: 'unmark', code, name: resolveName(code) })
   }
 
@@ -639,16 +704,7 @@ export function useAtlas() {
     // Update local state immediately (no API reload = no map re-render flash)
     if (type === 'mark') {
       apiClient.post(`/addons/atlas/country/${code}/mark`).catch(() => {})
-      setData(prev => {
-        if (!prev || prev.countries.find(c => c.code === code)) return prev
-        const cont = continentForCountry(code)
-        return {
-          ...prev,
-          countries: [...prev.countries, { code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }],
-          stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 },
-          continents: { ...prev.continents, [cont]: (prev.continents?.[cont] || 0) + 1 },
-        }
-      })
+      setData(prev => (prev ? withCountryMarkedVisited(prev, code) : prev))
     } else {
       apiClient.delete(`/addons/atlas/country/${code}/mark`).catch(() => {})
       setSelectedCountry(null)
@@ -758,6 +814,7 @@ export function useAtlas() {
     mapRef, regionTooltipRef, panelRef, glareRef, borderGlareRef,
     handlePanelMouseMove, handlePanelMouseLeave,
     data, setData, stats, countries, selectedCountry, countryDetail,
+    visitedCountries, visibleCountries, showPlanned, togglePlanned,
     loadCountryDetail, handleUnmarkCountry, select_country_from_search,
     visitedRegions, setVisitedRegions,
     atlas_country_search, set_atlas_country_search,

@@ -58,7 +58,7 @@ export default function MDashboard(): React.ReactElement {
     spotlight, upcoming, gridTrips, isLoading, loadError, retryLoad,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
-    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
+    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
   } = useDashboard()
 
@@ -287,7 +287,7 @@ export default function MDashboard(): React.ReactElement {
         trip={editingTrip}
         onClose={() => { setShowForm(false); setEditingTrip(null) }}
         onSave={editingTrip ? handleUpdate : handleCreate}
-        onCoverUpdate={(tripId, coverUrl) => setTrips(prev => prev.map(tr => tr.id === tripId ? { ...tr, cover_image: coverUrl } : tr))}
+        onCoverUpdate={applyCoverUpdate}
         onArchive={editingTrip
           ? () => (editingTrip.is_archived ? handleUnarchive(editingTrip.id) : handleArchive(editingTrip.id))
           : undefined}

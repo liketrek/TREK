@@ -203,6 +203,11 @@ export function useMPlanTimeline(planner: TripPlanner) {
       updateRouteForDay(dayId)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('trip.toast.reorderError'))
+      // The optimistic transport positions and leg metadata written above are
+      // not undone one by one — pull the server state back in so the timeline
+      // stops showing an order that was never accepted.
+      void tripActions.refreshDays(tripId)
+      void tripActions.loadReservations(tripId)
     }
   }, [dayAssignments, tripActions, tripId, pushUndo, updateRouteForDay, toast, t])
 

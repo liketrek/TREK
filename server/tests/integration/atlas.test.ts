@@ -47,7 +47,7 @@ import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
+import { createUser, createTrip } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 
 let nestApp: INestApplication;
@@ -102,6 +102,30 @@ describe('Atlas stats', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('countries');
     expect(res.body).toHaveProperty('stats');
+  });
+
+  it('ATLAS-014 — a future trip is returned as planned and excluded from totalCountries (#1048)', async () => {
+    const { user } = createUser(testDb);
+    // Offsets from today rather than literal dates, so this cannot expire.
+    const iso = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+    const past = createTrip(testDb, user.id, { title: 'Rome, last month', start_date: iso(-40), end_date: iso(-30) });
+    const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
+    const insertPlace = testDb.prepare('INSERT INTO places (trip_id, name, address) VALUES (?, ?, ?)');
+    insertPlace.run(past.id, 'Colosseum', 'Piazza del Colosseo, Rome, Italy');
+    insertPlace.run(future.id, 'Senso-ji', 'Asakusa, Tokyo, Japan');
+
+    const res = await request(app)
+      .get('/api/addons/atlas/stats')
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    const countries = res.body.countries as { code: string; status: string }[];
+    expect(countries.find(c => c.code === 'IT')?.status).toBe('visited');
+    expect(countries.find(c => c.code === 'JP')?.status).toBe('planned');
+    expect(res.body.stats.totalCountries).toBe(1);
+    expect(res.body.stats.totalCountriesPlanned).toBe(1);
+    // The whole point: the map gets more countries than the passport counter shows.
+    expect(countries.length).toBeGreaterThan(res.body.stats.totalCountries);
   });
 
   it('ATLAS-002 — GET /api/atlas/country/:code returns places in country', async () => {

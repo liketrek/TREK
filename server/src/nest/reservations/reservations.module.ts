@@ -8,6 +8,7 @@ import { ReservationsMcp } from './reservations.mcp';
 import { AccommodationsController } from './accommodations.controller';
 import { AccommodationsService } from './accommodations.service';
 import { UpcomingReservationsController } from './upcoming-reservations.controller';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Reservations + accommodations domain (S5 — Phase 2 trip sub-domain).
@@ -18,7 +19,7 @@ import { UpcomingReservationsController } from './upcoming-reservations.controll
 @Module({
   // DaysModule: AccommodationsService + ReservationsMcp inject DaysService.
   // BudgetModule: ReservationsService + ReservationsMcp inject BudgetService (budget-sync seam).
-  imports: [DaysModule, PermissionsModule, BudgetModule],
+  imports: [DaysModule, PermissionsModule, BudgetModule, AuthModule],
   controllers: [ReservationsController, AccommodationsController, UpcomingReservationsController],
   providers: [ReservationsService, AccommodationsService, ReservationsMcp],
   // For in-container consumers (PluginHostDepsFactory, TripsService, BookingImportService).

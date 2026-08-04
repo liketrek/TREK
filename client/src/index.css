@@ -1165,6 +1165,18 @@ img[alt="TREK"] {
   .dp-day-header[data-selected="true"] .dp-day-actions { opacity: 1; }
 }
 
+/* Planner rows a finger can pick up (#1616). A long press is what arms the drag,
+   and that is the same gesture the browser answers with a text selection and a
+   callout — "the action is interpreted as a text selection" in the report. Only
+   on coarse pointers, and only inside the two panes that opt into the bridge. */
+@media (pointer: coarse) {
+  [data-touch-drag] [draggable='true'] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
 /* ── TREK range slider — thin filled track + soft round thumb ─────────────── */
 .trek-range {
   -webkit-appearance: none;

@@ -1,7 +1,8 @@
 /**
  * Collections e2e — drives /api/addons/collections through the REAL JwtAuthGuard
- * AND the real collectionsService against a temp SQLite db (full schema). Only the
- * addon flag, websocket and notification send are mocked. Covers: the addon gate
+ * AND the real DI-native CollectionsService (DatabaseModule + RealtimeModule +
+ * CollectionsModule) against a temp SQLite db (full schema). Only the addon
+ * flag, websocket and notification send are mocked. Covers: the addon gate
  * (404 before auth), auth, CRUD happy paths, invite/accept/decline, copy-to-trip,
  * cross-user 404s and the non-owner 403 on /:id/available-users (no enumeration).
  */
@@ -33,12 +34,14 @@ vi.mock('../../src/db/database', () => ({
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
 vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.fn() }));
-vi.mock('../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
 
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { createUser, createTrip, createCategory } from '../helpers/factories';
 import { CollectionsModule } from '../../src/nest/collections/collections.module';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { AddonsService } from '../../src/nest/addons/addons.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
@@ -51,7 +54,7 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [CollectionsModule] })
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, CollectionsModule] })
       .overrideProvider(AddonsService)
       .useValue({ isAddonEnabled })
       .compile();

@@ -211,6 +211,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Failed to load templates',
   'admin.packingTemplates.createError': 'Failed to create template',
   'admin.packingTemplates.deleteError': 'Failed to delete template',
+  'admin.packingTemplates.deleteCategoryError': 'Failed to delete category',
+  'admin.packingTemplates.deleteItemError': 'Failed to delete item',
   'admin.packingTemplates.saveError': 'Failed to save',
   'admin.tabs.addons': 'Addons',
   'admin.tabs.plugins': 'Plugins',

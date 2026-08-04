@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modèle de carte',
   'settings.mapTemplatePlaceholder.select': 'Sélectionner un modèle…',
   'settings.mapDefaultHint': 'Laissez vide pour OpenStreetMap (par défaut)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': "Modèle d'URL pour les tuiles de carte",
   'settings.mapProvider': 'Fournisseur de carte',
   'settings.mapProviderHint': 'Affecte les cartes Trip Planner et Journey. Atlas utilise toujours Leaflet.',
@@ -265,6 +264,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Photo de profil mise à jour',
   'settings.avatarRemoved': 'Photo de profil supprimée',
   'settings.avatarError': "Échec de l'import",
+  'settings.avatarRemoveError': 'Échec de la suppression',
   'settings.bookingLabels': 'Étiquettes des itinéraires',
   'settings.bookingLabelsHint':
     "Affiche les noms des gares / aéroports sur la carte. Si désactivé, seule l'icône est affichée.",

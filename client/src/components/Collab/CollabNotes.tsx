@@ -271,7 +271,7 @@ function CollabNotesHeader({ t, canEdit, setShowSettings, setShowNewModal }: Not
         {t('collab.notes.title')}
       </h3>
       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-        {canEdit && <button onClick={() => setShowSettings(true)} title={t('collab.notes.categorySettings') || 'Categories'}
+        {canEdit && <button onClick={() => setShowSettings(true)} title={t('collab.notes.categorySettings')}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', transition: 'color 0.12s' }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
           onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
@@ -526,7 +526,8 @@ export default function CollabNotes(props: CollabNotesProps) {
       <ConfirmDialog
         isOpen={pendingDeleteNoteId !== null}
         onClose={() => setPendingDeleteNoteId(null)}
-        onConfirm={() => { if (pendingDeleteNoteId !== null) handleDeleteNote(pendingDeleteNoteId) }}
+        // Hand the promise back so the dialog absorbs the rethrow of a failed DELETE.
+        onConfirm={() => (pendingDeleteNoteId !== null ? handleDeleteNote(pendingDeleteNoteId) : undefined)}
         title={t('collab.notes.confirmDeleteTitle')}
         message={t('collab.notes.confirmDeleteBody')}
       />

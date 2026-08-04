@@ -80,6 +80,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Скопировать в поездку',
   'collections.copyN': 'Скопировать {count} в поездку',
   'collections.copyToTripSearch': 'Поиск поездок',
+  'collections.searchLists': 'Поиск списков',
   'collections.copyToTripConfirm': 'Скопировать',
   'collections.noTrips': 'Пока нет поездок',
   'collections.alreadyInTrip': 'Уже в этой поездке',

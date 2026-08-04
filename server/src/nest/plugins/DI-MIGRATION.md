@@ -36,10 +36,11 @@ DI-only service and the legacy function module was deleted, but the wiring
 layer didn't inject — so a module-level shim re-exported the legacy names over
 a hand-built instance. Option A deleted `tags.bridge.ts` and
 `categories.bridge.ts` (the plugin host was their only consumer).
-**`todo.bridge.ts` survives** for exactly one remaining consumer that genuinely
-runs outside the container: the legacy `get_trip_summary` registrar in
-`src/mcp/tools/trips.ts`. Delete it when that registrar migrates to the
-DI-discovered MCP registry. New bridges should only be added for genuinely
+`todo.bridge.ts`, `share.bridge.ts`, `collab.bridge.ts` and `vacay.bridge.ts`
+followed with the 2026-07 trip fold — their last consumers (the legacy
+`src/mcp/tools/trips.ts` registrar and the legacy tripService itself) migrated
+into the DI-discovered `trips.mcp.ts`/`share.mcp.ts` and the DI-native
+`TripsService`. New bridges should only be added for genuinely
 non-Nest consumers (legacy MCP registrars, scheduler, websocket) — the plugin
 host no longer needs them, ever.
 
@@ -118,8 +119,28 @@ host's audit trail is the separate `plugin-audit.ts`); exchangeRateService
 swapped in 2026-07 with the budget-domain fold — its `getRates` import became
 the injected `ExchangeRatesService`; budgetService swapped in 2026-07 with the
 budget migration — its `listBudgetItems` import became the already-injected
-`BudgetService`, so no constructor change at all; the remaining factory
-imports are all Wave-4+ domains: trips, places, journeys, atlas, collections).
+`BudgetService`, so no constructor change at all; tripService swapped in
+2026-07 with the trip fold — its six imported symbols (`listTrips`,
+`updateTrip`, `createTrip`, `removeMember`, `NotFoundError`, `ValidationError`)
+became the injected `TripsService`, with the error classes now imported from
+`nest/trips/trips.service`; placeService swapped in 2026-07 with the place
+fold — its four imported symbols (`createPlace`, `updatePlace`, `deletePlace`,
+`getPlace`) became the injected `PlacesService`, the factory's 21st constructor
+dep; collectionsService swapped in 2026-08 with the collections fold — its
+seven imported symbols (`listCollections`, `getCollection`, `createCollection`,
+`updateCollection`, `savePlace`, `copyToTrip`, `deletePlace`) became the
+injected `CollectionsService`, the factory's 22nd constructor dep, with
+`mapCollectionError` unchanged on top; atlasService swapped in 2026-08 with
+the atlas fold — its nine imported symbols (`listVisitedCountries`,
+`listManuallyVisitedRegions`, `listBucketList`, `markCountryVisited`,
+`unmarkCountryVisited`, `markRegionVisited`, `unmarkRegionVisited`,
+`createBucketItem`, `deleteBucketItem`) became the injected `AtlasService`,
+the factory's 23rd constructor dep; notificationService swapped in 2026-08
+with the notifications fold — its single imported symbol (`send as
+sendNotification`, the `sendPluginNotification` closure) became the injected
+`NotificationsService`, the factory's 24th constructor dep; the remaining
+factory domain imports are `weatherService` (`getWeather`) and the Wave-5
+journeys domain).
 
 ### Test impact (as landed)
 
@@ -127,10 +148,21 @@ imports are all Wave-4+ domains: trips, places, journeys, atlas, collections).
   `PluginRpcHost` directly with hand-built `HostDeps`).
 - `tests/unit/plugins/plugin-host-deps.factory.test.ts` (was
   `create-rpc-host.test.ts`) — the six DI-domain path mocks became constructor
-  stubs (sixteen stubs as of the 2026-07 exchange-rates fold); the ~22
+  stubs (sixteen stubs as of the 2026-07 exchange-rates fold, plus `tripsStub`
+  with the 2026-07 trip fold — the tripService path mock's sentinel behaviors
+  moved onto the stub, its throws now built from the real
+  `nest/trips/trips.service` error classes); the ~22
   legacy-service path mocks shrank by one with the 2026-07 budget migration
   (the budgetService satisfy-the-import mock died with the legacy file — the
-  `budgetStub` gained `listBudgetItems` for the two swapped closures); a
+  `budgetStub` gained `listBudgetItems` for the two swapped closures); the
+  collectionsService path mock became `collectionsStub` with the 2026-08
+  collections fold (same sentinel behaviors — the status-tagged throws the
+  factory's `mapCollectionError` maps); the atlasService path mock became
+  `atlasStub` with the 2026-08 atlas fold (same sentinel behaviors, keyed by
+  the service method names — `bucketList`, `markCountry`, …); the
+  notificationService path mock became `notificationsStub` with the 2026-08
+  notifications fold (the hoisted `notifySend` handle survived as the stub's
+  `send`); a
   file-local shim keeps the
   historical `createRealRpcHost(id, granted)` call sites and supplies a default
   no-op router.

@@ -53,6 +53,7 @@ const ws = vi.hoisted(() => ({ broadcast: vi.fn() }));
 vi.mock('../../../src/websocket', () => ws);
 
 import { MemoriesService } from '../../../src/nest/memories/memories.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 const res = {} as import('express').Response;
 
@@ -61,7 +62,7 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
 
   beforeEach(() => {
     vi.clearAllMocks();
-    svc = new MemoriesService();
+    svc = new MemoriesService(new RealtimeService());
   });
 
   it('access check + broadcast forward verbatim', () => {

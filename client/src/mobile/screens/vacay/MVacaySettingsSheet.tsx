@@ -452,8 +452,11 @@ function CalendarEditor({ cal, countries, calendarType = 'public_holiday', onUpd
   const { t } = useTranslation()
   const [label, setLabel] = useState(cal.label || '')
   const [regions, setRegions] = useState<Option[]>([])
-  const country = cal.region.split('-')[0]
-  const region = cal.region.includes('-') ? cal.region : ''
+  // A school-holiday group carries a `|group:…` suffix — strip it before the
+  // country is read off, otherwise the region lookup finds nothing.
+  const [baseRegion] = cal.region.split('|')
+  const country = baseRegion.split('-')[0]
+  const region = cal.region.includes('|group:') || baseRegion.includes('-') ? cal.region : ''
 
   useEffect(() => { setLabel(cal.label || '') }, [cal.label])
   useEffect(() => {
@@ -498,8 +501,9 @@ function AddCalendarDraft({ countries, calendarType = 'public_holiday', onAdd, o
   const [label, setLabel] = useState('')
   const [regions, setRegions] = useState<Option[]>([])
 
-  const country = region.split('-')[0] || ''
-  const selectedRegion = region.includes('-') ? region : ''
+  const [baseRegion] = region.split('|')
+  const country = baseRegion.split('-')[0] || ''
+  const selectedRegion = region.includes('|group:') || baseRegion.includes('-') ? region : ''
 
   useEffect(() => {
     if (!country) { setRegions([]); return }

@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modello Mappa',
   'settings.mapTemplatePlaceholder.select': 'Seleziona modello...',
   'settings.mapDefaultHint': 'Lascia vuoto per OpenStreetMap (predefinito)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Modello URL per i tile della mappa',
   'settings.mapProvider': 'Provider mappa',
   'settings.mapProviderHint': 'Influisce sulle mappe Trip Planner e Journey. Atlas usa sempre Leaflet.',
@@ -234,6 +233,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Immagine del profilo aggiornata',
   'settings.avatarRemoved': 'Immagine del profilo rimossa',
   'settings.avatarError': 'Impossibile caricare',
+  'settings.avatarRemoveError': 'Rimozione non riuscita',
   'settings.mfa.title': 'Autenticazione a due fattori (2FA)',
   'settings.mfa.description':
     "Aggiunge un secondo passaggio quando accedi con email e password. Usa un'app authenticator (Google Authenticator, Authy, ecc.).",

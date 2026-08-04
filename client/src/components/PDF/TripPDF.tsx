@@ -9,6 +9,37 @@ import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry 
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 
+/**
+ * Every day starts a new page by default. On a trip of short days that prints
+ * one sheet per handful of lines, so the preview offers the flowing layout the
+ * in-app view already uses, and remembers which one was picked (#1292).
+ */
+const PAGE_BREAK_KEY = 'trek_pdf_page_break_per_day'
+
+function pageBreakPerDay(): boolean {
+  try {
+    return localStorage.getItem(PAGE_BREAK_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+function rememberPageBreakPerDay(on: boolean): void {
+  try {
+    localStorage.setItem(PAGE_BREAK_KEY, on ? '1' : '0')
+  } catch {
+    // A blocked localStorage costs the preference, not the export.
+  }
+}
+
+/* The overlay is imperative DOM, so the switch from Settings/ToggleSwitch is
+   rebuilt here rather than rendered — as static markup it would carry no
+   behaviour. Same geometry and the same tokens, so it reads as the same control. */
+const TOGGLE_TRACK = 'position:relative;width:44px;height:24px;min-width:44px;flex-shrink:0;border-radius:12px;border:none;padding:0;cursor:pointer;transition:background 0.2s;'
+const TOGGLE_KNOB = 'position:absolute;top:2px;width:20px;height:20px;border-radius:50%;background:white;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);'
+const trackColour = (on: boolean) => (on ? 'var(--accent, #111827)' : 'var(--border-primary, #d1d5db)')
+const knobOffset = (on: boolean) => (on ? '22px' : '2px')
+
 function renderLucideIcon(icon:LucideIcon, props = {}) {
   if (!_renderToStaticMarkup) return ''
   return _renderToStaticMarkup(
@@ -146,8 +177,11 @@ interface downloadTripPDFProps {
   locale: string
 }
 
-export async function downloadTripPDF({ trip, days, places, assignments, categories, dayNotes, reservations = [], t: _t, locale: _locale }: downloadTripPDFProps) {
+// `assignments` is normalised here once — every read below (and fetchPlacePhotos)
+// relies on it being an object.
+export async function downloadTripPDF({ trip, days, places, assignments = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale }: downloadTripPDFProps) {
   await ensureRenderer()
+  const breaksPerDay = pageBreakPerDay()
   const loc = _locale || undefined
   const tr = _t || (k => k)
   const sorted = [...(days || [])].sort((a, b) => a.day_number - b.day_number)
@@ -165,7 +199,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   const photoMap = await fetchPlacePhotos(assignments, places)
 
   const totalAssigned = new Set(
-    Object.values(assignments || {}).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
+    Object.values(assignments).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
   ).size
   // The PDF is a trip-scoped, shareable document, so totals stay in the trip's
   // own currency. Rates are resolved ONCE before any HTML is built so the cover
@@ -173,7 +207,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   // entirely (offline export keeps working), and a failed fetch degrades to
   // per-currency breakdowns instead of mislabeled sums (#1561).
   const tripCur = (trip?.currency || 'EUR').toUpperCase()
-  const allCostEntries: MoneyEntry[] = Object.values(assignments || {})
+  const allCostEntries: MoneyEntry[] = Object.values(assignments)
     .flatMap(a => a)
     .map(a => ({ amount: Number(a.place?.price) || 0, currency: a.place?.currency || tripCur }))
   const needsFx = allCostEntries.some(e => e.amount > 0 && e.currency.toUpperCase() !== tripCur)
@@ -401,7 +435,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
     // every page an overflowing day spills onto (#1471). CSS `table-header-group`
     // on a <div> is NOT repeated by Chromium's print engine — only real thead is.
     return `
-      <table class="day-section${di > 0 ? ' page-break' : ''}">
+      <table class="day-section${di > 0 ? ' day-break' : ''}">
         <thead class="day-header"><tr><td>
           <div class="day-header-bar">
             <span class="day-tag">${escHtml(tr('dayplan.dayN', { n: day.day_number })).toUpperCase()}</span>
@@ -433,7 +467,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
     </div>`
 
   const html = `<!DOCTYPE html>
-<html lang="${loc.split('-')[0]}">
+<html lang="${(loc || 'en').split('-')[0]}">
 <head>
 <meta charset="UTF-8">
 <base href="${window.location.origin}/">
@@ -503,6 +537,20 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   /* ── Day ───────────────────────────────────────── */
   /* .day-section is a real <table>; its <thead> day header repeats on overflow pages. */
   .page-break { page-break-before: always; }
+  /* Days break by default; .pdf-flow on <body> is the toggle in the preview (#1292).
+     Flowing days butt against each other without the page edge between them. */
+  .day-break { page-break-before: always; }
+  .pdf-flow .day-break { page-break-before: auto; }
+  .pdf-flow .day-section + .day-section { margin-top: 18px; }
+  /* Hold a flowing day together. Without this the header bar can be placed at the
+     foot of a sheet while its content moves to the next one, which then repeats
+     the header (#1471) and reads as the same day printed twice. A day too long
+     for one page still breaks and still repeats its header — the engine only
+     honours this where it can. Days that start a page of their own cannot strand
+     a header, so it is scoped to the flowing layout.
+     Measured, not assumed: break-after on the thead and break-before on the tbody
+     are both ignored by Chromium here. */
+  .pdf-flow .day-section { break-inside: avoid; page-break-inside: avoid; }
   .day-section { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .day-header-bar {
     background: #0f172a; padding: 11px 28px;
@@ -526,6 +574,10 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
     flex: 1 1 45%; min-width: 200px; margin: 4px 0; padding: 10px;
     border: 2px solid #e2e8f0; border-radius: 12px;
     display: flex; flex-direction: column;
+    /* Place and note cards have said this all along; without it a stay is torn
+       in half by a page edge, its check-in time on one sheet and the hotel name
+       on the next. Rare while every day started a page, common once they flow. */
+    break-inside: avoid; page-break-inside: avoid;
   }
   .day-accommodation-title {
     font-size: 16px; font-weight: 600; text-align: center;
@@ -606,7 +658,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   }
 </style>
 </head>
-<body>
+<body${breaksPerDay ? '' : ' class="pdf-flow"'}>
 
 <!-- Footer on every page -->
 <div class="pdf-footer">
@@ -664,10 +716,14 @@ ${pluginSectionsHtml}
   card.style.cssText = 'width:100%;max-width:1000px;height:95vh;background:var(--bg-card);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);'
 
   const header = document.createElement('div')
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border-primary);flex-shrink:0;'
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border-primary);flex-shrink:0;'
   header.innerHTML = `
-    <span style="font-size:13px;font-weight:600;color:var(--text-primary)">${escHtml(trip?.title || tr('pdf.travelPlan'))}</span>
+    <span style="font-size:13px;font-weight:600;color:var(--text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(trip?.title || tr('pdf.travelPlan'))}</span>
     <div style="display:flex;align-items:center;gap:8px">
+      <label for="pdf-daybreak-toggle" style="font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">${escHtml(tr('pdf.pageBreakPerDay'))}</label>
+      <button id="pdf-daybreak-toggle" type="button" role="switch" aria-checked="${breaksPerDay}" aria-label="${escHtml(tr('pdf.pageBreakPerDay'))}" style="${TOGGLE_TRACK} background:${trackColour(breaksPerDay)}">
+        <span style="${TOGGLE_KNOB} left:${knobOffset(breaksPerDay)}"></span>
+      </button>
       <button id="pdf-print-btn" style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:inherit">${tr('pdf.saveAsPdf')}</button>
       <button id="pdf-close-btn" style="background:none;border:none;cursor:pointer;color:var(--text-faint);display:flex;padding:4px;border-radius:6px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -691,4 +747,17 @@ ${pluginSectionsHtml}
   if (closeBtn) closeBtn.onclick = () => overlay.remove()
   const printBtn = header.querySelector<HTMLElement>('#pdf-print-btn')
   if (printBtn) printBtn.onclick = () => { iframe.contentWindow?.print() }
+
+  // The two layouts differ by one class, so switching is instant in the preview
+  // and there is no need to re-fetch photos or rebuild the document.
+  const dayBreakSwitch = header.querySelector<HTMLButtonElement>('#pdf-daybreak-toggle')
+  if (dayBreakSwitch) dayBreakSwitch.onclick = () => {
+    const on = dayBreakSwitch.getAttribute('aria-checked') !== 'true'
+    dayBreakSwitch.setAttribute('aria-checked', String(on))
+    dayBreakSwitch.style.background = trackColour(on)
+    const knob = dayBreakSwitch.firstElementChild as HTMLElement | null
+    if (knob) knob.style.left = knobOffset(on)
+    rememberPageBreakPerDay(on)
+    iframe.contentDocument?.body.classList.toggle('pdf-flow', !on)
+  }
 }

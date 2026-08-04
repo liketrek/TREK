@@ -160,6 +160,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Erreur de chargement des modèles',
   'admin.packingTemplates.createError': 'Erreur de création du modèle',
   'admin.packingTemplates.deleteError': 'Erreur de suppression du modèle',
+  'admin.packingTemplates.deleteCategoryError': 'Échec de la suppression de la catégorie',
+  'admin.packingTemplates.deleteItemError': 'Échec de la suppression de cet élément',
   'admin.packingTemplates.saveError': 'Erreur de sauvegarde',
   'admin.tabs.addons': 'Extensions',
   'admin.tabs.plugins': 'Plugins',

@@ -2,7 +2,8 @@ import path from 'path';
 import fs from 'fs';
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { broadcast } from '../../websocket';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { verifyTripAccess } from '../../services/tripAccess';
 import { avatarUrl } from '../../services/avatarUrl';
@@ -57,14 +58,16 @@ export interface LinkPreviewResult {
  * run in db.transaction(), getFormattedNoteById is trip-scoped and null-safe,
  * votePoll rejects non-integer indexes, and linkPreview absorbs malformed URLs
  * instead of throwing.
- * Non-Nest consumers (legacy tripService, the legacy MCP trips registrar) go
- * through collab.bridge.ts instead of importing this class directly.
+ * All consumers are in-container since the trip fold (TripsService and
+ * TripsMcp inject this class); collab.bridge.ts was deleted with its last
+ * outside-container consumers.
  */
 @Injectable()
 export class CollabService {
   constructor(
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -79,8 +82,8 @@ export class CollabService {
     return this.permissions.checkPermission('file_upload', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast(tripId: string, event: string, payload: Record<string, unknown>, socketId: string | undefined): void {
-    broadcast(tripId, event, payload, socketId);
+  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+    this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
   /* ------------------------------------------------------------------ */
@@ -492,11 +495,11 @@ export class CollabService {
 
   /** Fire-and-forget collab notification (mirrors the legacy route's dynamic import). */
   notifyCollab(tripId: string, actor: User, preview?: string): void {
-    import('../../services/notificationService').then(({ send }) => {
+    import('../notifications/notifications.bridge').then(({ send }) => {
       const tripInfo = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
       const params: Record<string, string> = { trip: tripInfo?.title || 'Untitled', actor: actor.email, tripId: String(tripId) };
       if (preview !== undefined) params.preview = preview;
       send({ event: 'collab_message', actorId: actor.id, scope: 'trip', targetId: Number(tripId), params }).catch(() => {});
-    });
+    }).catch(() => {});
   }
 }

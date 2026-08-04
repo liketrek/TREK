@@ -80,11 +80,14 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
     const prev = get().packingItems
     // Optimistic reorder: rebuild the array in the requested order, reindexing
     // sort_order; any items not in orderedIds keep their place at the end.
+    // Unknown ids are dropped first so a stale id can't leave a gap in the
+    // local sort_order sequence.
     set(state => {
       const byId = new Map(state.packingItems.map(i => [i.id, i]))
       const reordered = orderedIds
-        .map((id, idx): PackingItem | null => { const item = byId.get(id); return item ? { ...item, sort_order: idx } : null })
-        .filter((i): i is PackingItem => i !== null)
+        .map(id => byId.get(id))
+        .filter((i): i is PackingItem => i !== undefined)
+        .map((item, idx): PackingItem => ({ ...item, sort_order: idx }))
       const remaining = state.packingItems.filter(i => !orderedIds.includes(i.id))
       return { packingItems: [...reordered, ...remaining] }
     })

@@ -90,7 +90,6 @@ interface ReservationCardProps {
 }
 
 function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateToFiles, assignmentLookup, canEdit, days = [], contributions = [], detailPlugins = [] }: ReservationCardProps) {
-  const { toggleReservationStatus } = useTripStore()
   const toast = useToast()
   const { t, locale } = useTranslation()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
@@ -117,10 +116,6 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   const linked = r.assignment_id ? assignmentLookup[r.assignment_id] : null
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  const handleToggle = async () => {
-    try { await toggleReservationStatus(tripId, r.id) }
-    catch { toast.error(t('reservations.toast.updateError')) }
-  }
   const handleDelete = async () => {
     setShowDeleteConfirm(false)
     try { await onDelete(r.id) } catch { toast.error(t('reservations.toast.deleteError')) }

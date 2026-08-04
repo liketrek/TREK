@@ -143,3 +143,125 @@ describe('CollabPanel', () => {
     expect(screen.queryByTestId('collab-notes')).not.toBeInTheDocument()
   })
 })
+
+// FE-W5CPN-001 to FE-W5CPN-013
+// The desktop branch picks a different layout for every combination of enabled
+// collab features, so each combination gets its own case.
+const allOff = { chat: false, notes: false, polls: false, whatsnext: false }
+
+describe('CollabPanel feature combinations', () => {
+  beforeEach(() => {
+    originalInnerWidth = window.innerWidth
+    resetAllStores()
+    seedStore(useAuthStore, { user: buildUser() })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, writable: true, configurable: true })
+  })
+
+  it('FE-W5CPN-001: renders nothing when every collab feature is disabled', () => {
+    setViewport(1280)
+    const { container } = render(<CollabPanel tripId={1} collabFeatures={allOff} />)
+    expect(container).toBeEmptyDOMElement()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5CPN-002: chat alone fills the whole desktop panel', () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, chat: true }} />)
+    expect(screen.getByTestId('collab-chat')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-notes')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('collab-polls')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('whats-next')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5CPN-003: chat plus notes puts the notes card next to the chat column', () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, chat: true, notes: true }} />)
+    expect(screen.getByTestId('collab-chat')).toBeInTheDocument()
+    expect(screen.getByTestId('collab-notes')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-polls')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5CPN-004: chat plus polls renders the polls card as the only right panel', () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, chat: true, polls: true }} />)
+    expect(screen.getByTestId('collab-polls')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-notes')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('whats-next')).not.toBeInTheDocument()
+  })
+
+  it("FE-W5CPN-005: chat plus what's next renders the widget as the only right panel", () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, chat: true, whatsnext: true }} />)
+    expect(screen.getByTestId('whats-next')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-notes')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('collab-polls')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5CPN-006: chat plus notes and polls stacks both right panels', () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, chat: true, notes: true, polls: true }} />)
+    expect(screen.getByTestId('collab-notes')).toBeInTheDocument()
+    expect(screen.getByTestId('collab-polls')).toBeInTheDocument()
+    expect(screen.queryByTestId('whats-next')).not.toBeInTheDocument()
+  })
+
+  it("FE-W5CPN-007: chat plus polls and what's next stacks those two", () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, chat: true, polls: true, whatsnext: true }} />)
+    expect(screen.getByTestId('collab-polls')).toBeInTheDocument()
+    expect(screen.getByTestId('whats-next')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-notes')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5CPN-008: notes alone fills the panel when chat is off', () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, notes: true }} />)
+    expect(screen.getByTestId('collab-notes')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-chat')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5CPN-009: polls alone fills the panel when chat is off', () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, polls: true }} />)
+    expect(screen.getByTestId('collab-polls')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-chat')).not.toBeInTheDocument()
+  })
+
+  it("FE-W5CPN-010: what's next alone fills the panel when chat is off", () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, whatsnext: true }} />)
+    expect(screen.getByTestId('whats-next')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-chat')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5CPN-011: notes and polls share the width side by side when chat is off', () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, notes: true, polls: true }} />)
+    expect(screen.getByTestId('collab-notes')).toBeInTheDocument()
+    expect(screen.getByTestId('collab-polls')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-chat')).not.toBeInTheDocument()
+  })
+
+  it("FE-W5CPN-012: polls and what's next share the width when chat is off", () => {
+    setViewport(1280)
+    render(<CollabPanel tripId={1} collabFeatures={{ ...allOff, polls: true, whatsnext: true }} />)
+    expect(screen.getByTestId('collab-polls')).toBeInTheDocument()
+    expect(screen.getByTestId('whats-next')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-notes')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5CPN-013: mobile falls back to the first tab when the active one gets disabled', () => {
+    setViewport(375)
+    const { rerender } = render(<CollabPanel tripId={1} />)
+    fireEvent.click(screen.getByRole('button', { name: /polls/i }))
+    expect(screen.getByTestId('collab-polls')).toBeInTheDocument()
+
+    rerender(<CollabPanel tripId={1} collabFeatures={{ ...allOff, notes: true, whatsnext: true }} />)
+    expect(screen.getByTestId('collab-notes')).toBeInTheDocument()
+    expect(screen.queryByTestId('collab-polls')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /polls/i })).not.toBeInTheDocument()
+  })
+})

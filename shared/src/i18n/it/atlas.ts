@@ -54,5 +54,9 @@ const atlas: TranslationStrings = {
   'atlas.placeVisited': 'Luogo visitato',
   'atlas.placesVisited': 'Luoghi visitati',
   'atlas.searchCountry': 'Cerca un paese...',
+  'atlas.planned': 'In programma',
+  'atlas.showPlanned': 'Mostra i paesi in programma',
+  'atlas.plannedFor': 'In programma per',
+  'atlas.antarctica': 'Antartide',
 };
 export default atlas;

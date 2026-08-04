@@ -4,8 +4,8 @@ import {
   demoDenied, ok,
 } from '@trek/nest-mcp';
 import { z } from 'zod';
-import { isDemoUser } from '../../services/authService';
-import { createPlace } from '../../services/placeService';
+import { AuthService } from '../auth/auth.service';
+import { PlacesService } from '../places/places.service';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { DatabaseService } from '../database/database.service';
 import { DaysService } from './days.service';
@@ -33,6 +33,8 @@ export class DaysMcp {
   constructor(
     private readonly days: DaysService,
     private readonly db: DatabaseService,
+    private readonly places: PlacesService,
+    private readonly auth: AuthService,
   ) {}
 
   @Tool({
@@ -50,7 +52,7 @@ export class DaysMcp {
     { tripId, dayId, title }: { tripId: number; dayId: number; title: string | null },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const current = this.days.getDay(dayId, tripId);
@@ -75,7 +77,7 @@ export class DaysMcp {
     { tripId, date, notes }: { tripId: number; date?: string; notes?: string },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const day = this.days.create(tripId, date, notes);
@@ -94,12 +96,14 @@ export class DaysMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async deleteDay({ tripId, dayId }: { tripId: number; dayId: number }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.days.getDay(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
     this.days.remove(dayId);
-    safeBroadcast(tripId, 'day:deleted', { id: dayId });
+    // REST parity shape ({ dayId }) — the client reads payload.dayId, so the { id }
+    // variant never removed the day from collaborator screens.
+    safeBroadcast(tripId, 'day:deleted', { dayId });
     return ok({ success: true });
   }
 
@@ -127,7 +131,7 @@ export class DaysMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const errors = this.days.validateAccommodationRefs(tripId, place_id, start_day_id, end_day_id);
@@ -177,14 +181,14 @@ export class DaysMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const dayErrors = this.days.validateAccommodationRefs(tripId, undefined, start_day_id, end_day_id);
     if (dayErrors.length > 0) return { content: [{ type: 'text' as const, text: dayErrors.map(e => e.message).join(', ') }], isError: true };
     try {
       const result = this.db.transaction(() => {
-        const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes: place_notes, website, phone, price, currency });
+        const place = this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes: place_notes, website, phone, price, currency });
         const accommodation = this.days.createAccommodation(tripId, { place_id: place.id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes: accommodation_notes });
         return { place, accommodation };
       });
@@ -221,7 +225,7 @@ export class DaysMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const existing = this.days.getAccommodation(accommodationId, tripId);
@@ -242,7 +246,7 @@ export class DaysMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async deleteAccommodation({ tripId, accommodationId }: { tripId: number; accommodationId: number }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.days.getAccommodation(accommodationId, tripId)) return { content: [{ type: 'text' as const, text: 'Accommodation not found.' }], isError: true };

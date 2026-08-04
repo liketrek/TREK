@@ -14,6 +14,14 @@ Atlas gives you a visual overview of your travel footprint. Visited countries ar
 
 When the admin has enabled the Atlas addon, an **Atlas** entry appears in the main navigation. Your visited countries are populated automatically from your existing trips.
 
+## Visited and planned countries
+
+A country only counts as visited once the trip that takes you there has started. A trip currently under way counts too — you are there. Countries from trips that begin in the future are **planned**, and trips saved without any dates are treated as ideas that stay out of your statistics entirely.
+
+Planned countries are hidden from the map by default. Use the **Show planned countries** switch above the map to bring them in; they appear with a dashed outline so they never look like somewhere you have already been. The switch only appears when you actually have upcoming trips, and it remembers your choice.
+
+Countries you mark by hand always count as visited, whatever the dates of any trip going there.
+
 ## Marking countries as visited
 
 Click any country on the map to open an action popup where you can mark it as visited or add it to your bucket list. Use the search bar at the top of the map to find and fly to a country — pressing Enter or selecting a result from the dropdown opens the same action popup.
@@ -34,12 +42,12 @@ The bucket list is separate from "visited". Use it to track countries or places 
 
 Your Atlas statistics panel shows:
 
-- **Countries visited** — total number of distinct countries.
+- **Countries visited** — total number of distinct countries you have actually been to. Countries from upcoming trips are counted separately and shown next to this number.
 - **Trips** — total number of trips across all time.
 - **Places** — total number of individual places logged in trips.
 - **Cities** — total number of distinct cities visited.
 - **Travel days** — total days spent travelling.
-- **Continent breakdown** — number of countries visited per continent (Europe, Asia, North America, South America, Africa, Oceania).
+- **Continent breakdown** — number of countries visited per continent (Europe, Asia, North America, South America, Africa, Oceania). Antarctica joins the row once you have been.
 - **Travel streak** — number of consecutive years in which you have taken at least one trip.
 - **Trips this year** — number of trips in the current calendar year.
 

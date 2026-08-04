@@ -4,6 +4,8 @@
  * Covers: bbox computation, tile math, URL building, size guard,
  * offline/no-SW guard, syncMeta update.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import {
@@ -123,13 +125,13 @@ describe('buildTileUrl', () => {
   it('replaces {s} with a subdomain character', () => {
     const tmpl = 'https://{s}.tiles.example.com/{z}/{x}/{y}.png';
     const url = buildTileUrl(tmpl, 10, 0, 0);
-    expect(url).toMatch(/^https:\/\/[abcd]\.tiles\.example\.com\/10\/0\/0\.png$/);
+    expect(url).toMatch(/^https:\/\/[abc]\.tiles\.example\.com\/10\/0\/0\.png$/);
   });
 
   it('picks the subdomain deterministically so a tile keeps one URL', () => {
     const tmpl = 'https://{s}.tiles.example.com/{z}/{x}/{y}.png';
     // A rotating counter would hand out a different host on each call, which
-    // both breaks the cache lookup and stores the tile four times over.
+    // both breaks the cache lookup and stores the tile once per host.
     const first = buildTileUrl(tmpl, 10, 479, 329);
     buildTileUrl(tmpl, 10, 480, 330);
     expect(buildTileUrl(tmpl, 10, 479, 329)).toBe(first);
@@ -138,9 +140,30 @@ describe('buildTileUrl', () => {
   it('spreads neighbouring tiles across subdomains', () => {
     const tmpl = 'https://{s}.tiles.example.com/{z}/{x}/{y}.png';
     const hosts = new Set(
-      [0, 1, 2, 3].map(dy => buildTileUrl(tmpl, 10, 479, 329 + dy).slice(8, 9)),
+      [0, 1, 2].map(dy => buildTileUrl(tmpl, 10, 479, 329 + dy).slice(8, 9)),
     );
-    expect(hosts.size).toBe(4);
+    expect(hosts.size).toBe(3);
+  });
+
+  it('uses the same subdomain rotation as Leaflet', () => {
+    // Leaflet's TileLayer defaults to subdomains 'abc' and indexes it with
+    // Math.abs(x + y) % length. A different list length here would cache each
+    // tile under a host the map never asks for.
+    const tmpl = 'https://{s}.tiles.example.com/{z}/{x}/{y}.png';
+    const leaflet = 'abc';
+    for (const [x, y] of [[479, 329], [480, 330], [12, 7], [0, 0], [5, 4]]) {
+      const expected = leaflet[Math.abs(x + y) % leaflet.length];
+      expect(buildTileUrl(tmpl, 10, x, y)).toBe(
+        `https://${expected}.tiles.example.com/10/${x}/${y}.png`,
+      );
+    }
+  });
+
+  it('collapses the retired OSM subdomain sharding onto the single host', () => {
+    // d.tile.openstreetmap.org stopped resolving after OSM dropped sharding, so
+    // a template saved before that must not reach the network as-is (#1733).
+    const url = buildTileUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 13, 4091, 2722);
+    expect(url).toBe('https://tile.openstreetmap.org/13/4091/2722.png');
   });
 
   it('removes {r} (retina placeholder)', () => {
@@ -418,5 +441,39 @@ describe('prefetchTilesForTrip — repeat runs', () => {
 describe('MAX_TILES budget', () => {
   it('matches the Workbox map-tiles maxEntries in vite.config.js (drift guard)', () => {
     expect(MAX_TILES).toBe(12288);
+  });
+});
+
+// ── service worker rule coherence ───────────────────────────────────────────────
+
+describe('the map-tiles rule for OpenStreetMap (#1733)', () => {
+  // Vitest runs with the client package as its root, so cwd is stable here.
+  const config = readFileSync(resolve(process.cwd(), 'vite.config.js'), 'utf8');
+
+  // Pull the OSM runtimeCaching pattern back out of the config and exercise it,
+  // so this stays a statement about matching behaviour rather than about the
+  // exact characters someone typed.
+  const osmRule = /urlPattern:\s*(\/\^https[^\n]*openstreetmap[^\n]*\/i),/.exec(config);
+  if (!osmRule) throw new Error('no OpenStreetMap runtimeCaching rule found in vite.config.js');
+  const literal = osmRule[1];
+  const pattern = new RegExp(literal.slice(1, literal.lastIndexOf('/')), 'i');
+
+  it('caches the single-host URLs the prefetcher now builds', () => {
+    // Without this the prefetch writes nothing to map-tiles, cache.match() never
+    // hits, and the offline tile store stays empty.
+    const url = buildTileUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 13, 4091, 2722);
+    expect(url).toBe('https://tile.openstreetmap.org/13/4091/2722.png');
+    expect(pattern.test(url)).toBe(true);
+  });
+
+  it('still matches the sharded URLs already sitting in existing caches', () => {
+    for (const shard of ['a', 'b', 'c']) {
+      expect(pattern.test(`https://${shard}.tile.openstreetmap.org/13/4091/2722.png`)).toBe(true);
+    }
+  });
+
+  it('does not swallow a look-alike host', () => {
+    expect(pattern.test('https://tile.openstreetmap.org.example.com/13/4091/2722.png')).toBe(false);
+    expect(pattern.test('https://tile.openstreetmap.de/13/4091/2722.png')).toBe(false);
   });
 });

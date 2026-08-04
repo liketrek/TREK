@@ -62,6 +62,7 @@ vi.mock('../../src/services/memories/helpersService', async () => {
 });
 
 import { MemoriesModule } from '../../src/nest/memories/memories.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 const BASE = '/api/integrations/memories';
@@ -74,7 +75,7 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [MemoriesModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [RealtimeModule, MemoriesModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

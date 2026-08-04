@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Rögzítsd az ötleteidet és terveidet',
   'collab.notes.all': 'Összes',
   'collab.notes.titlePlaceholder': 'Jegyzet címe',
+  'collab.notes.content': 'Tartalom',
+  'collab.notes.removeFile': '{name} eltávolítása',
   'collab.notes.contentPlaceholder': 'Írj valamit...',
   'collab.notes.categoryPlaceholder': 'Kategória',
   'collab.notes.newCategory': 'Új kategória...',

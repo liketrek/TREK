@@ -159,6 +159,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Fout bij laden van sjablonen',
   'admin.packingTemplates.createError': 'Fout bij aanmaken van sjabloon',
   'admin.packingTemplates.deleteError': 'Fout bij verwijderen van sjabloon',
+  'admin.packingTemplates.deleteCategoryError': 'Categorie verwijderen mislukt',
+  'admin.packingTemplates.deleteItemError': 'Item verwijderen mislukt',
   'admin.packingTemplates.saveError': 'Fout bij opslaan',
   'admin.tabs.addons': 'Add-ons',
   'admin.tabs.plugins': 'Plugins',

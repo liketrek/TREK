@@ -37,7 +37,7 @@ interface CoverSearchPhoto {
 
 export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUpdate }: TripFormModalProps) {
   const isEditing = !!trip
-  const fileRef = useRef(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const coverSearchSeq = useRef(0)
   const toast = useToast()
   const { t } = useTranslation()
@@ -202,7 +202,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
   }
 
-  const handleCoverSelect = async (file) => {
+  const handleCoverSelect = async (file: File | null | undefined) => {
     if (!file) return
     // HEIC/HEIF from iOS can't be rendered or stored as-is — convert to JPEG first
     const normalized = await normalizeImageFile(file)
@@ -217,12 +217,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
   }
 
-  const handleCoverChange = (e) => {
-    handleCoverSelect((e.target as HTMLInputElement).files?.[0])
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleCoverSelect(e.target.files?.[0])
     e.target.value = ''
   }
 
-  const uploadCoverNow = async (file) => {
+  const uploadCoverNow = async (file: File) => {
     setUploadingCover(true)
     try {
       const fd = new FormData()
@@ -291,7 +291,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setCoverPreview(null)
       return
     }
-    if (!trip?.id) return
+    // Nothing pending left, so the preview is a saved trip's stored cover.
     try {
       await tripsApi.update(trip.id, { cover_image: null })
       setCoverPreview(null)
@@ -613,8 +613,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             {selectedMembers.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                 {selectedMembers.map(uid => {
-                  const user = allUsers.find(u => u.id === uid)
-                  if (!user) return null
+                  const user = allUsers.find(u => u.id === uid)!
                   return (
                     <span key={uid} onClick={() => setSelectedMembers(prev => prev.filter(id => id !== uid))}
                       className="bg-surface-secondary text-content border border-edge cursor-pointer"
@@ -633,7 +632,6 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               <CustomSelect
                 value={memberSelectValue}
                 onChange={async value => {
-                  if (!value) return
                   if (isEditing && trip?.id) {
                     const user = allUsers.find(u => u.id === Number(value))
                     if (user) {

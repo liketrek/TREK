@@ -12,6 +12,13 @@ declare module '@trek/nest-mcp' {
     userId: number;
     scopes: string[] | null;
     isStaticToken: boolean;
+    /**
+     * Fire-once static-token deprecation notice closure (built per session in
+     * src/mcp/index.ts and threaded through registerTools → registry.attach).
+     * Optional so direct createTestRegistry ctxs without it keep working —
+     * consumers (list_trips / get_trip_summary) treat absence as "no notice".
+     */
+    getDeprecationNotice?: () => string | null;
   }
   // The augmentation pattern requires an empty single-extends interface —
   // same false positive (and same disable) as McpContext in @trek/nest-mcp.

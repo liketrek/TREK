@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
-import { isDemoUser } from '../../services/authService';
+import { isDemoUser } from '../../nest/auth/auth.bridge';
 import {
   addContributor, addTripToJourney, canAccessJourney, createEntry, createJourney,
   deleteEntry, deleteJourney, getJourneyFull, getSuggestions, listEntries,

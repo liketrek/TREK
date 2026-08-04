@@ -145,7 +145,7 @@ describe('Tool: delete_day', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'day:deleted', expect.objectContaining({ id: day.id }));
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'day:deleted', expect.objectContaining({ dayId: day.id }));
       expect(testDb.prepare('SELECT id FROM days WHERE id = ?').get(day.id)).toBeUndefined();
     });
   });

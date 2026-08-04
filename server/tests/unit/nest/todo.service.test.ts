@@ -1,8 +1,9 @@
 /**
- * Unit tests for the DI-native TodoService — TODO-SVC-001 through TODO-SVC-024
- * (001–020 moved 1:1 from the legacy tests/unit/services/todoService.test.ts;
- * 021–024 pin the todo.bridge delegation). Uses a real in-memory SQLite DB so
- * SQL logic is exercised faithfully.
+ * Unit tests for the DI-native TodoService — TODO-SVC-001 through TODO-SVC-020
+ * (moved 1:1 from the legacy tests/unit/services/todoService.test.ts; the
+ * 021–024 bridge-delegation cases died with todo.bridge when the legacy trips
+ * registrar migrated). Uses a real in-memory SQLite DB so SQL logic is
+ * exercised faithfully.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -46,9 +47,9 @@ import { createUser, createTrip, addTripMember } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { TodoService } from '../../../src/nest/todo/todo.service';
-import { listItems, createItem, updateItem, deleteItem } from '../../../src/nest/todo/todo.bridge';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
-const svc = new TodoService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)));
+const svc = new TodoService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
 
 beforeAll(() => {
   createTables(testDb);
@@ -285,43 +286,6 @@ describe('getCategoryAssignees / updateCategoryAssignees', () => {
   });
 });
 
-// ── todo.bridge (delegation to the service — inside the src/nest coverage gate)
-
-describe('todo.bridge', () => {
-  it('TODO-SVC-021 — listItems delegates to the service', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    svc.createItem(trip.id, { name: 'Bridged' });
-    const items = listItems(trip.id) as any[];
-    expect(items).toHaveLength(1);
-    expect(items[0].name).toBe('Bridged');
-  });
-
-  it('TODO-SVC-022 — createItem delegates with the legacy defaults', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createItem(trip.id, { name: 'Via bridge' }) as any;
-    expect(item.checked).toBe(0);
-    expect(item.priority).toBe(0);
-    expect(item.sort_order).toBe(0);
-  });
-
-  it('TODO-SVC-023 — updateItem delegates and keeps the bodyKeys sentinel protocol', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createItem(trip.id, { name: 'Task', due_date: '2026-06-01' }) as any;
-    const untouched = updateItem(trip.id, item.id, { name: 'Renamed' }, []) as any;
-    expect(untouched.due_date).toBe('2026-06-01');
-    const cleared = updateItem(trip.id, item.id, { due_date: null }, ['due_date']) as any;
-    expect(cleared.due_date).toBeNull();
-  });
-
-  it('TODO-SVC-024 — deleteItem delegates to the service', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createItem(trip.id, { name: 'Gone' }) as any;
-    expect(deleteItem(trip.id, item.id)).toBe(true);
-    expect(deleteItem(trip.id, item.id)).toBe(false);
-    expect(svc.listItems(trip.id)).toHaveLength(0);
-  });
-});
+// TODO-SVC-021..024 (todo.bridge delegation) were deleted with the bridge —
+// its last consumer, the legacy get_trip_summary registrar in
+// src/mcp/tools/trips.ts, moved to the DI-discovered trips.mcp.ts.

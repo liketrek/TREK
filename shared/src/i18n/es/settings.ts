@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Plantilla del mapa',
   'settings.mapTemplatePlaceholder.select': 'Seleccionar plantilla...',
   'settings.mapDefaultHint': 'Déjalo vacío para OpenStreetMap (por defecto)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Plantilla de URL para los mosaicos del mapa',
   'settings.mapProvider': 'Proveedor de mapa',
   'settings.mapProviderHint': 'Afecta a los mapas de Trip Planner y Journey. Atlas siempre usa Leaflet.',
@@ -260,6 +259,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Foto de perfil actualizada',
   'settings.avatarRemoved': 'Foto de perfil eliminada',
   'settings.avatarError': 'Falló la subida',
+  'settings.avatarRemoveError': 'Error al eliminar',
   'settings.bookingLabels': 'Etiquetas de rutas de reservas',
   'settings.bookingLabelsHint':
     'Muestra nombres de estaciones / aeropuertos en el mapa. Desactivado, solo se muestra el icono.',

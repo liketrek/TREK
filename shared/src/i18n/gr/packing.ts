@@ -118,5 +118,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Μπορώ να το φέρω κι εγώ',
   'packing.alsoBringingStop': 'Δεν το φέρνω',
   'packing.cloneToMine': 'Αντιγραφή στη λίστα μου',
+  'packing.bagLimit': 'Όριο βάρους',
+  'packing.setBagLimit': 'Ορισμός ορίου',
 };
 export default packing;

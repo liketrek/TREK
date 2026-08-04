@@ -20,6 +20,42 @@ interface AppUser {
   email: string
 }
 
+const SELECT_CLASS =
+  'mb-2 h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none focus:border-[color:var(--m-faint)]'
+
+function Btn({
+  id, label, sub, icon: Icon, color, sending, onClick,
+}: {
+  id: string
+  label: string
+  sub: string
+  icon: LucideIcon
+  color: string
+  sending: string | null
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={sending !== null}
+      className="flex w-full items-center gap-3 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[11px] text-left disabled:opacity-50"
+    >
+      <span
+        className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px]"
+        style={{ background: `${color}20`, color }}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[0.8125rem] font-bold text-m-ink">{label}</p>
+        <p className="truncate font-geist text-[0.625rem] text-m-faint">{sub}</p>
+      </div>
+      {sending === id && <Loader2 size={14} className="flex-none animate-spin text-m-faint" />}
+    </button>
+  )
+}
+
 // Dev-only notification testing panel, re-skinned to the mobile admin system.
 // All state, fetches and fire() payloads are ported verbatim from the desktop
 // DevNotificationsPanel — only the presentation layer changes.
@@ -50,8 +86,8 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
     try {
       await adminApi.sendTestNotification(payload)
       toast.success(`Sent: ${label}`)
-    } catch (err: any) {
-      toast.error(err.message || 'Failed')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed')
     } finally {
       setSending(null)
     }
@@ -61,53 +97,6 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
   const selectedUser = users.find(u => u.id === selectedUserId)
   const username = user?.username || 'Admin'
   const tripTitle = selectedTrip?.title || 'Test Trip'
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  const Btn = ({
-    id, label, sub, icon: Icon, color, onClick,
-  }: {
-    id: string; label: string; sub: string; icon: LucideIcon; color: string; onClick: () => void
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={sending !== null}
-      className="flex w-full items-center gap-3 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[11px] text-left disabled:opacity-50"
-    >
-      <span
-        className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px]"
-        style={{ background: `${color}20`, color }}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[0.8125rem] font-bold text-m-ink">{label}</p>
-        <p className="truncate font-geist text-[0.625rem] text-m-faint">{sub}</p>
-      </div>
-      {sending === id && <Loader2 size={14} className="flex-none animate-spin text-m-faint" />}
-    </button>
-  )
-
-  const TripSelector = () => (
-    <select
-      value={selectedTripId ?? ''}
-      onChange={e => setSelectedTripId(Number(e.target.value))}
-      className="mb-2 h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none focus:border-[color:var(--m-faint)]"
-    >
-      {trips.map(trip => <option key={trip.id} value={trip.id}>{trip.title}</option>)}
-    </select>
-  )
-
-  const UserSelector = () => (
-    <select
-      value={selectedUserId ?? ''}
-      onChange={e => setSelectedUserId(Number(e.target.value))}
-      className="mb-2 h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none focus:border-[color:var(--m-faint)]"
-    >
-      {users.map(u => <option key={u.id} value={u.id}>{u.username} ({u.email})</option>)}
-    </select>
-  )
 
   return (
     <div className="space-y-3">
@@ -128,7 +117,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
           hint="Test how each in-app notification type renders, sent to yourself."
         />
         <div className="mt-2 grid grid-cols-1 gap-2">
-          <Btn id="simple-me" label="Simple → Me" sub="test_simple · user" icon={Bell} color="#6366f1"
+          <Btn sending={sending} id="simple-me" label="Simple → Me" sub="test_simple · user" icon={Bell} color="#6366f1"
             onClick={() => fire('simple-me', {
               event: 'test_simple',
               scope: 'user',
@@ -136,7 +125,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
               params: {},
             })}
           />
-          <Btn id="boolean-me" label="Boolean → Me" sub="test_boolean · user" icon={CheckCircle} color="#10b981"
+          <Btn sending={sending} id="boolean-me" label="Boolean → Me" sub="test_boolean · user" icon={CheckCircle} color="#10b981"
             onClick={() => fire('boolean-me', {
               event: 'test_boolean',
               scope: 'user',
@@ -149,7 +138,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
               },
             })}
           />
-          <Btn id="navigate-me" label="Navigate → Me" sub="test_navigate · user" icon={Navigation} color="#f59e0b"
+          <Btn sending={sending} id="navigate-me" label="Navigate → Me" sub="test_navigate · user" icon={Navigation} color="#f59e0b"
             onClick={() => fire('navigate-me', {
               event: 'test_navigate',
               scope: 'user',
@@ -157,7 +146,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
               params: {},
             })}
           />
-          <Btn id="simple-admins" label="Simple → All Admins" sub="test_simple · admin" icon={Zap} color="#ef4444"
+          <Btn sending={sending} id="simple-admins" label="Simple → All Admins" sub="test_simple · admin" icon={Zap} color="#ef4444"
             onClick={() => fire('simple-admins', {
               event: 'test_simple',
               scope: 'admin',
@@ -176,9 +165,15 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
             hint="Fires each trip event to all members of the selected trip (excluding yourself)."
           />
           <div className="mt-2">
-            <TripSelector />
+            <select
+              value={selectedTripId ?? ''}
+              onChange={e => setSelectedTripId(Number(e.target.value))}
+              className={SELECT_CLASS}
+            >
+              {trips.map(trip => <option key={trip.id} value={trip.id}>{trip.title}</option>)}
+            </select>
             <div className="grid grid-cols-1 gap-2">
-              <Btn id="booking_change" label="booking_change" sub="navigate · trip" icon={Calendar} color="#6366f1"
+              <Btn sending={sending} id="booking_change" label="booking_change" sub="navigate · trip" icon={Calendar} color="#6366f1"
                 onClick={() => selectedTripId && fire('booking_change', {
                   event: 'booking_change',
                   scope: 'trip',
@@ -186,7 +181,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
                   params: { actor: username, trip: tripTitle, booking: 'Test Hotel', type: 'hotel', tripId: String(selectedTripId) },
                 })}
               />
-              <Btn id="trip_reminder" label="trip_reminder" sub="navigate · trip" icon={Clock} color="#10b981"
+              <Btn sending={sending} id="trip_reminder" label="trip_reminder" sub="navigate · trip" icon={Clock} color="#10b981"
                 onClick={() => selectedTripId && fire('trip_reminder', {
                   event: 'trip_reminder',
                   scope: 'trip',
@@ -194,7 +189,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
                   params: { trip: tripTitle, tripId: String(selectedTripId) },
                 })}
               />
-              <Btn id="photos_shared" label="photos_shared" sub="navigate · trip" icon={Image} color="#f59e0b"
+              <Btn sending={sending} id="photos_shared" label="photos_shared" sub="navigate · trip" icon={Image} color="#f59e0b"
                 onClick={() => selectedTripId && fire('photos_shared', {
                   event: 'photos_shared',
                   scope: 'trip',
@@ -202,7 +197,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
                   params: { actor: username, trip: tripTitle, count: '5', tripId: String(selectedTripId) },
                 })}
               />
-              <Btn id="collab_message" label="collab_message" sub="navigate · trip" icon={MessageSquare} color="#8b5cf6"
+              <Btn sending={sending} id="collab_message" label="collab_message" sub="navigate · trip" icon={MessageSquare} color="#8b5cf6"
                 onClick={() => selectedTripId && fire('collab_message', {
                   event: 'collab_message',
                   scope: 'trip',
@@ -210,7 +205,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
                   params: { actor: username, trip: tripTitle, preview: 'This is a test message preview.', tripId: String(selectedTripId) },
                 })}
               />
-              <Btn id="packing_tagged" label="packing_tagged" sub="navigate · trip" icon={Tag} color="#ec4899"
+              <Btn sending={sending} id="packing_tagged" label="packing_tagged" sub="navigate · trip" icon={Tag} color="#ec4899"
                 onClick={() => selectedTripId && fire('packing_tagged', {
                   event: 'packing_tagged',
                   scope: 'trip',
@@ -231,9 +226,16 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
             hint="Fires each user event to the selected recipient."
           />
           <div className="mt-2">
-            <UserSelector />
+            <select
+              value={selectedUserId ?? ''}
+              onChange={e => setSelectedUserId(Number(e.target.value))}
+              className={SELECT_CLASS}
+            >
+              {users.map(u => <option key={u.id} value={u.id}>{u.username} ({u.email})</option>)}
+            </select>
             <div className="grid grid-cols-1 gap-2">
               <Btn
+                sending={sending}
                 id={`trip_invite-${selectedUserId}`}
                 label="trip_invite"
                 sub="navigate · user"
@@ -247,6 +249,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
                 })}
               />
               <Btn
+                sending={sending}
                 id={`vacay_invite-${selectedUserId}`}
                 label="vacay_invite"
                 sub="navigate · user"
@@ -271,7 +274,7 @@ export default function MAdminDevNotificationsPanel(): React.ReactElement {
           hint="Fires to all admin users."
         />
         <div className="mt-2 grid grid-cols-1 gap-2">
-          <Btn id="version_available" label="version_available" sub="navigate · admin" icon={Download} color="#64748b"
+          <Btn sending={sending} id="version_available" label="version_available" sub="navigate · admin" icon={Download} color="#64748b"
             onClick={() => fire('version_available', {
               event: 'version_available',
               scope: 'admin',

@@ -210,7 +210,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
             </p>
             {updateInfo?.is_docker === false ? (
               <a
-                href="https://github.com/mauriceboe/TREK/wiki/Updating"
+                href="https://github.com/liketrek/TREK/wiki/Updating"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-xl bg-[color:var(--m-ic)] px-3 py-3 text-[0.8125rem] font-bold text-m-ink underline"

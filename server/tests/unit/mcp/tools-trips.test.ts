@@ -1,5 +1,11 @@
 /**
- * Unit tests for MCP trip tools: create_trip, update_trip, delete_trip, list_trips, get_trip_summary.
+ * Unit tests for the trip MCP surface (TripsMcp, DI-discovered): create_trip,
+ * update_trip, delete_trip, list_trips, get_trip_summary tools, the
+ * trek://trips / trek://trips/{tripId} resources (moved here from
+ * resources.test.ts with the DI port — the withTools harness attaches the
+ * nest-mcp registry that now registers them), the fire-once deprecation
+ * notice riding the attach ctx, and the scope gating (declarative
+ * trips:write markers + the canReadTrips/canDeleteTrips predicates).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -36,7 +42,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createDay, createPlace, addTripMember, createBudgetItem, createPackingItem, createReservation, createDayNote, createCollabNote, createDayAssignment, createDayAccommodation } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
   createTables(testDb);
@@ -501,5 +507,207 @@ describe('Tool: get_trip_summary', () => {
       expect(names).toContain('Sunscreen');       // common item visible
       expect(names).not.toContain('Secret gift');  // owner's private item hidden from the member
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Resources (moved from resources.test.ts with the DI port — the registry the
+// withTools harness attaches now registers them)
+// ---------------------------------------------------------------------------
+
+describe('Resource: trek://trips', () => {
+  it('returns all trips the user owns or is a member of', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'My Trip' });
+    const sharedTrip = createTrip(testDb, other.id, { title: 'Shared Trip' });
+    addTripMember(testDb, sharedTrip.id, user.id);
+    // Trip from another user (not accessible)
+    createTrip(testDb, other.id, { title: 'Other Trip' });
+
+    await withHarness(user.id, async (harness) => {
+      const result = await harness.client.readResource({ uri: 'trek://trips' });
+      const trips = parseResourceResult(result) as any[];
+      expect(trips).toHaveLength(2);
+      const titles = trips.map((t) => t.title);
+      expect(titles).toContain('My Trip');
+      expect(titles).toContain('Shared Trip');
+      expect(titles).not.toContain('Other Trip');
+    });
+  });
+
+  it('excludes archived trips', async () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Active Trip' });
+    const archived = createTrip(testDb, user.id, { title: 'Archived Trip' });
+    testDb.prepare('UPDATE trips SET is_archived = 1 WHERE id = ?').run(archived.id);
+
+    await withHarness(user.id, async (harness) => {
+      const result = await harness.client.readResource({ uri: 'trek://trips' });
+      const trips = parseResourceResult(result) as any[];
+      expect(trips).toHaveLength(1);
+      expect(trips[0].title).toBe('Active Trip');
+    });
+  });
+
+  it('returns empty array when user has no trips', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (harness) => {
+      const result = await harness.client.readResource({ uri: 'trek://trips' });
+      const trips = parseResourceResult(result) as any[];
+      expect(trips).toEqual([]);
+    });
+  });
+});
+
+describe('Resource: trek://trips/{tripId}', () => {
+  it('returns trip data for an accessible trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
+
+    await withHarness(user.id, async (harness) => {
+      const result = await harness.client.readResource({ uri: `trek://trips/${trip.id}` });
+      const data = parseResourceResult(result) as any;
+      expect(data.title).toBe('Paris Trip');
+      expect(data.id).toBe(trip.id);
+    });
+  });
+
+  it('returns access denied for inaccessible trip', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const otherTrip = createTrip(testDb, other.id, { title: 'Private' });
+
+    await withHarness(user.id, async (harness) => {
+      const result = await harness.client.readResource({ uri: `trek://trips/${otherTrip.id}` });
+      const data = parseResourceResult(result) as any;
+      expect(data.error).toBeTruthy();
+    });
+  });
+
+  it('returns access denied for non-existent ID', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (harness) => {
+      const result = await harness.client.readResource({ uri: 'trek://trips/99999' });
+      const data = parseResourceResult(result) as any;
+      expect(data.error).toBeTruthy();
+    });
+  });
+});
+
+describe('Resource: trek://trips/{tripId}/members', () => {
+  it('returns owner and collaborators', async () => {
+    const { user } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    await withHarness(user.id, async (harness) => {
+      const result = await harness.client.readResource({ uri: `trek://trips/${trip.id}/members` });
+      const data = parseResourceResult(result) as any;
+      expect(data.owner).toBeTruthy();
+      expect(data.owner.id).toBe(user.id);
+      expect(data.members).toHaveLength(1);
+      expect(data.members[0].id).toBe(member.id);
+    });
+  });
+
+  it('returns access denied for unauthorized trip', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+
+    await withHarness(user.id, async (harness) => {
+      const result = await harness.client.readResource({ uri: `trek://trips/${trip.id}/members` });
+      const data = parseResourceResult(result) as any;
+      expect(data.error).toBeTruthy();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deprecation notice (fire-once closure riding the registry attach ctx)
+// ---------------------------------------------------------------------------
+
+describe('static-token deprecation notice', () => {
+  it('list_trips surfaces the notice exactly once and still carries the payload', async () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Noticed' });
+    // Mirror the fire-once closure built per session in src/mcp/index.ts.
+    let emitted = false;
+    const getDeprecationNotice = () => {
+      if (emitted) return null;
+      emitted = true;
+      return 'static tokens are deprecated';
+    };
+    const h = await createMcpHarness({ userId: user.id, withResources: false, isStaticToken: true, getDeprecationNotice });
+    try {
+      const first = await h.client.callTool({ name: 'list_trips', arguments: {} });
+      expect(first.isError).toBe(true);
+      const texts = (first.content as { type: string; text: string }[]).map((c) => c.text);
+      expect(texts[0]).toContain('deprecated');
+      expect(JSON.parse(texts[1]).trips[0].title).toBe('Noticed');
+      // Second call: the closure already fired — plain payload, no error.
+      const second = await h.client.callTool({ name: 'list_trips', arguments: {} });
+      expect(second.isError).toBeFalsy();
+      expect((parseToolResult(second) as any).trips).toHaveLength(1);
+    } finally {
+      await h.cleanup();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scope gating — declarative trips:write markers plus the predicate escape
+// hatches (canReadTrips accepts trips:delete / trips:share; delete_trip rides
+// trips:delete, the share tools trips:share)
+// ---------------------------------------------------------------------------
+
+describe('scope gating', () => {
+  async function toolNames(scopes: string[] | null): Promise<string[]> {
+    const h = await createMcpHarness({ userId: 1, withResources: false, scopes });
+    try {
+      const { tools } = await h.client.listTools();
+      return tools.map((t) => t.name);
+    } finally {
+      await h.cleanup();
+    }
+  }
+
+  const WRITE_TOOLS = ['create_trip', 'update_trip', 'add_trip_member', 'remove_trip_member', 'copy_trip'];
+  const READ_TOOLS = ['list_trip_members', 'export_trip_ics'];
+  const NAV_TOOLS = ['list_trips', 'get_trip_summary'];
+  const SHARE_TOOLS = ['get_share_link', 'create_share_link', 'delete_share_link'];
+
+  it('null scopes (trek_ PAT) exposes the full surface', async () => {
+    const names = await toolNames(null);
+    for (const t of [...WRITE_TOOLS, ...READ_TOOLS, ...NAV_TOOLS, 'delete_trip', ...SHARE_TOOLS]) {
+      expect(names).toContain(t);
+    }
+  });
+
+  it('trips:read exposes reads + navigation but no writes/delete/share', async () => {
+    const names = await toolNames(['trips:read']);
+    for (const t of [...READ_TOOLS, ...NAV_TOOLS]) expect(names).toContain(t);
+    for (const t of [...WRITE_TOOLS, 'delete_trip', ...SHARE_TOOLS]) expect(names).not.toContain(t);
+  });
+
+  it('trips:delete alone still grants the trip reads (canReadTrips parity) plus delete_trip', async () => {
+    const names = await toolNames(['trips:delete']);
+    expect(names).toContain('delete_trip');
+    for (const t of [...READ_TOOLS, ...NAV_TOOLS]) expect(names).toContain(t);
+    for (const t of WRITE_TOOLS) expect(names).not.toContain(t);
+  });
+
+  it('trips:share alone grants the share tools and the trip reads, nothing else', async () => {
+    const names = await toolNames(['trips:share']);
+    for (const t of [...SHARE_TOOLS, ...READ_TOOLS, ...NAV_TOOLS]) expect(names).toContain(t);
+    for (const t of [...WRITE_TOOLS, 'delete_trip']) expect(names).not.toContain(t);
+  });
+
+  it('an unrelated scope keeps only the navigation tools', async () => {
+    const names = await toolNames(['weather:read']);
+    for (const t of NAV_TOOLS) expect(names).toContain(t);
+    for (const t of [...WRITE_TOOLS, ...READ_TOOLS, 'delete_trip', ...SHARE_TOOLS]) expect(names).not.toContain(t);
   });
 });

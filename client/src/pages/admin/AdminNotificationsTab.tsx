@@ -244,8 +244,9 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
           </button>
           <button
             onClick={async () => {
+              // A masked value means the URL only lives on the server — send no url and let
+              // the server test the stored one instead of pre-saving the mask.
               const url = smtpValues.admin_webhook_url === '••••••••' ? undefined : smtpValues.admin_webhook_url
-              if (!url && smtpValues.admin_webhook_url !== '••••••••') return
               try {
                 if (url) await authApi.updateAppSettings({ admin_webhook_url: url }).catch(() => {})
                 const result = await notificationsApi.testWebhook(url)

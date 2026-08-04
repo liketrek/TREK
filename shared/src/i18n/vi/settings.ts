@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Mẫu bản đồ',
   'settings.mapTemplatePlaceholder.select': 'Chọn mẫu...',
   'settings.mapDefaultHint': 'Để trống cho OpenStreetMap (mặc định)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Mẫu URL cho ô bản đồ',
   'settings.mapProvider': 'Nhà cung cấp bản đồ',
   'settings.mapProviderHint':
@@ -278,6 +277,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Đã cập nhật ảnh hồ sơ',
   'settings.avatarRemoved': 'Đã xóa ảnh hồ sơ',
   'settings.avatarError': 'Tải lên không thành công',
+  'settings.avatarRemoveError': 'Xóa không thành công',
   'settings.mfa.title': 'Xác thực hai yếu tố (2FA)',
   'settings.mfa.description':
     'Thêm bước thứ hai khi bạn đăng nhập bằng email và mật khẩu. Sử dụng ứng dụng xác thực (Google Authenticator, Authy, v.v.).',

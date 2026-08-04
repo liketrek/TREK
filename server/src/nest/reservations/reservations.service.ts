@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { broadcast } from '../../websocket';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { verifyTripAccess } from '../../services/tripAccess';
 import { avatarUrl } from '../../services/avatarUrl';
@@ -133,6 +134,7 @@ export class ReservationsService {
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
     private readonly budget: BudgetService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -143,13 +145,13 @@ export class ReservationsService {
     return this.permissions.checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast(tripId: string, event: string, payload: Record<string, unknown>, socketId: string | undefined): void {
-    broadcast(tripId, event, payload, socketId);
+  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+    this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
   /** Fire-and-forget booking-change notification, mirroring the legacy dynamic import. */
   notifyBookingChange(tripId: string | number, actorId: number, booking: string, type: string): void {
-    import('../../services/notificationService')
+    import('../notifications/notifications.bridge')
       .then(({ send }) => {
         try {
           const actor = this.db.get<{ email: string }>('SELECT email FROM users WHERE id = ?', actorId);
@@ -745,7 +747,7 @@ export class ReservationsService {
         category: entry.category || type || 'Other',
         total_price: entry.total_price!,
       });
-      broadcast(tripId, 'budget:created', { item }, socketId);
+      this.realtime.broadcast(tripId, 'budget:created', { item }, socketId);
     } catch (err) {
       console.error('[reservations] Failed to create budget entry:', err);
     }
@@ -763,7 +765,7 @@ export class ReservationsService {
         const newCat = typeToCostCategory(type);
         if (oldCat !== newCat && linked.category === oldCat) {
           const updated = this.budget.updateBudgetItem(linked.id, tripId, { category: newCat });
-          broadcast(tripId, 'budget:updated', { item: updated }, socketId);
+          this.realtime.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
         }
       }
     }
@@ -778,7 +780,7 @@ export class ReservationsService {
       const linked = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
       if (linked) {
         this.budget.deleteBudgetItem(linked.id, tripId);
-        broadcast(tripId, 'budget:deleted', { itemId: linked.id }, socketId);
+        this.realtime.broadcast(tripId, 'budget:deleted', { itemId: linked.id }, socketId);
       }
       return;
     }
@@ -789,12 +791,12 @@ export class ReservationsService {
       const existing = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
       if (existing) {
         const updated = this.budget.updateBudgetItem(existing.id, tripId, { name: itemName, category, total_price: entry.total_price });
-        broadcast(tripId, 'budget:updated', { item: updated }, socketId);
+        this.realtime.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
       } else {
         const item = this.budget.createBudgetItem(tripId, { name: itemName, category, total_price: entry.total_price });
         this.db.run('UPDATE budget_items SET reservation_id = ? WHERE id = ?', id, item.id);
         item.reservation_id = Number(id);
-        broadcast(tripId, 'budget:created', { item }, socketId);
+        this.realtime.broadcast(tripId, 'budget:created', { item }, socketId);
       }
     } catch (err) {
       console.error('[reservations] Failed to create/update budget entry:', err);

@@ -1,5 +1,4 @@
 import cron, { type ScheduledTask } from 'node-cron';
-import archiver from 'archiver';
 import { readEnv } from './app-config';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -7,7 +6,6 @@ import { logInfo, logError } from './nest/audit/audit-log.logger';
 
 const dataDir = path.join(__dirname, '../data');
 const backupsDir = path.join(dataDir, 'backups');
-const uploadsDir = path.join(__dirname, '../uploads');
 const settingsFile = path.join(dataDir, 'backup-settings.json');
 
 const VALID_INTERVALS = ['hourly', 'daily', 'weekly', 'monthly'];
@@ -60,31 +58,20 @@ function saveSettings(settings: BackupSettings): void {
 }
 
 async function runBackup(): Promise<void> {
-  if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const filename = `auto-backup-${timestamp}.zip`;
-  const outputPath = path.join(backupsDir, filename);
-
   try {
-    // Flush WAL to main DB file before archiving
-    try { const { db } = require('./db/database'); db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}
-
-    await new Promise<void>((resolve, reject) => {
-      const output = fs.createWriteStream(outputPath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      output.on('close', resolve);
-      archive.on('error', reject);
-      archive.pipe(output);
-      const dbPath = path.join(dataDir, 'travel.db');
-      if (fs.existsSync(dbPath)) archive.file(dbPath, { name: 'travel.db' });
-      if (fs.existsSync(uploadsDir)) archive.directory(uploadsDir, 'uploads');
-      archive.finalize();
-    });
+    // Same archive the admin panel builds, only under the auto-backup name: it
+    // snapshots travel.db with VACUUM INTO instead of archiving the live file
+    // (the archiver reads its entries during finalize, so a WAL auto-checkpoint
+    // landing in between tears the copy), and it carries .encryption_key and the
+    // plugin trees — without the key a scheduled backup cannot be decrypted on
+    // another install. Imported lazily because backupService imports this module
+    // for the schedule settings.
+    const { createBackup } = await import('./services/backupService');
+    const { filename } = await createBackup('auto-backup');
     logInfo(`Auto-Backup created: ${filename}`);
   } catch (err: unknown) {
+    // createBackup removes its own half-written zip before rethrowing.
     logError(`Auto-Backup: ${err instanceof Error ? err.message : err}`);
-    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
     return;
   }
 
@@ -182,7 +169,7 @@ function startTripReminders(): void {
   reminderTask = cron.schedule('0 9 * * *', async () => {
     try {
       const { db } = require('./db/database');
-      const { send } = require('./services/notificationService');
+      const { send } = require('./nest/notifications/notifications.bridge');
 
       const trips = db.prepare(`
         SELECT t.id, t.title, t.user_id, t.reminder_days FROM trips t
@@ -227,7 +214,7 @@ function startTodoReminders(): void {
   const tz = readEnv().app.tz || 'UTC';
   todoReminderTask = cron.schedule('0 9 * * *', async () => {
     try {
-      const { send } = require('./services/notificationService');
+      const { send } = require('./nest/notifications/notifications.bridge');
 
       // Select unchecked todos with a due date inside the lead window
       // that haven't been reminded in the last 24 hours. `due_date` is
@@ -284,7 +271,7 @@ function startVersionCheck(): void {
   const tz = readEnv().app.tz || 'UTC';
   versionCheckTask = cron.schedule('0 9 * * *', async () => {
     try {
-      const { checkAndNotifyVersion } = require('./services/adminService');
+      const { checkAndNotifyVersion } = require('./nest/admin/admin.bridge');
       await checkAndNotifyVersion();
     } catch (err: unknown) {
       logError(`Version check: ${err instanceof Error ? err.message : err}`);

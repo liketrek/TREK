@@ -554,7 +554,7 @@ describe('Extended auth scenarios', () => {
   });
 
   it('AUTH-033 — MFA backup code login succeeds and invalidates the used code', async () => {
-    const { hashBackupCode, generateBackupCodes } = await import('../../src/services/authService');
+    const { hashBackupCode, generateBackupCodes } = await import('../../src/nest/auth/auth.helpers');
     const { user, password } = createUserWithMfa(testDb);
 
     // Generate and store backup codes on the MFA-enabled user

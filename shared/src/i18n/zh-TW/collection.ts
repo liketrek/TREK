@@ -80,6 +80,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': '複製到行程',
   'collections.copyN': '將 {count} 個複製到行程',
   'collections.copyToTripSearch': '搜尋行程',
+  'collections.searchLists': '搜尋清單',
   'collections.copyToTripConfirm': '複製',
   'collections.noTrips': '尚無行程',
   'collections.alreadyInTrip': '已在此行程中',

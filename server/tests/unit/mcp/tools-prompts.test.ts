@@ -50,7 +50,8 @@ vi.mock('../../../src/nest/addons/addons.bridge', () => ({
 const { mockGetTripSummary } = vi.hoisted(() => ({
   mockGetTripSummary: vi.fn(),
 }));
-vi.mock('../../../src/services/tripService', () => ({
+// prompts.ts consumes getTripSummary via the trips bridge since the trip fold.
+vi.mock('../../../src/nest/trips/trips.bridge', () => ({
   getTripSummary: mockGetTripSummary,
 }));
 
@@ -59,6 +60,21 @@ import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, addTripMember, createPackingItem, createBudgetItem } from '../../helpers/factories';
 import { registerMcpPrompts } from '../../../src/mcp/tools/prompts';
+import { createTestRegistry } from '@trek/nest-mcp';
+import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nest-mcp-policy';
+import { TripsMcp } from '../../../src/nest/trips/trips.mcp';
+import type { TripsService } from '../../../src/nest/trips/trips.service';
+import type { TodoService } from '../../../src/nest/todo/todo.service';
+import type { CollabService } from '../../../src/nest/collab/collab.service';
+
+// The trip-summary prompt moved to the DI-discovered TripsMcp — its cases below
+// exercise it through a hand-built registry over a stub TripsService whose
+// getTripSummary is the same controllable mock the legacy path used.
+const tripsStub = {
+  canAccessTrip: (tripId: number, userId: number) => dbMock.canAccessTrip(tripId, userId),
+  getTripSummary: (tripId: number, viewerUserId?: number) => mockGetTripSummary(tripId, viewerUserId),
+} as unknown as TripsService;
+const tripsMcp = new TripsMcp(tripsStub, { listItems: () => [] } as unknown as TodoService, { listPolls: () => [], countMessages: () => 0 } as unknown as CollabService);
 
 beforeAll(() => {
   createTables(testDb);
@@ -110,6 +126,10 @@ afterAll(() => {
 function buildServer(userId: number, opts: { isStaticToken?: boolean } = {}): McpServer {
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
   registerMcpPrompts(server, userId, opts.isStaticToken ?? false);
+  // Attach the DI-discovered trip surface (carries the trip-summary @Prompt)
+  // the same way registerTools does in production.
+  createTestRegistry([tripsMcp], { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess })
+    .attach(server, { userId, scopes: null, isStaticToken: opts.isStaticToken ?? false });
   return server;
 }
 

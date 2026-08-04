@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Kartmall',
   'settings.mapTemplatePlaceholder.select': 'Välj mall...',
   'settings.mapDefaultHint': 'Lämna fältet tomt för OpenStreetMap (standard)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-mall för kartrutor',
   'settings.mapProvider': 'Kartleverantör',
   'settings.mapProviderHint': 'Påverkar resplaneraren och resedagbokens kartor. Atlas använder alltid Leaflet.',
@@ -276,6 +275,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profilbilden har uppdaterats',
   'settings.avatarRemoved': 'Profilbilden har tagits bort',
   'settings.avatarError': 'Uppladdning misslyckades',
+  'settings.avatarRemoveError': 'Borttagningen misslyckades',
   'settings.mfa.title': 'Tvåfaktorsautentisering (2FA)',
   'settings.mfa.description':
     'Lägger till ett extra steg när du loggar in med e-postadress och lösenord. Använd en autentiseringsapp (Google Authenticator, Authy m.fl.).',

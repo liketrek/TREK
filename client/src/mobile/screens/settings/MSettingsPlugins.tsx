@@ -150,14 +150,14 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
     }
   }
 
-  const pickerField = (fields ?? []).find(f => f.key === pickerKey && f.input_type === 'select' && !!f.options)
+  const pickerField = fields.find(f => f.key === pickerKey && f.input_type === 'select' && !!f.options)
 
   return (
     <>
       <MSetCard title={name} icon={resolvePluginIcon(icon)}>
         {hasFields && (
           <div className="flex flex-col gap-[14px]">
-            {(fields ?? []).map(f => {
+            {fields.map(f => {
               const requiredMark = f.required ? <span className="text-[color:var(--m-st-danger)]"> *</span> : null
               if (f.input_type === 'checkbox') {
                 return (

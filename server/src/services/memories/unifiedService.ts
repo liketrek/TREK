@@ -1,5 +1,5 @@
 import { db, canAccessTrip } from '../../db/database';
-import { send } from '../notificationService';
+import { send } from '../../nest/notifications/notifications.bridge';
 import { broadcast } from '../../websocket';
 import {
   ServiceResult,

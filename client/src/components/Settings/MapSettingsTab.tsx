@@ -24,7 +24,7 @@ interface MapPreset {
 }
 
 const MAP_PRESETS: MapPreset[] = [
-  { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
+  { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
   { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
   { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
@@ -196,7 +196,6 @@ export default function MapSettingsTab(): React.ReactElement {
     setSaving(true)
     try {
       const glStyle = provider === 'leaflet' ? mapboxStyle : normalizeStyleForProvider(provider, mapboxStyle)
-      setMapboxStyle(glStyle)
       // Save into the active provider's own slot so the other provider's style survives.
       const stylePatch = provider === 'maplibre-gl' ? { maplibre_style: glStyle } : { mapbox_style: glStyle }
       await updateSettings({
@@ -207,6 +206,8 @@ export default function MapSettingsTab(): React.ReactElement {
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
       })
+      // Only mirror the normalized style into the form once it is actually persisted.
+      setMapboxStyle(glStyle)
       toast.success(t('settings.toast.mapSaved'))
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.error'))
@@ -306,7 +307,7 @@ export default function MapSettingsTab(): React.ReactElement {
             type="text"
             value={mapTileUrl}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapTileUrl(e.target.value)}
-            placeholder="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
           />
           <p className="text-xs text-slate-400 mt-1">{t('settings.mapDefaultHint')}</p>

@@ -80,6 +80,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Kopírovat do výletu',
   'collections.copyN': 'Kopírovat {count} do výletu',
   'collections.copyToTripSearch': 'Hledat výlety',
+  'collections.searchLists': 'Hledat seznamy',
   'collections.copyToTripConfirm': 'Kopírovat',
   'collections.noTrips': 'Zatím žádné výlety',
   'collections.alreadyInTrip': 'Již v tomto výletu',

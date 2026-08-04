@@ -425,6 +425,9 @@ export default function SharedTripPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {sortedDays.map((day: any, di: number) => {
                 const da = assignments[String(day.id)] || [];
+                // A share can still carry an assignment for a deleted place. The timeline
+                // skips those rows, so the header must not count them either.
+                const dayPlaceCount = da.filter((a: any) => a.place).length;
                 const notes = dayNotes[String(day.id)] || [];
                 const dayAssignmentIds: number[] = da.map((a: any) => a.id);
                 const dayTransport = getTransportForDay({
@@ -514,7 +517,7 @@ export default function SharedTripPage() {
                         </span>
                       ))}
                       <span className="text-[#9ca3af]" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>
-                        {da.length} {t('shared.places')}
+                        {dayPlaceCount} {t('shared.places')}
                       </span>
                     </div>
 

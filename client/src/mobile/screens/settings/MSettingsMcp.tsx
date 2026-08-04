@@ -125,9 +125,12 @@ export default function MSettingsMcp() {
     }
   }, [])
 
+  // Re-read after create/rotate so the rows show what the server actually stored.
+  const reloadClients = () => oauthApi.clients.list().then((d) => setClients(d.clients || [])).catch(() => {})
+
   useEffect(() => {
     authApi.mcpTokens.list().then((d) => setTokens(d.tokens || [])).catch(() => {})
-    oauthApi.clients.list().then((d) => setClients(d.clients || [])).catch(() => {})
+    reloadClients()
     oauthApi.sessions.list().then((d) => setSessions(d.sessions || [])).catch(() => {})
   }, [])
 
@@ -180,7 +183,7 @@ export default function MSettingsMcp() {
         ...(isMachine ? { allows_client_credentials: true } : {}),
       })
       setCreatedClient(d.client)
-      setClients((prev) => [...prev, { ...d.client, client_secret: undefined }])
+      await reloadClients()
       setNewName('')
       setNewUris('')
       setNewScopes([])
@@ -209,6 +212,7 @@ export default function MSettingsMcp() {
       const d = await oauthApi.clients.rotate(id)
       setRotatedSecret(d.client_secret)
       setRotateId(null)
+      await reloadClients()
     } catch {
       toast.error(t('settings.oauth.toast.rotateError'))
     } finally {

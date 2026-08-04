@@ -4,6 +4,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { DayAssignmentsController, AssignmentOpsController } from './assignments.controller';
 import { AssignmentsService } from './assignments.service';
 import { AssignmentsMcp } from './assignments.mcp';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Assignments domain (S7 — Phase 2 trip sub-domain). The day-assignments mount
@@ -13,7 +14,7 @@ import { AssignmentsMcp } from './assignments.mcp';
  */
 @Module({
   // DaysModule: AssignmentsMcp injects DaysService for the target-day checks.
-  imports: [DaysModule, PermissionsModule],
+  imports: [DaysModule, PermissionsModule, AuthModule],
   controllers: [DayAssignmentsController, AssignmentOpsController],
   providers: [AssignmentsService, AssignmentsMcp],
   exports: [AssignmentsService],

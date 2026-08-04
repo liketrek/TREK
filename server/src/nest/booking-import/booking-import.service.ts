@@ -1,13 +1,13 @@
 import { Injectable, HttpException } from '@nestjs/common';
-import { broadcast } from '../../websocket';
+import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { verifyTripAccess } from '../../services/tripAccess';
 import { ReservationsService } from '../reservations/reservations.service';
-import { createPlace } from '../../services/placeService';
+import { PlacesService } from '../places/places.service';
 import { BudgetService } from '../budget/budget.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
-import { searchNominatim } from '../../services/mapsService';
+import { MapsService } from '../maps/maps.service';
 import { DatabaseService } from '../database/database.service';
 import type { User } from '../../types';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
@@ -27,6 +27,9 @@ export class BookingImportService {
     private readonly permissions: PermissionsService,
     private readonly budget: BudgetService,
     private readonly addons: AddonsService,
+    private readonly realtime: RealtimeService,
+    private readonly maps: MapsService,
+    private readonly places: PlacesService,
   ) {}
 
   private get db() {
@@ -159,7 +162,7 @@ export class BookingImportService {
               ].filter((q): q is string => !!q);
 
               for (const q of queries) {
-                const results = await searchNominatim(q);
+                const results = await this.maps.searchNominatim(q);
                 const hit = results[0];
                 if (hit?.lat != null && hit?.lng != null) {
                   lat = hit.lat;
@@ -172,7 +175,7 @@ export class BookingImportService {
             }
           }
 
-          const place = createPlace(tripId, {
+          const place = this.places.create(tripId, {
             name: _venue.name,
             lat,
             lng,
@@ -181,7 +184,7 @@ export class BookingImportService {
             phone: _venue.phone,
           });
           placeId = (place as any).id;
-          broadcast(tripId, 'place:created', { place }, socketId);
+          this.realtime.broadcast(tripId, 'place:created', { place }, socketId);
         }
 
         // Geocode transport endpoints (stations/stops/terminals/rental desks) that
@@ -191,7 +194,7 @@ export class BookingImportService {
           for (const ep of reservationData.endpoints) {
             if ((ep.lat == null || ep.lng == null) && ep.name) {
               try {
-                const hit = (await searchNominatim(ep.name))[0];
+                const hit = (await this.maps.searchNominatim(ep.name))[0];
                 if (hit?.lat != null && hit?.lng != null) {
                   ep.lat = hit.lat;
                   ep.lng = hit.lng;
@@ -229,9 +232,9 @@ export class BookingImportService {
           create_accommodation: createAccommodation,
         } as any);
 
-        broadcast(tripId, 'reservation:created', { reservation }, socketId);
+        this.realtime.broadcast(tripId, 'reservation:created', { reservation }, socketId);
         if (accommodationCreated) {
-          broadcast(tripId, 'accommodation:created', {}, socketId);
+          this.realtime.broadcast(tripId, 'accommodation:created', {}, socketId);
         }
 
         // Turn an extracted price into a real linked cost (Costs addon), so the
@@ -255,7 +258,7 @@ export class BookingImportService {
               // settled position isn't re-opened when live rates drift (#1445).
               await this.budget.freezeForeignRate(tripId, budgetData);
               const budgetItem = this.budget.createBudgetItem(tripId, budgetData);
-              broadcast(tripId, 'budget:created', { item: budgetItem }, socketId);
+              this.realtime.broadcast(tripId, 'budget:created', { item: budgetItem }, socketId);
             } catch (err) {
               console.error(
                 `[booking-import] Failed to create cost for "${item.title}":`,

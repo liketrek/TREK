@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { broadcast } from '../../websocket';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { verifyTripAccess } from '../../services/tripAccess';
 import { avatarUrl } from '../../services/avatarUrl';
@@ -42,6 +43,7 @@ export class PackingService {
   constructor(
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -53,8 +55,8 @@ export class PackingService {
     return this.permissions.checkPermission('packing_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast(tripId: string, event: string, payload: Record<string, unknown>, socketId: string | undefined): void {
-    broadcast(tripId, event, payload, socketId);
+  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+    this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
   /**
@@ -62,16 +64,16 @@ export class PackingService {
    * screens: when the item is private the event is delivered only to its owner's
    * sockets. Shared items broadcast to the whole trip room as before.
    */
-  broadcastItem(tripId: string, event: string, payload: Record<string, unknown>, item: PrivacyFields | null | undefined, socketId: string | undefined): void {
+  broadcastItem<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, item: PrivacyFields | null | undefined, socketId: string | undefined): void {
     const onlyUserId = item?.is_private && item.owner_id != null ? item.owner_id : undefined;
-    broadcast(tripId, event, payload, socketId, onlyUserId);
+    this.realtime.broadcast(tripId, event, payload, socketId, onlyUserId);
   }
 
   /** Deliver an item event to a specific set of viewers (#858 shared items) — the
    *  owner plus the recipients it was shared with — without leaking to the room. */
-  broadcastToViewers(tripId: string, event: string, payload: Record<string, unknown>, viewerIds: number[], socketId: string | undefined): void {
+  broadcastToViewers<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, viewerIds: number[], socketId: string | undefined): void {
     for (const uid of new Set(viewerIds)) {
-      if (uid != null) broadcast(tripId, event, payload, socketId, uid);
+      if (uid != null) this.realtime.broadcast(tripId, event, payload, socketId, uid);
     }
   }
 
@@ -168,7 +170,7 @@ export class PackingService {
 
   createItem(
     tripId: string | number,
-    data: { name: string; category?: string; checked?: boolean; quantity?: number; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
+    data: { name: string; category?: string; checked?: boolean; quantity?: number; weight_grams?: number | null; bag_id?: number | null; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
     ownerId?: number,
   ) {
     const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?', tripId)!;
@@ -178,8 +180,8 @@ export class PackingService {
 
     const itemId = this.db.transaction(() => {
       const result = this.db.run(
-        'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
-        tripId, data.name, data.checked ? 1 : 0, data.category || 'Other', sortOrder, qty, isPrivate, ownerId ?? null
+        'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity, weight_grams, bag_id, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+        tripId, data.name, data.checked ? 1 : 0, data.category || 'Other', sortOrder, qty, data.weight_grams ?? null, data.bag_id ?? null, isPrivate, ownerId ?? null
       );
       const id = Number(result.lastInsertRowid);
       // "Shared with specific people" — record the recipients it covers.
@@ -251,7 +253,7 @@ export class PackingService {
 
   /** Loads an item scoped to its trip (the trip-access check happens in the controller). */
   private getItemInTrip(tripId: string | number, id: string | number) {
-    return this.db.get<{ id: number; owner_id: number | null; is_private: number; name: string; category: string | null; quantity: number }>(
+    return this.db.get<{ id: number; owner_id: number | null; is_private: number; name: string; category: string | null; quantity: number; weight_grams: number | null; bag_id: number | null }>(
       'SELECT * FROM packing_items WHERE id = ? AND trip_id = ?', id, tripId
     );
   }
@@ -303,11 +305,37 @@ export class PackingService {
     return this.enrichItems([this.db.get('SELECT * FROM packing_items WHERE id = ?', id)])[0];
   }
 
-  /** Clone a (Common) item onto the caller's Personal list as a private starting point. */
+  /**
+   * A copy keeps the original's bag only when that bag is the caller's to pack: one nobody
+   * owns, or one they belong to. Inheriting someone else's bag would drop the copy into
+   * their luggage and inflate their weight (#207).
+   */
+  private bagForCloner(tripId: string | number, bagId: number | null, userId: number): number | null {
+    if (bagId == null) return null;
+    const bag = this.db.get<{ user_id: number | null }>('SELECT user_id FROM packing_bags WHERE id = ? AND trip_id = ?', bagId, tripId);
+    if (!bag) return null;
+    if (bag.user_id === userId) return bagId;
+    const members = this.db.all<{ user_id: number }>('SELECT user_id FROM packing_bag_members WHERE bag_id = ?', bagId);
+    if (bag.user_id == null && members.length === 0) return bagId; // shared bag, nobody's in particular
+    return members.some(m => m.user_id === userId) ? bagId : null;
+  }
+
+  /**
+   * Clone a (Common) item onto the caller's Personal list as a private starting point.
+   * Weight comes along — it is a property of the thing, and re-entering it by hand for
+   * every traveller was the whole complaint in #207.
+   */
   cloneItem(tripId: string | number, id: string | number, userId: number) {
     const item = this.getItemInTrip(tripId, id);
     if (!item) return null;
-    return this.createItem(tripId, { name: item.name, category: item.category || undefined, quantity: item.quantity, visibility: 'personal' }, userId);
+    return this.createItem(tripId, {
+      name: item.name,
+      category: item.category || undefined,
+      quantity: item.quantity,
+      weight_grams: item.weight_grams,
+      bag_id: this.bagForCloner(tripId, item.bag_id, userId),
+      visibility: 'personal',
+    }, userId);
   }
 
   deleteItem(tripId: string | number, id: string | number) {
@@ -586,10 +614,131 @@ export class PackingService {
     });
   }
 
+  // ── Admin Template CRUD ────────────────────────────────────────────────────
+  // Relocated byte-identically from services/adminService.ts with the 2026-08
+  // admin fold. These back the admin-only /api/admin/packing-templates routes
+  // (AdminService delegates here) and the delete_packing_template MCP tool.
+  // They live in this service because it already owns all three template
+  // tables — saveAsTemplate above writes packing_templates,
+  // packing_template_categories and packing_template_items. Note the
+  // deliberate name split: listTemplates() above is the trip-member read;
+  // listPackingTemplates() below is the richer admin listing.
+  // Legacy quirks preserved on purpose: the `data.name?.trim()` truthiness
+  // guards (a blank name is a silent no-op, not a 400), the post-insert
+  // re-selects instead of RETURNING, `(max ?? -1) + 1` sort ordering, the
+  // exact error strings. The item routes originally ignored their :templateId
+  // path param entirely; since the 2026-08 quirk fix they scope through
+  // packing_template_categories like the sibling category routes do.
+
+  /** An item looked up through its category, so :templateId actually scopes it. */
+  private scopedTemplateItem(templateId: string, itemId: string) {
+    return this.db.get(`
+    SELECT ti.* FROM packing_template_items ti
+    JOIN packing_template_categories tc ON ti.category_id = tc.id
+    WHERE ti.id = ? AND tc.template_id = ?
+  `, itemId, templateId);
+  }
+
+  listPackingTemplates() {
+    return this.db.all(`
+    SELECT pt.*, u.username as created_by_name,
+      (SELECT COUNT(*) FROM packing_template_items ti JOIN packing_template_categories tc ON ti.category_id = tc.id WHERE tc.template_id = pt.id) as item_count,
+      (SELECT COUNT(*) FROM packing_template_categories WHERE template_id = pt.id) as category_count
+    FROM packing_templates pt
+    JOIN users u ON pt.created_by = u.id
+    ORDER BY pt.created_at DESC
+  `);
+  }
+
+  getPackingTemplate(id: string) {
+    const template = this.db.get('SELECT * FROM packing_templates WHERE id = ?', id);
+    if (!template) return { error: 'Template not found', status: 404 };
+    const categories = this.db.all('SELECT * FROM packing_template_categories WHERE template_id = ? ORDER BY sort_order, id', id);
+    const items = this.db.all(`
+    SELECT ti.* FROM packing_template_items ti
+    JOIN packing_template_categories tc ON ti.category_id = tc.id
+    WHERE tc.template_id = ? ORDER BY ti.sort_order, ti.id
+  `, id);
+    return { template, categories, items };
+  }
+
+  createPackingTemplate(name: string, createdBy: number) {
+    if (!name?.trim()) return { error: 'Name is required', status: 400 };
+    const result = this.db.run('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)', name.trim(), createdBy);
+    const template = this.db.get('SELECT * FROM packing_templates WHERE id = ?', result.lastInsertRowid);
+    return { template };
+  }
+
+  updatePackingTemplate(id: string, data: { name?: string }) {
+    const template = this.db.get('SELECT * FROM packing_templates WHERE id = ?', id);
+    if (!template) return { error: 'Template not found', status: 404 };
+    if (data.name?.trim()) this.db.run('UPDATE packing_templates SET name = ? WHERE id = ?', data.name.trim(), id);
+    return { template: this.db.get('SELECT * FROM packing_templates WHERE id = ?', id) };
+  }
+
+  deletePackingTemplate(id: string) {
+    const template = this.db.get<{ name?: string }>('SELECT * FROM packing_templates WHERE id = ?', id);
+    if (!template) return { error: 'Template not found', status: 404 };
+    this.db.run('DELETE FROM packing_templates WHERE id = ?', id);
+    return { name: template.name };
+  }
+
+  // Template categories
+
+  createTemplateCategory(templateId: string, name: string) {
+    if (!name?.trim()) return { error: 'Category name is required', status: 400 };
+    const template = this.db.get('SELECT * FROM packing_templates WHERE id = ?', templateId);
+    if (!template) return { error: 'Template not found', status: 404 };
+    const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_template_categories WHERE template_id = ?', templateId)!;
+    const result = this.db.run('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)', templateId, name.trim(), (maxOrder.max ?? -1) + 1);
+    return { category: this.db.get('SELECT * FROM packing_template_categories WHERE id = ?', result.lastInsertRowid) };
+  }
+
+  updateTemplateCategory(templateId: string, catId: string, data: { name?: string }) {
+    const cat = this.db.get('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?', catId, templateId);
+    if (!cat) return { error: 'Category not found', status: 404 };
+    if (data.name?.trim())
+      this.db.run('UPDATE packing_template_categories SET name = ? WHERE id = ?', data.name.trim(), catId);
+    return { category: this.db.get('SELECT * FROM packing_template_categories WHERE id = ?', catId) };
+  }
+
+  deleteTemplateCategory(templateId: string, catId: string) {
+    const cat = this.db.get('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?', catId, templateId);
+    if (!cat) return { error: 'Category not found', status: 404 };
+    this.db.run('DELETE FROM packing_template_categories WHERE id = ?', catId);
+    return {};
+  }
+
+  // Template items
+
+  createTemplateItem(templateId: string, catId: string, name: string) {
+    if (!name?.trim()) return { error: 'Item name is required', status: 400 };
+    const cat = this.db.get('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?', catId, templateId);
+    if (!cat) return { error: 'Category not found', status: 404 };
+    const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_template_items WHERE category_id = ?', catId)!;
+    const result = this.db.run('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)', catId, name.trim(), (maxOrder.max ?? -1) + 1);
+    return { item: this.db.get('SELECT * FROM packing_template_items WHERE id = ?', result.lastInsertRowid) };
+  }
+
+  updateTemplateItem(templateId: string, itemId: string, data: { name?: string }) {
+    const item = this.scopedTemplateItem(templateId, itemId);
+    if (!item) return { error: 'Item not found', status: 404 };
+    if (data.name?.trim())
+      this.db.run('UPDATE packing_template_items SET name = ? WHERE id = ?', data.name.trim(), itemId);
+    return { item: this.db.get('SELECT * FROM packing_template_items WHERE id = ?', itemId) };
+  }
+
+  deleteTemplateItem(templateId: string, itemId: string) {
+    const item = this.scopedTemplateItem(templateId, itemId);
+    if (!item) return { error: 'Item not found', status: 404 };
+    this.db.run('DELETE FROM packing_template_items WHERE id = ?', itemId);
+    return {};
+  }
+
   /** Fire-and-forget tag notification, mirroring the legacy dynamic import. */
   notifyTagged(tripId: string, actor: User, category: string, userIds: unknown): void {
     if (!Array.isArray(userIds) || userIds.length === 0) return;
-    import('../../services/notificationService').then(({ send }) => {
+    import('../notifications/notifications.bridge').then(({ send }) => {
       const tripInfo = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
       send({
         event: 'packing_tagged',

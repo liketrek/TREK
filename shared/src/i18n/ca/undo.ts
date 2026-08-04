@@ -13,6 +13,7 @@ const undo: TranslationStrings = {
   'undo.lock': 'Bloqueig de lloc activat/desactivat',
   'undo.importGpx': 'Importació GPX',
   'undo.importKeyholeMarkup': 'Importació KMZ/KML',
+  'undo.importFiles': 'Importació de fitxers',
   'undo.importGoogleList': 'Importació de Google Maps',
   'undo.importNaverList': 'Importació de Naver Maps',
   'undo.addPlace': 'Lloc afegit',

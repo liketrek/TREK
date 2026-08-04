@@ -162,7 +162,7 @@ export default function MAdminPackingTemplateManager() {
       await adminApi.deleteTemplateCategory(expandedId, catId)
       setCategories(prev => prev.filter(c => c.id !== catId))
       setItems(prev => prev.filter(i => i.category_id !== catId))
-    } catch { toast.error(t('admin.packingTemplates.deleteError')) }
+    } catch { toast.error(t('admin.toast.deleteError')) }
   }
 
   // Item CRUD
@@ -190,7 +190,7 @@ export default function MAdminPackingTemplateManager() {
     try {
       await adminApi.deleteTemplateItem(expandedId, itemId)
       setItems(prev => prev.filter(i => i.id !== itemId))
-    } catch { toast.error(t('admin.packingTemplates.deleteError')) }
+    } catch { toast.error(t('admin.toast.deleteError')) }
   }
 
   return (

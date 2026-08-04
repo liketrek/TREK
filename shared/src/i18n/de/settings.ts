@@ -24,7 +24,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Karten-Vorlage',
   'settings.mapTemplatePlaceholder.select': 'Vorlage auswählen...',
   'settings.mapDefaultHint': 'Leer lassen für OpenStreetMap (Standard)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-Template für die Kartenkacheln',
   'settings.mapProvider': 'Kartenanbieter',
   'settings.mapProviderHint': 'Gilt für Trip Planner und Journey. Atlas nutzt immer Leaflet.',
@@ -237,6 +236,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profilbild aktualisiert',
   'settings.avatarRemoved': 'Profilbild entfernt',
   'settings.avatarError': 'Fehler beim Hochladen',
+  'settings.avatarRemoveError': 'Entfernen fehlgeschlagen',
   'settings.mfa.title': 'Zwei-Faktor-Authentifizierung (2FA)',
   'settings.mfa.description':
     'Zusätzlicher Schritt bei der Anmeldung mit E-Mail und Passwort. Nutze eine Authenticator-App (Google Authenticator, Authy, …).',

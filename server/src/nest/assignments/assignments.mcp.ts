@@ -5,7 +5,7 @@ import {
   demoDenied, errorResult, ok,
 } from '@trek/nest-mcp';
 import { z } from 'zod';
-import { isDemoUser } from '../../services/authService';
+import { AuthService } from '../auth/auth.service';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { AssignmentsService } from './assignments.service';
 import { DaysService } from '../days/days.service';
@@ -24,6 +24,7 @@ export class AssignmentsMcp {
   constructor(
     private readonly assignments: AssignmentsService,
     private readonly days: DaysService,
+    private readonly auth: AuthService,
   ) {}
 
   @Tool({
@@ -42,7 +43,7 @@ export class AssignmentsMcp {
     { tripId, dayId, placeId, notes }: { tripId: number; dayId: number; placeId: number; notes?: string },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.assignments.dayExists(dayId, tripId)) return errorResult('Day not found.');
@@ -68,7 +69,7 @@ export class AssignmentsMcp {
     { tripId, dayId, assignmentId }: { tripId: number; dayId: number; assignmentId: number },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.assignments.assignmentExistsInDay(assignmentId, dayId, tripId))
@@ -97,7 +98,7 @@ export class AssignmentsMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const existing = this.assignments.getAssignmentForTrip(assignmentId, tripId);
@@ -131,13 +132,16 @@ export class AssignmentsMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.assignments.getAssignmentForTrip(assignmentId, tripId)) return errorResult('Assignment not found.');
     if (!this.days.getDay(newDayId, tripId)) return errorResult('Day not found.');
     const result = this.assignments.moveAssignment(assignmentId, newDayId, orderIndex ?? 0);
-    safeBroadcast(tripId, 'assignment:moved', { assignment: result.assignment, oldDayId: result.oldDayId });
+    // REST parity shape ({ assignment, oldDayId, newDayId }) — the client keys its
+    // per-day assignment map on newDayId, so omitting it filed the moved assignment
+    // under "undefined" on collaborator screens.
+    safeBroadcast(tripId, 'assignment:moved', { assignment: result.assignment, oldDayId: result.oldDayId, newDayId });
     this.assignments.reconcile(tripId);
     return ok({ assignment: result.assignment });
   }
@@ -177,7 +181,7 @@ export class AssignmentsMcp {
     { tripId, assignmentId, userIds }: { tripId: number; assignmentId: number; userIds: number[] },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.assignments.getAssignmentForTrip(assignmentId, tripId)) return errorResult('Assignment not found.');
@@ -201,12 +205,14 @@ export class AssignmentsMcp {
     { tripId, dayId, assignmentIds }: { tripId: number; dayId: number; assignmentIds: number[] },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.days.getDay(dayId, tripId)) return errorResult('Day not found.');
     this.assignments.reorderAssignments(dayId, assignmentIds);
-    safeBroadcast(tripId, 'assignment:reordered', { dayId, assignmentIds });
+    // REST parity shape ({ dayId, orderedIds }) — the client only reads orderedIds,
+    // so broadcasting the tool-input key name emptied the day for collaborators.
+    safeBroadcast(tripId, 'assignment:reordered', { dayId, orderedIds: assignmentIds });
     return ok({ success: true, dayId, order: assignmentIds });
   }
 }

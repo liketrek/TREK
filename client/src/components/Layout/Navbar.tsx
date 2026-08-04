@@ -156,6 +156,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
             const isActive = location.pathname === tab.path
             return (
               <Link key={tab.id} to={tab.path}
+                title={tab.label} aria-label={tab.label}
                 className="flex items-center gap-1.5 transition-colors"
                 style={{
                   padding: '5px 16px', borderRadius: 9, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500,
@@ -166,7 +167,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-primary)' }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-muted)' }}>
                 <tab.Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
+                <span className="hidden lg:inline">{tab.label}</span>
               </Link>
             )
           })}

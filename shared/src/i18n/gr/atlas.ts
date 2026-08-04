@@ -54,5 +54,9 @@ const atlas: TranslationStrings = {
   'atlas.tripPlural': 'Ταξίδια',
   'atlas.placeVisited': 'Μέρος που επισκεφθήκατε',
   'atlas.placesVisited': 'Μέρη που επισκεφθήκατε',
+  'atlas.planned': 'Προγραμματισμένο',
+  'atlas.showPlanned': 'Εμφάνιση προγραμματισμένων χωρών',
+  'atlas.plannedFor': 'Προγραμματισμένο για',
+  'atlas.antarctica': 'Ανταρκτική',
 };
 export default atlas;

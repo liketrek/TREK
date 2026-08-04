@@ -81,6 +81,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Geziye kopyala',
   'collections.copyN': '{count} öğeyi geziye kopyala',
   'collections.copyToTripSearch': 'Gezi ara',
+  'collections.searchLists': 'Listelerde ara',
   'collections.copyToTripConfirm': 'Kopyala',
   'collections.noTrips': 'Henüz gezi yok',
   'collections.alreadyInTrip': 'Bu gezide zaten var',

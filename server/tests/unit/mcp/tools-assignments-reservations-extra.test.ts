@@ -79,7 +79,11 @@ describe('Tool: move_assignment', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.assignment).toBeDefined();
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'assignment:moved', expect.any(Object));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'assignment:moved',
+        expect.objectContaining({ oldDayId: day1.id, newDayId: day2.id }),
+      );
       // Verify the assignment was moved
       const updated = testDb.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(assignment.id) as any;
       expect(updated.day_id).toBe(day2.id);

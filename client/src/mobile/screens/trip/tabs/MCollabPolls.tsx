@@ -113,7 +113,8 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
   const handleVote = useCallback(async (pollId: number, optionIndex: number) => {
     try {
       const res = (await collabApi.votePoll(tripId, pollId, optionIndex)) as PollResponse
-      setPolls(prev => prev.map(p => (p.id === res.poll.id ? res.poll : p)))
+      // Reconcile against the poll we asked about, like handleClosePoll does.
+      setPolls(prev => prev.map(p => (p.id === pollId ? res.poll : p)))
     } catch {
       toast.error(t('common.error'))
     }

@@ -25,10 +25,6 @@ export function MapView({ entries, mapEntries, sortedDates, activeLocationId, fu
   })
   const dates = [...byDate.keys()].sort()
 
-  // find first and last entry indices
-  const firstId = mapEntries[0]?.id
-  const lastId = mapEntries[mapEntries.length - 1]?.id
-
   const mapItems = useMemo(() => mapEntries.map(e => ({
     id: String(e.id),
     lat: e.location_lat!,
@@ -85,8 +81,6 @@ export function MapView({ entries, mapEntries, sortedDates, activeLocationId, fu
                 {/* Location items */}
                 {items.map(({ entry: e, globalIdx }, itemIdx) => {
                   const isActive = activeLocationId === String(e.id)
-                  const isFirst = e.id === firstId
-                  const isLast = e.id === lastId
                   const showConnector = itemIdx < items.length - 1
 
                   return (

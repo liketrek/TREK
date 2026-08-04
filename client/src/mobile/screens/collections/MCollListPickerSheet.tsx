@@ -32,6 +32,8 @@ export default function MCollListPickerSheet({ mode, lists, count, onPick, onClo
     setBusyId(id)
     try {
       await onPick(id)
+    } catch {
+      // The caller reports its own failures; the sheet only releases the row.
     } finally {
       setBusyId(null)
     }

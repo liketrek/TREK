@@ -16,8 +16,6 @@ interface MemoPlaceRowProps {
   selectedDayId: number | null
   canEditPlaces: boolean
   isMobile: boolean
-  /** Primary pointer is coarse — HTML5 drag would swallow the scroll gesture (#1432). */
-  isTouch: boolean
   t: (key: string, params?: Record<string, any>) => string
   onPlaceClick: (id: number | null) => void
   onContextMenu: (e: React.MouseEvent, place: Place) => void
@@ -29,11 +27,12 @@ interface MemoPlaceRowProps {
 
 export const MemoPlaceRow = React.memo(function MemoPlaceRow({
   place, category: cat, isSelected, isPlanned, inDay, isChecked,
-  selectMode, selectedDayId, canEditPlaces, isMobile, isTouch, t,
+  selectMode, selectedDayId, canEditPlaces, isMobile, t,
   onPlaceClick, onContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace, registerPlaceRow,
 }: MemoPlaceRowProps) {
   const hasGeometry = Boolean(place.route_geometry)
-  const dragDisabled = isMobile || isTouch
+  // Touch is reached through a long press instead of being locked out (#1616).
+  const dragDisabled = isMobile
   return (
     <div
       key={place.id}

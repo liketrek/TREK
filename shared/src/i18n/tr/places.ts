@@ -69,6 +69,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Boylam (ör. 2,3522)',
   'places.formCategory': 'Kategori',
   'places.noCategory': 'Kategori Yok',
+  'places.newCategory': 'Yeni kategori',
   'places.categoryNamePlaceholder': 'Kategori adı',
   'places.formTime': 'Zaman',
   'places.startTime': 'Başlangıç',
@@ -99,5 +100,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Görseli değiştir',
   'places.removeImage': 'Görseli kaldır',
   'places.imageUploadError': 'Görsel yüklenemedi',
+  'places.imageRemoveError': 'Görsel kaldırılamadı',
 };
 export default places;

@@ -20,11 +20,20 @@ const STEPS: { scene: TrekScene; key: string }[] = [
 const STEP_MS = 1400
 // Reduced motion parks on the paper-plane / "loading photos" beat.
 const STILL_INDEX = 2
+const REDUCE_MOTION = '(prefers-reduced-motion: reduce)'
 
 export default function MTripLoadingSplash({ title }: { title: string }) {
   const { t } = useTranslation()
-  const reduceMotion =
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia?.(REDUCE_MOTION)?.matches ?? false)
+  // The splash can be up long enough for the OS setting to be flipped under it.
+  useEffect(() => {
+    const mq = window.matchMedia?.(REDUCE_MOTION)
+    if (!mq) return
+    const sync = () => setReduceMotion(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   const [index, setIndex] = useState(0)
   useEffect(() => {

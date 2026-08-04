@@ -61,7 +61,6 @@ export default function MAdminCategoryManager() {
   }
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error(t('categories.toast.nameRequired')); return }
     setIsSaving(true)
     try {
       if (editingId) {

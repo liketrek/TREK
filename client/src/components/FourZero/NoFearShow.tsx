@@ -114,10 +114,20 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
       cv.height = Math.round(cv.clientHeight * dpr)
       cv.getContext('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0)
       scene.layout(cv.clientWidth, cv.clientHeight)
+      // The finale samples the title rect in screen coordinates, so it has to be
+      // re-sampled against the new geometry.
+      assemblyRef.current = null
     }
     fit()
     if (cv) void scene.load(cv.clientWidth, cv.clientHeight, aborter.signal)
-    window.addEventListener('resize', fit)
+    // layout() rebakes every static layer, which is far too heavy for the event
+    // storm a window drag produces — coalesce to the end of the gesture.
+    let refitTimer = 0
+    const onResize = () => {
+      window.clearTimeout(refitTimer)
+      refitTimer = window.setTimeout(fit, 150)
+    }
+    window.addEventListener('resize', onResize)
     // The traveler's own places, gathered quietly during the fear act. Fail-soft:
     // without them the show falls back to its generic lines.
     void (async () => {
@@ -163,7 +173,8 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
     if (reducedMotion) skipToEnd()
     return () => {
       document.body.classList.remove('fz-show-open')
-      window.removeEventListener('resize', fit)
+      window.clearTimeout(refitTimer)
+      window.removeEventListener('resize', onResize)
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('pointerdown', onPointer)
       aborter.abort()
@@ -191,10 +202,11 @@ export default function NoFearShow({ onClose }: { onClose: () => void }) {
       if (idx !== lastCue && idx >= 0) {
         // A replaced fear-act line decays letter by letter instead of vanishing.
         if (lastCue >= 0 && lastCue <= 3) {
-          const prevKey = CUES[lastCue].line
+          const ghostId = lastCue // pin it — lastCue advances on the next line
+          const prevKey = CUES[ghostId].line
           if (prevKey) {
-            setGhost({ text: copy.lines[prevKey], id: lastCue })
-            window.setTimeout(() => setGhost(g => (g?.id === lastCue ? null : g)), 1400)
+            setGhost({ text: copy.lines[prevKey], id: ghostId })
+            window.setTimeout(() => setGhost(g => (g?.id === ghostId ? null : g)), 1400)
           }
         }
         lastCue = idx

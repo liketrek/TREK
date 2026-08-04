@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
 import { canAccessTrip } from '../../db/database';
-import { isDemoUser } from '../../services/authService';
+import { isDemoUser } from '../../nest/auth/auth.bridge';
 import {
   createReservation, deleteReservation, getReservation, updateReservation,
   type EndpointInput,

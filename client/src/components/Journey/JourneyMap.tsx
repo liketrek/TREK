@@ -154,10 +154,6 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
   useEffect(() => {
     if (!containerRef.current) return
 
-    if (mapRef.current) {
-      mapRef.current.remove()
-      mapRef.current = null
-    }
     markersRef.current.clear()
 
     const map = L.map(containerRef.current, {

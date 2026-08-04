@@ -190,6 +190,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'テンプレートの読み込みに失敗しました',
   'admin.packingTemplates.createError': 'テンプレートの作成に失敗しました',
   'admin.packingTemplates.deleteError': 'テンプレートの削除に失敗しました',
+  'admin.packingTemplates.deleteCategoryError': 'カテゴリを削除できませんでした',
+  'admin.packingTemplates.deleteItemError': 'アイテムを削除できませんでした',
   'admin.packingTemplates.saveError': '保存に失敗しました',
   'admin.tabs.addons': 'アドオン',
   'admin.tabs.plugins': 'プラグイン',

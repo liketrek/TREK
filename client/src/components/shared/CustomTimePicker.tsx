@@ -2,16 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import { Clock, ChevronUp, ChevronDown } from 'lucide-react'
 import { useSettingsStore } from '../../store/settingsStore'
-
-function formatDisplay(val: string, is12h: boolean): string {
-  if (!val) return ''
-  const [h, m] = val.split(':').map(Number)
-  if (isNaN(h) || isNaN(m)) return val
-  if (!is12h) return val
-  const period = h >= 12 ? 'PM' : 'AM'
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-  return `${h12}:${String(m).padStart(2, '0')} ${period}`
-}
+import { formatClockTime, parseMeridiemTime } from '../../utils/formatters'
 
 interface CustomTimePickerProps {
   value: string
@@ -27,7 +18,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
   const ref = useRef<HTMLDivElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
 
-  const [h, m] = (value || '').split(':').map(Number)
+  const [h, m] = (parseMeridiemTime(value) ?? value ?? '').split(':').map(Number)
   const hour = isNaN(h) ? null : h
   const minute = isNaN(m) ? null : m
 
@@ -40,6 +31,16 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
     if (open) document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
+
+  // A value that arrives with a meridiem ("3:00 PM" — stored while 12h was configured,
+  // or carried in by a booking import) is handed back as HH:MM right away, so the form
+  // saves a clean value even when the field is never touched (#1725). While the input
+  // has focus this stays out of the way — handleBlur parses what was typed.
+  useEffect(() => {
+    if (inputFocused) return
+    const norm = parseMeridiemTime(value)
+    if (norm && norm !== value) onChange(norm)
+  }, [value, inputFocused])
 
   const update = (newH: number, newM: number) => {
     const hh = String(Math.max(0, Math.min(23, newH))).padStart(2, '0')
@@ -69,7 +70,9 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value
     onChange(raw)
-    if (is12h) return // let handleBlur parse 12h formats
+    // Anything with letters in it ("5:30 pm") is left to handleBlur — stripping
+    // them here would swallow the meridiem and turn 5:30 pm into 05:30.
+    if (is12h || /[a-z]/i.test(raw)) return
     const clean = raw.replace(/[^0-9:]/g, '')
     if (/^\d{2}:\d{2}$/.test(clean)) onChange(clean)
     else if (/^\d{4}$/.test(clean)) onChange(clean.slice(0, 2) + ':' + clean.slice(2))
@@ -83,18 +86,13 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
     if (!value) return
     const raw = value.trim()
 
-    // Parse 12h input like "5:30 PM", "5:30pm", "530pm"
-    if (is12h) {
-      const match12 = raw.match(/^(\d{1,2}):?(\d{2})?\s*(am|pm)$/i)
-      if (match12) {
-        let h = parseInt(match12[1])
-        const m = match12[2] ? parseInt(match12[2]) : 0
-        const isPm = match12[3].toLowerCase() === 'pm'
-        if (h === 12) h = isPm ? 12 : 0
-        else if (isPm) h += 12
-        onChange(String(Math.min(23, h)).padStart(2, '0') + ':' + String(Math.min(59, m)).padStart(2, '0'))
-        return
-      }
+    // Parse 12h input like "5:30 PM", "5:30pm", "530pm". A meridiem is
+    // unambiguous, so it is honoured whatever the configured format is —
+    // otherwise the cleanup below reads "5:30 PM" as 05:30 (#1725).
+    const parsed12h = parseMeridiemTime(raw)
+    if (parsed12h) {
+      onChange(parsed12h)
+      return
     }
 
     const clean = raw.replace(/[^0-9:]/g, '')
@@ -124,7 +122,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
       }}>
         <input
           type="text"
-          value={inputFocused ? value : formatDisplay(value, is12h)}
+          value={inputFocused ? value : formatClockTime(value, is12h)}
           onChange={handleInput}
           onFocus={() => setInputFocused(true)}
           onBlur={() => { setInputFocused(false); handleBlur() }}

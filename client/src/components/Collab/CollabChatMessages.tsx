@@ -218,12 +218,9 @@ export function ChatMessages(props: any) {
                           borderRadius: 99, background: 'var(--bg-card)',
                           boxShadow: '0 1px 6px rgba(0,0,0,0.12)', border: '1px solid var(--border-faint)',
                         }}>
-                          {msg.reactions.map(r => {
-                            const myReaction = r.users.some(u => String(u.user_id) === String(currentUser.id))
-                            return (
-                              <ReactionBadge key={r.emoji} reaction={r} currentUserId={currentUser.id} onReact={() => { if (canEdit) handleReact(msg.id, r.emoji) }} />
-                            )
-                          })}
+                          {msg.reactions.map(r => (
+                            <ReactionBadge key={r.emoji} reaction={r} currentUserId={currentUser.id} onReact={() => { if (canEdit) handleReact(msg.id, r.emoji) }} />
+                          ))}
                         </div>
                       </div>
                     )}

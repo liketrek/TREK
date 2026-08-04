@@ -31,8 +31,6 @@ export interface PlacesSidebarProps {
   onBulkChangeCategory?: (ids: number[], categoryId: number | null) => void
   days: Day[]
   isMobile: boolean
-  /** Primary pointer is coarse — HTML5 drag would swallow the scroll gesture (#1432). */
-  isTouch?: boolean
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
@@ -58,7 +56,6 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
   // Places-API enrichment (#886) needs a Google Maps key; gate the toggle on it.
   const canEnrichImport = useAuthStore((s) => s.hasMapsKey)
-  const isNaverListImportEnabled = true
 
   const [fileImportOpen, setFileImportOpen] = useState(false)
   const [sidebarDropFile, setSidebarDropFile] = useState<File | null>(null)
@@ -106,19 +103,13 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const [listImportLoading, setListImportLoading] = useState(false)
   const [listImportProvider, setListImportProvider] = useState<'google' | 'naver'>('google')
   const [listImportEnrich, setListImportEnrich] = useState(false)
-  const availableListImportProviders: Array<'google' | 'naver'> = isNaverListImportEnabled ? ['google', 'naver'] : ['google']
+  const availableListImportProviders: Array<'google' | 'naver'> = ['google', 'naver']
   const hasMultipleListImportProviders = availableListImportProviders.length > 1
-
-  useEffect(() => {
-    if (!isNaverListImportEnabled && listImportProvider === 'naver') {
-      setListImportProvider('google')
-    }
-  }, [isNaverListImportEnabled, listImportProvider])
 
   const handleListImport = async () => {
     if (!listImportUrl.trim()) return
     setListImportLoading(true)
-    const provider = listImportProvider === 'naver' && isNaverListImportEnabled ? 'naver' : 'google'
+    const provider = listImportProvider
     try {
       const enrich = listImportEnrich && canEnrichImport
       const result = provider === 'google'
@@ -186,7 +177,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     if (next.has(catId)) next.delete(catId); else next.add(catId)
     setCategoryFilters(next)
   }
-  const [dayPickerPlace, setDayPickerPlace] = useState(null)
+  const [dayPickerPlace, setDayPickerPlace] = useState<Place | null>(null)
   const [catDropOpen, setCatDropOpen] = useState(false)
   const [mobileShowDays, setMobileShowDays] = useState(false)
 

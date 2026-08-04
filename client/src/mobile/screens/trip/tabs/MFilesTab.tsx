@@ -60,18 +60,22 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
     if (tooBig.length > 0) planner.toast.error(t('files.uploadErrorSize'))
     if (okFiles.length === 0) return
     setUploading(true)
-    try {
-      for (const file of okFiles) {
-        const fd = new FormData()
-        fd.append('file', file)
+    let uploaded = 0
+    const failures: unknown[] = []
+    for (const file of okFiles) {
+      const fd = new FormData()
+      fd.append('file', file)
+      try {
         await planner.tripActions.addFile(planner.tripId, fd)
+        uploaded++
+      } catch (err) {
+        // One rejected file must not drop the rest of the batch.
+        failures.push(err)
       }
-      planner.toast.success(t('files.uploaded', { count: okFiles.length }))
-    } catch (err) {
-      planner.toast.error(translateApiError(t, err, 'files.uploadError'))
-    } finally {
-      setUploading(false)
     }
+    setUploading(false)
+    if (uploaded > 0) planner.toast.success(t('files.uploaded', { count: uploaded }))
+    if (failures.length > 0) planner.toast.error(translateApiError(t, failures[0], 'files.uploadError'))
   }
 
   const onPickFiles = (e: ChangeEvent<HTMLInputElement>) => {
@@ -122,8 +126,8 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
 
   const openRow = (file: TripFile) => {
     if (isMedia(file.mime_type)) {
-      const idx = mediaFiles.findIndex(f => f.id === file.id)
-      setLightboxIndex(idx >= 0 ? idx : 0)
+      // Only rows out of `visible` get here, so the file is always in mediaFiles.
+      setLightboxIndex(mediaFiles.findIndex(f => f.id === file.id))
     } else {
       // Wallet passes and everything else (PDF/docs) share the same browser-native
       // handling as the transport/reservation file chips: openFile() opens PDFs

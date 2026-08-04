@@ -85,7 +85,8 @@ export default function MAdminBackupPanel() {
   const loadAutoSettings = async () => {
     try {
       const data = await backupApi.getAutoSettings()
-      setAutoSettings(data.settings)
+      // A 200 without a settings block would blank the whole schedule form.
+      if (data.settings) setAutoSettings(data.settings)
       if (data.timezone) setServerTimezone(data.timezone)
     } catch {}
   }
@@ -170,7 +171,7 @@ export default function MAdminBackupPanel() {
     setAutoSettingsSaving(true)
     try {
       const data = await backupApi.setAutoSettings(autoSettings)
-      setAutoSettings(data.settings)
+      if (data.settings) setAutoSettings(data.settings)
       setAutoSettingsDirty(false)
       toast.success(t('backup.toast.settingsSaved'))
     } catch {

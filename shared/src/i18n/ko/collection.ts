@@ -80,6 +80,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': '여행에 복사',
   'collections.copyN': '{count}개를 여행에 복사',
   'collections.copyToTripSearch': '여행 검색',
+  'collections.searchLists': '목록 검색',
   'collections.copyToTripConfirm': '복사',
   'collections.noTrips': '아직 여행이 없습니다',
   'collections.alreadyInTrip': '이미 이 여행에 있습니다',

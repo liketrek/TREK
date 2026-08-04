@@ -151,11 +151,18 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
     }
   }, [tripId, toast, t])
 
+  // Returns whether the file is really gone — the form sheet only drops the
+  // chip once the server confirmed it.
   const handleDeleteFile = useCallback(async (noteId: number, fileId: number) => {
     try {
       await collabApi.deleteNoteFile(tripId, noteId, fileId)
+      setNotes(prev => prev.map(n => (
+        n.id === noteId ? { ...n, attachments: n.attachments.filter(f => f.id !== fileId) } : n
+      )))
+      return true
     } catch {
       toast.error(t('common.error'))
+      return false
     }
   }, [tripId, toast, t])
 
@@ -357,7 +364,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
   canUploadFiles: boolean
   onClose: () => void
   onSubmit: (data: NoteFormSubmitData) => Promise<void>
-  onDeleteExistingFile: (noteId: number, fileId: number) => void
+  onDeleteExistingFile: (noteId: number, fileId: number) => Promise<boolean>
   t: TripPlanner['t']
 }) {
   const note = target && target !== 'new' ? target : null
@@ -432,7 +439,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
           className={FIELD_CLS}
         />
 
-        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('collab.notes.contentPlaceholder')}</Eyebrow>
+        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('collab.notes.content')}</Eyebrow>
         <textarea
           value={content}
           onChange={e => setContent(e.target.value)}
@@ -515,11 +522,12 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
                   {f.original_name.length > 20 ? `${f.original_name.slice(0, 17)}...` : f.original_name}
                   <button
                     type="button"
-                    onClick={() => {
-                      if (note) onDeleteExistingFile(note.id, f.id)
-                      setExistingFiles(prev => prev.filter(x => x.id !== f.id))
+                    onClick={async () => {
+                      if (!note) return
+                      const removed = await onDeleteExistingFile(note.id, f.id)
+                      if (removed) setExistingFiles(prev => prev.filter(x => x.id !== f.id))
                     }}
-                    aria-label={t('collab.notes.delete')}
+                    aria-label={t('collab.notes.removeFile', { name: f.original_name })}
                     className="text-[color:var(--m-st-danger)]"
                   >
                     <X size={10} strokeWidth={2.4} />
@@ -535,7 +543,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
                   <button
                     type="button"
                     onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
-                    aria-label={t('collab.notes.delete')}
+                    aria-label={t('collab.notes.removeFile', { name: f.name })}
                     className="text-m-faint"
                   >
                     <X size={10} strokeWidth={2.4} />

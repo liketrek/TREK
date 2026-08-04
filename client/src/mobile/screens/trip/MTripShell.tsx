@@ -298,7 +298,7 @@ export default function MTripShell({
       {days.length > 0 && (
         <div className="absolute left-4 right-4 z-[25] flex top-[calc(var(--m-safe-top,12px)+50px)]">
           <div className="flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
-            {days.map(day => {
+            {days.map((day, idx) => {
               const active = day.id === planner.selectedDayId
               return (
                 <button
@@ -310,7 +310,7 @@ export default function MTripShell({
                     active ? 'bg-m-act text-m-actfg shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]' : 'text-m-ink'
                   }`}
                 >
-                  {dayChipLabel(day, language, t('planner.dayN', { n: day.day_number ?? 0 }))}
+                  {dayChipLabel(day, language, t('planner.dayN', { n: day.day_number ?? idx + 1 }))}
                 </button>
               )
             })}

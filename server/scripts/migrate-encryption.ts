@@ -181,11 +181,47 @@ async function main() {
 
   // Backup
   const backupPath = `${dbPath}.backup-${Date.now()}`;
-  fs.copyFileSync(dbPath, backupPath);
-  console.log(`\nBackup created: ${backupPath}`);
 
   const db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
+  db.pragma('busy_timeout = 5000');
+
+  // The rollback copy has to be a consistent snapshot, not a plain file copy:
+  // this script is documented as running against a live server, so in WAL mode
+  // the committed tail sits in the -wal sidecar a copy would leave behind.
+  // VACUUM INTO snapshots even while the server writes; the checkpoint plus
+  // copy is only the fallback for when it cannot (disk, lock).
+  try {
+    db.exec(`VACUUM INTO '${backupPath.replace(/'/g, "''")}'`);
+  } catch {
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    fs.copyFileSync(dbPath, backupPath);
+  }
+  console.log(`\nBackup created: ${backupPath}`);
+
+  // journal_mode lives in the file header, so hardcoding WAL here would quietly
+  // undo a deliberate DELETE/TRUNCATE setup (network storage) on the first key
+  // rotation. This script ships without src/ in the image and cannot import
+  // src/app-config, so it reads the same variables directly — keep the defaults
+  // in step with parsers.resolveDurability().
+  const journalModes = ['DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'WAL', 'OFF'];
+  const syncLevels = ['OFF', 'NORMAL', 'FULL', 'EXTRA'];
+
+  const wantedJournal = (process.env.TREK_DB_JOURNAL_MODE ?? '').trim().toUpperCase();
+  const journalMode = journalModes.includes(wantedJournal) ? wantedJournal : 'WAL';
+  if (wantedJournal && journalMode !== wantedJournal) {
+    console.warn(`TREK_DB_JOURNAL_MODE="${process.env.TREK_DB_JOURNAL_MODE}" is not a SQLite journal mode — using ${journalMode}.`);
+  }
+
+  const wantedSync = (process.env.TREK_DB_SYNCHRONOUS ?? '').trim().toUpperCase();
+  const defaultSync = journalMode === 'WAL' ? 'NORMAL' : 'FULL';
+  const synchronous = syncLevels.includes(wantedSync) ? wantedSync : defaultSync;
+  if (wantedSync && synchronous !== wantedSync) {
+    console.warn(`TREK_DB_SYNCHRONOUS="${process.env.TREK_DB_SYNCHRONOUS}" is not a SQLite synchronous level — using ${synchronous}.`);
+  }
+
+  db.pragma(`journal_mode = ${journalMode}`);
+  db.pragma(`synchronous = ${synchronous}`);
+  console.log(`Journal mode: ${db.pragma('journal_mode', { simple: true })}\n`);
 
   const result: MigrationResult = { migrated: 0, alreadyMigrated: 0, skipped: 0, errors: [] };
 

@@ -208,5 +208,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Én is tudom hozni',
   'packing.alsoBringingStop': 'Mégsem hozom',
   'packing.cloneToMine': 'Másolás a listámra',
+  'packing.bagLimit': 'Súlykorlát',
+  'packing.setBagLimit': 'Korlát beállítása',
 };
 export default packing;

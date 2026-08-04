@@ -6,5 +6,6 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Κόστος',
   'pdf.preview': 'Προεπισκόπηση PDF',
   'pdf.saveAsPdf': 'Αποθήκευση ως PDF',
+  'pdf.pageBreakPerDay': 'Αλλαγή σελίδας ανά ημέρα',
 };
 export default pdf;

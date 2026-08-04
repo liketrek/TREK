@@ -74,6 +74,17 @@ async function getFileBlob(url: string): Promise<Blob> {
 }
 
 /**
+ * Triggers a browser download for an in-memory Blob (CSV export, generated
+ * report, …). Use this instead of hand-rolling the anchor: Firefox ignores a
+ * click on an anchor that is not in the document, and revoking the object URL
+ * in the same tick can abort the download in other browsers.
+ */
+export function downloadBlob(blob: Blob, filename: string): void {
+  const blobUrl = URL.createObjectURL(blob)
+  triggerAnchorDownload(blobUrl, filename)
+}
+
+/**
  * Fetches a protected file using cookie auth (credentials: include) and
  * triggers a browser download. Works inside PWA standalone mode because the
  * fetch stays in the PWA's WebView rather than handing off to the system

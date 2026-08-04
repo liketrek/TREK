@@ -310,4 +310,292 @@ describe('BackupPanel', () => {
       expect(screen.getByRole('button', { name: /^save$/i })).not.toBeDisabled()
     })
   })
+
+  // BKP-015: List request fails
+  it('FE-ADMIN-BKP-015: a failing list request toasts and keeps the empty state', async () => {
+    server.use(http.get('/api/backup/list', () => HttpResponse.error()))
+    render(<><ToastContainer /><BackupPanel /></>)
+
+    expect(await screen.findByText('Failed to load backups')).toBeInTheDocument()
+    expect(screen.getByText('No backups yet')).toBeInTheDocument()
+  })
+
+  // BKP-016: Create fails
+  it('FE-ADMIN-BKP-016: a failing create toasts the error and re-enables the button', async () => {
+    const user = userEvent.setup()
+    server.use(http.post('/api/backup/create', () => HttpResponse.error()))
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('backup-2025-01-15.zip')
+
+    await user.click(screen.getByTitle('Create Backup'))
+
+    expect(await screen.findByText('Failed to create backup')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTitle('Create Backup')).toBeEnabled())
+  })
+
+  // BKP-017: Restore fails
+  it('FE-ADMIN-BKP-017: a failing restore surfaces the server message and clears the spinner', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post('/api/backup/restore/:filename', () =>
+        HttpResponse.json({ error: 'archive is corrupt' }, { status: 400 }),
+      ),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('backup-2025-01-15.zip')
+
+    await user.click(screen.getAllByText('Restore')[0])
+    await user.click(await screen.findByText('Yes, restore'))
+
+    expect(await screen.findByText('archive is corrupt')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getAllByText('Restore')[0].closest('button')).toBeEnabled())
+  })
+
+  // BKP-018: Upload & restore happy path
+  it('FE-ADMIN-BKP-018: picking a file opens the modal and uploads it on confirm', async () => {
+    const user = userEvent.setup()
+    let uploaded = false
+    server.use(
+      http.post('/api/backup/upload-restore', () => {
+        uploaded = true
+        return HttpResponse.json({ success: true })
+      }),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('backup-2025-01-15.zip')
+
+    const reloadMock = vi.fn()
+    vi.stubGlobal('location', { ...window.location, reload: reloadMock })
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    await user.upload(input, new File(['zip'], 'restore-me.zip', { type: 'application/zip' }))
+
+    expect(await screen.findByText('Restore Backup?')).toBeInTheDocument()
+    expect(screen.getByText('restore-me.zip')).toBeInTheDocument()
+    // The picked file is cleared from the input so the same file can be chosen again
+    expect(input.value).toBe('')
+
+    await user.click(screen.getByText('Yes, restore'))
+    await waitFor(() => expect(uploaded).toBe(true))
+    expect(await screen.findByText('Backup restored. Page will reload…')).toBeInTheDocument()
+    vi.unstubAllGlobals()
+  })
+
+  // BKP-019: Upload & restore failure
+  it('FE-ADMIN-BKP-019: a failing upload restore toasts and re-enables the upload button', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post('/api/backup/upload-restore', () => HttpResponse.json({ error: 'not a backup' }, { status: 400 })),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('backup-2025-01-15.zip')
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    await user.upload(input, new File(['zip'], 'broken.zip', { type: 'application/zip' }))
+    await user.click(await screen.findByText('Yes, restore'))
+
+    expect(await screen.findByText('not a backup')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTitle('Upload Backup')).toBeEnabled())
+  })
+
+  // BKP-020: Upload button forwards the click to the hidden file input
+  it('FE-ADMIN-BKP-020: the Upload button opens the hidden file picker', async () => {
+    const user = userEvent.setup()
+    render(<BackupPanel />)
+    await screen.findByText('backup-2025-01-15.zip')
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const clickSpy = vi.spyOn(input, 'click').mockImplementation(() => {})
+    await user.click(screen.getByTitle('Upload Backup'))
+
+    expect(clickSpy).toHaveBeenCalled()
+  })
+
+  // BKP-021: Delete declined / failing
+  it('FE-ADMIN-BKP-021: declining the confirm keeps the backup, a failing delete toasts', async () => {
+    const user = userEvent.setup()
+    let deleteCalls = 0
+    server.use(
+      http.delete('/api/backup/:filename', () => {
+        deleteCalls += 1
+        return HttpResponse.json({ error: 'file is locked' }, { status: 500 })
+      }),
+    )
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('backup-2025-01-15.zip')
+
+    const trashBtn = Array.from(document.querySelectorAll('button')).find(
+      b => b.querySelector('svg.lucide-trash2'),
+    ) as HTMLElement
+    await user.click(trashBtn)
+    expect(deleteCalls).toBe(0)
+    expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument()
+
+    confirmSpy.mockReturnValue(true)
+    await user.click(trashBtn)
+
+    expect(await screen.findByText('Failed to delete')).toBeInTheDocument()
+    expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument()
+  })
+
+  // BKP-022: Auto settings save fails
+  it('FE-ADMIN-BKP-022: a failing auto-settings save toasts and keeps the form dirty', async () => {
+    const user = userEvent.setup()
+    server.use(http.put('/api/backup/auto-settings', () => HttpResponse.error()))
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('Enable auto-backup')
+
+    await user.click(getToggleButton())
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('Failed to save settings')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: /^save$/i })).toBeEnabled())
+  })
+
+  // BKP-023: Size/date fallbacks
+  it('FE-ADMIN-BKP-023: missing size and date render as a dash, kilobytes are formatted', async () => {
+    server.use(
+      http.get('/api/backup/list', () =>
+        HttpResponse.json({
+          backups: [
+            { filename: 'empty.zip', created_at: null, size: 0 },
+            { filename: 'small.zip', created_at: '2025-03-01T08:00:00Z', size: 5120 },
+          ],
+        }),
+      ),
+    )
+    render(<BackupPanel />)
+    await screen.findByText('empty.zip')
+
+    expect(screen.getAllByText('-')).toHaveLength(2)
+    expect(screen.getByText('5.0 KB')).toBeInTheDocument()
+  })
+
+  // BKP-024: Invalid server timezone
+  it('FE-ADMIN-BKP-024: an unusable server timezone falls back to the raw timestamp', async () => {
+    server.use(
+      http.get('/api/backup/auto-settings', () =>
+        HttpResponse.json({
+          settings: { enabled: false, interval: 'daily', keep_days: 7, hour: 2, day_of_week: 0, day_of_month: 1 },
+          timezone: 'Not/AZone',
+        }),
+      ),
+    )
+    render(<BackupPanel />)
+    await screen.findByText('backup-2025-01-15.zip')
+
+    await waitFor(() => expect(screen.getByText('2025-01-15T10:00:00Z')).toBeInTheDocument())
+  })
+
+  // BKP-025: 12h hour picker
+  it('FE-ADMIN-BKP-025: the hour picker uses AM/PM labels for 12h users and stores the pick', async () => {
+    const user = userEvent.setup()
+    seedStore(useSettingsStore, { settings: { time_format: '12h' } } as any)
+    let saved: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/backup/auto-settings', () =>
+        HttpResponse.json({
+          settings: { enabled: true, interval: 'daily', keep_days: 7, hour: 0, day_of_week: 0, day_of_month: 1 },
+          timezone: 'UTC',
+        }),
+      ),
+      http.put('/api/backup/auto-settings', async ({ request }) => {
+        saved = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ settings: saved })
+      }),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('Run at hour')
+
+    expect(screen.getByText('Server local time (12h format) (Timezone: UTC)')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '12:00 AM' }))
+    await user.click(await screen.findByRole('button', { name: '2:00 PM' }))
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(saved).toMatchObject({ hour: 14 }))
+  })
+
+  // BKP-026: Monthly interval
+  it('FE-ADMIN-BKP-026: the monthly interval offers a day-of-month picker', async () => {
+    const user = userEvent.setup()
+    let saved: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/backup/auto-settings', () =>
+        HttpResponse.json({
+          settings: { enabled: true, interval: 'monthly', keep_days: 7, hour: 2, day_of_week: 0, day_of_month: 1 },
+          timezone: '',
+        }),
+      ),
+      http.put('/api/backup/auto-settings', async ({ request }) => {
+        saved = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ settings: saved })
+      }),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('Day of month')
+
+    // No timezone from the server → the hint carries no timezone suffix
+    expect(screen.getByText('Server local time (24h format)')).toBeInTheDocument()
+    expect(screen.queryByText('Sun')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '1' }))
+    await user.click(await screen.findByRole('button', { name: '15' }))
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(saved).toMatchObject({ day_of_month: 15 }))
+  })
+
+  // BKP-027: Day of week + retention
+  it('FE-ADMIN-BKP-027: day-of-week and retention picks are stored together', async () => {
+    const user = userEvent.setup()
+    let saved: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/backup/auto-settings', () =>
+        HttpResponse.json({
+          settings: { enabled: true, interval: 'weekly', keep_days: 7, hour: 2, day_of_week: 0, day_of_month: 1 },
+          timezone: 'UTC',
+        }),
+      ),
+      http.put('/api/backup/auto-settings', async ({ request }) => {
+        saved = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ settings: saved })
+      }),
+    )
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('Day of week')
+
+    await user.click(screen.getByText('Fri'))
+    await user.click(screen.getByText('Keep forever'))
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(saved).toMatchObject({ day_of_week: 5, keep_days: 0 }))
+  })
+
+  // BKP-028: Download failure
+  it('FE-ADMIN-BKP-028: a failing download toasts the download error', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('/api/backup/download/:filename', () => HttpResponse.error()))
+    render(<><ToastContainer /><BackupPanel /></>)
+    await screen.findByText('backup-2025-01-15.zip')
+
+    await user.click(screen.getByText('Download'))
+
+    expect(await screen.findByText('Download failed')).toBeInTheDocument()
+  })
+
+  // BKP-029: Confirm button hover styling
+  it('FE-ADMIN-BKP-029: the destructive confirm button darkens on hover', async () => {
+    const user = userEvent.setup()
+    render(<BackupPanel />)
+    await screen.findByText('backup-2025-01-15.zip')
+
+    await user.click(screen.getAllByText('Restore')[0])
+    const confirmBtn = await screen.findByText('Yes, restore')
+
+    fireEvent.mouseEnter(confirmBtn)
+    expect(confirmBtn.style.background).toBe('rgb(185, 28, 28)')
+    fireEvent.mouseLeave(confirmBtn)
+    expect(confirmBtn.style.background).toBe('rgb(220, 38, 38)')
+  })
 })

@@ -207,5 +207,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Tôi cũng có thể mang',
   'packing.alsoBringingStop': 'Tôi không mang',
   'packing.cloneToMine': 'Sao chép vào danh sách của tôi',
+  'packing.bagLimit': 'Giới hạn cân nặng',
+  'packing.setBagLimit': 'Đặt giới hạn',
 };
 export default packing;

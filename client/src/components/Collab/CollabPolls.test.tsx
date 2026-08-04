@@ -10,7 +10,7 @@ vi.mock('../../api/websocket', () => ({
   removeListener: vi.fn(),
 }));
 
-import { render, screen, waitFor } from '../../../tests/helpers/render';
+import { render, screen, waitFor, fireEvent, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -271,5 +271,434 @@ describe('CollabPolls', () => {
 
     optionInputs = screen.getAllByPlaceholderText(/option/i);
     expect(optionInputs).toHaveLength(3);
+  });
+});
+
+// FE-W5CPL-001 to FE-W5CPL-028
+// Covers the deadline maths, the voter chips, the error paths of every mutation
+// and the WebSocket handler branches that the smoke tests above skip.
+
+type AddToast = NonNullable<typeof window.__addToast>;
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** A deadline `ms` in the future, with a small buffer so the clock can tick. */
+const inFuture = (ms: number) => new Date(Date.now() + ms + 10_000).toISOString();
+
+function servePolls(polls: unknown) {
+  server.use(http.get('/api/trips/1/collab/polls', () => HttpResponse.json(polls)));
+}
+
+/** Grabs the WS handler CollabPolls registered on mount. */
+function wsHandler(): (msg: Record<string, unknown>) => void {
+  return (addListener as ReturnType<typeof vi.fn>).mock.calls[0][0];
+}
+
+describe('CollabPolls details', () => {
+  let addToast: ReturnType<typeof vi.fn<AddToast>>;
+
+  beforeEach(() => {
+    addToast = vi.fn<AddToast>(() => 0);
+    window.__addToast = addToast;
+  });
+
+  afterEach(() => {
+    delete window.__addToast;
+  });
+
+  it('FE-W5CPL-001: a deadline more than a day away is shown in days and hours', async () => {
+    servePolls({ polls: [buildPoll({ deadline: inFuture(2 * DAY + 3 * HOUR) })] });
+    render(<CollabPolls {...defaultProps} />);
+    expect(await screen.findByText('2d 3h')).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-002: a deadline within the day is shown in hours and minutes', async () => {
+    servePolls({ polls: [buildPoll({ deadline: inFuture(5 * HOUR + 30 * MINUTE) })] });
+    render(<CollabPolls {...defaultProps} />);
+    expect(await screen.findByText('5h 30m')).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-003: a deadline within the hour is shown in minutes', async () => {
+    servePolls({ polls: [buildPoll({ deadline: inFuture(45 * MINUTE) })] });
+    render(<CollabPolls {...defaultProps} />);
+    expect(await screen.findByText('45m')).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-004: a passed deadline closes the poll and drops the countdown', async () => {
+    servePolls({ polls: [buildPoll({ deadline: '2020-01-01T00:00:00.000Z' })] });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Best destination?');
+    expect(screen.getByText(/closed/i)).toBeInTheDocument();
+    expect(screen.getByText('Paris').closest('button')).toBeDisabled();
+  });
+
+  it('FE-W5CPL-005: a poll served as a bare array is rendered', async () => {
+    servePolls([buildPoll({ question: 'Array shaped?' })]);
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Array shaped?');
+  });
+
+  it('FE-W5CPL-006: options without a voters array count as zero votes', async () => {
+    servePolls({ polls: [{ ...buildPoll(), options: [{ id: 1, text: 'Solo' }] }] });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Solo');
+    expect(screen.getByText('0 votes')).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-007: a poll without an options array still renders its question', async () => {
+    servePolls({ polls: [{ ...buildPoll(), options: undefined }] });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Best destination?');
+    expect(screen.queryByText('Paris')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-008: plain string options are rendered as their own label', async () => {
+    servePolls({ polls: [{ ...buildPoll(), options: ['Yes', 'No'] }] });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Yes');
+    expect(screen.getByText('No')).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-009: a multiple-choice poll shows the multi badge and a single vote label', async () => {
+    servePolls({
+      polls: [buildPoll({
+        multiple_choice: true,
+        options: [
+          { id: 1, text: 'Paris', voters: [{ user_id: 9, username: 'bob', avatar_url: null }] },
+          { id: 2, text: 'Rome', voters: [] },
+        ],
+      })],
+    });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Best destination?');
+    expect(screen.getByText('Multiple choice')).toBeInTheDocument();
+    expect(screen.getByText('1 vote')).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-010: once the user voted the results, avatars and tooltip appear', async () => {
+    servePolls({
+      polls: [buildPoll({
+        options: [
+          {
+            id: 1, text: 'Paris',
+            voters: [
+              { user_id: 1, username: 'testuser', avatar_url: null },
+              { user_id: 2, username: 'alice', avatar_url: '/uploads/avatars/alice.png' },
+            ],
+          },
+          { id: 2, text: 'Rome', voters: [] },
+        ],
+      })],
+    });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Paris');
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/uploads/avatars/alice.png"]')).toBeInTheDocument();
+
+    const chip = screen.getByText('T');
+    fireEvent.mouseEnter(chip);
+    expect(await screen.findByText('testuser')).toBeInTheDocument();
+    fireEvent.mouseLeave(chip);
+    await waitFor(() => expect(screen.queryByText('testuser')).not.toBeInTheDocument());
+  });
+
+  it('FE-W5CPL-011: a voter without a username falls back to a question mark', async () => {
+    servePolls({
+      polls: [buildPoll({
+        is_closed: true,
+        options: [
+          { id: 1, text: 'Paris', voters: [{ user_id: null, username: '', avatar_url: null }] },
+          { id: 2, text: 'Rome', voters: [] },
+        ],
+      })],
+    });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Paris');
+    expect(screen.getByText('?')).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-012: hovering an open option scales it, a closed one stays put', async () => {
+    servePolls({ polls: [buildPoll({ id: 1 }), buildPoll({ id: 2, question: 'Done?', is_closed: true })] });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Done?');
+    const [openOption, closedOption] = screen.getAllByText('Paris').map(el => el.closest('button')!);
+    fireEvent.mouseEnter(openOption);
+    expect(openOption.style.transform).toBe('scale(1.01)');
+    fireEvent.mouseLeave(openOption);
+    expect(openOption.style.transform).toBe('scale(1)');
+
+    fireEvent.mouseEnter(closedOption);
+    expect(closedOption.style.transform).toBe('');
+  });
+
+  it('FE-W5CPL-013: the closed section heading only appears next to active polls', async () => {
+    servePolls({
+      polls: [
+        buildPoll({ id: 1, question: 'Still open?' }),
+        buildPoll({ id: 2, question: 'Already done?', is_closed: true }),
+      ],
+    });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Still open?');
+    expect(screen.getByText('Already done?')).toBeInTheDocument();
+    // One "Closed" badge on the poll itself plus the section heading above it
+    expect(screen.getAllByText('Closed')).toHaveLength(2);
+  });
+
+  it('FE-W5CPL-014: closing a poll marks it closed and leaves the other one open', async () => {
+    let closeCalled = false;
+    servePolls({ polls: [buildPoll({ id: 5 }), buildPoll({ id: 6, question: 'Stays open?' })] });
+    server.use(
+      http.put('/api/trips/1/collab/polls/5/close', () => {
+        closeCalled = true;
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Stays open?');
+
+    // Both action buttons highlight on hover
+    const closeBtn = screen.getAllByTitle('Close')[0];
+    fireEvent.mouseEnter(closeBtn);
+    expect(closeBtn.style.color).toBe('var(--text-primary)');
+    fireEvent.mouseLeave(closeBtn);
+    expect(closeBtn.style.color).toBe('var(--text-faint)');
+    const deleteBtn = screen.getAllByTitle('Delete')[0];
+    fireEvent.mouseEnter(deleteBtn);
+    expect(deleteBtn.style.color).toBe('rgb(239, 68, 68)');
+    fireEvent.mouseLeave(deleteBtn);
+    expect(deleteBtn.style.color).toBe('var(--text-faint)');
+
+    await user.click(closeBtn);
+    await waitFor(() => expect(closeCalled).toBe(true));
+    await waitFor(() => expect(screen.getAllByText('Closed')).toHaveLength(2));
+    expect(screen.getAllByTitle('Close')).toHaveLength(1);
+  });
+
+  it('FE-W5CPL-027: a failing poll request falls back to the empty state', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+  });
+
+  it('FE-W5CPL-028: a payload without a polls key yields an empty list', async () => {
+    servePolls({});
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+  });
+
+  it('FE-W5CPL-015: a failing close shows an error and leaves the poll open', async () => {
+    servePolls({ polls: [buildPoll({ id: 5 })] });
+    server.use(
+      http.put('/api/trips/1/collab/polls/5/close', () => new HttpResponse(null, { status: 500 })),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Best destination?');
+    await user.click(screen.getByTitle(/close/i));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.getByTitle(/close/i)).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-016: a failing delete shows an error and keeps the poll', async () => {
+    servePolls({ polls: [buildPoll({ id: 6 })] });
+    server.use(
+      http.delete('/api/trips/1/collab/polls/6', () => new HttpResponse(null, { status: 500 })),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Best destination?');
+    await user.click(screen.getByTitle(/delete/i));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.getByText('Best destination?')).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-017: a failing vote shows an error and leaves the tally alone', async () => {
+    servePolls({ polls: [buildPoll({ id: 7 })] });
+    server.use(
+      http.post('/api/trips/1/collab/polls/7/vote', () => new HttpResponse(null, { status: 500 })),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Paris');
+    await user.click(screen.getByText('Paris'));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.queryByText('100%')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-018: an unwrapped vote response only replaces the poll that was voted on', async () => {
+    servePolls({ polls: [buildPoll({ id: 7 }), buildPoll({ id: 8, question: 'Untouched?' })] });
+    server.use(
+      http.post('/api/trips/1/collab/polls/7/vote', () =>
+        HttpResponse.json(buildPoll({
+          id: 7,
+          question: 'Voted!',
+          options: [
+            { id: 1, text: 'Paris', voters: [{ user_id: 1, username: 'testuser', avatar_url: null }] },
+            { id: 2, text: 'Rome', voters: [] },
+          ],
+        })),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Untouched?');
+    await user.click(screen.getAllByText('Paris')[0]);
+    await screen.findByText('Voted!');
+    expect(screen.getByText('Untouched?')).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-019: a failing create shows an error and keeps the modal open', async () => {
+    server.use(
+      http.post('/api/trips/1/collab/polls', () => new HttpResponse(null, { status: 500 })),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+    await user.click(screen.getByRole('button', { name: /new/i }));
+    await user.type(screen.getByPlaceholderText(/what should we do/i), 'Fails?');
+    const optionInputs = screen.getAllByPlaceholderText(/option/i);
+    await user.type(optionInputs[0], 'A');
+    await user.type(optionInputs[1], 'B');
+    await user.click(screen.getByRole('button', { name: /create|collab\.polls\.create/i }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.getByPlaceholderText(/what should we do/i)).toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-020: creating a poll that is already in the list does not duplicate it', async () => {
+    servePolls({ polls: [buildPoll({ id: 12, question: 'Same poll' })] });
+    server.use(
+      http.post('/api/trips/1/collab/polls', () =>
+        HttpResponse.json(buildPoll({ id: 12, question: 'Same poll' })),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Same poll');
+    await user.click(screen.getByRole('button', { name: /new/i }));
+    await user.type(screen.getByPlaceholderText(/what should we do/i), 'Same poll');
+    const optionInputs = screen.getAllByPlaceholderText(/option/i);
+    await user.type(optionInputs[0], 'A');
+    await user.type(optionInputs[1], 'B');
+    await user.click(screen.getByRole('button', { name: /create|collab\.polls\.create/i }));
+    await waitFor(() =>
+      expect(screen.queryByPlaceholderText(/what should we do/i)).not.toBeInTheDocument(),
+    );
+    expect(screen.getAllByText('Same poll')).toHaveLength(1);
+  });
+
+  it('FE-W5CPL-021: submitting the create form without enough options is a no-op', async () => {
+    let postCalled = false;
+    server.use(
+      http.post('/api/trips/1/collab/polls', () => {
+        postCalled = true;
+        return HttpResponse.json({ poll: buildPoll() });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+    await user.click(screen.getByRole('button', { name: /new/i }));
+    await user.type(screen.getByPlaceholderText(/what should we do/i), 'Not enough');
+    fireEvent.submit(screen.getByPlaceholderText(/what should we do/i).closest('form')!);
+    await waitFor(() => expect(screen.getByPlaceholderText(/what should we do/i)).toBeInTheDocument());
+    expect(postCalled).toBe(false);
+  });
+
+  it('FE-W5CPL-022: an extra option can be removed again', async () => {
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+    await user.click(screen.getByRole('button', { name: /new/i }));
+    await user.click(screen.getByText(/add option/i));
+    expect(screen.getAllByPlaceholderText(/option/i)).toHaveLength(3);
+
+    const thirdRow = screen.getAllByPlaceholderText(/option/i)[2].parentElement!;
+    await user.click(thirdRow.querySelector('button')!);
+    expect(screen.getAllByPlaceholderText(/option/i)).toHaveLength(2);
+  });
+
+  it('FE-W5CPL-023: the multi-choice toggle flips and is sent along on create', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/collab/polls', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ poll: buildPoll({ id: 30, question: 'Multi?' }) });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+    await user.click(screen.getByRole('button', { name: /new/i }));
+
+    const toggle = screen.getByText(/multiple|multi/i).previousElementSibling as HTMLElement;
+    expect(toggle.style.background).toBe('var(--border-primary)');
+    await user.click(toggle);
+    expect(toggle.style.background).toBe('rgb(0, 122, 255)');
+
+    await user.type(screen.getByPlaceholderText(/what should we do/i), 'Multi?');
+    const optionInputs = screen.getAllByPlaceholderText(/option/i);
+    await user.type(optionInputs[0], 'A');
+    await user.type(optionInputs[1], 'B');
+    await user.click(screen.getByRole('button', { name: /create|collab\.polls\.create/i }));
+    await screen.findByText('Multi?');
+    expect(body).toMatchObject({ multiple_choice: true, options: ['A', 'B'] });
+  });
+
+  it('FE-W5CPL-024: WebSocket events without a type or a known id are ignored', async () => {
+    servePolls({ polls: [buildPoll({ id: 40 })] });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Best destination?');
+    const handler = wsHandler();
+    await act(async () => {
+      handler({});
+      handler({ type: 'collab:poll:deleted' });
+      handler({ type: 'collab:poll:created', poll: { id: 40, question: 'Best destination?' } });
+    });
+    expect(screen.getAllByText('Best destination?')).toHaveLength(1);
+  });
+
+  it('FE-W5CPL-025: WebSocket vote and close events update only the matching poll', async () => {
+    servePolls({ polls: [buildPoll({ id: 41 }), buildPoll({ id: 42, question: 'Other poll' })] });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText('Other poll');
+    const handler = wsHandler();
+
+    await act(async () => {
+      handler({ type: 'collab:poll:voted', poll: buildPoll({ id: 41, question: 'Voted live' }) });
+    });
+    expect(await screen.findByText('Voted live')).toBeInTheDocument();
+    expect(screen.getByText('Other poll')).toBeInTheDocument();
+
+    await act(async () => {
+      handler({ type: 'collab:poll:closed', poll: { id: 41 } });
+    });
+    await waitFor(() => expect(screen.getAllByText('Closed')).toHaveLength(2));
+
+    await act(async () => {
+      handler({ type: 'collab:poll:deleted', poll: { id: 42 } });
+    });
+    await waitFor(() => expect(screen.queryByText('Other poll')).not.toBeInTheDocument());
+  });
+
+  it('FE-W5CPL-026: a poll with a live deadline starts the countdown ticker', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      servePolls({ polls: [buildPoll({ deadline: inFuture(90 * MINUTE) })] });
+      const { unmount } = render(<CollabPolls {...defaultProps} />);
+      await screen.findByText('1h 30m');
+      await act(async () => { await vi.advanceTimersByTimeAsync(31_000); });
+      expect(screen.getByText('1h 29m')).toBeInTheDocument();
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -54,5 +54,9 @@ const atlas: TranslationStrings = {
   'atlas.tripPlural': 'Chuyến đi',
   'atlas.placeVisited': 'Nơi đã ghé thăm',
   'atlas.placesVisited': 'Địa điểm đã ghé thăm',
+  'atlas.planned': 'Đã lên kế hoạch',
+  'atlas.showPlanned': 'Hiện các quốc gia đã lên kế hoạch',
+  'atlas.plannedFor': 'Dự kiến',
+  'atlas.antarctica': 'Nam Cực',
 };
 export default atlas;

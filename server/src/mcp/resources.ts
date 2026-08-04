@@ -1,13 +1,8 @@
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
-import { canAccessTrip } from '../db/database';
-import { listTrips, getTrip, getTripOwner, listMembers } from '../services/tripService';
-import { listPlaces } from '../services/placeService';
-import { listBucketList, listVisitedCountries, getStats as getAtlasStats, listManuallyVisitedRegions } from '../services/atlasService';
-import { getNotifications } from '../services/inAppNotifications';
 import { isAddonEnabled } from '../nest/addons/addons.bridge';
 import { ADDON_IDS } from '../addons';
 import { canAccessJourney, getJourneyFull, listEntries, listJourneys } from '../services/journeyService';
-import { canRead, canReadTrips } from './scopes';
+import { canRead } from './scopes';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -45,46 +40,15 @@ function jsonContent(uri: string, data: unknown) {
 }
 
 export function registerResources(server: McpServer, userId: number, scopes: string[] | null): void {
-  // List all accessible trips
-  if (canReadTrips(scopes)) server.registerResource(
-    'trips',
-    'trek://trips',
-    { description: 'All trips the user owns or is a member of', mimeType: 'application/json' },
-    async (uri) => {
-      const trips = listTrips(userId, 0);
-      return jsonContent(uri.href, trips);
-    }
-  );
-
-  // Single trip detail
-  if (canReadTrips(scopes)) server.registerResource(
-    'trip',
-    new ResourceTemplate('trek://trips/{tripId}', { list: undefined }),
-    { description: 'A single trip with metadata and member count', mimeType: 'application/json' },
-    async (uri, { tripId }) => {
-      const id = parseId(tripId);
-      if (id === null || !canAccessTrip(id, userId)) return accessDenied(uri.href);
-      const trip = getTrip(id, userId);
-      return jsonContent(uri.href, trip);
-    }
-  );
+  // The trips and trip (trek://trips, trek://trips/{tripId}) resources moved
+  // to the DI-discovered src/nest/trips/trips.mcp.ts (@Resource /
+  // @ResourceTemplate, attached via the nest-mcp registry in registerTools).
 
   // The trip-days resource moved to the DI-discovered
   // src/nest/days/days.mcp.ts (@ResourceTemplate).
 
-  // Places in a trip
-  if (canRead(scopes, 'places')) server.registerResource(
-    'trip-places',
-    new ResourceTemplate('trek://trips/{tripId}/places', { list: undefined }),
-    { description: 'All places/POIs in a trip, optionally filtered by assignment status (e.g. ?assignment=unassigned)', mimeType: 'application/json' },
-    async (uri, { tripId }) => {
-      const id = parseId(tripId);
-      if (id === null || !canAccessTrip(id, userId)) return accessDenied(uri.href);
-      const assignment = uri.searchParams.get('assignment') as 'all' | 'unassigned' | 'assigned' | null;
-      const places = listPlaces(String(id), { assignment: assignment ?? undefined });
-      return jsonContent(uri.href, places);
-    }
-  );
+  // The trip-places resource moved to the DI-discovered
+  // src/nest/places/places.mcp.ts (@ResourceTemplate).
 
   // The trip-budget resource moved to the DI-discovered
   // src/nest/budget/budget.mcp.ts (@ResourceTemplate).
@@ -101,20 +65,8 @@ export function registerResources(server: McpServer, userId: number, scopes: str
   // The trip-accommodations resource moved to the DI-discovered
   // src/nest/days/days.mcp.ts (@ResourceTemplate).
 
-  // Trip members (owner + collaborators)
-  if (canReadTrips(scopes)) server.registerResource(
-    'trip-members',
-    new ResourceTemplate('trek://trips/{tripId}/members', { list: undefined }),
-    { description: 'Owner and collaborators of a trip', mimeType: 'application/json' },
-    async (uri, { tripId }) => {
-      const id = parseId(tripId);
-      if (id === null || !canAccessTrip(id, userId)) return accessDenied(uri.href);
-      const ownerRow = getTripOwner(id);
-      if (!ownerRow) return accessDenied(uri.href);
-      const { owner, members } = listMembers(id, ownerRow.user_id);
-      return jsonContent(uri.href, { owner, members });
-    }
-  );
+  // The trip-members resource moved to the DI-discovered
+  // src/nest/trips/trips.mcp.ts (@ResourceTemplate).
 
   // The trek://trips/{tripId}/collab-notes, …/collab/polls and …/collab/messages
   // resources moved to the DI-discovered src/nest/collab/collab.mcp.ts
@@ -128,27 +80,9 @@ export function registerResources(server: McpServer, userId: number, scopes: str
   // src/nest/categories/categories.mcp.ts (@Resource, attached via the
   // nest-mcp registry in registerTools).
 
-  // User's bucket list
-  if (isAddonEnabled(ADDON_IDS.ATLAS) && canRead(scopes, 'atlas')) server.registerResource(
-    'bucket-list',
-    'trek://bucket-list',
-    { description: 'Your personal travel bucket list', mimeType: 'application/json' },
-    async (uri) => {
-      const items = listBucketList(userId);
-      return jsonContent(uri.href, items);
-    }
-  );
-
-  // User's visited countries
-  if (isAddonEnabled(ADDON_IDS.ATLAS) && canRead(scopes, 'atlas')) server.registerResource(
-    'visited-countries',
-    'trek://visited-countries',
-    { description: 'Countries you have marked as visited in Atlas', mimeType: 'application/json' },
-    async (uri) => {
-      const countries = listVisitedCountries(userId);
-      return jsonContent(uri.href, countries);
-    }
-  );
+  // The bucket-list and visited-countries resources moved to the DI-discovered
+  // src/nest/atlas/atlas.mcp.ts (@Resource, attached via the nest-mcp registry
+  // in registerTools).
 
   // The trip-budget-per-person and trip-budget-settlement resources moved to
   // the DI-discovered src/nest/budget/budget.mcp.ts (@ResourceTemplate).
@@ -156,39 +90,13 @@ export function registerResources(server: McpServer, userId: number, scopes: str
   // The trip-packing-bags resource moved to the DI-discovered
   // src/nest/packing/packing.mcp.ts (@ResourceTemplate).
 
-  // In-app notifications
-  if (canRead(scopes, 'notifications')) server.registerResource(
-    'notifications-in-app',
-    'trek://notifications/in-app',
-    { description: "The current user's in-app notifications (most recent 50, unread first)", mimeType: 'application/json' },
-    async (uri) => {
-      const result = getNotifications(userId, { limit: 50 });
-      return jsonContent(uri.href, result);
-    }
-  );
+  // The notifications-in-app resource moved to the DI-discovered
+  // src/nest/notifications/notifications.mcp.ts (@Resource, attached via the
+  // nest-mcp registry in registerTools).
 
-  // Atlas stats and regions (addon-gated)
-  if (isAddonEnabled(ADDON_IDS.ATLAS) && canRead(scopes, 'atlas')) {
-    server.registerResource(
-      'atlas-stats',
-      'trek://atlas/stats',
-      { description: "User's atlas statistics — visited country counts and breakdown", mimeType: 'application/json' },
-      async (uri) => {
-        const stats = await getAtlasStats(userId);
-        return jsonContent(uri.href, stats);
-      }
-    );
-
-    server.registerResource(
-      'atlas-regions',
-      'trek://atlas/regions',
-      { description: 'List of manually visited regions for the current user', mimeType: 'application/json' },
-      async (uri) => {
-        const regions = listManuallyVisitedRegions(userId);
-        return jsonContent(uri.href, regions);
-      }
-    );
-  }
+  // The atlas-stats and atlas-regions resources moved to the DI-discovered
+  // src/nest/atlas/atlas.mcp.ts (@Resource, attached via the nest-mcp registry
+  // in registerTools).
 
   // The vacay resources moved to the DI-discovered src/nest/vacay/vacay.mcp.ts
   // (@McpController, attached via the nest-mcp registry in tools.ts).

@@ -1,9 +1,10 @@
 /**
  * Unit tests for the DI-native ShareService — SHARE-SVC-001 through
- * SHARE-SVC-028 (the SHARE-001..026 range belongs to the HTTP parity suite in
- * tests/integration/share.test.ts; these pin the service SQL directly, plus
- * the share.bridge delegation). Uses a real in-memory SQLite DB so SQL logic
- * is exercised faithfully.
+ * SHARE-SVC-025 (the SHARE-001..026 range belongs to the HTTP parity suite in
+ * tests/integration/share.test.ts; these pin the service SQL directly; the
+ * 026–028 bridge-delegation cases died with share.bridge when the legacy
+ * share-link tools moved to share.mcp.ts). Uses a real in-memory SQLite DB so
+ * SQL logic is exercised faithfully.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -55,7 +56,6 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { ShareService } from '../../../src/nest/share/share.service';
 import { SettingsService } from '../../../src/nest/settings/settings.service';
-import { createOrUpdateShareLink, getShareLink, deleteShareLink } from '../../../src/nest/share/share.bridge';
 import type { User } from '../../../src/types';
 
 const svc = new ShareService(new DatabaseService(testDb), new SettingsService(new DatabaseService(testDb)), permissionsStub);
@@ -412,30 +412,6 @@ describe('getSharedPlacePhotoPath', () => {
   });
 });
 
-// ── share.bridge delegation ───────────────────────────────────────────────────
-
-describe('share.bridge delegation', () => {
-  it('SHARE-SVC-026: createOrUpdateShareLink delegates to ShareService.createOrUpdate', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const result = createOrUpdateShareLink(String(trip.id), user.id, { share_budget: true });
-    expect(result.created).toBe(true);
-    expect(shareRow(trip.id).share_budget).toBe(1);
-  });
-
-  it('SHARE-SVC-027: getShareLink delegates to ShareService.get', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    expect(getShareLink(String(trip.id))).toBeNull();
-    const { token } = svc.createOrUpdate(String(trip.id), user.id, {});
-    expect(getShareLink(String(trip.id))?.token).toBe(token);
-  });
-
-  it('SHARE-SVC-028: deleteShareLink delegates to ShareService.remove', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    svc.createOrUpdate(String(trip.id), user.id, {});
-    deleteShareLink(String(trip.id));
-    expect(shareRow(trip.id)).toBeUndefined();
-  });
-});
+// SHARE-SVC-026..028 (share.bridge delegation) were deleted with the bridge —
+// its last consumer, the legacy share-link tools in src/mcp/tools/trips.ts,
+// moved to the DI-discovered share.mcp.ts.

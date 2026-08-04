@@ -80,6 +80,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Kopiera till resa',
   'collections.copyN': 'Kopiera {count} till resa',
   'collections.copyToTripSearch': 'Sök resor',
+  'collections.searchLists': 'Sök listor',
   'collections.copyToTripConfirm': 'Kopiera',
   'collections.noTrips': 'Inga resor ännu',
   'collections.alreadyInTrip': 'Redan i den här resan',

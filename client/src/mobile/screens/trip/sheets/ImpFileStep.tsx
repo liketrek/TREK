@@ -46,7 +46,6 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
   }
 
   const selectFiles = (incoming: File[]) => {
-    if (incoming.length === 0) return
     const valid: File[] = []
     let firstError: string | null = null
     for (const f of incoming) {
@@ -65,28 +64,27 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
     setError('')
     setSummary(null)
 
-    let totalCreated = 0
+    // Counted per format so a mixed selection gets each half's own label.
+    let gpxCreated = 0
+    let kmlCreated = 0
     let totalSkipped = 0
-    const createdIds: number[] = []
+    const gpxIds: number[] = []
+    const kmlIds: number[] = []
     const errors: string[] = []
     let mergedSummary: ImportSummary | null = null
-    let importedGpx = false
-    let importedKml = false
 
     for (const f of files) {
       const ext = f.name.toLowerCase().split('.').pop()
       try {
         if (ext === 'gpx') {
-          importedGpx = true
           const result = await placesApi.importGpx(tripId, f, gpxOpts)
-          totalCreated += result.count ?? 0
+          gpxCreated += result.count ?? 0
           totalSkipped += result.skipped ?? 0
-          if (result.places?.length > 0) createdIds.push(...result.places.map((p: { id: number }) => p.id))
+          if (result.places?.length > 0) gpxIds.push(...result.places.map((p: { id: number }) => p.id))
         } else {
-          importedKml = true
           const result = await placesApi.importMapFile(tripId, f, kmlOpts)
-          totalCreated += result.count ?? 0
-          if (result.places?.length > 0) createdIds.push(...result.places.map((p: { id: number }) => p.id))
+          kmlCreated += result.count ?? 0
+          if (result.places?.length > 0) kmlIds.push(...result.places.map((p: { id: number }) => p.id))
           const s = result.summary as ImportSummary | undefined
           if (s) {
             mergedSummary = mergedSummary
@@ -98,8 +96,9 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
                   errors: [...mergedSummary.errors, ...(s.errors ?? [])],
                 }
               : s
-            totalSkipped += s.skippedCount ?? 0
           }
+          // A response without a summary carries the count on the top level.
+          totalSkipped += s?.skippedCount ?? result.skipped ?? 0
         }
       } catch (err: unknown) {
         const message =
@@ -110,8 +109,12 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
 
     await tripActions.loadTrip(tripId)
 
+    const createdIds = [...gpxIds, ...kmlIds]
     if (createdIds.length > 0) {
-      pushUndo(importedGpx && !importedKml ? t('undo.importGpx') : t('undo.importKeyholeMarkup'), async () => {
+      const undoLabel = gpxIds.length > 0 && kmlIds.length > 0
+        ? t('undo.importFiles')
+        : gpxIds.length > 0 ? t('undo.importGpx') : t('undo.importKeyholeMarkup')
+      pushUndo(undoLabel, async () => {
         try {
           await placesApi.bulkDelete(tripId, createdIds)
         } catch {
@@ -121,10 +124,9 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
       })
     }
 
-    if (totalCreated > 0) {
-      const key = importedKml && !importedGpx ? 'places.kmlKmzImported' : 'places.gpxImported'
-      toast.success(t(key, { count: totalCreated }))
-    } else if (totalSkipped > 0 && errors.length === 0) {
+    if (gpxCreated > 0) toast.success(t('places.gpxImported', { count: gpxCreated }))
+    if (kmlCreated > 0) toast.success(t('places.kmlKmzImported', { count: kmlCreated }))
+    if (gpxCreated === 0 && kmlCreated === 0 && totalSkipped > 0 && errors.length === 0) {
       toast.warning(t('places.importAllSkipped'))
     }
 

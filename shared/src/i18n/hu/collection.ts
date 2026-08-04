@@ -82,6 +82,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Másolás utazásba',
   'collections.copyN': '{count} másolása utazásba',
   'collections.copyToTripSearch': 'Utazások keresése',
+  'collections.searchLists': 'Listák keresése',
   'collections.copyToTripConfirm': 'Másolás',
   'collections.noTrips': 'Még nincsenek utazások',
   'collections.alreadyInTrip': 'Már ebben az utazásban van',

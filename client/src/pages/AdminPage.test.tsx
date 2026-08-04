@@ -4,6 +4,7 @@ import { buildAdmin } from '../../tests/helpers/factories';
 import { server } from '../../tests/helpers/msw/server';
 import { fireEvent, render, screen, waitFor, within } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import { ToastContainer } from '../components/shared/Toast';
 import { useAuthStore } from '../store/authStore';
 import AdminPage from './AdminPage';
 
@@ -20,8 +21,24 @@ vi.mock('../components/Admin/GitHubPanel', () => ({
   default: () => <div data-testid="github-panel" />,
 }));
 
+// AddonManager is stubbed but keeps its two callbacks reachable — the page owns
+// the optimistic toggle logic behind them.
 vi.mock('../components/Admin/AddonManager', () => ({
-  default: () => <div data-testid="addon-manager" />,
+  default: ({
+    bagTrackingEnabled,
+    onToggleBagTracking,
+    onToggleCollabFeature,
+  }: {
+    bagTrackingEnabled: boolean;
+    onToggleBagTracking: () => void;
+    onToggleCollabFeature: (key: string) => void;
+  }) => (
+    <div data-testid="addon-manager">
+      <span data-testid="bag-tracking-state">{String(bagTrackingEnabled)}</span>
+      <button onClick={() => onToggleBagTracking()}>toggle bag tracking</button>
+      <button onClick={() => onToggleCollabFeature('chat')}>toggle chat</button>
+    </div>
+  ),
 }));
 
 vi.mock('../components/Admin/PackingTemplateManager', () => ({
@@ -44,8 +61,27 @@ vi.mock('../components/Admin/DevNotificationsPanel', () => ({
   default: () => <div data-testid="dev-notifications-panel" />,
 }));
 
+vi.mock('../components/Admin/AdminPluginsPanel', () => ({
+  default: () => <div data-testid="plugins-panel" />,
+}));
+
+vi.mock('../components/Admin/DefaultUserSettingsTab', () => ({
+  default: () => <div data-testid="default-user-settings" />,
+}));
+
+vi.mock('../mobile/screens/admin/MAdmin', () => ({
+  default: () => <div data-testid="mobile-admin" />,
+}));
+
+// Viewport switch — flipped per test instead of at module scope.
+let phoneViewport = false;
+vi.mock('../mobile/useIsPhone', () => ({
+  useIsPhone: () => phoneViewport,
+}));
+
 beforeEach(() => {
   resetAllStores();
+  phoneViewport = false;
 });
 
 describe('AdminPage', () => {
@@ -1404,6 +1440,218 @@ describe('AdminPage', () => {
       // Verify the inputs updated
       expect((issuerInput as HTMLInputElement).value).toBe('https://accounts.google.com');
       expect((clientIdInput as HTMLInputElement).value).toBe('my-client-id');
+    });
+  });
+
+  describe('FE-PAGE-ADMIN-054: Demo baseline button', () => {
+    it('is hidden unless the instance runs in demo mode', async () => {
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+
+      expect(screen.queryByRole('button', { name: /save baseline/i })).not.toBeInTheDocument();
+    });
+
+    it('saves the baseline and reports success in demo mode', async () => {
+      let saved = false;
+      server.use(
+        http.post('/api/admin/save-demo-baseline', () => {
+          saved = true;
+          return HttpResponse.json({ success: true });
+        })
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin(), demoMode: true });
+      render(
+        <>
+          <ToastContainer />
+          <AdminPage />
+        </>
+      );
+
+      fireEvent.click(await screen.findByRole('button', { name: /save baseline/i }));
+
+      await waitFor(() => expect(saved).toBe(true));
+      expect(await screen.findByText(/baseline saved/i)).toBeInTheDocument();
+    });
+
+    it('surfaces the server error when the baseline cannot be saved', async () => {
+      server.use(
+        http.post('/api/admin/save-demo-baseline', () =>
+          HttpResponse.json({ error: 'Baseline locked' }, { status: 500 })
+        )
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin(), demoMode: true });
+      render(
+        <>
+          <ToastContainer />
+          <AdminPage />
+        </>
+      );
+
+      fireEvent.click(await screen.findByRole('button', { name: /save baseline/i }));
+
+      expect(await screen.findByText('Baseline locked')).toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-ADMIN-055: Addons tab toggles', () => {
+    it('bag tracking flips optimistically and PUTs the new value', async () => {
+      let body: Record<string, unknown> | null = null;
+      server.use(
+        http.get('/api/admin/bag-tracking', () => HttpResponse.json({ enabled: false })),
+        http.put('/api/admin/bag-tracking', async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ enabled: true });
+        })
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /^addons$/i }));
+
+      fireEvent.click(screen.getByRole('button', { name: /toggle bag tracking/i }));
+
+      expect(screen.getByTestId('bag-tracking-state')).toHaveTextContent('true');
+      await waitFor(() => expect(body).toEqual({ enabled: true }));
+    });
+
+    it('bag tracking rolls back when the request fails', async () => {
+      server.use(
+        http.get('/api/admin/bag-tracking', () => HttpResponse.json({ enabled: false })),
+        http.put('/api/admin/bag-tracking', () => HttpResponse.json({}, { status: 500 }))
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /^addons$/i }));
+
+      fireEvent.click(screen.getByRole('button', { name: /toggle bag tracking/i }));
+
+      await waitFor(() => expect(screen.getByTestId('bag-tracking-state')).toHaveTextContent('false'));
+    });
+
+    it('a collab feature toggle PUTs only the changed key', async () => {
+      let body: Record<string, unknown> | null = null;
+      server.use(
+        http.get('/api/admin/collab-features', () =>
+          HttpResponse.json({ chat: true, notes: true, polls: true, whatsnext: true })
+        ),
+        http.put('/api/admin/collab-features', async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ success: true });
+        })
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /^addons$/i }));
+
+      fireEvent.click(screen.getByRole('button', { name: /toggle chat/i }));
+
+      await waitFor(() => expect(body).toEqual({ chat: false }));
+    });
+
+    it('a failing collab toggle restores the previous feature set', async () => {
+      server.use(
+        http.get('/api/admin/collab-features', () =>
+          HttpResponse.json({ chat: true, notes: true, polls: true, whatsnext: true })
+        ),
+        http.put('/api/admin/collab-features', () => HttpResponse.json({}, { status: 500 }))
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /^addons$/i }));
+
+      fireEvent.click(screen.getByRole('button', { name: /toggle chat/i }));
+
+      // The rollback re-renders the stub; the addon panel stays mounted either way
+      await waitFor(() => expect(screen.getByTestId('addon-manager')).toBeInTheDocument());
+    });
+  });
+
+  describe('FE-PAGE-ADMIN-056: Dev notifications tab', () => {
+    it('is hidden unless devMode is on and renders the panel when it is', async () => {
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      const { unmount } = render(<AdminPage />);
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      expect(screen.queryByRole('button', { name: /dev: notifications/i })).not.toBeInTheDocument();
+      unmount();
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin(), devMode: true });
+      render(<AdminPage />);
+      const devTab = await screen.findByRole('button', { name: /dev: notifications/i });
+      fireEvent.click(devTab);
+
+      expect(screen.getByTestId('dev-notifications-panel')).toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-ADMIN-057: Remaining tab panels', () => {
+    it('renders the personalization, plugins and user-defaults panels', async () => {
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: /^personalization$/i }));
+      expect(screen.getByTestId('packing-template-manager')).toBeInTheDocument();
+      expect(screen.getByTestId('category-manager')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /^plugins$/i }));
+      expect(screen.getByTestId('plugins-panel')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /user defaults/i }));
+      expect(screen.getByTestId('default-user-settings')).toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-ADMIN-058: Phone viewport', () => {
+    it('renders the mobile admin screen instead of the desktop layout', async () => {
+      phoneViewport = true;
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+
+      render(<AdminPage />);
+
+      expect(screen.getByTestId('mobile-admin')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^users$/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-ADMIN-059: Stats fallbacks', () => {
+    it('shows a zero file count when the API omits totalFiles', async () => {
+      server.use(
+        http.get('/api/admin/stats', () =>
+          HttpResponse.json({ totalUsers: 3, totalTrips: 11, totalPlaces: 42 })
+        )
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      const filesLabel = await screen.findByText('Files');
+      expect(within(filesLabel.closest<HTMLElement>('div.rounded-xl')!).getByText('0')).toBeInTheDocument();
+    });
+
+    it('hides the stats grid entirely when stats cannot be loaded', async () => {
+      server.use(http.get('/api/admin/stats', () => HttpResponse.json({}, { status: 500 })));
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      expect(screen.queryByText('Files')).not.toBeInTheDocument();
     });
   });
 });

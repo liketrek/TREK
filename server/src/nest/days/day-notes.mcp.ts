@@ -4,7 +4,7 @@ import {
   demoDenied, ok,
 } from '@trek/nest-mcp';
 import { z } from 'zod';
-import { isDemoUser } from '../../services/authService';
+import { AuthService } from '../auth/auth.service';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { DayNotesService } from './day-notes.service';
 
@@ -25,7 +25,7 @@ function parseId(value: string | string[]): number | null {
  */
 @McpController()
 export class DayNotesMcp {
-  constructor(private readonly notes: DayNotesService) {}
+  constructor(private readonly notes: DayNotesService, private readonly auth: AuthService) {}
 
   @Tool({
     name: 'create_day_note',
@@ -44,7 +44,7 @@ export class DayNotesMcp {
     { tripId, dayId, text, time, icon }: { tripId: number; dayId: number; text: string; time?: string; icon?: string },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.notes.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.notes.dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
@@ -71,7 +71,7 @@ export class DayNotesMcp {
     { tripId, dayId, noteId, text, time, icon }: { tripId: number; dayId: number; noteId: number; text?: string; time?: string | null; icon?: string },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.notes.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const existing = this.notes.getNote(noteId, dayId, tripId);
@@ -93,7 +93,7 @@ export class DayNotesMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async deleteDayNote({ tripId, dayId, noteId }: { tripId: number; dayId: number; noteId: number }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.notes.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const note = this.notes.getNote(noteId, dayId, tripId);

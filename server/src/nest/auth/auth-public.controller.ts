@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, MfaVerifyLoginDto } from './auth.dto';
 import { RateLimitService } from './rate-limit.service';
 import { OptionalJwtGuard } from './optional-jwt.guard';
 import { getClientIp } from '../audit/client-ip';
@@ -61,7 +62,7 @@ export class AuthPublicController {
 
   @Post('register')
   @HttpCode(201)
-  register(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  register(@Body() body: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 10);
     const result = this.auth.registerUser(body);
     if (result.error) {
@@ -74,7 +75,7 @@ export class AuthPublicController {
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() body: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 10);
     const started = Date.now();
     const result = this.auth.loginUser(body);
@@ -101,7 +102,7 @@ export class AuthPublicController {
 
   @Post('forgot-password')
   @HttpCode(200)
-  async forgotPassword(@Body() body: { email?: unknown }, @Req() req: Request) {
+  async forgotPassword(@Body() body: ForgotPasswordDto, @Req() req: Request) {
     this.limit('forgot', req, 3);
     const started = Date.now();
     const rawEmail = typeof body?.email === 'string' ? body.email : '';
@@ -128,7 +129,7 @@ export class AuthPublicController {
 
   @Post('reset-password')
   @HttpCode(200)
-  resetPassword(@Body() body: unknown, @Req() req: Request) {
+  resetPassword(@Body() body: ResetPasswordDto, @Req() req: Request) {
     // Per-IP brute-force guard, parity with the legacy resetLimiter (5 / 15 min on
     // a dedicated bucket) — without it reset tokens could be guessed unthrottled.
     this.limit('reset', req, 5);
@@ -147,7 +148,7 @@ export class AuthPublicController {
 
   @Post('mfa/verify-login')
   @HttpCode(200)
-  verifyMfaLogin(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  verifyMfaLogin(@Body() body: MfaVerifyLoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('mfa', req, 5);
     const result = this.auth.verifyMfaLogin(body);
     if (result.error) {

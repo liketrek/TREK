@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { readEnv } from '../app-config';
+import { applyDurabilityPragmas } from './durability';
 import { createTables } from './schema';
 import { runMigrations } from './migrations';
 import { runSeeds } from './seeds';
@@ -39,9 +40,16 @@ function initDb(): void {
   }
 
   _db = new Database(dbPath);
-  _db.exec('PRAGMA journal_mode = WAL');
+  // Ahead of the journal switch now: changing journal_mode needs an exclusive
+  // lock, which a sibling process (reset-admin, the rotation script) may hold.
   _db.exec('PRAGMA busy_timeout = 5000');
+  const durability = applyDurabilityPragmas(_db);
   _db.exec('PRAGMA foreign_keys = ON');
+  // Reported so an operator can see whether their setting took — the test DB is
+  // :memory: and has no journal file, so there is nothing to report there.
+  if (dbPath !== ':memory:') {
+    console.log(`[DB] journal_mode=${durability.journalMode}, synchronous=${durability.synchronous}`);
+  }
 
   createTables(_db);
   runMigrations(_db);

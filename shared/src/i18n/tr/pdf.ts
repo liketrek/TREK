@@ -6,5 +6,6 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Maliyet',
   'pdf.preview': 'PDF Önizleme',
   'pdf.saveAsPdf': 'PDF olarak Kaydet',
+  'pdf.pageBreakPerDay': 'Her gün için sayfa sonu',
 };
 export default pdf;

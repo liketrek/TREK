@@ -9,6 +9,8 @@ import MAtlasStatsCard from './MAtlasStatsCard'
 import MAtlasSearch from './MAtlasSearch'
 import MAtlasCountryPopup from './MAtlasCountryPopup'
 import MAtlasBucketSheet from './MAtlasBucketSheet'
+import MToggle from '../../components/MToggle'
+import { countryStatus } from '../../../pages/atlas/atlasModel'
 
 const removeBtnCls = 'mt-4 w-full rounded-full bg-[rgba(214,39,59,.12)] py-[11px] text-center text-[0.8125rem] font-bold text-[color:var(--m-st-danger)]' // theme-lint-disable — fixed status-danger tint
 
@@ -29,6 +31,9 @@ export default function MAtlas() {
     regionTooltipRef,
     stats,
     countries,
+    visitedCountries,
+    showPlanned,
+    togglePlanned,
     bucketList,
     selectedCountry,
     countryDetail,
@@ -36,6 +41,7 @@ export default function MAtlas() {
     select_country_from_search,
     atlas_country_options,
   } = atlas
+  const plannedCount = stats.totalCountriesPlanned || 0
   const [searchOpen, setSearchOpen] = useState(false)
   const [bucketOpen, setBucketOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -61,7 +67,12 @@ export default function MAtlas() {
   const suggestions = useMemo(() => {
     const seen = new Set<string>()
     const list: { code: string; label: string }[] = []
-    const visited = [...countries].sort((a, b) => (b.lastVisit || '').localeCompare(a.lastVisit || ''))
+    // Visited first, planned after — this list answers "where have I been", so a country
+    // you only booked a flight to shouldn't outrank one you actually saw.
+    const visited = [...countries].sort((a, b) => {
+      const rank = (c: typeof a) => (countryStatus(c) === 'visited' ? 0 : 1)
+      return rank(a) - rank(b) || (b.lastVisit || '').localeCompare(a.lastVisit || '')
+    })
     for (const c of visited) {
       if (seen.has(c.code)) continue
       seen.add(c.code)
@@ -98,14 +109,21 @@ export default function MAtlas() {
 
       {/* Full-width bucket-list button. The bottom nav makes a back button
           redundant on this main-nav screen, so the header spans the width. */}
-      <div className="absolute left-4 right-4 top-[var(--m-safe-top,12px)] z-[5]">
+      <div className="absolute left-4 right-4 top-[var(--m-safe-top,12px)] z-[5] flex items-center gap-2">
         <button
           type="button"
           onClick={() => setBucketOpen(true)}
-          className="flex h-[38px] w-full items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-4 text-[0.78125rem] font-bold text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
+          className="flex h-[38px] flex-1 items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-4 text-[0.78125rem] font-bold text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
         >
           {t('atlas.bucketTab')}
         </button>
+        {/* Only worth the space once there is something planned to reveal. */}
+        {plannedCount > 0 && (
+          <div className="flex h-[38px] shrink-0 items-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-3 shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]">
+            <span className="text-[0.6875rem] font-bold text-m-ink">{t('atlas.planned')}</span>
+            <MToggle checked={showPlanned} onChange={() => togglePlanned()} ariaLabel={t('atlas.showPlanned')} />
+          </div>
+        )}
       </div>
 
       <MAtlasStatsCard stats={stats} />
@@ -115,7 +133,8 @@ export default function MAtlas() {
         onClose={() => setSearchOpen(false)}
         options={atlas_country_options}
         suggestions={suggestions}
-        isVisited={(code) => countries.some((c) => c.code === code)}
+        isVisited={(code) => visitedCountries.some((c) => c.code === code)}
+        isPlanned={(code) => countries.some((c) => c.code === code && countryStatus(c) !== 'visited')}
         isOnBucketList={(code) => bucketList.some((b) => b.country_code === code)}
         onSelect={(code) => {
           setSearchOpen(false)

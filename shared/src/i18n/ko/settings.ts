@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '지도 템플릿',
   'settings.mapTemplatePlaceholder.select': '템플릿 선택...',
   'settings.mapDefaultHint': '비워두면 OpenStreetMap (기본값) 사용',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '지도 타일 URL 템플릿',
   'settings.mapProvider': '지도 공급자',
   'settings.mapProviderHint': '여행 플래너 및 Journey 지도에 영향을 줍니다. Atlas는 항상 Leaflet을 사용합니다.',
@@ -259,6 +258,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': '프로필 사진이 업데이트되었습니다',
   'settings.avatarRemoved': '프로필 사진이 삭제되었습니다',
   'settings.avatarError': '업로드 실패',
+  'settings.avatarRemoveError': '삭제 실패',
   'settings.mfa.title': '2단계 인증 (2FA)',
   'settings.mfa.description':
     '이메일 및 비밀번호로 로그인할 때 두 번째 단계를 추가합니다. 인증 앱 (Google Authenticator, Authy 등)을 사용하세요.',

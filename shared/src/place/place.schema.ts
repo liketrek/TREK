@@ -142,7 +142,10 @@ export const placeBulkDeleteRequestSchema = z.object({
 export type PlaceBulkDeleteRequest = z.infer<typeof placeBulkDeleteRequestSchema>;
 
 export const placeBulkUpdateRequestSchema = z.object({
-  ids: z.array(z.number()).min(1),
+  // Deliberately unbounded: the endpoint answers an empty list with
+  // `{ updated: [], count: 0 }` rather than a 400, so a `.min(1)` here would
+  // change that contract once the body validates through the Zod pipe.
+  ids: z.array(z.number()),
   // null clears the category ("No category"); a number sets it. Optional so the
   // field can be omitted, but the endpoint requires it to be present to act.
   category_id: z.number().nullable().optional(),
@@ -156,6 +159,27 @@ export const placeImportListRequestSchema = z.object({
   enrich: z.boolean().optional(),
 });
 export type PlaceImportListRequest = z.infer<typeof placeImportListRequestSchema>;
+
+/**
+ * GPX import (multipart/form-data alongside the `file` part). Form fields arrive
+ * as strings — the client sends `String(boolean)` — so they stay `z.string()`
+ * and the route keeps its own `'true'`-comparison coercion (same shape as
+ * fileUploadRequestSchema). Every field optional: an omitted flag defaults to
+ * true server-side.
+ */
+export const placeImportGpxRequestSchema = z.object({
+  importWaypoints: z.string().optional(),
+  importRoutes: z.string().optional(),
+  importTracks: z.string().optional(),
+});
+export type PlaceImportGpxRequest = z.infer<typeof placeImportGpxRequestSchema>;
+
+/** KML/KMZ import (multipart/form-data); same string-field contract as GPX. */
+export const placeImportMapRequestSchema = z.object({
+  importPoints: z.string().optional(),
+  importPaths: z.string().optional(),
+});
+export type PlaceImportMapRequest = z.infer<typeof placeImportMapRequestSchema>;
 
 /** Query filters for the place list. */
 export const placeListQuerySchema = z.object({

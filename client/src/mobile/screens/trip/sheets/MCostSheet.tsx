@@ -244,9 +244,12 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const save = async () => {
     if (!valid || saving) return
     setSaving(true)
+    // A picked payer always goes out, even when nobody shares the expense: the
+    // server re-derives total_price from the payer sum (CostsPanel.helpers), so
+    // dropping the payer would store the entry with a total of 0.
     const payerList = multiPayer
       ? [...payerIds].map(id => ({ user_id: id, amount: parseFloat(payerAmounts[id]) || 0 })).filter(p => p.amount > 0)
-      : (payerId > 0 && participants.size > 0) ? [{ user_id: payerId, amount: totalNum }] : []
+      : payerId > 0 ? [{ user_id: payerId, amount: totalNum }] : []
     const memberList = [...participants].map(id => ({
       user_id: id,
       amount: splitMode === 'custom'

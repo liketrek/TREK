@@ -156,6 +156,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Falha ao carregar modelos',
   'admin.packingTemplates.createError': 'Falha ao criar modelo',
   'admin.packingTemplates.deleteError': 'Falha ao excluir modelo',
+  'admin.packingTemplates.deleteCategoryError': 'Falha ao excluir a categoria',
+  'admin.packingTemplates.deleteItemError': 'Falha ao excluir o item',
   'admin.packingTemplates.saveError': 'Falha ao salvar',
   'admin.tabs.addons': 'Complementos',
   'admin.tabs.plugins': 'Plugins',

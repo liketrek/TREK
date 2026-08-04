@@ -6,63 +6,15 @@ import CustomSelect from '../components/shared/CustomSelect'
 import EmptyState from '../components/shared/EmptyState'
 import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search } from 'lucide-react'
 import type { TranslationFn } from '../types'
-import { A2_TO_A3, countryCodeToFlag, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
+import { A2_TO_A3, countryCodeToFlag, withCountryMarkedVisited, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
 import { continentForCountry } from '@trek/shared'
 import { useAtlas } from './atlas/useAtlas'
 import AtlasCountrySearch from './atlas/AtlasCountrySearch'
+import AtlasLayerToggle from './atlas/AtlasLayerToggle'
 import { useToast } from '../components/shared/Toast'
 import { getApiErrorMessage } from '../types'
 import { useIsPhone } from '../mobile/useIsPhone'
 import MAtlas from '../mobile/screens/atlas/MAtlas'
-
-function MobileStats({ data, stats, countries, resolveName, t, dark }: { data: AtlasData | null; stats: AtlasStats; countries: AtlasCountry[]; resolveName: (code: string) => string; t: TranslationFn; dark: boolean }): React.ReactElement {
-  const tp = dark ? '#f1f5f9' : '#0f172a'
-  const tf = dark ? '#475569' : '#94a3b8'
-  const { continents, lastTrip, nextTrip, streak, firstYear, tripsThisYear } = data || {}
-  const CL = { 'Europe': t('atlas.europe'), 'Asia': t('atlas.asia'), 'North America': t('atlas.northAmerica'), 'South America': t('atlas.southAmerica'), 'Africa': t('atlas.africa'), 'Oceania': t('atlas.oceania') }
-  const thisYear = new Date().getFullYear()
-
-  return (
-    <div className="space-y-4">
-      {/* Stats grid */}
-      <div className="grid grid-cols-5 gap-2">
-        {[[stats.totalCountries, t('atlas.countries')], [stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
-          <div key={i} className="text-center py-2">
-            <p className="text-xl font-black tabular-nums" style={{ color: tp }}>{v}</p>
-            <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: tf }}>{l}</p>
-          </div>
-        ))}
-      </div>
-      {/* Continents */}
-      <div className="grid grid-cols-6 gap-1">
-        {['Europe', 'Asia', 'North America', 'South America', 'Africa', 'Oceania'].map(cont => {
-          const count = continents?.[cont] || 0
-          return (
-            <div key={cont} className="text-center py-1">
-              <p className="text-base font-bold tabular-nums" style={{ color: count > 0 ? tp : (dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }}>{count}</p>
-              <p className="text-[8px] font-semibold uppercase" style={{ color: count > 0 ? tf : (dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)') }}>{CL[cont]}</p>
-            </div>
-          )
-        })}
-      </div>
-      {/* Highlights */}
-      <div className="flex gap-3">
-        {streak > 0 && (
-          <div className="text-center flex-1 py-2">
-            <p className="text-xl font-black tabular-nums" style={{ color: tp }}>{streak}</p>
-            <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: tf }}>{streak === 1 ? t('atlas.yearInRow') : t('atlas.yearsInRow')}</p>
-          </div>
-        )}
-        {tripsThisYear > 0 && (
-          <div className="text-center flex-1 py-2">
-            <p className="text-xl font-black tabular-nums" style={{ color: tp }}>{tripsThisYear}</p>
-            <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: tf }}>{tripsThisYear === 1 ? t('atlas.tripIn') : t('atlas.tripsIn')} {thisYear}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
 
 export default function AtlasPage(): React.ReactElement {
   const isPhone = useIsPhone()
@@ -78,6 +30,7 @@ function AtlasPageDesktop(): React.ReactElement {
     mapRef, regionTooltipRef, panelRef, glareRef, borderGlareRef,
     handlePanelMouseMove, handlePanelMouseLeave,
     data, setData, stats, countries, selectedCountry, countryDetail,
+    showPlanned, togglePlanned,
     loadCountryDetail, handleUnmarkCountry, select_country_from_search,
     visitedRegions, setVisitedRegions,
     atlas_country_search, set_atlas_country_search,
@@ -137,6 +90,12 @@ function AtlasPageDesktop(): React.ReactElement {
           setOpen={set_atlas_country_open}
           options={atlas_country_options}
           onSelect={select_country_from_search}
+        />
+        <AtlasLayerToggle
+          t={t}
+          showPlanned={showPlanned}
+          onToggle={togglePlanned}
+          plannedCount={stats.totalCountriesPlanned || 0}
         />
 
         {/* Mobile: Bottom bar */}
@@ -222,11 +181,7 @@ function AtlasPageDesktop(): React.ReactElement {
                 <button onClick={async () => {
                   try {
                     await apiClient.post(`/addons/atlas/country/${confirmAction.code}/mark`)
-                    setData(prev => {
-                      if (!prev || prev.countries.find(c => c.code === confirmAction.code)) return prev
-                      const cont = continentForCountry(confirmAction.code)
-                      return { ...prev, countries: [...prev.countries, { code: confirmAction.code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }], stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 }, continents: { ...prev.continents, [cont]: (prev.continents?.[cont] || 0) + 1 } }
-                    })
+                    setData(prev => (prev ? withCountryMarkedVisited(prev, confirmAction.code) : prev))
                   } catch (err) {
                     toast.error(getApiErrorMessage(err, t('common.error')))
                   }
@@ -271,11 +226,7 @@ function AtlasPageDesktop(): React.ReactElement {
                       if (existing.find(r => r.code === rCode)) return prev
                       return { ...prev, [countryCode]: [...existing, { code: rCode, name: rName, placeCount: 0, manuallyMarked: true }] }
                     })
-                    setData(prev => {
-                      if (!prev || prev.countries.find(c => c.code === countryCode)) return prev
-                      const cont = continentForCountry(countryCode)
-                      return { ...prev, countries: [...prev.countries, { code: countryCode, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }], stats: { ...prev.stats, totalCountries: prev.stats.totalCountries + 1 }, continents: { ...prev.continents, [cont]: (prev.continents?.[cont] || 0) + 1 } }
-                    })
+                    setData(prev => (prev ? withCountryMarkedVisited(prev, countryCode) : prev))
                   } catch (err) {
                     toast.error(getApiErrorMessage(err, t('common.error')))
                   }
@@ -512,7 +463,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
   const { mostVisited, continents, lastTrip, nextTrip, streak, firstYear, tripsThisYear } = data || {}
   const contEntries = continents ? Object.entries(continents).sort((a, b) => b[1] - a[1]) : []
   const maxCont = contEntries.length > 0 ? contEntries[0][1] : 1
-  const CL = { 'Europe': t('atlas.europe'), 'Asia': t('atlas.asia'), 'North America': t('atlas.northAmerica'), 'South America': t('atlas.southAmerica'), 'Africa': t('atlas.africa'), 'Oceania': t('atlas.oceania') }
+  const CL = { 'Europe': t('atlas.europe'), 'Asia': t('atlas.asia'), 'North America': t('atlas.northAmerica'), 'South America': t('atlas.southAmerica'), 'Africa': t('atlas.africa'), 'Oceania': t('atlas.oceania'), 'Antarctica': t('atlas.antarctica') }
   const contColors = ['#818cf8', '#f472b6', '#34d399', '#fbbf24', '#fb923c', '#22d3ee']
 
   // Tab switcher
@@ -669,9 +620,16 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
 
       {/* ═══ SECTION 1: Numbers ═══ */}
       {/* Countries hero */}
-      <div className="flex items-baseline gap-1.5 px-5 py-4 mx-2 my-2 rounded-xl" style={{ background: bg(0.08) }}>
-        <span className="text-5xl font-black tabular-nums leading-none" style={{ color: tp }}>{stats.totalCountries}</span>
-        <span className="text-sm font-medium" style={{ color: tm }}>{t('atlas.countries')}</span>
+      <div className="flex flex-col justify-center px-5 py-4 mx-2 my-2 rounded-xl" style={{ background: bg(0.08) }}>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-5xl font-black tabular-nums leading-none" style={{ color: tp }}>{stats.totalCountries}</span>
+          <span className="text-sm font-medium" style={{ color: tm }}>{t('atlas.countries')}</span>
+        </div>
+        {(stats.totalCountriesPlanned || 0) > 0 && (
+          <span className="text-[9px] font-semibold mt-1.5 uppercase tracking-wide whitespace-nowrap" style={{ color: tf }}>
+            +{stats.totalCountriesPlanned} {t('atlas.planned')}
+          </span>
+        )}
       </div>
       {/* Other stats */}
       {[[stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
@@ -686,7 +644,9 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
 
       {/* ═══ SECTION 2: Continents ═══ */}
       <div className="flex items-center gap-4 px-3 py-4 shrink-0">
-        {['Europe', 'Asia', 'North America', 'South America', 'Africa', 'Oceania'].map((cont) => {
+        {/* Antarctica only joins the row once someone has actually been — CONTINENT_MAP has
+            always known AQ, but a permanent zero column would be dead space for everyone else. */}
+        {['Europe', 'Asia', 'North America', 'South America', 'Africa', 'Oceania', ...((continents?.['Antarctica'] || 0) > 0 ? ['Antarctica'] : [])].map((cont) => {
           const count = continents?.[cont] || 0
           const active = count > 0
           return (
@@ -742,8 +702,13 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
           <div className="flex items-center gap-3 px-6 py-4">
             <span className="text-3xl">{countryCodeToFlag(selectedCountry)}</span>
             <div>
-              <p className="text-sm font-bold" style={{ color: tp }}>{resolveName(selectedCountry)}</p>
-              <p className="text-[10px] mb-1" style={{ color: tf }}>{countryDetail.places.length} {t('atlas.places')} · {countryDetail.trips.length} Trips</p>
+              <p className="text-sm font-bold" style={{ color: tp }}>
+                {resolveName(selectedCountry)}
+                {countryDetail.status && countryDetail.status !== 'visited' && (
+                  <span className="ml-2 text-[9px] font-semibold uppercase tracking-wide" style={{ color: tf }}>{t('atlas.planned')}</span>
+                )}
+              </p>
+              <p className="text-[10px] mb-1" style={{ color: tf }}>{countryDetail.places.length} {t('atlas.places')} · {countryDetail.trips.length} {t('atlas.tripPlural')}</p>
               <div className="flex flex-wrap gap-1">
                 {countryDetail.trips.slice(0, 3).map(trip => (
                   <button key={trip.id} onClick={() => onTripClick(trip.id)}

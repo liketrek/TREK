@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Request, Response } from 'express';
 
 import { OidcController } from '../../../src/nest/oidc/oidc.controller';
+import { OIDC_STATE_TTL_MS } from '../../../src/nest/oidc/oidc.service';
 import type { OidcService } from '../../../src/nest/oidc/oidc.service';
 
 function svc(o: Partial<OidcService> = {}): OidcService {
@@ -70,6 +71,12 @@ describe('OidcController /login', () => {
     expect(res.redirectedTo).toContain('https://idp/auth?');
     expect(res.redirectedTo).toContain('code_challenge=cc');
     expect(res.redirectedTo).toContain('code_challenge_method=S256');
+  });
+
+  it('binds the state cookie with a maxAge matching the server-side state TTL', async () => {
+    const res = makeRes();
+    await new OidcController(svc()).login(req, res);
+    expect(res.cookie).toHaveBeenCalledWith('trek_oidc_state', 'st', expect.objectContaining({ maxAge: OIDC_STATE_TTL_MS }));
   });
 
   it('400 when a non-HTTPS issuer is used in production', async () => {

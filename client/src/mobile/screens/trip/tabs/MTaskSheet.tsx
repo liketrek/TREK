@@ -177,10 +177,10 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
               {cat}
             </button>
           ))}
+          {/* A category nobody else uses yet (stored on this task or just typed)
+              has nothing to switch to — it is the active label, not a choice. */}
           {category && !categories.includes(category) && (
-            <button type="button" onClick={() => setCategory(category)} className={pillCls(true)}>
-              {category}
-            </button>
+            <span className={pillCls(true)}>{category}</span>
           )}
           {!addingCategory ? (
             <button

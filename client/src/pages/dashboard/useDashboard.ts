@@ -185,6 +185,13 @@ export function useDashboard() {
     setCopyTrip(null)
   }
 
+  // The cover can be swapped from the archive filter too, so patch both lists.
+  const applyCoverUpdate = (tripId: number, coverUrl: string) => {
+    const patch = (list: DashboardTrip[]) => list.map(t => t.id === tripId ? { ...t, cover_image: coverUrl } : t)
+    setTrips(patch)
+    setArchivedTrips(patch)
+  }
+
   const gridTrips = tripFilter === 'archive' ? archivedTrips
     : tripFilter === 'completed' ? rest.filter(t => getTripStatus(t) === 'past')
     : rest.filter(t => getTripStatus(t) !== 'past')
@@ -198,7 +205,7 @@ export function useDashboard() {
     // ui state
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
-    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
+    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
     allSubOpen, setAllSubOpen,
     // actions
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,

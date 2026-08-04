@@ -19,6 +19,7 @@ function renderSearch(overrides: Partial<React.ComponentProps<typeof MAtlasSearc
     options,
     suggestions: [{ code: 'JP', label: 'Japan' }],
     isVisited: () => false,
+    isPlanned: () => false,
     isOnBucketList: () => false,
     onSelect: () => {},
     ...overrides,
@@ -52,5 +53,24 @@ describe('MAtlasSearch', () => {
   it('FE-MOB-ATLAS-003: renders nothing while closed', () => {
     renderSearch({ open: false });
     expect(screen.queryByPlaceholderText('Search a country...')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-ATLAS-004: a country you only plan to visit is labelled planned, not visited (#1048)', async () => {
+    renderSearch({ isPlanned: (code) => code === 'DE' });
+
+    await userEvent.type(screen.getByPlaceholderText('Search a country...'), 'germ');
+
+    expect(screen.getByText('Planned')).toBeInTheDocument();
+    expect(screen.queryByText('Visited')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-ATLAS-005: having been there wins over the planned and bucket labels', async () => {
+    renderSearch({ isVisited: () => true, isPlanned: () => true, isOnBucketList: () => true });
+
+    await userEvent.type(screen.getByPlaceholderText('Search a country...'), 'germ');
+
+    expect(screen.getByText('Visited')).toBeInTheDocument();
+    expect(screen.queryByText('Planned')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bucket List')).not.toBeInTheDocument();
   });
 });

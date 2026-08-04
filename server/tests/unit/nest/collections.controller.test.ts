@@ -68,15 +68,12 @@ describe('CollectionsController', () => {
   });
 
   describe('reorder', () => {
-    it('400 when orderedIds is not an array of numbers', () => {
-      expect(thrown(() => new CollectionsController(makeService()).reorder(user, 'nope' as never)))
-        .toEqual({ status: 400, body: { error: 'orderedIds must be an array of numbers' } });
-      expect(thrown(() => new CollectionsController(makeService()).reorder(user, [1, 'x'] as never)))
-        .toEqual({ status: 400, body: { error: 'orderedIds must be an array of numbers' } });
-    });
+    // The legacy 'orderedIds must be an array of numbers' 400 is gone:
+    // collectionReorderRequestSchema types the array, so the pipe rejects a
+    // bad payload before the handler runs.
     it('reorders a valid array', () => {
       const svc = makeService();
-      expect(new CollectionsController(svc).reorder(user, [3, 1, 2] as never)).toEqual({ success: true });
+      expect(new CollectionsController(svc).reorder(user, { orderedIds: [3, 1, 2] } as never)).toEqual({ success: true });
       expect(svc.reorderCollections).toHaveBeenCalledWith(1, [3, 1, 2]);
     });
   });
@@ -93,16 +90,17 @@ describe('CollectionsController', () => {
       expect(svc.setStatus).toHaveBeenCalledWith(1, 9, 'want', 'sid');
       expect(c.deletePlace(user, '9', 'sid')).toEqual({ success: true });
       expect(svc.deletePlace).toHaveBeenCalledWith(1, 9, 'sid');
-      c.saveFromTrip(user, { collection_id: 3, source_trip_id: 5, source_place_id: 8 } as never);
-      expect(svc.saveFromTripPlace).toHaveBeenCalledWith(1, 3, 5, 8, undefined);
+      c.saveFromTrip(user, { collection_id: 3, source_trip_id: 5, source_place_id: 8 } as never, 'sid');
+      expect(svc.saveFromTripPlace).toHaveBeenCalledWith(1, 3, 5, 8, undefined, 'sid');
       expect(c.copyToTrip(user, { trip_id: 5, place_ids: [9] } as never)).toEqual({ copied: 1, skipped: [] });
     });
 
-    it('deleteMany 400 on a bad payload, deletes a valid one', () => {
-      expect(thrown(() => new CollectionsController(makeService()).deleteMany(user, { nope: 1 } as never)))
-        .toEqual({ status: 400, body: { error: 'ids must be an array of numbers' } });
+    // The legacy 'ids must be an array of numbers' 400 is gone:
+    // collectionDeleteManyRequestSchema types the array, so the pipe rejects a
+    // bad payload before the handler runs.
+    it('deleteMany deletes a valid list', () => {
       const svc = makeService();
-      expect(new CollectionsController(svc).deleteMany(user, [1, 2] as never, 'sid')).toEqual({ deleted: [1, 2] });
+      expect(new CollectionsController(svc).deleteMany(user, { ids: [1, 2] } as never, 'sid')).toEqual({ deleted: [1, 2] });
       expect(svc.deletePlacesMany).toHaveBeenCalledWith(1, [1, 2], 'sid');
     });
   });

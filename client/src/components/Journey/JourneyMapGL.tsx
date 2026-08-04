@@ -233,6 +233,8 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   onMarkerClickRef.current = onMarkerClick
   const darkRef = useRef(dark)
   darkRef.current = dark
+  const mapLangRef = useRef(mapLang)
+  mapLangRef.current = mapLang
 
   const showPopup = useCallback((id: string) => {
     const item = itemsRef.current.find(i => i.id === id)
@@ -382,7 +384,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       // Pin the basemap label language to the UI language so labels don't fall back to the
       // browser/OS locale and stack multiple scripts per place (#1299).
       if (!isMapLibre && isStandardFamily(glStyle)) {
-        try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLang)) } catch { /* style/SDK may not support it */ }
+        try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLangRef.current)) } catch { /* style/SDK may not support it */ }
       }
 
       // route trail — dashed line connecting entries in time order
@@ -450,6 +452,14 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       mapRef.current = null
     }
   }, [entries, stableTrail, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
+
+  // Switching the UI language has to repin the basemap labels without tearing
+  // the map down. The load handler covers the initial run.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || isMapLibre || !isStandardFamily(glStyle)) return
+    try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLang)) } catch { /* style/SDK may not support it */ }
+  }, [mapLang, isMapLibre, glStyle])
 
   // external activeMarkerId → highlight + flyTo
   useEffect(() => {

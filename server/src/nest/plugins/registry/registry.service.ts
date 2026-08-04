@@ -118,6 +118,11 @@ export interface ManifestPreview {
   icon: string | null;
   requiredAddons: string[];
   pluginDependencies: PluginDependency[];
+  /**
+   * The UI-facing slice of `capabilities`. A plugin that replaces planner tabs hides core
+   * UI, so the reviewer has to see it BEFORE installing, not only on the installed row.
+   */
+  capabilities: { widget?: { slot?: string }; tripPage?: { replaces?: string[] } };
 }
 
 let _cache: { data: Registry; expiresAt: number } | null = null;
@@ -749,6 +754,20 @@ function previewManifest(raw: unknown): ManifestPreview {
         }))
         .filter((d) => d.id && d.version)
     : [];
+  const rawCaps = (m.capabilities && typeof m.capabilities === 'object' ? m.capabilities : {}) as Record<
+    string,
+    unknown
+  >;
+  const widget = (rawCaps.widget && typeof rawCaps.widget === 'object' ? rawCaps.widget : null) as {
+    slot?: unknown;
+  } | null;
+  const tripPage = (rawCaps.tripPage && typeof rawCaps.tripPage === 'object' ? rawCaps.tripPage : null) as {
+    replaces?: unknown;
+  } | null;
+  const capabilities: ManifestPreview['capabilities'] = {};
+  if (widget) capabilities.widget = typeof widget.slot === 'string' ? { slot: widget.slot } : {};
+  if (tripPage) capabilities.tripPage = { replaces: strings(tripPage.replaces) };
+
   return {
     permissions: strings(m.permissions),
     egress: strings(m.egress),
@@ -758,6 +777,7 @@ function previewManifest(raw: unknown): ManifestPreview {
     icon: typeof m.icon === 'string' ? m.icon : null,
     requiredAddons: strings(m.requiredAddons),
     pluginDependencies,
+    capabilities,
   };
 }
 

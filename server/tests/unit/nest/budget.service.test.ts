@@ -38,9 +38,10 @@ const getRates = vi.fn();
 const exchangeRatesStub = { getRates } as unknown as ExchangeRatesService;
 
 import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 function svc() {
-  return new BudgetService(new DatabaseService(dbConn), permissionsStub, exchangeRatesStub);
+  return new BudgetService(new DatabaseService(dbConn), permissionsStub, exchangeRatesStub, new RealtimeService());
 }
 
 beforeEach(() => {

@@ -128,6 +128,14 @@ export const collectionUpdateRequestSchema = collectionCreateRequestSchema.parti
 });
 export type CollectionUpdateRequest = z.infer<typeof collectionUpdateRequestSchema>;
 
+/** Reorder the caller's lists — every visible collection id in the desired order.
+ *  Plain z.number() (no .min/.int) mirrors the legacy hand-rolled check the DTO
+ *  ratchet replaced: any array of numbers, empty included. */
+export const collectionReorderRequestSchema = z.object({
+  orderedIds: z.array(z.number()),
+});
+export type CollectionReorderRequest = z.infer<typeof collectionReorderRequestSchema>;
+
 /** Save a place into a list from a raw maps/manual payload (or carrying provenance). */
 export const collectionSavePlaceRequestSchema = z.object({
   collection_id: z.number(),
@@ -197,6 +205,13 @@ export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateR
 
 export const collectionSetStatusRequestSchema = z.object({ status: collectionStatusSchema });
 export type CollectionSetStatusRequest = z.infer<typeof collectionSetStatusRequestSchema>;
+
+/** Bulk-delete saved places. Plain z.number() (no .min/.int) mirrors the legacy
+ *  hand-rolled check the DTO ratchet replaced (same shape as placeBulkDeleteRequestSchema). */
+export const collectionDeleteManyRequestSchema = z.object({
+  ids: z.array(z.number()),
+});
+export type CollectionDeleteManyRequest = z.infer<typeof collectionDeleteManyRequestSchema>;
 
 /** Copy one or many saved places INTO a trip (dedup precheck on server). */
 export const collectionCopyToTripRequestSchema = z.object({

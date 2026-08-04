@@ -28,6 +28,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Chọn tất cả',
   'common.deselectAll': 'Bỏ chọn tất cả',
   'common.error': 'Lỗi',
+  'common.success': 'Thành công',
   'common.unknownError': 'Lỗi không xác định',
   'common.tooManyAttempts': 'Quá nhiều nỗ lực. Vui lòng thử lại sau.',
   'common.back': 'Quay lại',

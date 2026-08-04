@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Pilih semua',
   'common.deselectAll': 'Batalkan semua pilihan',
   'common.error': 'Kesalahan',
+  'common.success': 'Berhasil',
   'common.unknownError': 'Kesalahan tidak diketahui',
   'common.tooManyAttempts': 'Terlalu banyak percobaan. Coba lagi nanti.',
   'common.back': 'Kembali',

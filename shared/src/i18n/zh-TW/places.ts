@@ -66,6 +66,7 @@ const places: TranslationStrings = {
   'places.formLng': '經度（如 2.3522）',
   'places.formCategory': '分類',
   'places.noCategory': '無分類',
+  'places.newCategory': '新增分類',
   'places.categoryNamePlaceholder': '分類名稱',
   'places.formTime': '時間',
   'places.startTime': '開始',
@@ -93,5 +94,6 @@ const places: TranslationStrings = {
   'places.changeImage': '變更圖片',
   'places.removeImage': '移除圖片',
   'places.imageUploadError': '無法上傳圖片',
+  'places.imageRemoveError': '無法刪除圖片',
 };
 export default places;

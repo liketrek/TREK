@@ -22,6 +22,18 @@ import fs from 'fs';
 import { v4 as uuid } from 'uuid';
 import { readEnv } from '../../app-config';
 import { AuthService } from './auth.service';
+import { avatarDir } from './auth.helpers';
+import {
+  ChangePasswordDto,
+  MapsKeyUpdateDto,
+  ApiKeysUpdateDto,
+  SettingsUpdateDto,
+  AppSettingsUpdateDto,
+  MfaEnableDto,
+  MfaDisableDto,
+  McpTokenCreateDto,
+  ResourceTokenDto,
+} from './auth.dto';
 import { RateLimitService } from './rate-limit.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './current-user.decorator';
@@ -31,7 +43,6 @@ import { isDemoEmail } from '../../services/demo';
 import type { User } from '../../types';
 
 const WINDOW = 15 * 60 * 1000;
-const avatarDir = path.join(__dirname, '../../../uploads/avatars');
 const ALLOWED_AVATAR_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 const AVATAR_UPLOAD = {
   storage: diskStorage({
@@ -79,7 +90,7 @@ export class AuthController {
   }
 
   @Put('me/password')
-  changePassword(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  changePassword(@CurrentUser() user: User, @Body() body: ChangePasswordDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 5);
     const result = this.auth.changePassword(user.id, user.email, body);
     if (result.error) {
@@ -103,17 +114,17 @@ export class AuthController {
   }
 
   @Put('me/maps-key')
-  mapsKey(@CurrentUser() user: User, @Body() body: { maps_api_key?: unknown }) {
+  mapsKey(@CurrentUser() user: User, @Body() body: MapsKeyUpdateDto) {
     return this.auth.updateMapsKey(user.id, body.maps_api_key);
   }
 
   @Put('me/api-keys')
-  apiKeys(@CurrentUser() user: User, @Body() body: unknown) {
+  apiKeys(@CurrentUser() user: User, @Body() body: ApiKeysUpdateDto) {
     return this.auth.updateApiKeys(user.id, body);
   }
 
   @Put('me/settings')
-  updateSettings(@CurrentUser() user: User, @Body() body: unknown) {
+  updateSettings(@CurrentUser() user: User, @Body() body: SettingsUpdateDto) {
     const result = this.auth.updateSettings(user.id, body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
@@ -172,7 +183,7 @@ export class AuthController {
   }
 
   @Put('app-settings')
-  updateAppSettings(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
+  updateAppSettings(@CurrentUser() user: User, @Body() body: AppSettingsUpdateDto, @Req() req: Request) {
     const result = this.auth.updateAppSettings(user.id, body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
@@ -204,7 +215,7 @@ export class AuthController {
 
   @Post('mfa/enable')
   @HttpCode(200)
-  mfaEnable(@CurrentUser() user: User, @Body() body: { code?: unknown }, @Req() req: Request) {
+  mfaEnable(@CurrentUser() user: User, @Body() body: MfaEnableDto, @Req() req: Request) {
     this.limit('mfa', req, 5);
     const result = this.auth.enableMfa(user.id, body.code);
     if (result.error) {
@@ -216,7 +227,7 @@ export class AuthController {
 
   @Post('mfa/disable')
   @HttpCode(200)
-  mfaDisable(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
+  mfaDisable(@CurrentUser() user: User, @Body() body: MfaDisableDto, @Req() req: Request) {
     this.limit('login', req, 5);
     const result = this.auth.disableMfa(user.id, user.email, body);
     if (result.error) {
@@ -233,7 +244,7 @@ export class AuthController {
 
   @Post('mcp-tokens')
   @HttpCode(201)
-  createMcpToken(@CurrentUser() user: User, @Body() body: { name?: unknown }, @Req() req: Request) {
+  createMcpToken(@CurrentUser() user: User, @Body() body: McpTokenCreateDto, @Req() req: Request) {
     this.limit('login', req, 5);
     const result = this.auth.createMcpToken(user.id, body.name);
     if (result.error) {
@@ -263,7 +274,7 @@ export class AuthController {
 
   @Post('resource-token')
   @HttpCode(200)
-  resourceToken(@CurrentUser() user: User, @Body() body: { purpose?: unknown }) {
+  resourceToken(@CurrentUser() user: User, @Body() body: ResourceTokenDto) {
     const token = this.auth.createResourceToken(user.id, body.purpose);
     if (!token) {
       throw new HttpException({ error: 'Service unavailable' }, 503);

@@ -208,5 +208,7 @@ const packing: TranslationStrings = {
       category: 'Gesundheit',
     },
   ],
+  'packing.bagLimit': 'Gewichtslimit',
+  'packing.setBagLimit': 'Limit setzen',
 };
 export default packing;

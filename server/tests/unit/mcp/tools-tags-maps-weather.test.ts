@@ -35,13 +35,6 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-vi.mock('../../../src/services/mapsService', () => ({
-  searchPlaces: vi.fn(),
-  getPlaceDetails: vi.fn().mockResolvedValue({ name: 'Eiffel Tower', address: 'Paris' }),
-  reverseGeocode: vi.fn().mockResolvedValue({ name: 'Paris', address: 'France' }),
-  resolveGoogleMapsUrl: vi.fn().mockResolvedValue({ lat: 48.8566, lng: 2.3522, name: 'Paris' }),
-}));
-
 vi.mock('../../../src/services/weatherService', () => ({
   getWeather: vi.fn().mockResolvedValue({ temp: 20, condition: 'sunny' }),
   getDetailedWeather: vi.fn().mockResolvedValue({ hourly: [] }),
@@ -52,7 +45,22 @@ import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import * as mapsService from '../../../src/services/mapsService';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+
+// The geo tools live on the DI-discovered maps.mcp.ts since the maps fold; the
+// test registry builds a real MapsService over the mocked db proxy, so stub the
+// provider methods on the prototype (no auto-restore in the vitest config —
+// these survive across tests, exactly like the old module mock did).
+vi.spyOn(MapsService.prototype, 'getPlaceDetails').mockResolvedValue({
+  name: 'Eiffel Tower',
+  address: 'Paris',
+} as never);
+vi.spyOn(MapsService.prototype, 'reverseGeocode').mockResolvedValue({ name: 'Paris', address: 'France' });
+vi.spyOn(MapsService.prototype, 'resolveGoogleMapsUrl').mockResolvedValue({
+  lat: 48.8566,
+  lng: 2.3522,
+  name: 'Paris',
+} as never);
 
 beforeAll(() => {
   createTables(testDb);
@@ -304,18 +312,9 @@ describe('Tool: get_place_details', () => {
     });
   });
 
-  it('returns isError when service returns null', async () => {
-    const { getPlaceDetails } = await import('../../../src/services/mapsService');
-    (getPlaceDetails as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
-    const { user } = createUser(testDb);
-    await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({
-        name: 'get_place_details',
-        arguments: { placeId: 'nonexistent-place-id' },
-      });
-      expect(result.isError).toBe(true);
-    });
-  });
+  // The former "isError when service returns null" case pinned a dead branch —
+  // MapsService.getPlaceDetails throws or returns an object, never null — and
+  // died with the guard in the fix(maps) quirk pass.
 });
 
 // ---------------------------------------------------------------------------

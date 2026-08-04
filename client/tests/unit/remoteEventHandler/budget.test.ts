@@ -90,4 +90,113 @@ describe('remoteEventHandler > budget', () => {
     const item2 = budgetItems.find(i => i.id === 2);
     expect(item2?.members?.[0].paid).toBe(1);
   });
+
+  it('FE-WSEVT-BUDGET-007: budget:members-updated for an unknown item leaves every item untouched', () => {
+    seedData();
+    useTripStore.getState().handleRemoteEvent({
+      type: 'budget:members-updated',
+      itemId: 4242,
+      members: [{ user_id: 9, paid: 0, username: 'ivan' }],
+      persons: 9,
+    });
+    const { budgetItems } = useTripStore.getState();
+    expect(budgetItems.map(i => i.persons)).toEqual([1, 2]);
+    expect(budgetItems[0].members).toEqual([{ ...member1 }]);
+  });
+
+  it('FE-WSEVT-BUDGET-008: budget:member-paid-updated only touches the addressed member', () => {
+    useTripStore.setState({
+      budgetItems: [
+        buildBudgetItem({ id: 1, members: [{ ...member1 }, { ...member2 }] }),
+      ],
+    });
+    useTripStore.getState().handleRemoteEvent({
+      type: 'budget:member-paid-updated',
+      itemId: 1,
+      userId: 5,
+      paid: 1,
+    });
+    const members = useTripStore.getState().budgetItems[0].members ?? [];
+    expect(members.find(m => m.user_id === 5)?.paid).toBe(1);
+    expect(members.find(m => m.user_id === 6)?.paid).toBe(1); // seeded value, untouched
+  });
+
+  it('FE-WSEVT-BUDGET-009: budget:member-paid-updated on an item without members does not throw', () => {
+    useTripStore.setState({
+      budgetItems: [buildBudgetItem({ id: 1, members: undefined })],
+    });
+    useTripStore.getState().handleRemoteEvent({
+      type: 'budget:member-paid-updated',
+      itemId: 1,
+      userId: 5,
+      paid: 1,
+    });
+    expect(useTripStore.getState().budgetItems[0].members).toEqual([]);
+  });
+
+  describe('budget:reordered', () => {
+    it('FE-WSEVT-BUDGET-010: orderedIds rewrites sort_order and keeps unlisted items at the end', () => {
+      useTripStore.setState({
+        budgetItems: [
+          buildBudgetItem({ id: 1, sort_order: 0 }),
+          buildBudgetItem({ id: 2, sort_order: 1 }),
+          buildBudgetItem({ id: 3, sort_order: 2 }),
+        ],
+      });
+      useTripStore.getState().handleRemoteEvent({ type: 'budget:reordered', orderedIds: [3, 1] });
+      const { budgetItems } = useTripStore.getState();
+      expect(budgetItems.map(i => i.id)).toEqual([3, 1, 2]);
+      // The whole array is reindexed, so re-sorting by sort_order reproduces the
+      // order that was just applied.
+      expect(budgetItems.map(i => i.sort_order)).toEqual([0, 1, 2]);
+    });
+
+    it('FE-WSEVT-BUDGET-011: an orderedIds entry for an unknown item is dropped', () => {
+      useTripStore.setState({
+        budgetItems: [buildBudgetItem({ id: 1 }), buildBudgetItem({ id: 2 })],
+      });
+      useTripStore.getState().handleRemoteEvent({ type: 'budget:reordered', orderedIds: [2, 999, 1] });
+      expect(useTripStore.getState().budgetItems.map(i => i.id)).toEqual([2, 1]);
+    });
+
+    it('FE-WSEVT-BUDGET-012: orderedCategories groups items and appends unlisted categories', () => {
+      useTripStore.setState({
+        budgetItems: [
+          buildBudgetItem({ id: 1, category: 'Food' }),
+          buildBudgetItem({ id: 2, category: 'Transport' }),
+          buildBudgetItem({ id: 3, category: 'Food' }),
+          buildBudgetItem({ id: 4, category: 'Lodging' }),
+        ],
+      });
+      useTripStore.getState().handleRemoteEvent({
+        type: 'budget:reordered',
+        orderedCategories: ['Transport', 'Food', 'Souvenirs'],
+      });
+      // Transport, then both Food rows in their original order, then the
+      // category the server did not mention.
+      expect(useTripStore.getState().budgetItems.map(i => i.id)).toEqual([2, 1, 3, 4]);
+    });
+
+    it('FE-WSEVT-BUDGET-013: an item without a category is grouped under "Other"', () => {
+      useTripStore.setState({
+        budgetItems: [
+          buildBudgetItem({ id: 1, category: null }),
+          buildBudgetItem({ id: 2, category: 'Food' }),
+        ],
+      });
+      useTripStore.getState().handleRemoteEvent({
+        type: 'budget:reordered',
+        orderedCategories: ['Other', 'Food'],
+      });
+      expect(useTripStore.getState().budgetItems.map(i => i.id)).toEqual([1, 2]);
+    });
+
+    it('FE-WSEVT-BUDGET-014: a payload with neither key is a no-op', () => {
+      useTripStore.setState({
+        budgetItems: [buildBudgetItem({ id: 1 }), buildBudgetItem({ id: 2 })],
+      });
+      useTripStore.getState().handleRemoteEvent({ type: 'budget:reordered' });
+      expect(useTripStore.getState().budgetItems.map(i => i.id)).toEqual([1, 2]);
+    });
+  });
 });

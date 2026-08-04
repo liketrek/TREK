@@ -66,6 +66,16 @@ export default function MCollLabelsSheet({
     }
   }
 
+  const remove = async (labelId: number) => {
+    if (busy) return
+    setBusy(true)
+    try {
+      await onDelete(labelId)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const assign = async () => {
     if (checked.length === 0 || busy) return
     setBusy(true)
@@ -160,9 +170,10 @@ export default function MCollLabelsSheet({
                       </button>
                       <button
                         type="button"
-                        onClick={() => onDelete(label.id)}
+                        onClick={() => remove(label.id)}
+                        disabled={busy}
                         aria-label={t('common.delete')}
-                        className="flex h-7 w-7 flex-none items-center justify-center rounded-full text-[color:var(--m-st-danger)] active:bg-[color:var(--m-ic)]"
+                        className="flex h-7 w-7 flex-none items-center justify-center rounded-full text-[color:var(--m-st-danger)] active:bg-[color:var(--m-ic)] disabled:opacity-40"
                       >
                         <Trash2 size={13} strokeWidth={2.2} />
                       </button>

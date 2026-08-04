@@ -31,8 +31,9 @@ import { createUser, createTrip, createPlace, createDay, createDayAssignment, cr
 import { DatabaseService } from '../../src/nest/database/database.service';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { DaysService, DayReorderError } from '../../src/nest/days/days.service';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 
-const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)));
+const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
 const reorderDays = (tripId: number, orderedIds: number[]) => svc.reorder(tripId, orderedIds);
 const insertDay = (tripId: number, position?: number) => svc.insert(tripId, position);
 

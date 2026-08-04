@@ -59,6 +59,7 @@ export interface SyncMeta {
   status: 'idle' | 'syncing' | 'error';
   /** Bounding box [minLng, minLat, maxLng, maxLat] of pre-downloaded map tiles */
   tilesBbox: [number, number, number, number] | null;
+  /** Non-photo files available offline for this trip after the last sync. */
   filesCachedCount: number;
 }
 
@@ -217,9 +218,13 @@ export async function reopenAnonymous(): Promise<void> {
  * DB. Used on logout so no trace of the account's data remains on the device.
  */
 export async function deleteCurrentUserDb(): Promise<void> {
-  if (_db.name !== ANON_DB_NAME) {
-    try { await _db.delete(); } catch { /* ignore — fall through to anon */ }
+  // Already anonymous: there is nothing to delete, and opening a second
+  // connection to the same name would leak the current handle for the session.
+  if (_db.name === ANON_DB_NAME) {
+    await switchTo(ANON_DB_NAME);
+    return;
   }
+  try { await _db.delete(); } catch { /* ignore — fall through to anon */ }
   _db = new TrekOfflineDb(ANON_DB_NAME);
   await _db.open();
 }

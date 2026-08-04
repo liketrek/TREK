@@ -57,6 +57,50 @@ export const regionGeoSchema = z.object({
 export type RegionGeo = z.infer<typeof regionGeoSchema>;
 
 /**
+ * How a country/region ended up on the atlas map. Before this, every trip counted as a
+ * visit, so a booked-but-not-taken trip painted the map as if you had already been there.
+ * Requested in discussion #1048 — note that's a discussion, not an issue:
+ * https://github.com/liketrek/TREK/discussions/1048
+ *
+ *  - visited: at least one source is a trip that has already started, or a manual mark
+ *  - planned: every source is a trip starting in the future
+ *  - idea:    every source is a trip with no dates at all
+ */
+export const visitStatusSchema = z.enum(['visited', 'planned', 'idea']);
+export type VisitStatus = z.infer<typeof visitStatusSchema>;
+
+/** Today as 'YYYY-MM-DD' in UTC — the comparison base the rest of TREK uses. */
+export function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Bucket a trip by its dates. A trip that has started but not ended still counts as
+ * visited — you are there right now. A trip with neither date is an idea, not a plan,
+ * and must stay out of the visit stats.
+ */
+export function tripVisitStatus(
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+  today: string = todayUtc(),
+): VisitStatus {
+  const effectiveStart = startDate || endDate || null;
+  if (!effectiveStart) return 'idea';
+  return effectiveStart <= today ? 'visited' : 'planned';
+}
+
+/** visited beats planned beats idea — a country takes its strongest source. */
+export const VISIT_STATUS_RANK: Record<VisitStatus, number> = {
+  visited: 0,
+  planned: 1,
+  idea: 2,
+};
+
+export function strongerVisitStatus(a: VisitStatus, b: VisitStatus): VisitStatus {
+  return VISIT_STATUS_RANK[a] <= VISIT_STATUS_RANK[b] ? a : b;
+}
+
+/**
  * ISO 3166-1 alpha-2 country code → continent. Single source of truth for the
  * Atlas continent breakdown, used by the server (stats aggregation) and the
  * client (keeping the per-continent counts in sync on optimistic mark/unmark).

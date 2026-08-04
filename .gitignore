@@ -51,6 +51,7 @@ yarn-error.log*
 
 # Coverage
 coverage
+coverage-*/
 *.lcov
 .nyc_output
 

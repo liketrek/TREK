@@ -88,6 +88,33 @@ export function Field({ label, children, className = '', tabular = false }: {
   )
 }
 
+/**
+ * Booking code with the optional shoulder-surfing blur (setting
+ * blur_booking_codes). While the blur is on the box is a real button so the
+ * reveal works by keyboard too; without it there is nothing to operate and it
+ * stays a plain value box.
+ */
+export function ConfirmationCode({ code, label, blurred, onToggle }: {
+  code: string
+  label: string
+  blurred: boolean
+  onToggle?: () => void
+}) {
+  const boxCls = `block w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px] text-center font-geist text-[0.71875rem] font-semibold tabular-nums text-m-ink ${
+    blurred ? 'blur-[4px] select-none' : ''
+  }`
+  return (
+    <div className="mt-2">
+      <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
+        {label}
+      </div>
+      {onToggle
+        ? <button type="button" onClick={onToggle} aria-pressed={!blurred} className={boxCls}>{code}</button>
+        : <div className={boxCls}>{code}</div>}
+    </div>
+  )
+}
+
 /** 7px status dot; `color` is a --m-st-* token from STATUS_COLOR. */
 export function StatusDot({ color }: { color: string }) {
   return <span className="h-[7px] w-[7px] flex-none rounded-full" style={{ background: color }} />

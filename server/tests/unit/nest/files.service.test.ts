@@ -73,8 +73,9 @@ import {
   isVideoExtension,
 } from '../../../src/nest/files/files.constants';
 import type { TripFile, User } from '../../../src/types';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
-const svc = new FilesService(new DatabaseService(testDb), permissionsStub);
+const svc = new FilesService(new DatabaseService(testDb), permissionsStub, new RealtimeService());
 
 beforeAll(() => {
   createTables(testDb);
@@ -182,7 +183,7 @@ describe('getAllowedExtensions', () => {
   });
 
   it('FILE-SVC-009: returns the default when the query throws (no app_settings table)', () => {
-    const bareSvc = new FilesService(new DatabaseService(bareDb), permissionsStub);
+    const bareSvc = new FilesService(new DatabaseService(bareDb), permissionsStub, new RealtimeService());
     expect(bareSvc.getAllowedExtensions()).toBe(DEFAULT_ALLOWED_EXTENSIONS);
   });
 });

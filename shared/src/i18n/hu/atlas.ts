@@ -54,5 +54,9 @@ const atlas: TranslationStrings = {
   'atlas.tripPlural': 'Utazások',
   'atlas.placeVisited': 'Meglátogatott hely',
   'atlas.placesVisited': 'Meglátogatott helyek',
+  'atlas.planned': 'Tervezett',
+  'atlas.showPlanned': 'Tervezett országok megjelenítése',
+  'atlas.plannedFor': 'Tervezve erre',
+  'atlas.antarctica': 'Antarktisz',
 };
 export default atlas;

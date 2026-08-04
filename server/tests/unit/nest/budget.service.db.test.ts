@@ -61,13 +61,42 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import * as bridge from '../../../src/nest/budget/budget.bridge';
-import { createGuest, deleteGuest } from '../../../src/services/tripService';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TripsService } from '../../../src/nest/trips/trips.service';
+import { TodoService } from '../../../src/nest/todo/todo.service';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import { FilesService } from '../../../src/nest/files/files.service';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import { DaysService } from '../../../src/nest/days/days.service';
+import { CollabService } from '../../../src/nest/collab/collab.service';
+import { VacayService } from '../../../src/nest/vacay/vacay.service';
 
 const budget = new BudgetService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
   new ExchangeRatesService(),
+  new RealtimeService(),
 );
+
+// Guest fixtures come from the DI-native TripsService since the trip fold (was
+// an import of the deleted services/tripService); deleteGuest routes through
+// the SAME BudgetService domain SQL (removeUserFromBudgetItems) under test.
+const dbs = () => new DatabaseService(testDb);
+const tripsSvc = new TripsService(
+  dbs(),
+  new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budget, new RealtimeService()),
+  new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new PermissionsService(dbs()),
+  budget,
+  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new VacayService(dbs(), new RealtimeService()),
+  new RealtimeService(),
+);
+const createGuest = tripsSvc.createGuest.bind(tripsSvc);
+const deleteGuest = tripsSvc.deleteGuest.bind(tripsSvc);
 
 beforeAll(() => {
   createTables(testDb);
@@ -374,12 +403,15 @@ describe('rebaseTripCurrency', () => {
 });
 
 describe('budget.bridge delegation', () => {
-  it('BUDGET-SVC-DB-015: listBudgetItems returns the hydrated list through the bridge', () => {
+  // The listBudgetItems / rebaseTripCurrency bridge exports were pruned when
+  // their last outside-container consumers (legacy tripService + trips MCP
+  // registrar) migrated — 015/017 pin the same behavior on the service.
+  it('BUDGET-SVC-DB-015: listBudgetItems returns the hydrated list', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const item = budget.createBudgetItem(trip.id, { name: 'Hotel', total_price: 100, member_ids: [user.id] });
 
-    const items = bridge.listBudgetItems(trip.id);
+    const items = budget.listBudgetItems(trip.id);
 
     expect(items.map(i => i.id)).toEqual([item.id]);
     expect(items[0].members.map(m => m.user_id)).toEqual([user.id]);
@@ -397,13 +429,13 @@ describe('budget.bridge delegation', () => {
     expect(row.persons).toBe(1);
   });
 
-  it('BUDGET-SVC-DB-017: rebaseTripCurrency pins the implicit currency through the bridge', async () => {
+  it('BUDGET-SVC-DB-017: rebaseTripCurrency pins the implicit currency', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     testDb.prepare("UPDATE trips SET currency = 'EUR' WHERE id = ?").run(trip.id);
     const item = budget.createBudgetItem(trip.id, { name: 'Implicit', total_price: 100, members: [{ user_id: user.id }] });
 
-    await bridge.rebaseTripCurrency(trip.id, 'RUB');
+    await budget.rebaseTripCurrency(trip.id, 'RUB');
 
     const row = testDb.prepare('SELECT currency, exchange_rate FROM budget_items WHERE id = ?').get(item.id) as { currency: string | null; exchange_rate: number };
     expect(row).toEqual({ currency: 'EUR', exchange_rate: RATES.RUB.EUR });

@@ -1,10 +1,11 @@
-// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036
+// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036, FE-PLANNER-PLACEFORM-016 to FE-PLANNER-PLACEFORM-062
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
+import { useAddonStore } from '../../store/addonStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildPlace, buildCategory, buildAssignment } from '../../../tests/helpers/factories';
@@ -378,14 +379,35 @@ describe('PlaceFormModal', () => {
   });
 
   it('FE-PLANNER-PLACEFORM-024: onCategoryCreated is called when creating a category', async () => {
+    const user = userEvent.setup();
     const onCategoryCreated = vi.fn().mockResolvedValue({ id: 99, name: 'Beaches', color: '#6366f1', icon: 'MapPin' });
-    // Directly invoke handleCreateCategory by setting showNewCategory via the category name input
-    // Since there's no UI trigger for showNewCategory, we test that the prop is accepted
-    // and category creation works by checking the modal renders correctly
+
     render(<PlaceFormModal {...defaultProps} onCategoryCreated={onCategoryCreated} />);
-    expect(screen.getByText('Category')).toBeInTheDocument();
-    // onCategoryCreated not called unless the new-category form is shown and submitted
     expect(onCategoryCreated).not.toHaveBeenCalled();
+
+    // The plus next to the category select swaps in the inline name field.
+    await user.click(screen.getByRole('button', { name: 'New category' }));
+    await user.type(screen.getByPlaceholderText('Category name'), 'Beaches');
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+
+    expect(onCategoryCreated).toHaveBeenCalledWith({ name: 'Beaches', color: '#6366f1', icon: 'MapPin' });
+    // The new category is selected and the inline field closes again.
+    await waitFor(() => expect(screen.queryByPlaceholderText('Category name')).not.toBeInTheDocument());
+  });
+
+  it('FE-PLANNER-PLACEFORM-024b: an empty category name does not call onCategoryCreated', async () => {
+    const user = userEvent.setup();
+    const onCategoryCreated = vi.fn();
+
+    render(<PlaceFormModal {...defaultProps} onCategoryCreated={onCategoryCreated} />);
+    await user.click(screen.getByRole('button', { name: 'New category' }));
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+
+    expect(onCategoryCreated).not.toHaveBeenCalled();
+
+    const inlineRow = screen.getByPlaceholderText('Category name').parentElement!;
+    await user.click(within(inlineRow).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByPlaceholderText('Category name')).not.toBeInTheDocument();
   });
 
   // ── Time section (edit mode only) ────────────────────────────────────────────
@@ -562,5 +584,770 @@ describe('PlaceFormModal', () => {
 
     expect(screen.getByDisplayValue('48.8566')).toBeInTheDocument();
     expect(screen.getByDisplayValue('2.3522')).toBeInTheDocument();
+  });
+
+  // ── Duplicate detection (#1152) ────────────────────────────────────────────
+
+  it('FE-PLANNER-PLACEFORM-037: a same-named place warns first and saves only on the second click', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [buildPlace({ name: 'Louvre' })] });
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    // Case-insensitive match against the existing trip place.
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), '  louvre ');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('Louvre'), 'warning', undefined);
+    // The button now reads as the explicit confirmation.
+    const addAnyway = await screen.findByRole('button', { name: /Add anyway/i });
+    await user.click(addAnyway);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-PLACEFORM-038: near-identical coordinates count as a duplicate even under a new name', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [buildPlace({ name: 'Tour Eiffel', lat: 48.8584, lng: 2.2945 })],
+    });
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Iron Lady');
+    fireEvent.paste(screen.getByPlaceholderText(/Latitude/i), {
+      clipboardData: { getData: () => '48.85845, 2.29455' },
+    });
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('Tour Eiffel'), 'warning', undefined);
+
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-PLACEFORM-039: a far-away place with a fresh name saves straight away', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [buildPlace({ name: 'Tour Eiffel', lat: 48.8584, lng: 2.2945 })],
+    });
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Colosseum');
+    fireEvent.paste(screen.getByPlaceholderText(/Latitude/i), {
+      clipboardData: { getData: () => '41.8902, 12.4922' },
+    });
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ name: 'Colosseum', lat: 41.8902, lng: 12.4922 }));
+  });
+
+  it('FE-PLANNER-PLACEFORM-040: editing an existing place never triggers the duplicate guard', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const place = buildPlace({ name: 'Louvre' });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [place] });
+
+    render(<PlaceFormModal {...defaultProps} place={place} onSave={onSave} />);
+    await user.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+  });
+
+  it('FE-PLANNER-PLACEFORM-041: an empty name is rejected with the name-required toast', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith('Please enter a name', 'error', undefined);
+
+    delete window.__addToast;
+  });
+
+  // ── Location bias from the trip's existing places ───────────────────────────
+
+  it('FE-PLANNER-PLACEFORM-042: a tight cluster of trip places biases the autocomplete bounding box', async () => {
+    const user = userEvent.setup();
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post('/api/maps/autocomplete', async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ suggestions: [] });
+      }),
+    );
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [
+        buildPlace({ lat: 48.85, lng: 2.34 }),
+        buildPlace({ lat: 48.87, lng: 2.37 }),
+        // Garbage coordinates must be skipped, not poison the box.
+        buildPlace({ lat: 'x' as unknown as number, lng: 'y' as unknown as number }),
+      ],
+    });
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0].locationBias).toEqual({
+      low: { lat: 48.85, lng: 2.34 },
+      high: { lat: 48.87, lng: 2.37 },
+    });
+  });
+
+  it('FE-PLANNER-PLACEFORM-043: places spread over more than 500 km send no location bias', async () => {
+    const user = userEvent.setup();
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post('/api/maps/autocomplete', async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ suggestions: [] });
+      }),
+    );
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [buildPlace({ lat: 48.85, lng: 2.34 }), buildPlace({ lat: 41.89, lng: 12.49 })],
+    });
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0].locationBias).toBeUndefined();
+  });
+
+  it('FE-PLANNER-PLACEFORM-043b: trip places with unusable coordinates yield no bias at all', async () => {
+    const user = userEvent.setup();
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post('/api/maps/autocomplete', async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ suggestions: [] });
+      }),
+    );
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [buildPlace({ lat: 'x' as unknown as number, lng: 'y' as unknown as number })],
+    });
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0].locationBias).toBeUndefined();
+  });
+
+  it('FE-PLANNER-PLACEFORM-045b: focusing with a Google Maps URL in the box fetches no suggestions', async () => {
+    const user = userEvent.setup();
+    let calls = 0;
+    server.use(
+      http.post('/api/maps/autocomplete', () => {
+        calls += 1;
+        return HttpResponse.json({ suggestions: [] });
+      }),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search places...');
+    await user.type(searchInput, 'https://maps.google.com/maps?q=x');
+    fireEvent.focus(searchInput);
+
+    await waitFor(() => expect(screen.queryByText('Paris, France')).not.toBeInTheDocument());
+    expect(calls).toBe(0);
+  });
+
+  it('FE-PLANNER-PLACEFORM-044: a failing autocomplete clears the dropdown instead of surfacing an error', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    server.use(http.post('/api/maps/autocomplete', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+
+    await waitFor(() => expect(consoleError).toHaveBeenCalledWith('Autocomplete failed:', expect.anything()));
+    expect(addToast).not.toHaveBeenCalled();
+
+    consoleError.mockRestore();
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-PLACEFORM-045: re-focusing the search box refetches when the dropdown is empty', async () => {
+    const user = userEvent.setup();
+    let calls = 0;
+    server.use(
+      http.post('/api/maps/autocomplete', () => {
+        calls += 1;
+        return HttpResponse.json({ suggestions: [] });
+      }),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search places...');
+    await user.type(searchInput, 'Eiffel');
+    await waitFor(() => expect(calls).toBe(1));
+
+    fireEvent.focus(searchInput);
+    await waitFor(() => expect(calls).toBe(2));
+  });
+
+  // ── Maps search / Google Maps URL resolve ──────────────────────────────────
+
+  it('FE-PLANNER-PLACEFORM-046: clicking search with an empty box makes no request', async () => {
+    const user = userEvent.setup();
+    let calls = 0;
+    server.use(
+      http.post('/api/maps/search', () => {
+        calls += 1;
+        return HttpResponse.json({ places: [] });
+      }),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search places...');
+    const searchBtn = within(searchInput.closest('.flex') as HTMLElement).getByRole('button');
+    await user.click(searchBtn);
+
+    expect(calls).toBe(0);
+  });
+
+  it('FE-PLANNER-PLACEFORM-047: pasting a Google Maps URL resolves it straight into the form', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/resolve-url', () =>
+        HttpResponse.json({ name: 'Notre-Dame', address: 'Parvis Notre-Dame, Paris', lat: 48.8530, lng: 2.3499, google_ftid: 'ftid-1' }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'https://maps.google.com/maps?q=notredame');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByDisplayValue('Notre-Dame')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('48.853')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Parvis Notre-Dame, Paris')).toBeInTheDocument();
+    // The URL is consumed, so the search box empties out.
+    expect(screen.getByPlaceholderText('Search places...')).toHaveValue('');
+    expect(addToast).toHaveBeenCalledWith('Place imported from URL', 'success', undefined);
+
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-PLACEFORM-048: an unresolvable Google Maps URL falls through to the text search', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/resolve-url', () => HttpResponse.json({ name: 'Notre-Dame', lat: null, lng: null })),
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({ places: [{ name: 'Notre-Dame de Paris', address: 'Paris', lat: '48.853', lng: '2.3499' }] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'https://maps.google.com/maps?q=notredame');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('Notre-Dame de Paris')).toBeInTheDocument();
+  });
+
+  // ── Autocomplete keyboard navigation ───────────────────────────────────────
+
+  const twoSuggestions = () =>
+    http.post('/api/maps/autocomplete', () =>
+      HttpResponse.json({
+        suggestions: [
+          { placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' },
+          { placeId: 'node:2', mainText: 'Eiffel Museum', secondaryText: 'Berlin, Germany' },
+        ],
+      }),
+    );
+
+  it('FE-PLANNER-PLACEFORM-049: ArrowDown/ArrowUp move the highlight and Enter picks the highlighted suggestion', async () => {
+    const user = userEvent.setup();
+    server.use(
+      twoSuggestions(),
+      http.get('/api/maps/details/:placeId', () =>
+        HttpResponse.json({ place: { name: 'Eiffel Museum', address: 'Berlin', lat: 52.52, lng: 13.405 } }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search places...');
+    await user.type(searchInput, 'Eiffel');
+    await screen.findByText('Paris, France');
+
+    // -1 → wraps to the last entry, then ArrowDown wraps back to the first.
+    await user.keyboard('{ArrowUp}');
+    expect(screen.getByText('Eiffel Museum').closest('button')).toHaveClass('bg-slate-100');
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByText('Eiffel Tower').closest('button')).toHaveClass('bg-slate-100');
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByText('Eiffel Museum').closest('button')).toHaveClass('bg-slate-100');
+
+    await user.keyboard('{Enter}');
+    expect(await screen.findByDisplayValue('52.52')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('13.405')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-050: Escape closes the dropdown without searching', async () => {
+    const user = userEvent.setup();
+    let searches = 0;
+    server.use(
+      twoSuggestions(),
+      http.post('/api/maps/search', () => {
+        searches += 1;
+        return HttpResponse.json({ places: [] });
+      }),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+    await screen.findByText('Paris, France');
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByText('Paris, France')).not.toBeInTheDocument();
+    expect(searches).toBe(0);
+  });
+
+  it('FE-PLANNER-PLACEFORM-051: Enter with nothing highlighted closes the dropdown and runs the full search', async () => {
+    const user = userEvent.setup();
+    server.use(
+      twoSuggestions(),
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({ places: [{ name: 'Eiffel Tower', address: 'Champ de Mars', lat: '48.8584', lng: '2.2945' }] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+    await screen.findByText('Paris, France');
+
+    await user.keyboard('{Enter}');
+    expect(await screen.findByText('Champ de Mars')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-052: when both details and the search fallback fail the query is restored', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    server.use(
+      twoSuggestions(),
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.post('/api/maps/search', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+    await user.click(await screen.findByText('Paris, France'));
+
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith(expect.stringMatching(/Place search failed|nope/i), 'error', undefined),
+    );
+    // The typed query comes back so the user can retry instead of starting over.
+    await waitFor(() => expect(screen.getByPlaceholderText('Search places...')).toHaveValue('Eiffel'));
+
+    consoleError.mockRestore();
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-PLACEFORM-053: a Google place id shared with an existing trip place is flagged as duplicate', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [buildPlace({ name: 'Already Here', google_place_id: 'gp-1', lat: null, lng: null })],
+    });
+    server.use(
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({ places: [{ name: 'Same Spot', address: 'Somewhere', lat: '10', lng: '10', google_place_id: 'gp-1' }] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'same spot');
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByText('Same Spot'));
+
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('Already Here'), 'warning', undefined);
+
+    delete window.__addToast;
+  });
+
+  // ── Paste-to-attach ────────────────────────────────────────────────────────
+
+  function pasteItems(target: Element, items: { type: string; file: File | null }[]) {
+    fireEvent.paste(target, {
+      clipboardData: {
+        items: items.map(i => ({ type: i.type, getAsFile: () => i.file })),
+      },
+    });
+  }
+
+  it('FE-PLANNER-PLACEFORM-054: pasting an image attaches it as a pending file', () => {
+    render(<PlaceFormModal {...defaultProps} />);
+    const form = document.querySelector('form') as HTMLFormElement;
+    pasteItems(form, [
+      { type: 'text/plain', file: null },
+      { type: 'image/png', file: new File(['x'], 'screenshot.png', { type: 'image/png' }) },
+    ]);
+    expect(screen.getByText('screenshot.png')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-055: pasting plain text alone attaches nothing', () => {
+    render(<PlaceFormModal {...defaultProps} />);
+    const form = document.querySelector('form') as HTMLFormElement;
+    pasteItems(form, [{ type: 'text/plain', file: null }]);
+    expect(screen.getByText(/paste images from clipboard/i)).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-056: paste is ignored entirely without upload permission', () => {
+    seedStore(usePermissionsStore, { permissions: { file_upload: 'admin' } });
+    render(<PlaceFormModal {...defaultProps} />);
+    const form = document.querySelector('form') as HTMLFormElement;
+    pasteItems(form, [{ type: 'application/pdf', file: new File(['x'], 'ticket.pdf', { type: 'application/pdf' }) }]);
+    expect(screen.queryByText('ticket.pdf')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-057: the Attach button opens the hidden file input', async () => {
+    const user = userEvent.setup();
+    render(<PlaceFormModal {...defaultProps} />);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const clickSpy = vi.spyOn(fileInput, 'click').mockImplementation(() => {});
+    await user.click(screen.getByRole('button', { name: /Attach/i }));
+    expect(clickSpy).toHaveBeenCalled();
+    clickSpy.mockRestore();
+  });
+
+  // ── Remaining form fields ──────────────────────────────────────────────────
+
+  it('FE-PLANNER-PLACEFORM-058: description, notes, website and category all reach the save payload', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const cat = buildCategory({ name: 'Museums' });
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} categories={[cat]} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Louvre');
+    await user.type(screen.getByPlaceholderText(/Short description/i), 'Glass pyramid');
+    await user.type(screen.getByPlaceholderText(/Personal notes/i), 'Book ahead');
+    await user.type(screen.getByPlaceholderText(/Street, City, Country/i), 'Rue de Rivoli');
+    await user.type(screen.getByPlaceholderText(/Longitude/i), '2.3376');
+    await user.type(screen.getByPlaceholderText('https://...'), 'https://louvre.fr');
+    // Pick the category through the CustomSelect trigger.
+    await user.click(screen.getByText(/No category/i));
+    await user.click(screen.getByRole('button', { name: 'Museums' }));
+
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Louvre',
+        description: 'Glass pyramid',
+        notes: 'Book ahead',
+        address: 'Rue de Rivoli',
+        lng: 2.3376,
+        website: 'https://louvre.fr',
+        category_id: String(cat.id),
+      }),
+    );
+  });
+
+  it('FE-PLANNER-PLACEFORM-059: the Collections column only appears on desktop with the addon enabled', () => {
+    seedStore(useAddonStore, {
+      addons: [{ id: 'collections', name: 'Collections', type: 'collections', icon: '', enabled: true }],
+      loaded: true,
+    });
+    const { unmount } = render(<PlaceFormModal {...defaultProps} isMobile={false} />);
+    expect(screen.getByPlaceholderText(/Search your saved places/i)).toBeInTheDocument();
+    unmount();
+
+    render(<PlaceFormModal {...defaultProps} isMobile />);
+    expect(screen.queryByPlaceholderText(/Search your saved places/i)).not.toBeInTheDocument();
+  });
+
+  // ── Time section edge cases ────────────────────────────────────────────────
+
+  it('FE-PLANNER-PLACEFORM-060: editing the times through the pickers updates the save payload', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const place = buildPlace({ name: 'Museum' });
+    const assignment = buildAssignment({ id: 12, day_id: 4, place });
+
+    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={12} dayAssignments={[assignment]} onSave={onSave} />);
+    const [start, end] = screen.getAllByTestId('time-picker');
+    fireEvent.change(start, { target: { value: '09:00' } });
+    fireEvent.change(end, { target: { value: '10:30' } });
+
+    await user.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ place_time: '09:00', end_time: '10:30' }));
+  });
+
+  it('FE-PLANNER-PLACEFORM-061: an assignment id that is not in the day list reports no collisions', () => {
+    const place = buildPlace({ name: 'Ghost', place_time: '12:00', end_time: '13:00' });
+    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={999} dayAssignments={[]} />);
+    expect(screen.getAllByTestId('time-picker').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText(/Time overlap with:/i)).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-062: collisions ignore other days and timeless assignments', () => {
+    const current = buildPlace({ name: 'My Event', place_time: '12:30', end_time: '13:30' });
+    const otherDay = buildPlace({ name: 'Other Day Event', place_time: '13:00', end_time: '14:00' });
+    const timeless = buildPlace({ name: 'Timeless Event' });
+    const overlapping = buildPlace({ name: 'Overlapping Event', place_time: '13:00', end_time: '14:00' });
+
+    render(
+      <PlaceFormModal
+        {...defaultProps}
+        place={current}
+        assignmentId={10}
+        dayAssignments={[
+          buildAssignment({ id: 10, day_id: 5, place: current }),
+          buildAssignment({ id: 20, day_id: 6, place: otherDay }),
+          buildAssignment({ id: 30, day_id: 5, place: timeless }),
+          buildAssignment({ id: 40, day_id: 5, place: overlapping }),
+        ]}
+      />,
+    );
+
+    const warning = screen.getByText(/Time overlap with:/i).closest('div') as HTMLElement;
+    expect(warning).toHaveTextContent('Overlapping Event');
+    expect(warning).not.toHaveTextContent('Other Day Event');
+    expect(warning).not.toHaveTextContent('Timeless Event');
+  });
+});
+
+// FE-W5PFM-001 to FE-W5PFM-014 — the remaining prefill, response-shape and
+// error branches of the place form.
+describe('PlaceFormModal remaining branches', () => {
+  it('FE-W5PFM-001: an existing place with empty fields opens on the defaults', () => {
+    const place = buildPlace({
+      name: null, description: null, address: null, lat: null, lng: null,
+      category_id: null, notes: null, transport_mode: null, website: null,
+    });
+    render(<PlaceFormModal {...defaultProps} place={place} />);
+
+    expect(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i)).toHaveValue('');
+    expect(screen.getByPlaceholderText(/Latitude/i)).toHaveValue('');
+    expect(screen.getByPlaceholderText(/Longitude/i)).toHaveValue('');
+    expect(screen.getByPlaceholderText('https://...')).toHaveValue('');
+  });
+
+  it('FE-W5PFM-002: prefilled coordinates without a name only fill the coordinates', () => {
+    render(<PlaceFormModal {...defaultProps} prefillCoords={{ lat: 48.8584, lng: 2.2945 }} />);
+
+    expect(screen.getByPlaceholderText(/Latitude/i)).toHaveValue('48.8584');
+    expect(screen.getByPlaceholderText(/Longitude/i)).toHaveValue('2.2945');
+    expect(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i)).toHaveValue('');
+    expect(screen.getByPlaceholderText(/Street, City, Country/i)).toHaveValue('');
+  });
+
+  it('FE-W5PFM-003: an autocomplete response without a suggestions array shows no dropdown', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/maps/autocomplete', () => HttpResponse.json({})));
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+    expect(screen.queryByText('Eiffel Tower, Paris')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5PFM-004: an aborted autocomplete is swallowed without logging', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const user = userEvent.setup();
+    const gate: { release?: () => void } = {};
+    let seen = 0;
+    server.use(
+      http.post('/api/maps/autocomplete', async () => {
+        seen += 1;
+        if (seen === 1) await new Promise<void>(res => { gate.release = res; });
+        return HttpResponse.json({
+          suggestions: [{ placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+        });
+      }),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search places...');
+    await user.type(searchInput, 'Eiff');
+    await waitFor(() => expect(seen).toBe(1));
+    // The second query aborts the still-open first one
+    await user.type(searchInput, 'el tower');
+    await waitFor(() => expect(seen).toBe(2));
+    gate.release?.();
+
+    expect(await screen.findByText('Paris, France')).toBeInTheDocument();
+    expect(screen.getAllByText('Eiffel Tower')).toHaveLength(1);
+    expect(consoleError).not.toHaveBeenCalledWith('Autocomplete failed:', expect.anything());
+    consoleError.mockRestore();
+  });
+
+  it('FE-W5PFM-005: a resolved URL without a name or address keeps the form values', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/resolve-url', () => HttpResponse.json({ lat: 48.853, lng: 2.3499 })),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Kept Name');
+    await user.type(screen.getByPlaceholderText('Search places...'), 'https://maps.google.com/maps?q=x');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByDisplayValue('48.853')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i)).toHaveValue('Kept Name');
+  });
+
+  it('FE-W5PFM-006: a search response without a places array renders no results', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/maps/search', () => HttpResponse.json({})));
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'nowhere');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Search places...')).toHaveValue('nowhere'));
+    expect(screen.queryByRole('button', { name: /nowhere/i })).not.toBeInTheDocument();
+  });
+
+  it('FE-W5PFM-007: picking a bare search result leaves the typed fields alone', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Bare Result' }] })),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText(/Street, City, Country/i), 'Rue de Rivoli');
+    await user.type(screen.getByPlaceholderText('Search places...'), 'bare');
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByText('Bare Result'));
+
+    expect(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i)).toHaveValue('Bare Result');
+    expect(screen.getByPlaceholderText(/Street, City, Country/i)).toHaveValue('Rue de Rivoli');
+    expect(screen.getByPlaceholderText(/Latitude/i)).toHaveValue('');
+  });
+
+  it('FE-W5PFM-008: a place sharing only the name is flagged as a duplicate', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [buildPlace({ name: 'Louvre', lat: null, lng: null })] });
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'louvre');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('Louvre'), 'warning', undefined);
+
+    // The second click is the explicit confirmation
+    await user.click(screen.getByRole('button', { name: /Add anyway/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+
+    delete window.__addToast;
+  });
+
+  it('FE-W5PFM-009: a place sharing only the coordinates is flagged as a duplicate', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [buildPlace({ name: null, lat: 48.8584, lng: 2.2945 })] });
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Tour Eiffel');
+    await user.type(screen.getByPlaceholderText(/Latitude/i), '48.85841');
+    await user.type(screen.getByPlaceholderText(/Longitude/i), '2.29451');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    // the existing place has no name, so the warning falls back to the typed one
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('Tour Eiffel'), 'warning', undefined);
+
+    delete window.__addToast;
+  });
+
+  it('FE-W5PFM-010: a rejected save without an Error surfaces the generic message', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockRejectedValue('nope');
+    const onClose = vi.fn();
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} onClose={onClose} />);
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Louvre');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to save', 'error', undefined));
+    expect(onClose).not.toHaveBeenCalled();
+
+    delete window.__addToast;
+  });
+
+  it('FE-W5PFM-011: pasting a coordinate pair into latitude fills both fields', () => {
+    render(<PlaceFormModal {...defaultProps} />);
+    const lat = screen.getByPlaceholderText(/Latitude/i);
+
+    fireEvent.paste(lat, { clipboardData: { getData: () => ' 48.8584, 2.2945 ' } });
+    expect(screen.getByPlaceholderText(/Latitude/i)).toHaveValue('48.8584');
+    expect(screen.getByPlaceholderText(/Longitude/i)).toHaveValue('2.2945');
+  });
+
+  it('FE-W5PFM-012: pasting anything else into latitude is left to the input', () => {
+    render(<PlaceFormModal {...defaultProps} />);
+    const lat = screen.getByPlaceholderText(/Latitude/i);
+
+    fireEvent.paste(lat, { clipboardData: { getData: () => 'not a coordinate' } });
+    expect(screen.getByPlaceholderText(/Longitude/i)).toHaveValue('');
+  });
+
+  it('FE-W5PFM-013: a missing category list still renders the no-category option', () => {
+    render(<PlaceFormModal {...defaultProps} categories={null} />);
+
+    expect(screen.getByText(/No category/i)).toBeInTheDocument();
+  });
+
+  it('FE-W5PFM-014: an open-ended assignment collapses to a point in time', () => {
+    const current = buildPlace({ name: 'My Event', place_time: '11:30', end_time: '' });
+    const spanning = buildPlace({ name: 'Spanning Event', place_time: '11:00', end_time: '12:00' });
+    const earlier = buildPlace({ name: 'Earlier Event', place_time: '11:00', end_time: '' });
+
+    render(
+      <PlaceFormModal
+        {...defaultProps}
+        place={current}
+        assignmentId={10}
+        dayAssignments={[
+          buildAssignment({ id: 10, day_id: 5, place: current }),
+          buildAssignment({ id: 20, day_id: 5, place: spanning }),
+          buildAssignment({ id: 30, day_id: 5, place: earlier }),
+        ]}
+      />,
+    );
+
+    const warning = screen.getByText(/Time overlap with:/i).closest('div') as HTMLElement;
+    expect(warning).toHaveTextContent('Spanning Event');
+    expect(warning).not.toHaveTextContent('Earlier Event');
   });
 });

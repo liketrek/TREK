@@ -31,7 +31,8 @@ import { getClientIp } from '../audit/client-ip';
 import { logInfo } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';
 import { isDemoEmail } from '../../services/demo';
-import { NotFoundError, ValidationError } from '../../services/tripService';
+import { NotFoundError, ValidationError } from './trips.service';
+import { TripCreateDto, TripUpdateDto, TripCopyDto, TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRenameGuestDto } from './trips.dto';
 import { saveUnsplashCover, isUnsplashCoverUrl } from '../../services/unsplashService';
 
 const MAX_COVER_SIZE = 20 * 1024 * 1024;
@@ -92,16 +93,14 @@ export class TripsController {
 
   @Post()
   @HttpCode(201)
-  create(@CurrentUser() user: User, @Body() body: Record<string, unknown>, @Req() req: Request) {
+  create(@CurrentUser() user: User, @Body() body: TripCreateDto, @Req() req: Request) {
     if (!this.trips.can('trip_create', user.role, null, user.id, false)) {
       throw new HttpException({ error: 'No permission to create trips' }, 403);
     }
-    const { title, description, currency, reminder_days, day_count } = body as Record<string, never>;
-    if (!title) {
-      throw new HttpException({ error: 'Title is required' }, 400);
-    }
-    let start_date: string | null = (body.start_date as string) || null;
-    let end_date: string | null = (body.end_date as string) || null;
+    // Presence/shape validation happens in the ZodValidationPipe (tripCreateRequestSchema).
+    const { title, description, currency, reminder_days, day_count } = body;
+    let start_date: string | null = body.start_date || null;
+    let end_date: string | null = body.end_date || null;
     if (start_date && !end_date) end_date = toDateStr(addDays(new Date(start_date), 6));
     else if (!start_date && end_date) start_date = toDateStr(addDays(new Date(end_date), -6));
     if (start_date && end_date && new Date(end_date) < new Date(start_date)) {
@@ -124,7 +123,7 @@ export class TripsController {
   }
 
   @Put(':id')
-  async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: Record<string, unknown>, @Req() req: Request, @Headers('x-socket-id') socketId?: string) {
+  async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripUpdateDto, @Req() req: Request, @Headers('x-socket-id') socketId?: string) {
     const access = this.trips.canAccessTrip(id, user.id);
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
@@ -205,13 +204,14 @@ export class TripsController {
 
   @Post(':id/copy')
   @HttpCode(201)
-  copy(@CurrentUser() user: User, @Param('id') id: string, @Body('title') title: string | undefined, @Req() req: Request) {
+  copy(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripCopyDto, @Req() req: Request) {
     if (!this.trips.can('trip_create', user.role, null, user.id, false)) {
       throw new HttpException({ error: 'No permission to create trips' }, 403);
     }
     if (!this.trips.canAccessTrip(id, user.id)) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
+    const { title } = body;
     try {
       const newTripId = this.trips.copy(id, user.id, title);
       this.audit.writeAudit({ userId: user.id, action: 'trip.copy', ip: getClientIp(req), details: { sourceTripId: Number(id), newTripId, title } });
@@ -249,7 +249,8 @@ export class TripsController {
 
   @Post(':id/members')
   @HttpCode(201)
-  addMember(@CurrentUser() user: User, @Param('id') id: string, @Body('identifier') identifier: string) {
+  addMember(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripAddMemberDto) {
+    const { identifier } = body;
     const access = this.trips.canAccessTrip(id, user.id);
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
@@ -286,10 +287,11 @@ export class TripsController {
   transferOwnership(
     @CurrentUser() user: User,
     @Param('id') id: string,
-    @Body('newOwnerId') newOwnerId: unknown,
+    @Body() body: TripTransferOwnershipDto,
     @Req() req: Request,
     @Headers('x-socket-id') socketId?: string,
   ) {
+    const { newOwnerId } = body;
     const access = this.trips.canAccessTrip(id, user.id);
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
@@ -298,9 +300,6 @@ export class TripsController {
     // anyone who can manage members.
     if (access.user_id !== user.id) {
       throw new HttpException({ error: 'Only the owner can transfer ownership' }, 403);
-    }
-    if (typeof newOwnerId !== 'number') {
-      throw new HttpException({ error: 'newOwnerId is required' }, 400);
     }
     try {
       const result = this.trips.transferOwnership(id, newOwnerId, user.id);
@@ -330,14 +329,13 @@ export class TripsController {
 
   @Post(':id/guests')
   @HttpCode(201)
-  createGuest(@CurrentUser() user: User, @Param('id') id: string, @Body('name') name: unknown) {
+  createGuest(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripCreateGuestDto) {
     this.requireOwner(id, user);
-    if (typeof name !== 'string' || !name.trim()) {
-      throw new HttpException({ error: 'Guest name is required' }, 400);
-    }
+    // Whitespace-only names still 400 with the legacy body — the service throws
+    // ValidationError('Guest name is required') after trimming.
     try {
       // No notifyInvite: a guest has no inbox.
-      return this.trips.createGuest(id, name, user.id);
+      return this.trips.createGuest(id, body.name, user.id);
     } catch (e: unknown) {
       if (e instanceof ValidationError) throw new HttpException({ error: e.message }, 400);
       throw e;
@@ -345,13 +343,10 @@ export class TripsController {
   }
 
   @Put(':id/guests/:userId')
-  renameGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body('name') name: unknown) {
+  renameGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: TripRenameGuestDto) {
     this.requireOwner(id, user);
-    if (typeof name !== 'string' || !name.trim()) {
-      throw new HttpException({ error: 'Guest name is required' }, 400);
-    }
     try {
-      if (!this.trips.renameGuest(id, parseInt(userId), name)) {
+      if (!this.trips.renameGuest(id, parseInt(userId), body.name)) {
         throw new HttpException({ error: 'Guest not found' }, 404);
       }
       return { success: true };

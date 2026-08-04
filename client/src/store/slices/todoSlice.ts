@@ -73,11 +73,14 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
 
   reorderTodoItems: async (tripId, orderedIds) => {
     const prev = get().todoItems
+    // Unknown ids are dropped before reindexing so a stale id can't leave a gap
+    // in the local sort_order sequence.
     set(state => {
       const byId = new Map(state.todoItems.map(i => [i.id, i]))
       const reordered = orderedIds
-        .map((id, idx): TodoItem | null => { const item = byId.get(id); return item ? { ...item, sort_order: idx } : null })
-        .filter((i): i is TodoItem => i !== null)
+        .map(id => byId.get(id))
+        .filter((i): i is TodoItem => i !== undefined)
+        .map((item, idx): TodoItem => ({ ...item, sort_order: idx }))
       const remaining = state.todoItems.filter(i => !orderedIds.includes(i.id))
       return { todoItems: [...reordered, ...remaining] }
     })

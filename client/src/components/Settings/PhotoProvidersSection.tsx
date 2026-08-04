@@ -192,8 +192,11 @@ export default function PhotoProvidersSection(): React.ReactElement {
     if (!testPath) return
     setProviderTesting(prev => ({ ...prev, [provider.id]: true }))
     try {
-      const payload = buildProviderPayload(provider)
-      const res = cfg.test_post ? await apiClient.post(testPath, payload) : await apiClient.get(testPath)
+      // Only a POST probe carries the form values. A provider that declares just a
+      // GET (test_get / status_get) is probed against its saved credentials.
+      const res = cfg.test_post
+        ? await apiClient.post(testPath, buildProviderPayload(provider))
+        : await apiClient.get(testPath)
       const ok = !!res.data?.connected
       setProviderConnected(prev => ({ ...prev, [provider.id]: ok }))
       if (ok) {

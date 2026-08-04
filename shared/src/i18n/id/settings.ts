@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Template Peta',
   'settings.mapTemplatePlaceholder.select': 'Pilih template...',
   'settings.mapDefaultHint': 'Kosongkan untuk OpenStreetMap (default)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Template URL untuk tile peta',
   'settings.mapProvider': 'Penyedia peta',
   'settings.mapProviderHint': 'Berlaku untuk peta Trip Planner dan Journey. Atlas selalu menggunakan Leaflet.',
@@ -269,6 +268,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Foto profil diperbarui',
   'settings.avatarRemoved': 'Foto profil dihapus',
   'settings.avatarError': 'Gagal mengunggah',
+  'settings.avatarRemoveError': 'Gagal menghapus',
   'settings.mfa.title': 'Autentikasi dua faktor (2FA)',
   'settings.mfa.description':
     'Menambahkan langkah kedua saat masuk dengan email dan kata sandi. Gunakan aplikasi autentikator (Google Authenticator, Authy, dll.).',

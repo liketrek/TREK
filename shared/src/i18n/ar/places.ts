@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'خط الطول (مثال: 2.3522)',
   'places.formCategory': 'الفئة',
   'places.noCategory': 'بلا فئة',
+  'places.newCategory': 'فئة جديدة',
   'places.categoryNamePlaceholder': 'اسم الفئة',
   'places.formTime': 'الوقت',
   'places.startTime': 'البداية',
@@ -97,5 +98,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'تغيير الصورة',
   'places.removeImage': 'إزالة الصورة',
   'places.imageUploadError': 'تعذّر رفع الصورة',
+  'places.imageRemoveError': 'تعذّر إزالة الصورة',
 };
 export default places;

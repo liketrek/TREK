@@ -81,6 +81,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Sao chép vào chuyến đi',
   'collections.copyN': 'Sao chép {count} vào chuyến đi',
   'collections.copyToTripSearch': 'Tìm chuyến đi',
+  'collections.searchLists': 'Tìm danh sách',
   'collections.copyToTripConfirm': 'Sao chép',
   'collections.noTrips': 'Chưa có chuyến đi nào',
   'collections.alreadyInTrip': 'Đã có trong chuyến đi này',

@@ -14,6 +14,7 @@ const undo: TranslationStrings = {
   'undo.lock': 'Place lock toggled',
   'undo.importGpx': 'GPX import',
   'undo.importKeyholeMarkup': 'KMZ/KML import',
+  'undo.importFiles': 'File import',
   'undo.importGoogleList': 'Google Maps import',
   'undo.importNaverList': 'Naver Maps import',
   'undo.importBooking': 'Booking confirmation import',

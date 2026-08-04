@@ -1,5 +1,6 @@
 import { db } from '../../db/database';
 import { DatabaseService } from '../database/database.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { ReservationsService } from './reservations.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { BudgetService } from '../budget/budget.service';
@@ -10,10 +11,11 @@ export type { EndpointInput, ReservationEndpoint, ReservationTraveler } from './
 /**
  * Non-Nest entry point for the reservations domain — for code running OUTSIDE
  * the Nest container (the legacy tripService, the airtrail import/sync
- * services, and the still-legacy transit + transports MCP registrars; the
- * reservation MCP tools and resource moved to the DI-discovered
- * reservations.mcp.ts, and the plugin RPC host injects ReservationsService via
- * PluginHostDepsFactory). Exports only the legacy services/reservationService
+ * services, and the still-legacy transports MCP registrar; the reservation
+ * MCP tools and resource moved to the DI-discovered reservations.mcp.ts, the
+ * transit tools to the DI-discovered transit.mcp.ts (which injects
+ * ReservationsService), and the plugin RPC host injects ReservationsService
+ * via PluginHostDepsFactory). Exports only the legacy services/reservationService
  * names still consumed outside the container, 1:1, so repointing a consumer is
  * an import-path-only diff. Inside the container, inject ReservationsService
  * instead. Delete exports here as their consumers migrate.
@@ -24,7 +26,8 @@ export type { EndpointInput, ReservationEndpoint, ReservationTraveler } from './
 const reservations = new ReservationsService(
   new DatabaseService(db),
   new PermissionsService(new DatabaseService(db)),
-  new BudgetService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new ExchangeRatesService()),
+  new BudgetService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new ExchangeRatesService(), new RealtimeService()),
+  new RealtimeService(),
 );
 
 export function listReservations(tripId: string | number) {

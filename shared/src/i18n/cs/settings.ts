@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Šablona mapy',
   'settings.mapTemplatePlaceholder.select': 'Vyberte šablonu...',
   'settings.mapDefaultHint': 'Ponechte prázdné pro OpenStreetMap (výchozí)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL šablony pro mapové dlaždice',
   'settings.mapProvider': 'Poskytovatel mapy',
   'settings.mapProviderHint': 'Ovlivňuje mapy v Trip Planneru a Journey. Atlas vždy používá Leaflet.',
@@ -231,6 +230,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profilový obrázek byl aktualizován',
   'settings.avatarRemoved': 'Profilový obrázek byl odstraněn',
   'settings.avatarError': 'Nahrávání se nezdařilo',
+  'settings.avatarRemoveError': 'Odstranění se nezdařilo',
   'settings.mfa.title': 'Dvoufaktorové ověření (2FA)',
   'settings.mfa.description':
     'Přidá druhý stupeň zabezpečení při přihlašování e-mailem a heslem. Použijte aplikaci (Google Authenticator, Authy apod.).',

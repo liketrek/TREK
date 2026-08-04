@@ -50,7 +50,15 @@ export const placeRepo = {
   async update(tripId: number | string, id: number | string, data: Record<string, unknown>): Promise<{ place: Place }> {
     if (isEffectivelyOffline()) {
       const existing = await offlineDb.places.get(Number(id))
-      const optimistic: Place = { ...(existing ?? {} as Place), ...(data as Partial<Place>), id: Number(id) }
+      // trip_id has to be there even when nothing was cached: every read goes
+      // through places.where('trip_id'), and clearTripData() evicts by it too —
+      // a row without it is invisible and never cleaned up.
+      const optimistic: Place = {
+        ...(existing ?? {} as Place),
+        ...(data as Partial<Place>),
+        id: Number(id),
+        trip_id: Number(tripId),
+      }
       await offlineDb.places.put(optimistic)
       const mutId = generateUUID()
       const isTemp = Number(id) < 0

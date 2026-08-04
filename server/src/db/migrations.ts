@@ -3830,6 +3830,17 @@ function runMigrations(db: Database.Database): void {
       const hasRouteColor = db.prepare("SELECT 1 FROM pragma_table_info('places') WHERE name = 'route_color'").get();
       if (!hasRouteColor) db.exec('ALTER TABLE places ADD COLUMN route_color TEXT');
     },
+
+    // Backfill the three places feature toggles before their read flips from
+    // fail-open (`value !== 'false'`) to fail-closed (`value === 'true'`), so
+    // existing installs that never touched the admin switches keep the features
+    // they have today. A row that already says 'false' is left alone.
+    () => {
+      const insert = db.prepare("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, 'true')");
+      for (const key of ['places_photos_enabled', 'places_autocomplete_enabled', 'places_details_enabled']) {
+        insert.run(key);
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -11,6 +11,7 @@ import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { ReservationsModule } from '../../src/nest/reservations/reservations.module';
 import { sessionCookie } from './harness';
 import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { Test } from '@nestjs/testing';
 
 import cookieParser from 'cookie-parser';
@@ -37,7 +38,7 @@ vi.mock('../../src/db/database', () => ({
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 const { notificationSend } = vi.hoisted(() => ({ notificationSend: vi.fn().mockResolvedValue(undefined) }));
-vi.mock('../../src/services/notificationService', () => ({ send: notificationSend }));
+vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: notificationSend }));
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
@@ -57,7 +58,7 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, ReservationsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, ReservationsModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

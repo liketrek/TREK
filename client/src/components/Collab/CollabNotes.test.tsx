@@ -10,7 +10,7 @@ vi.mock('../../api/websocket', () => ({
   removeListener: vi.fn(),
 }));
 
-import { render, screen, waitFor, act } from '../../../tests/helpers/render';
+import { render, screen, waitFor, act, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -19,6 +19,7 @@ import { useTripStore } from '../../store/tripStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip } from '../../../tests/helpers/factories';
 import CollabNotes from './CollabNotes';
+import { addListener } from '../../api/websocket';
 
 const currentUser = buildUser({ id: 1, username: 'testuser' });
 
@@ -1266,5 +1267,556 @@ describe('CollabNotes', () => {
     await screen.findByText('Pinned');
     await screen.findByText('Unpinned');
     expect(document.body.innerHTML.indexOf('Pinned')).toBeLessThan(document.body.innerHTML.indexOf('Unpinned'));
+  });
+});
+
+// FE-W5CNT-001 to FE-W5CNT-029
+// Fills in the load/error/attachment/category branches of useCollabNotes and the
+// view modal that the smoke tests above do not reach.
+
+type AddToast = NonNullable<typeof window.__addToast>;
+
+const buildNote = (overrides: Record<string, unknown> = {}) => ({
+  id: 1,
+  trip_id: 1,
+  user_id: 1,
+  author_username: 'testuser',
+  author_avatar: null,
+  title: 'A note',
+  content: 'Body text',
+  category: null,
+  website: null,
+  color: '#3b82f6',
+  pinned: false,
+  files: [],
+  attachments: [],
+  created_at: '2025-06-01T10:00:00.000Z',
+  updated_at: '2025-06-01T10:00:00.000Z',
+  ...overrides,
+});
+
+function serveNotes(payload: unknown) {
+  server.use(http.get('/api/trips/1/collab/notes', () => HttpResponse.json(payload)));
+}
+
+/** Serves a different payload per GET so reload-after-upload can be observed. */
+function serveNotesSequence(payloads: unknown[]) {
+  let call = 0;
+  server.use(
+    http.get('/api/trips/1/collab/notes', () => {
+      const payload = payloads[Math.min(call, payloads.length - 1)];
+      call += 1;
+      return HttpResponse.json(payload);
+    }),
+  );
+}
+
+function pasteFile(name: string, type = 'image/png') {
+  const file = new File(['x'], name, { type });
+  fireEvent.paste(document.querySelector('form')!, {
+    clipboardData: { items: [{ type, getAsFile: () => file }] },
+  });
+}
+
+function wsHandler(): (msg: Record<string, unknown>) => void {
+  return (addListener as ReturnType<typeof vi.fn>).mock.calls[0][0];
+}
+
+describe('CollabNotes details', () => {
+  let addToast: ReturnType<typeof vi.fn<AddToast>>;
+  let filesChanged: number;
+  let onFilesChanged: () => void;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    addToast = vi.fn<AddToast>(() => 0);
+    window.__addToast = addToast;
+    filesChanged = 0;
+    onFilesChanged = () => { filesChanged += 1; };
+    window.addEventListener('collab-files-changed', onFilesChanged);
+  });
+
+  afterEach(() => {
+    window.removeEventListener('collab-files-changed', onFilesChanged);
+    delete window.__addToast;
+    localStorage.clear();
+  });
+
+  it('FE-W5CNT-001: a corrupt category cache in localStorage is ignored', async () => {
+    localStorage.setItem('collab-cats-1', '{not json');
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('No notes yet');
+  });
+
+  it('FE-W5CNT-002: a category without a stored colour falls back to the first palette entry', async () => {
+    serveNotes({ notes: [buildNote({ category: 'Ideas', color: null })] });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('A note');
+    // The card chip is a span, the filter pill above the grid is a button
+    const chip = screen.getAllByText('Ideas').find(el => el.tagName === 'SPAN')!;
+    expect(chip.style.color).toBe('rgb(99, 102, 241)');
+  });
+
+  it('FE-W5CNT-003: without a trip id nothing is fetched and the panel stays in its loading state', () => {
+    render(<CollabNotes tripId={0} currentUser={currentUser} />);
+    expect(screen.getByRole('heading', { name: 'Notes' })).toBeInTheDocument();
+    expect(screen.queryByText('New Note')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-004: notes served as a bare array are rendered', async () => {
+    serveNotes([buildNote({ title: 'Array note' })]);
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Array note');
+  });
+
+  it('FE-W5CNT-005: an empty payload yields an empty list', async () => {
+    serveNotes(null);
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('No notes yet');
+  });
+
+  it('FE-W5CNT-006: a failing load falls back to the empty state', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/notes', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('No notes yet');
+  });
+
+  it('FE-W5CNT-007: a WebSocket create for a note already in the list does not duplicate it', async () => {
+    serveNotes({ notes: [buildNote({ id: 4, title: 'Already here' })] });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Already here');
+    const handler = wsHandler();
+    await act(async () => {
+      handler({ type: 'collab:note:created', note: buildNote({ id: 4, title: 'Already here' }) });
+    });
+    expect(screen.getAllByText('Already here')).toHaveLength(1);
+  });
+
+  it('FE-W5CNT-008: a WebSocket update only touches the matching note', async () => {
+    serveNotes({
+      notes: [buildNote({ id: 1, title: 'First' }), buildNote({ id: 2, title: 'Second' })],
+    });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Second');
+    const handler = wsHandler();
+    await act(async () => {
+      handler({ type: 'collab:note:updated', note: { id: 2, title: 'Second renamed' } });
+    });
+    expect(await screen.findByText('Second renamed')).toBeInTheDocument();
+    expect(screen.getByText('First')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-009: a WebSocket delete accepts a plain id and ignores events without one', async () => {
+    serveNotes({ notes: [buildNote({ id: 9, title: 'Doomed' })] });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Doomed');
+    const handler = wsHandler();
+    await act(async () => { handler({ type: 'collab:note:deleted' }); });
+    expect(screen.getByText('Doomed')).toBeInTheDocument();
+    await act(async () => { handler({ type: 'collab:note:deleted', id: 9 }); });
+    await waitFor(() => expect(screen.queryByText('Doomed')).not.toBeInTheDocument());
+  });
+
+  it('FE-W5CNT-010: an unwrapped create response is prepended to the list', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/trips/1/collab/notes', () =>
+        HttpResponse.json(buildNote({ id: 20, title: 'Fresh note' })),
+      ),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('No notes yet');
+    await user.click(screen.getByText('New Note'));
+    await user.type(await screen.findByPlaceholderText('Note title'), 'Fresh note');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await screen.findByText('Fresh note');
+  });
+
+  it('FE-W5CNT-011: an empty create response leaves the list untouched', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/trips/1/collab/notes', () => HttpResponse.json(null)));
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('No notes yet');
+    await user.click(screen.getByText('New Note'));
+    await user.type(await screen.findByPlaceholderText('Note title'), 'Ghost note');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(screen.queryByPlaceholderText('Note title')).not.toBeInTheDocument());
+    expect(screen.getByText('No notes yet')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-012: a failing create reports an error and keeps the modal open', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/trips/1/collab/notes', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('No notes yet');
+    await user.click(screen.getByText('New Note'));
+    await user.type(await screen.findByPlaceholderText('Note title'), 'Doomed note');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.getByPlaceholderText('Note title')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-013: a pasted attachment is uploaded and the list is reloaded afterwards', async () => {
+    const user = userEvent.setup();
+    let uploaded = 0;
+    serveNotesSequence([
+      { notes: [] },
+      { notes: [buildNote({ id: 30, title: 'With file' })] },
+    ]);
+    server.use(
+      http.post('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({ note: buildNote({ id: 30, title: 'With file' }) }),
+      ),
+      http.post('/api/trips/1/collab/notes/30/files', () => {
+        uploaded += 1;
+        return HttpResponse.json({ file: { id: 1 } });
+      }),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('No notes yet');
+    await user.click(screen.getByText('New Note'));
+    await user.type(await screen.findByPlaceholderText('Note title'), 'With file');
+    pasteFile('screenshot.png');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await screen.findByText('With file');
+    expect(uploaded).toBe(1);
+    expect(filesChanged).toBe(1);
+  });
+
+  it('FE-W5CNT-014: a failing upload reports an error and the array-shaped reload is ignored', async () => {
+    const user = userEvent.setup();
+    serveNotesSequence([{ notes: [] }, [buildNote({ id: 31, title: 'Never shown' })]]);
+    server.use(
+      http.post('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({ note: buildNote({ id: 31, title: 'Upload fails' }) }),
+      ),
+      http.post('/api/trips/1/collab/notes/31/files', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('No notes yet');
+    await user.click(screen.getByText('New Note'));
+    await user.type(await screen.findByPlaceholderText('Note title'), 'Upload fails');
+    pasteFile('broken.png');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    await waitFor(() => expect(filesChanged).toBe(1));
+    expect(screen.queryByText('Never shown')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-015: pinning a note applies the unwrapped response to that note only', async () => {
+    const user = userEvent.setup();
+    serveNotes({
+      notes: [buildNote({ id: 1, title: 'Pin me' }), buildNote({ id: 2, title: 'Leave me' })],
+    });
+    server.use(
+      http.put('/api/trips/1/collab/notes/1', () =>
+        HttpResponse.json(buildNote({ id: 1, title: 'Pinned now', pinned: true })),
+      ),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Pin me');
+    const pinBtn = screen.getAllByTitle('Pin')[0];
+    await user.click(pinBtn);
+    await screen.findByText('Pinned now');
+    expect(screen.getByText('Leave me')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-016: an empty update response leaves the note as it was', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 1, title: 'Unchanged' })] });
+    server.use(http.put('/api/trips/1/collab/notes/1', () => HttpResponse.json(null)));
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Unchanged');
+    await user.click(screen.getByTitle('Pin'));
+    await waitFor(() => expect(screen.getByText('Unchanged')).toBeInTheDocument());
+    expect(screen.getByTitle('Pin')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-017: a failing edit reports an error and keeps the edit modal open', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 3, title: 'Edit me' })] });
+    server.use(
+      http.put('/api/trips/1/collab/notes/3', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Edit me');
+    await user.click(screen.getByTitle('Edit'));
+    const titleInput = await screen.findByDisplayValue('Edit me');
+    await user.type(titleInput, ' v2');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.getByDisplayValue('Edit me v2')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-018: saving a new category colour rewrites every note in that category', async () => {
+    const user = userEvent.setup();
+    const bodies: Record<string, unknown>[] = [];
+    serveNotes({ notes: [buildNote({ id: 1, title: 'Sushi', category: 'Food', color: '#ef4444' })] });
+    server.use(
+      http.put('/api/trips/1/collab/notes/1', async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ note: buildNote({ id: 1, title: 'Sushi', category: 'Food', color: '#10b981' }) });
+      }),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Sushi');
+    await user.click(screen.getByTitle('Manage Categories'));
+    const label = (await screen.findAllByText('Food')).find(el => el.title === 'Click to rename')!;
+    const swatches = label.parentElement!.querySelectorAll('button');
+    await user.click(swatches[3]);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(bodies).toEqual([{ color: '#10b981' }]));
+  });
+
+  it('FE-W5CNT-019: attaching a file while editing uploads it and refreshes the note', async () => {
+    const user = userEvent.setup();
+    let uploaded = 0;
+    serveNotesSequence([
+      { notes: [buildNote({ id: 3, title: 'Edit me' })] },
+      { notes: [buildNote({ id: 3, title: 'Edited', attachments: [] })] },
+    ]);
+    server.use(
+      http.put('/api/trips/1/collab/notes/3', () =>
+        HttpResponse.json({ note: buildNote({ id: 3, title: 'Edited' }) }),
+      ),
+      http.post('/api/trips/1/collab/notes/3/files', () => {
+        uploaded += 1;
+        return HttpResponse.json({ file: { id: 2 } });
+      }),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Edit me');
+    await user.click(screen.getByTitle('Edit'));
+    await screen.findByDisplayValue('Edit me');
+    pasteFile('attachment.png');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Edited');
+    expect(uploaded).toBe(1);
+    expect(filesChanged).toBe(1);
+  });
+
+  it('FE-W5CNT-020: a failing upload during an edit reports an error', async () => {
+    const user = userEvent.setup();
+    serveNotesSequence([
+      { notes: [buildNote({ id: 3, title: 'Edit me' })] },
+      [buildNote({ id: 3, title: 'Ignored reload' })],
+    ]);
+    server.use(
+      http.put('/api/trips/1/collab/notes/3', () =>
+        HttpResponse.json({ note: buildNote({ id: 3, title: 'Edit me' }) }),
+      ),
+      http.post('/api/trips/1/collab/notes/3/files', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Edit me');
+    await user.click(screen.getByTitle('Edit'));
+    await screen.findByDisplayValue('Edit me');
+    pasteFile('nope.png');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.queryByText('Ignored reload')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-021: a failing attachment removal reports an error', async () => {
+    const user = userEvent.setup();
+    serveNotes({
+      notes: [buildNote({
+        id: 3,
+        title: 'Has file',
+        attachments: [{ id: 9, filename: 's.pdf', original_name: 'plan.pdf', mime_type: 'application/pdf', url: '/uploads/plan.pdf' }],
+      })],
+    });
+    server.use(
+      http.delete('/api/trips/1/collab/notes/3/files/9', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Has file');
+    await user.click(screen.getByTitle('Edit'));
+    const chip = (await screen.findByText('plan.pdf')).closest('div')!;
+    await user.click(chip.querySelector('button')!);
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(filesChanged).toBe(1);
+  });
+
+  it('FE-W5CNT-022: pinned notes sort first and notes without timestamps sort last', async () => {
+    serveNotes({
+      notes: [
+        buildNote({ id: 1, title: 'No timestamps', updated_at: null, created_at: null }),
+        buildNote({ id: 2, title: 'Pinned one', pinned: true }),
+        buildNote({ id: 3, title: 'Created only', updated_at: null, created_at: '2025-06-02T10:00:00.000Z' }),
+        buildNote({ id: 4, title: 'Also undated', updated_at: null, created_at: null }),
+      ],
+    });
+    const known = ['No timestamps', 'Pinned one', 'Created only', 'Also undated'];
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Pinned one');
+    const titles = Array.from(document.querySelectorAll('span'))
+      .filter(el => el.childElementCount === 0)
+      .map(el => el.textContent)
+      .filter(text => known.includes(text ?? ''));
+    expect(titles).toEqual(['Pinned one', 'Created only', 'No timestamps', 'Also undated']);
+  });
+
+  it('FE-W5CNT-023: clicking the active category pill clears the filter again', async () => {
+    const user = userEvent.setup();
+    serveNotes({
+      notes: [
+        buildNote({ id: 1, title: 'Food note', category: 'Food', color: '#ef4444' }),
+        buildNote({ id: 2, title: 'Plain note' }),
+      ],
+    });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Plain note');
+    const pill = screen.getAllByRole('button').find(b => b.textContent === 'Food')!;
+    await user.click(pill);
+    await waitFor(() => expect(screen.queryByText('Plain note')).not.toBeInTheDocument());
+    await user.click(pill);
+    expect(await screen.findByText('Plain note')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-024: a narrow viewport lays the grid out in a single column', async () => {
+    const original = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 500, writable: true, configurable: true });
+    try {
+      serveNotes({ notes: [buildNote({ title: 'Mobile note' })] });
+      render(<CollabNotes {...defaultProps} />);
+      await screen.findByText('Mobile note');
+      const grid = document.querySelector('[style*="grid-template-columns"]') as HTMLElement;
+      expect(grid.style.gridTemplateColumns).toBe('1fr');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: original, writable: true, configurable: true });
+    }
+  });
+
+  it('FE-W5CNT-025: the expanded note closes on a backdrop click and its buttons highlight on hover', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 5, title: 'Long note', content: 'Full body', category: 'Food', color: '#ef4444' })] });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Long note');
+    await user.click(screen.getByTitle('collab.notes.expand'));
+    const modal = await waitFor(() => {
+      const md = document.querySelector('.collab-note-md-full')
+      if (!md) throw new Error('view modal not open yet')
+      return md.closest('div[style*="position: fixed"]') as HTMLElement
+    });
+    expect(within(modal).getByText('Full body')).toBeInTheDocument();
+
+    const [editBtn, closeBtn] = Array.from(modal.querySelectorAll('button'));
+    fireEvent.mouseEnter(editBtn);
+    expect(editBtn.style.color).toBe('var(--text-primary)');
+    fireEvent.mouseLeave(editBtn);
+    expect(editBtn.style.color).toBe('var(--text-faint)');
+    fireEvent.mouseEnter(closeBtn);
+    expect(closeBtn.style.color).toBe('var(--text-primary)');
+    fireEvent.mouseLeave(closeBtn);
+    expect(closeBtn.style.color).toBe('var(--text-faint)');
+
+    fireEvent.click(modal);
+    await waitFor(() => expect(document.querySelector('.collab-note-md-full')).toBeNull());
+  });
+
+  it('FE-W5CNT-026: attachments in the expanded note open the preview and react to hover', async () => {
+    const user = userEvent.setup();
+    serveNotes({
+      notes: [buildNote({
+        id: 6,
+        title: 'Trip docs',
+        content: 'See attachments',
+        attachments: [
+          { id: 1, filename: 'a.png', original_name: 'map.png', mime_type: 'image/png', url: '/uploads/map.png' },
+          { id: 2, filename: 'b.zip', original_name: 'itinerary.zip', mime_type: 'application/zip', url: '/uploads/itinerary.zip' },
+          { id: 3, filename: 'c', url: '/uploads/c' },
+        ],
+      })],
+    });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Trip docs');
+    await user.click(screen.getByTitle('collab.notes.expand'));
+    const modal = await waitFor(() => {
+      const md = document.querySelector('.collab-note-md-full')
+      if (!md) throw new Error('view modal not open yet')
+      return md.closest('div[style*="position: fixed"]') as HTMLElement
+    });
+
+    // Unknown mime type and missing name fall back to a "?" tile
+    expect(within(modal).getByText('?')).toBeInTheDocument();
+
+    const zipTile = within(modal).getByTitle('itinerary.zip');
+    expect(zipTile.style.background).toBe('var(--bg-secondary)');
+    expect(within(modal).getByText('ZIP')).toBeInTheDocument();
+    fireEvent.mouseEnter(zipTile);
+    expect(zipTile.style.transform).toBe('scale(1.06)');
+    fireEvent.mouseLeave(zipTile);
+    expect(zipTile.style.transform).toBe('scale(1)');
+    fireEvent.click(zipTile);
+    // FilePreviewPortal shows a download action for non-image files
+    expect(await screen.findByText('Download itinerary.zip')).toBeInTheDocument();
+
+    const image = await waitFor(() => {
+      const img = modal.querySelector('img[alt="map.png"]') as HTMLImageElement | null;
+      if (!img) throw new Error('image attachment not rendered yet');
+      return img;
+    });
+    fireEvent.mouseEnter(image);
+    expect(image.style.transform).toBe('scale(1.06)');
+    fireEvent.mouseLeave(image);
+    expect(image.style.transform).toBe('scale(1)');
+    fireEvent.click(image);
+    await waitFor(() => expect(screen.queryByText('Download itinerary.zip')).not.toBeInTheDocument());
+  });
+  it('FE-W5CNT-027: a create response for a note already in the list is not added twice', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 20, title: 'Fresh note' })] });
+    server.use(
+      http.post('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({ note: buildNote({ id: 20, title: 'Fresh note' }) }),
+      ),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Fresh note');
+    await user.click(screen.getByText('New Note'));
+    await user.type(await screen.findByPlaceholderText('Note title'), 'Fresh note');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(screen.queryByPlaceholderText('Note title')).not.toBeInTheDocument());
+    expect(screen.getAllByText('Fresh note')).toHaveLength(1);
+  });
+
+  it('FE-W5CNT-028: a second note created elsewhere is prepended to the existing list', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 20, title: 'Older note' })] });
+    server.use(
+      http.post('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({ note: buildNote({ id: 21, title: 'Newer note' }) }),
+      ),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Older note');
+    await user.click(screen.getByText('New Note'));
+    await user.type(await screen.findByPlaceholderText('Note title'), 'Newer note');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await screen.findByText('Newer note');
+    expect(screen.getByText('Older note')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-029: a failing delete reports an error and keeps the note in the list', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 30, title: 'Stubborn note' })] });
+    server.use(
+      http.delete('/api/trips/1/collab/notes/30', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Stubborn note');
+
+    await user.click(screen.getByTitle('Delete'));
+    const dialog = (await screen.findByText('Delete note?')).closest('div.trek-modal-enter') as HTMLElement;
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.getByText('Stubborn note')).toBeInTheDocument();
   });
 });

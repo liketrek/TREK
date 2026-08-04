@@ -515,3 +515,519 @@ describe('downloadTripPDF', () => {
     expect(getIframe()!.srcdoc).not.toContain('class="plugin-sections')
   })
 })
+
+// FE-W5PDF-001 to FE-W5PDF-018 — multi-day transport spans, the remaining
+// reservation subtitles, accommodation phases and cover fallbacks.
+describe('downloadTripPDF remaining branches', () => {
+  const dA = { id: 10, day_number: 1, title: 'Day A', date: '2025-06-01' } as any
+  const dB = { id: 11, day_number: 2, title: null, date: null } as any
+  const dC = { id: 12, day_number: 3, title: 'Day C', date: '2025-06-03' } as any
+
+  const spanArgs = (reservations: any[], overrides: Record<string, unknown> = {}) => ({
+    ...minimalArgs,
+    trip: { id: 10, title: 'Span Trip', description: null, cover_image: null } as any,
+    days: [dA, dB, dC],
+    reservations,
+    ...overrides,
+  })
+
+  const srcdoc = () => getIframe()!.srcdoc
+
+  it('FE-W5PDF-001: a multi-day cruise is labelled start / ongoing / end with the right times', async () => {
+    await downloadTripPDF(spanArgs([{
+      id: 500, title: 'Nordic Cruise', type: 'cruise', day_id: 10, end_day_id: 12,
+      reservation_time: '2025-06-01T09:00', reservation_end_time: '2025-06-03T18:00',
+    }]))
+    const html = srcdoc()
+
+    expect(html).toContain('reservations.span.start: Nordic Cruise')
+    expect(html).toContain('reservations.span.ongoing: Nordic Cruise')
+    expect(html).toContain('reservations.span.end: Nordic Cruise')
+    expect(html).toContain('09:00')
+    expect(html).toContain('18:00')
+  })
+
+  it('FE-W5PDF-002: a multi-day flight uses departure/arrival wording', async () => {
+    await downloadTripPDF(spanArgs([{
+      id: 501, title: 'Red Eye', type: 'flight', day_id: 10, end_day_id: 11,
+      reservation_time: '2025-06-01T23:00', reservation_end_time: '2025-06-02T06:00',
+      metadata: JSON.stringify({}),
+    }]))
+    const html = srcdoc()
+
+    expect(html).toContain('reservations.span.departure: Red Eye')
+    expect(html).toContain('reservations.span.arrival: Red Eye')
+  })
+
+  it('FE-W5PDF-003: a multi-day car hire is labelled pickup/return and skips the middle day', async () => {
+    await downloadTripPDF(spanArgs([{
+      id: 502, title: 'Rental', type: 'car', day_id: 10, end_day_id: 12,
+      reservation_time: '2025-06-01T10:00', reservation_end_time: '2025-06-03T10:00',
+    }]))
+    const html = srcdoc()
+
+    expect(html).toContain('reservations.span.pickup: Rental')
+    expect(html).toContain('reservations.span.return: Rental')
+    expect(html).not.toContain('reservations.span.active')
+  })
+
+  it('FE-W5PDF-004: hotels, day-less and unknown-day reservations are all skipped', async () => {
+    await downloadTripPDF(spanArgs([
+      { id: 503, title: 'Hotel Row', type: 'hotel', day_id: 10 },
+      { id: 504, title: 'Floating', type: 'event', day_id: null },
+      { id: 505, title: 'Ghost Span', type: 'train', day_id: 900, end_day_id: 901 },
+    ]))
+    const html = srcdoc()
+
+    expect(html).not.toContain('Hotel Row')
+    expect(html).not.toContain('Floating')
+    expect(html).not.toContain('Ghost Span')
+    expect(html).toContain('dayplan.emptyDay')
+  })
+
+  it('FE-W5PDF-005: a single-leg train renders its number, platform, seat and route', async () => {
+    await downloadTripPDF(spanArgs([{
+      id: 506, title: 'ICE 599', type: 'train', day_id: 10,
+      reservation_time: '10:15',
+      endpoints: [{ sequence: 1, code: 'BER' }, { sequence: 0, code: 'FRA' }],
+      metadata: { train_number: 'ICE 599', platform: '7', seat: '21A' },
+    }]))
+    const html = srcdoc()
+
+    expect(html).toContain('ICE 599 · Gl. 7 · Seat 21A · FRA → BER')
+  })
+
+  it('FE-W5PDF-006: a multi-leg train renders one line per leg', async () => {
+    await downloadTripPDF(spanArgs([{
+      id: 507, title: 'Alpine Run', type: 'train', day_id: 10,
+      metadata: JSON.stringify({
+        legs: [
+          { train_number: 'IC 1', platform: '3', from: 'BER', to: 'MUC' },
+          { train_number: 'EC 2', from: 'MUC', to: 'ZRH' },
+        ],
+      }),
+    }]))
+    const html = srcdoc()
+
+    expect(html).toContain('IC 1 · Gl. 3 · BER → MUC')
+    expect(html).toContain('EC 2 · MUC → ZRH')
+  })
+
+  it('FE-W5PDF-007: restaurant, event, tour and unknown types get their own subtitles', async () => {
+    await downloadTripPDF(spanArgs([
+      { id: 508, title: 'Dinner', type: 'restaurant', day_id: 10, metadata: { party_size: 4 } },
+      { id: 509, title: 'Concert', type: 'event', day_id: 10, metadata: { venue: 'Arena' } },
+      { id: 510, title: 'Walk', type: 'tour', day_id: 10, metadata: { operator: 'GuideCo' } },
+      { id: 511, title: 'Mystery', type: 'submarine', day_id: 10, metadata: null, location: 'Docks' },
+    ]))
+    const html = srcdoc()
+
+    expect(html).toContain('4 guests')
+    expect(html).toContain('Arena')
+    expect(html).toContain('GuideCo')
+    expect(html).toContain('Mystery')
+    expect(html).toContain('Docks')
+  })
+
+  it('FE-W5PDF-008: reservation positions come from day_positions, then the plan position, then the end', async () => {
+    await downloadTripPDF(spanArgs([
+      { id: 512, title: 'By Numeric Key', type: 'event', day_id: 10, day_positions: { 10: -5 } },
+      { id: 513, title: 'By String Key', type: 'event', day_id: 10, day_positions: { '10': -4 } },
+      { id: 514, title: 'By Plan Position', type: 'event', day_id: 10, day_plan_position: -3 },
+      { id: 515, title: 'By Fallback', type: 'event', day_id: 10 },
+    ]))
+    const html = srcdoc()
+
+    expect(html.indexOf('By Numeric Key')).toBeLessThan(html.indexOf('By String Key'))
+    expect(html.indexOf('By String Key')).toBeLessThan(html.indexOf('By Plan Position'))
+    expect(html.indexOf('By Plan Position')).toBeLessThan(html.indexOf('By Fallback'))
+  })
+
+  it('FE-W5PDF-009: a flight leg without a route still lists airline and number', async () => {
+    await downloadTripPDF(spanArgs([{
+      id: 516, title: 'Charter', type: 'flight', day_id: 10,
+      metadata: JSON.stringify({
+        legs: [
+          { airline: 'AirX', flight_number: 'X1' },
+          { airline: 'AirX', flight_number: 'X2', from: 'AAA', to: 'BBB' },
+        ],
+      }),
+    }]))
+    const html = srcdoc()
+
+    expect(html).toContain('AirX · X1')
+    expect(html).toContain('AirX · X2 · AAA → BBB')
+  })
+
+  it('FE-W5PDF-010: a single-leg flight with waypoints joins the whole route', async () => {
+    await downloadTripPDF(spanArgs([{
+      id: 517, title: 'Long Haul', type: 'flight', day_id: 10,
+      endpoints: [{ sequence: 0, code: 'FRA' }, { sequence: 1, name: 'Berlin' }, { sequence: 2, code: 'HND' }],
+      metadata: { airline: 'LH', flight_number: 'LH7' },
+    }]))
+
+    expect(srcdoc()).toContain('LH · LH7 · FRA → Berlin → HND')
+  })
+
+  it('FE-W5PDF-011: an assignment without a place contributes nothing', async () => {
+    await downloadTripPDF(spanArgs([], {
+      assignments: { '10': [{ id: 1, day_id: 10, order_index: 0, place: null }] } as any,
+    }))
+
+    expect(srcdoc()).toContain('class="day-body"')
+    expect(srcdoc()).not.toContain('class="place-card"')
+  })
+
+  it('FE-W5PDF-012: a bare place renders without badge, address, coordinates or chips', async () => {
+    await downloadTripPDF(spanArgs([], {
+      assignments: {
+        '10': [{ id: 1, day_id: 10, order_index: 0, place: { id: 70, name: 'Bare Place', price: '0' } }],
+      } as any,
+    }))
+    const html = srcdoc()
+
+    expect(html).toContain('Bare Place')
+    expect(html).not.toContain('class="cat-badge"')
+    expect(html).not.toContain('<div class="chips">')
+    expect(html).toContain('class="place-thumb-fallback"')
+  })
+
+  it('FE-W5PDF-013: coordinates are printed for a place that has no address', async () => {
+    await downloadTripPDF(spanArgs([], {
+      assignments: {
+        '10': [{ id: 1, day_id: 10, order_index: 0, place: { id: 71, name: 'Pin Only', lat: 48.858093, lng: 2.294694 } }],
+      } as any,
+    }))
+
+    expect(srcdoc()).toContain('48.85809, 2.29469')
+  })
+
+  it('FE-W5PDF-014: a note without a time renders only its text and falls back to the default icon', async () => {
+    await downloadTripPDF(spanArgs([], {
+      dayNotes: [{ id: 1, day_id: 10, text: 'Just a note', time: null, icon: 'NotAnIcon', sort_order: 0 }] as any,
+    }))
+    const html = srcdoc()
+
+    expect(html).toContain('Just a note')
+    expect(html).not.toContain('class="note-time"')
+  })
+
+  it('FE-W5PDF-015: check-in, middle and check-out days each get their own accommodation block', async () => {
+    server.use(
+      http.get('/api/trips/:id/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [{
+            id: 1, start_day_id: 10, end_day_id: 12, place_name: 'Hotel Nord', place_address: 'Main St',
+            check_in: '15:00', check_out: '10:00', confirmation: 'CONF-9', notes: 'Late arrival',
+          }],
+        }),
+      ),
+    )
+    await downloadTripPDF(spanArgs([]))
+    const html = srcdoc()
+
+    expect(html).toContain('reservations.meta.checkIn')
+    expect(html).toContain('reservations.meta.linkAccommodation')
+    expect(html).toContain('reservations.meta.checkOut')
+    expect(html).toContain('Hotel Nord')
+    expect(html).toContain('Main St')
+    expect(html).toContain('Late arrival')
+    expect(html).toContain('CONF-9')
+    expect(html).toContain('class="day-accommodations single"')
+  })
+
+  it('FE-W5PDF-016: two accommodations on one day are ordered by their start day', async () => {
+    server.use(
+      http.get('/api/trips/:id/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [
+            { id: 2, start_day_id: 11, end_day_id: 12, place_name: 'Later Inn', place_address: null, check_in: null, check_out: null, confirmation: null },
+            { id: 1, start_day_id: 10, end_day_id: 12, place_name: 'Earlier Inn', place_address: null, check_in: null, check_out: null, confirmation: null },
+          ],
+        }),
+      ),
+    )
+    await downloadTripPDF(spanArgs([]))
+    const html = srcdoc()
+
+    expect(html.indexOf('Earlier Inn')).toBeLessThan(html.indexOf('Later Inn'))
+    // the shared days list two hotels, so they lose the single-column class
+    expect(html).toContain('class="day-accommodations "')
+  })
+
+  it('FE-W5PDF-017: a trip without dated days prints no date range and no day dates', async () => {
+    await downloadTripPDF({
+      ...minimalArgs,
+      trip: { id: 1, title: 'Undated', description: null, cover_image: null } as any,
+      days: [{ id: 1, day_number: 1, title: null, date: null }] as any[],
+    })
+    const html = srcdoc()
+
+    expect(html).not.toContain('class="cover-dates"')
+    expect(html).not.toContain('class="day-date"')
+    expect(html).toContain('class="cover-circle-ph"')
+  })
+
+  it('FE-W5PDF-018: the print button asks the preview frame to print', async () => {
+    await downloadTripPDF(minimalArgs)
+    const iframe = getIframe()!
+    const print = vi.fn()
+    Object.defineProperty(iframe, 'contentWindow', { value: { print }, configurable: true })
+
+    document.getElementById('pdf-print-btn')!.click()
+
+    expect(print).toHaveBeenCalled()
+  })
+
+  it('FE-W5PDF-019: an external cover image is used verbatim, a non-image one is dropped', async () => {
+    await downloadTripPDF({
+      ...minimalArgs,
+      trip: { id: 1, title: 'Cover Trip', description: null, cover_image: 'https://cdn.example.com/a.jpg' } as any,
+    })
+    expect(srcdoc()).toContain('https://cdn.example.com/a.jpg')
+
+    getOverlay()?.remove()
+    await downloadTripPDF({
+      ...minimalArgs,
+      trip: { id: 1, title: 'Cover Trip', description: null, cover_image: '/uploads/cover.svg' } as any,
+    })
+    expect(srcdoc()).not.toContain('/uploads/cover.svg')
+    expect(srcdoc()).toContain('class="cover-circle-ph"')
+  })
+
+  it('FE-W5PDF-020: plugin sections render their paragraphs and tables', async () => {
+    server.use(
+      http.get('/api/pdf-sections/:tripId', () =>
+        HttpResponse.json({
+          sections: [
+            { title: 'Packing', paragraphs: ['Bring a towel'], table: { headers: ['Item', 'Qty'], rows: [['Socks', '3']] } },
+            { title: 'Bare', paragraphs: null, table: null },
+          ],
+        }),
+      ),
+    )
+    await downloadTripPDF(minimalArgs)
+    const html = srcdoc()
+
+    expect(html).toContain('Packing')
+    expect(html).toContain('Bring a towel')
+    expect(html).toContain('<th>Item</th>')
+    expect(html).toContain('<td>Socks</td>')
+    expect(html).toContain('Bare')
+  })
+})
+
+// FE-W5PDF-021 to FE-W5PDF-026 — the defaulting arms of the exporter.
+describe('downloadTripPDF defaults', () => {
+  type Args = Parameters<typeof downloadTripPDF>[0]
+  const srcdoc = () => getIframe()!.srcdoc
+
+  it('FE-W5PDF-021: a call without days, places, notes or a translator still produces a document', async () => {
+    await downloadTripPDF({ trip: { id: 1 }, assignments: {}, locale: 'en-US' } as unknown as Args)
+    const html = srcdoc()
+
+    // no translator, no days, no places, no notes
+    expect(html).toContain('pdf.travelPlan')
+    expect(html).toContain('<div class="cover-title">My Trip</div>')
+    expect(html).toContain('<div class="cover-stat-num">0</div>')
+  })
+
+  it('FE-W5PDF-022: an accommodations response without the key degrades to no hotels', async () => {
+    server.use(
+      http.get('/api/trips/:id/accommodations', () => HttpResponse.json({})),
+      http.get('/api/pdf-sections/:tripId', () => HttpResponse.json({})),
+    )
+    await downloadTripPDF({ ...minimalArgs } as unknown as Args)
+
+    expect(srcdoc()).not.toContain('day-accommodations-overview"')
+    expect(srcdoc()).not.toContain('class="plugin-sections')
+  })
+
+  it('FE-W5PDF-023: items without an explicit order fall back to position zero', async () => {
+    await downloadTripPDF({
+      ...minimalArgs,
+      days: [{ id: 1, day_number: 1, title: 'Only Day', date: '2025-06-01' }] as any[],
+      assignments: { '1': [{ id: 1, day_id: 1, order_index: null, place: { id: 5, name: 'Unordered Place' } }] } as any,
+      dayNotes: [{ id: 2, day_id: 1, text: 'Unordered Note', sort_order: null, icon: 'Info' }] as any,
+    })
+    const html = srcdoc()
+
+    expect(html).toContain('Unordered Place')
+    expect(html).toContain('Unordered Note')
+  })
+
+  it('FE-W5PDF-024: an empty metadata string and a missing title are handled', async () => {
+    await downloadTripPDF({
+      ...minimalArgs,
+      trip: { id: 1, title: null, description: null, cover_image: null } as any,
+      days: [{ id: 1, day_number: 1, title: null, date: '2025-06-01' }] as any[],
+      reservations: [{ id: 1, title: null, type: 'restaurant', day_id: 1, metadata: '' }] as any[],
+    })
+    const html = srcdoc()
+
+    expect(html).toContain('<title>pdf.travelPlan</title>')
+    expect(html).toContain('note-card')
+    expect(html).toContain('Day 1')
+  })
+
+  it('FE-W5PDF-025: an extensionless relative image url is resolved against the origin', async () => {
+    await downloadTripPDF({
+      ...minimalArgs,
+      days: [{ id: 1, day_number: 1, title: 'Only Day', date: '2025-06-01' }] as any[],
+      assignments: {
+        '1': [{ id: 1, day_id: 1, order_index: 0, place: { id: 5, name: 'Proxy Photo', image_url: 'uploads/places/photo.jpg' } }],
+      } as any,
+    })
+
+    // no leading slash: absUrl has to insert one
+    expect(srcdoc()).toContain('http://localhost:3000/uploads/places/photo.jpg')
+  })
+
+  it('FE-W5PDF-026: the last day of a span without an end time prints no time', async () => {
+    await downloadTripPDF({
+      ...minimalArgs,
+      days: [
+        { id: 1, day_number: 1, title: 'Start Day', date: '2025-06-01' },
+        { id: 2, day_number: 2, title: 'End Day', date: '2025-06-02' },
+      ] as any[],
+      reservations: [{ id: 1, title: 'Overnight Bus', type: 'bus', day_id: 1, end_day_id: 2, reservation_time: '22:00', reservation_end_time: null }] as any[],
+    })
+    const html = srcdoc()
+    const endSection = html.slice(html.indexOf('End Day'))
+
+    expect(html).toContain('reservations.span.start: Overnight Bus')
+    expect(endSection).toContain('reservations.span.end: Overnight Bus')
+    expect(endSection).not.toContain('22:00')
+  })
+
+  it('FE-W5PDF-027: an export without a locale still renders, with lang="en"', async () => {
+    await downloadTripPDF({ ...minimalArgs, locale: '' })
+
+    expect(srcdoc()).toContain('<html lang="en">')
+  })
+
+  it('FE-W5PDF-028: an export without assignments renders the days as empty', async () => {
+    await downloadTripPDF({ ...minimalArgs, assignments: undefined as any })
+
+    expect(srcdoc()).toContain('Day 1')
+  })
+})
+
+// #1292 — every day started a new page, so a plan of short days printed one
+// sheet per handful of lines. The flowing layout is opt-in and remembered.
+describe('page breaks between days (#1292)', () => {
+  const twoDays = {
+    ...minimalArgs,
+    days: [
+      { id: 1, day_number: 1, title: 'First', date: '2025-06-01' },
+      { id: 2, day_number: 2, title: 'Second', date: '2025-06-02' },
+    ] as any[],
+  }
+
+  beforeEach(() => {
+    localStorage.removeItem('trek_pdf_page_break_per_day')
+  })
+
+  const toggle = () =>
+    document.querySelector<HTMLButtonElement>('#pdf-daybreak-toggle')
+  const isOn = () => toggle()!.getAttribute('aria-checked') === 'true'
+
+  it('FE-PDF-BREAK-001: days break onto their own page by default', async () => {
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+
+    expect(html).toContain('day-section day-break')
+    expect(html).not.toContain('class="pdf-flow"')
+    expect(isOn()).toBe(true)
+  })
+
+  it('FE-PDF-BREAK-001b: the control is the switch from the rest of the app, not a checkbox', async () => {
+    await downloadTripPDF(twoDays)
+    const el = toggle()!
+
+    expect(el.tagName).toBe('BUTTON')
+    expect(el.getAttribute('role')).toBe('switch')
+    expect(el.style.background).toContain('--accent')
+    expect(document.querySelector('#pdf-daybreak-toggle input')).toBeNull()
+  })
+
+  it('FE-PDF-BREAK-002: the remembered flowing layout comes back on the next export', async () => {
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+
+    // The class stays on the day; the body is what decides whether it breaks.
+    expect(html).toContain('day-section day-break')
+    expect(html).toContain('<body class="pdf-flow">')
+    expect(isOn()).toBe(false)
+    // Off uses the neutral track, so the two states are told apart by more than the knob.
+    expect(toggle()!.style.background).toContain('--border-primary')
+  })
+
+  it('FE-PDF-BREAK-003: the first day never carries a break of its own', async () => {
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+
+    expect(html.indexOf('<table class="day-section">')).toBeGreaterThan(-1)
+    expect(html.match(/day-section day-break/g)).toHaveLength(1)
+  })
+
+  it('FE-PDF-BREAK-004: turning the breaks off is remembered and shown at once', async () => {
+    await downloadTripPDF(twoDays)
+    toggle()!.click()
+
+    expect(isOn()).toBe(false)
+    expect(localStorage.getItem('trek_pdf_page_break_per_day')).toBe('0')
+    const body = getIframe()!.contentDocument?.body
+    if (body) expect(body.classList.contains('pdf-flow')).toBe(true)
+  })
+
+  it('FE-PDF-BREAK-005: turning them back on is remembered too', async () => {
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF(twoDays)
+    toggle()!.click()
+
+    expect(isOn()).toBe(true)
+    expect(localStorage.getItem('trek_pdf_page_break_per_day')).toBe('1')
+    const body = getIframe()!.contentDocument?.body
+    if (body) expect(body.classList.contains('pdf-flow')).toBe(false)
+  })
+
+  it('FE-PDF-BREAK-006: a storage the browser blocks costs the preference, not the export', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
+
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+    expect(html).toContain('day-section day-break')
+    expect(html).not.toContain('class="pdf-flow"')
+
+    expect(() => toggle()!.click()).not.toThrow()
+  })
+
+  // Verified against a real print engine: without this rule Chromium tore a stay
+  // across the page edge, the check-in time on one sheet and the hotel name on
+  // the next. Place and note cards already carried it.
+  it('FE-PDF-BREAK-007: a stay may not be split by a page edge', async () => {
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+    const rule = html.slice(html.indexOf('.day-accommodation {'))
+    expect(rule.slice(0, rule.indexOf('}'))).toContain('break-inside: avoid')
+  })
+
+  // Measured against Chromium: with the days flowing, a header bar could be left
+  // at the foot of a sheet while its content moved on, and the repeat from #1471
+  // then read as the same day printed twice. break-after on the thead and
+  // break-before on the tbody are both ignored; holding the day together is what
+  // works, and a day too long for one page still breaks and still repeats.
+  it('FE-PDF-BREAK-008: a flowing day is held together so its header is never stranded', async () => {
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF(twoDays)
+    const html = getIframe()!.srcdoc
+
+    expect(html).toContain('.pdf-flow .day-section { break-inside: avoid; page-break-inside: avoid; }')
+    // Scoped: a day that starts its own page cannot strand a header.
+    const at = html.indexOf('.day-section { break-inside: avoid')
+    expect(html.slice(at - 10, at)).toContain('.pdf-flow ')
+  })
+})

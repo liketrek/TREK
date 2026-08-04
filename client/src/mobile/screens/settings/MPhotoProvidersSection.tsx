@@ -149,7 +149,9 @@ export default function MPhotoProvidersSection(): React.ReactElement {
             ...prev,
             [provider.id]: { ...(prev[provider.id] || {}), ...nextValues },
           }))
-          if (typeof res.data?.connected === 'boolean') {
+          // The status route owns the badge when there is one — otherwise the two
+          // responses would race and the later one would win.
+          if (!cfg.status_get && typeof res.data?.connected === 'boolean') {
             setProviderConnected(prev => ({ ...prev, [provider.id]: !!res.data.connected }))
           }
         }).catch(() => { })
@@ -206,7 +208,8 @@ export default function MPhotoProvidersSection(): React.ReactElement {
       if (ok) {
         toast.success(t('memories.connectionSuccess', { provider_name: provider.name }))
       } else {
-        toast.error(`${t('memories.connectionError', { provider_name: provider.name })} ${res.data?.error ? `: ${String(res.data.error)}` : ''}`)
+        const detail = res.data?.error ? `: ${String(res.data.error)}` : ''
+        toast.error(`${t('memories.connectionError', { provider_name: provider.name })}${detail}`)
       }
     } catch {
       toast.error(t('memories.connectionError', { provider_name: provider.name }))

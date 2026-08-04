@@ -7,6 +7,12 @@
  * against real SQL — PACK-SVC-050 pinning the packing.bridge delegation, and
  * PACK-SVC-051..053 pinning the post-migration fixes over the legacy quirks
  * ('Other' category default, bodyKeys-gated weight_limit_grams, quantity clamp).
+ *
+ * The trailing "Admin template CRUD" blocks carry ADMIN-SVC-031..044 and
+ * ADMIN-SVC-056..064 over from tests/unit/services/adminService.test.ts with
+ * their IDs preserved — those functions moved into PackingService with the
+ * 2026-08 admin fold, since this service already owned all three template
+ * tables.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -49,18 +55,19 @@ const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
 const { send } = vi.hoisted(() => ({ send: vi.fn(() => Promise.resolve()) }));
-vi.mock('../../../src/services/notificationService', () => ({ send }));
+vi.mock('../../../src/nest/notifications/notifications.bridge', () => ({ send }));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
+import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { PackingService } from '../../../src/nest/packing/packing.service';
 import { listItems as bridgeListItems } from '../../../src/nest/packing/packing.bridge';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
-const svc = new PackingService(new DatabaseService(testDb), permissionsStub);
+const svc = new PackingService(new DatabaseService(testDb), permissionsStub, new RealtimeService());
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -577,6 +584,61 @@ describe('three-tier packing sharing (#858)', () => {
     expect(names(svc.listItems(trip.id, owner.id) as any[])).toEqual(['Travel adapter']);     // owner sees only the common one
     expect(names(svc.listItems(trip.id, cloner.id) as any[])).toEqual(['Travel adapter', 'Travel adapter']); // common + own clone
   });
+
+  // #207: "one person curates the list, everyone copies it" meant re-entering every
+  // weight by hand, because a copy arrived empty.
+  it('PACK-SVC-073: cloneItem carries the weight over', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: cloner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const common = svc.createItem(trip.id, { name: 'Tent', visibility: 'common', weight_grams: 2400, quantity: 2 }, owner.id) as any;
+
+    const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
+
+    expect(clone.weight_grams).toBe(2400);
+    expect(clone.quantity).toBe(2);
+  });
+
+  it('PACK-SVC-074: cloneItem keeps a bag nobody owns', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: cloner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const bag = svc.createBag(trip.id, { name: 'Car boot' }) as any;
+    const common = svc.createItem(trip.id, { name: 'Cool box', visibility: 'common', weight_grams: 3000, bag_id: bag.id }, owner.id) as any;
+
+    const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
+
+    expect(clone.bag_id).toBe(bag.id);
+  });
+
+  it('PACK-SVC-075: cloneItem drops a bag that belongs to someone else', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: cloner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, cloner.id);
+    const bag = svc.createBag(trip.id, { name: 'Owner backpack' }) as any;
+    svc.setBagMembers(trip.id, bag.id, [owner.id]);
+    const common = svc.createItem(trip.id, { name: 'Rope', visibility: 'common', weight_grams: 900, bag_id: bag.id }, owner.id) as any;
+
+    const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
+
+    // Weight still comes along — only the foreign bag is dropped, so the copy cannot
+    // land in someone else's luggage and inflate their total.
+    expect(clone.weight_grams).toBe(900);
+    expect(clone.bag_id).toBeNull();
+  });
+
+  it('PACK-SVC-076: cloneItem keeps a bag the cloner is a member of', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: cloner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, cloner.id);
+    const bag = svc.createBag(trip.id, { name: 'Shared duffel' }) as any;
+    svc.setBagMembers(trip.id, bag.id, [owner.id, cloner.id]);
+    const common = svc.createItem(trip.id, { name: 'Stove', visibility: 'common', bag_id: bag.id }, owner.id) as any;
+
+    expect((svc.cloneItem(trip.id, common.id, cloner.id) as any).bag_id).toBe(bag.id);
+  });
 });
 
 // ── Post-migration fixes over the legacy quirks ───────────────────────────────
@@ -722,5 +784,208 @@ describe('packing.bridge', () => {
     // Unscoped (internal callers) — unfiltered; viewer-scoped — #858 filtering applies.
     expect((bridgeListItems(trip.id) as { name: string }[]).map(i => i.name).sort()).toEqual(['Private', 'Shared']);
     expect((bridgeListItems(trip.id, other.id) as { name: string }[]).map(i => i.name)).toEqual(['Shared']);
+  });
+});
+
+// ── Admin template CRUD (moved from adminService, IDs preserved) ──────────────
+
+describe('Packing templates', () => {
+  it('ADMIN-SVC-031 — createPackingTemplate returns template', () => {
+    const { user: admin } = createAdmin(testDb);
+    const result = svc.createPackingTemplate('Beach Trip', admin.id) as any;
+    expect(result.template.name).toBe('Beach Trip');
+  });
+
+  it('ADMIN-SVC-032 — createPackingTemplate returns 400 for empty name', () => {
+    const { user: admin } = createAdmin(testDb);
+    const result = svc.createPackingTemplate('', admin.id) as any;
+    expect(result.status).toBe(400);
+  });
+
+  it('ADMIN-SVC-033 — listPackingTemplates returns array', () => {
+    const { user: admin } = createAdmin(testDb);
+    svc.createPackingTemplate('Template A', admin.id);
+    const templates = svc.listPackingTemplates() as any[];
+    expect(templates.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('ADMIN-SVC-034 — updatePackingTemplate updates name', () => {
+    const { user: admin } = createAdmin(testDb);
+    const created = svc.createPackingTemplate('Old Name', admin.id) as any;
+    const result = svc.updatePackingTemplate(String(created.template.id), { name: 'New Name' }) as any;
+    expect(result.template.name).toBe('New Name');
+  });
+
+  it('ADMIN-SVC-035 — updatePackingTemplate returns 404 for non-existent', () => {
+    const result = svc.updatePackingTemplate('99999', { name: 'Ghost' }) as any;
+    expect(result.status).toBe(404);
+  });
+
+  it('ADMIN-SVC-036 — deletePackingTemplate removes template', () => {
+    const { user: admin } = createAdmin(testDb);
+    const created = svc.createPackingTemplate('To Delete', admin.id) as any;
+    const result = svc.deletePackingTemplate(String(created.template.id)) as any;
+    expect(result.name).toBe('To Delete');
+  });
+
+  it('ADMIN-SVC-037 — deletePackingTemplate returns 404 for non-existent', () => {
+    const result = svc.deletePackingTemplate('99999') as any;
+    expect(result.status).toBe(404);
+  });
+});
+
+describe('Template categories', () => {
+  it('ADMIN-SVC-038 — createTemplateCategory creates a category', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const result = svc.createTemplateCategory(String(tpl.template.id), 'Clothing') as any;
+    expect(result.category.name).toBe('Clothing');
+  });
+
+  it('ADMIN-SVC-039 — createTemplateCategory returns 400 for empty name', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const result = svc.createTemplateCategory(String(tpl.template.id), '') as any;
+    expect(result.status).toBe(400);
+  });
+
+  it('ADMIN-SVC-040 — createTemplateCategory returns 404 for missing template', () => {
+    const result = svc.createTemplateCategory('99999', 'Clothing') as any;
+    expect(result.status).toBe(404);
+  });
+
+  it('ADMIN-SVC-041 — updateTemplateCategory updates name', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const cat = svc.createTemplateCategory(String(tpl.template.id), 'Old') as any;
+    const result = svc.updateTemplateCategory(String(tpl.template.id), String(cat.category.id), { name: 'New' }) as any;
+    expect(result.category.name).toBe('New');
+  });
+
+  it('ADMIN-SVC-042 — updateTemplateCategory returns 404 for missing category', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const result = svc.updateTemplateCategory(String(tpl.template.id), '99999', { name: 'X' }) as any;
+    expect(result.status).toBe(404);
+  });
+
+  it('ADMIN-SVC-043 — deleteTemplateCategory removes category', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const cat = svc.createTemplateCategory(String(tpl.template.id), 'Remove Me') as any;
+    const result = svc.deleteTemplateCategory(String(tpl.template.id), String(cat.category.id)) as any;
+    expect(result.error).toBeUndefined();
+  });
+
+  it('ADMIN-SVC-044 — deleteTemplateCategory returns 404 for missing', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const result = svc.deleteTemplateCategory(String(tpl.template.id), '99999') as any;
+    expect(result.status).toBe(404);
+  });
+});
+
+describe('getPackingTemplate', () => {
+  it('ADMIN-SVC-056 — returns template with categories and items when template exists', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Full Template', admin.id) as any;
+    const cat = svc.createTemplateCategory(String(tpl.template.id), 'Clothing') as any;
+    svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'T-Shirt');
+
+    const result = svc.getPackingTemplate(String(tpl.template.id)) as any;
+    expect(result.template).toBeDefined();
+    expect(result.template.name).toBe('Full Template');
+    expect(Array.isArray(result.categories)).toBe(true);
+    expect(result.categories.length).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(result.items)).toBe(true);
+    expect(result.items.length).toBeGreaterThanOrEqual(1);
+    expect(result.items[0].name).toBe('T-Shirt');
+  });
+
+  it('ADMIN-SVC-057 — returns 404 for non-existent template', () => {
+    const result = svc.getPackingTemplate('99999') as any;
+    expect(result.status).toBe(404);
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe('Template items', () => {
+  it('ADMIN-SVC-058 — createTemplateItem returns item with name', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const cat = svc.createTemplateCategory(String(tpl.template.id), 'Gear') as any;
+    const result = svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'Backpack') as any;
+    expect(result.item).toBeDefined();
+    expect(result.item.name).toBe('Backpack');
+  });
+
+  it('ADMIN-SVC-059 — createTemplateItem returns 400 for empty name', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const cat = svc.createTemplateCategory(String(tpl.template.id), 'Gear') as any;
+    const result = svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), '') as any;
+    expect(result.status).toBe(400);
+  });
+
+  it('ADMIN-SVC-060 — createTemplateItem returns 404 for non-existent category', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const result = svc.createTemplateItem(String(tpl.template.id), '99999', 'Item') as any;
+    expect(result.status).toBe(404);
+  });
+
+  it('ADMIN-SVC-061 — updateTemplateItem updates name', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const cat = svc.createTemplateCategory(String(tpl.template.id), 'Gear') as any;
+    const item = svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'Old Item') as any;
+    const result = svc.updateTemplateItem(String(tpl.template.id), String(item.item.id), { name: 'New Item' }) as any;
+    expect(result.item.name).toBe('New Item');
+  });
+
+  it('ADMIN-SVC-062 — updateTemplateItem returns 404 for non-existent item', () => {
+    const result = svc.updateTemplateItem('1', '99999', { name: 'Ghost' }) as any;
+    expect(result.status).toBe(404);
+  });
+
+  it('ADMIN-SVC-063 — deleteTemplateItem removes item', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tpl = svc.createPackingTemplate('Tpl', admin.id) as any;
+    const cat = svc.createTemplateCategory(String(tpl.template.id), 'Gear') as any;
+    const item = svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'To Delete') as any;
+    const result = svc.deleteTemplateItem(String(tpl.template.id), String(item.item.id)) as any;
+    expect(result.error).toBeUndefined();
+    const check = testDb.prepare('SELECT id FROM packing_template_items WHERE id = ?').get(item.item.id);
+    expect(check).toBeUndefined();
+  });
+
+  it('ADMIN-SVC-064 — deleteTemplateItem returns 404 for non-existent item', () => {
+    const result = svc.deleteTemplateItem('1', '99999') as any;
+    expect(result.status).toBe(404);
+  });
+});
+
+// ── Quirk fix landed after the 2026-08 admin fold ─────────────────────────────
+
+describe('Template item scoping (post-fold quirk fix)', () => {
+  it('ADMIN-SVC-076 — update/deleteTemplateItem honour :templateId instead of ignoring it', () => {
+    const { user: admin } = createAdmin(testDb);
+    const tplA = svc.createPackingTemplate('A', admin.id) as any;
+    const tplB = svc.createPackingTemplate('B', admin.id) as any;
+    const catA = svc.createTemplateCategory(String(tplA.template.id), 'Gear') as any;
+    const item = svc.createTemplateItem(String(tplA.template.id), String(catA.category.id), 'Tent') as any;
+
+    // Template B does not own the item — both routes must 404 rather than act.
+    expect(svc.updateTemplateItem(String(tplB.template.id), String(item.item.id), { name: 'Hijacked' }) as any)
+      .toMatchObject({ status: 404 });
+    expect(svc.deleteTemplateItem(String(tplB.template.id), String(item.item.id)) as any)
+      .toMatchObject({ status: 404 });
+    expect((testDb.prepare('SELECT name FROM packing_template_items WHERE id = ?').get(item.item.id) as any).name)
+      .toBe('Tent');
+
+    // The owning template still works.
+    expect((svc.updateTemplateItem(String(tplA.template.id), String(item.item.id), { name: 'Tarp' }) as any).item.name)
+      .toBe('Tarp');
+    expect(svc.deleteTemplateItem(String(tplA.template.id), String(item.item.id)) as any).toEqual({});
   });
 });

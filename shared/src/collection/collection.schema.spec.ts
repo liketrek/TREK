@@ -1,4 +1,8 @@
-import { collectionPlaceUpdateRequestSchema } from './collection.schema';
+import {
+  collectionDeleteManyRequestSchema,
+  collectionPlaceUpdateRequestSchema,
+  collectionReorderRequestSchema,
+} from './collection.schema';
 
 import { describe, expect, it } from 'vitest';
 
@@ -18,5 +22,22 @@ describe('collectionPlaceUpdateRequestSchema', () => {
 
   it('catches an invalid status back to idea rather than throwing', () => {
     expect(collectionPlaceUpdateRequestSchema.parse({ status: 'bogus' as never }).status).toBe('idea');
+  });
+});
+
+// The two ratchet schemas replace hand-rolled "array of numbers" checks — they
+// must stay exactly that permissive (empty arrays included, no int/positive).
+describe('collectionReorderRequestSchema / collectionDeleteManyRequestSchema', () => {
+  it('accepts any array of numbers, empty included', () => {
+    expect(collectionReorderRequestSchema.parse({ orderedIds: [] }).orderedIds).toEqual([]);
+    expect(collectionReorderRequestSchema.parse({ orderedIds: [3, 1, 2] }).orderedIds).toEqual([3, 1, 2]);
+    expect(collectionDeleteManyRequestSchema.parse({ ids: [] }).ids).toEqual([]);
+    expect(collectionDeleteManyRequestSchema.parse({ ids: [7] }).ids).toEqual([7]);
+  });
+
+  it('rejects non-arrays and non-numeric members', () => {
+    expect(() => collectionReorderRequestSchema.parse({ orderedIds: 'nope' })).toThrow();
+    expect(() => collectionReorderRequestSchema.parse({})).toThrow();
+    expect(() => collectionDeleteManyRequestSchema.parse({ ids: ['a'] })).toThrow();
   });
 });

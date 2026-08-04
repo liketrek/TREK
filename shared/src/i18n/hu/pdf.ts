@@ -6,5 +6,6 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Költség',
   'pdf.preview': 'PDF előnézet',
   'pdf.saveAsPdf': 'Mentés PDF-ként',
+  'pdf.pageBreakPerDay': 'Oldaltörés naponta',
 };
 export default pdf;

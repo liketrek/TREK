@@ -36,7 +36,7 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-vi.mock('../../../src/services/notificationService', () => ({
+vi.mock('../../../src/nest/notifications/notifications.bridge', () => ({
   send: vi.fn().mockResolvedValue(undefined),
 }));
 

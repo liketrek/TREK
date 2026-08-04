@@ -53,6 +53,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     setFilesExpanded(false)
     setDayPickerOpen(false)
     setParticipantPickerOpen(false)
+    setColorPickerOpen(false)
   }
 
   const category = place?.category
@@ -150,7 +151,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     try {
       await planner.tripActions.updatePlace(planner.tripId, place.id, { image_url: null })
     } catch (err: unknown) {
-      planner.toast.error(translateApiError(t, err, 'places.imageUploadError'))
+      planner.toast.error(translateApiError(t, err, 'places.imageRemoveError'))
     } finally {
       setImgBusy(false)
     }

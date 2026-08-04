@@ -65,6 +65,12 @@ export default function MobileMapTimeline({
       try { mapRef.current?.highlightMarker(null) } catch {}
     }
   }, [entries, mapEntries])
+  // The delayed initial focus reads both through refs so it always works off
+  // the current map entries, not the ones from the render that armed the timer.
+  const syncMapToCarouselRef = useRef(syncMapToCarousel)
+  syncMapToCarouselRef.current = syncMapToCarousel
+  const activeIndexRef = useRef(activeIndex)
+  activeIndexRef.current = activeIndex
 
   // Pick the card that's currently closest to the carousel horizontal center.
   // More stable than IntersectionObserver thresholds when the active card can
@@ -129,13 +135,15 @@ export default function MobileMapTimeline({
     }
   }, [activeIndex, onEntryClick, scrollCardIntoCenter])
 
-  // Initial map focus — delay to let Leaflet initialize and fitBounds
+  // Initial map focus — delay to let Leaflet initialize and fitBounds. Also
+  // re-runs when the markers arrive later than the entries, otherwise the
+  // focus would fire against an empty map and never be retried.
   useEffect(() => {
     if (entries.length > 0) {
-      const timer = setTimeout(() => syncMapToCarousel(0), 500)
+      const timer = setTimeout(() => syncMapToCarouselRef.current(activeIndexRef.current), 500)
       return () => clearTimeout(timer)
     }
-  }, [entries.length])
+  }, [entries.length, mapEntries.length])
 
   const activeEntryId = entries[activeIndex]
     ? String(entries[activeIndex].id)

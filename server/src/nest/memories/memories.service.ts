@@ -38,7 +38,8 @@ import {
 } from '../../services/memories/synologyService';
 import { canAccessUserPhoto } from '../../services/memories/helpersService';
 import type { Selection } from '../../services/memories/helpersService';
-import { broadcast } from '../../websocket';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { RealtimeService } from '../realtime/realtime.service';
 
 /**
  * Thin Nest wrapper around the existing memories (photo-providers) services.
@@ -49,13 +50,15 @@ import { broadcast } from '../../websocket';
  */
 @Injectable()
 export class MemoriesService {
+  constructor(private readonly realtime: RealtimeService) {}
+
   // ── Access check (reused by both provider asset routes) ──────────────────
   canAccessUserPhoto(requestingUserId: number, ownerUserId: number, tripId: string, assetId: string, provider: string): boolean {
     return canAccessUserPhoto(requestingUserId, ownerUserId, tripId, assetId, provider);
   }
 
-  broadcast(tripId: string, event: string, payload: Record<string, unknown>, socketId?: string): void {
-    broadcast(tripId, event, payload, socketId);
+  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId?: string): void {
+    this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
   // ── Unified ──────────────────────────────────────────────────────────────

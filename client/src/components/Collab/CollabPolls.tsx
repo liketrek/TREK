@@ -98,7 +98,7 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
           {/* Question */}
           <div>
             <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('collab.polls.question')}</div>
-            <input autoFocus value={question} onChange={e => setQuestion(e.target.value)} placeholder={t('collab.polls.questionPlaceholder') || 'Ask a question...'} style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+            <input autoFocus value={question} onChange={e => setQuestion(e.target.value)} placeholder={t('collab.polls.questionPlaceholder')} style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
           </div>
 
           {/* Options */}
@@ -208,6 +208,8 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
   const isClosed = poll.is_closed || isExpired(poll.deadline)
   const remaining = timeRemaining(poll.deadline)
   const hasVoted = (poll.options || []).some(o => (o.voters || []).some(v => String(v.user_id) === String(currentUser.id)))
+  // Highest vote count across the options; 0 for a poll without options.
+  const topCount = (poll.options || []).reduce((max, o) => Math.max(max, o.voters?.length || 0), 0)
 
   return (
     <div style={{
@@ -271,10 +273,12 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
           const count = opt.voters?.length || 0
           const pct = total > 0 ? Math.round((count / total) * 100) : 0
           const myVote = (opt.voters || []).some(v => String(v.user_id) === String(currentUser.id))
-          const isWinner = isClosed && count === Math.max(...(poll.options || []).map(o => o.voters?.length || 0)) && count > 0
+          const isWinner = isClosed && count > 0 && count === topCount
 
           return (
-            <button key={idx} onClick={() => !isClosed && onVote(poll.id, idx)}
+            // React dispatches no mouse events on a disabled control, so the
+            // handlers below need no isClosed guard of their own.
+            <button key={idx} onClick={() => onVote(poll.id, idx)}
               disabled={isClosed}
               style={{
                 position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
@@ -282,7 +286,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
                 background: 'var(--bg-secondary)', fontFamily: FONT, textAlign: 'left', width: '100%',
                 overflow: 'hidden', transition: 'transform 0.1s',
               }}
-              onMouseEnter={e => { if (!isClosed) e.currentTarget.style.transform = 'scale(1.01)' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.01)' }}
               onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
               {/* Progress bar background */}
@@ -474,7 +478,7 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
               <>
                 {activePolls.length > 0 && (
                   <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3, padding: '8px 0 2px' }}>
-                    {t('collab.polls.closedSection') || 'Closed'}
+                    {t('collab.polls.closedSection')}
                   </div>
                 )}
                 {closedPolls.map(poll => (

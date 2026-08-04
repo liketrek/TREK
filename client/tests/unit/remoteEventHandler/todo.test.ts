@@ -46,4 +46,15 @@ describe('remoteEventHandler > todo', () => {
     const { todoItems } = useTripStore.getState();
     expect(todoItems).toHaveLength(0);
   });
+
+  it('FE-WSEVT-TODO-005: todo:updated leaves the other items untouched', () => {
+    useTripStore.setState({
+      todoItems: [buildTodoItem({ id: 1, name: 'Book flights' }), buildTodoItem({ id: 2, name: 'Renew passport' })],
+    });
+    useTripStore.getState().handleRemoteEvent({
+      type: 'todo:updated',
+      item: buildTodoItem({ id: 2, name: 'Renew passport (done)' }),
+    });
+    expect(useTripStore.getState().todoItems.map(i => i.name)).toEqual(['Book flights', 'Renew passport (done)']);
+  });
 });

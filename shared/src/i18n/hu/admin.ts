@@ -159,6 +159,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Nem sikerült betölteni a sablonokat',
   'admin.packingTemplates.createError': 'Nem sikerült létrehozni a sablont',
   'admin.packingTemplates.deleteError': 'Nem sikerült törölni a sablont',
+  'admin.packingTemplates.deleteCategoryError': 'A kategória törlése nem sikerült',
+  'admin.packingTemplates.deleteItemError': 'A tétel törlése nem sikerült',
   'admin.packingTemplates.saveError': 'Nem sikerült menteni',
   'admin.tabs.addons': 'Bővítmények',
   'admin.tabs.plugins': 'Pluginok',

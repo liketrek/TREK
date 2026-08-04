@@ -9,9 +9,11 @@ import { ReservationsModule } from '../reservations/reservations.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { BudgetModule } from '../budget/budget.module';
 import { AddonsModule } from '../addons/addons.module';
+import { MapsModule } from '../maps/maps.module';
+import { PlacesModule } from '../places/places.module';
 
 @Module({
-  imports: [LlmParseModule, ReservationsModule, PermissionsModule, BudgetModule, AddonsModule],
+  imports: [LlmParseModule, ReservationsModule, PermissionsModule, BudgetModule, AddonsModule, MapsModule, PlacesModule],
   controllers: [BookingImportController, FeaturesController],
   providers: [BookingImportService, KitineraryExtractorService, ImportJobsService],
 })

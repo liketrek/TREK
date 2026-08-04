@@ -11,6 +11,9 @@ function svc(o: Partial<PlacesService> = {}): PlacesService {
   return {
     verifyTripAccess: vi.fn().mockReturnValue(trip), canEdit: vi.fn().mockReturnValue(true), broadcast: vi.fn(),
     onCreated: vi.fn(), onUpdated: vi.fn(), onDeleted: vi.fn(),
+    // Trip-scoping reads the delete paths run before firing the journey hook
+    // (#1745); default to "everything belongs to the trip".
+    get: vi.fn().mockReturnValue({ id: 9 }), scopedIds: vi.fn((_t: string, ids: number[]) => ids),
     ...o,
   } as unknown as PlacesService;
 }
@@ -51,9 +54,11 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       expect(canEdit).not.toHaveBeenCalled();
     });
 
-    it('403 without place_edit, 400 without name, then creates + hooks', () => {
+    // The legacy 'Place name is required' 400 is gone: placeCreateRequestSchema
+    // pins `name`, so the ZodValidationPipe rejects a nameless body before the
+    // handler runs (see the e2e suite for the envelope it produces).
+    it('403 without place_edit, then creates + hooks', () => {
       expect(thrown(() => new PlacesController(svc({ canEdit: vi.fn().mockReturnValue(false) })).create(user, '5', { name: 'Spot' }))).toEqual({ status: 403, body: { error: 'No permission' } });
-      expect(thrown(() => new PlacesController(svc()).create(user, '5', {}))).toEqual({ status: 400, body: { error: 'Place name is required' } });
       const create = vi.fn().mockReturnValue({ id: 9 }); const broadcast = vi.fn(); const onCreated = vi.fn();
       const s = svc({ create, broadcast, onCreated } as Partial<PlacesService>);
       expect(new PlacesController(s).create(user, '5', { name: 'Spot' }, 'sock')).toEqual({ place: { id: 9 } });
@@ -136,57 +141,69 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
   });
 
   describe('POST /import/google-list + naver-list', () => {
-    it('400 without a url', async () => {
-      expect(await thrownAsync(() => new PlacesController(svc()).importGoogle(user, '5', undefined))).toEqual({ status: 400, body: { error: 'URL is required' } });
-    });
-    it('400 when url is the wrong type (not a string)', async () => {
-      expect(await thrownAsync(() => new PlacesController(svc()).importNaver(user, '5', 123))).toEqual({ status: 400, body: { error: 'URL is required' } });
-    });
+    // The legacy 'URL is required' 400 is gone: placeImportListRequestSchema
+    // pins `url`, so the ZodValidationPipe rejects a urlless body before the
+    // handler runs.
     it('maps a service { error, status } to the same response', async () => {
       const s = svc({ importGoogleList: vi.fn().mockResolvedValue({ error: 'List is empty', status: 400 }) } as Partial<PlacesService>);
-      expect(await thrownAsync(() => new PlacesController(s).importGoogle(user, '5', 'http://x'))).toEqual({ status: 400, body: { error: 'List is empty' } });
+      expect(await thrownAsync(() => new PlacesController(s).importGoogle(user, '5', { url: 'http://x' }))).toEqual({ status: 400, body: { error: 'List is empty' } });
     });
     it('imports a naver list and returns the count + listName', async () => {
       const s = svc({ importNaverList: vi.fn().mockResolvedValue({ places: [{ id: 1 }], listName: 'Trip', skipped: 2 }), broadcast: vi.fn() } as Partial<PlacesService>);
-      expect(await new PlacesController(s).importNaver(user, '5', 'http://x')).toEqual({ places: [{ id: 1 }], count: 1, listName: 'Trip', skipped: 2 });
+      expect(await new PlacesController(s).importNaver(user, '5', { url: 'http://x' })).toEqual({ places: [{ id: 1 }], count: 1, listName: 'Trip', skipped: 2 });
     });
     it('forwards the enrich flag + userId and broadcasts each imported place', async () => {
       const importGoogleList = vi.fn().mockResolvedValue({ places: [{ id: 1 }, { id: 2 }], listName: 'L', skipped: 0 });
       const broadcast = vi.fn();
       const s = svc({ importGoogleList, broadcast } as Partial<PlacesService>);
-      expect(await new PlacesController(s).importGoogle(user, '5', 'http://x', 'true', 'sock')).toEqual({ places: [{ id: 1 }, { id: 2 }], count: 2, listName: 'L', skipped: 0 });
+      expect(await new PlacesController(s).importGoogle(user, '5', { url: 'http://x', enrich: true }, 'sock')).toEqual({ places: [{ id: 1 }, { id: 2 }], count: 2, listName: 'L', skipped: 0 });
       expect(importGoogleList).toHaveBeenCalledWith('5', 'http://x', { enrich: true, userId: 1 });
       expect(broadcast).toHaveBeenCalledTimes(2);
     });
     it('wraps a thrown Error in the provider-specific 400 (Google)', async () => {
       const s = svc({ importGoogleList: vi.fn().mockRejectedValue(new Error('network down')) } as Partial<PlacesService>);
-      expect(await thrownAsync(() => new PlacesController(s).importGoogle(user, '5', 'http://x'))).toEqual({
+      expect(await thrownAsync(() => new PlacesController(s).importGoogle(user, '5', { url: 'http://x' }))).toEqual({
         status: 400, body: { error: 'Failed to import Google Maps list. Make sure the list is shared publicly.' },
       });
     });
     it('wraps a non-Error rejection in the provider-specific 400 (Naver)', async () => {
       const s = svc({ importNaverList: vi.fn().mockRejectedValue('weird') } as Partial<PlacesService>);
-      expect(await thrownAsync(() => new PlacesController(s).importNaver(user, '5', 'http://x'))).toEqual({
+      expect(await thrownAsync(() => new PlacesController(s).importNaver(user, '5', { url: 'http://x' }))).toEqual({
         status: 400, body: { error: 'Failed to import Naver Maps list. Make sure the list is shared publicly.' },
       });
     });
   });
 
   describe('POST /bulk-delete', () => {
-    it('400 when ids is not an array of numbers', () => {
-      expect(thrown(() => new PlacesController(svc()).bulkDelete(user, '5', ['a']))).toEqual({ status: 400, body: { error: 'ids must be an array of numbers' } });
-    });
+    // The legacy 'ids must be an array of numbers' 400 is gone:
+    // placeBulkDeleteRequestSchema types the array, so the pipe rejects a bad
+    // element before the handler runs.
     it('returns empty for an empty list without touching the service', () => {
       const removeMany = vi.fn();
-      expect(new PlacesController(svc({ removeMany } as Partial<PlacesService>)).bulkDelete(user, '5', [])).toEqual({ deleted: [], count: 0 });
+      expect(new PlacesController(svc({ removeMany } as Partial<PlacesService>)).bulkDelete(user, '5', { ids: [] })).toEqual({ deleted: [], count: 0 });
       expect(removeMany).not.toHaveBeenCalled();
     });
     it('deletes, fires hooks + broadcasts per deleted id', () => {
       const removeMany = vi.fn().mockReturnValue([1, 2]); const onDeleted = vi.fn(); const broadcast = vi.fn();
-      const s = svc({ removeMany, onDeleted, broadcast } as Partial<PlacesService>);
-      expect(new PlacesController(s).bulkDelete(user, '5', [1, 2], 'sock')).toEqual({ deleted: [1, 2], count: 2 });
+      const scopedIds = vi.fn().mockReturnValue([1, 2]);
+      const s = svc({ removeMany, onDeleted, broadcast, scopedIds } as Partial<PlacesService>);
+      expect(new PlacesController(s).bulkDelete(user, '5', { ids: [1, 2] }, 'sock')).toEqual({ deleted: [1, 2], count: 2 });
       expect(onDeleted).toHaveBeenCalledTimes(2);
       expect(broadcast).toHaveBeenCalledTimes(2);
+    });
+
+    // #1745: the hook keys on the place id alone, so an id from another trip
+    // would detach that trip's journey entries even though removeMany skips it.
+    it('fires the journey hook only for ids that belong to the trip, ahead of the delete', () => {
+      const removeMany = vi.fn().mockReturnValue([1]);
+      const scopedIds = vi.fn().mockReturnValue([1]);
+      const onDeleted = vi.fn();
+      const s = svc({ removeMany, scopedIds, onDeleted, broadcast: vi.fn() } as Partial<PlacesService>);
+      new PlacesController(s).bulkDelete(user, '5', { ids: [1, 99] });
+      expect(scopedIds).toHaveBeenCalledWith('5', [1, 99]);
+      expect(onDeleted).toHaveBeenCalledTimes(1);
+      expect(onDeleted).toHaveBeenCalledWith(1);
+      expect(onDeleted.mock.invocationCallOrder[0]).toBeLessThan(removeMany.mock.invocationCallOrder[0]);
     });
   });
 
@@ -195,9 +212,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       expect(thrown(() => new PlacesController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).bulkUpdate(user, '5', { ids: [1], category_id: 3 }))).toEqual({ status: 404, body: { error: 'Trip not found' } });
       expect(thrown(() => new PlacesController(svc({ canEdit: vi.fn().mockReturnValue(false) })).bulkUpdate(user, '5', { ids: [1], category_id: 3 }))).toEqual({ status: 403, body: { error: 'No permission' } });
     });
-    it('400 when ids is not an array of numbers', () => {
-      expect(thrown(() => new PlacesController(svc()).bulkUpdate(user, '5', { ids: ['a'] }))).toEqual({ status: 400, body: { error: 'ids must be an array of numbers' } });
-    });
+    // Same as bulk-delete: placeBulkUpdateRequestSchema types `ids`, so the
+    // pipe owns that 400 now. `.min(1)` was deliberately left off the schema so
+    // the empty-list short-circuit below stays reachable.
     it('400 when no patch field is present', () => {
       expect(thrown(() => new PlacesController(svc()).bulkUpdate(user, '5', { ids: [1] }))).toEqual({ status: 400, body: { error: 'Provide at least one field to update' } });
     });
@@ -281,10 +298,23 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
 
   it('DELETE /:id fires the hook then 404 / success', () => {
     const onDeleted = vi.fn();
-    expect(thrown(() => new PlacesController(svc({ remove: vi.fn().mockReturnValue(false), onDeleted } as Partial<PlacesService>)).remove(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Place not found' } });
+    const remove = vi.fn().mockReturnValue(false);
+    expect(thrown(() => new PlacesController(svc({ remove, onDeleted } as Partial<PlacesService>)).remove(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Place not found' } });
     expect(onDeleted).toHaveBeenCalledWith(9);
+    expect(onDeleted.mock.invocationCallOrder[0]).toBeLessThan(remove.mock.invocationCallOrder[0]);
     const s = svc({ remove: vi.fn().mockReturnValue(true), broadcast: vi.fn() } as Partial<PlacesService>);
     expect(new PlacesController(s).remove(user, '5', '9')).toEqual({ success: true });
+  });
+
+  // #1745: a place on another trip must 404 without the hook ever running —
+  // onPlaceDeleted keys on the place id alone, so it would detach that trip's
+  // journey entries.
+  it('DELETE /:id 404s a foreign place before the journey hook runs', () => {
+    const onDeleted = vi.fn(); const remove = vi.fn();
+    const s = svc({ get: vi.fn().mockReturnValue(null), onDeleted, remove } as Partial<PlacesService>);
+    expect(thrown(() => new PlacesController(s).remove(user, '5', '99'))).toEqual({ status: 404, body: { error: 'Place not found' } });
+    expect(onDeleted).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
   });
 
   it('GET /:id/image maps service error + returns photos', async () => {

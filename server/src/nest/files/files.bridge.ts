@@ -1,5 +1,6 @@
 import { db } from '../../db/database';
 import { DatabaseService } from '../database/database.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { FilesService } from './files.service';
 import { PermissionsService } from '../permissions/permissions.service';
 
@@ -15,7 +16,7 @@ import { PermissionsService } from '../permissions/permissions.service';
  * Module-level construction is safe: `db` is the reinitialize-proof Proxy onto
  * the shared better-sqlite3 singleton.
  */
-const files = new FilesService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)));
+const files = new FilesService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new RealtimeService());
 
 export function getAllowedExtensions(): string {
   return files.getAllowedExtensions();

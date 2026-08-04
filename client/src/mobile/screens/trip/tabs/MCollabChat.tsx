@@ -24,6 +24,12 @@ const PAGE_SIZE = 100
 const LONG_PRESS_MS = 500
 const DOUBLE_TAP_MS = 300
 const MOVE_CANCEL_PX = 10
+const POPOVER_WIDTH = 224
+// Emoji grid + reply row, plus the delete row when it is shown — used to keep
+// the popover inside the viewport.
+const POPOVER_HEIGHT = 150
+const POPOVER_DELETE_ROW = 37
+const POPOVER_MARGIN = 8
 
 interface MCollabChatProps {
   planner: TripPlanner
@@ -383,7 +389,9 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
   }
 
   const bigEmoji = isEmojiOnlyText(msg.text)
-  const hasReply = !!(msg.reply_text || msg.reply_to)
+  // A reply to a since-deleted message keeps reply_to but loses the quoted
+  // text — no quote box then instead of an empty one.
+  const hasReply = !!msg.reply_text
   const initial = (msg.username || '?')[0]?.toUpperCase() || '?'
 
   return (
@@ -431,7 +439,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
               {hasReply && (
                 <div className="mb-1 rounded-[10px] bg-[color:var(--m-card)] px-[10px] py-[5px]">
                   <div className="font-geist text-[0.625rem] font-bold opacity-70">{msg.reply_username}</div>
-                  <div className="truncate text-[0.71875rem] opacity-80">{(msg.reply_text || '').slice(0, 80)}</div>
+                  <div className="truncate text-[0.71875rem] opacity-80">{msg.reply_text?.slice(0, 80)}</div>
                 </div>
               )}
               <span className="whitespace-pre-wrap break-words">{msg.text}</span>
@@ -485,9 +493,10 @@ function MessageActionsPopover({ x, y, canDeleteOwn, t, onReact, onReply, onDele
     return () => document.removeEventListener('pointerdown', close)
   }, [onClose])
 
-  const width = 224
-  const left = Math.max(width / 2 + 8, Math.min(x, window.innerWidth - width / 2 - 8))
-  const top = Math.max(64, y - 96)
+  const width = POPOVER_WIDTH
+  const left = Math.max(width / 2 + POPOVER_MARGIN, Math.min(x, window.innerWidth - width / 2 - POPOVER_MARGIN))
+  const height = POPOVER_HEIGHT + (canDeleteOwn ? POPOVER_DELETE_ROW : 0)
+  const top = Math.max(64, Math.min(y - 96, window.innerHeight - height - POPOVER_MARGIN))
 
   return ReactDOM.createPortal(
     <div className="m-root fixed inset-0 z-[55]">

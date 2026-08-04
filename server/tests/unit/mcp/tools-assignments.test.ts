@@ -301,7 +301,11 @@ describe('Tool: reorder_day_assignments', () => {
     const a = createDayAssignment(testDb, day.id, place.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'reorder_day_assignments', arguments: { tripId: trip.id, dayId: day.id, assignmentIds: [a.id] } });
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'assignment:reordered', expect.any(Object));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'assignment:reordered',
+        expect.objectContaining({ dayId: day.id, orderedIds: [a.id] }),
+      );
     });
   });
 

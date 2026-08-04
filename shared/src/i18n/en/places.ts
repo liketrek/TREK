@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Longitude (e.g. 2.3522)',
   'places.formCategory': 'Category',
   'places.noCategory': 'No Category',
+  'places.newCategory': 'New category',
   'places.categoryNamePlaceholder': 'Category name',
   'places.formTime': 'Time',
   'places.startTime': 'Start',
@@ -97,5 +98,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Change image',
   'places.removeImage': 'Remove image',
   'places.imageUploadError': 'Could not upload image',
+  'places.imageRemoveError': 'Could not remove image',
 };
 export default places;

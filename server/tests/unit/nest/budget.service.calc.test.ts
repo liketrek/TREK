@@ -39,6 +39,7 @@ import type { PermissionsService } from '../../../src/nest/permissions/permissio
 import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import type { BudgetItem, BudgetItemMember, BudgetItemPayer } from '../../../src/types';
 import type Database from 'better-sqlite3';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 const permissionsStub = { checkPermission: vi.fn(() => true) } as unknown as PermissionsService;
 
@@ -46,6 +47,7 @@ const budget = new BudgetService(
   new DatabaseService(mockDb.db as unknown as Database.Database),
   permissionsStub,
   mockRates as unknown as ExchangeRatesService,
+  new RealtimeService(),
 );
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

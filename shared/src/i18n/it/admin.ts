@@ -158,6 +158,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Impossibile caricare i modelli',
   'admin.packingTemplates.createError': 'Impossibile creare il modello',
   'admin.packingTemplates.deleteError': 'Impossibile eliminare il modello',
+  'admin.packingTemplates.deleteCategoryError': 'Impossibile eliminare la categoria',
+  'admin.packingTemplates.deleteItemError': 'Impossibile eliminare la voce',
   'admin.packingTemplates.saveError': 'Impossibile salvare',
   'admin.tabs.addons': 'Moduli',
   'admin.tabs.plugins': 'Plugin',

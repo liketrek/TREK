@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Start capturing ideas and plans',
   'collab.notes.all': 'All',
   'collab.notes.titlePlaceholder': 'Note title',
+  'collab.notes.content': 'Content',
+  'collab.notes.removeFile': 'Remove {name}',
   'collab.notes.contentPlaceholder': 'Write something...',
   'collab.notes.categoryPlaceholder': 'Category',
   'collab.notes.newCategory': 'New category...',

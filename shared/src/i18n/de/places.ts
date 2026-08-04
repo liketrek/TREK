@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Längengrad (z.B. 2.3522)',
   'places.formCategory': 'Kategorie',
   'places.noCategory': 'Keine Kategorie',
+  'places.newCategory': 'Neue Kategorie',
   'places.categoryNamePlaceholder': 'Kategoriename',
   'places.formTime': 'Uhrzeit',
   'places.startTime': 'Startzeit',
@@ -93,6 +94,7 @@ const places: TranslationStrings = {
   'places.changeImage': 'Bild ändern',
   'places.removeImage': 'Bild entfernen',
   'places.imageUploadError': 'Bild konnte nicht hochgeladen werden',
+  'places.imageRemoveError': 'Bild konnte nicht entfernt werden',
   'places.addAnyway': 'Trotzdem hinzufügen',
   'places.enrichOnImport': 'Orte über Google anreichern',
   'places.enrichOnImportHint':

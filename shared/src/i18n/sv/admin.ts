@@ -215,6 +215,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Det gick inte att ladda mallarna',
   'admin.packingTemplates.createError': 'Det gick inte att skapa mallen',
   'admin.packingTemplates.deleteError': 'Det gick inte att ta bort mallen',
+  'admin.packingTemplates.deleteCategoryError': 'Det gick inte att ta bort kategorin',
+  'admin.packingTemplates.deleteItemError': 'Det gick inte att ta bort objektet',
   'admin.packingTemplates.saveError': 'Det gick inte att spara',
   'admin.tabs.addons': 'Tillägg',
   'admin.tabs.plugins': 'Plugins',

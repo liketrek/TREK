@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Térkép sablon',
   'settings.mapTemplatePlaceholder.select': 'Sablon kiválasztása...',
   'settings.mapDefaultHint': 'Hagyd üresen az OpenStreetMap használatához (alapértelmezett)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL sablon a térképcsempékhez',
   'settings.mapProvider': 'Térkép szolgáltató',
   'settings.mapProviderHint': 'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',
@@ -233,6 +232,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profilkép frissítve',
   'settings.avatarRemoved': 'Profilkép eltávolítva',
   'settings.avatarError': 'Feltöltés sikertelen',
+  'settings.avatarRemoveError': 'Eltávolítás sikertelen',
   'settings.mfa.title': 'Kétfaktoros hitelesítés (2FA)',
   'settings.mfa.description':
     'Egy második lépést ad a bejelentkezéshez e-mail és jelszó használatakor. Használj hitelesítő alkalmazást (Google Authenticator, Authy stb.).',

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DatabaseService } from '../database/database.service';
-import { exportICS } from '../../services/tripService';
+import { TripsService } from '../trips/trips.service';
 
 const ninetyDaysAgo = () => {
   const d = new Date();
@@ -15,7 +15,10 @@ function feedUrl(token: string, scope: 'trip' | 'user', base: string): string {
 
 @Injectable()
 export class FeedsService {
-  constructor(private readonly dbs: DatabaseService) {}
+  constructor(
+    private readonly dbs: DatabaseService,
+    private readonly trips: TripsService,
+  ) {}
 
   private get db() {
     return this.dbs.connection;
@@ -92,7 +95,7 @@ export class FeedsService {
       | undefined;
     if (!row) return null;
     try {
-      const { ics, filename } = exportICS(row.id);
+      const { ics, filename } = this.trips.exportICS(row.id);
       // Inject calendar-subscription refresh hints into the VCALENDAR header so
       // clients re-fetch hourly. The one-time download path (exportICS) is left
       // untouched; this is feed-only.
@@ -142,7 +145,7 @@ export class FeedsService {
     let events = '';
     for (const { id } of trips) {
       try {
-        const { ics } = exportICS(id);
+        const { ics } = this.trips.exportICS(id);
         for (const vtz of extractVTimezones(ics)) {
           const tzid = vtz.match(/\r\nTZID:(.+)\r\n/)?.[1];
           if (tzid && !zones.has(tzid)) zones.set(tzid, vtz);

@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Vybrat vše',
   'common.deselectAll': 'Zrušit výběr všeho',
   'common.error': 'Chyba',
+  'common.success': 'Úspěch',
   'common.unknownError': 'Neznámá chyba',
   'common.tooManyAttempts': 'Příliš mnoho pokusů. Zkuste to prosím znovu.',
   'common.back': 'Zpět',

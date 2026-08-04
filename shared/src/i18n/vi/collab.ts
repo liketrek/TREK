@@ -37,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Bắt đầu nắm bắt ý tưởng và kế hoạch',
   'collab.notes.all': 'Tất cả',
   'collab.notes.titlePlaceholder': 'tiêu đề ghi chú',
+  'collab.notes.content': 'Nội dung',
+  'collab.notes.removeFile': 'Xóa {name}',
   'collab.notes.contentPlaceholder': 'Viết một cái gì đó...',
   'collab.notes.categoryPlaceholder': 'Loại',
   'collab.notes.newCategory': 'Thể loại mới...',

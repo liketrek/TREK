@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
 import { canAccessTrip } from '../../db/database';
-import { getTripSummary } from '../../services/tripService';
+import { getTripSummary } from '../../nest/trips/trips.bridge';
 import { listItems as listPackingItems } from '../../nest/packing/packing.bridge';
 import { isAddonEnabled } from '../../nest/addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
@@ -29,40 +29,9 @@ export function registerMcpPrompts(server: McpServer, _userId: number, isStaticT
   }
   const userId = _userId;
 
-  server.registerPrompt(
-    'trip-summary',
-    {
-      title: 'Trip Summary',
-      description: 'Load a full summary of a trip for context before planning or modifications',
-      argsSchema: {
-        tripId: z.number().int().positive().describe('Trip ID to summarize'),
-      },
-    },
-    async ({ tripId }) => {
-      if (!canAccessTrip(tripId, userId)) {
-        return { messages: [{ role: 'user', content: { type: 'text', text: 'Trip not found or access denied.' } }] };
-      }
-      const summary = getTripSummary(tripId, userId);
-      if (!summary) {
-        return { messages: [{ role: 'user', content: { type: 'text', text: 'Trip not found.' } }] };
-      }
-      const { trip, days, members, budget, packing, reservations, collab_notes } = summary;
-      const memberList = [members?.owner, ...(members?.collaborators || [])].filter(Boolean);
-      const text = `Trip: ${trip?.title || 'Untitled'}${trip?.description ? `\n${trip.description}` : ''}
-Dates: ${trip?.start_date || '?'} to ${trip?.end_date || '?'}
-Members: ${memberList.length} (${memberList.map((m: any) => m.name || m.email).join(', ') || 'none'})
-Days: ${days?.length || 0}
-Packing: ${packing?.checked || 0}/${packing?.total || 0} items packed
-Budget: ${budget?.total || 0} ${trip?.currency || 'EUR'} total
-Reservations: ${reservations?.length || 0}
-Collab Notes: ${collab_notes?.length || 0}
-${days?.map((d: any, i: number) => `Day ${i + 1} (${d.date}): ${d.assignments?.length || 0} places${d.title ? ` - ${d.title}` : ''}`).join('\n') || 'No days yet'}`;
-      return {
-        description: `Summary of trip "${trip?.title || tripId}"`,
-        messages: [{ role: 'user', content: { type: 'text', text } }],
-      };
-    }
-  );
+  // The trip-summary prompt moved to the DI-discovered
+  // src/nest/trips/trips.mcp.ts (@Prompt, attached via the nest-mcp registry
+  // in registerTools).
 
   if (isAddonEnabled(ADDON_IDS.PACKING)) server.registerPrompt(
     'packing-list',

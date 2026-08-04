@@ -74,10 +74,10 @@ beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-  // Warm the notificationService module: notifyCollab does a fire-and-forget
+  // Warm the notifications bridge module: notifyCollab does a fire-and-forget
   // dynamic import of it, and a cold load can otherwise race the worker
   // teardown ("Cannot load ... after the environment was torn down").
-  await import('../../src/services/notificationService');
+  await import('../../src/nest/notifications/notifications.bridge');
 });
 
 beforeEach(() => {

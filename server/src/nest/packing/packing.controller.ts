@@ -11,6 +11,7 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import type { User } from '../../types';
 import { PackingService } from './packing.service';
 import { isUpdateConflict } from '../../services/conflictResult';
@@ -114,7 +115,7 @@ export class PackingController {
 
   /** Deliver an item event to exactly the people who can see it (#858): the whole
    *  room for a Common item, or owner + recipients for a restricted one. */
-  private emitToViewers(tripId: string, event: string, payload: Record<string, unknown>, item: PackingItemRow, socketId: string | undefined): void {
+  private emitToViewers<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, item: PackingItemRow, socketId: string | undefined): void {
     const viewers = this.packing.viewersOf(item);
     if (viewers === null) {
       this.packing.broadcast(tripId, event, payload, socketId);

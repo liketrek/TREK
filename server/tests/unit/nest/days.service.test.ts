@@ -52,15 +52,10 @@ import { createUser, createTrip, createDay, createPlace, createDayAssignment, cr
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { DaysService, addDays } from '../../../src/nest/days/days.service';
-import {
-  getDay as bridgeGetDay,
-  listDays as bridgeListDays,
-  listAccommodations as bridgeListAccommodations,
-  restampReservationDates as bridgeRestampReservationDates,
-  resyncAccommodationDays as bridgeResyncAccommodationDays,
-} from '../../../src/nest/days/days.bridge';
+import { getDay as bridgeGetDay, listDays as bridgeListDays } from '../../../src/nest/days/days.bridge';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
-const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)));
+const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
 
 beforeAll(() => {
   createTables(testDb);
@@ -405,6 +400,10 @@ describe('deleteAccommodation', () => {
 });
 
 // ── days.bridge delegation (out-of-container consumers) ───────────────────────
+// The listAccommodations / restampReservationDates / resyncAccommodationDays /
+// addDays bridge exports were pruned when their last outside-container
+// consumer (legacy tripService) folded into the DI-native TripsService —
+// 029/031/032 pin the same behavior on the service.
 
 describe('days.bridge', () => {
   it('DAY-SVC-027 — getDay delegates to DaysService.getDay', () => {
@@ -424,13 +423,13 @@ describe('days.bridge', () => {
     expect(Array.isArray(result.days[0].assignments)).toBe(true);
   });
 
-  it('DAY-SVC-029 — listAccommodations delegates to DaysService.listAccommodations', () => {
+  it('DAY-SVC-029 — listAccommodations returns the hydrated stays', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'Ryokan' });
     createDayAccommodation(testDb, trip.id, place.id, day.id, day.id);
-    const rows = bridgeListAccommodations(trip.id) as { place_name: string }[];
+    const rows = svc.listAccommodations(trip.id) as { place_name: string }[];
     expect(rows).toHaveLength(1);
     expect(rows[0].place_name).toBe('Ryokan');
   });
@@ -449,7 +448,7 @@ describe('days.bridge', () => {
       'INSERT INTO reservations (trip_id, day_id, title, reservation_time) VALUES (?, ?, ?, ?)'
     ).run(trip.id, day.id, 'Dinner', '2026-01-01T19:00');
 
-    bridgeRestampReservationDates(
+    svc.restampReservationDates(
       trip.id,
       new Map([[day.id, '2026-01-01']]),
       new Map([[day.id, '2026-01-05']]),
@@ -474,7 +473,7 @@ describe('days.bridge', () => {
     testDb.prepare('UPDATE days SET date = ? WHERE id = ?').run('2026-01-01', d2.id);
     testDb.prepare('UPDATE days SET day_number = 0 WHERE id = ?').run(d2.id);
 
-    bridgeResyncAccommodationDays(trip.id, new Map([[d1.id, '2026-01-01'], [d2.id, '2026-01-02']]));
+    svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-01-01'], [d2.id, '2026-01-02']]));
 
     const row = testDb.prepare('SELECT start_day_id, end_day_id FROM day_accommodations WHERE id = ?').get(accom.id) as { start_day_id: number; end_day_id: number };
     expect(row.start_day_id).toBe(d2.id);

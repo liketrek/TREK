@@ -6,7 +6,7 @@ import type { PermissionLevel } from './permissions.service';
 /**
  * Non-Nest entry point for the permissions domain — for code running OUTSIDE
  * the Nest container (the legacy MCP _shared.ts hasTripPermission helper and
- * the legacy adminService/authService/backupService/collectionsService).
+ * the legacy adminService/authService/backupService).
  * Exports the legacy services/permissions names 1:1 so repointing a consumer
  * is an import-path-only diff. Inside the container, inject PermissionsService
  * instead. Delete this file when the last legacy consumer migrates.

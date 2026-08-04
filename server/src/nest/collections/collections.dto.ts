@@ -2,6 +2,8 @@ import { createZodDto } from 'nestjs-zod';
 import {
   collectionCreateRequestSchema,
   collectionUpdateRequestSchema,
+  collectionReorderRequestSchema,
+  collectionDeleteManyRequestSchema,
   collectionSavePlaceRequestSchema,
   collectionSaveFromTripRequestSchema,
   collectionSaveFromTripManyRequestSchema,
@@ -27,6 +29,8 @@ import {
 
 export class CollectionCreateDto extends createZodDto(collectionCreateRequestSchema) {}
 export class CollectionUpdateDto extends createZodDto(collectionUpdateRequestSchema) {}
+export class CollectionReorderDto extends createZodDto(collectionReorderRequestSchema) {}
+export class CollectionDeleteManyDto extends createZodDto(collectionDeleteManyRequestSchema) {}
 export class CollectionSavePlaceDto extends createZodDto(collectionSavePlaceRequestSchema) {}
 export class CollectionSaveFromTripDto extends createZodDto(collectionSaveFromTripRequestSchema) {}
 export class CollectionSaveFromTripManyDto extends createZodDto(collectionSaveFromTripManyRequestSchema) {}

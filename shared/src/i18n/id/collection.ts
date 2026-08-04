@@ -81,6 +81,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Salin ke perjalanan',
   'collections.copyN': 'Salin {count} ke perjalanan',
   'collections.copyToTripSearch': 'Cari perjalanan',
+  'collections.searchLists': 'Cari daftar',
   'collections.copyToTripConfirm': 'Salin',
   'collections.noTrips': 'Belum ada perjalanan',
   'collections.alreadyInTrip': 'Sudah ada di perjalanan ini',

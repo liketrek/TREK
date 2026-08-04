@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, ClipboardList } from 'lucide-react'
 import { adminApi } from '../../../api/client'
 import { useTranslation } from '../../../i18n'
@@ -24,8 +24,10 @@ export default function MAdminAuditLogPanel({ serverTimezone }: AuditLogPanelPro
   const { t, locale } = useTranslation()
   const [entries, setEntries] = useState<AuditEntry[]>([])
   const [total, setTotal] = useState(0)
-  const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(true)
+  // Never rendered, only carried between pages — a ref keeps loadMore from
+  // capturing a page number that is already spent.
+  const offsetRef = useRef(0)
   const limit = 100
 
   const loadFirstPage = useCallback(async () => {
@@ -37,18 +39,18 @@ export default function MAdminAuditLogPanel({ serverTimezone }: AuditLogPanelPro
       }
       setEntries(data.entries || [])
       setTotal(data.total ?? 0)
-      setOffset(0)
+      offsetRef.current = 0
     } catch {
       setEntries([])
       setTotal(0)
-      setOffset(0)
+      offsetRef.current = 0
     } finally {
       setLoading(false)
     }
   }, [])
 
   const loadMore = useCallback(async () => {
-    const nextOffset = offset + limit
+    const nextOffset = offsetRef.current + limit
     setLoading(true)
     try {
       const data = (await adminApi.auditLog({ limit, offset: nextOffset })) as {
@@ -57,13 +59,13 @@ export default function MAdminAuditLogPanel({ serverTimezone }: AuditLogPanelPro
       }
       setEntries((prev) => [...prev, ...(data.entries || [])])
       setTotal(data.total ?? 0)
-      setOffset(nextOffset)
+      offsetRef.current = nextOffset
     } catch {
       /* keep existing */
     } finally {
       setLoading(false)
     }
-  }, [offset])
+  }, [])
 
   useEffect(() => {
     loadFirstPage()

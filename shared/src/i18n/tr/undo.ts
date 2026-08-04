@@ -14,6 +14,7 @@ const undo: TranslationStrings = {
   'undo.lock': 'Yer kilidi değiştirildi',
   'undo.importGpx': 'GPX içe aktarma',
   'undo.importKeyholeMarkup': 'KMZ/KML içe aktarma',
+  'undo.importFiles': 'Dosya içe aktarma',
   'undo.importGoogleList': 'Google Haritalar içe aktarma',
   'undo.importNaverList': 'Naver Haritalar içe aktarma',
   'undo.addPlace': 'Yer eklendi',

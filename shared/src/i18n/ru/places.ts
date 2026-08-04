@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Долгота (напр. 2.3522)',
   'places.formCategory': 'Категория',
   'places.noCategory': 'Без категории',
+  'places.newCategory': 'Новая категория',
   'places.categoryNamePlaceholder': 'Название категории',
   'places.formTime': 'Время',
   'places.startTime': 'Начало',
@@ -97,5 +98,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Изменить изображение',
   'places.removeImage': 'Удалить изображение',
   'places.imageUploadError': 'Не удалось загрузить изображение',
+  'places.imageRemoveError': 'Не удалось удалить изображение',
 };
 export default places;

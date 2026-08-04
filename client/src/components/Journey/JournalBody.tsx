@@ -41,19 +41,18 @@ export default function JournalBody({ text, dark }: Props) {
           strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
           em: ({ children }) => <em>{children}</em>,
           hr: () => <hr style={{ border: 'none', borderTop: '1px solid var(--journal-border)', margin: '20px 0' }} />,
+          // react-markdown already wraps fenced code in a <pre>, so the block
+          // styling belongs here — the code renderer only handles inline code.
+          pre: ({ children }) => (
+            <pre style={{
+              background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+              borderRadius: 8, padding: 14, overflowX: 'auto',
+              fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'monospace', margin: '12px 0',
+            }}>{children}</pre>
+          ),
           code: ({ children, className }) => {
             const isBlock = className?.includes('language-')
-            if (isBlock) {
-              return (
-                <pre style={{
-                  background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-                  borderRadius: 8, padding: 14, overflowX: 'auto',
-                  fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'monospace', margin: '12px 0',
-                }}>
-                  <code>{children}</code>
-                </pre>
-              )
-            }
+            if (isBlock) return <code>{children}</code>
             return (
               <code style={{
                 background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',

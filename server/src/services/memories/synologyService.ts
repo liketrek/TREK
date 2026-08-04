@@ -19,7 +19,7 @@ import {
     SyncAlbumResult,
     AssetInfo
 } from './helpersService';
-import { send as sendNotification } from '../notificationService';
+import { send as sendNotification } from '../../nest/notifications/notifications.bridge';
 
 const SYNOLOGY_PROVIDER = 'synologyphotos';
 // Users provide the full base URL including the Photos app path (e.g. https://nas:5001/photo).
@@ -374,13 +374,15 @@ export async function updateSynologySettings(userId: number, synologyUrl: string
     const sessionCleared = urlChanged || userChanged;
     if (sessionCleared) {
         _clearSynologySession(userId);
+        // Fire-and-forget like unifiedService's photos_shared send — without the
+        // .catch an in-app insert failure became an unhandled rejection.
         sendNotification({
             event: 'synology_session_cleared',
             actorId: null,
             params: {},
             scope: 'user',
             targetId: userId,
-        });
+        }).catch(() => {});
     }
 
     try {

@@ -7,7 +7,7 @@ import { openFile } from '../../../../utils/fileDownload'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import MConfirmSheet from '../../settings/MConfirmSheet'
-import { CountPill, Field, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
+import { ConfirmationCode, CountPill, Field, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import { groupTransports, orderedEndpoints, parseTransportMeta } from './transportsModel'
 import { BOOKING_TYPE_COLOR } from './bookingsModel'
@@ -183,73 +183,71 @@ function BookingCard({ res, planner, canEdit, compact }: {
         )}
       </div>
 
-      {/* Body */}
+      {/* Body — split around the booking code so the reveal can be its own
+          control instead of a click handler buried inside the card button. */}
       {!compact && (
-        <button type="button" onClick={openEdit} className="block w-full px-3 pb-3 pt-[9px] text-left">
-          <div className="flex gap-2">
-            <Field label={t('reservations.date')} className="flex-[1.4]">{dayValue}</Field>
-            <Field label={t('reservations.time')} className="flex-1" tabular>{timeValue}</Field>
-          </div>
+        <div className="px-3 pb-3 pt-[9px]">
+          <button type="button" onClick={openEdit} className="block w-full text-left">
+            <div className="flex gap-2">
+              <Field label={t('reservations.date')} className="flex-[1.4]">{dayValue}</Field>
+              <Field label={t('reservations.time')} className="flex-1" tabular>{timeValue}</Field>
+            </div>
+          </button>
 
           {res.confirmation_number && (
-            <div className="mt-2">
-              <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
-                {t('reservations.confirmationCode')}
-              </div>
-              <div
-                onClick={e => { if (blurCodes) { e.stopPropagation(); setCodeRevealed(v => !v) } }}
-                className={`overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px] text-center font-geist text-[0.71875rem] font-semibold tabular-nums text-m-ink ${
-                  blurCodes && !codeRevealed ? 'blur-[4px] select-none' : ''
-                }`}
-              >
-                {res.confirmation_number}
-              </div>
-            </div>
+            <ConfirmationCode
+              code={res.confirmation_number}
+              label={t('reservations.confirmationCode')}
+              blurred={!!blurCodes && !codeRevealed}
+              onToggle={blurCodes ? () => setCodeRevealed(v => !v) : undefined}
+            />
           )}
 
-          {metaCells.length > 0 && (
-            <div className="mt-2 flex gap-2">
-              {metaCells.slice(0, 3).map((c, i) => (
-                <Field key={i} label={c.label} className="flex-1">{c.value}</Field>
-              ))}
-            </div>
-          )}
-
-          <TravelerAvatars travelers={res.travelers || []} label={t('reservations.travelers.label')} />
-
-          {res.location && (
-            <div className="mt-2 flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]">
-              <MapPin size={12} strokeWidth={2} className="flex-none text-m-muted" />
-              <span className="truncate text-[0.71875rem] font-semibold text-m-ink">{res.location}</span>
-            </div>
-          )}
-
-          {res.notes && (
-            <div className="mt-2 rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-2">
-              <p className="whitespace-pre-wrap font-geist text-[0.6875rem] leading-[1.5] text-m-muted">{res.notes}</p>
-            </div>
-          )}
-
-          {files.length > 0 && (
-            <div className="mt-2">
-              <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
-                {t('files.title')}
-              </div>
-              <div className="flex flex-col gap-1">
-                {files.map(f => (
-                  <span
-                    key={f.id}
-                    onClick={e => { e.stopPropagation(); openFile(f.url, f.original_name) }}
-                    className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]"
-                  >
-                    <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />
-                    <span className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{f.original_name}</span>
-                  </span>
+          <button type="button" onClick={openEdit} className="block w-full text-left">
+            {metaCells.length > 0 && (
+              <div className="mt-2 flex gap-2">
+                {metaCells.slice(0, 3).map((c, i) => (
+                  <Field key={i} label={c.label} className="flex-1">{c.value}</Field>
                 ))}
               </div>
-            </div>
-          )}
-        </button>
+            )}
+
+            <TravelerAvatars travelers={res.travelers || []} label={t('reservations.travelers.label')} />
+
+            {res.location && (
+              <div className="mt-2 flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]">
+                <MapPin size={12} strokeWidth={2} className="flex-none text-m-muted" />
+                <span className="truncate text-[0.71875rem] font-semibold text-m-ink">{res.location}</span>
+              </div>
+            )}
+
+            {res.notes && (
+              <div className="mt-2 rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-2">
+                <p className="whitespace-pre-wrap font-geist text-[0.6875rem] leading-[1.5] text-m-muted">{res.notes}</p>
+              </div>
+            )}
+
+            {files.length > 0 && (
+              <div className="mt-2">
+                <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
+                  {t('files.title')}
+                </div>
+                <div className="flex flex-col gap-1">
+                  {files.map(f => (
+                    <span
+                      key={f.id}
+                      onClick={e => { e.stopPropagation(); openFile(f.url, f.original_name) }}
+                      className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]"
+                    >
+                      <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />
+                      <span className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{f.original_name}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </button>
+        </div>
       )}
 
       <MConfirmSheet

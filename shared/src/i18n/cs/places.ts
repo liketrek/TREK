@@ -67,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Zeměpisná délka',
   'places.formCategory': 'Kategorie',
   'places.noCategory': 'Bez kategorie',
+  'places.newCategory': 'Nová kategorie',
   'places.categoryNamePlaceholder': 'Název kategorie',
   'places.formTime': 'Čas',
   'places.startTime': 'Od',
@@ -96,5 +97,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Změnit obrázek',
   'places.removeImage': 'Odebrat obrázek',
   'places.imageUploadError': 'Obrázek se nepodařilo nahrát',
+  'places.imageRemoveError': 'Obrázek se nepodařilo odebrat',
 };
 export default places;

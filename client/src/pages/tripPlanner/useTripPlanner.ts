@@ -151,7 +151,7 @@ export function useTripPlanner() {
       setActiveTab('plan')
       sessionStorage.setItem(`trip-tab-${tripId}`, 'plan')
     }
-  }, [enabledAddons, tripPluginIds, pluginsLoaded])
+  }, [activeTab, enabledAddons, tripPluginIds, pluginsLoaded])
 
   const handleTabChange = (rawTabId: string): void => {
     // A core tab a plugin replaced is gone from the bar, but a programmatic jump
@@ -298,7 +298,7 @@ export function useTripPlanner() {
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [])
-  // Layout is width-driven (isMobile); drag affordances are pointer-driven (isTouch).
+  // Layout is width-driven (isMobile); the drag bridge is pointer-driven (isTouch).
   // Conflating them is what left a tablet's places list undraggable-but-unscrollable (#1432).
   const isTouch = useIsTouch()
 
@@ -365,7 +365,7 @@ export function useTripPlanner() {
       for (const [dayId, dayAssignments] of Object.entries(assignments)) {
         if (expandedDayIds.has(Number(dayId))) {
           for (const a of dayAssignments) {
-            hiddenPlaceIds.delete(a.place?.id)
+            if (a.place?.id) hiddenPlaceIds.delete(a.place.id)
           }
         }
       }

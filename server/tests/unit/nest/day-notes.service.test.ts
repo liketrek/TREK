@@ -50,8 +50,9 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { DayNotesService } from '../../../src/nest/days/day-notes.service';
 import type { DayNote } from '../../../src/types';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
-const svc = new DayNotesService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)));
+const svc = new DayNotesService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
 
 beforeAll(() => {
   createTables(testDb);

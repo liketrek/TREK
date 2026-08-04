@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Шаблон карты',
   'settings.mapTemplatePlaceholder.select': 'Выберите шаблон...',
   'settings.mapDefaultHint': 'Оставьте пустым для OpenStreetMap (по умолчанию)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-шаблон для тайлов карты',
   'settings.mapProvider': 'Провайдер карты',
   'settings.mapProviderHint': 'Применяется к Trip Planner и Journey. Atlas всегда использует Leaflet.',
@@ -260,6 +259,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Фото профиля обновлено',
   'settings.avatarRemoved': 'Фото профиля удалено',
   'settings.avatarError': 'Ошибка загрузки',
+  'settings.avatarRemoveError': 'Ошибка удаления',
   'settings.bookingLabels': 'Подписи маршрутов бронирований',
   'settings.bookingLabelsHint':
     'Отображает названия станций / аэропортов на карте. Если выключено, показывается только значок.',

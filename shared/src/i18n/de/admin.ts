@@ -159,6 +159,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Vorlagen konnten nicht geladen werden',
   'admin.packingTemplates.createError': 'Vorlage konnte nicht erstellt werden',
   'admin.packingTemplates.deleteError': 'Vorlage konnte nicht gelöscht werden',
+  'admin.packingTemplates.deleteCategoryError': 'Kategorie konnte nicht gelöscht werden',
+  'admin.packingTemplates.deleteItemError': 'Eintrag konnte nicht gelöscht werden',
   'admin.packingTemplates.saveError': 'Fehler beim Speichern',
   'admin.tabs.addons': 'Addons',
   'admin.tabs.plugins': 'Plugins',

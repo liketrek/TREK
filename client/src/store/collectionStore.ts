@@ -208,7 +208,8 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
 
   deleteCollection: async (id: number) => {
     await collectionsApi.remove(id)
-    if (get().activeId === id) set({ activeId: null, places: [], members: [] })
+    // Labels are per-list, so they have to go with the list they belonged to.
+    if (get().activeId === id) set({ activeId: null, places: [], members: [], labels: [], labelFilter: [] })
     await get().loadAll()
   },
 
@@ -253,15 +254,30 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   },
 
   deletePlace: async (placeId: number) => {
-    set({ places: get().places.filter(p => p.id !== placeId) })
-    await collectionsApi.deletePlace(placeId)
+    // optimistic; put the row back if the server refuses, then let the caller toast
+    const prev = get().places
+    set({ places: prev.filter(p => p.id !== placeId) })
+    try {
+      await collectionsApi.deletePlace(placeId)
+    } catch (err) {
+      set({ places: prev })
+      throw err
+    }
     await get().loadAll()
   },
 
   deleteMany: async (ids: number[]) => {
     const idSet = new Set(ids)
-    set({ places: get().places.filter(p => !idSet.has(p.id)), selectedIds: [], selectMode: false })
-    await collectionsApi.deleteMany(ids)
+    const prev = get().places
+    const prevSelected = get().selectedIds
+    const prevSelectMode = get().selectMode
+    set({ places: prev.filter(p => !idSet.has(p.id)), selectedIds: [], selectMode: false })
+    try {
+      await collectionsApi.deleteMany(ids)
+    } catch (err) {
+      set({ places: prev, selectedIds: prevSelected, selectMode: prevSelectMode })
+      throw err
+    }
     await get().loadAll()
   },
 
@@ -273,12 +289,26 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   // Move the selected places into another list (re-point collection_id). They
   // leave the current list, so drop them locally + refresh.
   moveToList: async (placeIds: number[], targetId: number) => {
-    for (const id of placeIds) await collectionsApi.updatePlace(id, { collection_id: targetId })
-    const idSet = new Set(placeIds)
+    // The fan-out can fail halfway through, so drop only the places that really
+    // moved and refresh either way — otherwise the open list keeps showing rows
+    // that already belong to the target.
+    const moved: number[] = []
+    let failure: unknown = null
+    for (const id of placeIds) {
+      try {
+        await collectionsApi.updatePlace(id, { collection_id: targetId })
+        moved.push(id)
+      } catch (err) {
+        failure = err
+        break
+      }
+    }
+    const idSet = new Set(moved)
     set({ places: get().places.filter(p => !idSet.has(p.id)), selectedIds: [], selectMode: false })
     await get().loadAll()
     const active = get().activeId
     if (typeof active === 'number') await get().loadCollection(active)
+    if (failure) throw failure
   },
 
   // Duplicate the selected places into another list (re-save each place's data).
@@ -322,20 +352,32 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
 
   updateLabel: async (labelId: number, body: CollectionLabelUpdateRequest) => {
     // optimistic recolor/rename
-    set({ labels: get().labels.map(l => (l.id === labelId ? { ...l, ...body } : l)) })
-    await collectionsApi.updateLabel(labelId, body)
+    const prevLabels = get().labels
+    set({ labels: prevLabels.map(l => (l.id === labelId ? { ...l, ...body } : l)) })
+    try {
+      await collectionsApi.updateLabel(labelId, body)
+    } catch (err) {
+      set({ labels: prevLabels })
+      throw err
+    }
     const active = get().activeId
     if (typeof active === 'number') await get().loadCollection(active)
   },
 
   deleteLabel: async (labelId: number) => {
     // optimistic: drop the label + its assignments + any active filter on it
+    const prev = { labels: get().labels, labelFilter: get().labelFilter, places: get().places }
     set({
-      labels: get().labels.filter(l => l.id !== labelId),
-      labelFilter: get().labelFilter.filter(id => id !== labelId),
-      places: get().places.map(p => ({ ...p, label_ids: (p.label_ids ?? []).filter(id => id !== labelId) })),
+      labels: prev.labels.filter(l => l.id !== labelId),
+      labelFilter: prev.labelFilter.filter(id => id !== labelId),
+      places: prev.places.map(p => ({ ...p, label_ids: (p.label_ids ?? []).filter(id => id !== labelId) })),
     })
-    await collectionsApi.deleteLabel(labelId)
+    try {
+      await collectionsApi.deleteLabel(labelId)
+    } catch (err) {
+      set(prev)
+      throw err
+    }
     const active = get().activeId
     if (typeof active === 'number') await get().loadCollection(active)
   },
@@ -343,8 +385,9 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   assignLabels: async (labelIds: number[], placeIds: number[], remove = false) => {
     const idSet = new Set(placeIds)
     // optimistic per-place label_ids update
+    const prevPlaces = get().places
     set({
-      places: get().places.map(p => {
+      places: prevPlaces.map(p => {
         if (!idSet.has(p.id)) return p
         const current = new Set(p.label_ids ?? [])
         if (remove) labelIds.forEach(id => current.delete(id))
@@ -352,8 +395,13 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
         return { ...p, label_ids: [...current] }
       }),
     })
-    if (remove) await collectionsApi.unassignLabels(labelIds, placeIds)
-    else await collectionsApi.assignLabels(labelIds, placeIds)
+    try {
+      if (remove) await collectionsApi.unassignLabels(labelIds, placeIds)
+      else await collectionsApi.assignLabels(labelIds, placeIds)
+    } catch (err) {
+      set({ places: prevPlaces })
+      throw err
+    }
     const active = get().activeId
     if (typeof active === 'number') await get().loadCollection(active)
   },
@@ -390,7 +438,8 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
 
   leave: async (collectionId: number) => {
     await collectionsApi.leave(collectionId)
-    if (get().activeId === collectionId) set({ activeId: null, places: [], members: [] })
+    // Labels are per-list, so they have to go with the list we just left.
+    if (get().activeId === collectionId) set({ activeId: null, places: [], members: [], labels: [], labelFilter: [] })
     await get().loadAll()
   },
 

@@ -4,10 +4,11 @@ const { broadcastToUser } = vi.hoisted(() => ({ broadcastToUser: vi.fn() }));
 vi.mock('../../../../src/websocket', () => ({ broadcastToUser }));
 
 import { ImportJobsService } from '../../../../src/nest/booking-import/import-jobs.service';
+import { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
 
 type Preview = ReturnType<typeof vi.fn>;
 function makeService(preview: Preview) {
-  return new ImportJobsService({ preview } as never);
+  return new ImportJobsService({ preview } as never, new RealtimeService());
 }
 const files = (n: number) => Array.from({ length: n }, (_, i) => ({ originalname: `f${i}.pdf` })) as never;
 const eventsFor = (jobId: string) => broadcastToUser.mock.calls.map((c) => c[1]).filter((p) => p.jobId === jobId);

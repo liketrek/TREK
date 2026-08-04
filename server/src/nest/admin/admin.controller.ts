@@ -2,6 +2,20 @@ import { Body, Controller, Delete, Get, HttpCode, HttpException, NotFoundExcepti
 import type { Request } from 'express';
 import { readEnv } from '../../app-config';
 import { AdminService } from './admin.service';
+import {
+  AdminUserCreateDto,
+  AdminUserUpdateDto,
+  AdminPermissionsDto,
+  AdminInviteCreateDto,
+  AdminFeatureToggleDto,
+  AdminTemplateNameDto,
+  AdminOidcUpdateDto,
+  AdminAddonUpdateDto,
+  AdminCollabFeaturesDto,
+  AdminNotificationPreferencesDto,
+  AdminDefaultUserSettingsDto,
+  AdminTestNotificationDto,
+} from './admin.dto';
 import { PluginRuntimeService } from '../plugins/plugin-runtime.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
@@ -9,7 +23,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { logInfo } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';
-import { send as sendNotification } from '../../services/notificationService';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { User } from '../../types';
 
 /** Throw the legacy {error,status} envelope when a service call reports failure. */
@@ -30,6 +44,12 @@ function ok<T>(result: T): Exclude<T, { error: string }> {
  * admin-gated, the {error,status} envelopes, the audit-log writes, the MCP
  * session invalidation on addon/collab changes, create-201 vs the rest 200, and
  * the dev-only test-notification endpoint (404 outside development).
+ *
+ * Bodies validate via admin.dto.ts (@trek/shared schemas through the global
+ * ZodValidationPipe) — malformed bodies now get the pipe's standard
+ * { error: 'field: message; …' } envelope instead of the old inline typeof
+ * checks (the sanctioned ratchet behavior); valid bodies behave identically,
+ * and every bespoke service-level 400 is untouched.
  */
 @Controller('api/admin')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -38,6 +58,7 @@ export class AdminController {
     private readonly admin: AdminService,
     private readonly pluginRuntime: PluginRuntimeService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ── Users ──
@@ -46,14 +67,14 @@ export class AdminController {
 
   @Post('users')
   @HttpCode(201)
-  createUser(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
-    const result = ok(this.admin.createUser(body));
+  createUser(@CurrentUser() user: User, @Body() body: AdminUserCreateDto, @Req() req: Request) {
+    const result = ok(this.admin.createUser(body as Parameters<AdminService['createUser']>[0]));
     this.audit.writeAudit({ userId: user.id, action: 'admin.user_create', resource: String(result.insertedId), ip: getClientIp(req), details: result.auditDetails });
     return { user: result.user };
   }
 
   @Put('users/:id')
-  updateUser(@CurrentUser() user: User, @Param('id') id: string, @Body() body: unknown, @Req() req: Request) {
+  updateUser(@CurrentUser() user: User, @Param('id') id: string, @Body() body: AdminUserUpdateDto, @Req() req: Request) {
     const result = ok(this.admin.updateUser(id, body));
     this.audit.writeAudit({ userId: user.id, action: 'admin.user_update', resource: String(id), ip: getClientIp(req), details: { targetUser: result.previousEmail, fields: result.changed } });
     logInfo(`Admin ${user.email} edited user ${result.previousEmail} (fields: ${result.changed.join(', ')})`);
@@ -83,10 +104,7 @@ export class AdminController {
   permissions() { return this.admin.getPermissions(); }
 
   @Put('permissions')
-  savePermissions(@CurrentUser() user: User, @Body() body: { permissions?: unknown }, @Req() req: Request) {
-    if (!body.permissions || typeof body.permissions !== 'object') {
-      throw new HttpException({ error: 'permissions object required' }, 400);
-    }
+  savePermissions(@CurrentUser() user: User, @Body() body: AdminPermissionsDto, @Req() req: Request) {
     const result = this.admin.savePermissions(body.permissions as unknown as Parameters<AdminService['savePermissions']>[0]);
     this.audit.writeAudit({ userId: user.id, action: 'admin.permissions_update', resource: 'permissions', ip: getClientIp(req), details: body.permissions as Record<string, unknown> });
     return { success: true, permissions: result.permissions, ...(result.skipped.length ? { skipped: result.skipped } : {}) };
@@ -100,7 +118,7 @@ export class AdminController {
   getOidc() { return this.admin.getOidcSettings(); }
 
   @Put('oidc')
-  updateOidc(@CurrentUser() user: User, @Body() body: { issuer?: string } & Record<string, unknown>, @Req() req: Request) {
+  updateOidc(@CurrentUser() user: User, @Body() body: AdminOidcUpdateDto, @Req() req: Request) {
     const result = this.admin.updateOidcSettings(body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status || 400);
@@ -134,7 +152,7 @@ export class AdminController {
   getNotificationPrefs(@CurrentUser() user: User) { return this.admin.getPreferencesMatrix(user.id, user.role); }
 
   @Put('notification-preferences')
-  setNotificationPrefs(@CurrentUser() user: User, @Body() body: unknown) {
+  setNotificationPrefs(@CurrentUser() user: User, @Body() body: AdminNotificationPreferencesDto) {
     this.admin.setAdminPreferences(user.id, body);
     return this.admin.getPreferencesMatrix(user.id, user.role);
   }
@@ -149,7 +167,7 @@ export class AdminController {
 
   @Post('invites')
   @HttpCode(201)
-  createInvite(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
+  createInvite(@CurrentUser() user: User, @Body() body: AdminInviteCreateDto, @Req() req: Request) {
     const result = this.admin.createInvite(user.id, body);
     this.audit.writeAudit({ userId: user.id, action: 'admin.invite_create', resource: String(result.inviteId), ip: getClientIp(req), details: { max_uses: result.uses, expires_in_days: result.expiresInDays, trip_id: result.tripId } });
     return { invite: result.invite };
@@ -167,7 +185,7 @@ export class AdminController {
   getBagTracking() { return this.admin.getBagTracking(); }
 
   @Put('bag-tracking')
-  updateBagTracking(@CurrentUser() user: User, @Body() body: { enabled?: unknown }, @Req() req: Request) {
+  updateBagTracking(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = this.admin.updateBagTracking(body.enabled);
     this.audit.writeAudit({ userId: user.id, action: 'admin.bag_tracking', ip: getClientIp(req), details: { enabled: result.enabled } });
     return result;
@@ -177,8 +195,7 @@ export class AdminController {
   getPlacesPhotos() { return this.admin.getPlacesPhotos(); }
 
   @Put('places-photos')
-  updatePlacesPhotos(@CurrentUser() user: User, @Body() body: { enabled?: unknown }, @Req() req: Request) {
-    if (typeof body.enabled !== 'boolean') throw new HttpException({ error: 'enabled must be a boolean' }, 400);
+  updatePlacesPhotos(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = this.admin.updatePlacesPhotos(body.enabled);
     this.audit.writeAudit({ userId: user.id, action: 'admin.places_photos', ip: getClientIp(req), details: { enabled: result.enabled } });
     return result;
@@ -188,8 +205,7 @@ export class AdminController {
   getPlacesAutocomplete() { return this.admin.getPlacesAutocomplete(); }
 
   @Put('places-autocomplete')
-  updatePlacesAutocomplete(@CurrentUser() user: User, @Body() body: { enabled?: unknown }, @Req() req: Request) {
-    if (typeof body.enabled !== 'boolean') throw new HttpException({ error: 'enabled must be a boolean' }, 400);
+  updatePlacesAutocomplete(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = this.admin.updatePlacesAutocomplete(body.enabled);
     this.audit.writeAudit({ userId: user.id, action: 'admin.places_autocomplete', ip: getClientIp(req), details: { enabled: result.enabled } });
     return result;
@@ -199,8 +215,7 @@ export class AdminController {
   getPlacesDetails() { return this.admin.getPlacesDetails(); }
 
   @Put('places-details')
-  updatePlacesDetails(@CurrentUser() user: User, @Body() body: { enabled?: unknown }, @Req() req: Request) {
-    if (typeof body.enabled !== 'boolean') throw new HttpException({ error: 'enabled must be a boolean' }, 400);
+  updatePlacesDetails(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = this.admin.updatePlacesDetails(body.enabled);
     this.audit.writeAudit({ userId: user.id, action: 'admin.places_details', ip: getClientIp(req), details: { enabled: result.enabled } });
     return result;
@@ -210,7 +225,7 @@ export class AdminController {
   getCollabFeatures() { return this.admin.getCollabFeatures(); }
 
   @Put('collab-features')
-  updateCollabFeatures(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
+  updateCollabFeatures(@CurrentUser() user: User, @Body() body: AdminCollabFeaturesDto, @Req() req: Request) {
     const { features, changed } = this.admin.updateCollabFeatures(body);
     // Collab flags gate MCP registration, but a no-op save must not tear down
     // every live MCP session (#1414).
@@ -228,12 +243,14 @@ export class AdminController {
 
   @Post('packing-templates')
   @HttpCode(201)
-  createPackingTemplate(@CurrentUser() user: User, @Body() body: { name?: unknown }) {
-    return ok(this.admin.createPackingTemplate(body.name, user.id));
+  createPackingTemplate(@CurrentUser() user: User, @Body() body: AdminTemplateNameDto, @Req() req: Request) {
+    const result = ok(this.admin.createPackingTemplate(body.name, user.id));
+    this.audit.writeAudit({ userId: user.id, action: 'admin.packing_template_create', resource: String((result.template as { id?: number } | undefined)?.id ?? ''), ip: getClientIp(req), details: { name: body.name } });
+    return result;
   }
 
   @Put('packing-templates/:id')
-  updatePackingTemplate(@Param('id') id: string, @Body() body: unknown) { return ok(this.admin.updatePackingTemplate(id, body)); }
+  updatePackingTemplate(@Param('id') id: string, @Body() body: AdminTemplateNameDto) { return ok(this.admin.updatePackingTemplate(id, body)); }
 
   @Delete('packing-templates/:id')
   deletePackingTemplate(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
@@ -244,12 +261,12 @@ export class AdminController {
 
   @Post('packing-templates/:id/categories')
   @HttpCode(201)
-  createTemplateCategory(@Param('id') id: string, @Body() body: { name?: unknown }) {
+  createTemplateCategory(@Param('id') id: string, @Body() body: AdminTemplateNameDto) {
     return ok(this.admin.createTemplateCategory(id, body.name));
   }
 
   @Put('packing-templates/:templateId/categories/:catId')
-  updateTemplateCategory(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: unknown) {
+  updateTemplateCategory(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: AdminTemplateNameDto) {
     return ok(this.admin.updateTemplateCategory(templateId, catId, body));
   }
 
@@ -261,16 +278,16 @@ export class AdminController {
 
   @Post('packing-templates/:templateId/categories/:catId/items')
   @HttpCode(201)
-  createTemplateItem(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: { name?: unknown }) {
+  createTemplateItem(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: AdminTemplateNameDto) {
     return ok(this.admin.createTemplateItem(templateId, catId, body.name));
   }
 
   @Put('packing-templates/:templateId/items/:itemId')
-  updateTemplateItem(@Param('itemId') itemId: string, @Body() body: unknown) { return ok(this.admin.updateTemplateItem(itemId, body)); }
+  updateTemplateItem(@Param('templateId') templateId: string, @Param('itemId') itemId: string, @Body() body: AdminTemplateNameDto) { return ok(this.admin.updateTemplateItem(templateId, itemId, body)); }
 
   @Delete('packing-templates/:templateId/items/:itemId')
-  deleteTemplateItem(@Param('itemId') itemId: string) {
-    ok(this.admin.deleteTemplateItem(itemId));
+  deleteTemplateItem(@Param('templateId') templateId: string, @Param('itemId') itemId: string) {
+    ok(this.admin.deleteTemplateItem(templateId, itemId));
     return { success: true };
   }
 
@@ -279,7 +296,7 @@ export class AdminController {
   listAddons() { return { addons: this.admin.listAddons() }; }
 
   @Put('addons/:id')
-  async updateAddon(@CurrentUser() user: User, @Param('id') id: string, @Body() body: unknown, @Req() req: Request) {
+  async updateAddon(@CurrentUser() user: User, @Param('id') id: string, @Body() body: AdminAddonUpdateDto, @Req() req: Request) {
     const result = ok(this.admin.updateAddon(id, body));
     this.audit.writeAudit({ userId: user.id, action: 'admin.addon_update', resource: String(id), ip: getClientIp(req), details: result.auditDetails });
     // Sessions only need re-creating when the registered MCP surface can
@@ -300,8 +317,9 @@ export class AdminController {
   listMcpTokens() { return { tokens: this.admin.listMcpTokens() }; }
 
   @Delete('mcp-tokens/:id')
-  deleteMcpToken(@Param('id') id: string) {
+  deleteMcpToken(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     ok(this.admin.deleteMcpToken(id));
+    this.audit.writeAudit({ userId: user.id, action: 'admin.mcp_token_delete', resource: String(id), ip: getClientIp(req) });
     return { success: true };
   }
 
@@ -311,7 +329,7 @@ export class AdminController {
   @Delete('oauth-sessions/:id')
   revokeOAuthSession(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     ok(this.admin.revokeOAuthSession(id));
-    this.audit.writeAudit({ userId: user.id, action: 'admin.oauth_session.revoke', resource: String(id), ip: getClientIp(req) });
+    this.audit.writeAudit({ userId: user.id, action: 'admin.oauth_session_revoke', resource: String(id), ip: getClientIp(req) });
     return { success: true };
   }
 
@@ -332,10 +350,7 @@ export class AdminController {
   getDefaultUserSettings() { return this.admin.getAdminUserDefaults(); }
 
   @Put('default-user-settings')
-  setDefaultUserSettings(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
-    if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      throw new HttpException({ error: 'Object body required' }, 400);
-    }
+  setDefaultUserSettings(@CurrentUser() user: User, @Body() body: AdminDefaultUserSettingsDto, @Req() req: Request) {
     try {
       this.admin.setAdminUserDefaults(body as unknown as Record<string, unknown>);
       this.audit.writeAudit({ userId: user.id, action: 'admin.default_user_settings_update', ip: getClientIp(req), details: body as Record<string, unknown> });
@@ -348,19 +363,19 @@ export class AdminController {
   // ── Dev-only: test notification (404 outside development, mirroring the conditional mount) ──
   @Post('dev/test-notification')
   @HttpCode(200)
-  async devTestNotification(@CurrentUser() user: User, @Body() body: { event?: string; scope?: string; targetId?: number; params?: Record<string, unknown>; inApp?: boolean }) {
+  async devTestNotification(@CurrentUser() user: User, @Body() body: AdminTestNotificationDto) {
     if (!readEnv().app.isDevelopment) {
       throw new NotFoundException();
     }
     try {
-      await sendNotification({
+      await this.notifications.send({
         event: body.event ?? 'trip_reminder',
         actorId: user.id,
         scope: body.scope ?? 'user',
         targetId: body.targetId ?? user.id,
         params: { actor: user.email, ...(body.params ?? {}) },
         inApp: body.inApp,
-      } as unknown as Parameters<typeof sendNotification>[0]);
+      } as unknown as Parameters<NotificationsService['send']>[0]);
       return { success: true };
     } catch (err) {
       throw new HttpException({ error: err instanceof Error ? err.message : String(err) }, 400);

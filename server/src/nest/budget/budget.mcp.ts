@@ -5,11 +5,11 @@ import {
   demoDenied, errorResult, ok,
 } from '@trek/nest-mcp';
 import { z } from 'zod';
-import { isDemoUser } from '../../services/authService';
+import { AuthService } from '../auth/auth.service';
 import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
-import { getTripOwner, listMembers } from '../../services/tripService';
+import { getTripOwner, listMembers } from '../trips/trips.bridge';
 import { DatabaseService } from '../database/database.service';
 import { BudgetService } from './budget.service';
 import { ExchangeRatesService } from './exchange-rates.service';
@@ -68,6 +68,7 @@ export class BudgetMcp {
     private readonly budget: BudgetService,
     private readonly exchangeRates: ExchangeRatesService,
     private readonly db: DatabaseService,
+    private readonly auth: AuthService,
   ) {}
 
   // --- BUDGET ---
@@ -97,7 +98,7 @@ export class BudgetMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     const members = resolveMemberIds(tripId, member_ids);
@@ -122,7 +123,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async deleteBudgetItem({ tripId, itemId }: { tripId: number; itemId: number }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     const deleted = this.budget.deleteBudgetItem(itemId, tripId);
@@ -159,7 +160,7 @@ export class BudgetMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     // Freeze-then-write composite (no-op while the schema has no currency input,
@@ -193,7 +194,7 @@ export class BudgetMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     // Omitted userIds → default to the whole trip, matching create_budget_item.
@@ -224,7 +225,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async setBudgetItemMembers({ tripId, itemId, userIds }: { tripId: number; itemId: number; userIds: number[] }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     const result = this.budget.updateMembers(itemId, tripId, userIds);
@@ -248,7 +249,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async toggleBudgetMemberPaid({ tripId, itemId, memberId, paid }: { tripId: number; itemId: number; memberId: number; paid: boolean }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     const member = this.budget.toggleMemberPaid(itemId, tripId, memberId, paid);
@@ -311,7 +312,7 @@ export class BudgetMcp {
     { tripId, from_user_id, to_user_id, amount }: { tripId: number; from_user_id: number; to_user_id: number; amount: number },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     // Freeze-then-write composite, same as the REST path (no-op while the
@@ -339,7 +340,7 @@ export class BudgetMcp {
     { tripId, settlementId, from_user_id, to_user_id, amount }: { tripId: number; settlementId: number; from_user_id: number; to_user_id: number; amount: number },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     // Freeze-then-write composite, same as the REST path.
@@ -361,7 +362,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async deleteSettlement({ tripId, settlementId }: { tripId: number; settlementId: number }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     const deleted = this.budget.deleteSettlement(settlementId, tripId);

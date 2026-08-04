@@ -239,6 +239,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'تم تحديث صورة الملف الشخصي',
   'settings.avatarRemoved': 'تمت إزالة صورة الملف الشخصي',
   'settings.avatarError': 'فشل الرفع',
+  'settings.avatarRemoveError': 'فشل الحذف',
   'settings.mfa.title': 'المصادقة الثنائية (2FA)',
   'settings.mfa.description':
     'تضيف خطوة ثانية عند تسجيل الدخول. استخدم تطبيق مصادقة (Google Authenticator، Authy، إلخ).',
@@ -265,7 +266,6 @@ const settings: TranslationStrings = {
   'settings.mfa.toastDisabled': 'تم تعطيل المصادقة الثنائية',
   'settings.mfa.demoBlocked': 'غير متاح في الوضع التجريبي',
   'settings.tabs.offline': 'Offline', // en-fallback
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', // en-fallback
   'settings.notificationPreferences.email': 'Email', // en-fallback
   'settings.notificationPreferences.webhook': 'Webhook', // en-fallback
   'settings.notificationPreferences.inapp': 'In-App', // en-fallback

@@ -1,13 +1,21 @@
-// FE-STORE-BUDGET-001 to FE-STORE-BUDGET-011
+// FE-STORE-BUDGET-001 to FE-STORE-BUDGET-016
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildBudgetItem } from '../../../tests/helpers/factories';
 import { useTripStore } from '../tripStore';
 
+let addToast: ReturnType<typeof vi.fn>;
+
 beforeEach(() => {
   resetAllStores();
   server.resetHandlers();
+  addToast = vi.fn();
+  window.__addToast = addToast as unknown as typeof window.__addToast;
+});
+
+afterEach(() => {
+  delete window.__addToast;
 });
 
 describe('budgetSlice', () => {
@@ -173,5 +181,106 @@ describe('budgetSlice', () => {
     await useTripStore.getState().reorderBudgetItems(1, [2, 1]);
     // After failure, fresh list from server
     expect(useTripStore.getState().budgetItems[0].id).toBe(freshItem.id);
+    expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined);
+  });
+
+  it('FE-STORE-BUDGET-016: toggleBudgetMemberPaid tolerates an item that carries no members array', async () => {
+    const bare = buildBudgetItem({ id: 40, trip_id: 1 });
+    delete (bare as Partial<typeof bare>).members;
+    const other = buildBudgetItem({ id: 41, trip_id: 1, members: [{ user_id: 3, paid: 0, username: 'carol' }] });
+    seedStore(useTripStore, { budgetItems: [bare, other] });
+
+    server.use(
+      http.put('/api/trips/1/budget/40/members/3/paid', () => HttpResponse.json({ success: true, paid: true }))
+    );
+    await useTripStore.getState().toggleBudgetMemberPaid(1, 40, 3, true);
+
+    expect(useTripStore.getState().budgetItems[0].members).toEqual([]);
+    // The untouched item keeps its own members.
+    expect(useTripStore.getState().budgetItems[1].members?.[0]?.paid).toBe(0);
+  });
+
+  it('FE-STORE-BUDGET-012: updateBudgetItem throws the server message and keeps the item', async () => {
+    const existing = buildBudgetItem({ id: 30, trip_id: 1, name: 'Old' });
+    seedStore(useTripStore, { budgetItems: [existing] });
+
+    server.use(
+      http.put('/api/trips/1/budget/30', () =>
+        HttpResponse.json({ error: 'Budget is locked' }, { status: 403 })
+      )
+    );
+    await expect(
+      useTripStore.getState().updateBudgetItem(1, 30, { name: 'New' })
+    ).rejects.toThrow('Budget is locked');
+    expect(useTripStore.getState().budgetItems[0].name).toBe('Old');
+  });
+
+  it('FE-STORE-BUDGET-013: reorderBudgetCategories regroups items and appends unlisted categories', async () => {
+    const food = buildBudgetItem({ id: 1, trip_id: 1, category: 'Food' });
+    const transport = buildBudgetItem({ id: 2, trip_id: 1, category: 'Transport' });
+    const food2 = buildBudgetItem({ id: 3, trip_id: 1, category: 'Food' });
+    // No category at all — grouped under the 'Other' bucket.
+    const uncategorised = buildBudgetItem({ id: 4, trip_id: 1, category: null });
+    seedStore(useTripStore, { budgetItems: [food, transport, food2, uncategorised] });
+
+    let sent: Record<string, unknown> = {};
+    server.use(
+      http.put('/api/trips/1/budget/reorder/categories', async ({ request }) => {
+        sent = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ success: true });
+      })
+    );
+    await useTripStore.getState().reorderBudgetCategories(1, ['Transport', 'Food']);
+
+    expect(sent).toEqual({ orderedCategories: ['Transport', 'Food'] });
+    expect(useTripStore.getState().budgetItems.map(i => i.id)).toEqual([2, 1, 3, 4]);
+  });
+
+  it('FE-STORE-BUDGET-014: reorderBudgetCategories ignores a category with no items', async () => {
+    const food = buildBudgetItem({ id: 1, trip_id: 1, category: 'Food' });
+    seedStore(useTripStore, { budgetItems: [food] });
+
+    server.use(
+      http.put('/api/trips/1/budget/reorder/categories', () => HttpResponse.json({ success: true }))
+    );
+    await useTripStore.getState().reorderBudgetCategories(1, ['Lodging', 'Food']);
+
+    expect(useTripStore.getState().budgetItems.map(i => i.id)).toEqual([1]);
+  });
+
+  it('FE-STORE-BUDGET-015: reorderBudgetCategories reloads the server order and notifies on failure', async () => {
+    const food = buildBudgetItem({ id: 1, trip_id: 1, category: 'Food' });
+    const transport = buildBudgetItem({ id: 2, trip_id: 1, category: 'Transport' });
+    seedStore(useTripStore, { budgetItems: [food, transport] });
+
+    server.use(
+      http.put('/api/trips/1/budget/reorder/categories', () =>
+        HttpResponse.json({ error: 'Reorder rejected' }, { status: 500 })
+      ),
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [food, transport] }))
+    );
+    await useTripStore.getState().reorderBudgetCategories(1, ['Transport', 'Food']);
+
+    expect(useTripStore.getState().budgetItems.map(i => i.id)).toEqual([1, 2]);
+    expect(addToast).toHaveBeenCalledWith('Reorder rejected', 'error', undefined);
+  });
+
+  it('FE-STORE-BUDGET-017: a reorder whose reload also fails still notifies instead of rejecting', async () => {
+    const a = buildBudgetItem({ id: 1, trip_id: 1 });
+    const b = buildBudgetItem({ id: 2, trip_id: 1 });
+    seedStore(useTripStore, { budgetItems: [a, b] });
+
+    // Offline: the reorder and the recovery read both fail. The caller fires
+    // this without awaiting, so nothing may escape as a rejection.
+    server.use(
+      http.put('/api/trips/1/budget/reorder/items', () => HttpResponse.error()),
+      http.put('/api/trips/1/budget/reorder/categories', () => HttpResponse.error()),
+      http.get('/api/trips/1/budget', () => HttpResponse.error())
+    );
+
+    await expect(useTripStore.getState().reorderBudgetItems(1, [2, 1])).resolves.toBeUndefined();
+    await expect(useTripStore.getState().reorderBudgetCategories(1, ['Transport'])).resolves.toBeUndefined();
+
+    expect(addToast).toHaveBeenCalledTimes(2);
   });
 });

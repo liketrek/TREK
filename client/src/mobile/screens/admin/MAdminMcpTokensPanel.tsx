@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Key, Trash2, User, Loader2, Shield } from 'lucide-react'
 import { adminApi } from '../../../api/client'
 import { useToast } from '../../../components/shared/Toast'
@@ -52,15 +52,20 @@ export default function MAdminMcpTokensPanel() {
   const toast = useToast()
   const { t, locale } = useTranslation()
 
+  // The loader runs once, but a language switch while the requests are in flight
+  // must still toast in the current locale — hence the ref instead of the closure.
+  const latest = useRef({ t, toast })
+  latest.current = { t, toast }
+
   useEffect(() => {
     adminApi.oauthSessions()
       .then(d => setSessions(d.sessions || []))
-      .catch(() => toast.error(t('admin.oauthSessions.loadError')))
+      .catch(() => latest.current.toast.error(latest.current.t('admin.oauthSessions.loadError')))
       .finally(() => setSessionsLoading(false))
 
     adminApi.mcpTokens()
       .then(d => setTokens(d.tokens || []))
-      .catch(() => toast.error(t('admin.mcpTokens.loadError')))
+      .catch(() => latest.current.toast.error(latest.current.t('admin.mcpTokens.loadError')))
       .finally(() => setTokensLoading(false))
   }, [])
 

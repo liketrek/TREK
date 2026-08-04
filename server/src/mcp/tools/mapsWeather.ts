@@ -1,7 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
 import { findByIata, searchAirports } from '../../services/airportService';
-import { searchPlaces, getPlaceDetails, reverseGeocode, resolveGoogleMapsUrl } from '../../services/mapsService';
 import { getWeather, getDetailedWeather } from '../../services/weatherService';
 import {
   TOOL_ANNOTATIONS_READONLY,
@@ -9,62 +8,13 @@ import {
 } from './_shared';
 import { canRead } from '../scopes';
 
-export function registerMapsWeatherTools(server: McpServer, userId: number, scopes: string[] | null): void {
+export function registerMapsWeatherTools(server: McpServer, _userId: number, scopes: string[] | null): void {
   const canGeo     = canRead(scopes, 'geo');
   const canWeather = canRead(scopes, 'weather');
 
-  // --- MAPS EXTRAS ---
-
-  if (canGeo) server.registerTool(
-    'get_place_details',
-    {
-      description: 'Fetch detailed information about a place by its Google Place ID.',
-      inputSchema: {
-        placeId: z.string().describe('Google Place ID'),
-        lang: z.string().optional().default('en'),
-      },
-      annotations: TOOL_ANNOTATIONS_READONLY,
-    },
-    async ({ placeId, lang }) => {
-      const details = await getPlaceDetails(userId, placeId, lang ?? 'en');
-      if (!details) return { content: [{ type: 'text' as const, text: 'Place not found or maps service not configured.' }], isError: true };
-      return ok({ details });
-    }
-  );
-
-  if (canGeo) server.registerTool(
-    'reverse_geocode',
-    {
-      description: 'Get a human-readable address for given coordinates.',
-      inputSchema: {
-        lat: z.number(),
-        lng: z.number(),
-        lang: z.string().optional().default('en'),
-      },
-      annotations: TOOL_ANNOTATIONS_READONLY,
-    },
-    async ({ lat, lng, lang }) => {
-      const result = await reverseGeocode(String(lat), String(lng), lang ?? 'en');
-      if (!result) return { content: [{ type: 'text' as const, text: 'Reverse geocode failed or maps service not configured.' }], isError: true };
-      return ok(result);
-    }
-  );
-
-  if (canGeo) server.registerTool(
-    'resolve_maps_url',
-    {
-      description: 'Resolve a Google Maps share URL to coordinates and place name.',
-      inputSchema: {
-        url: z.string().describe('Google Maps share URL'),
-      },
-      annotations: TOOL_ANNOTATIONS_READONLY,
-    },
-    async ({ url }) => {
-      const result = await resolveGoogleMapsUrl(url);
-      if (!result) return { content: [{ type: 'text' as const, text: 'Could not resolve URL or maps service not configured.' }], isError: true };
-      return ok(result);
-    }
-  );
+  // The geo tools (get_place_details, reverse_geocode, resolve_maps_url) moved to
+  // the DI-discovered src/nest/maps/maps.mcp.ts (@McpController, attached via the
+  // nest-mcp registry).
 
   // --- WEATHER ---
 

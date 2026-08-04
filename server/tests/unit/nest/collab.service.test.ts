@@ -1,7 +1,7 @@
 /**
  * Unit tests for the DI-native CollabService — COLLAB-SVC-001 to COLLAB-SVC-038
  * (001–030 moved 1:1 from the legacy tests/unit/services/collabService.test.ts;
- * 031–033 pin the collab.bridge delegation; 034–038 pin the post-migration
+ * 031–033 (collab.bridge delegation) died with the bridge; 034–038 pin the post-migration
  * hardening: transactional writes, trip-scoped getFormattedNoteById, the
  * integer vote guard and malformed-URL absorption). Covers votePoll edge
  * cases, listMessages pagination, deleteMessage ownership, updateNote partial
@@ -61,9 +61,9 @@ import { avatarUrl } from '../../../src/services/avatarUrl';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { CollabService } from '../../../src/nest/collab/collab.service';
-import { listNotes as bridgeListNotes, listPolls as bridgeListPolls, countMessages as bridgeCountMessages } from '../../../src/nest/collab/collab.bridge';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
-const svc = new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)));
+const svc = new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
 
 beforeAll(() => {
   createTables(testDb);
@@ -405,35 +405,9 @@ describe('linkPreview', () => {
   });
 });
 
-// ── collab.bridge delegation (out-of-container consumers) ─────────────────────
-
-describe('collab.bridge', () => {
-  it('COLLAB-SVC-031: listNotes delegates to CollabService over the shared db', () => {
-    const { user1, trip } = setup();
-    svc.createNote(trip.id, user1.id, { title: 'Bridged note' });
-
-    const notes = bridgeListNotes(trip.id);
-    expect(notes).toHaveLength(1);
-    expect(notes[0].title).toBe('Bridged note');
-  });
-
-  it('COLLAB-SVC-032: listPolls delegates to CollabService over the shared db', () => {
-    const { user1, trip } = setup();
-    svc.createPoll(trip.id, user1.id, { question: 'Bridged?', options: ['A', 'B'] });
-
-    const polls = bridgeListPolls(trip.id);
-    expect(polls).toHaveLength(1);
-    expect(polls[0]!.question).toBe('Bridged?');
-  });
-
-  it('COLLAB-SVC-033: countMessages delegates to CollabService over the shared db', () => {
-    const { user1, trip } = setup();
-    svc.createMessage(trip.id, user1.id, 'one');
-    svc.createMessage(trip.id, user1.id, 'two');
-
-    expect(bridgeCountMessages(trip.id)).toBe(2);
-  });
-});
+// COLLAB-SVC-031..033 (collab.bridge delegation) were deleted with the bridge —
+// its last consumers (the legacy tripService and the legacy get_trip_summary
+// registrar) migrated into the DI-native TripsService/TripsMcp.
 
 // ── Post-migration hardening (transactions, scoping, guards) ──────────────────
 
@@ -441,7 +415,7 @@ describe('hardening', () => {
   it('COLLAB-SVC-034: votePoll switch is atomic — prior vote survives a failed INSERT', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs));
+    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService());
     const poll = failing.createPoll(trip.id, user1.id, { question: 'Q?', options: ['A', 'B'] });
     failing.votePoll(trip.id, poll!.id, user1.id, 0);
 
@@ -462,7 +436,7 @@ describe('hardening', () => {
   it('COLLAB-SVC-035: deleteNote is atomic — trip_files rows survive a failed note DELETE', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs));
+    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService());
     const note = failing.createNote(trip.id, user1.id, { title: 'With file' });
     testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'files/a.pdf', 'a.pdf');

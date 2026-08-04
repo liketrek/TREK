@@ -34,10 +34,12 @@ export interface McpHarnessOptions {
   scopes?: string[] | null;
   /** Whether the session is authenticated via a static API token (default: false) */
   isStaticToken?: boolean;
+  /** Fire-once deprecation-notice closure (default: registerTools' () => null) */
+  getDeprecationNotice?: () => string | null;
 }
 
 export async function createMcpHarness(options: McpHarnessOptions): Promise<McpHarness> {
-  const { userId, withResources = true, withTools = true, scopes = null, isStaticToken = false } = options;
+  const { userId, withResources = true, withTools = true, scopes = null, isStaticToken = false, getDeprecationNotice } = options;
 
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
@@ -48,7 +50,7 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
     // builds the same registry by hand (see mcp-test-controllers.ts).
     // registerTools' own ctx construction stays exercised.
     setMcpRegistry(createMcpTestRegistry());
-    registerTools(server, userId, scopes ?? null, isStaticToken);
+    registerTools(server, userId, scopes ?? null, isStaticToken, getDeprecationNotice);
   }
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

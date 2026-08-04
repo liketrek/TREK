@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Harita Şablonu',
   'settings.mapTemplatePlaceholder.select': 'Şablon seçin...',
   'settings.mapDefaultHint': 'OpenStreetMap için boş bırakın (varsayılan)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Harita kutucukları için URL şablonu',
   'settings.mapProvider': 'Harita Sağlayıcısı',
   'settings.mapProviderHint': 'Seyahat planlayıcı ve Journey haritalarını etkiler. Atlas her zaman Leaflet kullanır.',
@@ -264,6 +263,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profil resmi güncellendi',
   'settings.avatarRemoved': 'Profil resmi kaldırıldı',
   'settings.avatarError': 'Yükleme başarısız oldu',
+  'settings.avatarRemoveError': 'Kaldırma başarısız oldu',
   'settings.mfa.title': 'İki faktörlü kimlik doğrulama (2FA)',
   'settings.mfa.description':
     'E-posta ve şifreyle oturum açtığınızda ikinci bir adım ekler. Bir kimlik doğrulama uygulaması kullanın (Google Authenticator, Authy vb.).',

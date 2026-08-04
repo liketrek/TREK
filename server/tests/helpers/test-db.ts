@@ -104,6 +104,8 @@ const RESET_TABLES = [
   'invite_tokens',
   'tags',
   'app_settings',
+  'webauthn_challenges',
+  'webauthn_credentials',
   'users',
 ];
 

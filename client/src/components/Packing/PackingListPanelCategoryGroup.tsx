@@ -98,19 +98,17 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
     catch { toast.error(t('packing.toast.renameError')) }
   }
 
+  // togglePackingItem rolls its own optimistic update back and reports the
+  // failure itself, so the bulk actions just drive it item by item.
   const handleCheckAll = async () => {
-    try {
-      for (const item of Array.from(items)) {
-        if (!item.checked) await togglePackingItem(tripId, item.id, true)
-      }
-    } catch { toast.error(t('packing.toast.saveError')) }
+    for (const item of Array.from(items)) {
+      if (!item.checked) await togglePackingItem(tripId, item.id, true)
+    }
   }
   const handleUncheckAll = async () => {
-    try {
-      for (const item of Array.from(items)) {
-        if (item.checked) await togglePackingItem(tripId, item.id, false)
-      }
-    } catch { toast.error(t('packing.toast.saveError')) }
+    for (const item of Array.from(items)) {
+      if (item.checked) await togglePackingItem(tripId, item.id, false)
+    }
   }
   const handleDeleteAll = async () => {
     await onDeleteAll(items)
@@ -304,7 +302,8 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                 placeholder={t('packing.addItemPlaceholder')}
                 style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
               />
-              <button onClick={() => { if (newItemName.trim()) { onAddItem(kategorie, newItemName.trim()); setNewItemName(''); setTimeout(() => addItemRef.current?.focus(), 30) } }}
+              {/* disabled while the field is empty, so no extra guard here */}
+              <button onClick={() => { onAddItem(kategorie, newItemName.trim()); setNewItemName(''); setTimeout(() => addItemRef.current?.focus(), 30) }}
                 disabled={!newItemName.trim()}
                 style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: newItemName.trim() ? 'var(--text-primary)' : 'var(--border-primary)', color: 'var(--bg-primary)', cursor: newItemName.trim() ? 'pointer' : 'default', display: 'flex' }}>
                 <Plus size={14} />

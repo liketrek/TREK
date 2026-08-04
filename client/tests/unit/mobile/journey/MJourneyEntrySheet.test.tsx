@@ -1,8 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import userEvent from '@testing-library/user-event';
 import { mapsApi, weatherApi } from '../../../../src/api/client';
 import MJourneyEntrySheet from '../../../../src/mobile/screens/journey/MJourneyEntrySheet';
-import type { JourneyEntry } from '../../../../src/store/journeyStore';
-import { fireEvent, render, screen, waitFor } from '../../../helpers/render';
+import type { GalleryPhoto, JourneyEntry, JourneyPhoto } from '../../../../src/store/journeyStore';
+import type { ResilientResult, UploadProgress } from '../../../../src/utils/uploadQueue';
+import { server } from '../../../helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render';
 
 const entry: JourneyEntry = {
   id: 0,
@@ -130,5 +134,816 @@ describe('MJourneyEntrySheet quick capture', () => {
       )
     );
     expect(props.onDone).toHaveBeenCalled();
+  });
+
+  it('FE-MOB-JENTRY-001: opens the camera and the gallery picker from the capture buttons', async () => {
+    vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: null, address: null });
+    vi.spyOn(weatherApi, 'getCurrent').mockResolvedValue({
+      temp: 0, main: '', description: '', type: '', error: 'unavailable',
+    });
+    const user = userEvent.setup();
+    setup();
+
+    const camera = document.querySelector('input[type="file"][capture="environment"]') as HTMLInputElement;
+    const gallery = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
+    const cameraClick = vi.spyOn(camera, 'click');
+    const galleryClick = vi.spyOn(gallery, 'click');
+
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    await user.click(screen.getByRole('button', { name: 'Gallery' }));
+
+    expect(cameraClick).toHaveBeenCalledTimes(1);
+    expect(galleryClick).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mapsApi.reverse).toHaveBeenCalled());
+  });
+
+  it('FE-MOB-JENTRY-002: closes a quick capture without a discard prompt', async () => {
+    vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: 'Singapore', address: 'Singapore' });
+    vi.spyOn(weatherApi, 'getCurrent').mockResolvedValue({
+      temp: 0, main: '', description: '', type: '', error: 'unavailable',
+    });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    const { props } = setup();
+
+    await waitFor(() => expect(screen.getByDisplayValue('Singapore')).toBeInTheDocument());
+    // Header X and footer button share the "Cancel" label; the footer one is second.
+    await user.click(screen.getAllByRole('button', { name: 'Cancel' })[1]);
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+// FE-MOB-JENTRY-003 to FE-MOB-JENTRY-033 — the full editor, read-only mode and the
+// quick-capture races the tests above don't reach.
+
+type ToastKind = 'success' | 'error' | 'warning' | 'info';
+
+const toastSpy = vi.fn((_message: string, _type?: ToastKind, _duration?: number) => 0);
+
+function buildEntry(overrides: Partial<JourneyEntry> = {}): JourneyEntry {
+  return {
+    id: 0,
+    journey_id: 7,
+    author_id: 3,
+    type: 'entry',
+    entry_date: '2026-03-15',
+    visibility: 'private',
+    sort_order: 0,
+    photos: [],
+    created_at: 0,
+    updated_at: 0,
+    ...overrides,
+  };
+}
+
+function buildPhoto(id: number): JourneyPhoto {
+  return { id, entry_id: 5, photo_id: id, caption: null, sort_order: 0, shared: 1, created_at: 0 };
+}
+
+function buildGalleryPhoto(id: number): GalleryPhoto {
+  return { id, journey_id: 7, photo_id: id, caption: null, shared: 1, sort_order: 0, created_at: 0 };
+}
+
+type UploadFn = (
+  entryId: number,
+  files: File[],
+  cbs?: { onProgress?: (p: UploadProgress) => void },
+) => Promise<ResilientResult<JourneyPhoto>>;
+
+interface MountOptions {
+  galleryPhotos?: GalleryPhoto[];
+  quickCapture?: boolean;
+  readOnly?: boolean;
+  withDelete?: boolean;
+  upload?: UploadFn;
+}
+
+const defaultUpload: UploadFn = async (_entryId, files, cbs) => {
+  cbs?.onProgress?.({ done: files.length, total: files.length, failed: 0, percent: 100 });
+  return { succeeded: [], failed: [] };
+};
+
+function mountSheet(sheetEntry: JourneyEntry, opts: MountOptions = {}) {
+  const onClose = vi.fn();
+  const onDone = vi.fn();
+  const onDelete = vi.fn();
+  const onSave = vi.fn(async (_data: Record<string, unknown>) => 42);
+  const onUploadPhotos = vi.fn(opts.upload ?? defaultUpload);
+  const view = render(
+    <MJourneyEntrySheet
+      entry={sheetEntry}
+      galleryPhotos={opts.galleryPhotos ?? []}
+      quickCapture={opts.quickCapture ?? false}
+      readOnly={opts.readOnly ?? false}
+      onClose={onClose}
+      onSave={onSave}
+      onUploadPhotos={onUploadPhotos}
+      onDelete={opts.withDelete ? onDelete : undefined}
+      onDone={onDone}
+    />
+  );
+  return { ...view, onClose, onDone, onDelete, onSave, onUploadPhotos };
+}
+
+const multiFileInput = () => document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
+const dateField = () => document.querySelector('input[type="date"]') as HTMLInputElement;
+const timeField = () => document.querySelector('input[type="time"]') as HTMLInputElement;
+const jpeg = (name = 'a.jpg') => new File(['x'], name, { type: 'image/jpeg' });
+
+const originalCreateObjectURL = URL.createObjectURL;
+
+describe('MJourneyEntrySheet full editor', () => {
+  beforeEach(() => {
+    toastSpy.mockClear();
+    window.__addToast = toastSpy;
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true, writable: true, value: vi.fn(() => 'blob:preview'),
+    });
+  });
+
+  afterEach(() => {
+    delete window.__addToast;
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true, writable: true, value: originalCreateObjectURL,
+    });
+  });
+
+  it('FE-MOB-JENTRY-003: shows every editor section for a brand new entry', () => {
+    mountSheet(buildEntry({ entry_date: '' }));
+
+    expect(screen.getByRole('dialog', { name: 'New Entry' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Give this moment a name...')).toHaveValue('');
+    expect(screen.getByPlaceholderText('Write your story...')).toHaveValue('');
+    expect(screen.getByText('Pros & Cons')).toBeInTheDocument();
+    expect(screen.getByText('Date')).toBeInTheDocument();
+    expect(screen.getByText('Time')).toBeInTheDocument();
+    expect(screen.getByText('Mood')).toBeInTheDocument();
+    expect(screen.getByText('Weather')).toBeInTheDocument();
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+    // An empty entry_date falls back to today, an empty gallery locks the picker.
+    expect(dateField().value).toBe(new Date().toISOString().split('T')[0]);
+    expect(timeField()).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'From Gallery' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Upload photos' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-004: seeds all fields from an existing entry', () => {
+    mountSheet(buildEntry({
+      id: 5,
+      title: 'Roman holiday',
+      story: 'Gelato everywhere',
+      entry_time: '14:30:00',
+      location_name: 'Rome',
+      location_lat: 41.9,
+      location_lng: 12.5,
+      mood: 'good',
+      weather: 'sunny',
+      tags: ['food', 'city'],
+      pros_cons: { pros: ['Gelato'], cons: ['Queues'] },
+    }));
+
+    expect(screen.getByRole('dialog', { name: 'Edit Entry' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Roman holiday')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Gelato everywhere')).toBeInTheDocument();
+    expect(timeField()).toHaveValue('14:30');
+    expect(screen.getByDisplayValue('Rome')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Gelato')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Queues')).toBeInTheDocument();
+    expect(screen.getByText('food')).toBeInTheDocument();
+    expect(screen.getByText('city')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Good' }).className).not.toContain('text-m-muted');
+    expect(screen.getByRole('button', { name: 'Sunny' }).className).toContain('bg-m-act');
+    expect(screen.getByRole('button', { name: 'Rainy' }).className).toContain('text-m-muted');
+  });
+
+  it('FE-MOB-JENTRY-005: saves title, story, date, time, pros, cons, tags, mood and weather', async () => {
+    const user = userEvent.setup();
+    const { onSave, onDone } = mountSheet(buildEntry());
+
+    await user.type(screen.getByPlaceholderText('Give this moment a name...'), 'Rome');
+    await user.type(screen.getByPlaceholderText('Write your story...'), 'Great day');
+    fireEvent.change(dateField(), { target: { value: '2026-03-18' } });
+    fireEvent.change(timeField(), { target: { value: '18:45' } });
+
+    const [addPro, addCon] = screen.getAllByRole('button', { name: /Add another/ });
+    await user.click(addPro);
+    await user.click(addPro);
+    await user.click(addCon);
+    await user.type(screen.getAllByPlaceholderText('Something great...')[0], 'Gelato');
+    await user.type(screen.getByPlaceholderText('Not so great...'), 'Crowds');
+
+    const tagInput = screen.getByPlaceholderText('Add tag');
+    await user.type(tagInput, 'food{Enter}');
+    await user.type(tagInput, 'city,');
+    await user.type(tagInput, 'food{Enter}');
+
+    await user.click(screen.getByRole('button', { name: 'Amazing' }));
+    await user.click(screen.getByRole('button', { name: 'Rainy' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    // The second (still empty) pro row is dropped and the duplicate tag never lands.
+    expect(onSave).toHaveBeenCalledWith({
+      title: 'Rome',
+      story: 'Great day',
+      entry_date: '2026-03-18',
+      entry_time: '18:45',
+      location_name: null,
+      location_lat: null,
+      location_lng: null,
+      mood: 'amazing',
+      weather: 'rainy',
+      tags: ['food', 'city'],
+      pros_cons: { pros: ['Gelato'], cons: ['Crowds'] },
+      type: undefined,
+    });
+  });
+
+  it('FE-MOB-JENTRY-006: removes a pro and a con row again', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({
+      id: 5,
+      pros_cons: { pros: ['Gelato', 'Sun'], cons: ['Queues', 'Heat'] },
+    }));
+
+    const pro = screen.getByDisplayValue('Sun').parentElement as HTMLElement;
+    await user.click(pro.querySelector('button') as HTMLElement);
+    const con = screen.getByDisplayValue('Heat').parentElement as HTMLElement;
+    await user.click(con.querySelector('button') as HTMLElement);
+
+    expect(screen.queryByDisplayValue('Sun')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Heat')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({ pros_cons: { pros: ['Gelato'], cons: ['Queues'] } });
+  });
+
+  it('FE-MOB-JENTRY-007: edits an existing pro and con inline', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({
+      id: 5,
+      pros_cons: { pros: ['Gelato'], cons: ['Queues'] },
+    }));
+
+    await user.type(screen.getByDisplayValue('Gelato'), ' bars');
+    await user.type(screen.getByDisplayValue('Queues'), ' everywhere');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      pros_cons: { pros: ['Gelato bars'], cons: ['Queues everywhere'] },
+    });
+  });
+
+  it('FE-MOB-JENTRY-008: removes a tag chip', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({ id: 5, tags: ['food', 'city'] }));
+
+    const chip = screen.getByText('city');
+    await user.click(chip.querySelector('button') as HTMLElement);
+    expect(screen.queryByText('city')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({ tags: ['food'] });
+  });
+
+  it('FE-MOB-JENTRY-009: promotes a skeleton to a real entry once it has a story', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({ id: 9, type: 'skeleton' }));
+
+    await user.type(screen.getByPlaceholderText('Write your story...'), 'Gondolas');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({ type: 'entry' });
+  });
+
+  it('FE-MOB-JENTRY-010: leaves an untouched skeleton a skeleton', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({ id: 9, type: 'skeleton', title: 'Venice' }));
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({ type: undefined });
+  });
+
+  it('FE-MOB-JENTRY-011: queues picked files, reports progress and uploads them on save', async () => {
+    const user = userEvent.setup();
+    let release: (r: ResilientResult<JourneyPhoto>) => void = () => {};
+    const upload: UploadFn = (_entryId, files, cbs) =>
+      new Promise<ResilientResult<JourneyPhoto>>(resolve => {
+        cbs?.onProgress?.({ done: 1, total: files.length, failed: 0, percent: 50 });
+        release = resolve;
+      });
+    const { onUploadPhotos, onDone } = mountSheet(buildEntry(), { upload });
+
+    const file = jpeg();
+    await user.click(screen.getByRole('button', { name: 'Upload photos' }));
+    fireEvent.change(multiFileInput(), { target: { files: [file] } });
+    await waitFor(() => expect(document.querySelector('img[src="blob:preview"]')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Uploading 1/1…')).toBeInTheDocument();
+
+    release({ succeeded: [], failed: [] });
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(onUploadPhotos).toHaveBeenCalledWith(42, [file], expect.anything());
+  });
+
+  it('FE-MOB-JENTRY-012: keeps files that failed to upload and warns about them', async () => {
+    const user = userEvent.setup();
+    const file = jpeg();
+    const { onUploadPhotos } = mountSheet(buildEntry());
+    onUploadPhotos.mockResolvedValueOnce({ succeeded: [], failed: [file] });
+
+    fireEvent.change(multiFileInput(), { target: { files: [file] } });
+    await waitFor(() => expect(document.querySelector('img[src="blob:preview"]')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(toastSpy).toHaveBeenCalledWith('1 of 1 photos failed — save again to retry', 'error', undefined)
+    );
+    expect(document.querySelector('img[src="blob:preview"]')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-013: reports a rejected upload but still finishes the save', async () => {
+    const user = userEvent.setup();
+    const { onUploadPhotos, onDone } = mountSheet(buildEntry());
+    onUploadPhotos.mockRejectedValueOnce(new Error('disk full'));
+
+    fireEvent.change(multiFileInput(), { target: { files: [jpeg()] } });
+    await waitFor(() => expect(document.querySelector('img[src="blob:preview"]')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('disk full', 'error', undefined));
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-JENTRY-014: ignores an empty file selection and drops a queued file again', async () => {
+    const user = userEvent.setup();
+    mountSheet(buildEntry());
+
+    fireEvent.change(multiFileInput(), { target: { files: [] } });
+    expect(document.querySelector('img[src="blob:preview"]')).not.toBeInTheDocument();
+
+    fireEvent.change(multiFileInput(), { target: { files: [jpeg()] } });
+    await waitFor(() => expect(document.querySelector('img[src="blob:preview"]')).toBeInTheDocument());
+
+    const preview = document.querySelector('img[src="blob:preview"]') as HTMLElement;
+    await user.click(preview.parentElement!.querySelector('button') as HTMLElement);
+    expect(document.querySelector('img[src="blob:preview"]')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-015: queues gallery photos on a new entry and links them after the save', async () => {
+    const linked: unknown[] = [];
+    server.use(http.post('/api/journeys/entries/42/link-photo', async ({ request }) => {
+      linked.push(await request.json());
+      return HttpResponse.json({ id: 200 });
+    }));
+    const user = userEvent.setup();
+    const { onDone } = mountSheet(buildEntry(), { galleryPhotos: [buildGalleryPhoto(200)] });
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }));
+    await user.click(screen.getAllByAltText('')[0]);
+
+    expect(await screen.findByText('All photos already added')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(linked).toEqual([{ journey_photo_id: 200 }]);
+  });
+
+  it('FE-MOB-JENTRY-016: drops a queued gallery photo again so nothing gets linked', async () => {
+    let calls = 0;
+    server.use(http.post('/api/journeys/entries/42/link-photo', () => {
+      calls += 1;
+      return HttpResponse.json({ id: 200 });
+    }));
+    const user = userEvent.setup();
+    const { onDone } = mountSheet(buildEntry(), { galleryPhotos: [buildGalleryPhoto(200)] });
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }));
+    await user.click(screen.getAllByAltText('')[0]);
+    await screen.findByText('All photos already added');
+
+    const tile = document.querySelector('.h-16 img')!.parentElement as HTMLElement;
+    await user.click(tile.querySelector('button[aria-label="Delete"]') as HTMLElement);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(calls).toBe(0);
+  });
+
+  it('FE-MOB-JENTRY-017: links a gallery photo straight away on a saved entry', async () => {
+    let linked = false;
+    server.use(http.post('/api/journeys/entries/5/link-photo', () => {
+      linked = true;
+      return HttpResponse.json(buildPhoto(200));
+    }));
+    const user = userEvent.setup();
+    mountSheet(buildEntry({ id: 5 }), { galleryPhotos: [buildGalleryPhoto(200)] });
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }));
+    await user.click(screen.getAllByAltText('')[0]);
+
+    await waitFor(() => expect(linked).toBe(true));
+    expect(await screen.findByText('All photos already added')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-018: keeps the picker open when linking a gallery photo fails', async () => {
+    let attempts = 0;
+    server.use(http.post('/api/journeys/entries/5/link-photo', () => {
+      attempts += 1;
+      return new HttpResponse(null, { status: 500 });
+    }));
+    const user = userEvent.setup();
+    mountSheet(buildEntry({ id: 5 }), { galleryPhotos: [buildGalleryPhoto(200)] });
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }));
+    await user.click(screen.getAllByAltText('')[0]);
+
+    await waitFor(() => expect(attempts).toBe(1));
+    expect(screen.queryByText('All photos already added')).not.toBeInTheDocument();
+    expect(screen.getAllByAltText('')).toHaveLength(1);
+  });
+
+  it('FE-MOB-JENTRY-019: unlinks a photo removed from a saved entry', async () => {
+    let unlinked = false;
+    server.use(http.delete('/api/journeys/entries/5/photos/100', () => {
+      unlinked = true;
+      return HttpResponse.json({ ok: true });
+    }));
+    const user = userEvent.setup();
+    mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100)] }));
+
+    const tile = document.querySelector('img[src="/api/photos/100/thumbnail"]')!.parentElement as HTMLElement;
+    await user.click(tile.querySelector('button[aria-label="Delete"]') as HTMLElement);
+
+    await waitFor(() => expect(unlinked).toBe(true));
+    expect(document.querySelector('img[src="/api/photos/100/thumbnail"]')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-020: promoting a photo to first persists the new sort order', async () => {
+    const patched: Array<{ id: string; body: unknown }> = [];
+    server.use(http.patch('/api/journeys/photos/:id', async ({ params, request }) => {
+      patched.push({ id: String(params.id), body: await request.json() });
+      return HttpResponse.json({ ok: true });
+    }));
+    const user = userEvent.setup();
+    mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }));
+
+    await user.click(screen.getByRole('button', { name: '1st' }));
+
+    await waitFor(() => expect(patched).toHaveLength(2));
+    expect(patched).toEqual([
+      { id: '101', body: { sort_order: 0 } },
+      { id: '100', body: { sort_order: 1 } },
+    ]);
+    const order = Array.from(document.querySelectorAll('.h-16 img')).map(i => i.getAttribute('src'));
+    expect(order[0]).toBe('/api/photos/101/thumbnail');
+  });
+
+  it('FE-MOB-JENTRY-021: toggles mood and weather chips back off', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({ id: 5, mood: 'rough', weather: 'cold' }));
+
+    await user.click(screen.getByRole('button', { name: 'Rough' }));
+    await user.click(screen.getByRole('button', { name: 'Snowy' }));
+    expect(screen.getByRole('button', { name: 'Rough' }).className).toContain('text-m-muted');
+    expect(screen.getByRole('button', { name: 'Snowy' }).className).not.toContain('bg-m-act');
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({ mood: null, weather: null });
+  });
+
+  it('FE-MOB-JENTRY-022: picks a searched location and stores its coordinates', async () => {
+    server.use(http.post('/api/maps/search', () => HttpResponse.json({
+      places: [
+        { name: 'Roma Termini', address: 'Piazza dei Cinquecento', lat: '41.9', lng: '12.5' },
+        { name: 'Roma Ostiense', lat: 41.86, lng: 12.48 },
+      ],
+    })));
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({ id: 5 }));
+    const input = screen.getByPlaceholderText('Search location...');
+
+    // The second keystroke has to clear the timer the first one armed.
+    fireEvent.change(input, { target: { value: 'Ro' } });
+    fireEvent.change(input, { target: { value: 'Rom' } });
+
+    const hit = await screen.findByText('Roma Termini', {}, { timeout: 3000 });
+    expect(screen.getByText('Piazza dei Cinquecento')).toBeInTheDocument();
+    expect(screen.getByText('Roma Ostiense')).toBeInTheDocument();
+    await user.click(hit);
+
+    expect(screen.getByDisplayValue('Roma Termini')).toBeInTheDocument();
+    expect(screen.queryByText('Piazza dei Cinquecento')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      location_name: 'Roma Termini', location_lat: 41.9, location_lng: 12.5,
+    });
+  });
+
+  it('FE-MOB-JENTRY-023: clears the suggestions for a query shorter than two characters', async () => {
+    server.use(http.post('/api/maps/search', () => HttpResponse.json({
+      places: [{ name: 'Roma Termini', address: 'Piazza dei Cinquecento', lat: 41.9, lng: 12.5 }],
+    })));
+    mountSheet(buildEntry({ id: 5 }));
+    const input = screen.getByPlaceholderText('Search location...');
+
+    // Focus without results must not open the dropdown.
+    fireEvent.focus(input);
+    expect(screen.queryByText('Roma Termini')).not.toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: 'Roma' } });
+    await screen.findByText('Roma Termini', {}, { timeout: 3000 });
+
+    // Re-focusing with results in hand keeps the dropdown open.
+    fireEvent.focus(input);
+    expect(screen.getByText('Roma Termini')).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: 'R' } });
+    expect(screen.queryByText('Roma Termini')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-035: shows no suggestions when the search payload carries no places', async () => {
+    let calls = 0;
+    server.use(http.post('/api/maps/search', () => {
+      calls += 1;
+      return HttpResponse.json({});
+    }));
+    mountSheet(buildEntry({ id: 5 }));
+
+    fireEvent.change(screen.getByPlaceholderText('Search location...'), { target: { value: 'Roma' } });
+
+    await waitFor(() => expect(calls).toBe(1), { timeout: 3000 });
+    expect(document.querySelector('.absolute.left-0.right-0.top-full')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-036: leaves the strip untouched when the link call returns nothing', async () => {
+    server.use(http.post('/api/journeys/entries/5/link-photo', () => HttpResponse.json(null)));
+    const user = userEvent.setup();
+    mountSheet(
+      buildEntry({ id: 5, photos: undefined as unknown as JourneyPhoto[] }),
+      { galleryPhotos: [buildGalleryPhoto(200)] },
+    );
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }));
+    await user.click(screen.getAllByAltText('')[0]);
+
+    await waitFor(() => expect(screen.getAllByAltText('')).toHaveLength(1));
+    expect(document.querySelector('.h-16 img')).not.toBeInTheDocument();
+    expect(screen.queryByText('All photos already added')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-037: reorders photos locally even when persisting the order fails', async () => {
+    let attempts = 0;
+    server.use(http.patch('/api/journeys/photos/:id', () => {
+      attempts += 1;
+      return new HttpResponse(null, { status: 500 });
+    }));
+    const user = userEvent.setup();
+    mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }));
+
+    await user.click(screen.getByRole('button', { name: '1st' }));
+
+    await waitFor(() => expect(attempts).toBe(2));
+    const order = Array.from(document.querySelectorAll('.h-16 img')).map(i => i.getAttribute('src'));
+    expect(order).toEqual(['/api/photos/101/thumbnail', '/api/photos/100/thumbnail']);
+  });
+
+  it('FE-MOB-JENTRY-024: shows no suggestions when the location search fails', async () => {
+    let calls = 0;
+    server.use(http.post('/api/maps/search', () => {
+      calls += 1;
+      return new HttpResponse(null, { status: 500 });
+    }));
+    mountSheet(buildEntry({ id: 5 }));
+
+    fireEvent.change(screen.getByPlaceholderText('Search location...'), { target: { value: 'Roma' } });
+
+    await waitFor(() => expect(calls).toBe(1), { timeout: 3000 });
+    expect(screen.getByDisplayValue('Roma')).toBeInTheDocument();
+    expect(document.querySelector('.absolute.left-0.right-0.top-full')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-025: asks before discarding a dirty editor', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const user = userEvent.setup();
+    const { onClose } = mountSheet(buildEntry({ id: 5, title: 'Rome' }));
+
+    await user.type(screen.getByDisplayValue('Rome'), '!');
+    await user.click(screen.getAllByRole('button', { name: 'Cancel' })[1]);
+
+    expect(confirmSpy).toHaveBeenCalledWith('You have unsaved changes. Discard them?');
+    expect(onClose).not.toHaveBeenCalled();
+
+    confirmSpy.mockReturnValue(true);
+    await user.click(screen.getAllByRole('button', { name: 'Cancel' })[1]);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
+  });
+
+  it('FE-MOB-JENTRY-026: closes an untouched editor from the header without asking', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    const { onClose } = mountSheet(buildEntry({ id: 5, title: 'Rome' }));
+
+    await user.click(screen.getAllByRole('button', { name: 'Cancel' })[0]);
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
+  });
+
+  it('FE-MOB-JENTRY-027: offers deleting the entry', async () => {
+    const user = userEvent.setup();
+    const { onDelete } = mountSheet(buildEntry({ id: 5 }), { withDelete: true });
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('MJourneyEntrySheet read-only', () => {
+  it('FE-MOB-JENTRY-028: renders a contributor entry without any editing affordance', () => {
+    mountSheet(buildEntry({
+      id: 5,
+      title: 'Roman holiday',
+      story: 'Gelato everywhere',
+      location_name: 'Rome',
+      location_lat: 41.9,
+      location_lng: 12.5,
+      mood: 'good',
+      weather: 'sunny',
+      tags: ['food'],
+      pros_cons: { pros: ['Gelato'], cons: ['Queues'] },
+      photos: [buildPhoto(100), buildPhoto(101)],
+    }), { readOnly: true, withDelete: true, galleryPhotos: [buildGalleryPhoto(200)] });
+
+    expect(screen.getByText('Roman holiday')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Give this moment a name...')).not.toBeInTheDocument();
+    expect(screen.getByText('Gelato everywhere')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Write your story...')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Upload photos' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'From Gallery' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '1st' })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('button', { name: /Add another/ })).toHaveLength(0);
+    expect(screen.getByDisplayValue('Gelato')).toHaveAttribute('readonly');
+    expect(screen.getByDisplayValue('Queues')).toHaveAttribute('readonly');
+    expect(screen.getByDisplayValue('Rome')).toHaveAttribute('readonly');
+    expect(dateField()).toBeDisabled();
+    expect(timeField()).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Good' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Sunny' })).toBeDisabled();
+    expect(screen.getByText('food')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Add tag')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-029: hides story, pros/cons and tags when a read-only entry has none', () => {
+    mountSheet(buildEntry({ id: 5 }), { readOnly: true });
+
+    expect(screen.getByText('Give this moment a name...')).toBeInTheDocument();
+    expect(screen.queryByText('Pros & Cons')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+    expect(screen.getByText('Mood')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-030: closes a read-only sheet without a discard prompt', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    const { onClose } = mountSheet(buildEntry({ id: 5, title: 'Rome' }), { readOnly: true });
+
+    await user.click(screen.getAllByRole('button', { name: 'Cancel' })[1]);
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
+  });
+});
+
+describe('MJourneyEntrySheet quick capture edge cases', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('FE-MOB-JENTRY-031: falls back to a generic error when the device has no geolocation', () => {
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: undefined });
+    mountSheet(buildEntry({ entry_time: '09:07' }), { quickCapture: true });
+
+    expect(screen.getByText('Error')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-032: skips the location lookup when the entry already has coordinates', () => {
+    const getCurrentPosition = vi.fn();
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition } });
+    mountSheet(
+      buildEntry({ location_lat: 41.9, location_lng: 12.5, location_name: 'Rome' }),
+      { quickCapture: true },
+    );
+
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('Rome')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-038: still applies the weather when reverse geocoding fails', async () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn((s: PositionCallback) =>
+          s({ coords: { latitude: 1.35, longitude: 103.8 } } as GeolocationPosition)),
+      },
+    });
+    vi.spyOn(mapsApi, 'reverse').mockRejectedValue(new Error('nominatim down'));
+    vi.spyOn(weatherApi, 'getCurrent').mockResolvedValue({
+      temp: 31, main: 'Clear', description: 'clear sky', type: 'current',
+    });
+    mountSheet(buildEntry(), { quickCapture: true });
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Sunny' }).className).toContain('bg-m-act'));
+    expect(screen.getByPlaceholderText('Search location...')).toHaveValue('');
+  });
+
+  it('FE-MOB-JENTRY-033: ignores a position that only arrives after the sheet is gone', async () => {
+    let success: PositionCallback | undefined;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: { getCurrentPosition: vi.fn((s: PositionCallback) => { success = s }) },
+    });
+    const reverse = vi.spyOn(mapsApi, 'reverse');
+    const { unmount } = mountSheet(buildEntry(), { quickCapture: true });
+
+    unmount();
+    await act(async () => {
+      success?.({ coords: { latitude: 1, longitude: 2 } } as GeolocationPosition);
+    });
+
+    expect(reverse).not.toHaveBeenCalled();
+  });
+
+  it('FE-MOB-JENTRY-034: keeps only the newest lookup when the effect restarts mid-flight', async () => {
+    const resolvers: Array<(v: { name: string; address: string }) => void> = [];
+    const failures: PositionErrorCallback[] = [];
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn((s: PositionCallback, e: PositionErrorCallback) => {
+          failures.push(e);
+          s({ coords: { latitude: 1.35, longitude: 103.8 } } as GeolocationPosition);
+        }),
+      },
+    });
+    vi.spyOn(mapsApi, 'reverse').mockImplementation(
+      () => new Promise(resolve => {
+        resolvers.push(resolve as (v: { name: string; address: string }) => void);
+      })
+    );
+    vi.spyOn(weatherApi, 'getCurrent').mockResolvedValue({
+      temp: 0, main: '', description: '', type: 'current', error: 'unavailable',
+    });
+
+    const base = buildEntry();
+    const props = {
+      galleryPhotos: [],
+      quickCapture: true,
+      onClose: vi.fn(),
+      onSave: vi.fn(async () => 42),
+      onUploadPhotos: vi.fn(defaultUpload),
+      onDone: vi.fn(),
+    };
+    const { rerender } = render(<MJourneyEntrySheet entry={base} {...props} />);
+    await waitFor(() => expect(resolvers).toHaveLength(1));
+
+    rerender(<MJourneyEntrySheet entry={{ ...base, entry_date: '2026-03-16' }} {...props} />);
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+
+    await act(async () => {
+      resolvers[0]({ name: 'Stale', address: 'Stale' });
+      resolvers[1]({ name: 'Fresh', address: 'Fresh' });
+    });
+
+    expect(await screen.findByDisplayValue('Fresh')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Stale')).not.toBeInTheDocument();
+
+    // The abandoned watcher must not be able to paint an error either, and a
+    // failure without a message falls back to the generic label.
+    await act(async () => {
+      failures[0]({ message: 'stale failure' } as GeolocationPositionError);
+      failures[1]({ message: '' } as GeolocationPositionError);
+    });
+    expect(screen.queryByText('stale failure')).not.toBeInTheDocument();
+    expect(screen.getByText('Error')).toBeInTheDocument();
   });
 });

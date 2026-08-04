@@ -41,12 +41,16 @@ export default function MPackItemSheet({
   const [weight, setWeight] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Keyed on the item id, not the object: packingSlice swaps the object on every
+  // update, and a WebSocket refresh must not overwrite what is being typed.
+  const heldId = item?.id
   useEffect(() => {
     if (!open || !item) return
     setName(isPackingPlaceholder(item) ? '' : item.name)
     setQuantity(String(item.quantity || 1))
     setWeight(item.weight_grams != null ? String(item.weight_grams) : '')
-  }, [open, item])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, heldId])
 
   if (!item) {
     return <MSheet open={false} onClose={onClose} />
@@ -81,7 +85,6 @@ export default function MPackItemSheet({
 
   const handleSave = async () => {
     const trimmedName = name.trim()
-    if (!trimmedName || saving) { onClose(); return }
     setSaving(true)
     try {
       const qty = Math.max(1, Math.min(999, parseInt(quantity, 10) || 1))

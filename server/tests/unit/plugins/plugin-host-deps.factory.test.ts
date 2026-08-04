@@ -5,7 +5,7 @@
  * host, and trip broadcasts are force-namespaced to plugin:{id}:{event}.
  * DI-native domains (budget/exchange-rates/reservations/tags/categories/todo/
  * packing/day-notes/days/assignments/oauth/llm-config/files/collab/vacay/
- * permissions)
+ * permissions/trips/places/collections/atlas/notifications)
  * are constructor-injected stubs; legacy services/* domains stay path-mocked
  * until their own DI migration lands.
  */
@@ -66,37 +66,31 @@ const budgetStub = {
 const checkPermission = vi.fn((..._a: any[]) => true as boolean);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
-// The core write services are delegated to; mock them so the host deps'
-// wiring + error branches run without the full core schema. The error classes must
-// be defined INSIDE the factory (vi.mock is hoisted above module-scope code).
-vi.mock('../../../src/services/tripService', () => {
-  class NotFoundError extends Error {}
-  class ValidationError extends Error {}
-  return {
-    updateTrip: (tripId: number, _u: number, input: Record<string, unknown>) => {
-      if (input.title === 'boom') throw new ValidationError('bad dates');
-      if (input.title === 'gone') throw new NotFoundError('no trip');
-      if (input.title === 'crash') throw new Error('unexpected');
-      return { updatedTrip: { id: tripId, ...input } };
-    },
-    createTrip: (userId: number, input: Record<string, unknown>) => {
-      if (input.title === 'boom') throw new ValidationError('bad dates');
-      return { trip: { id: 99, user_id: userId, ...input }, tripId: 99, reminderDays: 3 };
-    },
-    listTrips: () => [{ id: 1 }],
-    NotFoundError, ValidationError,
-  };
-});
+// Trips are a constructor-injected stub since the trip fold (same behaviors as
+// the old services/tripService path mock). The throws use the REAL error
+// classes from trips.service so the factory's instanceof mapping keeps
+// matching — see the imports below the mocks.
 // Exchange rates are a constructor-injected stub since the budget-domain fold
 // (was a path mock of the deleted services/exchangeRateService — same behavior).
 const exchangeRatesStub = {
   getRates: vi.fn(async (base: string) => ({ [base]: 1, USD: 1.08, GBP: 0.85 })),
 } as unknown as ExchangeRatesService;
-vi.mock('../../../src/services/placeService', () => ({
-  createPlace: vi.fn((tid: string, body: Record<string, unknown>) => ({ id: 10, trip_id: Number(tid), ...body })),
-  updatePlace: vi.fn((_tid: string, pid: string) => (pid === '99' ? null : { id: Number(pid) })),
-  deletePlace: vi.fn((_tid: string, pid: string) => pid !== '99'),
-}));
+// Places are a constructor-injected stub since the place fold (same behaviors
+// as the old services/placeService path mock, mapped onto the PlacesService
+// method names). `remove` is asserted by invocation order against the journey
+// hook, so it stays a vi.fn.
+const removePlaceStub = vi.fn((_tid: string, pid: string) => pid !== '99');
+const placesStub = {
+  create: vi.fn((tid: string, body: Record<string, unknown>) => ({ id: 10, trip_id: Number(tid), ...body })),
+  update: vi.fn((_tid: string, pid: string) => (pid === '99' ? null : { id: Number(pid) })),
+  remove: removePlaceStub,
+  // Trip-scoped read the delete path uses to reject a foreign id before the
+  // journey hook runs — place 99 belongs to another trip.
+  get: vi.fn((_tid: string, pid: string) => (pid === '99' ? null : { id: Number(pid) })),
+  // trips.service (loaded for real since the trip fold) injects this for its
+  // offline bundle — the stub must carry every method it calls.
+  list: vi.fn(() => []),
+} as unknown as PlacesService;
 // Days are a constructor-injected stub (same behaviors as the old path mock,
 // mapped onto the DaysService method names).
 const daysStub = {
@@ -125,6 +119,7 @@ const assignmentsStub = {
   dayExists: vi.fn((dayId: number) => dayId === 3),
   placeExists: vi.fn((placeId: number) => placeId === 7),
   getAssignmentForTrip: vi.fn((id: number) => (id === 99 ? undefined : { id, day_id: 3 })),
+  reconcile: vi.fn(),
 } as unknown as AssignmentsService;
 // Packing is a constructor-injected stub (same behaviors as the old path mock).
 const packingStub = {
@@ -213,8 +208,10 @@ const collabStub = {
 vi.mock('../../../src/services/tripMembership', () => ({
   joinTripAsMember: vi.fn((tripId: number, userId: number) => ({ joined: userId !== 5, tripId })), // owner add = no-op
 }));
-const { notifySend } = vi.hoisted(() => ({ notifySend: vi.fn(async () => undefined) }));
-vi.mock('../../../src/services/notificationService', () => ({ send: notifySend }));
+// Notifications are a constructor-injected stub since the notifications fold
+// (same behavior as the old services/notificationService path mock).
+const notifySend = vi.fn(async () => undefined);
+const notificationsStub = { send: notifySend } as unknown as NotificationsService;
 // userId 7 = no provider configured; everyone else resolves to a stub config.
 // Constructor-injected stub since the resolver became DI-native (settings migration).
 const llmConfigStub = {
@@ -249,6 +246,10 @@ vi.mock('../../../src/services/journeyService', () => ({
   // Consumed by the real assignments.service.ts module (loaded un-mocked as a
   // factory constructor dep); the instance is stubbed, so this is never called.
   reconcileTripSkeletons: vi.fn(),
+  // The skeleton hooks the place writes fire (#1705).
+  onPlaceCreated: vi.fn(),
+  onPlaceUpdated: vi.fn(),
+  onPlaceDeleted: vi.fn(),
   listJourneys: vi.fn((uid: number) => [{ id: 1, owner: uid }]),
   // journeyId 88 = no access (listEntries self-gates to null); else returns entries
   listEntries: vi.fn((journeyId: number, uid: number) => (journeyId === 88 ? null : [{ id: 10, journey_id: journeyId, author_id: uid }])),
@@ -257,30 +258,33 @@ vi.mock('../../../src/services/journeyService', () => ({
   updateEntry: vi.fn((entryId: number, _uid: number, data: unknown) => (entryId === 99 ? null : { id: entryId, ...(data as object) })),
   deleteEntry: vi.fn((entryId: number) => entryId !== 99),
 }));
-vi.mock('../../../src/services/atlasService', () => ({
+// Atlas is a constructor-injected stub since the atlas fold (same behaviors as
+// the old services/atlasService path mock, keyed by the service method names).
+const atlasStub = {
   listVisitedCountries: vi.fn(() => [{ country_code: 'JP' }]),
   listManuallyVisitedRegions: vi.fn(() => [{ region_code: 'JP-13' }]),
-  listBucketList: vi.fn((uid: number) => [{ id: 5, user_id: uid, name: 'Kyoto' }]),
-  markCountryVisited: vi.fn(),
-  unmarkCountryVisited: vi.fn(),
-  markRegionVisited: vi.fn(),
-  unmarkRegionVisited: vi.fn(),
+  bucketList: vi.fn((uid: number) => [{ id: 5, user_id: uid, name: 'Kyoto' }]),
+  markCountry: vi.fn(),
+  unmarkCountry: vi.fn(),
+  markRegion: vi.fn(),
+  unmarkRegion: vi.fn(),
   createBucketItem: vi.fn((uid: number, data: { name: string }) => ({ id: 110, user_id: uid, name: data.name })),
   deleteBucketItem: vi.fn((_uid: number, itemId: number) => Number(itemId) !== 404),
-}));
-vi.mock('../../../src/services/collectionsService', () => {
-  const httpError = (status: number, message: string) => { const e = new Error(message) as Error & { status: number }; e.status = status; throw e; };
-  return {
-    listCollections: vi.fn((uid: number) => ({ collections: [{ id: 1, owner: uid }] })),
-    getCollection: vi.fn((uid: number, id: number) => ({ id, owner: uid, places: [] })),
-    createCollection: vi.fn((uid: number, body: unknown) => ({ id: 100, owner_id: uid, ...(body as object) })),
-    // id 99 = viewer-only (403); id 404 = invisible (404) — the service throws status-tagged errors
-    updateCollection: vi.fn((_uid: number, id: number, body: unknown) => { if (id === 99) httpError(403, 'read-only'); if (id === 404) httpError(404, 'Collection not found'); return { id, ...(body as object) }; }),
-    savePlace: vi.fn((uid: number, body: unknown) => ({ id: 101, saved_by: uid, ...(body as object) })),
-    copyToTrip: vi.fn(() => ({ copied: 2, skipped: [] })),
-    deletePlace: vi.fn((_uid: number, placeId: number) => { if (placeId === 404) httpError(404, 'Collection not found'); }),
-  };
-});
+} as unknown as AtlasService;
+// Collections is a constructor-injected stub since the collections fold (same
+// behaviors as the old services/collectionsService path mock — the service
+// throws status-tagged errors the factory maps onto the RPC error classes).
+const collectionsHttpError = (status: number, message: string) => { const e = new Error(message) as Error & { status: number }; e.status = status; throw e; };
+const collectionsStub = {
+  listCollections: vi.fn((uid: number) => ({ collections: [{ id: 1, owner: uid }] })),
+  getCollection: vi.fn((uid: number, id: number) => ({ id, owner: uid, places: [] })),
+  createCollection: vi.fn((uid: number, body: unknown) => ({ id: 100, owner_id: uid, ...(body as object) })),
+  // id 99 = viewer-only (403); id 404 = invisible (404) — the service throws status-tagged errors
+  updateCollection: vi.fn((_uid: number, id: number, body: unknown) => { if (id === 99) collectionsHttpError(403, 'read-only'); if (id === 404) collectionsHttpError(404, 'Collection not found'); return { id, ...(body as object) }; }),
+  savePlace: vi.fn((uid: number, body: unknown) => ({ id: 101, saved_by: uid, ...(body as object) })),
+  copyToTrip: vi.fn(() => ({ copied: 2, skipped: [] })),
+  deletePlace: vi.fn((_uid: number, placeId: number) => { if (placeId === 404) collectionsHttpError(404, 'Collection not found'); }),
+} as unknown as CollectionsService;
 // Day notes are a constructor-injected stub (same behaviors as the old path mock).
 const dayNotesStub = {
   list: vi.fn((dayId: number, tripId: number) => [{ id: 1, day_id: dayId, trip_id: tripId }]),
@@ -302,6 +306,7 @@ const vacayStub = {
 import { PluginHostDepsFactory, type PluginCallRouter } from '../../../src/nest/plugins/host/plugin-host-deps.factory';
 import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
 import { db as mockDb } from '../../../src/db/database';
+import { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } from '../../../src/services/journeyService';
 import type { BudgetService } from '../../../src/nest/budget/budget.service';
 import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
@@ -318,13 +323,33 @@ import type { FilesService } from '../../../src/nest/files/files.service';
 import type { CollabService } from '../../../src/nest/collab/collab.service';
 import type { VacayService } from '../../../src/nest/vacay/vacay.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import type { PlacesService } from '../../../src/nest/places/places.service';
+import type { CollectionsService } from '../../../src/nest/collections/collections.service';
+import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
 
 // The factory under test, wired exactly like PluginsModule does — but with the
 // DI-native domain services replaced by the stubs above. The shim keeps the
 // ~45 historical call sites unchanged and supplies a default no-op router.
 const addonsStub = { isAddonEnabled } as unknown as import('../../../src/nest/addons/addons.service').AddonsService;
-const factory = new PluginHostDepsFactory(budgetStub, reservationsStub, tagsStub, categoriesStub, todoStub, packingStub, oauthStub, dayNotesStub, assignmentsStub, llmConfigStub, new DatabaseService(mockDb), filesStub, collabStub, vacayStub, daysStub, permissionsStub, exchangeRatesStub, addonsStub);
+const tripsStub = {
+  updateTrip: (tripId: number, _u: number, input: Record<string, unknown>) => {
+    if (input.title === 'boom') throw new ValidationError('bad dates');
+    if (input.title === 'gone') throw new NotFoundError('no trip');
+    if (input.title === 'crash') throw new Error('unexpected');
+    return { updatedTrip: { id: tripId, ...input } };
+  },
+  create: (userId: number, input: Record<string, unknown>) => {
+    if (input.title === 'boom') throw new ValidationError('bad dates');
+    return { trip: { id: 99, user_id: userId, ...input }, tripId: 99, reminderDays: 3 };
+  },
+  list: () => [{ id: 1 }],
+  removeMember: vi.fn(),
+} as unknown as import('../../../src/nest/trips/trips.service').TripsService;
+const factory = new PluginHostDepsFactory(budgetStub, reservationsStub, tagsStub, categoriesStub, todoStub, packingStub, oauthStub, dayNotesStub, assignmentsStub, llmConfigStub, new DatabaseService(mockDb), filesStub, collabStub, vacayStub, daysStub, permissionsStub, exchangeRatesStub, addonsStub, new RealtimeService(), tripsStub, placesStub, collectionsStub, atlasStub, notificationsStub);
 const stubRouter: PluginCallRouter = { callPlugin: async () => undefined, emitPluginEvent: () => {} };
 const createRealRpcHost = (id: string, granted: ReadonlySet<string>, router: PluginCallRouter = stubRouter) => factory.create(id, granted, router);
 
@@ -423,6 +448,47 @@ describe('host-deps factory — planner write + metadata deps', () => {
     expect((await call(h, 'places.delete', { tripId: 1, placeId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
+  // #1705: a place write from a plugin has to update a linked journey the same way
+  // the REST route does, otherwise the journey shows the old title (or an entry for
+  // a place that no longer exists) until it is reloaded.
+  it('places writes fire the journey hooks, delete ahead of the row, and skip a foreign id', async () => {
+    const h = host('db:write:places');
+    const created = vi.mocked(onPlaceCreated);
+    const updated = vi.mocked(onPlaceUpdated);
+    const deleted = vi.mocked(onPlaceDeleted);
+    const removePlace = removePlaceStub;
+    [created, updated, deleted, removePlace].forEach((m) => m.mockClear());
+
+    expect((await call(h, 'places.create', { tripId: 1, input: { name: 'P' } })).ok).toBe(true);
+    expect(created).toHaveBeenCalledWith(1, 10);
+
+    expect((await call(h, 'places.update', { tripId: 1, placeId: 5, input: { name: 'Q' } })).ok).toBe(true);
+    expect(updated).toHaveBeenCalledWith(5);
+
+    expect((await call(h, 'places.delete', { tripId: 1, placeId: 5 })).ok).toBe(true);
+    expect(deleted).toHaveBeenCalledWith(5);
+    // source_place_id is ON DELETE SET NULL — after the row is gone the hook has
+    // nothing left to detach, so the order is part of the fix.
+    expect(deleted.mock.invocationCallOrder[0]).toBeLessThan(removePlace.mock.invocationCallOrder[0]);
+
+    // A place on another trip: refused before the hook can touch that trip's journeys.
+    deleted.mockClear();
+    updated.mockClear();
+    expect((await call(h, 'places.delete', { tripId: 1, placeId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(h, 'places.update', { tripId: 1, placeId: 99, input: {} })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deleted).not.toHaveBeenCalled();
+    expect(updated).not.toHaveBeenCalled();
+  });
+
+  // A journey link that blows up must not turn a successful place write into an
+  // RPC error — every other caller of these hooks swallows them too.
+  it('places writes survive a throwing journey hook', async () => {
+    const h = host('db:write:places');
+    const updated = vi.mocked(onPlaceUpdated);
+    updated.mockImplementationOnce(() => { throw new Error('journey db locked'); });
+    expect((await call(h, 'places.update', { tripId: 1, placeId: 5, input: { name: 'Q' } })).ok).toBe(true);
+  });
+
   it('days + itinerary delegate; a day/place/assignment outside the trip is refused', async () => {
     const h = host('db:write:days', 'db:write:itinerary');
     expect((await call(h, 'days.create', { tripId: 1, input: { notes: 'n' } })).ok).toBe(true);
@@ -434,6 +500,28 @@ describe('host-deps factory — planner write + metadata deps', () => {
     expect((await call(h, 'itinerary.assign', { tripId: 1, dayId: 3, placeId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
     expect((await call(h, 'itinerary.unassign', { tripId: 1, assignmentId: 30 })).ok).toBe(true);
     expect((await call(h, 'itinerary.unassign', { tripId: 1, assignmentId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  // #1705: a plugin itinerary write has to reach open sessions exactly like the REST
+  // route. The delete payload needs the dayId the client reducer evicts by, and both
+  // directions run the same journey-skeleton reconcile the controller/MCP tool run.
+  it('itinerary writes carry the dayId the client evicts by and re-mirror linked journeys', async () => {
+    const h = host('db:write:itinerary');
+    const reconcile = vi.mocked(assignmentsStub.reconcile);
+
+    reconcile.mockClear();
+    expect((await call(h, 'itinerary.assign', { tripId: 1, dayId: 3, placeId: 7 })).ok).toBe(true);
+    expect(reconcile).toHaveBeenCalledWith(1);
+
+    reconcile.mockClear();
+    expect((await call(h, 'itinerary.unassign', { tripId: 1, assignmentId: 30 })).ok).toBe(true);
+    expect(broadcast).toHaveBeenCalledWith(1, 'assignment:deleted', { assignmentId: 30, dayId: 3 });
+    expect(reconcile).toHaveBeenCalledWith(1);
+
+    // A refused unassign deletes nothing, so it must not touch the journeys either.
+    reconcile.mockClear();
+    expect((await call(h, 'itinerary.unassign', { tripId: 1, assignmentId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(reconcile).not.toHaveBeenCalled();
   });
 
   it('trips.update: archive/cover need their own permission; service errors map to RPC codes', async () => {

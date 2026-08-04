@@ -221,7 +221,9 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
 
   const applyTemplate = async (templateId: number) => {
     try {
-      const data = await packingApi.applyTemplate(tripId, templateId)
+      // Land the items in the list the user is looking at — without the
+      // visibility the API defaults to 'common' and they vanish from My list.
+      const data = await packingApi.applyTemplate(tripId, templateId, view)
       useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(data.items || [])] }))
       toast.success(t('packing.templateApplied', { count: data.count }))
       setActionsOpen(false)
@@ -470,6 +472,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         items={items}
         tripMembers={tripMembers}
         canEdit={canEdit}
+        currentUserId={currentUserId}
         onCreateBag={createBag}
         onUpdateBag={updateBag}
         onDeleteBag={deleteBag}

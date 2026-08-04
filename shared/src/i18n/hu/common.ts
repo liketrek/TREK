@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Mindet kiválaszt',
   'common.deselectAll': 'Összes kijelölés megszüntetése',
   'common.error': 'Hiba',
+  'common.success': 'Sikeres',
   'common.unknownError': 'Ismeretlen hiba',
   'common.tooManyAttempts': 'Túl sok próbálkozás. Kérjük, próbálja újra később.',
   'common.back': 'Vissza',

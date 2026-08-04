@@ -26,7 +26,7 @@ vi.mock('../../../src/config', () => ({
 // Mock websocket so notifyPlanUsers doesn't throw
 vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
 // shareCalendar fires a notification after inserting — keep that out of unit scope
-vi.mock('../../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../../../src/nest/notifications/notifications.bridge', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
@@ -35,14 +35,15 @@ import { createUser } from '../../helpers/factories';
 
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
-import { shiftOwnerEntriesForTripWindow } from '../../../src/nest/vacay/vacay.bridge';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 // VACAY-SVC-001 through VACAY-SVC-066 moved 1:1 from the legacy
 // tests/unit/services/vacayService.test.ts (the named-function imports became
 // method calls on a directly constructed VacayService; the legacy
-// updateUserYearSettings is the class's updateYearSettings). VACAY-SVC-067
-// pins the vacay.bridge delegation for the one outside-container consumer.
-const svc = new VacayService(new DatabaseService(testDb));
+// updateUserYearSettings is the class's updateYearSettings).
+// VACAY-SVC-067 (vacay.bridge delegation) died with the bridge — its only
+// consumer, the legacy tripService, folded into the DI-native TripsService.
+const svc = new VacayService(new DatabaseService(testDb), new RealtimeService());
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ beforeAll(async () => {
   // Warm the (mocked) notificationService module: sendInvite/shareCalendar do a
   // fire-and-forget dynamic import of it, and a cold load can otherwise race the
   // worker teardown ("Cannot load ... after the environment was torn down").
-  await import('../../../src/services/notificationService');
+  await import('../../../src/nest/notifications/notifications.bridge');
 });
 
 beforeEach(() => {
@@ -1366,20 +1367,6 @@ describe('getSharedCalendars', () => {
   });
 });
 
-// ── vacay.bridge delegation ───────────────────────────────────────────────────
-
-describe('vacay.bridge', () => {
-  it('VACAY-SVC-067: shiftOwnerEntriesForTripWindow shifts the owner entries through the bridge', () => {
-    const { user, plan } = setupUserWithPlan();
-    svc.toggleEntry(user.id, plan.id, '2025-05-10', 1);
-
-    shiftOwnerEntriesForTripWindow(user.id, '2025-05-08', '2025-05-12', '2025-05-15');
-
-    const dates = testDb.prepare('SELECT date FROM vacay_entries WHERE plan_id = ? ORDER BY date').all(plan.id);
-    expect(dates).toEqual([{ date: '2025-05-17' }]);
-  });
-});
-
 // ── Quirk fixes (transactions, fetch hygiene, cache TTL, addYear errors) ──────
 
 describe('quirk fixes', () => {
@@ -1391,7 +1378,7 @@ describe('quirk fixes', () => {
       if (sql.includes(match)) throw new Error('boom');
       return realRun(sql, ...params);
     });
-    return new VacayService(failingDb);
+    return new VacayService(failingDb, new RealtimeService());
   }
 
   it('VACAY-SVC-068: acceptInvite is atomic — a failure mid-flow rolls the status flip back', () => {
@@ -1422,7 +1409,7 @@ describe('quirk fixes', () => {
   it('VACAY-SVC-070: getCountries surfaces an upstream non-2xx as the fetch error and caches nothing', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 502, json: async () => ({}) });
     vi.stubGlobal('fetch', fetchMock);
-    const fresh = new VacayService(new DatabaseService(testDb));
+    const fresh = new VacayService(new DatabaseService(testDb), new RealtimeService());
 
     expect(await fresh.getCountries()).toEqual({ error: 'Failed to fetch countries' });
     // Nothing cached: a retry hits the network again.
@@ -1437,7 +1424,7 @@ describe('quirk fixes', () => {
     testDb.prepare("INSERT INTO vacay_holiday_calendars (plan_id, region) VALUES (?, 'DE')").run(plan.id);
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
     vi.stubGlobal('fetch', fetchMock);
-    const fresh = new VacayService(new DatabaseService(testDb));
+    const fresh = new VacayService(new DatabaseService(testDb), new RealtimeService());
 
     await fresh.applyHolidayCalendars(plan.id);
     const afterFirst = fetchMock.mock.calls.length;

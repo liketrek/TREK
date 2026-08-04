@@ -54,5 +54,9 @@ const atlas: TranslationStrings = {
   'atlas.tripPlural': 'Resor',
   'atlas.placeVisited': 'Plats besökt',
   'atlas.placesVisited': 'Platser besökta',
+  'atlas.planned': 'Planerat',
+  'atlas.showPlanned': 'Visa planerade länder',
+  'atlas.plannedFor': 'Planerat till',
+  'atlas.antarctica': 'Antarktis',
 };
 export default atlas;

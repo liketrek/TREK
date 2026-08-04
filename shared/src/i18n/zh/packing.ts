@@ -205,5 +205,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': '我也可以带',
   'packing.alsoBringingStop': '我不带了',
   'packing.cloneToMine': '复制到我的清单',
+  'packing.bagLimit': '重量限制',
+  'packing.setBagLimit': '设置限制',
 };
 export default packing;

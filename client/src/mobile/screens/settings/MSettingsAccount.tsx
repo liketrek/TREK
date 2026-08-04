@@ -113,7 +113,6 @@ export default function MSettingsAccount() {
   }
 
   const copyBackupCodes = async () => {
-    if (!backupCodesText) return
     try {
       await navigator.clipboard.writeText(backupCodesText)
       toast.success(t('settings.mfa.backupCopied'))
@@ -123,7 +122,6 @@ export default function MSettingsAccount() {
   }
 
   const downloadBackupCodes = () => {
-    if (!backupCodesText) return
     const blob = new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -136,7 +134,6 @@ export default function MSettingsAccount() {
   }
 
   const printBackupCodes = () => {
-    if (!backupCodesText) return
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>TREK MFA Backup Codes</title>
       <style>body{font-family:Arial,sans-serif;padding:32px}h1{font-size:20px}pre{font-size:16px;line-height:1.6}</style>
       </head><body><h1>TREK MFA Backup Codes</h1><p>${new Date().toLocaleString()}</p><pre>${backupCodesText}</pre></body></html>`
@@ -166,7 +163,7 @@ export default function MSettingsAccount() {
       await deleteAvatar()
       toast.success(t('settings.avatarRemoved'))
     } catch {
-      toast.error(t('settings.avatarError'))
+      toast.error(t('settings.avatarRemoveError'))
     }
   }
 
@@ -565,10 +562,6 @@ function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement
   const canAdd = enabled && configured
 
   const handleAdd = async () => {
-    if (!addPwd) {
-      toast.error(t('settings.passkey.passwordRequired'))
-      return
-    }
     setBusy(true)
     try {
       const options = await authApi.passkey.registerOptions(addPwd)
@@ -603,10 +596,6 @@ function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement
   }
 
   const handleDelete = async (id: number) => {
-    if (!deletePwd) {
-      toast.error(t('settings.passkey.passwordRequired'))
-      return
-    }
     setBusy(true)
     try {
       await authApi.passkey.delete(id, deletePwd)

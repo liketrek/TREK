@@ -1,8 +1,9 @@
 /**
  * Maps module e2e — exercises the migrated /api/maps endpoints through the real
- * JwtAuthGuard against a temp SQLite db. mapsService is mocked (no outbound HTTP),
- * and the temp db carries an empty app_settings table so the kill-switch reads
- * resolve to "enabled".
+ * JwtAuthGuard against a temp SQLite db. The DI-native MapsService's provider
+ * methods are stubbed via instance spies (no outbound HTTP), and the temp db
+ * carries an empty app_settings table so the kill-switch reads resolve to
+ * "enabled".
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
@@ -24,25 +25,11 @@ const { db } = vi.hoisted(() => {
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
-const { mocks } = vi.hoisted(() => ({
-  mocks: {
-    searchPlaces: vi.fn(),
-    autocompletePlaces: vi.fn(),
-    getPlaceDetails: vi.fn(),
-    getPlaceDetailsExpanded: vi.fn(),
-    getPlacePhoto: vi.fn(),
-    reverseGeocode: vi.fn(),
-    resolveGoogleMapsUrl: vi.fn(),
-  },
-}));
-vi.mock('../../src/services/mapsService', async (importActual) => {
-  const actual = await importActual<typeof import('../../src/services/mapsService')>();
-  return { ...actual, ...mocks };
-});
-
 import { MapsModule } from '../../src/nest/maps/maps.module';
+import { MapsService } from '../../src/nest/maps/maps.service';
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 describe('Maps e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
@@ -53,6 +40,10 @@ describe('Maps e2e (real auth guard + temp SQLite)', () => {
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
+    // Same harness shape as the todo/budget e2e suites: the APP_PIPE from
+    // app.module.ts isn't in this focused module graph, so wire it by hand —
+    // it validates any @Body() typed with a Zod DTO metatype.
+    nest.useGlobalPipes(new ZodValidationPipe());
     await nest.init();
     return nest;
   }
@@ -61,8 +52,11 @@ describe('Maps e2e (real auth guard + temp SQLite)', () => {
     seedUser(db as never, { id: 1 });
     app = await build();
     server = app.getHttpServer();
-    mocks.searchPlaces.mockResolvedValue({ places: [{ name: 'Berlin' }], source: 'osm' });
-    mocks.reverseGeocode.mockResolvedValue({ name: 'Spot', address: 'Street 1' });
+    // Stub the provider fan-out on the container's MapsService instance — the
+    // controller-facing wrapper methods delegate to these since the maps fold.
+    const maps = app.get(MapsService);
+    vi.spyOn(maps, 'searchPlaces').mockResolvedValue({ places: [{ name: 'Berlin' }], source: 'osm' });
+    vi.spyOn(maps, 'reverseGeocode').mockResolvedValue({ name: 'Spot', address: 'Street 1' });
   });
 
   afterAll(async () => {
@@ -78,7 +72,10 @@ describe('Maps e2e (real auth guard + temp SQLite)', () => {
   it('400 when authenticated but query is missing', async () => {
     const res = await request(server).post('/api/maps/search').set('Cookie', sessionCookie(1)).send({});
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Search query is required' });
+    // The exact error wording is pinned in maps.controller.test.ts — this suite
+    // pins the status contract only (the body-contract ratchet reshapes the 400
+    // envelope in its own commit).
+    expect(res.body).toHaveProperty('error');
   });
 
   it('200 with results for a search (POST stays 200, not 201)', async () => {

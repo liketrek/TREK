@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import tzlookup from 'tz-lookup'
-import { ArrowLeftRight, ArrowRight, Bus, CableCar, ChevronDown, ChevronUp, Clock, Footprints, MapPin, Sailboat, Search, Train, TramFront, TrainFront } from 'lucide-react'
+import { ArrowLeftRight, ArrowRight, Bus, CableCar, ChevronDown, ChevronUp, Clock, Footprints, MapPin, Sailboat, Search, TramFront, TrainFront, TrainFrontTunnel } from 'lucide-react'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { TransitMetaBadges } from './transitDisplay'
 import { transitApi } from '../../api/client'
@@ -39,22 +39,24 @@ export interface PickedPlace { name: string; lat: number; lng: number }
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const MODE_GROUPS: { key: string; labelKey: string; Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>; modes: string }[] = [
-  { key: 'rail', labelKey: 'transit.mode.rail', Icon: Train, modes: 'HIGHSPEED_RAIL,LONG_DISTANCE,NIGHT_RAIL,REGIONAL_RAIL,SUBURBAN' },
-  { key: 'subway', labelKey: 'transit.mode.subway', Icon: TrainFront, modes: 'SUBWAY' },
+  // lucide's `Train` is an alias of TramFront, so rail keeps TrainFront and the
+  // subway takes the tunnel variant — otherwise the chips share a glyph.
+  { key: 'rail', labelKey: 'transit.mode.rail', Icon: TrainFront, modes: 'HIGHSPEED_RAIL,LONG_DISTANCE,NIGHT_RAIL,REGIONAL_RAIL,SUBURBAN' },
+  { key: 'subway', labelKey: 'transit.mode.subway', Icon: TrainFrontTunnel, modes: 'SUBWAY' },
   { key: 'tram', labelKey: 'transit.mode.tram', Icon: TramFront, modes: 'TRAM' },
   { key: 'bus', labelKey: 'transit.mode.bus', Icon: Bus, modes: 'BUS,COACH' },
   { key: 'ferry', labelKey: 'transit.mode.ferry', Icon: Sailboat, modes: 'FERRY' },
   { key: 'cable', labelKey: 'transit.mode.cable', Icon: CableCar, modes: 'FUNICULAR,AERIAL_LIFT' },
 ]
 
+// Only called for non-WALK legs — walking renders its own Footprints inline.
 function legIcon(mode: string) {
-  if (mode === 'WALK') return Footprints
   if (mode === 'BUS' || mode === 'COACH') return Bus
   if (mode === 'TRAM') return TramFront
-  if (mode === 'SUBWAY') return TrainFront
+  if (mode === 'SUBWAY') return TrainFrontTunnel
   if (mode === 'FERRY') return Sailboat
   if (mode === 'FUNICULAR' || mode === 'AERIAL_LIFT') return CableCar
-  return Train
+  return TrainFront
 }
 
 function tzAt(lat: number, lng: number): string {
@@ -422,6 +424,11 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
       // An after-midnight arrival lands on the next trip day when it exists.
       const endDay = arrDate !== depDate ? days.find(d2 => d2.date === arrDate) : null
 
+      // Realtime time with scheduled fallback — the same `time ?? scheduledTime`
+      // the server's buildTransitReservationParts applies, so a scheduled-only
+      // feed still yields stop times instead of nulls.
+      const stopTime = (s: TransitLegStop) => s.time ?? s.scheduledTime
+
       // Endpoints: origin, each transfer stop, destination — the same shape
       // flights persist, so the map + connectors work unchanged.
       const transitLegs = it.legs.filter(l => l.mode !== 'WALK')
@@ -429,7 +436,8 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
       endpoints.push({ role: 'from', sequence: 0, name: from.name, code: null, lat: from.lat, lng: from.lng, timezone: tzFrom, local_date: depDate, local_time: depTime })
       transitLegs.slice(0, -1).forEach((leg, i) => {
         const s = leg.to
-        endpoints.push({ role: 'stop', sequence: i + 1, name: s.name, code: null, lat: s.lat, lng: s.lng, timezone: tzAt(s.lat, s.lng), local_date: s.time ? dateYMDInTz(s.time, tzAt(s.lat, s.lng)) : null, local_time: s.time ? timeHHmmInTz(s.time, tzAt(s.lat, s.lng)) : null })
+        const t2 = stopTime(s)
+        endpoints.push({ role: 'stop', sequence: i + 1, name: s.name, code: null, lat: s.lat, lng: s.lng, timezone: tzAt(s.lat, s.lng), local_date: t2 ? dateYMDInTz(t2, tzAt(s.lat, s.lng)) : null, local_time: t2 ? timeHHmmInTz(t2, tzAt(s.lat, s.lng)) : null })
       })
       endpoints.push({ role: 'to', sequence: endpoints.length, name: to.name, code: null, lat: to.lat, lng: to.lng, timezone: tzTo, local_date: arrDate, local_time: arrTime })
 
@@ -462,8 +470,8 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
               agency: l.agency,
               duration: l.duration,
               stops: l.intermediateStops,
-              from: { name: l.from.name, time: l.from.time ? timeHHmmInTz(l.from.time, tzAt(l.from.lat, l.from.lng)) : null, track: l.from.track },
-              to: { name: l.to.name, time: l.to.time ? timeHHmmInTz(l.to.time, tzAt(l.to.lat, l.to.lng)) : null, track: l.to.track },
+              from: { name: l.from.name, time: stopTime(l.from) ? timeHHmmInTz(stopTime(l.from)!, tzAt(l.from.lat, l.from.lng)) : null, track: l.from.track },
+              to: { name: l.to.name, time: stopTime(l.to) ? timeHHmmInTz(stopTime(l.to)!, tzAt(l.to.lat, l.to.lng)) : null, track: l.to.track },
               geometry: l.geometry || null,
               geometry_precision: l.geometryPrecision ?? 6,
             })),

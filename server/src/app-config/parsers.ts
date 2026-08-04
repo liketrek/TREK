@@ -106,3 +106,68 @@ export function resolveKeepaliveMs(raw: string | undefined): number {
   const parsed = Number.parseInt(raw ?? '');
   return Number.isFinite(parsed) && parsed >= 0 ? parsed * 1000 : 25_000;
 }
+
+/** SQLite's journal_mode vocabulary. WAL is the default and the right choice on local disk; DELETE and TRUNCATE are the ones that survive network storage (Azure App Service, SMB/NFS volumes), where WAL's shared-memory coordination is not reliable. */
+const JOURNAL_MODES = ['DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'WAL', 'OFF'];
+
+/** PRAGMA synchronous levels, in the order SQLite numbers them (0-3). */
+const SYNCHRONOUS_LEVELS = ['OFF', 'NORMAL', 'FULL', 'EXTRA'];
+
+export const DEFAULT_JOURNAL_MODE = 'WAL';
+
+export interface Durability {
+  journalMode: string;
+  synchronous: string;
+  /** Rejected input, phrased for the log. Resolution never throws — a typo in a pragma must not lock an operator out of their instance — so the process that opens the file prints these instead. */
+  warnings: string[];
+}
+
+/**
+ * TREK_DB_JOURNAL_MODE / TREK_DB_SYNCHRONOUS → the pragmas to apply.
+ *
+ * journal_mode is persisted in the database file header, so it outlives the
+ * process that set it and every entry point opening the file read-write has to
+ * agree on it (see src/db/durability.ts). Defaults reproduce what an existing
+ * install runs today: WAL, and the synchronous=NORMAL that SQLite itself picks
+ * for a WAL database. Anything other than WAL keeps a rollback journal, where
+ * NORMAL means a power cut can lose the last transactions — those default to
+ * FULL, otherwise moving off WAL for safety would only trade one risk for
+ * another.
+ */
+export function resolveDurability(rawJournalMode: string | undefined, rawSynchronous: string | undefined): Durability {
+  const warnings: string[] = [];
+
+  let journalMode = DEFAULT_JOURNAL_MODE;
+  const wanted = rawJournalMode?.trim().toUpperCase();
+  if (wanted) {
+    if (JOURNAL_MODES.includes(wanted)) {
+      journalMode = wanted;
+    } else {
+      warnings.push(
+        `TREK_DB_JOURNAL_MODE="${rawJournalMode}" is not a SQLite journal mode ` +
+          `(${JOURNAL_MODES.join(', ')}) — using ${DEFAULT_JOURNAL_MODE}.`,
+      );
+    }
+  }
+
+  const defaultSynchronous = journalMode === DEFAULT_JOURNAL_MODE ? 'NORMAL' : 'FULL';
+  let synchronous = defaultSynchronous;
+  const wantedSync = rawSynchronous?.trim().toUpperCase();
+  if (wantedSync) {
+    if (SYNCHRONOUS_LEVELS.includes(wantedSync)) {
+      synchronous = wantedSync;
+    } else {
+      warnings.push(
+        `TREK_DB_SYNCHRONOUS="${rawSynchronous}" is not a SQLite synchronous level ` +
+          `(${SYNCHRONOUS_LEVELS.join(', ')}) — using ${defaultSynchronous}.`,
+      );
+    }
+  }
+
+  return { journalMode, synchronous, warnings };
+}
+
+/** `PRAGMA synchronous` reads back as a number — name it, so the boot log says FULL instead of 2. Unrecognized values pass through unchanged. */
+export function synchronousName(level: unknown): string {
+  return SYNCHRONOUS_LEVELS[Number(level)] ?? String(level);
+}

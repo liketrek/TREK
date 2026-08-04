@@ -66,6 +66,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Bujur (mis. 2.3522)',
   'places.formCategory': 'Kategori',
   'places.noCategory': 'Tanpa Kategori',
+  'places.newCategory': 'Kategori baru',
   'places.categoryNamePlaceholder': 'Nama kategori',
   'places.formTime': 'Waktu',
   'places.startTime': 'Mulai',
@@ -96,5 +97,6 @@ const places: TranslationStrings = {
   'places.changeImage': 'Ganti gambar',
   'places.removeImage': 'Hapus gambar',
   'places.imageUploadError': 'Tidak dapat mengunggah gambar',
+  'places.imageRemoveError': 'Tidak dapat menghapus gambar',
 };
 export default places;

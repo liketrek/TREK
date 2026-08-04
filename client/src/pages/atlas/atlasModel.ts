@@ -1,3 +1,5 @@
+import { continentForCountry, type VisitStatus } from '@trek/shared'
+
 /**
  * Shared types + pure helpers for the Atlas page. No React, no side effects.
  * A2_TO_A3 is deliberately a mutable module-level object: the geoData load
@@ -12,6 +14,8 @@ export interface AtlasCountry {
   placeCount: number
   firstVisit?: string | null
   lastVisit?: string | null
+  /** Optional so a client talking to an older server keeps painting everything as visited. */
+  status?: VisitStatus
 }
 
 export interface AtlasStats {
@@ -20,6 +24,8 @@ export interface AtlasStats {
   totalCountries: number
   totalDays: number
   totalCities?: number
+  totalCountriesPlanned?: number
+  totalCountriesIdea?: number
 }
 
 export interface AtlasData {
@@ -27,6 +33,7 @@ export interface AtlasData {
   stats: AtlasStats
   mostVisited?: AtlasCountry | null
   continents?: Record<string, number>
+  continentsPlanned?: Record<string, number>
   lastTrip?: { id: number; title: string; countryCode?: string } | null
   nextTrip?: { id: number; title: string; countryCode?: string } | null
   streak?: number
@@ -38,6 +45,48 @@ export interface CountryDetail {
   places: import('../../types').AtlasPlace[]
   trips: { id: number; title: string }[]
   manually_marked?: boolean
+  status?: VisitStatus
+}
+
+/** A country from a server that predates #1048 has no status — treat it as visited. */
+export function countryStatus(c: Pick<AtlasCountry, 'status'>): VisitStatus {
+  return c.status ?? 'visited'
+}
+
+/**
+ * Which countries belong on the map. Planned and dateless countries share one switch —
+ * splitting them into two would clutter the map for a distinction few users make.
+ */
+export function isCountryVisible(c: Pick<AtlasCountry, 'status'>, showPlanned: boolean): boolean {
+  return countryStatus(c) === 'visited' || showPlanned
+}
+
+/**
+ * Fold a manual "I have been here" mark into the loaded data without refetching — the
+ * map redraws from `data`, so a reload would flash the whole globe. A country that was
+ * merely planned moves over to the visited tally instead of being added twice.
+ * Shared by every mark flow (map click, search, mobile popup) so none of them can drift.
+ */
+export function withCountryMarkedVisited(prev: AtlasData, code: string): AtlasData {
+  const existing = prev.countries.find(c => c.code === code)
+  if (existing && countryStatus(existing) === 'visited') return prev
+  const cont = continentForCountry(code)
+  const wasPlanned = !!existing
+  return {
+    ...prev,
+    countries: existing
+      ? prev.countries.map(c => (c.code === code ? { ...c, status: 'visited' as const } : c))
+      : [...prev.countries, { code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null, status: 'visited' as const }],
+    stats: {
+      ...prev.stats,
+      totalCountries: prev.stats.totalCountries + 1,
+      ...(wasPlanned ? { totalCountriesPlanned: Math.max(0, (prev.stats.totalCountriesPlanned || 0) - 1) } : {}),
+    },
+    continents: { ...prev.continents, [cont]: (prev.continents?.[cont] || 0) + 1 },
+    ...(wasPlanned
+      ? { continentsPlanned: { ...prev.continentsPlanned, [cont]: Math.max(0, (prev.continentsPlanned?.[cont] || 0) - 1) } }
+      : {}),
+  }
 }
 
 export interface BucketItem {

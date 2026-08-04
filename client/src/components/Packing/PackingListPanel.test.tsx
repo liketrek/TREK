@@ -1320,6 +1320,60 @@ describe('PackingListPanel', () => {
     await waitFor(() => expect(updateBody).toMatchObject({ name: 'Luggage' }));
   });
 
+  // #207: the column, the contract and the API have existed since v2.9.0 — there was
+  // simply no way to type a limit in, so users encoded it in the bag name instead.
+  it('FE-COMP-PACKING-065b: a bag without a limit offers to set one, in kg', async () => {
+    const user = userEvent.setup();
+    let updateBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
+      http.get('/api/trips/:id/packing/bags', () =>
+        HttpResponse.json({ bags: [{ id: 12, name: 'Cabin bag', color: '#10b981', weight_limit_grams: null, members: [] }] })
+      ),
+      http.put('/api/trips/1/packing/bags/12', async ({ request }) => {
+        updateBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ bag: { id: 12, name: 'Cabin bag', color: '#10b981', weight_limit_grams: 8000, members: [] } });
+      })
+    );
+    render(<PackingListPanel tripId={1} items={[buildPackingItem({ name: 'Jacket', category: 'Clothing' })]} />);
+
+    await waitFor(() => expect(screen.getAllByText('Set limit').length).toBeGreaterThan(0));
+    await user.click(screen.getAllByText('Set limit')[0]);
+
+    const limitInput = await screen.findByLabelText('Weight limit');
+    await user.type(limitInput, '8');
+    await user.keyboard('{Enter}');
+
+    // Entered in kilograms, stored in grams.
+    await waitFor(() => expect(updateBody).toMatchObject({ weight_limit_grams: 8000 }));
+  });
+
+  it('FE-COMP-PACKING-065c: an existing limit is shown next to the packed weight and can be cleared', async () => {
+    const user = userEvent.setup();
+    let updateBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
+      http.get('/api/trips/:id/packing/bags', () =>
+        HttpResponse.json({ bags: [{ id: 13, name: 'Hold bag', color: '#6366f1', weight_limit_grams: 20000, members: [] }] })
+      ),
+      http.put('/api/trips/1/packing/bags/13', async ({ request }) => {
+        updateBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ bag: { id: 13, name: 'Hold bag', color: '#6366f1', weight_limit_grams: null, members: [] } });
+      })
+    );
+    render(<PackingListPanel tripId={1} items={[buildPackingItem({ name: 'Boots', category: 'Clothing' })]} />);
+
+    await waitFor(() => expect(screen.getAllByText(/\/ 20\.0 kg/).length).toBeGreaterThan(0));
+
+    await user.click(screen.getAllByText(/\/ 20\.0 kg/)[0]);
+    const limitInput = await screen.findByLabelText('Weight limit');
+    await user.clear(limitInput);
+    await user.keyboard('{Enter}');
+
+    // An emptied field clears the limit rather than writing 0.
+    await waitFor(() => expect(updateBody).toMatchObject({ weight_limit_grams: null }));
+  });
+
   it('FE-COMP-PACKING-066: BagCard Plus button opens user picker with trip members', async () => {
     const user = userEvent.setup();
     server.use(

@@ -80,6 +80,7 @@ const collection: TranslationStrings = {
   'collections.copyToTripTitle': 'Скопіювати в подорож',
   'collections.copyN': 'Скопіювати {count} у подорож',
   'collections.copyToTripSearch': 'Пошук подорожей',
+  'collections.searchLists': 'Пошук списків',
   'collections.copyToTripConfirm': 'Скопіювати',
   'collections.noTrips': 'Поки немає подорожей',
   'collections.alreadyInTrip': 'Уже в цій подорожі',
