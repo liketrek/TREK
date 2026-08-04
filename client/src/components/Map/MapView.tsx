@@ -16,7 +16,9 @@ import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import type { Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
+import { useSettingsStore } from '../../store/settingsStore'
+import { MapLayerSwitcher } from './MapLayerSwitcher'
 import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
@@ -771,6 +773,17 @@ export const MapView = memo(function MapView({
     ? 'calc(var(--bottom-nav-h, 84px) + 20px + var(--day-panel-h, 0px) + 12px)'
     : 'calc(var(--bottom-nav-h, 84px) + 12px)'
 
+  const baseLayer = useSettingsStore(s => s.settings.map_base_layer) || 'default'
+  const updateSetting = useSettingsStore(s => s.updateSetting)
+  const isSatellite = baseLayer === 'satellite'
+  const toggleBaseLayer = useCallback(() => {
+    // Store flips state synchronously (instant, works offline); a failed save is logged there.
+    updateSetting('map_base_layer', isSatellite ? 'default' : 'satellite').catch(() => {})
+  }, [isSatellite, updateSetting])
+  const switcherBottom = hasDayDetail
+    ? 'calc(var(--bottom-nav-h, 0px) + 20px + var(--day-panel-h, 0px) + 12px)'
+    : 'calc(var(--bottom-nav-h, 0px) + 12px)'
+
   return (
     <>
     <div className="w-full h-full relative">
@@ -781,10 +794,12 @@ export const MapView = memo(function MapView({
       zoomControl={false}
       className="w-full h-full bg-[#e5e7eb]"
     >
+      {/* key remounts the layer on switch, else attribution/maxZoom stick at mount-time values. */}
       <TileLayer
-        url={tileUrl}
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        maxZoom={19}
+        key={isSatellite ? 'satellite' : 'default'}
+        url={isSatellite ? SATELLITE_TILE_URL : tileUrl}
+        attribution={isSatellite ? SATELLITE_TILE_ATTRIBUTION : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}
+        maxZoom={isSatellite ? SATELLITE_TILE_MAXZOOM : 19}
         keepBuffer={8}
         updateWhenZooming={false}
         updateWhenIdle={true}
@@ -864,6 +879,9 @@ export const MapView = memo(function MapView({
       onClick={cycleTrackingMode}
       bottomOffset={locationButtonBottom as unknown as number}
     />}
+    <div style={{ position: 'absolute', left: leftWidth + 12, bottom: switcherBottom, zIndex: 1000, pointerEvents: 'none' }}>
+      <MapLayerSwitcher active={baseLayer} onToggle={toggleBaseLayer} />
+    </div>
     </div>
 
     {TooltipOverlay && (

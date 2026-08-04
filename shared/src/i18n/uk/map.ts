@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Активності',
   'map.showAllConnections': 'Показати всі маршрути бронювань',
   'map.hideAllConnections': 'Приховати всі маршрути бронювань',
+  'map.baseLayer.default': 'Карта',
+  'map.baseLayer.satellite': 'Супутник',
+  'map.baseLayer.switchToSatellite': 'Перемкнути на супутниковий вигляд',
+  'map.baseLayer.switchToDefault': 'Перемкнути на вигляд карти',
 };
 export default map;

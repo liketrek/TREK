@@ -40,6 +40,7 @@ export const DEFAULT_SETTINGS: Settings = {
   show_place_description: false,
   optimize_from_accommodation: true,
   map_provider: 'leaflet',
+  map_base_layer: 'default',
   map_poi_pill_enabled: true,
   mapbox_access_token: '',
   mapbox_style: 'mapbox://styles/mapbox/standard',

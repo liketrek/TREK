@@ -122,6 +122,8 @@ export interface Settings {
   map_always_show_routes?: boolean
   optimize_from_accommodation?: boolean
   map_provider?: 'leaflet' | 'mapbox-gl' | 'maplibre-gl'
+  /** Leaflet base layer: default street tiles or a satellite/aerial view. */
+  map_base_layer?: 'default' | 'satellite'
   mapbox_access_token?: string
   mapbox_style?: string
   maplibre_style?: string

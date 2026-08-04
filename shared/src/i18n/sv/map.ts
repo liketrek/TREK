@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Aktiviteter',
   'map.showAllConnections': 'Visa alla bokningsvägar',
   'map.hideAllConnections': 'Dölj alla bokningsvägar',
+  'map.baseLayer.default': 'Karta',
+  'map.baseLayer.satellite': 'Satellit',
+  'map.baseLayer.switchToSatellite': 'Byt till satellitvy',
+  'map.baseLayer.switchToDefault': 'Byt till kartvy',
 };
 export default map;

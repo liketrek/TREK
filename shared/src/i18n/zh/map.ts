@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': '活动',
   'map.showAllConnections': '显示所有预订路线',
   'map.hideAllConnections': '隐藏所有预订路线',
+  'map.baseLayer.default': '地图',
+  'map.baseLayer.satellite': '卫星',
+  'map.baseLayer.switchToSatellite': '切换到卫星视图',
+  'map.baseLayer.switchToDefault': '切换到地图视图',
 };
 export default map;

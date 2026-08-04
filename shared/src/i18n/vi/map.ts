@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Các hoạt động',
   'map.showAllConnections': 'Hiển thị tất cả lộ trình đặt chỗ',
   'map.hideAllConnections': 'Ẩn tất cả lộ trình đặt chỗ',
+  'map.baseLayer.default': 'Bản đồ',
+  'map.baseLayer.satellite': 'Vệ tinh',
+  'map.baseLayer.switchToSatellite': 'Chuyển sang chế độ xem vệ tinh',
+  'map.baseLayer.switchToDefault': 'Chuyển sang chế độ xem bản đồ',
 };
 export default map;

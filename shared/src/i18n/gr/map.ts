@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Δραστηριότητες',
   'map.showAllConnections': 'Εμφάνιση όλων των διαδρομών κρατήσεων',
   'map.hideAllConnections': 'Απόκρυψη όλων των διαδρομών κρατήσεων',
+  'map.baseLayer.default': 'Χάρτης',
+  'map.baseLayer.satellite': 'Δορυφόρος',
+  'map.baseLayer.switchToSatellite': 'Εναλλαγή σε δορυφορική προβολή',
+  'map.baseLayer.switchToDefault': 'Εναλλαγή σε προβολή χάρτη',
 };
 export default map;

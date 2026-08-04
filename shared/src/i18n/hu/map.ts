@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Programok',
   'map.showAllConnections': 'Összes foglalási útvonal megjelenítése',
   'map.hideAllConnections': 'Összes foglalási útvonal elrejtése',
+  'map.baseLayer.default': 'Térkép',
+  'map.baseLayer.satellite': 'Műhold',
+  'map.baseLayer.switchToSatellite': 'Váltás műholdas nézetre',
+  'map.baseLayer.switchToDefault': 'Váltás térkép nézetre',
 };
 export default map;

@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Activitats',
   'map.showAllConnections': 'Mostra totes les rutes de reserva',
   'map.hideAllConnections': 'Amaga totes les rutes de reserva',
+  'map.baseLayer.default': 'Mapa',
+  'map.baseLayer.satellite': 'Satèl·lit',
+  'map.baseLayer.switchToSatellite': 'Canvia a vista de satèl·lit',
+  'map.baseLayer.switchToDefault': 'Canvia a vista de mapa',
 };
 export default map;
