@@ -343,6 +343,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Értesítéseid kézbesítése egy további csatornán',
   'admin.plugins.perm.events:subscribe':
     'Reagál az alapvető tevékenységi eseményekre (csak eseménynév + utazás, soha nem a tartalom)',
+  'admin.plugins.perm.mcp:tools':
+    'Saját eszközök felkínálása a TREK-hez MCP-n keresztül csatlakozó MI-asszisztenseknek',
   'admin.plugins.perm.http:outbound': 'Kimenő kérések küldése a bejelentett kiszolgálók felé',
   'admin.plugins.perm.db:read:collab':
     'Jegyzetek, szavazások és csevegőüzenetek olvasása az aktuális felhasználó számára elérhető utazásokon (a Collab bővítmény szükséges)',
@@ -455,6 +457,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Időpontokat ad a tervhez',
   'admin.plugins.cap.geolocation': 'Lekéri a tartózkodási helyedet',
   'admin.plugins.cap.events': 'Reagál a tevékenységre',
+  'admin.plugins.cap.mcpTools': 'MI-eszközöket ad hozzá',
   'admin.plugins.cap.requiresAddon': '{addon} szükséges',
   'admin.plugins.cap.dependsOn': '{id} {version} szükséges',
   'admin.plugins.dep.addonDisabledToast': 'Előbb engedélyezze a szükséges bővítmény(eke)t: {addons}',

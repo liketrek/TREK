@@ -10,7 +10,10 @@ import { PLUGIN_CHANNEL_EVENTS } from './install/manifest';
 import { stripEmoji } from './text-sanitize';
 import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
 import { decrypt_api_key } from '../../services/apiKeyCrypto';
-import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
+import { PluginSupervisor, type PluginRouteInfo, type PluginStatus } from './supervisor/plugin-supervisor';
+import type { PluginMcpToolReport } from './mcp-tool-report';
+import { invalidateMcpSessions } from '../../mcp';
+import { setPluginToolsRuntime } from '../../mcp/plugin-tools-handoff';
 import fs from 'node:fs';
 import path from 'node:path';
 import { PluginHostDepsFactory } from './host/plugin-host-deps.factory';
@@ -110,6 +113,14 @@ export class PluginDependencyError extends Error {
 }
 
 /**
+ * How long a plugin MCP tool may run. Generous next to a provider hook's 5 s — an
+ * assistant is waiting on this call by itself, and a tool that reaches an external API
+ * is the normal case rather than the exception — but still bounded, so a wedged plugin
+ * surfaces a tool error instead of hanging the MCP session.
+ */
+const MCP_TOOL_TIMEOUT_MS = 30_000;
+
+/**
  * Owns the isolated-plugin runtime lifecycle inside NestJS (#plugins, M2).
  * Bridges the DB registry (`plugins` rows) to the process supervisor: activate
  * spawns the child with its granted permissions + decrypted instance config,
@@ -137,6 +148,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
       try {
         this.db.prepare('UPDATE plugins SET status = ?, last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, error ?? null, id);
       } catch { /* DB unavailable (e.g. mid-restore) — a status write must never crash the host */ }
+      this.syncMcpToolSurface(id, status);
     },
     onLog: (id, level, msg) => {
       if (level !== 'error' && level !== 'warn') return;
@@ -153,6 +165,10 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   // Filesystem watchers for dev-linked plugins (id -> watcher), so a rebuild of the
   // author's source auto-reloads. Empty unless dev-link is used.
   private readonly linkWatchers = new Map<string, fs.FSWatcher>();
+
+  // Plugins whose MCP tools are currently advertised. Compared against on every status
+  // change so live MCP sessions are torn down only when the surface really moved.
+  private readonly mcpToolPlugins = new Set<string>();
 
   // Sweeps plugin_scheduled_tasks for due callbacks and fires them on active plugins.
   private schedulerSweep: ReturnType<typeof setInterval> | null = null;
@@ -202,6 +218,15 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // Fan a deleted account out to plugins so they can erase their own per-user data.
     // Enqueued durably (survives restart), so nothing is lost if a plugin is offline.
     setUserDeletedSink((userId) => this.enqueueUserErasure(userId));
+    // Let the (plain, non-Nest) MCP handler advertise plugin tools. Pull-based like the
+    // notification-channel source: every new session reads the current providers, so
+    // there is no registration to keep in sync — only live sessions need invalidating,
+    // which syncMcpToolSurface does.
+    setPluginToolsRuntime({
+      mcpToolProviders: () => this.mcpToolProviders(),
+      mcpToolsOf: (id) => this.mcpToolsOf(id),
+      invokeMcpTool: (id, tool, input, actingUserId) => this.invokeMcpTool(id, tool, input, actingUserId),
+    });
     // Discover plugins placed on the volume (registers new ones inactive), then
     // boot the ones an admin had already activated — in dependency order so a
     // plugin's dependencies come up before it does. The whole block is defensive:
@@ -424,6 +449,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     setPluginEventSink(null);
     setUserDeletedSink(null);
+    setPluginToolsRuntime(null);
     setStagedRestoreApplier(null);
     if (this.schedulerSweep) { clearInterval(this.schedulerSweep); this.schedulerSweep = null; }
     for (const w of this.linkWatchers.values()) {
@@ -927,6 +953,53 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   providersOf(hook: string): string[] {
     return this.supervisor.providersOf(hook);
   }
+  /**
+   * Keep live MCP sessions honest about which plugin tools exist.
+   *
+   * A session registers its tool list once, when it is created, and an MCP client that
+   * is already connected has no reason to re-list — so a plugin going up or down has to
+   * tear the sessions down to be reflected. Only an ACTUAL change to the advertised
+   * surface does that, though: a status flip on a plugin with no tools (or a crash-loop
+   * on one that was already down) must not kill every open session (#1414).
+   *
+   * Runs from a child-lifecycle callback, where a throw would be an uncaught exception
+   * with no handler — hence the blanket catch.
+   */
+  private syncMcpToolSurface(id: string, status: PluginStatus): void {
+    try {
+      const exposesNow = status === 'active' && this.supervisor.mcpToolsOf(id).length > 0;
+      if (exposesNow === this.mcpToolPlugins.has(id)) return;
+      if (exposesNow) this.mcpToolPlugins.add(id);
+      else this.mcpToolPlugins.delete(id);
+      invalidateMcpSessions();
+    } catch { /* never let MCP bookkeeping break a plugin lifecycle transition */ }
+  }
+
+  /** Ids of active plugins advertising MCP tools (both declared and `mcp:tools`-granted). */
+  mcpToolProviders(): string[] {
+    return this.supervisor.mcpToolProviders();
+  }
+  /** One plugin's advertised MCP tools, normalized + capped at load. */
+  mcpToolsOf(id: string): PluginMcpToolReport[] {
+    return this.supervisor.mcpToolsOf(id);
+  }
+  /**
+   * Run one plugin MCP tool on behalf of the user whose token made the MCP call
+   * (host→plugin). A longer timeout than a provider hook: a tool is an explicit,
+   * awaited request from an assistant rather than a garnish on a core response, and
+   * it may well call an external API — but still bounded, so a hung plugin returns a
+   * tool error instead of stalling the session.
+   */
+  invokeMcpTool(id: string, tool: string, input: unknown, actingUserId: number): Promise<unknown> {
+    // Defense in depth, exactly as invokeHook: re-check that the plugin is still an
+    // active, granted provider of THIS tool. A session lists tools once and may call
+    // minutes later, by which time the plugin could have been disabled or lost the grant.
+    if (!this.supervisor.mcpToolsOf(id).some((t) => t.name === tool)) {
+      return Promise.reject(new Error(`plugin ${id} does not expose the MCP tool ${tool}`));
+    }
+    return this.supervisor.invoke(id, 'invoke.mcpTool', { name: tool, input }, { actingUserId, timeoutMs: MCP_TOOL_TIMEOUT_MS });
+  }
+
   /**
    * Ask ONE plugin's provider hook for data (host→plugin). A tighter default
    * timeout than a route call so a slow provider can't delay the core response;

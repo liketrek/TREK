@@ -32,6 +32,7 @@ export const SCOPES = {
   JOURNEY_READ:        'journey:read',
   JOURNEY_WRITE:       'journey:write',
   JOURNEY_SHARE:       'journey:share',
+  PLUGINS_USE:         'plugins:use',
 } as const;
 
 export type Scope = typeof SCOPES[keyof typeof SCOPES];
@@ -77,6 +78,7 @@ export const SCOPE_INFO: Record<Scope, ScopeInfo> = {
   'journey:read':        { label: 'View journeys',              description: 'Read journeys, entries, and contributor list',                          group: 'Journey' },
   'journey:write':       { label: 'Manage journeys',            description: 'Create, update, and delete journeys and their entries',                 group: 'Journey' },
   'journey:share':       { label: 'Manage journey links',       description: 'Create, update, and revoke public share links for journeys',            group: 'Journey' },
+  'plugins:use':         { label: 'Use plugin tools',           description: 'Call tools added by installed TREK plugins — each one acts with the permissions an admin granted that plugin', group: 'Plugins' },
 };
 
 // ---------------------------------------------------------------------------
@@ -112,6 +114,17 @@ export function canDeleteTrips(scopes: string[] | null): boolean {
 export function canShareTrips(scopes: string[] | null): boolean {
   if (!scopes) return true;
   return scopes.includes('trips:share');
+}
+
+/**
+ * plugins:use gates every tool installed plugins expose. One scope covers all of them:
+ * what a given tool may touch is bounded by the permissions an admin granted that
+ * plugin, acting as this token's user — the scope is consent to reach plugin tools at
+ * all, not a second per-plugin permission model.
+ */
+export function canUsePluginTools(scopes: string[] | null): boolean {
+  if (!scopes) return true;
+  return scopes.includes('plugins:use');
 }
 
 /** journey:share is a separate scope for managing public share links for journeys */

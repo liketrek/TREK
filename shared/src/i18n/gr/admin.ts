@@ -390,6 +390,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Παράδοση των ειδοποιήσεών σας μέσω πρόσθετου καναλιού',
   'admin.plugins.perm.events:subscribe':
     'Αντιδρά σε βασικά συμβάντα δραστηριότητας (όνομα συμβάντος + ταξίδι μόνο, ποτέ το περιεχόμενο)',
+  'admin.plugins.perm.mcp:tools': 'Παροχή δικών του εργαλείων σε βοηθούς AI συνδεδεμένους στο TREK μέσω MCP',
   'admin.plugins.perm.http:outbound': 'Εκτέλεση εξερχόμενων αιτημάτων προς τους δηλωμένους hosts του',
   'admin.plugins.perm.db:read:collab':
     'Ανάγνωση σημειώσεων, ψηφοφοριών και μηνυμάτων συνομιλίας ταξιδιών στα οποία έχει πρόσβαση ο ενεργός χρήστης (απαιτεί το πρόσθετο Collab)',
@@ -503,6 +504,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Προσθέτει χρόνους πλάνου',
   'admin.plugins.cap.geolocation': 'Διαβάζει την τοποθεσία σας',
   'admin.plugins.cap.events': 'Αντιδρά σε δραστηριότητα',
+  'admin.plugins.cap.mcpTools': 'Προσθέτει εργαλεία AI',
   'admin.plugins.cap.requiresAddon': 'Απαιτεί {addon}',
   'admin.plugins.cap.dependsOn': 'Χρειάζεται {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Ενεργοποιήστε πρώτα τα απαιτούμενα πρόσθετα: {addons}',

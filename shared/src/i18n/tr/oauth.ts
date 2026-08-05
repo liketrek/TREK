@@ -15,6 +15,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.geo': 'Coğrafi',
   'oauth.scope.group.weather': 'Hava durumu',
   'oauth.scope.group.journey': 'Seyahat',
+  'oauth.scope.group.plugins': 'Eklentiler',
   'oauth.scope.trips:read.label': 'Seyahatleri ve programları görüntüle',
   'oauth.scope.trips:read.description': 'Seyahatleri, günleri, gün notlarını ve üyeleri oku',
   'oauth.scope.trips:write.label': 'Seyahatleri ve programları düzenle',
@@ -79,6 +80,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Journey bağlantılarını yönet',
   'oauth.scope.journey:share.description':
     "Journey'ler için herkese açık paylaşım bağlantıları oluştur, güncelle ve iptal et",
+  'oauth.scope.plugins:use.label': 'Eklenti araçlarını kullan',
+  'oauth.scope.plugins:use.description':
+    'Kurulu eklentilerin eklediği araçları çağırır — her biri, bir yöneticinin o eklentiye verdiği izinlerle çalışır',
   'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
   'oauth.authorize.loading': 'Loading…', // en-fallback
   'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback

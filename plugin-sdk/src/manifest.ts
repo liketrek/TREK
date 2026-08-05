@@ -91,7 +91,7 @@ export const KNOWN_PERMISSIONS = [
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider',
   'hook:table-contributor', 'hook:map-marker-provider', 'hook:map-layer-provider', 'hook:route-provider', 'hook:day-schedule-provider', 'hook:pdf-section-provider', 'hook:atlas-layer-provider',
   'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data',
-  'events:subscribe', 'jobs:run', 'http:outbound',
+  'events:subscribe', 'jobs:run', 'mcp:tools', 'http:outbound',
   'weather:read', 'rates:read', 'notify:send', 'ai:invoke', 'oauth:client',
   'geolocation:read',
 ];

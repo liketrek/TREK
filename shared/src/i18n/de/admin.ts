@@ -338,6 +338,7 @@ const admin: TranslationStrings = {
     'Auf Kern-Aktivitäts-Events reagieren (nur Event-Name + Reise, nie der Inhalt)',
   'admin.plugins.perm.jobs:run':
     'Deklarierte Hintergrund-Jobs zeitgesteuert ausführen (kein Nutzerkontext — kann keine Nutzerdaten lesen)',
+  'admin.plugins.perm.mcp:tools': 'Eigene Tools für KI-Assistenten anbieten, die über MCP mit TREK verbunden sind',
   'admin.plugins.perm.http:outbound': 'Ausgehende Anfragen an deklarierte Hosts stellen',
   'admin.plugins.perm.db:read:collab':
     'Notizen, Umfragen und Chat-Nachrichten von Reisen lesen, auf die der handelnde Nutzer Zugriff hat (benötigt das Collab-Addon)',
@@ -450,6 +451,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Ergänzt Planzeiten',
   'admin.plugins.cap.geolocation': 'Liest deinen Standort',
   'admin.plugins.cap.events': 'Reagiert auf Aktivität',
+  'admin.plugins.cap.mcpTools': 'Fügt KI-Tools hinzu',
   'admin.plugins.cap.requiresAddon': 'Benötigt {addon}',
   'admin.plugins.cap.dependsOn': 'Benötigt {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Aktiviere zuerst die benötigten Addons: {addons}',

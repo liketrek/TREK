@@ -6,7 +6,7 @@ OAuth scopes control exactly which data your AI client can read or write in TREK
 
 ## All scopes
 
-TREK defines 27 scopes across 13 groups.
+TREK defines 30 scopes across 15 groups.
 
 | Group | Scope | Permission |
 |---|---|---|
@@ -37,6 +37,7 @@ TREK defines 27 scopes across 13 groups.
 | **Journey** | `journey:read` | Read journeys, entries, and contributor list |
 | | `journey:write` | Create, update, and delete journeys and their entries |
 | | `journey:share` | Create, update, and revoke public share links for journeys |
+| **Plugins** | `plugins:use` | Call tools added by installed TREK plugins |
 
 ## Scope rules
 
@@ -46,6 +47,7 @@ TREK defines 27 scopes across 13 groups.
 - `list_trips` and `get_trip_summary` are always available regardless of scope — they are navigation tools.
 - Static tokens and web session JWTs have full access equivalent to all scopes.
 - Addon-gated tools (Atlas, Collab, Vacay, Journey) require both the relevant scope **and** the corresponding addon to be enabled by an admin.
+- `plugins:use` covers every plugin-provided tool at once (they are namespaced `plugin_<pluginId>_<toolName>`). It is consent to reach plugin tools at all, not a per-plugin permission: what one can actually touch is bounded by the permissions an admin granted that plugin, acting as your user. See [MCP-Tools-and-Resources](MCP-Tools-and-Resources#plugin-tools).
 
 ## Choosing the right scopes
 

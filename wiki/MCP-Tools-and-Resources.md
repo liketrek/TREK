@@ -177,6 +177,28 @@ Requires `notifications:read` or `notifications:write` scope.
 
 ---
 
+## Plugin tools
+
+Installed plugins can add tools of their own. They appear alongside the built-ins,
+namespaced `plugin_<pluginId>_<toolName>` (e.g. `plugin_trip-doctor_check_visa`), and
+are described by the plugin author — read the tool's own description to know what it does.
+
+Three things have to line up for one to show up:
+
+- the plugin is **installed and active**, and an admin granted it `mcp:tools`;
+- your token carries the **`plugins:use`** scope (a full-access token has it);
+- the plugin system is enabled on the instance.
+
+A plugin tool runs **as you**: it can only reach what that plugin was granted, acting
+with your own trip memberships and permissions. A tool that fails, times out (30 s) or
+belongs to a plugin that has since been turned off comes back as a normal tool error.
+Turning a plugin on or off invalidates open MCP sessions, so reconnect to pick up the
+new tool list.
+
+See [Plugin-Development](Plugin-Development#mcp-tools) to write one.
+
+---
+
 ## Resources
 
 Resources provide read-only access via `trek://` URIs. Read them to understand current state before making changes.

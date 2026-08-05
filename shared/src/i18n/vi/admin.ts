@@ -335,6 +335,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Gửi thông báo của bạn qua một kênh bổ sung',
   'admin.plugins.perm.events:subscribe':
     'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
+  'admin.plugins.perm.mcp:tools': 'Cung cấp công cụ riêng cho trợ lý AI kết nối với TREK qua MCP',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',
   'admin.plugins.perm.db:read:collab':
     'Đọc ghi chú, bình chọn và tin nhắn trò chuyện của các chuyến đi mà người dùng hiện tại có quyền truy cập (cần add-on Collab)',
@@ -447,6 +448,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Thêm giờ kế hoạch',
   'admin.plugins.cap.geolocation': 'Đọc vị trí của bạn',
   'admin.plugins.cap.events': 'Phản hồi hoạt động',
+  'admin.plugins.cap.mcpTools': 'Thêm công cụ AI',
   'admin.plugins.cap.requiresAddon': 'Cần {addon}',
   'admin.plugins.cap.dependsOn': 'Cần {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Trước tiên hãy bật các tiện ích bổ sung cần thiết: {addons}',

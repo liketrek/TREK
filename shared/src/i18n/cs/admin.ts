@@ -330,6 +330,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Doručovat vaše oznámení dalším kanálem',
   'admin.plugins.perm.events:subscribe':
     'Reagovat na základní události aktivity (pouze název události a cesta, nikdy obsah)',
+  'admin.plugins.perm.mcp:tools': 'Nabízet vlastní nástroje AI asistentům připojeným k TREKu přes MCP',
   'admin.plugins.perm.http:outbound': 'Odesílat odchozí požadavky na deklarované hostitele',
   'admin.plugins.perm.db:read:collab':
     'Číst poznámky, ankety a zprávy chatu cest, ke kterým má aktuální uživatel přístup (vyžaduje doplněk Collab)',
@@ -441,6 +442,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Doplňuje časy plánu',
   'admin.plugins.cap.geolocation': 'Čte vaši polohu',
   'admin.plugins.cap.events': 'Reaguje na aktivitu',
+  'admin.plugins.cap.mcpTools': 'Přidává AI nástroje',
   'admin.plugins.cap.requiresAddon': 'Vyžaduje {addon}',
   'admin.plugins.cap.dependsOn': 'Vyžaduje {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Nejprve povolte potřebné doplňky: {addons}',

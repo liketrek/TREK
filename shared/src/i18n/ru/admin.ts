@@ -339,6 +339,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Доставлять ваши уведомления через дополнительный канал',
   'admin.plugins.perm.events:subscribe':
     'Реагировать на основные события активности (только название события и поездка, никогда содержимое)',
+  'admin.plugins.perm.mcp:tools': 'Предоставлять свои инструменты ИИ-ассистентам, подключённым к TREK по MCP',
   'admin.plugins.perm.http:outbound': 'Выполнять исходящие запросы к заявленным хостам',
   'admin.plugins.perm.db:read:collab':
     'Читать заметки, опросы и сообщения чата поездок, доступных текущему пользователю (требуется дополнение Collab)',
@@ -451,6 +452,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Добавляет время в план',
   'admin.plugins.cap.geolocation': 'Считывает ваше местоположение',
   'admin.plugins.cap.events': 'Реагирует на активность',
+  'admin.plugins.cap.mcpTools': 'Добавляет ИИ-инструменты',
   'admin.plugins.cap.requiresAddon': 'Требуется {addon}',
   'admin.plugins.cap.dependsOn': 'Нужен {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Сначала включите необходимые дополнения: {addons}',

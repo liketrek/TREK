@@ -374,6 +374,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.events:subscribe': 'React to core activity events (event name + trip only, never the content)',
   'admin.plugins.perm.jobs:run':
     'Run its declared background jobs on a schedule (no user context — cannot read user data)',
+  'admin.plugins.perm.mcp:tools': 'Offer its own tools to AI assistants connected to TREK over MCP',
   'admin.plugins.perm.http:outbound': 'Make outbound requests to its declared hosts',
   'admin.plugins.perm.db:read:collab':
     'Read notes, polls and chat messages of trips the acting user can access (needs the Collab addon)',
@@ -485,6 +486,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.daySchedule': 'Adds plan times',
   'admin.plugins.cap.geolocation': 'Reads your position',
   'admin.plugins.cap.events': 'Reacts to activity',
+  'admin.plugins.cap.mcpTools': 'Adds AI tools',
   'admin.plugins.cap.requiresAddon': 'Requires {addon}',
   'admin.plugins.cap.dependsOn': 'Needs {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Enable the required addon(s) first: {addons}',

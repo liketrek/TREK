@@ -15,6 +15,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.geo': 'Geo',
   'oauth.scope.group.weather': '天氣',
   'oauth.scope.group.journey': '旅程',
+  'oauth.scope.group.plugins': '外掛',
   'oauth.scope.trips:read.label': '檢視行程與旅遊計畫',
   'oauth.scope.trips:read.description': '讀取行程、天數、每日筆記及成員',
   'oauth.scope.trips:write.label': '編輯行程與旅遊計畫',
@@ -73,6 +74,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': '建立、更新及刪除旅程及其條目',
   'oauth.scope.journey:share.label': '管理旅程連結',
   'oauth.scope.journey:share.description': '建立、更新及撤銷旅程的公開分享連結',
+  'oauth.scope.plugins:use.label': '使用外掛工具',
+  'oauth.scope.plugins:use.description': '呼叫已安裝外掛新增的工具——每個工具都以管理員授予該外掛的權限執行',
   'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
   'oauth.authorize.loading': 'Loading…', // en-fallback
   'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback

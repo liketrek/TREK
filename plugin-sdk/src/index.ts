@@ -350,6 +350,66 @@ export interface PluginJob {
   handler(ctx: PluginContext): Promise<void>;
 }
 
+// ── MCP tools ────────────────────────────────────────────────────────────────
+
+/** Behaviour hints an MCP client may show the model when it weighs calling a tool.
+ * Purely advisory — TREK enforces none of them; your handler is still responsible
+ * for refusing what it should not do. */
+export interface McpToolAnnotations {
+  /** The tool only reads; it changes nothing. */
+  readOnlyHint?: boolean;
+  /** The tool may delete or overwrite data. */
+  destructiveHint?: boolean;
+  /** Calling it twice with the same input is the same as calling it once. */
+  idempotentHint?: boolean;
+  /** The tool reaches outside TREK (one of your declared egress hosts). */
+  openWorldHint?: boolean;
+}
+
+/**
+ * A tool this plugin adds to TREK's MCP server, next to the built-in ones — so an
+ * assistant connected over MCP can call into your plugin.
+ *
+ * Declarative + invocable, like a route: the name, description and schema are
+ * reported to the host once at load and served from memory, while the handler runs
+ * per call. Clients see the tool namespaced as `plugin_<pluginId>_<name>`, and only
+ * over a session whose token carries the `plugins:use` OAuth scope (a full-access
+ * token qualifies). Needs `mcp:tools` — without that grant the tool is never
+ * advertised and never callable.
+ *
+ * The host caps what it will advertise: 16 tools per plugin, a 64-character public
+ * name, an 80-character title, a 4096-character description and a 16 KB schema.
+ * Anything over a cap is dropped rather than truncated into something misleading.
+ */
+export interface PluginMcpTool {
+  /** snake_case, unique within your plugin: `/^[a-z][a-z0-9_]{0,47}$/`. */
+  name: string;
+  /** Human-readable display name. Falls back to `name`. */
+  title?: string;
+  /** What the tool does and when to call it. This and the `description` on each
+   *  schema property are ALL the model reads before choosing — write both. */
+  description: string;
+  /** JSON Schema for the arguments — a plain `{ type: 'object', properties, required }`
+   *  object. TREK understands objects, strings, numbers, integers, booleans, arrays,
+   *  enums and nesting; anything more exotic is advertised as unconstrained rather
+   *  than rejected. Omit it for a tool that takes no arguments. */
+  inputSchema?: Record<string, unknown>;
+  annotations?: McpToolAnnotations;
+  /**
+   * Run one call. `input` is NOT GUARANTEED to be validated: TREK checks arguments
+   * against the parts of your schema it understands, but anything it converted to
+   * "unconstrained" passes through as-is (and the mock host validates nothing) — so
+   * check it yourself.
+   *
+   * Runs with the calling user bound, exactly like a route: trip reads are
+   * membership-checked against them. The call is given 30 s. Return any
+   * JSON-serialisable value (a string is passed through verbatim, anything else is
+   * JSON-rendered for the model); throw to fail the call — your message goes back to
+   * the model that called you, never to another user. Needs `mcp:tools`.
+   */
+  handler(input: unknown, ctx: PluginContext): Promise<unknown> | unknown;
+}
+
 // ── integration hook interfaces ──────────────────────────────────────────────
 export interface Photo {
   id: string;
@@ -672,6 +732,9 @@ export interface PluginDefinition {
   onUnload?(ctx: PluginContext): Promise<void> | void;
   routes?: PluginRoute[];
   jobs?: PluginJob[];
+  /** Tools this plugin adds to TREK's MCP server, so a connected assistant can call
+   * into it. Advertised as `plugin_<pluginId>_<name>`. Needs `mcp:tools`. */
+  mcpTools?: PluginMcpTool[];
   /** Handles a callback registered via ctx.scheduler (userless, like a job). The
    * `name` identifies which scheduled task fired; `payload` is what you passed. */
   scheduled?(input: { name: string; payload: unknown }, ctx: PluginContext): Promise<void> | void;
@@ -727,7 +790,7 @@ export { createMockHost, type MockHostOptions } from './mock-host.js';
 // are what `dev` and the mock driver use to make that loud.
 export {
   PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION,
-  grantGaps, grantedHosts, type GrantGap, type PluginEntryPoints,
+  MCP_TOOLS_PERMISSION, grantGaps, grantedHosts, type GrantGap, type PluginEntryPoints,
 } from './permissions.js';
 
 /** Scope for host-managed, per-user session state in a sandboxed plugin UI. */

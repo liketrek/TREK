@@ -13,6 +13,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.vacay': 'الإجازة',
   'oauth.scope.group.weather': 'الطقس',
   'oauth.scope.group.journey': 'مذكرة السفر',
+  'oauth.scope.group.plugins': 'الإضافات',
   'oauth.scope.trips:read.label': 'عرض الرحلات وخطط السفر',
   'oauth.scope.trips:read.description': 'قراءة الرحلات والأيام والملاحظات والأعضاء',
   'oauth.scope.trips:write.label': 'تحرير الرحلات وخطط السفر',
@@ -72,6 +73,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'إنشاء مذكرات السفر وتحديثها وحذفها وإدخالاتها',
   'oauth.scope.journey:share.label': 'إدارة روابط مذكرات السفر',
   'oauth.scope.journey:share.description': 'إنشاء روابط مشاركة عامة لمذكرات السفر وتحديثها وإلغاؤها',
+  'oauth.scope.plugins:use.label': 'استخدام أدوات الإضافات',
+  'oauth.scope.plugins:use.description':
+    'استدعاء الأدوات التي تضيفها الإضافات المثبَّتة — تعمل كل أداة بالصلاحيات التي منحها المسؤول لتلك الإضافة',
   'oauth.scope.group.atlas': 'Atlas', // en-fallback
   'oauth.scope.group.geo': 'Geo', // en-fallback
   'oauth.authorize.authorizing': 'Authorizing…', // en-fallback

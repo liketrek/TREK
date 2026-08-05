@@ -41,6 +41,8 @@ export const USER_DATA_PERMISSION = 'hook:user-data';
 export const EVENTS_PERMISSION = 'events:subscribe';
 /** Gates jobs, and the ctx.scheduler timers that fire `scheduled`. */
 export const JOBS_PERMISSION = 'jobs:run';
+/** Gates `mcpTools` — without it the host never advertises them to an MCP client. */
+export const MCP_TOOLS_PERMISSION = 'mcp:tools';
 
 const HTTP_OUTBOUND = 'http:outbound:';
 
@@ -52,6 +54,7 @@ export interface PluginEntryPoints {
   deleteUserData?: unknown;
   exportUserData?: unknown;
   hooks?: Record<string, unknown>;
+  mcpTools?: unknown[];
 }
 
 /** An entry point the plugin implements but has no permission to actually run. */
@@ -86,6 +89,7 @@ export function grantGaps(plugin: PluginEntryPoints, grants: ReadonlySet<string>
   if (plugin.jobs?.length) gap('jobs', JOBS_PERMISSION, 'schedule your jobs');
   if (typeof plugin.scheduled === 'function') gap('scheduled', JOBS_PERMISSION, 'let you arm a timer (ctx.scheduler is denied)');
   if (plugin.events?.length) gap('events', EVENTS_PERMISSION, 'deliver you any event');
+  if (plugin.mcpTools?.length) gap('mcpTools', MCP_TOOLS_PERMISSION, 'advertise your tools to a connected assistant');
   if (typeof plugin.deleteUserData === 'function') gap('deleteUserData', USER_DATA_PERMISSION, 'call your GDPR erasure handler');
   if (typeof plugin.exportUserData === 'function') gap('exportUserData', USER_DATA_PERMISSION, 'call your GDPR export handler');
   return gaps;

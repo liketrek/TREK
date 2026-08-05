@@ -233,6 +233,7 @@ export const PERMISSION_FAMILIES: PermissionFamily[] = [
     permissions: [
       { value: 'jobs:run', hint: 'Run cron jobs and ctx.scheduler timers (no acting user)' },
       { value: 'events:subscribe', hint: 'Receive TREK events (place:created, trip:updated…) as they happen' },
+      { value: 'mcp:tools', hint: 'Offer your own tools to an AI assistant connected to TREK over MCP' },
     ],
   },
   {

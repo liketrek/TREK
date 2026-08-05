@@ -26,6 +26,14 @@ describe('envelope helpers', () => {
       expect(METHOD_PERMISSION[m]).toBeTruthy();
     }
   });
+
+  it('knows mcp:tools — an entry-point permission, so it maps to no ctx method', () => {
+    // Gated like jobs:run / events:subscribe: the host simply never advertises an
+    // ungranted plugin's tools. It unlocks no RPC method, so it must NOT appear in
+    // METHOD_PERMISSION — if it ever does, a plugin gained a ctx call from it.
+    expect(isKnownPermission('mcp:tools')).toBe(true);
+    expect(Object.values(METHOD_PERMISSION)).not.toContain('mcp:tools');
+  });
 });
 
 describe('paths', () => {

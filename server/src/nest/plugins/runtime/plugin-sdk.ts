@@ -339,6 +339,28 @@ export interface PluginJob {
   schedule: string;
   handler(ctx: PluginContext): Promise<void>;
 }
+/** Advisory behaviour hints for an MCP client; TREK enforces none of them. */
+export interface McpToolAnnotations {
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
+}
+/** A tool the plugin adds to TREK's MCP server, advertised as `plugin_<id>_<name>`.
+ * The declarative half is reported at load and capped host-side (mcp-tool-report.ts);
+ * the handler runs per call with the CALLING user bound, like a route. Needs
+ * `mcp:tools`, and the session's token needs the `plugins:use` scope. */
+export interface PluginMcpTool {
+  name: string;
+  title?: string;
+  description: string;
+  /** Plain JSON Schema; the host converts it for the MCP client, which checks
+   *  arguments against the parts it understands — permissively, so `input` is not
+   *  guaranteed to be validated and the handler must check its own. */
+  inputSchema?: Record<string, unknown>;
+  annotations?: McpToolAnnotations;
+  handler(input: unknown, ctx: PluginContext): Promise<unknown> | unknown;
+}
 // ── Provider hooks (host→plugin): core asks a hook the plugin implements for data,
 // gated by the matching hook:* permission. Each method also receives the per-
 // invocation ctx, so any trip reads it makes bind to the authenticated user. ──
@@ -628,6 +650,8 @@ export interface PluginDefinition {
   onUnload?(ctx: PluginContext): Promise<void> | void;
   routes?: PluginRoute[];
   jobs?: PluginJob[];
+  /** Tools exposed on TREK's MCP server. Needs `mcp:tools`. */
+  mcpTools?: PluginMcpTool[];
   /** Handles a callback registered via ctx.scheduler (userless, like a job). The
    * `name` identifies which scheduled task fired; `payload` is what you passed. */
   scheduled?(input: { name: string; payload: unknown }, ctx: PluginContext): Promise<void> | void;

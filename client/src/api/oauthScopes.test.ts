@@ -34,8 +34,8 @@ describe('SCOPE_GROUPS', () => {
 })
 
 describe('ALL_SCOPES', () => {
-  it('FE-OAUTH-SCOPES-003: contains exactly 29 scopes', () => {
-    expect(ALL_SCOPES).toHaveLength(29)
+  it('FE-OAUTH-SCOPES-003: contains exactly 30 scopes', () => {
+    expect(ALL_SCOPES).toHaveLength(30)
   })
 
   it('FE-OAUTH-SCOPES-004: matches Object.keys(SCOPE_GROUPS)', () => {
