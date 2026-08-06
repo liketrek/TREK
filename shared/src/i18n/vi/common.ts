@@ -64,5 +64,14 @@ const common: TranslationStrings = {
   'common.collapse': 'Thu gọn',
   'common.copy': 'Sao chép',
   'common.copied': 'Đã sao chép',
+  'common.errorTitle': 'Đã xảy ra lỗi',
+  'common.errorBody': 'Phần này của ứng dụng đã ngừng hoạt động. Dữ liệu của bạn vẫn an toàn.',
+  'common.errorPanelTitle': 'Không thể hiển thị mục này',
+  'common.errorPanelBody': 'Phần còn lại của trang vẫn hoạt động.',
+  'common.errorRetry': 'Thử lại',
+  'common.errorReload': 'Tải lại trang',
+  'common.errorUpdateTitle': 'Đã có phiên bản mới',
+  'common.errorUpdateBody': 'TREK đã được cập nhật trong khi thẻ này đang mở. Hãy tải lại để nhận phiên bản mới.',
+  'common.errorPluginTitle': 'Không thể hiển thị plugin này',
 };
 export default common;

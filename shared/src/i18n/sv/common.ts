@@ -64,5 +64,14 @@ const common: TranslationStrings = {
   'common.collapse': 'Dölj',
   'common.copy': 'Kopiera',
   'common.copied': 'Kopierad',
+  'common.errorTitle': 'Något gick fel',
+  'common.errorBody': 'Den här delen av appen slutade fungera. Dina data är säkra.',
+  'common.errorPanelTitle': 'Det här avsnittet kunde inte visas',
+  'common.errorPanelBody': 'Resten av sidan fungerar fortfarande.',
+  'common.errorRetry': 'Försök igen',
+  'common.errorReload': 'Ladda om sidan',
+  'common.errorUpdateTitle': 'En ny version är tillgänglig',
+  'common.errorUpdateBody': 'TREK uppdaterades medan den här fliken var öppen. Ladda om för att hämta den nya versionen.',
+  'common.errorPluginTitle': 'Det här tillägget kunde inte visas',
 };
 export default common;

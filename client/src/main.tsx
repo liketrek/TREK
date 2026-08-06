@@ -34,16 +34,29 @@ import './index.css'
 import { maybeInstallTouchDragPolyfill } from './utils/touchDragPolyfill'
 import { startConnectivityProbe } from './sync/connectivity'
 import { requestPersistentStorage } from './sync/persistentStorage'
+import ErrorBoundary, { RootErrorFallback } from './components/shared/ErrorBoundary'
+import { installGlobalErrorHandlers } from './utils/globalErrorHandlers'
+import { clearChunkReloadMarker } from './utils/chunkReload'
 
 maybeInstallTouchDragPolyfill()
 startConnectivityProbe()
 // Keep offline data (map tiles, file blobs, IndexedDB) exempt from eviction.
 requestPersistentStorage()
+// Event handlers and async code never reach a boundary; this is where they land.
+installGlobalErrorHandlers()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      {/* Outermost net: catches App itself and TranslationProvider, which every
+          boundary further in sits below. Its fallback is untranslated on purpose
+          — if the provider is the thing that broke, t() would echo raw keys. */}
+      <ErrorBoundary boundaryId="root" level="root" fallback={s => <RootErrorFallback {...s} />}>
+        <App />
+      </ErrorBoundary>
     </BrowserRouter>
   </React.StrictMode>,
 )
+
+// The app rendered, so a later deploy is allowed to trigger its own reload.
+clearChunkReloadMarker()

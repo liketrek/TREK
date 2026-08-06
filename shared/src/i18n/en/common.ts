@@ -64,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date',
   'common.datepicker.dialog': 'Date picker',
   'common.datepicker.clearDate': 'Clear date',
+  'common.errorTitle': 'Something went wrong',
+  'common.errorBody': 'This part of the app stopped working. Your data is safe.',
+  'common.errorPanelTitle': 'This section could not be shown',
+  'common.errorPanelBody': 'The rest of the page still works.',
+  'common.errorRetry': 'Try again',
+  'common.errorReload': 'Reload page',
+  'common.errorUpdateTitle': 'A new version is available',
+  'common.errorUpdateBody': 'TREK was updated while this tab was open. Reload to get the new version.',
+  'common.errorPluginTitle': 'This plugin could not be shown',
 };
 export default common;

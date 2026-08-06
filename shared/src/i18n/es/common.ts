@@ -64,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'Algo salió mal',
+  'common.errorBody': 'Esta parte de la aplicación dejó de funcionar. Tus datos están a salvo.',
+  'common.errorPanelTitle': 'No se pudo mostrar esta sección',
+  'common.errorPanelBody': 'El resto de la página sigue funcionando.',
+  'common.errorRetry': 'Reintentar',
+  'common.errorReload': 'Recargar la página',
+  'common.errorUpdateTitle': 'Hay una nueva versión disponible',
+  'common.errorUpdateBody': 'TREK se actualizó mientras esta pestaña estaba abierta. Recarga para obtener la nueva versión.',
+  'common.errorPluginTitle': 'No se pudo mostrar este plugin',
 };
 export default common;

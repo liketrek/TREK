@@ -64,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'Valami hiba történt',
+  'common.errorBody': 'Az alkalmazás ezen része leállt. Az adatai biztonságban vannak.',
+  'common.errorPanelTitle': 'Ezt a szakaszt nem sikerült megjeleníteni',
+  'common.errorPanelBody': 'Az oldal többi része továbbra is működik.',
+  'common.errorRetry': 'Újra',
+  'common.errorReload': 'Oldal újratöltése',
+  'common.errorUpdateTitle': 'Új verzió érhető el',
+  'common.errorUpdateBody': 'A TREK frissült, amíg ez a lap nyitva volt. Töltse újra az új verzióért.',
+  'common.errorPluginTitle': 'Ezt a bővítményt nem sikerült megjeleníteni',
 };
 export default common;

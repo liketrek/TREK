@@ -64,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': '输入日期',
   'common.datepicker.dialog': '日期选择器',
   'common.datepicker.clearDate': '清除日期',
+  'common.errorTitle': '出错了',
+  'common.errorBody': '应用的这一部分已停止工作。您的数据是安全的。',
+  'common.errorPanelTitle': '无法显示此部分',
+  'common.errorPanelBody': '页面的其余部分仍可正常使用。',
+  'common.errorRetry': '重试',
+  'common.errorReload': '重新加载页面',
+  'common.errorUpdateTitle': '有新版本可用',
+  'common.errorUpdateBody': '此标签页打开期间 TREK 已更新。请重新加载以获取新版本。',
+  'common.errorPluginTitle': '无法显示此插件',
 };
 export default common;
