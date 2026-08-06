@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { RateLimitService } from './rate-limit.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PasskeyEnabledGuard } from './passkey-enabled.guard';
 import { CurrentUser } from './current-user.decorator';

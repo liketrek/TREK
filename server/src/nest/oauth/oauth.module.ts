@@ -1,8 +1,8 @@
+import { RateLimitModule } from '../common/rate-limit.module';
 import { Module } from '@nestjs/common';
 import { OauthPublicController } from './oauth-public.controller';
 import { OauthApiController } from './oauth-api.controller';
 import { OauthService } from './oauth.service';
-import { RateLimitService } from '../auth/rate-limit.service';
 import { AuditModule } from '../audit/audit.module';
 import { AddonsModule } from '../addons/addons.module';
 
@@ -13,8 +13,8 @@ import { AddonsModule } from '../addons/addons.module';
  * strangler lists /oauth/token, /oauth/userinfo, /oauth/revoke explicitly.
  */
 @Module({
-  imports: [AuditModule, AddonsModule],
+  imports: [RateLimitModule, AuditModule, AddonsModule],
   controllers: [OauthPublicController, OauthApiController],
-  providers: [OauthService, RateLimitService],
+  providers: [OauthService],
 })
 export class OauthModule {}

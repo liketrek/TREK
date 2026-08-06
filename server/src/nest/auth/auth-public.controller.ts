@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, Res, 
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, MfaVerifyLoginDto } from './auth.dto';
-import { RateLimitService } from './rate-limit.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { OptionalJwtGuard } from './optional-jwt.guard';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';

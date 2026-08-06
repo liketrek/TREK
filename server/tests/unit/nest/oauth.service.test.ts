@@ -166,11 +166,12 @@ describe('OauthModule', () => {
     const { OauthPublicController } = await import('../../../src/nest/oauth/oauth-public.controller');
     const { OauthApiController } = await import('../../../src/nest/oauth/oauth-api.controller');
     const { OauthService: Svc } = await import('../../../src/nest/oauth/oauth.service');
-    const { RateLimitService } = await import('../../../src/nest/auth/rate-limit.service');
 
     const controllers = Reflect.getMetadata('controllers', OauthModule);
     const providers = Reflect.getMetadata('providers', OauthModule);
     expect(controllers).toEqual([OauthPublicController, OauthApiController]);
-    expect(providers).toEqual([Svc, RateLimitService]);
+    // RateLimitService is deliberately absent: it comes from the global
+    // RateLimitModule so all consumers share one set of counters.
+    expect(providers).toEqual([Svc]);
   });
 });

@@ -10,7 +10,7 @@ const getClientIpMock = vi.mocked(getClientIp);
 
 import { OauthPublicController } from '../../../src/nest/oauth/oauth-public.controller';
 import { OauthApiController } from '../../../src/nest/oauth/oauth-api.controller';
-import { RateLimitService } from '../../../src/nest/auth/rate-limit.service';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import type { OauthService } from '../../../src/nest/oauth/oauth.service';
 import type { User } from '../../../src/types';
 

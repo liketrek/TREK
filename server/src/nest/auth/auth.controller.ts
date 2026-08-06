@@ -34,7 +34,7 @@ import {
   McpTokenCreateDto,
   ResourceTokenDto,
 } from './auth.dto';
-import { RateLimitService } from './rate-limit.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './current-user.decorator';
 import { getClientIp } from '../audit/client-ip';

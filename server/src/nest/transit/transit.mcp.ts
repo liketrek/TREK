@@ -14,7 +14,7 @@ import {
   transitPlaceSchema,
 } from './transit-itinerary.helpers';
 import { hasTripPermission, noAccess, permissionDenied, safeBroadcast } from '../../mcp/tools/_shared';
-import { RateLimitService } from '../auth/rate-limit.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { DatabaseService } from '../database/database.service';
 import { DaysService } from '../days/days.service';
 import { ReservationsService } from '../reservations/reservations.service';

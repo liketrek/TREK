@@ -1,7 +1,7 @@
 import { Controller, Get, HttpException, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RateLimitService } from '../auth/rate-limit.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { TransitService } from './transit.service';
 
 const RL_WINDOW = 15 * 60 * 1000;

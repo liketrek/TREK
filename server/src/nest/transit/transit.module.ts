@@ -1,8 +1,8 @@
+import { RateLimitModule } from '../common/rate-limit.module';
 import { Module } from '@nestjs/common';
 import { TransitController } from './transit.controller';
 import { TransitService } from './transit.service';
 import { TransitMcp } from './transit.mcp';
-import { RateLimitService } from '../auth/rate-limit.service';
 import { DaysModule } from '../days/days.module';
 import { ReservationsModule } from '../reservations/reservations.module';
 import { AuthModule } from '../auth/auth.module';
@@ -14,9 +14,9 @@ import { AuthModule } from '../auth/auth.module';
  */
 @Module({
   // DaysModule + ReservationsModule: TransitMcp's create_transit_journey injects both.
-  imports: [DaysModule, ReservationsModule, AuthModule],
+  imports: [RateLimitModule, DaysModule, ReservationsModule, AuthModule],
   controllers: [TransitController],
-  providers: [TransitService, TransitMcp, RateLimitService],
+  providers: [TransitService, TransitMcp],
   exports: [TransitService],
 })
 export class TransitModule {}

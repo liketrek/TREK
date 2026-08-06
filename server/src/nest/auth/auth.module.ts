@@ -1,10 +1,10 @@
+import { RateLimitModule } from '../common/rate-limit.module';
 import { Module } from '@nestjs/common';
 import { AuthPublicController } from './auth-public.controller';
 import { AuthController } from './auth.controller';
 import { PasskeyController } from './passkey.controller';
 import { AuthService } from './auth.service';
 import { PasskeyService } from './passkey.service';
-import { RateLimitService } from './rate-limit.service';
 import { AuditModule } from '../audit/audit.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AtlasModule } from '../atlas/atlas.module';
@@ -22,9 +22,9 @@ import { AtlasModule } from '../atlas/atlas.module';
  * everything outside the container goes through auth.bridge.ts.
  */
 @Module({
-  imports: [AuditModule, PermissionsModule, AtlasModule],
+  imports: [RateLimitModule, AuditModule, PermissionsModule, AtlasModule],
   controllers: [AuthPublicController, AuthController, PasskeyController],
-  providers: [AuthService, PasskeyService, RateLimitService],
+  providers: [AuthService, PasskeyService],
   exports: [AuthService, PasskeyService],
 })
 export class AuthModule {}

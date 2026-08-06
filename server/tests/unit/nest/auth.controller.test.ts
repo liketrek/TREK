@@ -8,7 +8,7 @@ vi.mock('../../../src/services/demo', () => ({ isDemoEmail: vi.fn(() => false) }
 
 import { AuthPublicController } from '../../../src/nest/auth/auth-public.controller';
 import { AuthController } from '../../../src/nest/auth/auth.controller';
-import { RateLimitService } from '../../../src/nest/auth/rate-limit.service';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import type { AuthService } from '../../../src/nest/auth/auth.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { isDemoEmail } from '../../../src/services/demo';

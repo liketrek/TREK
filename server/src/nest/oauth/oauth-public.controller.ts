@@ -1,7 +1,7 @@
 import { Controller, Get, Headers, HttpCode, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { OauthService } from './oauth.service';
-import { RateLimitService } from '../auth/rate-limit.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { getClientIp } from '../audit/client-ip';
 import { logWarn } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';

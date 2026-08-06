@@ -13,7 +13,7 @@ import { OptionalJwtGuard } from '../../../src/nest/auth/optional-jwt.guard';
 import { AdminGuard } from '../../../src/nest/auth/admin.guard';
 import { PasskeyEnabledGuard } from '../../../src/nest/auth/passkey-enabled.guard';
 import { PasskeyController } from '../../../src/nest/auth/passkey.controller';
-import { RateLimitService } from '../../../src/nest/auth/rate-limit.service';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 
 // AuditService is constructor-injected since the auditLog DI migration; the
 // wrapper keeps the historical construction sites positional.

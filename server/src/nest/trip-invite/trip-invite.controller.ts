@@ -4,7 +4,7 @@ import type { User } from '../../types';
 import { TripInviteService } from './trip-invite.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { RateLimitService } from '../auth/rate-limit.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { TripInviteLinkCreateDto } from './trip-invite.dto';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
