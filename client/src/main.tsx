@@ -9,6 +9,11 @@ import '@fontsource/poppins/400.css'
 import '@fontsource/poppins/500.css'
 import '@fontsource/poppins/600.css'
 import '@fontsource/poppins/700.css'
+// MuseoModerno for the login wordmark — same reasoning, it used to come from the
+// Google Fonts CDN via a render-blocking <link> in index.html.
+import '@fontsource/museomoderno/400.css'
+import '@fontsource/museomoderno/700.css'
+import '@fontsource/museomoderno/800.css'
 // Geist Sans (self-hosted too) — used only for secondary "subtext" via --font-subtext.
 import '@fontsource/geist-sans/400.css'
 import '@fontsource/geist-sans/500.css'

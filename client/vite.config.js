@@ -1,10 +1,16 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { visualizer } from 'rollup-plugin-visualizer';
 
-export default defineConfig({
+// `npm run build:analyze` writes dist/stats.html — a treemap of what actually ended
+// up in each chunk. The plain build only reports chunk sizes, which tells you a chunk
+// is too big but not which dependency made it so.
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
+    mode === 'analyze' &&
+      visualizer({ filename: 'dist/stats.html', gzipSize: true, brotliSize: true }),
     VitePWA({
       registerType: 'autoUpdate',
       // Serve the generated manifest (+ dev SW) in development too, so the installed
@@ -18,8 +24,15 @@ export default defineConfig({
         suppressWarnings: true,
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        // Anything above this is dropped from the precache manifest without failing
+        // the build, so the PWA would just be broken offline. Keep the ceiling close
+        // to the real bundle so growth shows up as a build warning instead. Revisit
+        // once route-level splitting lands and the entry chunk shrinks.
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
+        // build:analyze drops a treemap next to the app; it must never end up in a
+        // precache manifest if someone ships that build by accident.
+        globIgnores: ['**/stats.html'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [
           /^\/api/,
@@ -127,8 +140,11 @@ export default defineConfig({
         ],
       },
     }),
-  ],
+  ].filter(Boolean),
   build: {
+    // Pin the output level instead of inheriting whatever the current Vite default
+    // is, so a toolchain bump can't silently change which browsers still work.
+    target: 'es2022',
     sourcemap: false,
     modulePreload: { polyfill: true },
   },
@@ -180,4 +196,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
