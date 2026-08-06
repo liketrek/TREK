@@ -1280,4 +1280,18 @@ describe('PlaceInspector', () => {
     await waitFor(() => expect(onUploadImage).toHaveBeenCalledWith(place.id, file));
   });
 
+  it('FE-PLANNER-INSPECTOR-098: deselecting and reselecting a place survives a rerender', async () => {
+    // The component bails out with `if (!place) return null`. Any hook below that
+    // line runs only while a place is selected, so clearing the selection changes
+    // the hook count and React tears the whole tree down.
+    const { rerender } = render(<PlaceInspector {...defaultProps} />);
+    expect(screen.getByText('Eiffel Tower')).toBeTruthy();
+
+    rerender(<PlaceInspector {...defaultProps} place={null} />);
+    expect(screen.queryByText('Eiffel Tower')).toBeNull();
+
+    rerender(<PlaceInspector {...defaultProps} />);
+    expect(screen.getByText('Eiffel Tower')).toBeTruthy();
+  });
+
 });

@@ -231,6 +231,31 @@ export default function PlaceInspector({
     })
   }, [place, openSavePicker])
 
+  // Sits above the `if (!place)` bail-out below: a hook after an early return is
+  // only reached while a place is selected, so deselecting one mid-session
+  // changes the hook count and React tears the tree down.
+  const placeId = place?.id
+  const handleFileUpload = useCallback(async (e) => {
+    const selectedFiles = Array.from((e.target as HTMLInputElement).files || [])
+    if (!selectedFiles.length || !onFileUpload || !placeId) return
+    setIsUploading(true)
+    try {
+      for (const file of selectedFiles) {
+        const fd = new FormData()
+        fd.append('file', file)
+        fd.append('place_id', String(placeId))
+        await onFileUpload(fd)
+      }
+      setFilesExpanded(true)
+    } catch (err: unknown) {
+      console.error('Upload failed', err)
+      toast.error(translateApiError(t, err, 'files.uploadError'))
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }, [onFileUpload, placeId, toast, t])
+
   const startNameEdit = () => {
     if (!onUpdatePlace) return
     setNameValue(place.name || '')
@@ -282,27 +307,6 @@ export default function PlaceInspector({
   const weekdayIndex = getWeekdayIndex(selectedDay?.date, placeTimeZone)
 
   const placeFiles = (files || []).filter(f => String(f.place_id) === String(place.id) || (f.linked_place_ids || []).includes(place.id))
-
-  const handleFileUpload = useCallback(async (e) => {
-    const selectedFiles = Array.from((e.target as HTMLInputElement).files || [])
-    if (!selectedFiles.length || !onFileUpload) return
-    setIsUploading(true)
-    try {
-      for (const file of selectedFiles) {
-        const fd = new FormData()
-        fd.append('file', file)
-        fd.append('place_id', String(place.id))
-        await onFileUpload(fd)
-      }
-      setFilesExpanded(true)
-    } catch (err: unknown) {
-      console.error('Upload failed', err)
-      toast.error(translateApiError(t, err, 'files.uploadError'))
-    } finally {
-      setIsUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }, [onFileUpload, place.id, toast, t])
 
   return (
     <div
