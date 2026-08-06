@@ -183,7 +183,8 @@ describe('MapSettingsTab – GL providers', () => {
     expect(screen.getByText('Mapbox Access Token')).toBeInTheDocument();
     expect(screen.getByText('Map Style')).toBeInTheDocument();
     expect(screen.queryByText('Map Template')).not.toBeInTheDocument();
-    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-provider', 'mapbox-gl');
+    // The preview is lazy-loaded, so the first read of it has to await the chunk.
+    expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-provider', 'mapbox-gl');
     expect(screen.getByDisplayValue(MAPBOX_STANDARD)).toBeInTheDocument();
   });
 
@@ -240,7 +241,7 @@ describe('MapSettingsTab – GL providers', () => {
     expect(screen.queryByText('3D Buildings & Terrain')).not.toBeInTheDocument();
     expect(screen.getByDisplayValue(OFM_LIBERTY)).toBeInTheDocument();
     expect(screen.getByText('Preset or OpenFreeMap style URL. OpenFreeMap styles work without a token.')).toBeInTheDocument();
-    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-provider', 'maplibre-gl');
+    expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-provider', 'maplibre-gl');
   });
 
   it('FE-COMP-MAP-023: switching from MapLibre back to Mapbox drops the OpenFreeMap style', async () => {
@@ -274,7 +275,7 @@ describe('MapSettingsTab – GL providers', () => {
 
     await user.type(screen.getByPlaceholderText('pk.eyJ1Ijoi...'), 'pk.token');
 
-    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-token', 'pk.token');
+    expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-token', 'pk.token');
   });
 
   it('FE-COMP-MAP-026: the 3D and quality toggles drive the preview', async () => {
@@ -282,6 +283,7 @@ describe('MapSettingsTab – GL providers', () => {
     render(<MapSettingsTab />);
     await user.click(screen.getByText('Mapbox GL'));
 
+    await screen.findByTestId('gl-preview');
     const preview = () => screen.getByTestId('gl-preview');
     expect(preview()).toHaveAttribute('data-3d', 'true');
     expect(preview()).toHaveAttribute('data-quality', 'false');

@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { Box, Check, ChevronDown, Globe2, Layers, Map, Save } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
-import GlMapPreview from '../../../components/Settings/MapboxPreview'
+// Lazy for the same reason as the desktop map settings tab: this import is what
+// dragged both GL engines into the entry chunk.
+const GlMapPreview = lazy(() => import('../../../components/Settings/MapboxPreview'))
 import type { Place } from '../../../types'
 import {
   MAPBOX_DEFAULT_STYLE,
@@ -249,16 +251,18 @@ export default function MSettingsMap() {
 
       <div className="relative mt-3 h-[200px] w-full overflow-hidden rounded-xl">
         {provider !== 'leaflet' ? (
-          <GlMapPreview
-            provider={provider}
-            token={mapboxToken}
-            style={mapboxStyle}
-            lat={PREVIEW_CENTER[0]}
-            lng={PREVIEW_CENTER[1]}
-            zoom={PREVIEW_ZOOM}
-            enable3d={provider === 'mapbox-gl' && mapbox3d}
-            quality={provider === 'mapbox-gl' && mapboxQuality}
-          />
+          <Suspense fallback={<div className="h-full w-full bg-m-card animate-pulse" />}>
+            <GlMapPreview
+              provider={provider}
+              token={mapboxToken}
+              style={mapboxStyle}
+              lat={PREVIEW_CENTER[0]}
+              lng={PREVIEW_CENTER[1]}
+              zoom={PREVIEW_ZOOM}
+              enable3d={provider === 'mapbox-gl' && mapbox3d}
+              quality={provider === 'mapbox-gl' && mapboxQuality}
+            />
+          </Suspense>
         ) : (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           React.createElement(MapView as any, {

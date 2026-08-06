@@ -108,7 +108,7 @@ describe('MSettingsMap', () => {
     expect(screen.getByText('Mapbox Standard')).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: '3D Buildings & Terrain' })).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'High Quality Mode' })).toBeInTheDocument();
-    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-provider', 'mapbox-gl');
+    expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-provider', 'mapbox-gl');
     expect(screen.queryByTestId('leaflet-preview')).not.toBeInTheDocument();
   });
 
@@ -121,7 +121,7 @@ describe('MSettingsMap', () => {
     expect(screen.queryByPlaceholderText('pk.eyJ1Ijoi...')).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: '3D Buildings & Terrain' })).not.toBeInTheDocument();
     expect(screen.getByText('OpenFreeMap Liberty')).toBeInTheDocument();
-    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-style', 'https://tiles.openfreemap.org/styles/liberty');
+    expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-style', 'https://tiles.openfreemap.org/styles/liberty');
     expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-3d', 'false');
   });
 
@@ -145,7 +145,7 @@ describe('MSettingsMap', () => {
     expect(screen.getByText('Preset or OpenFreeMap style URL. OpenFreeMap styles work without a token.')).toBeInTheDocument();
   });
 
-  it('FE-MOB-SETMAP-010: a stored mapbox provider hydrates token, style and both switches', () => {
+  it('FE-MOB-SETMAP-010: a stored mapbox provider hydrates token, style and both switches', async () => {
     seedMap({
       map_provider: 'mapbox-gl',
       mapbox_access_token: 'pk.token',
@@ -158,7 +158,7 @@ describe('MSettingsMap', () => {
     expect(screen.getByDisplayValue('pk.token')).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: '3D Buildings & Terrain' })).toHaveAttribute('aria-checked', 'false');
     expect(screen.getByRole('switch', { name: 'High Quality Mode' })).toHaveAttribute('aria-checked', 'true');
-    const preview = screen.getByTestId('gl-preview');
+    const preview = await screen.findByTestId('gl-preview');
     expect(preview).toHaveAttribute('data-token', 'pk.token');
     expect(preview).toHaveAttribute('data-3d', 'false');
     expect(preview).toHaveAttribute('data-quality', 'true');
@@ -172,7 +172,7 @@ describe('MSettingsMap', () => {
     await user.click(screen.getByRole('switch', { name: '3D Buildings & Terrain' }));
     await user.click(screen.getByRole('switch', { name: 'High Quality Mode' }));
 
-    const preview = screen.getByTestId('gl-preview');
+    const preview = await screen.findByTestId('gl-preview');
     expect(preview).toHaveAttribute('data-3d', 'false');
     expect(preview).toHaveAttribute('data-quality', 'true');
   });
@@ -258,7 +258,7 @@ describe('MSettingsMap', () => {
     renderMap();
 
     await user.type(screen.getByPlaceholderText('pk.eyJ1Ijoi...'), 'pk.new-token');
-    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-token', 'pk.new-token');
+    expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-token', 'pk.new-token');
 
     await user.click(screen.getByRole('button', { name: 'Save Map' }));
     expect(updateSettings).toHaveBeenCalledWith(
@@ -266,10 +266,10 @@ describe('MSettingsMap', () => {
     );
   });
 
-  it('FE-MOB-SETMAP-019: a mapbox style stored while MapLibre is active is not carried over', () => {
+  it('FE-MOB-SETMAP-019: a mapbox style stored while MapLibre is active is not carried over', async () => {
     seedMap({ map_provider: 'maplibre-gl', maplibre_style: 'mapbox://styles/mapbox/dark-v11' });
     renderMap();
 
-    expect(screen.getByTestId('gl-preview')).toHaveAttribute('data-style', 'https://tiles.openfreemap.org/styles/liberty');
+    expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-style', 'https://tiles.openfreemap.org/styles/liberty');
   });
 });

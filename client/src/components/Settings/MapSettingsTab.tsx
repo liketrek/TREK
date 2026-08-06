@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
 import { Map, Save, Layers, Box, ChevronDown, Check, Globe2 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
-import GlMapPreview from './MapboxPreview'
+// The preview is the only place that imports both GL engines eagerly, which put
+// them in the entry chunk and cancelled out the lazy split in MapViewAuto. Load
+// it on demand so a Leaflet-only install never pays for them.
+const GlMapPreview = lazy(() => import('./MapboxPreview'))
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
 import type { Place } from '../../types'
@@ -399,18 +402,20 @@ export default function MapSettingsTab(): React.ReactElement {
       <div>
         <div style={{ position: 'relative', inset: 0, height: '200px', width: '100%' }}>
           {provider !== 'leaflet' ? (
-            <GlMapPreview
-              provider={provider}
-              token={mapboxToken}
-              style={mapboxStyle}
-              lat={PREVIEW_CENTER[0]}
-              lng={PREVIEW_CENTER[1]}
-              // Zoom in close so the style's character (3D buildings,
-              // satellite texture, label density) is immediately visible.
-              zoom={PREVIEW_ZOOM}
-              enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
-              quality={provider === 'mapbox-gl' && mapboxQuality}
-            />
+            <Suspense fallback={<div className="h-full w-full bg-surface-secondary animate-pulse" />}>
+              <GlMapPreview
+                provider={provider}
+                token={mapboxToken}
+                style={mapboxStyle}
+                lat={PREVIEW_CENTER[0]}
+                lng={PREVIEW_CENTER[1]}
+                // Zoom in close so the style's character (3D buildings,
+                // satellite texture, label density) is immediately visible.
+                zoom={PREVIEW_ZOOM}
+                enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
+                quality={provider === 'mapbox-gl' && mapboxQuality}
+              />
+            </Suspense>
           ) : (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             React.createElement(MapView as any, {
