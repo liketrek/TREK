@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from '../../i18n'
+import ErrorBoundary from '../shared/ErrorBoundary'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTripStore } from '../../store/tripStore'
@@ -582,32 +583,35 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   const confirmTitle = confirmReq?.title ? `${pluginLabel} — ${confirmReq.title}` : pluginLabel
 
   return (
-    <>
-      <iframe
-        key={pluginId}
-        ref={frameRef}
-        src={`/plugin-frame/${pluginId}/${path}`}
-        // Deliver the context as soon as the document is parsed (the plugin sets up its
-        // message listener during parse), closing the trek:ready race so the theme is
-        // right on first paint. A 2nd load is a self-navigation — don't bridge to it.
-        onLoad={() => { loadsRef.current += 1; if (loadsRef.current === 1) postFrame(buildContext()) }}
-        sandbox="allow-scripts allow-forms"
-        referrerPolicy="no-referrer"
-        loading="lazy"
-        title={title || pluginId}
-        className={className}
-        style={{ width: '100%', height: fill ? '100%' : height ?? '100%', border: 0 }}
-      />
-      <ConfirmDialog
-        isOpen={confirmReq != null}
-        onClose={() => answerConfirm(false)}
-        onConfirm={() => answerConfirm(true)}
-        title={confirmTitle}
-        message={confirmReq?.message}
-        confirmLabel={confirmReq?.confirmLabel}
-        cancelLabel={confirmReq?.cancelLabel}
-        danger={confirmReq?.danger}
-      />
-    </>
+    // Third-party code: a throw in here must cost the plugin, not the page.
+    <ErrorBoundary boundaryId="plugin-frame" label={pluginLabel} resetKeys={[pluginId]}>
+      <>
+        <iframe
+          key={pluginId}
+          ref={frameRef}
+          src={`/plugin-frame/${pluginId}/${path}`}
+          // Deliver the context as soon as the document is parsed (the plugin sets up its
+          // message listener during parse), closing the trek:ready race so the theme is
+          // right on first paint. A 2nd load is a self-navigation — don't bridge to it.
+          onLoad={() => { loadsRef.current += 1; if (loadsRef.current === 1) postFrame(buildContext()) }}
+          sandbox="allow-scripts allow-forms"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          title={title || pluginId}
+          className={className}
+          style={{ width: '100%', height: fill ? '100%' : height ?? '100%', border: 0 }}
+        />
+        <ConfirmDialog
+          isOpen={confirmReq != null}
+          onClose={() => answerConfirm(false)}
+          onConfirm={() => answerConfirm(true)}
+          title={confirmTitle}
+          message={confirmReq?.message}
+          confirmLabel={confirmReq?.confirmLabel}
+          cancelLabel={confirmReq?.cancelLabel}
+          danger={confirmReq?.danger}
+        />
+      </>
+    </ErrorBoundary>
   )
 }

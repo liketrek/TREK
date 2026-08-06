@@ -1,6 +1,7 @@
 import { forwardRef, lazy, Suspense, useImperativeHandle, useRef } from 'react'
 import { useSettingsStore } from '../../store/settingsStore'
 import JourneyMap, { type JourneyMapHandle } from './JourneyMap'
+import ErrorBoundary from '../shared/ErrorBoundary'
 import type { JourneyMapGLHandle } from './JourneyMapGL'
 
 // Lazy-load the GL renderer (and its ~230 KB gzip engine) so Leaflet-only
@@ -53,10 +54,15 @@ const JourneyMapAuto = forwardRef<JourneyMapAutoHandle, Props>(function JourneyM
 
   if (useGL) {
     return (
-      <Suspense fallback={null}>
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <JourneyMapGL ref={glRef} {...(props as any)} glProvider={glProvider} />
-      </Suspense>
+      // See MapViewAuto: the boundary has to sit outside the Suspense to catch a
+      // chunk that never arrives.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      <ErrorBoundary boundaryId="journey-map:gl" fallback={<JourneyMap ref={leafletRef} {...(props as any)} />}>
+        <Suspense fallback={null}>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <JourneyMapGL ref={glRef} {...(props as any)} glProvider={glProvider} />
+        </Suspense>
+      </ErrorBoundary>
     )
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

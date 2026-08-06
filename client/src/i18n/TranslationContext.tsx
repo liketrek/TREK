@@ -120,6 +120,10 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
     let cancelled = false
     loader().then(mod => {
       if (!cancelled) setStrings(mod.default)
+    }).catch(err => {
+      // The locale chunk can be gone after a deploy. Keep the strings we have —
+      // an untranslated UI beats an unhandled rejection and a blank screen.
+      console.error('[i18n] locale chunk failed to load', err)
     })
     return () => { cancelled = true }
   }, [language])

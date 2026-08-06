@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MapView } from './MapView'
+import ErrorBoundary from '../shared/ErrorBoundary'
 
 // MapLibre/Mapbox pull in a ~230 KB (gzip) GL engine. Lazy-load the GL renderer so
 // Leaflet-only installs never download it — it ships only once a GL provider is picked.
@@ -27,9 +28,14 @@ export function MapViewAuto(props: any) {
     // Render the previous Leaflet map as the fallback so there's no blank flash
     // while the GL chunk loads on first use.
     return (
-      <Suspense fallback={<MapView {...props} />}>
-        <MapViewGL {...props} glProvider={glProvider} />
-      </Suspense>
+      // Outside the Suspense on purpose: Suspense handles the pending promise,
+      // a rejected one (chunk gone after a deploy) throws past it. Falling back
+      // to Leaflet keeps a usable map instead of an error card.
+      <ErrorBoundary boundaryId="map:gl" fallback={<MapView {...props} />}>
+        <Suspense fallback={<MapView {...props} />}>
+          <MapViewGL {...props} glProvider={glProvider} />
+        </Suspense>
+      </ErrorBoundary>
     )
   }
   return <MapView {...props} />
