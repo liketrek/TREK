@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import { useMatch } from 'react-router'
 import BottomNav from '../components/Layout/BottomNav'
+import ErrorBoundary from '../components/shared/ErrorBoundary'
 import MBottomNav from './components/MBottomNav'
 import MToastHost from './components/MToastHost'
 import './mobile.css'
@@ -32,7 +33,7 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
     return (
       <div className="flex flex-col h-dvh md:block md:h-auto">
         <div className="flex-1 overflow-y-auto md:overflow-visible">{children}</div>
-        <BottomNav />
+        <ErrorBoundary boundaryId="chrome:bottom-nav" fallback={null}><BottomNav /></ErrorBoundary>
       </div>
     )
   }
@@ -40,8 +41,8 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   return (
     <div className="m-root flex h-dvh min-h-dvh flex-col bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink">
       <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-      {!inTripPlanner && <MBottomNav />}
-      <MToastHost />
+      {!inTripPlanner && <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>}
+      <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
       <div id="m-sheet-root" />
     </div>
   )

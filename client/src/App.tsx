@@ -30,6 +30,7 @@ import SaveToCollectionModal from './components/Collections/SaveToCollectionModa
 import MSaveToCollectionSheet from './components/Collections/MSaveToCollectionSheet'
 import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget'
 import MobileShell from './mobile/MobileShell'
+import ErrorBoundary from './components/shared/ErrorBoundary'
 import { useIsPhone } from './mobile/useIsPhone'
 import { TranslationProvider, useTranslation } from './i18n'
 import { authApi } from './api/client'
@@ -94,7 +95,39 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   // sheets, toasts); from 768px up the legacy wrapper stays untouched. The
   // shell branches internally so pages keep their state when the viewport
   // crosses the breakpoint.
-  return <MobileShell isPhone={isPhone}>{children}</MobileShell>
+  // The boundary sits inside the shell so a broken page keeps the navigation the
+  // user needs to leave it — outside, the route would be a dead end, and the
+  // mobile --m-* tokens live on the shell's .m-root anyway.
+  //
+  // key, not resetKeys: ProtectedRoute is the same component at the same position
+  // for all 16 protected routes, so without it React could keep the failed
+  // instance across a navigation and the error would follow the user around.
+  return (
+    <MobileShell isPhone={isPhone}>
+      <ErrorBoundary
+        key={location.pathname}
+        boundaryId="route"
+        level="route"
+        variant={isPhone ? 'mobile' : 'desktop'}
+      >
+        {children}
+      </ErrorBoundary>
+    </MobileShell>
+  )
+}
+
+/**
+ * The public routes render outside ProtectedRoute, so the route boundary above
+ * never sees them — including /login, where someone lands when everything else
+ * failed, and the two anonymous share pages.
+ */
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
+  return (
+    <ErrorBoundary key={location.pathname} boundaryId="public-route" level="route">
+      {children}
+    </ErrorBoundary>
+  )
 }
 
 function RootRedirect() {
@@ -210,21 +243,21 @@ export default function App() {
 
   return (
     <TranslationProvider>
-      {!isAuthPage && <SystemNoticeHost />}
-      <ToastContainer />
-      {!isAuthPage && <BackgroundTasksWidget />}
+      {!isAuthPage && <ErrorBoundary boundaryId="widget:system-notice" fallback={null}><SystemNoticeHost /></ErrorBoundary>}
+      <ErrorBoundary boundaryId="widget:toast" fallback={null}><ToastContainer /></ErrorBoundary>
+      {!isAuthPage && <ErrorBoundary boundaryId="widget:background-tasks" fallback={null}><BackgroundTasksWidget /></ErrorBoundary>}
       {!isAuthPage && (isPhone ? <MSaveToCollectionSheet /> : <SaveToCollectionModal />)}
-      <OfflineBanner />
+      <ErrorBoundary boundaryId="widget:offline-banner" fallback={null}><OfflineBanner /></ErrorBoundary>
       <Routes>
         <Route path="/" element={<RootRedirect />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/shared/:token" element={<SharedTripPage />} />
-        <Route path="/public/journey/:token" element={<JourneyPublicPage />} />
-        <Route path="/register" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/shared/:token" element={<PublicRoute><SharedTripPage /></PublicRoute>} />
+        <Route path="/public/journey/:token" element={<PublicRoute><JourneyPublicPage /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
         {/* OAuth 2.1 consent page — intentionally outside ProtectedRoute */}
-        <Route path="/oauth/consent" element={<OAuthAuthorizePage />} />
+        <Route path="/oauth/consent" element={<PublicRoute><OAuthAuthorizePage /></PublicRoute>} />
         <Route
           path="/dashboard"
           element={
