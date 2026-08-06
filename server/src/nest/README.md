@@ -15,11 +15,10 @@ server/src/nest/<domain>/<domain>.controller.ts     # same routes/verbs/params/s
 server/src/nest/<domain>/<domain>.module.ts         # registered in app.module.ts
 ```
 
-Add the prefix to `DEFAULT_NEST_PREFIXES` in `strangler.ts` to route it to Nest
-(operators can override at runtime via the `NEST_PREFIXES` env var — instant
-rollback, no redeploy). Trip-scoped mounts use a pattern prefix with a `:param`
-segment (e.g. `/api/trips/:tripId/packing`); the matcher routes only that nested
-mount to Nest and leaves the sibling trip routes (days, places, ...) on Express.
+Register the module in `app.module.ts` and it is live. There is no routing gate to
+flip any more: **every request goes through Nest**. The `strangler.ts` matcher and
+its `DEFAULT_NEST_PREFIXES` / `NEST_PREFIXES` escape hatch are gone — Express only
+remains as the platform underneath `@nestjs/platform-express`.
 
 ## Migrated so far
 
@@ -37,7 +36,6 @@ mount to Nest and leaves the sibling trip routes (days, places, ...) on Express.
 - `common/idempotency.interceptor.ts` — global `APP_INTERCEPTOR` replaying the
   client's `X-Idempotency-Key` on mutations, mirroring the legacy
   `applyIdempotency` middleware so retried writes don't double-apply.
-- `strangler.ts` — supports both static prefixes and `:param` pattern prefixes.
 - `app-config/` — the `@nestjs/config` binding (`AppConfigModule`, global). Never
   read `process.env` in a module (ESLint enforces this): inject a boot-stable
   namespace via its `registerAs` token (`@Inject(mcpConfig.KEY) … ConfigType<…>`)
@@ -66,21 +64,21 @@ the controller rather than relying on the generic `ZodValidationPipe` envelope.
 
 ## How to write the tests
 
-Every module ships three kinds of tests; the coverage gate (`vitest.config.ts`,
-scoped to `src/nest/**`) requires ≥80%.
+Every module ships two kinds of tests. The coverage gate (`vitest.config.ts`)
+requires ≥80% over `src/nest/**` — note that it is an **average across the whole
+tree**, not a per-file floor, so a large untested module can hide behind the
+well-covered small ones.
 
 1. **Service / controller unit spec** — `tests/unit/nest/<domain>.controller.test.ts`.
    Instantiate the controller with a mocked service; assert status codes, the exact
    `{ error }` bodies, and that inputs are forwarded correctly (defaults, coercion).
    See `weather.controller.test.ts`.
 
-2. **Parity test** — `tests/parity/<domain>.parity.test.ts`. Mock the shared service
-   identically for both apps, then fire the same request at the Express route and the
-   Nest controller with the `expectParity()` harness (`tests/parity/parity.ts`) and
-   assert identical status + body. This is the gate before flipping the toggle.
-   See `weather.parity.test.ts`.
+   Parity against the behaviour being replaced belongs here too — assert the exact
+   status codes and bodies the old path produced. There is no separate
+   `tests/parity/` directory; it was removed along with the routing toggle.
 
-3. **e2e** — `tests/e2e/<domain>.e2e.test.ts`. Boot the Nest module against a temp
+2. **e2e** — `tests/e2e/<domain>.e2e.test.ts`. Boot the Nest module against a temp
    in-memory SQLite db via the shared harness (`tests/e2e/harness.ts`:
    `createTempDb`/`seedUser`/`sessionCookie`), exercising the **real** `JwtAuthGuard`
    end-to-end (401 without cookie, 200 with a signed session). Mock external I/O
@@ -89,10 +87,9 @@ scoped to `src/nest/**`) requires ≥80%.
 ## Definition of Done (per module)
 
 Contract in `@trek/shared` → service ported 1:1 → controller with identical routes →
-validation/error parity → unit + parity + e2e tests over the gate → prefix toggled to
-Nest → parity verified on the demo DB → **then** decommission the old Express
-route/service (separate step, after the toggle is confirmed in prod) → frontend points
-at the typed contract (Frontend Track).
+validation/error parity → unit + e2e tests, with the old behaviour asserted in the
+unit test → module registered in `app.module.ts` → **then** decommission the legacy
+service (separate step) → frontend points at the typed contract (Frontend Track).
 
 ## Migrating a legacy `src/services/*` service into its Nest module (recipe)
 
