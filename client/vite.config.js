@@ -27,14 +27,14 @@ export default defineConfig(({ mode }) => ({
         // Anything above this is dropped from the precache manifest. The build does
         // not fail over it, it only prints "won't be precached", so the ceiling has
         // to sit close to the real bundle or an accidental heavyweight goes
-        // offline-broken unnoticed. Largest precached entry after route splitting is
-        // the heic-to chunk at 3.0 MB; the entry chunk is down to 1.2 MB.
+        // offline-broken unnoticed. Largest precached entry is the heic-to chunk at
+        // 3.0 MB, which leaves about 670 kB of headroom; the entry chunk is 258 kB.
         maximumFileSizeToCacheInBytes: 3.5 * 1024 * 1024,
         // Every route chunk is precached alongside the shell, deliberately: for an
         // offline-first travel planner a route the user never opened before losing
-        // signal still has to work. The trade is that route splitting buys first
-        // paint and not install size — 107 entries / 17,795 KiB before the split,
-        // 178 / 17,826 KiB after.
+        // signal still has to work. The trade is that splitting buys first paint and
+        // not install size — 107 entries / 17,795 KiB before any of it, 220 /
+        // 17,855 KiB now.
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
         // build:analyze drops a treemap next to the app; it must never end up in a
         // precache manifest if someone ships that build by accident.
@@ -153,6 +153,48 @@ export default defineConfig(({ mode }) => ({
     target: 'es2022',
     sourcemap: false,
     modulePreload: { polyfill: true },
+    // Vite 8 bundles with rolldown, not rollup. `rollupOptions` is only an alias
+    // onto `rolldownOptions`, and both `manualChunks` and `advancedChunks` are
+    // deprecated in favour of `codeSplitting.groups` — a config mixing them still
+    // builds green and simply has no effect.
+    //
+    // `tags: ['$initial']` is not optional here. Without it a group also collects
+    // modules that today hang behind React.lazy, which turns the group chunk into
+    // a static import of the entry: measured, that put the 2.8 MB GL chunk into
+    // the index.html modulepreload and took eager JS from 1.48 MB to 4.61 MB.
+    //
+    // Deliberately no groups for mapbox-gl/maplibre-gl, leaflet or react-markdown.
+    // Those already sit in async chunks of their own with hashes that survive a
+    // release; a group would only rename them, and at worst make them eager.
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor-react',
+              priority: 40,
+              tags: ['$initial'],
+              // react-dom/server is pulled dynamically by TripPDF and lives in an
+              // async chunk. Excluding it keeps a later static import from lifting
+              // ~170 kB of Fizz into the eager vendor chunk.
+              test: (id) =>
+                /[\\/]node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/.test(id) &&
+                !/react-dom[\\/](server|static)|react-dom-server/.test(id),
+            },
+            {
+              name: 'vendor-core',
+              priority: 30,
+              // zod and dompurify arrive through @trek/shared but live in
+              // node_modules themselves, so they are caught here. @trek/shared is
+              // not: it resolves to shared/dist without a node_modules segment,
+              // and its contract code changes with every release anyway.
+              tags: ['$initial'],
+              test: /[\\/]node_modules[\\/](zustand|dexie|axios|zod|dompurify|isomorphic-dompurify)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
   },
   server: {
     port: 5173,
