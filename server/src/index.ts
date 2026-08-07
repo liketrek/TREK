@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import type { INestApplication } from '@nestjs/common';
 import { buildApp } from './bootstrap';
+import { BackupService } from './nest/backup/backup.service';
 
 // Create upload and data directories on startup.
 // Every uploads subdir the app writes to must be listed here (#1762): a dir
@@ -87,6 +88,10 @@ const onListen = () => {
   if (env.demo.enabled && env.app.isProduction) {
     sLogWarn('SECURITY WARNING: DEMO_MODE is enabled in production!');
   }
+  // The scheduler runs outside the container but needs things inside it. It is
+  // handed them here, from the app buildApp() already initialised, rather than
+  // reaching for src/services at call time.
+  scheduler.setSchedulerDeps({ backups: nestApp.get(BackupService) });
   scheduler.start();
   scheduler.startTripReminders();
   scheduler.startTodoReminders();

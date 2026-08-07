@@ -57,6 +57,31 @@ function saveSettings(settings: BackupSettings): void {
   fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
 }
 
+/**
+ * What the scheduler needs from the Nest container.
+ *
+ * The shapes are structural on purpose: the scheduler names the capability it
+ * wants, never the provider class. Importing BackupService here would drag in
+ * src/nest/backup → src/services/backupService → src/scheduler and put the
+ * cycle straight back — the same cycle the lazy `await import()` in runBackup
+ * existed to dodge.
+ *
+ * index.ts fills this in from the container after buildApp(), the way
+ * bootstrap.ts hands the /mcp handler its registry. Nothing here is resolved at
+ * import time, so the scheduler stays loadable without a container (which is
+ * what its unit tests rely on).
+ */
+export interface SchedulerDeps {
+  backups: { createBackup(prefix?: 'backup' | 'auto-backup'): Promise<{ filename: string }> };
+}
+
+let deps: SchedulerDeps | undefined;
+
+/** Hand the scheduler its container-resolved dependencies. Call after app.init(). */
+export function setSchedulerDeps(next: SchedulerDeps): void {
+  deps = next;
+}
+
 async function runBackup(): Promise<void> {
   try {
     // Same archive the admin panel builds, only under the auto-backup name: it
@@ -64,10 +89,12 @@ async function runBackup(): Promise<void> {
     // (the archiver reads its entries during finalize, so a WAL auto-checkpoint
     // landing in between tears the copy), and it carries .encryption_key and the
     // plugin trees — without the key a scheduled backup cannot be decrypted on
-    // another install. Imported lazily because backupService imports this module
-    // for the schedule settings.
-    const { createBackup } = await import('./services/backupService');
-    const { filename } = await createBackup('auto-backup');
+    // another install.
+    if (!deps) {
+      logError('Auto-Backup: skipped, the scheduler was started without its container dependencies');
+      return;
+    }
+    const { filename } = await deps.backups.createBackup('auto-backup');
     logInfo(`Auto-Backup created: ${filename}`);
   } catch (err: unknown) {
     // createBackup removes its own half-written zip before rethrowing.

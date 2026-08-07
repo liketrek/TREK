@@ -62,7 +62,8 @@ vi.mock('../../src/config', () => ({
 }));
 
 import path from 'node:path';
-import { start } from '../../src/scheduler';
+import { start, setSchedulerDeps } from '../../src/scheduler';
+import { createBackup } from '../../src/services/backupService';
 
 const liveDb = path.join(__dirname, '../../data', 'travel.db');
 
@@ -82,6 +83,9 @@ function stubArchiver(): Record<string, (arg?: unknown) => void> {
 /** Starts the scheduler with auto-backup enabled and hands back the cron callback. */
 function scheduledRun(): () => Promise<void> {
   fsMock.readFileSync.mockReturnValue(JSON.stringify({ enabled: true, interval: 'daily', keep_days: 7 }));
+  // The same wiring index.ts does from the container, with the real service
+  // function behind it — the run below is still the production code path.
+  setSchedulerDeps({ backups: { createBackup } });
   start();
   return cronMock.schedule.mock.calls.at(-1)?.[1] as () => Promise<void>;
 }
@@ -152,5 +156,24 @@ describe('auto-backup run', () => {
     // the snapshot scratch file is cleaned up too, and retention never runs
     expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('.travel-snap-auto-backup-'), { force: true });
     expect(fsMock.readdirSync).not.toHaveBeenCalled();
+  });
+});
+
+describe('auto-backup without container dependencies', () => {
+  it('logs and skips instead of throwing when setSchedulerDeps was never called', async () => {
+    // A fresh module registry, so the deps this file's other cases install are
+    // not still sitting in the scheduler's module state.
+    vi.resetModules();
+    const { start: freshStart } = await import('../../src/scheduler');
+
+    vi.clearAllMocks();
+    fsMock.readFileSync.mockReturnValue(JSON.stringify({ enabled: true, interval: 'daily', keep_days: 7 }));
+    freshStart();
+    await (cronMock.schedule.mock.calls.at(-1)?.[1] as () => Promise<void>)();
+
+    expect(logMock.logError).toHaveBeenCalledWith(
+      'Auto-Backup: skipped, the scheduler was started without its container dependencies',
+    );
+    expect(archiverMock).not.toHaveBeenCalled();
   });
 });
