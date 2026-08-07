@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import { reclaimPlaceImage } from '../../services/placeImage';
+import { reclaimPlaceImage } from '../places/place-image';
 import type {
   Collection,
   CollectionDetailResponse,

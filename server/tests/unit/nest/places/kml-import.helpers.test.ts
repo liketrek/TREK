@@ -7,7 +7,7 @@ import {
   parsePlacemarkNode,
   resolveCategoryIdForFolder,
   sanitizeKmlDescription,
-} from '../../../src/services/kmlImport';
+} from '../../../../src/nest/places/kml-import.helpers';
 
 describe('kmlImportUtils', () => {
   it('sanitizes HTML descriptions with br to newline', () => {

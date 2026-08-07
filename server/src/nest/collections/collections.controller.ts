@@ -31,7 +31,7 @@ import { ADDON_IDS } from '../../addons';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PLACE_IMAGE_UPLOAD } from '../common/place-image-upload';
-import { placeImageUrl } from '../../services/placeImage';
+import { placeImageUrl } from '../places/place-image';
 import {
   CollectionCreateDto,
   CollectionUpdateDto,

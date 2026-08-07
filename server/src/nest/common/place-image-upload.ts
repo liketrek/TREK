@@ -3,7 +3,7 @@ import path from 'path';
 import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import type { Request } from 'express';
-import { PLACE_IMAGES_DIR } from '../../services/placeImage';
+import { PLACE_IMAGES_DIR } from '../places/place-image';
 
 const MAX_PLACE_IMAGE_SIZE = 20 * 1024 * 1024; // 20 MB — same cap as covers.
 

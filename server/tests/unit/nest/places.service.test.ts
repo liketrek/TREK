@@ -70,7 +70,7 @@ import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { PLACE_IMAGES_DIR } from '../../../src/services/placeImage';
+import { PLACE_IMAGES_DIR } from '../../../src/nest/places/place-image';
 
 const GPX_FIXTURE = path.join(__dirname, '../../fixtures/test.gpx');
 const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');

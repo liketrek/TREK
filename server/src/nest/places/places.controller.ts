@@ -25,7 +25,7 @@ import { isUpdateConflict } from '../common/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PLACE_IMAGE_UPLOAD } from '../common/place-image-upload';
-import { placeImageUrl } from '../../services/placeImage';
+import { placeImageUrl } from './place-image';
 import {
   PlaceBulkDeleteDto,
   PlaceBulkUpdateDto,

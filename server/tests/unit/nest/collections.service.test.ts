@@ -54,7 +54,7 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { CollectionsService } from '../../../src/nest/collections/collections.service';
 import { removeIfUnreferenced } from '../../../src/services/placePhotoCache';
-import { PLACE_IMAGES_DIR } from '../../../src/services/placeImage';
+import { PLACE_IMAGES_DIR } from '../../../src/nest/places/place-image';
 
 const svc = new CollectionsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
 

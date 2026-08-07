@@ -18,10 +18,10 @@ import {
   extractKmlPlacemarkNodes,
   parsePlacemarkNode,
   resolveCategoryIdForFolder,
-} from '../../services/kmlImport';
+} from './kml-import.helpers';
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
-import { reclaimPlaceImage } from '../../services/placeImage';
+import { reclaimPlaceImage } from './place-image';
 import { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } from '../../services/journeyService';
 import {
   COORD_DEDUP_TOLERANCE,

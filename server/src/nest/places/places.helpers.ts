@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import unzipper from 'unzipper';
 import type { Place } from '../../types';
 import type { PlaceWithTags } from '../database/database.service';
-import type { KmlImportSummary } from '../../services/kmlImport';
+import type { KmlImportSummary } from './kml-import.helpers';
 import * as placePhotoCache from '../../services/placePhotoCache';
 
 /**

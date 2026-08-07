@@ -1,11 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { db } from '../db/database';
+import { db } from '../../db/database';
 
 // Custom place images (the user-uploaded thumbnails from #1136) live in their own
 // uploads subdir, served statically like covers. Storing the full /uploads/places/…
 // path in image_url lets every existing thumbnail renderer show it unchanged.
-export const PLACE_IMAGES_DIR = path.resolve(__dirname, '../../uploads/places');
+export const PLACE_IMAGES_DIR = path.resolve(__dirname, '../../../uploads/places');
 const URL_PREFIX = '/uploads/places/';
 
 export function placeImageUrl(filename: string): string {
