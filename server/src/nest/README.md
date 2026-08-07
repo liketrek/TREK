@@ -30,12 +30,65 @@ remains as the platform underneath `@nestjs/platform-express`.
   collab, vacay, reservations, day, permissions, audit, budget, trip, maps,
   transit, place, transit-itinerary, collections, atlas, auth, oidc, passkey,
   notifications, admin — see the migration recipe below.
+- **Foundation (BE-Phase 1, complete):** the eight stateless helpers moved to
+  `common/`; every trip-access check routes through `DatabaseService`
+  (`services/tripAccess.ts` and the dead `middleware/tripAccess.ts` are gone);
+  `queryHelpers` and `tripMembership` are providers; the scheduler takes its
+  dependencies from the container.
+- **Guards (BE-Phase 2, in progress):** the JWT verify lives in `auth/`, and
+  `middleware/auth.ts`, `validate.ts` and `idempotency.ts` are deleted; the three
+  addon guards are one `AddonGuard` + `@RequireAddon`; the demo-mode block is one
+  condition. Still open: `TripAccessGuard`, default-deny, the MFA policy.
+
+`src/services/` is down to 19 top-level files. Note that the trip-access and
+`canEdit` methods on the domain services are **not** dead weight waiting for a
+guard: their callers are overwhelmingly the `*.mcp.ts` tools, which never pass
+through an HTTP guard. In the five domains piloted for `TripAccessGuard`, 40 of
+the 46 callers are MCP; only 6 sit in controllers.
 
 ## Cross-cutting Foundation pieces
 
 - `common/idempotency.interceptor.ts` — global `APP_INTERCEPTOR` replaying the
-  client's `X-Idempotency-Key` on mutations, mirroring the legacy
-  `applyIdempotency` middleware so retried writes don't double-apply.
+  client's `X-Idempotency-Key` on mutations. It replaced the `applyIdempotency`
+  middleware, which is deleted; this is the only implementation.
+- `common/` — the stateless helpers (`avatarUrl`, `conflictResult`, `demo`,
+  `passwordPolicy`, `timezoneService`, `cookie`, `rowShape`, `crypto/`). Free
+  functions, not providers: `db/migrations.ts` and `middleware/mfaPolicy.ts`
+  import them from outside the container and could not inject one.
+- `auth/jwt-verify.ts` — `extractToken` + `verifyJwtAndLoadUser`, the canonical
+  session check behind the three guards, the MCP bearer path, the file-download
+  query token and the global MFA policy. Free functions for the same reason.
+  `JWT_SECRET` stays a live binding from `src/config` and must NOT move to
+  `app-config`: the admin panel rotates it at runtime, and a `registerAs` token
+  would freeze the boot value.
+- `query-helpers/` — the batch loaders that keep list endpoints off N+1 queries.
+- `trip-membership/` — `joinTripAsMember`. Its own module rather than folded into
+  auth or trip-invite, because both call it (as do oidc and the plugin host) and
+  either home would put `AuthModule` and `TripInviteModule` in a cycle.
+- `addons/addon.guard.ts` + `@RequireAddon(addonId, label)` — the addon route
+  gate. Declare `AddonGuard` **before** `JwtAuthGuard`: a disabled addon has to
+  answer 404 to anonymous callers, so the addon check must beat the 401.
+- `common/demo-write.ts` — `isDemoWriteBlocked`, the demo-mode upload block. A
+  function and not a guard on purpose; see the gotcha below.
+
+### Reaching the container from outside it
+
+Two shapes, and the choice is settled:
+
+**Prefer handing the dependency in.** `src/scheduler.ts` declares a
+`SchedulerDeps` interface of the capabilities it needs, and `index.ts` fills it
+from the app after `buildApp()` — the way `bootstrap.ts` hands the `/mcp`
+handler its registry. The declaration is **structural** (`{ backups: {
+createBackup } }`), never the provider class: importing `BackupService` would
+pull in `src/nest/backup` → `src/services/backupService` → `src/scheduler` and
+close a cycle.
+
+**`<domain>.bridge.ts` is the older shape** and still correct for the MCP
+registrars that reach a domain at import time. Its cost is real, though: a
+bridge rebuilds its services with `new`, so adding one constructor parameter to
+a service means hand-editing every bridge that constructs it — five of them in
+one PR, most recently. `app.get()` costs nothing there and returns the container
+singleton rather than a second instance.
 - `app-config/` — the `@nestjs/config` binding (`AppConfigModule`, global). Never
   read `process.env` in a module (ESLint enforces this): inject a boot-stable
   namespace via its `registerAs` token (`@Inject(mcpConfig.KEY) … ConfigType<…>`)
@@ -53,6 +106,20 @@ remains as the platform underneath `@nestjs/platform-express`.
   returns `{ error: 'Admin only' }`, not the AdminGuard's `Admin access required`.
 - Trip-scoped routes verify trip access (404) and the relevant permission (403)
   per handler and forward `X-Socket-Id` to the WebSocket broadcast.
+- **Never gate a multipart upload with a guard.** Guards run before the parser,
+  so throwing from one leaves the request body unread and Node resets the
+  connection — the client sees `ECONNRESET`, not your 403. Check inside the
+  handler, after the interceptor has drained the upload. `PROFILE-015` is the
+  regression test.
+- **`@Global()` only applies to modules that are in the graph.** An e2e
+  `TestingModule` built around one domain module does not get `AppConfigModule`
+  for free just because it is global: a provider injecting `RuntimeEnvService`
+  fails to resolve and takes every suite importing that module down with it.
+  Import it explicitly, the way `PermissionsModule` is handled.
+- A guard with a constructor dependency has to be a registered provider
+  everywhere it is used. The three auth guards are dependency-free on purpose —
+  38 directories apply them and 21 do not import `AuthModule`, so giving them a
+  dependency is its own migration, not a side effect of another change.
 
 ## Parity is law
 
