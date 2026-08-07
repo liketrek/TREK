@@ -24,11 +24,17 @@ export default defineConfig(({ mode }) => ({
         suppressWarnings: true,
       },
       workbox: {
-        // Anything above this is dropped from the precache manifest without failing
-        // the build, so the PWA would just be broken offline. Keep the ceiling close
-        // to the real bundle so growth shows up as a build warning instead. Revisit
-        // once route-level splitting lands and the entry chunk shrinks.
-        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        // Anything above this is dropped from the precache manifest. The build does
+        // not fail over it, it only prints "won't be precached", so the ceiling has
+        // to sit close to the real bundle or an accidental heavyweight goes
+        // offline-broken unnoticed. Largest precached entry after route splitting is
+        // the heic-to chunk at 3.0 MB; the entry chunk is down to 1.2 MB.
+        maximumFileSizeToCacheInBytes: 3.5 * 1024 * 1024,
+        // Every route chunk is precached alongside the shell, deliberately: for an
+        // offline-first travel planner a route the user never opened before losing
+        // signal still has to work. The trade is that route splitting buys first
+        // paint and not install size — 107 entries / 17,795 KiB before the split,
+        // 178 / 17,826 KiB after.
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
         // build:analyze drops a treemap next to the app; it must never end up in a
         // precache manifest if someone ships that build by accident.
