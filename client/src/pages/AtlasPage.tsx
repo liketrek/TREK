@@ -207,6 +207,26 @@ function AtlasPageDesktop(): React.ReactElement {
                     <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
                   </div>
                 </button>
+                {(() => {
+                  const wishlistItems = bucketList.filter(b => b.country_code === confirmAction.code)
+                  if (wishlistItems.length === 0) return null
+                  return (
+                    <button onClick={async () => {
+                      await Promise.all(wishlistItems.map(item => handleDeleteBucketItem(item.id)))
+                      setConfirmAction(null)
+                    }}
+                      className="border border-edge"
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                      <Trash2 size={18} className="text-[#ef4444]" style={{ flexShrink: 0 }} />
+                      <div>
+                        <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.removeFromBucket')}</div>
+                        <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.removeFromBucketHint')}</div>
+                      </div>
+                    </button>
+                  )
+                })()}
               </div>
             )}
 

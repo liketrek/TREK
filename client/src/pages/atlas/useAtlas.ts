@@ -5,10 +5,50 @@ import { useSettingsStore } from '../../store/settingsStore'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, countryStatus, isCountryVisible, normalizeRegionName, withCountryMarkedVisited, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, countryStatus, isCountryVisible, normalizeRegionName, withCountryMarkedVisited, wishlistA3Codes, countryColor, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry, type VisitStatus } from '@trek/shared'
 
 const PLANNED_KEY = 'trek_atlas_show_planned'
+
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace('#', '')
+  const r = parseInt(clean.substring(0, 2), 16)
+  const g = parseInt(clean.substring(2, 4), 16)
+  const b = parseInt(clean.substring(4, 6), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
+// Diagonal-stripe CanvasPattern for the wishlist country fill, in that
+// country's own "if visited" color — built once per render pass so it
+// survives Leaflet's Canvas renderer (ctx.fillStyle accepts a CanvasPattern
+// object same as a color string). Returns null in environments without a
+// real 2D canvas context (e.g. jsdom in tests), so callers must fall back to
+// a plain color.
+function createWishlistPattern(color: string, dark: boolean): CanvasPattern | null {
+  try {
+    const size = 8
+    const patternCanvas = document.createElement('canvas')
+    patternCanvas.width = size
+    patternCanvas.height = size
+    const ctx = patternCanvas.getContext('2d')
+    if (!ctx) return null
+    ctx.fillStyle = hexToRgba(color, dark ? 0.14 : 0.2)
+    ctx.fillRect(0, 0, size, size)
+    ctx.strokeStyle = color
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(-1, size + 1)
+    ctx.lineTo(size + 1, -1)
+    ctx.moveTo(-1, 1)
+    ctx.lineTo(1, -1)
+    ctx.moveTo(size - 1, size + 1)
+    ctx.lineTo(size + 1, size - 1)
+    ctx.stroke()
+    return ctx.createPattern(patternCanvas, 'repeat')
+  } catch {
+    return null
+  }
+}
 
 function useCountryNames(language: string): (code: string) => string {
   const [resolver, setResolver] = useState<(code: string) => string>(() => (code: string) => code)
@@ -312,6 +352,7 @@ export function useAtlas() {
     const plannedA3 = new Set(visibleCountries.filter(c => countryStatus(c) !== 'visited').map(c => A2_TO_A3[c.code]).filter(Boolean))
     const countryMap = {}
     visibleCountries.forEach(c => { if (A2_TO_A3[c.code]) countryMap[A2_TO_A3[c.code]] = c })
+    const wishlistA3 = wishlistA3Codes(bucketList, visitedA3)
 
     // Preserve current map view
     const currentCenter = mapInstance.current.getCenter()
@@ -321,15 +362,11 @@ export function useAtlas() {
       mapInstance.current.removeLayer(geoLayerRef.current)
     }
 
-    // Generate deterministic color per country code
-    const VISITED_COLORS = ['#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#ef4444','#3b82f6','#22c55e','#06b6d4','#f43f5e','#a855f7','#10b981','#0ea5e9','#e11d48','#0d9488','#7c3aed','#2563eb','#dc2626','#059669','#d946ef']
-    // Assign colors in order of visit (by index in countries array) so no two neighbors share a color easily.
-    // Built from the visited countries only — if planned ones took part, flipping the toggle
-    // would shift every index and reshuffle the colours of the whole map.
-    const visitedA3List = [...new Set(visitedCountries.map(c => A2_TO_A3[c.code]).filter(Boolean))]
-    const colorMap = {}
-    visitedA3List.forEach((a3, i) => { colorMap[a3] = VISITED_COLORS[i % VISITED_COLORS.length] })
-    const colorForCode = (a3) => colorMap[a3] || VISITED_COLORS[0]
+    // Color per country code, hashed from the code itself (countryColor in atlasModel) —
+    // stable forever, regardless of visit order or how many countries are visited/planned/
+    // wishlisted. Also used by the region layer below, so both stay in sync.
+    const colorForCode = countryColor
+    const wishlistPatternCache = new Map<string, CanvasPattern | null>()
 
     const canvasRenderer = L.canvas({ padding: 0.5, tolerance: 5 })
 
@@ -351,6 +388,20 @@ export function useAtlas() {
           }
         }
         const visited = visitedA3.has(a3)
+        if (!visited && wishlistA3.has(a3)) {
+          const wishlistColor = colorForCode(a3)
+          if (!wishlistPatternCache.has(wishlistColor)) {
+            wishlistPatternCache.set(wishlistColor, createWishlistPattern(wishlistColor, dark))
+          }
+          const pattern = wishlistPatternCache.get(wishlistColor)
+          return {
+            fillColor: (pattern || wishlistColor) as unknown as string,
+            fillOpacity: pattern ? 1 : 0.4,
+            color: wishlistColor,
+            weight: 1,
+            dashArray: '3 2',
+          }
+        }
         return {
           fillColor: visited ? colorForCode(a3) : (dark ? '#1e1e2e' : '#e2e8f0'),
           fillOpacity: visited ? 0.7 : 0.3,
@@ -435,7 +486,7 @@ export function useAtlas() {
 
     // Restore map view after re-render
     mapInstance.current.setView(currentCenter, currentZoom, { animate: false })
-  }, [geoData, data, dark, visibleCountries, visitedCountries])
+  }, [geoData, data, dark, visibleCountries, visitedCountries, bucketList])
 
   // Render plugin tint layers (atlasLayerProvider hook) — a dashed wash over the
   // countries a plugin flagged, in its own non-interactive pane above the country
@@ -546,16 +597,10 @@ export function useAtlas() {
     }
     if (allFeatures.length === 0) return
 
-    // Use same colors as country layer
-    const VISITED_COLORS = ['#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#ef4444','#3b82f6','#22c55e','#06b6d4','#f43f5e','#a855f7','#10b981','#0ea5e9','#e11d48','#0d9488','#7c3aed','#2563eb','#dc2626','#059669','#d946ef']
-    // Same source as the country layer's palette (visited only), or the two layers would
-    // hand the same country different colours.
-    const countryA3Set = [...new Set(visitedCountries.map(c => A2_TO_A3[c.code]).filter(Boolean))]
-    const countryColorMap: Record<string, string> = {}
-    countryA3Set.forEach((a3, i) => { countryColorMap[a3] = VISITED_COLORS[i % VISITED_COLORS.length] })
-    // Map country A2 code to country color
+    // Same palette as the country layer — countryColor is a pure hash of the code, so
+    // both layers always agree on a country's color without needing to share state.
     const a2ColorMap: Record<string, string> = {}
-    visitedCountries.forEach(c => { if (A2_TO_A3[c.code] && countryColorMap[A2_TO_A3[c.code]]) a2ColorMap[c.code] = countryColorMap[A2_TO_A3[c.code]] })
+    visitedCountries.forEach(c => { if (A2_TO_A3[c.code]) a2ColorMap[c.code] = countryColor(A2_TO_A3[c.code]) })
 
     const mergedGeo = { type: 'FeatureCollection', features: allFeatures }
 

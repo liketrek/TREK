@@ -10,6 +10,11 @@ import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 import AtlasPage from './AtlasPage';
 
+// ── Captured style() results, for tests asserting fill/border on a specific
+// feature (e.g. the wishlist hatch pattern) without duplicating the mock's
+// internal geoJSON wiring ────────────────────────────────────────────────────
+const { capturedStyles } = vi.hoisted(() => ({ capturedStyles: [] as { feature: any; result: any }[] }));
+
 // ── Leaflet mock ──────────────────────────────────────────────────────────────
 vi.mock('leaflet', () => {
   // Mock layer returned by onEachFeature — supports event registration
@@ -73,7 +78,7 @@ vi.mock('leaflet', () => {
         for (const feature of data.features) {
           const layer = makeMockLayer();
           try {
-            if (options.style) options.style(feature);
+            if (options.style) capturedStyles.push({ feature, result: options.style(feature) });
             options.onEachFeature(feature, layer);
           } catch {
             // ignore errors from callbacks in mock
@@ -187,6 +192,7 @@ function useDefaultAtlasHandlers() {
 beforeEach(() => {
   resetAllStores();
   vi.clearAllMocks();
+  capturedStyles.length = 0;
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
   seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: false }) });
 
@@ -961,6 +967,45 @@ describe('AtlasPage', () => {
     });
   });
 
+  describe('FE-PAGE-ATLAS-049: bucket-list country renders hatched wishlist fill', () => {
+    it('styles an unvisited bucket-list country with the wishlist hatch, not the flat unvisited gray', async () => {
+      const geoJsonFRandJP = {
+        type: 'FeatureCollection',
+        features: [
+          { type: 'Feature', properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' }, geometry: null },
+          { type: 'Feature', properties: { ISO_A2: 'JP', ADM0_A3: 'JPN', ISO_A3: 'JPN', NAME: 'Japan', ADMIN: 'Japan' }, geometry: null },
+        ],
+      };
+      server.use(
+        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonFRandJP)),
+        http.get('/api/addons/atlas/bucket-list', () =>
+          HttpResponse.json({
+            items: [{ id: 1, name: 'Kyoto', country_code: 'JP', lat: null, lng: null, notes: null, target_date: null }],
+          }),
+        ),
+      );
+
+      render(<AtlasPage />);
+
+      await waitFor(() => {
+        expect(capturedStyles.some((s) => s.feature.properties.ADM0_A3 === 'JPN')).toBe(true);
+      });
+
+      // FR is visited → keeps the normal solid fill, in its own hash-derived color
+      // from the palette (stable regardless of visit order or list contents).
+      const frStyle = capturedStyles.find((s) => s.feature.properties.ADM0_A3 === 'FRA')!.result;
+      expect(frStyle.fillColor).toBe('#dc2626');
+      expect(frStyle.dashArray).toBeUndefined();
+
+      // JP is on the bucket list and not visited → hatch, in JP's own hash-derived
+      // color — distinct from FR's, and unaffected by FR being visited.
+      const jpStyle = capturedStyles.find((s) => s.feature.properties.ADM0_A3 === 'JPN')!.result;
+      expect(jpStyle.fillColor).toBe('#0ea5e9');
+      expect(jpStyle.dashArray).toBe('3 2');
+      expect(jpStyle.fillColor).not.toBe(frStyle.fillColor);
+    });
+  });
+
   describe('FE-PAGE-ATLAS-034: dropdown button click + mouse events', () => {
     it('clicking France dropdown button covers onClick and mouse event handlers', async () => {
       server.use(
@@ -1085,6 +1130,65 @@ describe('AtlasPage', () => {
         // Popup didn't appear — acceptable
         expect(searchInput).toBeInTheDocument();
       }
+    });
+  });
+
+  describe('FE-PAGE-ATLAS-050: choose popup offers Remove from wishlist for a bucket-list country', () => {
+    it('shows Remove from wishlist when the searched country is already on the bucket list, and removing it clears the item', async () => {
+      server.use(
+        http.get('/api/addons/atlas/stats', () => HttpResponse.json(emptyAtlasResponse)),
+        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
+        http.get('/api/addons/atlas/bucket-list', () =>
+          HttpResponse.json({
+            items: [{ id: 42, name: 'Paris', country_code: 'FR', lat: null, lng: null, notes: null, target_date: null }],
+          }),
+        ),
+        http.delete('/api/addons/atlas/bucket-list/:id', () => HttpResponse.json({ success: true })),
+      );
+
+      const user = userEvent.setup();
+      render(<AtlasPage />);
+
+      await waitFor(() => screen.getByPlaceholderText(/search a country/i));
+      const searchInput = screen.getByPlaceholderText(/search a country/i);
+      await user.type(searchInput, 'fr');
+      fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+      await waitFor(() => {
+        expect(screen.getByText(/remove from wishlist/i)).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText(/remove from wishlist/i));
+
+      await waitFor(() => {
+        expect(screen.queryByText(/remove from wishlist/i)).not.toBeInTheDocument();
+      });
+
+      // Bucket List tab no longer shows the removed item
+      await user.click(screen.getAllByText('Bucket List')[0]);
+      await waitFor(() => {
+        expect(screen.queryByText('Paris')).not.toBeInTheDocument();
+      });
+    });
+
+    it('does not show Remove from wishlist for a country with no bucket-list entry', async () => {
+      server.use(
+        http.get('/api/addons/atlas/stats', () => HttpResponse.json(emptyAtlasResponse)),
+        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
+      );
+
+      const user = userEvent.setup();
+      render(<AtlasPage />);
+
+      await waitFor(() => screen.getByPlaceholderText(/search a country/i));
+      const searchInput = screen.getByPlaceholderText(/search a country/i);
+      await user.type(searchInput, 'fr');
+      fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+      await waitFor(() => {
+        expect(screen.getByText(/mark as visited/i)).toBeInTheDocument();
+      });
+      expect(screen.queryByText(/remove from wishlist/i)).not.toBeInTheDocument();
     });
   });
 

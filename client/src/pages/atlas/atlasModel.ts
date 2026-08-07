@@ -113,6 +113,31 @@ export function normalizeRegionName(name: string): string {
     .trim()
 }
 
+// Alpha-3 codes for bucket-list countries that aren't visited yet — the Atlas
+// map renders these with a hatched fill so they read as "on the wishlist"
+// instead of blending into the flat unvisited gray.
+export function wishlistA3Codes(bucketList: BucketItem[], visitedA3: Set<string>): Set<string> {
+  const result = new Set<string>()
+  for (const item of bucketList) {
+    const a3 = item.country_code ? A2_TO_A3[item.country_code] : undefined
+    if (a3 && !visitedA3.has(a3)) result.add(a3)
+  }
+  return result
+}
+
+// Palette for the Atlas map's country fills (visited: solid, wishlist: hatched).
+export const COUNTRY_COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#ef4444', '#3b82f6', '#22c55e', '#06b6d4', '#f43f5e', '#a855f7', '#10b981', '#0ea5e9', '#e11d48', '#0d9488', '#7c3aed', '#2563eb', '#dc2626', '#059669', '#d946ef']
+
+// Deterministic color for a country code, hashed from the code itself so a country
+// keeps the same color forever — regardless of visit order or how many other
+// countries are visited/wishlisted. An order/index-based scheme would reshuffle
+// every other country's color each time one more was marked or added.
+export function countryColor(a3: string): string {
+  let hash = 0
+  for (let i = 0; i < a3.length; i++) hash = (hash * 31 + a3.charCodeAt(i)) >>> 0
+  return COUNTRY_COLORS[hash % COUNTRY_COLORS.length]
+}
+
 // Convert country code to flag emoji
 export function countryCodeToFlag(code: string): string {
   if (!code || code.length !== 2) return ''

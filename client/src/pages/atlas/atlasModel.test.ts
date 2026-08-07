@@ -5,7 +5,11 @@ import {
   isCountryVisible,
   normalizeRegionName,
   withCountryMarkedVisited,
+  wishlistA3Codes,
+  countryColor,
+  COUNTRY_COLORS,
   type AtlasData,
+  type BucketItem,
 } from './atlasModel';
 
 describe('normalizeRegionName', () => {
@@ -153,5 +157,56 @@ describe('withCountryMarkedVisited', () => {
 
     expect(next.stats.totalCountriesPlanned).toBe(0);
     expect(next.continentsPlanned).toEqual({ Asia: 0 });
+  });
+});
+
+function bucketItem(overrides: Partial<BucketItem>): BucketItem {
+  return { id: 1, name: 'Somewhere', lat: null, lng: null, country_code: null, notes: null, target_date: null, ...overrides };
+}
+
+describe('countryColor', () => {
+  it('always returns a color from the shared palette', () => {
+    expect(COUNTRY_COLORS).toContain(countryColor('FRA'));
+  });
+
+  it('is stable for the same code across repeated calls', () => {
+    expect(countryColor('JPN')).toBe(countryColor('JPN'));
+  });
+
+  it('is independent of how many other codes have been resolved before it (#reshuffle-bug)', () => {
+    // Regression guard: an earlier order-index-based scheme reassigned every
+    // country's color whenever one more country was visited/wishlisted.
+    const before = countryColor('JPN');
+    countryColor('FRA'); countryColor('DEU'); countryColor('ESP'); countryColor('ITA');
+    expect(countryColor('JPN')).toBe(before);
+  });
+
+  it('gives different codes different colors in the common case', () => {
+    expect(countryColor('FRA')).not.toBe(countryColor('JPN'));
+  });
+});
+
+describe('wishlistA3Codes', () => {
+  it('resolves a bucket-list country to its A3 code', () => {
+    const result = wishlistA3Codes([bucketItem({ country_code: 'JP' })], new Set());
+    expect(result).toEqual(new Set(['JPN']));
+  });
+
+  it('excludes a bucket-list country that is already visited', () => {
+    const result = wishlistA3Codes([bucketItem({ country_code: 'JP' })], new Set(['JPN']));
+    expect(result.size).toBe(0);
+  });
+
+  it('ignores bucket-list items with no country_code (POI-only entries)', () => {
+    const result = wishlistA3Codes([bucketItem({ country_code: null, lat: 35.6, lng: 139.7 })], new Set());
+    expect(result.size).toBe(0);
+  });
+
+  it('dedupes multiple bucket-list items in the same country', () => {
+    const result = wishlistA3Codes(
+      [bucketItem({ id: 1, country_code: 'JP' }), bucketItem({ id: 2, country_code: 'JP' })],
+      new Set(),
+    );
+    expect(result).toEqual(new Set(['JPN']));
   });
 });
