@@ -34,10 +34,6 @@ vi.mock('leaflet', () => {
   return { default: L, ...L };
 });
 
-vi.mock('react-dom/server', () => ({
-  renderToStaticMarkup: vi.fn(() => '<svg></svg>'),
-}));
-
 // Mock JourneyMap since it uses vanilla Leaflet (L.map) which requires a real DOM
 vi.mock('../components/Journey/JourneyMap', () => ({
   default: ({ entries }: any) => <div data-testid="journey-map">Map with {entries?.length || 0} entries</div>,

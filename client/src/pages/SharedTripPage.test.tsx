@@ -34,11 +34,6 @@ vi.mock('leaflet', () => {
   return { default: L, ...L };
 });
 
-// Mock react-dom/server (used in createMarkerIcon)
-vi.mock('react-dom/server', () => ({
-  renderToStaticMarkup: vi.fn(() => '<svg></svg>'),
-}));
-
 // Helper: render SharedTripPage under the correct route so useParams works
 function renderSharedTrip(token: string) {
   return render(

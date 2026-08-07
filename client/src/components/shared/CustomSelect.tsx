@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 
 interface SelectOption {
@@ -118,7 +118,7 @@ export default function CustomSelect({
       </button>
 
       {/* Dropdown */}
-      {open && ReactDOM.createPortal(
+      {open && createPortal(
         <div ref={dropRef} style={{
           position: 'fixed',
           ...(() => {

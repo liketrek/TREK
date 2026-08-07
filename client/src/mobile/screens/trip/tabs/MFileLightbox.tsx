@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Download, ExternalLink, X } from 'lucide-react'
 import { getAuthUrl } from '../../../../api/authUrl'
 import { downloadFile, openFile } from '../../../../utils/fileDownload'
@@ -64,7 +64,7 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
 
   if (!file) return null
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       className="m-root fixed inset-0 z-[65] flex flex-col bg-black/[.92]"
       onClick={onClose}

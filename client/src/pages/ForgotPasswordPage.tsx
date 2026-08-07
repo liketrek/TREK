@@ -10,7 +10,7 @@ const inputBase: React.CSSProperties = {
   background: 'white', color: '#111827',
 }
 
-const ForgotPasswordPage: React.FC = () => {
+function ForgotPasswordPage() {
   const { t } = useTranslation()
   // Page = wiring container: form state, the SMTP probe and submit live in the hook.
   const { navigate, email, setEmail, submitted, isLoading, smtpConfigured, handleSubmit } = useForgotPassword()

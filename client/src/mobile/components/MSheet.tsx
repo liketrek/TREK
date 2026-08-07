@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useRef, useState } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 
 export type MSheetVariant = 'card' | 'bottom' | 'drawer'
 export type MSheetMaterial = 'glass' | 'bar-glass' | 'opaque'
@@ -190,7 +190,7 @@ export default function MSheet({
       ? { transform: `translateY(${dragY}px)`, transition: 'none' }
       : { transition: 'transform 280ms var(--ease-drawer)' }
 
-  return ReactDOM.createPortal(
+  return createPortal(
     // m-root on the overlay so the --m-* tokens resolve even when the portal
     // has to fall back to document.body (sheet mounted in the same commit as
     // the shell).

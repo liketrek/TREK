@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react'
@@ -124,7 +124,7 @@ export default function BackgroundTasksWidget() {
     navigate(`/trips/${task.tripId}`)
   }
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 50000, display: 'flex', flexDirection: 'column', gap: 8, width: 380, maxWidth: 'calc(100vw - 32px)', fontFamily: 'var(--font-system)' }}
     >

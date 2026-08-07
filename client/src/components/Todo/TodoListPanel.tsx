@@ -1,6 +1,6 @@
 import { Fragment, useState, useMemo, useEffect, useRef } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
@@ -281,7 +281,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
           </div>
         </div>
       )}
-      {isAddingNew && !selectedItem && !isMobile && ReactDOM.createPortal(
+      {isAddingNew && !selectedItem && !isMobile && createPortal(
         <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
           className="trek-modal-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 'calc(var(--nav-h) + 60px)', paddingBottom: 40 }}>
@@ -299,7 +299,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         </div>,
         document.body
       )}
-      {isAddingNew && !selectedItem && isMobile && ReactDOM.createPortal(
+      {isAddingNew && !selectedItem && isMobile && createPortal(
         <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
           className="trek-modal-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 'var(--bottom-nav-h)' }}>

@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { ExternalLink, Download, X } from 'lucide-react'
 import { openFile as openFileUrl } from '../../utils/fileDownload'
 import type { FileManagerState } from './useFileManager'
@@ -6,7 +6,7 @@ import { triggerDownload } from './FileManager.helpers'
 
 export function PdfPreviewModal(S: FileManagerState) {
   const { previewFile, setPreviewFile, previewFileUrl, toast, t } = S
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={() => setPreviewFile(null)}

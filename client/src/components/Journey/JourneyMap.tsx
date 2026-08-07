@@ -1,4 +1,4 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
+import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
 
@@ -31,6 +31,7 @@ interface MapEntry {
 }
 
 interface Props {
+  ref?: Ref<JourneyMapHandle>
   checkins: any[]
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
@@ -84,9 +85,8 @@ function markerSvg(dayColor: string, dayLabel: number, highlighted: boolean): st
 
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
 
-const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
-  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
-  ref
+function JourneyMap(
+  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, ref }: Props,
 ) {
   const stableTrail = trail || EMPTY_TRAIL
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
@@ -314,6 +314,6 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       </div>
     </div>
   )
-})
+}
 
 export default JourneyMap

@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
 import VacayCalendar from '../components/Vacay/VacayCalendar'
@@ -166,7 +166,7 @@ function VacayPageDesktop(): React.ReactElement {
         </div>
 
       {/* Mobile Sidebar Drawer */}
-      {showMobileSidebar && ReactDOM.createPortal(
+      {showMobileSidebar && createPortal(
         <div className="fixed inset-0 lg:hidden" style={{ zIndex: 99980 }}>
           <div className="absolute inset-0 bg-[rgba(0,0,0,0.4)]" onClick={() => setShowMobileSidebar(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-[280px] overflow-y-auto p-3 flex flex-col gap-3 bg-surface"
@@ -208,7 +208,7 @@ function VacayPageDesktop(): React.ReactElement {
       </Modal>
 
       {/* Incoming invite — forced fullscreen modal */}
-      {incomingInvites.length > 0 && ReactDOM.createPortal(
+      {incomingInvites.length > 0 && createPortal(
         <div className="fixed inset-0 flex items-center justify-center px-4 bg-[rgba(0,0,0,0.7)]"
           style={{ zIndex: 99995, backdropFilter: 'blur(8px)' }}>
           {incomingInvites.map(inv => (

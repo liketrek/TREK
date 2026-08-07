@@ -1,10 +1,10 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { Upload } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
 
 export function BulkImportModal(S: PackingState) {
   const { setShowImportModal, t, importText, setImportText, csvInputRef, handleCsvFile, handleBulkImport, parseImportLines } = S
-  return ReactDOM.createPortal(
+  return createPortal(
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',

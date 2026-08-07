@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { Ticket, FileText, ExternalLink, Footprints, ArrowRight, Pencil } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -24,7 +24,7 @@ export function DayPlanSidebarTransportDetailModal({
   transportDetail, setTransportDetail, onNavigateToFiles, onEdit, t, locale, timeFormat,
 }: DayPlanSidebarTransportDetailModalProps) {
   if (!transportDetail) return null
-  return ReactDOM.createPortal(
+  return createPortal(
     <div className="bg-[rgba(0,0,0,0.3)]" style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',

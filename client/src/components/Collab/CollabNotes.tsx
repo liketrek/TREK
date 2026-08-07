@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { Plus, Pencil, X, StickyNote, Settings } from 'lucide-react'
 import { collabApi } from '../../api/client'
 import { useCanDo } from '../../store/permissionsStore'
@@ -363,7 +363,7 @@ function CollabNotesGrid(S: NotesState) {
 function ViewNoteModal(S: NotesState) {
   const { viewingNote, setViewingNote, canEdit, setEditingNote, getCategoryColor, t, setPreviewFile } = S
   if (!viewingNote) return null
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',

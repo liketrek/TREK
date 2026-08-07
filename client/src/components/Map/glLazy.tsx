@@ -1,4 +1,3 @@
-import { forwardRef } from 'react'
 import { lazyWithRetry } from '../../utils/lazyWithRetry'
 
 /**
@@ -39,15 +38,11 @@ export const JourneyMapGLMapbox = lazyWithRetry(async () => {
     import('./engines/mapbox'),
   ])
   const JourneyMapGL = component.default
-  return {
-    // forwardRef because the journey map exposes an imperative handle
-    // (highlightMarker / focusMarker / invalidateSize) that has to survive the wrapper.
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    default: forwardRef(function JourneyMapGLMapboxBinding(props: any, ref: any) {
-      return <JourneyMapGL ref={ref} {...props} gl={engine.default} />
-    }),
-    /* eslint-enable @typescript-eslint/no-explicit-any */
-  }
+  // The journey map exposes an imperative handle (highlightMarker / focusMarker /
+  // invalidateSize). Since React 19 its ref is an ordinary prop, so it rides
+  // through the spread and the binding needs no forwardRef wrapper.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return { default: (props: any) => <JourneyMapGL {...props} gl={engine.default} /> }
 })
 
 export const JourneyMapGLMaplibre = lazyWithRetry(async () => {
@@ -56,13 +51,8 @@ export const JourneyMapGLMaplibre = lazyWithRetry(async () => {
     import('./engines/maplibre'),
   ])
   const JourneyMapGL = component.default
-  return {
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    default: forwardRef(function JourneyMapGLMaplibreBinding(props: any, ref: any) {
-      return <JourneyMapGL ref={ref} {...props} gl={engine.default} />
-    }),
-    /* eslint-enable @typescript-eslint/no-explicit-any */
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return { default: (props: any) => <JourneyMapGL {...props} gl={engine.default} /> }
 })
 
 export const GlMapPreviewMapbox = lazyWithRetry(async () => {

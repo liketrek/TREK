@@ -1,6 +1,6 @@
 import { Calendar, ChevronLeft, ChevronRight, Keyboard } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
+import { createPortal } from 'react-dom';
 import { useTranslation } from '../../i18n';
 
 function daysInMonth(year: number, month: number): number {
@@ -356,7 +356,7 @@ export function CustomDatePicker({
       )}
 
       {open &&
-        ReactDOM.createPortal(
+        createPortal(
           <div
             ref={dropRef}
             role="dialog"

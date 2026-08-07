@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate, useLocation } from 'react-router'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -249,7 +249,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
             <ChevronDown className="w-4 h-4 text-content-faint" />
           </button>
 
-          {userMenuOpen && ReactDOM.createPortal(
+          {userMenuOpen && createPortal(
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setUserMenuOpen(false)} />
               <div className="trek-menu-enter w-52 rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge" style={{ position: 'fixed', top: 'var(--nav-h)', right: 8, zIndex: 9999 }}>

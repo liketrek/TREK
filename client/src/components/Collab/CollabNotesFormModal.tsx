@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState, useRef } from 'react'
 import { Plus, X } from 'lucide-react'
 import { useCanDo } from '../../store/permissionsStore'
@@ -67,7 +67,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
 
   const canSubmit = title.trim() && !submitting
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       style={{
         position: 'fixed',

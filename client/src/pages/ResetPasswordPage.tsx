@@ -10,7 +10,7 @@ const inputBase: React.CSSProperties = {
   background: 'white', color: '#111827',
 }
 
-const ResetPasswordPage: React.FC = () => {
+function ResetPasswordPage() {
   const { t } = useTranslation()
   // Page = wiring container: token, form state, validation + submit live in the hook.
   const {

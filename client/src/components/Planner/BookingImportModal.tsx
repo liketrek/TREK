@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState, useRef, useEffect } from 'react'
 import { Upload, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -110,7 +110,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
 
   if (!isOpen) return null
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       className="bg-[rgba(0,0,0,0.4)]"
       style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}

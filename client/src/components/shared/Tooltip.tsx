@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 
 type Placement = 'top' | 'bottom' | 'left' | 'right'
 
@@ -74,7 +74,7 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
   return (
     <>
       {trigger}
-      {open && ReactDOM.createPortal(
+      {open && createPortal(
         <div
           ref={tooltipRef}
           role="tooltip"

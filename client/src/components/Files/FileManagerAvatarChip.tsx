@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState, useRef } from 'react'
 
 export function AvatarChip({ name, avatarUrl, size = 20 }: { name: string; avatarUrl?: string | null; size?: number }) {
@@ -28,7 +28,7 @@ export function AvatarChip({ name, avatarUrl, size = 20 }: { name: string; avata
           : name?.[0]?.toUpperCase()
         }
       </div>
-      {hover && ReactDOM.createPortal(
+      {hover && createPortal(
         <div style={{
           position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
           background: 'var(--bg-elevated)', color: 'var(--text-primary)',

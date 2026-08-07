@@ -7,7 +7,7 @@ import { useToast } from '../shared/Toast'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import EmptyState from '../shared/EmptyState'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import type { User } from '../../types'
 
 interface PollVoter {
@@ -87,7 +87,7 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
     } catch {} finally { setSubmitting(false) }
   }
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg, rgba(0,0,0,0.35))', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16, fontFamily: FONT }} onClick={onClose}>
       <form style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 400, maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--border-faint)' }} onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 12px', borderBottom: '1px solid var(--border-faint)' }}>
@@ -176,7 +176,7 @@ function VoterChip({ voter, offset }: VoterChipProps) {
         }}>
         {voter.avatar_url ? <img src={voter.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (voter.username || '?')[0].toUpperCase()}
       </div>
-      {hover && ReactDOM.createPortal(
+      {hover && createPortal(
         <div style={{
           position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
           pointerEvents: 'none', zIndex: 10000, whiteSpace: 'nowrap',

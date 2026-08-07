@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState, useEffect } from 'react'
 import { UserPlus, Check, Loader2, Clock, X } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
@@ -124,7 +124,7 @@ export default function VacayPersons() {
       </div>
 
       {/* Invite Modal — Portal to body to avoid z-index issues */}
-      {showInvite && ReactDOM.createPortal(
+      {showInvite && createPortal(
         <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
           onClick={() => setShowInvite(false)}>
           <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm bg-surface-card"
@@ -165,7 +165,7 @@ export default function VacayPersons() {
       )}
 
       {/* Color Picker Modal — Portal to body */}
-      {showColorPicker && ReactDOM.createPortal(
+      {showColorPicker && createPortal(
         <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
           onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }}>
           <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-xs bg-surface-card"

@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Pencil, Users, Check } from 'lucide-react'
 import type { BudgetItemMember } from '../../types'
@@ -51,7 +51,7 @@ export function ChipWithTooltip({ label, avatarUrl, size = 20, paid, onClick }: 
           : label?.[0]?.toUpperCase()
         }
       </div>
-      {hover && ReactDOM.createPortal(
+      {hover && createPortal(
         <div style={{
           position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
           pointerEvents: 'none', zIndex: 10000, whiteSpace: 'nowrap',
@@ -140,7 +140,7 @@ export default function BudgetMemberChips({ members = [], tripMembers = [], onSe
           {members.length > 0 ? <Pencil size={iconSize} /> : <Users size={iconSize} />}
         </button>
       )}
-      {showDropdown && ReactDOM.createPortal(
+      {showDropdown && createPortal(
         <div ref={dropRef} style={{
           position: 'fixed', top: dropPos.top, left: dropPos.left, transform: 'translateX(-50%)', zIndex: 10000,
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,

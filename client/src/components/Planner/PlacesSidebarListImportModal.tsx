@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import type { SidebarState } from './usePlacesSidebar'
 
@@ -8,7 +8,7 @@ export function ListImportModal(S: SidebarState) {
     listImportProvider, setListImportProvider, listImportUrl, listImportLoading, handleListImport,
     listImportEnrich, setListImportEnrich, canEnrichImport,
   } = S
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       onClick={() => { setListImportOpen(false); setListImportUrl('') }}
       className="bg-[rgba(0,0,0,0.4)]"

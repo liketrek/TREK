@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { adminApi } from '../../../api/client'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
@@ -31,7 +31,7 @@ function SynologyIcon({ size = 14 }: { size?: number }) {
   )
 }
 
-const PROVIDER_ICONS: Record<string, React.FC<{ size?: number }>> = {
+const PROVIDER_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   immich: ImmichIcon,
   synologyphotos: SynologyIcon,
 }
@@ -320,7 +320,7 @@ function MAddonRow({ addon, onToggle, t, first }: MAddonRowProps) {
 
 interface MSubRowProps {
   icon?: typeof Luggage
-  providerIcon?: React.FC<{ size?: number }>
+  providerIcon?: ComponentType<{ size?: number }>
   title: string
   subtitle: string
   enabled: boolean

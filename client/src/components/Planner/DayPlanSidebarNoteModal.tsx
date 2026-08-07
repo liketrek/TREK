@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { NOTE_ICONS } from './DayPlanSidebar.constants'
 
 interface NoteModalUi {
@@ -20,7 +20,7 @@ interface DayPlanSidebarNoteModalProps {
 export function DayPlanSidebarNoteModal({ noteUi, setNoteUi, noteInputRef, cancelNote, saveNote, t }: DayPlanSidebarNoteModalProps) {
   return (
     <>
-      {Object.entries(noteUi).map(([dayId, ui]) => ui && ReactDOM.createPortal(
+      {Object.entries(noteUi).map(([dayId, ui]) => ui && createPortal(
         <div key={dayId} className="bg-[rgba(0,0,0,0.3)]" style={{
           position: 'fixed', inset: 0, zIndex: 10000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',

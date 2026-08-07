@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
 import en from '@trek/shared/i18n/en'
 import type { SupportedLanguageCode } from '@trek/shared'
@@ -157,7 +157,7 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
     return { t, tHtml, language, locale: getLocaleForLanguage(language) }
   }, [strings, language])
 
-  return <TranslationContext.Provider value={value}>{children}</TranslationContext.Provider>
+  return <TranslationContext value={value}>{children}</TranslationContext>
 }
 
 export function useTranslation(): TranslationContextValue {

@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { Plane, X, Check } from 'lucide-react'
 import type { AirtrailFlight, AirtrailImportResult } from '@trek/shared'
@@ -307,7 +307,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
   const renderItem = (item: { chain?: AirtrailFlight[]; flight?: AirtrailFlight }) =>
     item.chain ? renderChain(item.chain) : renderFlight(item.flight!)
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       className="bg-[rgba(0,0,0,0.4)]"
       style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}

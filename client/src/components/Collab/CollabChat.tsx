@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { ArrowUp, Reply, Smile, X } from 'lucide-react'
 import type { User } from '../../types'
 import { useCollabChat } from './useCollabChat'
@@ -97,7 +97,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
       {showEmoji && <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmoji(false)} anchorRef={emojiBtnRef} containerRef={containerRef} />}
 
       {/* Reaction quick menu (right-click) */}
-      {reactMenu && ReactDOM.createPortal(
+      {reactMenu && createPortal(
         <ReactionMenu x={reactMenu.x} y={reactMenu.y} onReact={(emoji) => handleReact(reactMenu.msgId, emoji)} onClose={() => setReactMenu(null)} />,
         document.body
       )}

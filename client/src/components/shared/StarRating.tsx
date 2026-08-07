@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { Star } from 'lucide-react'
 import { avatarSrc } from '../../utils/avatarSrc'
 import { useAuthStore } from '../../store/authStore'
@@ -126,7 +126,7 @@ export default function PlaceRating({ ratings, ratingAvg, onRate, size = 16, com
       )}
 
       {/* Custom voter tooltip — fixed at the root so nothing clips it. */}
-      {tip && ratings.length > 0 && ReactDOM.createPortal(
+      {tip && ratings.length > 0 && createPortal(
         <div
           role="tooltip"
           className="bg-surface-card text-content border border-edge-faint"

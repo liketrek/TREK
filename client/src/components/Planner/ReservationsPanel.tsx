@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -450,7 +450,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
       )}
 
       {/* Delete confirmation */}
-      {showDeleteConfirm && ReactDOM.createPortal(
+      {showDeleteConfirm && createPortal(
         <div className="bg-[rgba(0,0,0,0.3)]" style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -628,7 +628,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
           ))}
         </div>
       )}
-      {confirmOpen && ReactDOM.createPortal(
+      {confirmOpen && createPortal(
         <div className="bg-[rgba(0,0,0,0.35)]" style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { e.stopPropagation(); setConfirmOpen(false) }}>
           <div className="bg-surface-card" style={{ borderRadius: 14, padding: 20, width: 340, boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }} onClick={e => e.stopPropagation()}>
             <div className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-body, 1))', marginBottom: 6 }}>{t('reservations.confirm.deleteTitle')}</div>

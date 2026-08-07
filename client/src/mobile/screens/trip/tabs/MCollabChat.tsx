@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { ArrowUp, ChevronUp, Loader2, Reply, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { collabApi } from '../../../../api/client'
@@ -498,7 +498,7 @@ function MessageActionsPopover({ x, y, canDeleteOwn, t, onReact, onReply, onDele
   const height = POPOVER_HEIGHT + (canDeleteOwn ? POPOVER_DELETE_ROW : 0)
   const top = Math.max(64, Math.min(y - 96, window.innerHeight - height - POPOVER_MARGIN))
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div className="m-root fixed inset-0 z-[55]">
       <div
         ref={ref}

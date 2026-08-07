@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { Users, UserRound, Share2, Check, Copy, HandHelping } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import type { PackingItem } from '../../types'
@@ -78,7 +78,7 @@ export default function PackingShareControl({ item, tripMembers, currentUserId, 
         onMouseLeave={e => { if (visibility === 'common') e.currentTarget.style.color = 'var(--text-faint)' }}>
         <Share2 size={14} />
       </button>
-      {open && pos && ReactDOM.createPortal(
+      {open && pos && createPortal(
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 1099 }} onClick={() => setOpen(false)} />
           <div style={{

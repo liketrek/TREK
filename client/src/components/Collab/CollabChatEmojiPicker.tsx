@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { EMOJI_CATEGORIES } from './CollabChat.constants'
 import { TwemojiImg } from './CollabChatTwemojiImg'
 
@@ -37,7 +37,7 @@ export function EmojiPicker({ onSelect, onClose, anchorRef, containerRef }: Emoj
     return () => document.removeEventListener('mousedown', close)
   }, [onClose, anchorRef])
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div ref={ref} style={{
       position: 'fixed', bottom: pos.bottom, left: pos.left, zIndex: 10000,
       background: 'var(--bg-card)', border: '1px solid var(--border-faint)', borderRadius: 16,

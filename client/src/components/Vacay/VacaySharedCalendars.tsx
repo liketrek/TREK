@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState } from 'react'
 import { Share2, Eye, EyeOff, Loader2, X } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
@@ -126,7 +126,7 @@ export default function VacaySharedCalendars() {
       )}
 
       {/* Share Modal — Portal to body to avoid z-index issues */}
-      {showShare && ReactDOM.createPortal(
+      {showShare && createPortal(
         <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
           onClick={() => setShowShare(false)}>
           <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm bg-surface-card"

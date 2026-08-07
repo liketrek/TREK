@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState } from 'react'
 import { Plus, Trash2, X } from 'lucide-react'
 import { FONT, NOTE_COLORS } from './CollabNotes.constants'
@@ -59,7 +59,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
   // Merge existing categories from notes with saved colors
   const allCats = [...new Set([...categories, ...Object.keys(localColors)])]
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div style={{
       position: 'fixed', inset: 0, background: 'var(--overlay-bg, rgba(0,0,0,0.35))',
       backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',

@@ -1,4 +1,4 @@
-import { forwardRef, Suspense, useImperativeHandle, useRef } from 'react'
+import { Suspense, useImperativeHandle, useRef, type Ref } from 'react'
 import { useSettingsStore } from '../../store/settingsStore'
 import JourneyMap, { type JourneyMapHandle } from './JourneyMap'
 import ErrorBoundary from '../shared/ErrorBoundary'
@@ -22,6 +22,7 @@ interface MapEntry {
 }
 
 interface Props {
+  ref?: Ref<JourneyMapAutoHandle>
   checkins: unknown[]
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
@@ -33,7 +34,7 @@ interface Props {
   paddingBottom?: number
 }
 
-const JourneyMapAuto = forwardRef<JourneyMapAutoHandle, Props>(function JourneyMapAuto(props, ref) {
+function JourneyMapAuto({ ref, ...props }: Props) {
   const provider = useSettingsStore(s => s.settings.map_provider)
   const token = useSettingsStore(s => s.settings.mapbox_access_token)
   const leafletRef = useRef<JourneyMapHandle>(null)
@@ -67,6 +68,6 @@ const JourneyMapAuto = forwardRef<JourneyMapAutoHandle, Props>(function JourneyM
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return <JourneyMap ref={leafletRef} {...(props as any)} />
-})
+}
 
 export default JourneyMapAuto

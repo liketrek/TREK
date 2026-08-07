@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { Clock, ChevronUp, ChevronDown } from 'lucide-react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatClockTime, parseMeridiemTime } from '../../utils/formatters'
@@ -148,7 +148,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
         </button>
       </div>
 
-      {open && ReactDOM.createPortal(
+      {open && createPortal(
         <div ref={dropRef} style={{
           position: 'fixed',
           top: (() => { const r = ref.current?.getBoundingClientRect(); return r ? r.bottom + 4 : 0 })(),

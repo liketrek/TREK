@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { Clock } from 'lucide-react'
 
 interface TimeConfirmState {
@@ -21,7 +21,7 @@ interface DayPlanSidebarTimeConfirmModalProps {
 
 export function DayPlanSidebarTimeConfirmModal({ timeConfirm, setTimeConfirm, confirmTimeRemoval, t }: DayPlanSidebarTimeConfirmModalProps) {
   if (!timeConfirm) return null
-  return ReactDOM.createPortal(
+  return createPortal(
     <div className="bg-[rgba(0,0,0,0.3)]" style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',

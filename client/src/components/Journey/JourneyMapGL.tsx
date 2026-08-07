@@ -1,4 +1,4 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
+import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
@@ -23,6 +23,7 @@ interface MapEntry {
 }
 
 interface Props {
+  ref?: Ref<JourneyMapGLHandle>
   checkins: unknown[]
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
@@ -209,9 +210,8 @@ function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): H
 
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
 
-const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL(
-  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl },
-  ref
+function JourneyMapGL(
+  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, ref }: Props,
 ) {
   const stableTrail = trail || EMPTY_TRAIL
   const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
@@ -502,6 +502,6 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
     </div>
   )
-})
+}
 
 export default JourneyMapGL
