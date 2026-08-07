@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import React, { useEffect, useMemo, useState, Suspense } from 'react'
 import { Box, Check, ChevronDown, Globe2, Layers, Map, Save } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
-// Lazy for the same reason as the desktop map settings tab: this import is what
-// dragged both GL engines into the entry chunk.
-const GlMapPreview = lazy(() => import('../../../components/Settings/MapboxPreview'))
+// Same as the desktop map settings tab: on demand, and paired with one engine.
+import ErrorBoundary from '../../../components/shared/ErrorBoundary'
+import { GlMapPreviewMapbox, GlMapPreviewMaplibre } from '../../../components/Map/glLazy'
 import type { Place } from '../../../types'
 import {
   MAPBOX_DEFAULT_STYLE,
@@ -145,6 +145,9 @@ export default function MSettingsMap() {
   const selectedPreset = presets.find((p) => p.url === mapboxStyle)
   const chevron = <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />
 
+  // One chunk per engine — see components/Map/glLazy.tsx.
+  const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox
+
   return (
     <MSetCard title={t('settings.map')} icon={Map}>
       <MSetEyebrow className="mb-[6px]">{t('settings.mapProvider')}</MSetEyebrow>
@@ -251,6 +254,8 @@ export default function MSettingsMap() {
 
       <div className="relative mt-3 h-[200px] w-full overflow-hidden rounded-xl">
         {provider !== 'leaflet' ? (
+          /* See MapSettingsTab: the preview gets its own net. */
+          <ErrorBoundary boundaryId="settings:map-preview" resetKeys={[provider]} fallback={<div className="h-full w-full bg-m-card" />}>
           <Suspense fallback={<div className="h-full w-full bg-m-card animate-pulse" />}>
             <GlMapPreview
               provider={provider}
@@ -263,6 +268,7 @@ export default function MSettingsMap() {
               quality={provider === 'mapbox-gl' && mapboxQuality}
             />
           </Suspense>
+          </ErrorBoundary>
         ) : (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           React.createElement(MapView as any, {

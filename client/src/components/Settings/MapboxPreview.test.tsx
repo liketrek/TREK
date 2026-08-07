@@ -44,7 +44,18 @@ vi.mock('../Map/mapboxSetup', () => ({
 
 import { isStandardFamily, supportsCustom3d, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup';
 import { MAPBOX_DEFAULT_STYLE, OPENFREEMAP_DEFAULT_STYLE } from '../Map/glProviders';
-import GlMapPreview from './MapboxPreview';
+import mapboxgl from 'mapbox-gl';
+import maplibregl from 'maplibre-gl';
+import GlMapPreviewWithEngine from './MapboxPreview';
+
+// The engine is a prop now, not a module import — that is what keeps mapbox-gl and
+// maplibre-gl in separate chunks. This shim preserves the suite's existing call
+// shape and makes the same choice glLazy.tsx makes in production, so the vi.mock
+// factories below still stand in for the right SDK.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function GlMapPreview(props: any) {
+  return <GlMapPreviewWithEngine {...props} gl={props.provider === 'maplibre-gl' ? maplibregl : mapboxgl} />;
+}
 
 const STREETS = 'mapbox://styles/mapbox/streets-v12';
 

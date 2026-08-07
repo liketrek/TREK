@@ -1,8 +1,4 @@
 import { useEffect, useRef } from 'react'
-import mapboxgl from 'mapbox-gl'
-import maplibregl from 'maplibre-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import 'maplibre-gl/dist/maplibre-gl.css'
 import { isStandardFamily, supportsCustom3d, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, normalizeStyleForProvider, type GlMapProvider } from '../Map/glProviders'
 
@@ -16,22 +12,28 @@ interface Props {
   enable3d: boolean
   quality?: boolean
   onClick?: (latlng: { lat: number; lng: number }) => void
+  /**
+   * The GL engine, injected instead of imported. Both SDKs used to be pulled in
+   * statically here, so a single 2.8 MB chunk carried mapbox-gl and maplibre-gl
+   * together and every map user downloaded both while only one ever ran.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gl: any
 }
 
-export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style, lat, lng, zoom, enable3d, quality = false, onClick }: Props) {
+export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style, lat, lng, zoom, enable3d, quality = false, onClick, gl }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any | null>(null)
   const onClickRef = useRef(onClick)
   onClickRef.current = onClick
   const isMapLibre = provider === 'maplibre-gl'
-  const gl = (isMapLibre ? maplibregl : mapboxgl) as any
   const glStyle = normalizeStyleForProvider(provider, style)
   const enableMapbox3d = !isMapLibre && enable3d
 
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !token)) return
-    if (!isMapLibre) mapboxgl.accessToken = token
+    if (!isMapLibre) gl.accessToken = token
 
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,

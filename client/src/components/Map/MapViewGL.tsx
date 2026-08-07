@@ -1,9 +1,6 @@
 import { useEffect, useRef, useMemo, useState, createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import mapboxgl from 'mapbox-gl'
-import maplibregl from 'maplibre-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import 'maplibre-gl/dist/maplibre-gl.css'
+import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
@@ -120,6 +117,13 @@ interface Props {
   onPoiClick?: (poi: Poi) => void
   onViewportChange?: (bbox: { south: number; west: number; north: number; east: number }) => void
   glProvider?: GlMapProvider
+  /**
+   * The GL engine, injected instead of imported. Both SDKs used to be pulled in
+   * statically here, so a single 2.8 MB chunk carried mapbox-gl and maplibre-gl
+   * together and every map user downloaded both while only one ever ran.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gl: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onMapReady?: (map: any | null) => void
 }
@@ -357,6 +361,7 @@ export function MapViewGL({
   onPoiClick,
   onViewportChange,
   glProvider = 'mapbox-gl',
+  gl,
   onMapReady,
 }: Props) {
   const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
@@ -367,7 +372,6 @@ export function MapViewGL({
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
   const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
-  const gl = (isMapLibre ? maplibregl : mapboxgl) as any
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
   const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
@@ -444,7 +448,7 @@ export function MapViewGL({
   // Build/rebuild the map on provider/style/token/3d change
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !mapboxToken)) return
-    if (!isMapLibre) mapboxgl.accessToken = mapboxToken
+    if (!isMapLibre) gl.accessToken = mapboxToken
 
     // Open framed on the places rather than on the caller's default: a trip in Japan should
     // show Japan straight away, not the world view followed by a flight across the planet.

@@ -208,7 +208,17 @@ vi.mock('../../services/photoService', () => ({
   getAllThumbs: vi.fn(() => ({})),
 }))
 
-import { MapViewGL } from './MapViewGL'
+import mapboxgl from 'mapbox-gl'
+import { MapViewGL as MapViewGLWithEngine } from './MapViewGL'
+
+// The engine is a prop now, not a module import — that is what keeps mapbox-gl and
+// maplibre-gl in separate chunks. This shim preserves the suite's existing call
+// shape and makes the same choice glLazy.tsx makes in production, so the vi.mock
+// factories below still stand in for the right SDK.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function MapViewGL(props: any) {
+  return <MapViewGLWithEngine {...props} gl={props.glProvider === 'maplibre-gl' ? maplibregl : mapboxgl} />
+}
 import * as mapboxSetup from './mapboxSetup'
 import * as photoService from '../../services/photoService'
 import { ReservationMapboxOverlay } from './reservationsMapbox'

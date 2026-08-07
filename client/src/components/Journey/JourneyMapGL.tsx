@@ -1,8 +1,5 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
-import mapboxgl from 'mapbox-gl'
-import maplibregl from 'maplibre-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import 'maplibre-gl/dist/maplibre-gl.css'
+import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
@@ -36,6 +33,13 @@ interface Props {
   fullScreen?: boolean
   paddingBottom?: number
   glProvider?: GlMapProvider
+  /**
+   * The GL engine, injected instead of imported. Both SDKs used to be pulled in
+   * statically here, so a single 2.8 MB chunk carried mapbox-gl and maplibre-gl
+   * together and every map user downloaded both while only one ever ran.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gl: any
 }
 
 interface Item {
@@ -206,7 +210,7 @@ function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): H
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
 
 const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL(
-  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl' },
+  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl },
   ref
 ) {
   const stableTrail = trail || EMPTY_TRAIL
@@ -217,7 +221,6 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
   const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
-  const gl = (isMapLibre ? maplibregl : mapboxgl) as any
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
   const containerRef = useRef<HTMLDivElement>(null)
@@ -344,7 +347,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   // inside the same effect so they stay in sync with the active style.
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !mapboxToken)) return
-    if (!isMapLibre) mapboxgl.accessToken = mapboxToken
+    if (!isMapLibre) gl.accessToken = mapboxToken
 
     const items = buildItems(entries)
     itemsRef.current = items

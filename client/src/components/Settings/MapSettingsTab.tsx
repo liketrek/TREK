@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
 import { Map, Save, Layers, Box, ChevronDown, Check, Globe2 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
-// The preview is the only place that imports both GL engines eagerly, which put
-// them in the entry chunk and cancelled out the lazy split in MapViewAuto. Load
-// it on demand so a Leaflet-only install never pays for them.
-const GlMapPreview = lazy(() => import('./MapboxPreview'))
+// The preview loads on demand, and paired with a single engine — a Leaflet-only
+// install pays for neither, and a GL install pays for one instead of both.
+import ErrorBoundary from '../shared/ErrorBoundary'
+import { GlMapPreviewMapbox, GlMapPreviewMaplibre } from '../Map/glLazy'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
 import type { Place } from '../../types'
@@ -165,6 +165,8 @@ export default function MapSettingsTab(): React.ReactElement {
   const [mapboxStyle, setMapboxStyle] = useState<string>(styleForProvider(initialProvider, slotStyle(initialProvider, settings)))
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
+  // One chunk per engine — see components/Map/glLazy.tsx.
+  const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox
 
   useEffect(() => {
     const nextProvider = normalizeProvider(settings.map_provider)
@@ -402,6 +404,10 @@ export default function MapSettingsTab(): React.ReactElement {
       <div>
         <div style={{ position: 'relative', inset: 0, height: '200px', width: '100%' }}>
           {provider !== 'leaflet' ? (
+            /* A net of its own: the preview is the one place a user flips providers
+               live, so it is the likeliest chunk to fail — and a broken preview must
+               not take the rest of the settings tab with it. */
+            <ErrorBoundary boundaryId="settings:map-preview" resetKeys={[provider]} fallback={<div className="h-full w-full bg-surface-secondary" />}>
             <Suspense fallback={<div className="h-full w-full bg-surface-secondary animate-pulse" />}>
               <GlMapPreview
                 provider={provider}
@@ -416,6 +422,7 @@ export default function MapSettingsTab(): React.ReactElement {
                 quality={provider === 'mapbox-gl' && mapboxQuality}
               />
             </Suspense>
+            </ErrorBoundary>
           ) : (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             React.createElement(MapView as any, {

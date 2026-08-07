@@ -119,8 +119,27 @@ import { render, screen, act } from '../../../tests/helpers/render'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
-import JourneyMapGL from './JourneyMapGL'
+import JourneyMapGLWithEngine from './JourneyMapGL'
 import type { JourneyMapGLHandle } from './JourneyMapGL'
+
+// The engine is a prop now, not a module import — that is what keeps mapbox-gl and
+// maplibre-gl in separate chunks. This shim preserves the suite's existing call
+// shape and makes the same choice glLazy.tsx makes in production, so the vi.mock
+// factories below still stand in for the right SDK.
+const JourneyMapGL = React.forwardRef(function JourneyMapGLShim(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  props: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ref: any
+) {
+  return (
+    <JourneyMapGLWithEngine
+      ref={ref}
+      {...props}
+      gl={props.glProvider === 'maplibre-gl' ? maplibregl : mapboxgl}
+    />
+  )
+})
 
 const entries = [
   { id: 'e1', lat: 48.8566, lng: 2.3522, title: 'Louvre', location_name: 'Paris, France', entry_date: '2025-06-01', dayColor: '#ff0055', dayLabel: 2 },
