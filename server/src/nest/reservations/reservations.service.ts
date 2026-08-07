@@ -1,15 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { verifyTripAccess } from '../../services/tripAccess';
 import { avatarUrl } from '../common/avatarUrl';
 import type { Reservation, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
 import { typeToCostCategory } from '@trek/shared';
 
-type Trip = NonNullable<ReturnType<typeof verifyTripAccess>>;
+type Trip = TripAccess;
 type BudgetEntry = { total_price?: number; category?: string } | undefined;
 
 export interface ReservationEndpoint {
@@ -138,7 +137,7 @@ export class ReservationsService {
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
-    return verifyTripAccess(tripId, userId);
+    return this.db.canAccessTrip(tripId, userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {

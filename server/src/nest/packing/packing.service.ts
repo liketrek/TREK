@@ -2,16 +2,15 @@ import { Injectable } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { verifyTripAccess } from '../../services/tripAccess';
 import { avatarUrl } from '../common/avatarUrl';
 import type { UpdateConflict } from '../common/conflictResult';
 import type { User } from '../../types';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 
 /** Privacy fields stamped on a packing item (#858). */
 type PrivacyFields = { is_private?: number; owner_id?: number | null };
 
-type Trip = NonNullable<ReturnType<typeof verifyTripAccess>>;
+type Trip = TripAccess;
 
 export type PackingVisibility = 'common' | 'personal' | 'shared';
 
@@ -47,7 +46,7 @@ export class PackingService {
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
-    return verifyTripAccess(tripId, userId);
+    return this.db.canAccessTrip(tripId, userId);
   }
 
   /** Mirrors the inline checkPermission('packing_edit', ...) the legacy route runs. */

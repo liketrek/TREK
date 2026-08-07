@@ -8,9 +8,8 @@ import { DatabaseService, type TripAccess } from '../database/database.service';
 /**
  * Day-notes domain service — the legacy dayNoteService SQL folded in over
  * the injected DatabaseService (byte-identical statements and
- * coercions). Trip access rides DatabaseService.canAccessTrip (absorbing the
- * legacy services/tripAccess re-export); the 'day_edit' permission reuses the
- * legacy check.
+ * coercions). Trip access rides DatabaseService.canAccessTrip; the 'day_edit'
+ * permission reuses the legacy check.
  */
 @Injectable()
 export class DayNotesService {

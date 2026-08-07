@@ -5,8 +5,8 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { AirtrailAddonGuard } from './airtrail-addon.guard';
 import { AirtrailImportDto } from './airtrail.dto';
 import type { AirtrailImportResult } from '@trek/shared';
-import { verifyTripAccess } from '../../services/tripAccess';
 import { PermissionsService } from '../permissions/permissions.service';
+import { DatabaseService } from '../database/database.service';
 import { importAirtrailFlights } from '../../services/airtrail/airtrailImport';
 
 /**
@@ -17,10 +17,13 @@ import { importAirtrailFlights } from '../../services/airtrail/airtrailImport';
 @Controller('api/trips/:tripId/reservations/import')
 @UseGuards(AirtrailAddonGuard, JwtAuthGuard)
 export class AirtrailImportController {
-  constructor(private readonly permissions: PermissionsService) {}
+  constructor(
+    private readonly permissions: PermissionsService,
+    private readonly db: DatabaseService,
+  ) {}
 
   private requireEdit(tripId: string, user: User): void {
-    const trip = verifyTripAccess(tripId, user.id);
+    const trip = this.db.canAccessTrip(tripId, user.id);
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);
     if (!this.permissions.checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id)) {
       throw new HttpException({ error: 'No permission' }, 403);

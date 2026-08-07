@@ -50,7 +50,7 @@ beforeEach(() => {
 });
 
 describe('BudgetService', () => {
-  it('verifyTripAccess resolves through canAccessTrip (services/tripAccess)', () => {
+  it('verifyTripAccess resolves through DatabaseService.canAccessTrip', () => {
     canAccessTrip.mockReturnValue({ id: 5, user_id: 2 });
     expect(svc().verifyTripAccess('5', 2)).toEqual({ id: 5, user_id: 2 });
     expect(canAccessTrip).toHaveBeenCalledWith('5', 2);

@@ -3,12 +3,16 @@ import { HttpException } from '@nestjs/common';
 
 // Mock the heavy side-effect imports so the service module loads cleanly; the
 // preview() path under test only touches the extractor + llmParse deps.
-vi.mock('../../../../src/db/database', () => ({ db: { prepare: vi.fn() }, closeDb: () => {}, reinitialize: () => {} }));
+vi.mock('../../../../src/db/database', () => ({
+  db: { prepare: vi.fn() }, closeDb: () => {}, reinitialize: () => {},
+  // Trip access reaches these through DatabaseService; preview() never calls
+  // them, but the module-level import has to resolve.
+  canAccessTrip: vi.fn(), isOwner: () => false, getPlaceWithTags: () => null,
+}));
 import { db as dbConn } from '../../../../src/db/database';
 import { DatabaseService } from '../../../../src/nest/database/database.service';
 vi.mock('../../../../src/websocket', () => ({ broadcast: vi.fn() }));
 const permissionsStub = { checkPermission: vi.fn(() => true) };
-vi.mock('../../../../src/services/tripAccess', () => ({ verifyTripAccess: vi.fn() }));
 
 import { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
 

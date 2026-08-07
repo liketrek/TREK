@@ -2,11 +2,10 @@ import { Injectable } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { verifyTripAccess } from '../../services/tripAccess';
 import type { User } from '../../types';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 
-type Trip = NonNullable<ReturnType<typeof verifyTripAccess>>;
+type Trip = TripAccess;
 
 /**
  * Todo domain service — owns the todo SQL (moved 1:1 from the legacy
@@ -26,7 +25,7 @@ export class TodoService {
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
-    return verifyTripAccess(tripId, userId);
+    return this.db.canAccessTrip(tripId, userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {

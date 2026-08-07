@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { loadTagsByPlaceIds, loadParticipantsByAssignmentIds, formatAssignmentWithPlace } from '../../services/queryHelpers';
 import type { AssignmentRow, Day, DayNote, User } from '../../types';
 
-type Trip = { user_id: number };
+type Trip = TripAccess;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -92,7 +92,7 @@ export class DaysService {
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
-    return this.db.canAccessTrip(Number(tripId), userId) as Trip | null | undefined;
+    return this.db.canAccessTrip(Number(tripId), userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {

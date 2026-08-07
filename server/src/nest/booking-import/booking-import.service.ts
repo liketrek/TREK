@@ -1,14 +1,13 @@
 import { Injectable, HttpException } from '@nestjs/common';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { verifyTripAccess } from '../../services/tripAccess';
 import { ReservationsService } from '../reservations/reservations.service';
 import { PlacesService } from '../places/places.service';
 import { BudgetService } from '../budget/budget.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
 import { MapsService } from '../maps/maps.service';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { User } from '../../types';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
@@ -58,10 +57,10 @@ export class BookingImportService {
   }
 
   verifyTripAccess(tripId: string, userId: number) {
-    return verifyTripAccess(tripId, userId);
+    return this.dbs.canAccessTrip(tripId, userId);
   }
 
-  canEdit(trip: NonNullable<ReturnType<typeof verifyTripAccess>>, user: User): boolean {
+  canEdit(trip: TripAccess, user: User): boolean {
     return this.permissions.checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 

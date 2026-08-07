@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { verifyTripAccess } from '../../services/tripAccess';
 import { avatarUrl } from '../common/avatarUrl';
 import type { User, BudgetItem, BudgetItemMember, BudgetItemPayer } from '../../types';
 import { ExchangeRatesService } from './exchange-rates.service';
 
-type Trip = NonNullable<ReturnType<typeof verifyTripAccess>>;
+type Trip = TripAccess;
 
 type SettlementRow = {
   id: number; trip_id: string; from_user_id: number; to_user_id: number;
@@ -46,7 +45,7 @@ export class BudgetService {
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
-    return verifyTripAccess(tripId, userId);
+    return this.db.canAccessTrip(tripId, userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {

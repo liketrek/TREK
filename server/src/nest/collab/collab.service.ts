@@ -1,16 +1,15 @@
 import path from 'path';
 import fs from 'fs';
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { verifyTripAccess } from '../../services/tripAccess';
 import { avatarUrl } from '../common/avatarUrl';
 import { checkSsrf, createPinnedDispatcher } from '../../utils/ssrfGuard';
 import type { CollabNote, CollabPoll, CollabMessage, TripFile, User } from '../../types';
 
-type Trip = NonNullable<ReturnType<typeof verifyTripAccess>>;
+type Trip = TripAccess;
 
 export interface ReactionRow {
   emoji: string;
@@ -71,7 +70,7 @@ export class CollabService {
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
-    return verifyTripAccess(tripId, userId);
+    return this.db.canAccessTrip(tripId, userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {

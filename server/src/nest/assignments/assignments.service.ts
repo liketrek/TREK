@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { loadTagsByPlaceIds, loadParticipantsByAssignmentIds, formatAssignmentWithPlace } from '../../services/queryHelpers';
 import type { AssignmentRow, DayAssignment, User } from '../../types';
 import { reconcileTripSkeletons } from '../../services/journeyService';
 
-type Trip = { user_id: number };
+type Trip = TripAccess;
 
 /**
  * Assignments domain service — owns the day-assignment SQL (relocated from the
@@ -31,7 +31,7 @@ export class AssignmentsService {
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
-    return this.dbs.canAccessTrip(Number(tripId), userId) as Trip | null | undefined;
+    return this.dbs.canAccessTrip(Number(tripId), userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {

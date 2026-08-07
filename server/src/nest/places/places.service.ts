@@ -3,7 +3,7 @@ import { XMLValidator } from 'fast-xml-parser';
 import { TRACK_COLORS } from '@trek/shared';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { PlaceWithTags } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { MapsService } from '../maps/maps.service';
@@ -50,7 +50,7 @@ import {
   type PlaceWithCategory,
 } from './places.helpers';
 
-type Trip = { user_id: number };
+type Trip = TripAccess;
 
 type ImportedPlace = { id: number; route_geometry?: string | null; route_color?: string | null };
 
@@ -106,7 +106,7 @@ export class PlacesService {
   ) {}
 
   verifyTripAccess(tripId: string, userId: number) {
-    return this.dbs.canAccessTrip(Number(tripId), userId) as Trip | null | undefined;
+    return this.dbs.canAccessTrip(Number(tripId), userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {
