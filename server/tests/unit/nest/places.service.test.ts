@@ -67,13 +67,14 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { PLACE_IMAGES_DIR } from '../../../src/services/placeImage';
 
 const GPX_FIXTURE = path.join(__dirname, '../../fixtures/test.gpx');
 const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
 
 const dbs = new DatabaseService(testDb);
-const svc = new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), new MapsService(dbs));
+const svc = new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), new MapsService(dbs), new QueryHelpersService(dbs));
 
 beforeAll(() => {
   createTables(testDb);
@@ -1011,7 +1012,7 @@ describe('PlacesService — automatic track colours (#776)', () => {
 
 describe('enrichImportedPlaces', () => {
   function enrichSvc(maps: Partial<MapsService>) {
-    return new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), maps as MapsService);
+    return new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), maps as MapsService, new QueryHelpersService(dbs));
   }
 
   it('PLACE-SVC-058 — no-ops when no Google Maps key is configured', async () => {

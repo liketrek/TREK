@@ -3,7 +3,8 @@ import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { loadTagsByPlaceIds, loadParticipantsByAssignmentIds, formatAssignmentWithPlace } from '../../services/queryHelpers';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
+import { formatAssignmentWithPlace } from '../common/rowShape';
 import type { AssignmentRow, Day, DayNote, User } from '../../types';
 
 type Trip = TripAccess;
@@ -77,7 +78,7 @@ export interface CreateAccommodationData {
  * createAccommodation/deleteAccommodation run their multi-statement writes in
  * a transaction, and getAssignmentsForDay batch-loads tags instead of one
  * query per assignment. Trip access
- * mirrors the requireTripAccess middleware (canAccessTrip); mutations use the
+ * rides DatabaseService.canAccessTrip; mutations use the
  * 'day_edit' permission; the WebSocket broadcast keeps its legacy call path.
  * Non-Nest consumers (legacy tripService and the transit/transports MCP
  * registrars) go through days.bridge.ts instead of importing this class
@@ -89,6 +90,7 @@ export class DaysService {
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
+    private readonly queryHelpers: QueryHelpersService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -126,7 +128,7 @@ export class DaysService {
     // One batched tag load instead of the legacy per-assignment query; the
     // non-compact loader returns the same full tag rows (t.* minus the join
     // key), so the output shape is unchanged.
-    const tagsByPlaceId = loadTagsByPlaceIds([...new Set(assignments.map(a => a.place_id))]);
+    const tagsByPlaceId = this.queryHelpers.loadTagsByPlaceIds([...new Set(assignments.map(a => a.place_id))]);
 
     return assignments.map(a => {
       const tags = tagsByPlaceId[a.place_id] || [];
@@ -200,10 +202,10 @@ export class DaysService {
   `, ...dayIds);
 
     const placeIds = [...new Set(allAssignments.map(a => a.place_id))];
-    const tagsByPlaceId = loadTagsByPlaceIds(placeIds, { compact: true });
+    const tagsByPlaceId = this.queryHelpers.loadTagsByPlaceIds(placeIds, { compact: true });
 
     const allAssignmentIds = allAssignments.map(a => a.id);
-    const participantsByAssignment = loadParticipantsByAssignmentIds(allAssignmentIds);
+    const participantsByAssignment = this.queryHelpers.loadParticipantsByAssignmentIds(allAssignmentIds);
 
     const assignmentsByDayId: Record<number, ReturnType<typeof formatAssignmentWithPlace>[]> = {};
     for (const a of allAssignments) {

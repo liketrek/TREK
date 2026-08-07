@@ -2,6 +2,7 @@ import { db } from '../../db/database';
 import { DatabaseService } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { AtlasService } from '../atlas/atlas.service';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { AuthService } from './auth.service';
 import { User } from '../../types';
 
@@ -32,6 +33,7 @@ const auth = new AuthService(
   new DatabaseService(db),
   new PermissionsService(new DatabaseService(db)),
   new AtlasService(new DatabaseService(db)),
+  new TripMembershipService(new DatabaseService(db)),
 );
 
 export { stripUserForClient } from './auth.helpers';

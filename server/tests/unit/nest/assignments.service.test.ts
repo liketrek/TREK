@@ -53,8 +53,9 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
 import { createAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../src/nest/assignments/assignments.bridge';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 
-const svc = new AssignmentsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const svc = new AssignmentsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new QueryHelpersService(new DatabaseService(testDb)));
 
 beforeAll(() => {
   createTables(testDb);

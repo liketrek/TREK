@@ -55,7 +55,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
 }));
 vi.mock('../../../src/services/ephemeralTokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/services/notifications', () => ({ sendPasswordResetEmail: vi.fn() }));
-vi.mock('../../../src/services/tripMembership', () => ({ joinTripAsMember: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 vi.mock('../../../src/scheduler', () => ({
   startTripReminders: vi.fn(),
@@ -82,13 +81,18 @@ import { verifyJwtAndLoadUser } from '../../../src/middleware/auth';
 import { authenticator } from 'otplib';
 import { hashBackupCode } from '../../../src/nest/auth/auth.helpers';
 import { createEphemeralToken } from '../../../src/services/ephemeralTokens';
-import { joinTripAsMember } from '../../../src/services/tripMembership';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { revokeUserSessions } from '../../../src/mcp/sessionManager';
 
+// Stubbed rather than real: these tests assert that the invite path CALLS the
+// join, not what the join writes (TRIP-JOIN-* cover that).
+const joinTripAsMember = vi.fn();
+const membershipStub = { joinTripAsMember } as unknown as TripMembershipService;
 const svc = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
   new AtlasService(new DatabaseService(testDb)),
+  membershipStub,
 );
 
 // ---------------------------------------------------------------------------
@@ -1282,7 +1286,7 @@ describe('auth quirk fixes', () => {
     const trip = createTrip(testDb, owner.id);
     const invite = createInviteToken(testDb, { max_uses: 5 });
     testDb.prepare('UPDATE invite_tokens SET trip_id = ? WHERE id = ?').run(trip.id, invite.id);
-    vi.mocked(joinTripAsMember).mockImplementationOnce(() => { throw new Error('boom'); });
+    joinTripAsMember.mockImplementationOnce(() => { throw new Error('boom'); });
 
     const result = svc.registerUser({ username: 'rollback', email: 'rollback@x.com', password: 'Secure123!', invite_token: invite.token });
 

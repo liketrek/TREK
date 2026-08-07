@@ -3,7 +3,8 @@ import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { loadTagsByPlaceIds, loadParticipantsByAssignmentIds, formatAssignmentWithPlace } from '../../services/queryHelpers';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
+import { formatAssignmentWithPlace } from '../common/rowShape';
 import type { AssignmentRow, DayAssignment, User } from '../../types';
 import { reconcileTripSkeletons } from '../../services/journeyService';
 
@@ -15,9 +16,9 @@ type Trip = TripAccess;
  * write runs in a transaction, moveAssignment derives the source day from the
  * row instead of trusting the caller, empty-string times clear like null, and
  * single-assignment reads embed the same compact tag projection the list path
- * uses). Trip access mirrors the requireTripAccess middleware (canAccessTrip);
- * mutations use 'day_edit'. The batch tag/participant loaders stay in
- * services/queryHelpers (shared with the unmigrated day/share/place services).
+ * uses). Trip access rides DatabaseService.canAccessTrip; mutations use
+ * 'day_edit'. The batch tag/participant loaders are injected as
+ * QueryHelpersService (shared with the day, share and place services).
  * Non-Nest consumers (the legacy places/reservations MCP registrars) go
  * through assignments.bridge.ts; the plugin RPC host and the assignments MCP
  * tools inject this class.
@@ -28,6 +29,7 @@ export class AssignmentsService {
     private readonly dbs: DatabaseService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
+    private readonly queryHelpers: QueryHelpersService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -70,7 +72,7 @@ export class AssignmentsService {
 
     // Same compact tag projection as listDayAssignments, so an assignment has
     // one wire shape regardless of which read path produced it.
-    const tags = loadTagsByPlaceIds([a.place_id], { compact: true })[a.place_id] || [];
+    const tags = this.queryHelpers.loadTagsByPlaceIds([a.place_id], { compact: true })[a.place_id] || [];
 
     const participants = this.dbs.all(`
       SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
@@ -139,10 +141,10 @@ export class AssignmentsService {
     `, dayId);
 
     const placeIds = [...new Set(assignments.map(a => a.place_id))];
-    const tagsByPlaceId = loadTagsByPlaceIds(placeIds, { compact: true });
+    const tagsByPlaceId = this.queryHelpers.loadTagsByPlaceIds(placeIds, { compact: true });
 
     const assignmentIds = assignments.map(a => a.id);
-    const participantsByAssignment = loadParticipantsByAssignmentIds(assignmentIds);
+    const participantsByAssignment = this.queryHelpers.loadParticipantsByAssignmentIds(assignmentIds);
 
     return assignments.map(a => {
       return formatAssignmentWithPlace(a, tagsByPlaceId[a.place_id] || [], participantsByAssignment[a.id] || []);

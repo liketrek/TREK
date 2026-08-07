@@ -48,9 +48,9 @@ vi.mock('../../../src/config', () => ({
 }));
 
 // Construction insurance for the injected AuthService's import graph (same set
-// as auth.service.test.ts) — services/tripMembership is deliberately NOT
-// mocked: OIDC-SVC-045 asserts the real trip_members row a trip-bound invite
-// creates.
+// as auth.service.test.ts) — TripMembershipService is deliberately the real one,
+// not a stub: OIDC-SVC-045 asserts the actual trip_members row a trip-bound
+// invite creates.
 vi.mock('../../../src/nest/common/crypto/mfaCrypto', () => ({
   encryptMfaSecret: vi.fn((s) => `enc:${s}`),
   decryptMfaSecret: vi.fn((s: string) => s.replace('enc:', '')),
@@ -91,15 +91,18 @@ import { createUser, createTrip } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { OidcService } from '../../../src/nest/oidc/oidc.service';
 
+const membership = new TripMembershipService(new DatabaseService(testDb));
 const auth = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
   new AtlasService(new DatabaseService(testDb)),
+  membership,
 );
-const svc = new OidcService(new DatabaseService(testDb), auth);
+const svc = new OidcService(new DatabaseService(testDb), auth, membership);
 
 const MOCK_CONFIG = {
   issuer: 'https://oidc.example.com',

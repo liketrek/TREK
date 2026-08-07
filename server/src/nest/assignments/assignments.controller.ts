@@ -25,7 +25,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 
 type Trip = NonNullable<ReturnType<AssignmentsService['verifyTripAccess']>>;
 
-/** Shared trip-access guard (mirrors requireTripAccess → 404 "Trip not found"). */
+/** Shared trip-access guard (no access is a 404 "Trip not found", never a 403). */
 function requireTrip(svc: AssignmentsService, tripId: string, user: User): Trip {
   const trip = svc.verifyTripAccess(tripId, user.id);
   if (!trip) {

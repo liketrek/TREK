@@ -3,6 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DaysService } from './days.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 
 /**
  * Non-Nest entry point for the day domain — for code running OUTSIDE the
@@ -20,7 +21,7 @@ import { PermissionsService } from '../permissions/permissions.service';
  * Module-level construction is safe: `db` is the reinitialize-proof Proxy onto
  * the shared better-sqlite3 singleton.
  */
-const days = new DaysService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new RealtimeService());
+const days = new DaysService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new RealtimeService(), new QueryHelpersService(new DatabaseService(db)));
 
 export function getDay(id: string | number, tripId: string | number) {
   return days.getDay(id, tripId);

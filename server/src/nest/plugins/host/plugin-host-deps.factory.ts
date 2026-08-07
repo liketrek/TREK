@@ -5,7 +5,7 @@ import { RealtimeService } from '../../realtime/realtime.service';
 import { isUpdateConflict } from '../../common/conflictResult';
 import { getWeather } from '../../../services/weatherService';
 import { BLOCKED_EXTENSIONS, filesDir } from '../../files/files.constants';
-import { joinTripAsMember } from '../../../services/tripMembership';
+import { TripMembershipService } from '../../trip-membership/trip-membership.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { createLlmClient } from '../../llm-parse/llm-client.factory';
 import { readUserSettingDecrypted } from '../plugins.service';
@@ -165,6 +165,7 @@ export class PluginHostDepsFactory {
     private readonly collections: CollectionsService,
     private readonly atlas: AtlasService,
     private readonly notifications: NotificationsService,
+    private readonly membership: TripMembershipService,
   ) {}
 
   /**
@@ -174,7 +175,7 @@ export class PluginHostDepsFactory {
    * RESOURCE_FORBIDDEN.
    */
   private canEditTripAs(action: string, tripId: number, userId: number): boolean {
-    const trip = this.db.canAccessTrip(tripId, userId) as { user_id: number } | undefined;
+    const trip = this.db.canAccessTrip(tripId, userId);
     if (!trip) return false;
     const u = this.db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
     if (!u) return false;
@@ -228,7 +229,7 @@ export class PluginHostDepsFactory {
       // Same gate as a REST/MCP budget mutation: the acting user must have trip
       // access AND the 'budget_edit' permission for their global role.
       canEditCosts: (tripId, userId) => {
-        const trip = this.db.canAccessTrip(tripId, userId) as { user_id: number } | undefined;
+        const trip = this.db.canAccessTrip(tripId, userId);
         if (!trip) return false;
         const u = this.db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
         if (!u) return false;
@@ -352,7 +353,7 @@ export class PluginHostDepsFactory {
       addTripMember: (tripId, targetUserId, invitedBy) => {
         const target = this.db.prepare('SELECT id FROM users WHERE id = ?').get(targetUserId) as { id: number } | undefined;
         if (!target) throw new ForbiddenResource(`no user ${targetUserId}`);
-        return joinTripAsMember(tripId, targetUserId, invitedBy);
+        return this.membership.joinTripAsMember(tripId, targetUserId, invitedBy);
       },
       removeTripMember: (tripId, targetUserId) => {
         // Never remove the OWNER via this path — that would orphan the trip. Ownership

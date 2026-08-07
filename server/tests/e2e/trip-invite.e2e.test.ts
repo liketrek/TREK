@@ -50,14 +50,16 @@ import { PermissionsService } from '../../src/nest/permissions/permissions.servi
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
 
-const { joinTripAsMember } = vi.hoisted(() => ({ joinTripAsMember: vi.fn() }));
-vi.mock('../../src/services/tripMembership', () => ({ joinTripAsMember }));
+// The join itself is stubbed out of the container (TRIP-JOIN-* cover what it
+// writes); these cases assert the invite route's own decision to call it.
+const joinTripAsMember = vi.fn();
 
 // The audit domain is DI-native now: writeAudit runs for real against the temp
 // db's audit_log table; only the file logger is silenced.
 vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
 
 import { TripInviteModule } from '../../src/nest/trip-invite/trip-invite.module';
+import { TripMembershipService } from '../../src/nest/trip-membership/trip-membership.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
@@ -66,7 +68,9 @@ describe('Trip invite-link e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, TripInviteModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, TripInviteModule] })
+      .overrideProvider(TripMembershipService).useValue({ joinTripAsMember })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalPipes(new ZodValidationPipe());

@@ -6,6 +6,7 @@ import { SettingsService } from '../settings/settings.service';
 import { AuthService } from '../auth/auth.service';
 import { PasskeyService } from '../auth/passkey.service';
 import { AtlasService } from '../atlas/atlas.service';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { PackingService } from '../packing/packing.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -30,7 +31,7 @@ import { AdminService } from './admin.service';
 const dbs = new DatabaseService(db);
 const realtime = new RealtimeService();
 const permissions = new PermissionsService(dbs);
-const auth = new AuthService(dbs, permissions, new AtlasService(dbs));
+const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs));
 const admin = new AdminService(
   dbs,
   new SettingsService(dbs),

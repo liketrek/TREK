@@ -70,6 +70,7 @@ import { ReservationsService } from '../../../src/nest/reservations/reservations
 import { DaysService } from '../../../src/nest/days/days.service';
 import { CollabService } from '../../../src/nest/collab/collab.service';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 
 const budget = new BudgetService(
   new DatabaseService(testDb),
@@ -88,7 +89,7 @@ const tripsSvc = new TripsService(
   new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new ReservationsService(dbs(), new PermissionsService(dbs()), budget, new RealtimeService()),
-  new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs())),
   new PermissionsService(dbs()),
   budget,
   new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),

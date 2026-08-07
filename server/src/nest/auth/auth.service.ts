@@ -29,7 +29,7 @@ import { verifyJwtAndLoadUser } from '../../middleware/auth';
 import { User } from '../../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from '../common/demo';
 import { avatarUrl } from '../common/avatarUrl';
-import { joinTripAsMember } from '../../services/tripMembership';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { isPasskeyConfigured } from '../../services/webauthnConfig';
 import { setAuthCookie, clearAuthCookie } from '../common/cookie';
 import { sendPasswordResetEmail } from '../../services/notifications';
@@ -124,6 +124,7 @@ export class AuthService {
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
     private readonly atlas: AtlasService,
+    private readonly membership: TripMembershipService,
   ) {}
 
   // Cookie
@@ -383,7 +384,7 @@ export class AuthService {
           // Trip-bound invite (#1402): auto-add the freshly registered user to the
           // trip. Idempotent + owner-safe; no-ops if the bound trip was since deleted.
           if (validInvite.trip_id) {
-            joinTripAsMember(Number(validInvite.trip_id), Number(result.lastInsertRowid), validInvite.created_by ?? null);
+            this.membership.joinTripAsMember(Number(validInvite.trip_id), Number(result.lastInsertRowid), validInvite.created_by ?? null);
           }
         }
 

@@ -56,9 +56,10 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { ShareService } from '../../../src/nest/share/share.service';
 import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import type { User } from '../../../src/types';
 
-const svc = new ShareService(new DatabaseService(testDb), new SettingsService(new DatabaseService(testDb)), permissionsStub);
+const svc = new ShareService(new DatabaseService(testDb), new SettingsService(new DatabaseService(testDb)), permissionsStub, new QueryHelpersService(new DatabaseService(testDb)));
 
 beforeAll(() => {
   createTables(testDb);

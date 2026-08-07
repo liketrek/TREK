@@ -9,7 +9,7 @@ import { readEnv, getAppUrl } from '../../app-config';
 import { JWT_SECRET, SESSION_DURATION_SECONDS } from '../../config';
 import { User } from '../../types';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { joinTripAsMember } from '../../services/tripMembership';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { setAuthCookie } from '../common/cookie';
 import { AuthService } from '../auth/auth.service';
 import { DatabaseService } from '../database/database.service';
@@ -183,6 +183,7 @@ export class OidcService implements OnModuleDestroy {
   constructor(
     private readonly db: DatabaseService,
     private readonly auth: AuthService,
+    private readonly membership: TripMembershipService,
   ) {
     this.stateSweeper = setInterval(() => {
       const now = Date.now();
@@ -594,7 +595,7 @@ export class OidcService implements OnModuleDestroy {
         // Trip-bound invite (#1402): auto-add the new SSO user to the trip inside the
         // same atomic step as the invite consume. Idempotent + owner-safe.
         if (validInvite?.trip_id) {
-          joinTripAsMember(Number(validInvite.trip_id), Number(ins.lastInsertRowid), validInvite.created_by ?? null);
+          this.membership.joinTripAsMember(Number(validInvite.trip_id), Number(ins.lastInsertRowid), validInvite.created_by ?? null);
         }
         return ins;
       }) as { lastInsertRowid: number | bigint };

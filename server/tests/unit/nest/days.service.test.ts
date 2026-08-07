@@ -54,8 +54,9 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { DaysService, addDays } from '../../../src/nest/days/days.service';
 import { getDay as bridgeGetDay, listDays as bridgeListDays } from '../../../src/nest/days/days.bridge';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 
-const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new QueryHelpersService(new DatabaseService(testDb)));
 
 beforeAll(() => {
   createTables(testDb);

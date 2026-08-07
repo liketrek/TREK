@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import type { TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { loadTagsByPlaceIds } from '../../services/queryHelpers';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { serveFilePath } from '../../services/placePhotoCache';
 import { SettingsService } from '../settings/settings.service';
 import type { User } from '../../types';
@@ -56,6 +56,7 @@ export class ShareService {
     private readonly dbs: DatabaseService,
     private readonly settings: SettingsService,
     private readonly permissions: PermissionsService,
+    private readonly queryHelpers: QueryHelpersService,
   ) {}
 
   verifyTripAccess(tripId: string, userId: number) {
@@ -187,7 +188,7 @@ export class ShareService {
         `, ...dayIds);
 
         const placeIds = [...new Set(allAssignments.map((a: any) => a.place_id))];
-        const tagsByPlace = loadTagsByPlaceIds(placeIds, { compact: true });
+        const tagsByPlace = this.queryHelpers.loadTagsByPlaceIds(placeIds, { compact: true });
 
         const byDay: Record<number, any[]> = {};
         for (const a of allAssignments as any[]) {

@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import type { TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { joinTripAsMember } from '../../services/tripMembership';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import type { User } from '../../types';
 
 type Trip = TripAccess;
@@ -31,6 +31,7 @@ export class TripInviteService {
   constructor(
     private readonly dbs: DatabaseService,
     private readonly permissions: PermissionsService,
+    private readonly membership: TripMembershipService,
   ) {}
 
   verifyTripAccess(tripId: string, userId: number) {
@@ -113,5 +114,5 @@ export class TripInviteService {
 
   /** Join the resolved trip as the current (authenticated, non-guest) user.
    *  invited_by is null — they joined via a link, not a personal invite. */
-  join(tripId: number, userId: number) { return joinTripAsMember(tripId, userId, null); }
+  join(tripId: number, userId: number) { return this.membership.joinTripAsMember(tripId, userId, null); }
 }

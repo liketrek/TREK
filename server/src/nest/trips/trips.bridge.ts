@@ -2,6 +2,7 @@ import { db } from '../../db/database';
 import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { TripsService } from './trips.service';
 import { TodoService } from '../todo/todo.service';
 import { PackingService } from '../packing/packing.service';
@@ -38,13 +39,13 @@ const trips = new TripsService(
   new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new ReservationsService(dbs(), new PermissionsService(dbs()), budget, new RealtimeService()),
-  new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs())),
   new PermissionsService(dbs()),
   budget,
   new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new VacayService(dbs(), new RealtimeService()),
   new RealtimeService(),
-  new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs())),
+  new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs()), new QueryHelpersService(dbs())),
 );
 
 export function getTripOwner(tripId: string | number) {

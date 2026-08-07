@@ -28,6 +28,7 @@ import { PermissionsService } from '../../src/nest/permissions/permissions.servi
 import { AuditService } from '../../src/nest/audit/audit.service';
 import { AddonsService } from '../../src/nest/addons/addons.service';
 import { RealtimeService } from '../../src/nest/realtime/realtime.service';
+import { QueryHelpersService } from '../../src/nest/query-helpers/query-helpers.service';
 
 /**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
@@ -41,14 +42,15 @@ export function createHostDepsFactory(dbs: DatabaseService): PluginHostDepsFacto
   const realtime = new RealtimeService();
   const budget = new BudgetService(dbs, permissions, exchangeRates, realtime);
   const addons = new AddonsService(dbs);
+  const queryHelpers = new QueryHelpersService(dbs);
   const todos = new TodoService(dbs, permissions, realtime);
   const packing = new PackingService(dbs, permissions, realtime);
   const files = new FilesService(dbs, permissions, realtime);
   const reservations = new ReservationsService(dbs, permissions, budget, realtime);
   const collab = new CollabService(dbs, permissions, realtime);
   const vacay = new VacayService(dbs, realtime);
-  const days = new DaysService(dbs, permissions, realtime);
-  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs));
+  const days = new DaysService(dbs, permissions, realtime, queryHelpers);
+  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs), queryHelpers);
   return new PluginHostDepsFactory(
     budget,
     reservations,
@@ -58,7 +60,7 @@ export function createHostDepsFactory(dbs: DatabaseService): PluginHostDepsFacto
     packing,
     new PluginOAuthService(dbs),
     new DayNotesService(dbs, permissions, realtime),
-    new AssignmentsService(dbs, permissions, realtime),
+    new AssignmentsService(dbs, permissions, realtime, queryHelpers),
     new LlmConfigResolver(new SettingsService(dbs), dbs, addons),
     dbs,
     files,

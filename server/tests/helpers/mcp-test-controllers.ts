@@ -46,6 +46,7 @@ import { TripsService } from '../../src/nest/trips/trips.service';
 import { VacayMcp } from '../../src/nest/vacay/vacay.mcp';
 import { VacayService } from '../../src/nest/vacay/vacay.service';
 import { RealtimeService } from '../../src/nest/realtime/realtime.service';
+import { QueryHelpersService } from '../../src/nest/query-helpers/query-helpers.service';
 
 /**
  * Hand-wired counterpart of the boot-time discovery in McpRegistryService,
@@ -59,14 +60,15 @@ export function createMcpTestRegistry(): McpRegistry {
   const permissionsService = new PermissionsService(dbService);
   const authService = new AuthService(dbService, permissionsService, new AtlasService(dbService));
   const realtimeService = new RealtimeService();
-  const daysService = new DaysService(dbService, permissionsService, realtimeService);
+  const queryHelpersService = new QueryHelpersService(dbService);
+  const daysService = new DaysService(dbService, permissionsService, realtimeService, queryHelpersService);
   const exchangeRatesService = new ExchangeRatesService();
   const budgetService = new BudgetService(dbService, permissionsService, exchangeRatesService, realtimeService);
   const todoService = new TodoService(dbService, permissionsService, realtimeService);
   const packingService = new PackingService(dbService, permissionsService, realtimeService);
   const collabService = new CollabService(dbService, permissionsService, realtimeService);
   const mapsService = new MapsService(dbService);
-  const placesService = new PlacesService(dbService, permissionsService, realtimeService, mapsService);
+  const placesService = new PlacesService(dbService, permissionsService, realtimeService, mapsService, queryHelpersService);
   const reservationsService = new ReservationsService(dbService, permissionsService, budgetService, realtimeService);
   const tripsService = new TripsService(
     dbService,
@@ -92,11 +94,11 @@ export function createMcpTestRegistry(): McpRegistry {
       new ReservationsMcp(reservationsService, daysService, budgetService, authService),
       new DayNotesMcp(new DayNotesService(dbService, permissionsService, realtimeService), authService),
       new DaysMcp(daysService, dbService, placesService, authService),
-      new AssignmentsMcp(new AssignmentsService(dbService, permissionsService, realtimeService), daysService, authService),
+      new AssignmentsMcp(new AssignmentsService(dbService, permissionsService, realtimeService, queryHelpersService), daysService, authService),
       new CollabMcp(collabService, authService),
       new VacayMcp(new VacayService(dbService, realtimeService), authService),
       new TripsMcp(tripsService, todoService, collabService, authService),
-      new ShareMcp(new ShareService(dbService, new SettingsService(dbService), permissionsService), authService),
+      new ShareMcp(new ShareService(dbService, new SettingsService(dbService), permissionsService, queryHelpersService), authService),
       new MapsMcp(mapsService),
       new PlacesMcp(placesService, mapsService, dbService, authService),
       new CollectionsMcp(new CollectionsService(dbService, permissionsService, realtimeService), dbService, authService),

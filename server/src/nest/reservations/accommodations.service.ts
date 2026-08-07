@@ -23,7 +23,7 @@ export class AccommodationsService {
     private readonly realtime: RealtimeService,
   ) {}
 
-  /** Mirrors the requireTripAccess middleware (owner or member), returning the trip. */
+  /** Owner or member, returning the trip. */
   verifyTripAccess(tripId: string, userId: number) {
     return this.dbs.canAccessTrip(Number(tripId), userId);
   }

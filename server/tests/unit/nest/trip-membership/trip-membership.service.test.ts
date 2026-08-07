@@ -1,5 +1,5 @@
 /**
- * Unit tests for joinTripAsMember — TRIP-JOIN-001..004.
+ * Unit tests for TripMembershipService.joinTripAsMember — TRIP-JOIN-001..004.
  * The shared add-by-id helper behind trip invite links (#1143) and trip-bound
  * admin invites (#1402): idempotent, owner-safe, missing-trip-safe.
  */
@@ -11,13 +11,17 @@ const { testDb, dbMock } = vi.hoisted(() => {
   db.exec('PRAGMA foreign_keys = ON');
   return { testDb: db, dbMock: { db } };
 });
-vi.mock('../../../src/db/database', () => dbMock);
+vi.mock('../../../../src/db/database', () => dbMock);
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { joinTripAsMember } from '../../../src/services/tripMembership';
+import { createTables } from '../../../../src/db/schema';
+import { runMigrations } from '../../../../src/db/migrations';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createUser, createTrip } from '../../../helpers/factories';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
+import { TripMembershipService } from '../../../../src/nest/trip-membership/trip-membership.service';
+
+const joinTripAsMember = (tripId: number, userId: number, invitedBy: number | null) =>
+  new TripMembershipService(new DatabaseService(testDb)).joinTripAsMember(tripId, userId, invitedBy);
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => resetTestDb(testDb));

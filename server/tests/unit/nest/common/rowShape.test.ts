@@ -1,11 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
-vi.mock('../../../src/db/database', () => ({
-  db: { prepare: () => ({ all: () => [], get: vi.fn() }) },
-}));
-
-import { formatAssignmentWithPlace } from '../../../src/services/queryHelpers';
-import type { AssignmentRow, Tag, Participant } from '../../../src/types';
+import { formatAssignmentWithPlace, ratingAggregate } from '../../../../src/nest/common/rowShape';
+import type { AssignmentRow, Tag, Participant } from '../../../../src/types';
 
 function makeRow(overrides: Partial<AssignmentRow> = {}): AssignmentRow {
   return {
@@ -90,5 +86,27 @@ describe('formatAssignmentWithPlace', () => {
   it('sets place.category to null when category_id is 0 (falsy)', () => {
     const result = formatAssignmentWithPlace(makeRow({ category_id: 0 as any }), [], []);
     expect(result.place.category).toBeNull();
+  });
+
+  it('passes tags and participants through untouched', () => {
+    const result = formatAssignmentWithPlace(makeRow(), sampleTags, sampleParticipants);
+    expect(result.place.tags).toEqual(sampleTags);
+    expect(result.participants).toEqual(sampleParticipants);
+  });
+});
+
+describe('ratingAggregate', () => {
+  const rate = (rating: number, user_id = 1) => ({ user_id, username: 'u', avatar: null, rating });
+
+  it('averages the ratings and counts them', () => {
+    expect(ratingAggregate([rate(5), rate(2, 2)])).toEqual({ rating_avg: 3.5, rating_count: 2 });
+  });
+
+  it('reports a null average for an empty list rather than NaN', () => {
+    expect(ratingAggregate([])).toEqual({ rating_avg: null, rating_count: 0 });
+  });
+
+  it('treats a place with no rating rows at all the same as an empty list', () => {
+    expect(ratingAggregate(undefined)).toEqual({ rating_avg: null, rating_count: 0 });
   });
 });

@@ -205,9 +205,10 @@ const collabStub = {
   createMessage: vi.fn((tid: number, uid: number, text: string) =>
     (text === 'toolong' ? { error: 'Message too long' } : { message: { id: 142, trip_id: Number(tid), user_id: uid, text } })),
 } as unknown as CollabService;
-vi.mock('../../../src/services/tripMembership', () => ({
+// Injected stub since the membership fold (was a path mock of services/tripMembership).
+const membershipStub = {
   joinTripAsMember: vi.fn((tripId: number, userId: number) => ({ joined: userId !== 5, tripId })), // owner add = no-op
-}));
+} as unknown as TripMembershipService;
 // Notifications are a constructor-injected stub since the notifications fold
 // (same behavior as the old services/notificationService path mock).
 const notifySend = vi.fn(async () => undefined);
@@ -327,6 +328,7 @@ import type { PlacesService } from '../../../src/nest/places/places.service';
 import type { CollectionsService } from '../../../src/nest/collections/collections.service';
 import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import type { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
@@ -349,7 +351,7 @@ const tripsStub = {
   list: () => [{ id: 1 }],
   removeMember: vi.fn(),
 } as unknown as import('../../../src/nest/trips/trips.service').TripsService;
-const factory = new PluginHostDepsFactory(budgetStub, reservationsStub, tagsStub, categoriesStub, todoStub, packingStub, oauthStub, dayNotesStub, assignmentsStub, llmConfigStub, new DatabaseService(mockDb), filesStub, collabStub, vacayStub, daysStub, permissionsStub, exchangeRatesStub, addonsStub, new RealtimeService(), tripsStub, placesStub, collectionsStub, atlasStub, notificationsStub);
+const factory = new PluginHostDepsFactory(budgetStub, reservationsStub, tagsStub, categoriesStub, todoStub, packingStub, oauthStub, dayNotesStub, assignmentsStub, llmConfigStub, new DatabaseService(mockDb), filesStub, collabStub, vacayStub, daysStub, permissionsStub, exchangeRatesStub, addonsStub, new RealtimeService(), tripsStub, placesStub, collectionsStub, atlasStub, notificationsStub, membershipStub);
 const stubRouter: PluginCallRouter = { callPlugin: async () => undefined, emitPluginEvent: () => {} };
 const createRealRpcHost = (id: string, granted: ReadonlySet<string>, router: PluginCallRouter = stubRouter) => factory.create(id, granted, router);
 

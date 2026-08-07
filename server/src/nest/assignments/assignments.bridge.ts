@@ -3,6 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AssignmentsService } from './assignments.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 
 /**
  * Non-Nest entry point for the assignments domain — for code running OUTSIDE
@@ -27,7 +28,7 @@ import { PermissionsService } from '../permissions/permissions.service';
  */
 let instance: AssignmentsService | undefined;
 function assignments(): AssignmentsService {
-  return (instance ??= new AssignmentsService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new RealtimeService()));
+  return (instance ??= new AssignmentsService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new RealtimeService(), new QueryHelpersService(new DatabaseService(db))));
 }
 
 export function createAssignment(dayId: string | number, placeId: string | number, notes: string | null) {

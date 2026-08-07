@@ -8,6 +8,7 @@ import { PasskeyService } from './passkey.service';
 import { AuditModule } from '../audit/audit.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AtlasModule } from '../atlas/atlas.module';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 /**
  * Auth module — public flows (login/register/reset/mfa-verify/logout) and the
@@ -22,7 +23,7 @@ import { AtlasModule } from '../atlas/atlas.module';
  * everything outside the container goes through auth.bridge.ts.
  */
 @Module({
-  imports: [RateLimitModule, AuditModule, PermissionsModule, AtlasModule],
+  imports: [RateLimitModule, AuditModule, PermissionsModule, AtlasModule, TripMembershipModule],
   controllers: [AuthPublicController, AuthController, PasskeyController],
   providers: [AuthService, PasskeyService],
   exports: [AuthService, PasskeyService],

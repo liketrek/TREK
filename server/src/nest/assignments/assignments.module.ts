@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DaysModule } from '../days/days.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
 import { DayAssignmentsController, AssignmentOpsController } from './assignments.controller';
 import { AssignmentsService } from './assignments.service';
 import { AssignmentsMcp } from './assignments.mcp';
@@ -14,7 +15,7 @@ import { AuthModule } from '../auth/auth.module';
  */
 @Module({
   // DaysModule: AssignmentsMcp injects DaysService for the target-day checks.
-  imports: [DaysModule, PermissionsModule, AuthModule],
+  imports: [DaysModule, PermissionsModule, QueryHelpersModule, AuthModule],
   controllers: [DayAssignmentsController, AssignmentOpsController],
   providers: [AssignmentsService, AssignmentsMcp],
   exports: [AssignmentsService],
