@@ -307,15 +307,6 @@ export interface Setting {
   value?: string | null;
 }
 
-export interface AuthRequest extends Request {
-  user: User;
-  trip?: { id: number; user_id: number };
-}
-
-export interface OptionalAuthRequest extends Request {
-  user: User | null;
-}
-
 export interface AssignmentRow extends DayAssignment {
   place_name: string;
   place_description: string | null;

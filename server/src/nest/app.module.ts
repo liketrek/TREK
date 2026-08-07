@@ -71,8 +71,8 @@ import { IdempotencyInterceptor } from './common/idempotency.interceptor';
     // equivalent of the legacy Express app.get('*') catch-all). @Catch(NotFoundException)
     // is more specific than TrekExceptionFilter, so Nest routes 404s here.
     { provide: APP_FILTER, useClass: SpaFallbackFilter },
-    // Replays the X-Idempotency-Key the client sends on every write, matching
-    // the legacy applyIdempotency middleware so retried mutations don't double-apply.
+    // Replays the X-Idempotency-Key the client sends on every write, so retried
+    // mutations don't double-apply.
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
     // Global Zod validation: any parameter typed with a createZodDto class
     // (the <domain>.dto.ts wrappers over @trek/shared schemas) is validated;

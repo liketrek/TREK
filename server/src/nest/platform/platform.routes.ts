@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 import { readEnv } from '../../app-config';
-import { verifyJwtAndLoadUser } from '../../middleware/auth';
+import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import { db } from '../../db/database';
 import { mcpHandler } from '../../mcp';
 import { trekOAuthProvider, trekClientsStore } from '../../mcp/oauthProvider';

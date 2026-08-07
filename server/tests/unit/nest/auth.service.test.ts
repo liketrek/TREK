@@ -77,7 +77,7 @@ import * as authBridge from '../../../src/nest/auth/auth.bridge';
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { verifyJwtAndLoadUser } from '../../../src/middleware/auth';
+import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
 import { authenticator } from 'otplib';
 import { hashBackupCode } from '../../../src/nest/auth/auth.helpers';
 import { createEphemeralToken } from '../../../src/services/ephemeralTokens';

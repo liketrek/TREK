@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 
-vi.mock('../../../src/middleware/auth', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
+vi.mock('../../../src/nest/auth/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
 vi.mock('../../../src/nest/common/cookie', () => ({ setAuthCookie: vi.fn() }));
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
@@ -32,7 +32,7 @@ const passkey = {
 };
 const pc = (limiter: RateLimitService) => new PasskeyController(limiter, audit, passkey as unknown as PasskeyService);
 import { CurrentUser } from '../../../src/nest/auth/current-user.decorator';
-import { extractToken, verifyJwtAndLoadUser } from '../../../src/middleware/auth';
+import { extractToken, verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
 import type { AuthService } from '../../../src/nest/auth/auth.service';
 import type { PasskeyService } from '../../../src/nest/auth/passkey.service';
 import { setAuthCookie } from '../../../src/nest/common/cookie';

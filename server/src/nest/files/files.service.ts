@@ -7,7 +7,7 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
 import { consumeEphemeralToken } from '../../services/ephemeralTokens';
-import { verifyJwtAndLoadUser } from '../../middleware/auth';
+import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import type { User, TripFile } from '../../types';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import { DEFAULT_ALLOWED_EXTENSIONS, filesDir } from './files.constants';

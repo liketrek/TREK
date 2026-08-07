@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
-import { extractToken, verifyJwtAndLoadUser } from '../../middleware/auth';
+import { extractToken, verifyJwtAndLoadUser } from './jwt-verify';
 
 /**
  * Mirrors the legacy `optionalAuth` middleware: populates req.user with the

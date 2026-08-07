@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { readEnv } from '../app-config';
 import { db } from '../db/database';
-import { extractToken, verifyJwtAndLoadUser } from './auth';
+import { extractToken, verifyJwtAndLoadUser } from '../nest/auth/jwt-verify';
 import { DEMO_EMAILS } from '../nest/common/demo';
 
 /** Paths that never require MFA (public or pre-auth). */

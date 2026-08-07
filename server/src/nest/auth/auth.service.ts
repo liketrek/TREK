@@ -25,7 +25,7 @@ import { startTripReminders } from '../../scheduler';
 import { deleteUserCompletely } from '../../services/userCleanupService';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { getFlightDistanceKm } from '../../services/distanceService';
-import { verifyJwtAndLoadUser } from '../../middleware/auth';
+import { verifyJwtAndLoadUser } from './jwt-verify';
 import { User } from '../../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from '../common/demo';
 import { avatarUrl } from '../common/avatarUrl';
@@ -1410,7 +1410,7 @@ export class AuthService {
   }
 
   /**
-   * Verify a JWT the same way `middleware/auth.ts#verifyJwtAndLoadUser`
+   * Verify a JWT the same way `auth/jwt-verify.ts#verifyJwtAndLoadUser`
    * does — including the `password_version` check — so that stolen tokens
    * lose access the moment the victim resets their password.
    *

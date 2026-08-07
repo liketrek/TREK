@@ -49,7 +49,7 @@ const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
 const { verifyJwtAndLoadUser } = vi.hoisted(() => ({ verifyJwtAndLoadUser: vi.fn() }));
-vi.mock('../../../src/middleware/auth', () => ({ verifyJwtAndLoadUser }));
+vi.mock('../../../src/nest/auth/jwt-verify', () => ({ verifyJwtAndLoadUser }));
 
 const { consumeEphemeralToken } = vi.hoisted(() => ({ consumeEphemeralToken: vi.fn() }));
 vi.mock('../../../src/services/ephemeralTokens', () => ({ consumeEphemeralToken }));

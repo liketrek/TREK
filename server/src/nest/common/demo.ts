@@ -2,7 +2,8 @@
 //
 // Historical: the demo account was seeded as "demo@trek.app" (see
 // authService.demoLogin), but several guards — demoUploadBlock in
-// middleware/auth.ts, the MFA/backup-code bypasses in authService —
+// the upload block that used to live in middleware/auth.ts, the MFA/backup-code
+// bypasses in authService —
 // were still checking the pre-rename "demo@nomad.app" string, so they
 // either never fired or silently diverged between call sites. Routing
 // every check through this constant keeps them aligned.
