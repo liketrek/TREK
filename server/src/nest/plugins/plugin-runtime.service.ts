@@ -9,7 +9,7 @@ import { readUserSettingsDecrypted, hasRequiredUserSettings } from './plugins.se
 import { PLUGIN_CHANNEL_EVENTS } from './install/manifest';
 import { stripEmoji } from './text-sanitize';
 import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
-import { decrypt_api_key } from '../../services/apiKeyCrypto';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import fs from 'node:fs';
 import path from 'node:path';

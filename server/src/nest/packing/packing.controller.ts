@@ -14,7 +14,7 @@ import {
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import type { User } from '../../types';
 import { PackingService } from './packing.service';
-import { isUpdateConflict } from '../../services/conflictResult';
+import { isUpdateConflict } from '../common/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import {

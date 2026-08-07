@@ -9,7 +9,7 @@ import type {
 } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
 import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
-import { decrypt_api_key } from '../../services/apiKeyCrypto';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import * as placePhotoCache from '../../services/placePhotoCache';
 import { DatabaseService } from '../database/database.service';

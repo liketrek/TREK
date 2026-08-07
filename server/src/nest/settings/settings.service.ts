@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../../services/apiKeyCrypto';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { MASKED_SETTING_VALUE, normalizeAppearance } from '@trek/shared';
 
 const ENCRYPTED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key']);

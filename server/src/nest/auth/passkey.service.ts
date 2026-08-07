@@ -8,7 +8,7 @@ import {
   type AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
 import { resolveWebauthnConfig } from '../../services/webauthnConfig';
-import { avatarUrl } from '../../services/avatarUrl';
+import { avatarUrl } from '../common/avatarUrl';
 import { stripUserForClient } from './auth.helpers';
 import { AuthService } from './auth.service';
 import { DatabaseService } from '../database/database.service';

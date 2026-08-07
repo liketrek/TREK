@@ -29,7 +29,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PLACE_IMAGE_UPLOAD } from '../common/place-image-upload';
 import { placeImageUrl } from '../../services/placeImage';
-import { isDemoEmail } from '../../services/demo';
+import { isDemoEmail } from '../common/demo';
 import {
   CollectionCreateDto,
   CollectionUpdateDto,

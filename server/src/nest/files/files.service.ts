@@ -5,7 +5,7 @@ import type { Request } from 'express';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { avatarUrl } from '../../services/avatarUrl';
+import { avatarUrl } from '../common/avatarUrl';
 import { consumeEphemeralToken } from '../../services/ephemeralTokens';
 import { verifyJwtAndLoadUser } from '../../middleware/auth';
 import type { User, TripFile } from '../../types';

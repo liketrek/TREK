@@ -15,11 +15,11 @@ import { revokeUserSessions, revokeUserSessionsForClient } from '../../mcp/sessi
 import { invalidateMcpSessions } from '../../mcp';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import type { User, Addon } from '../../types';
-import { maybe_encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
-import { avatarUrl } from '../../services/avatarUrl';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { avatarUrl } from '../common/avatarUrl';
 import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../../services/llmConfig';
 import { getPhotoProviderConfig } from '../../services/memories/helpersService';
-import { validatePassword } from '../../services/passwordPolicy';
+import { validatePassword } from '../common/passwordPolicy';
 import { deleteUserCompletely } from '../../services/userCleanupService';
 import { getPreferencesMatrix, setAdminPreferences } from '../../services/notificationPreferencesService';
 import { DatabaseService } from '../database/database.service';

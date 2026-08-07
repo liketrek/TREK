@@ -45,7 +45,7 @@ vi.mock('../../src/db/database', () => ({
   db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
-vi.mock('../../src/services/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
+vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 

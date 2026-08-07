@@ -108,7 +108,7 @@ vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: vi.f
 // The audit domain is DI-native now: writeAudit runs for real against the temp
 // db's audit_log table; only the file logger is silenced.
 vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
-vi.mock('../../src/services/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
+vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 

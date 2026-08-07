@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach, afterAll, beforeEach } from 'vites
 vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: vi.fn(() => undefined), all: vi.fn(() => []) }) },
 }));
-vi.mock('../../../src/services/apiKeyCrypto', () => ({
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: vi.fn((v) => v),
   maybe_encrypt_api_key: vi.fn((v) => v),
 }));

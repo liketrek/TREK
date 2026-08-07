@@ -30,7 +30,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { logInfo } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';
-import { isDemoEmail } from '../../services/demo';
+import { isDemoEmail } from '../common/demo';
 import { NotFoundError, ValidationError } from './trips.service';
 import { TripCreateDto, TripUpdateDto, TripCopyDto, TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRenameGuestDto } from './trips.dto';
 import { saveUnsplashCover, isUnsplashCoverUrl } from '../../services/unsplashService';

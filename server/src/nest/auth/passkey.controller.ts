@@ -4,7 +4,7 @@ import { RateLimitService } from '../common/rate-limit.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PasskeyEnabledGuard } from './passkey-enabled.guard';
 import { CurrentUser } from './current-user.decorator';
-import { setAuthCookie } from '../../services/cookie';
+import { setAuthCookie } from '../common/cookie';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import { PasskeyService } from './passkey.service';

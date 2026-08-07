@@ -31,7 +31,7 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
 }));
-vi.mock('../../../src/services/apiKeyCrypto', () => ({
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: (v: string | null) => v,
   maybe_encrypt_api_key: (v: string) => v,
   encrypt_api_key: (v: string) => v,

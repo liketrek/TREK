@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import { User } from '../../types';
-import { decrypt_api_key } from '../../services/apiKeyCrypto';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 
 /**
  * Pure half of the auth domain (no DB, no injected deps) — the DB half lives

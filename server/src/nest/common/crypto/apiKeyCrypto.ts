@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { ENCRYPTION_KEY } from '../config';
+import { ENCRYPTION_KEY } from '../../../config';
 
 const ENCRYPTED_PREFIX = 'enc:v1:';
 

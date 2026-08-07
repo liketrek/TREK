@@ -20,12 +20,12 @@ import { hexColorSchema } from '@trek/shared';
 import { readEnv } from '../../app-config';
 import type { User } from '../../types';
 import { PlacesService } from './places.service';
-import { isUpdateConflict } from '../../services/conflictResult';
+import { isUpdateConflict } from '../common/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PLACE_IMAGE_UPLOAD } from '../common/place-image-upload';
 import { placeImageUrl } from '../../services/placeImage';
-import { isDemoEmail } from '../../services/demo';
+import { isDemoEmail } from '../common/demo';
 import {
   PlaceBulkDeleteDto,
   PlaceBulkUpdateDto,

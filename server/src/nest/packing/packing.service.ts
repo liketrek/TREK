@@ -3,8 +3,8 @@ import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { verifyTripAccess } from '../../services/tripAccess';
-import { avatarUrl } from '../../services/avatarUrl';
-import type { UpdateConflict } from '../../services/conflictResult';
+import { avatarUrl } from '../common/avatarUrl';
+import type { UpdateConflict } from '../common/conflictResult';
 import type { User } from '../../types';
 import { DatabaseService } from '../database/database.service';
 

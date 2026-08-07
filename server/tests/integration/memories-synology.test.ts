@@ -704,7 +704,7 @@ describe('Synology auth checks', () => {
 // ── Album sync ────────────────────────────────────────────────────────────────
 
 import { addAlbumLink } from '../helpers/factories';
-import { encrypt_api_key } from '../../src/services/apiKeyCrypto';
+import { encrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
 
 describe('Synology syncSynologyAlbumLink', () => {
   it('SYNO-050 — POST sync happy path: trip owner with album link saves photos to DB', async () => {
@@ -1187,7 +1187,7 @@ describe('Synology SSRF blocked error handling', () => {
 // ── Passphrase persistence fixes ─────────────────────────────────────────────
 
 import { getOrCreateTrekPhoto, deleteTrekPhotoIfOrphan } from '../../src/services/memories/photoResolverService';
-import { decrypt_api_key } from '../../src/services/apiKeyCrypto';
+import { decrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
 
 describe('trek_photos passphrase healing (SYNO-090)', () => {
   it('SYNO-090 — getOrCreateTrekPhoto overwrites an existing bad passphrase when a new one is supplied', () => {

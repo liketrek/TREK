@@ -1,5 +1,5 @@
 import { readEnv } from '../app-config';
-import { encrypt_api_key } from '../services/apiKeyCrypto';
+import { encrypt_api_key } from '../nest/common/crypto/apiKeyCrypto';
 
 import Database from 'better-sqlite3';
 import fs from 'fs';

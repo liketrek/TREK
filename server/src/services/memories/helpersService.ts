@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import { Response } from 'express';
 import { canAccessTrip, db } from "../../db/database";
 import { safeFetch, SsrfBlockedError, type SafeFetchOptions } from '../../utils/ssrfGuard';
-import { decrypt_api_key } from '../apiKeyCrypto';
+import { decrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 
 // helpers for handling return types
 

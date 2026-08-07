@@ -38,7 +38,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
-import { isUpdateConflict } from '../../../src/services/conflictResult';
+import { isUpdateConflict } from '../../../src/nest/common/conflictResult';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PackingService } from '../../../src/nest/packing/packing.service';
 import { PlacesService } from '../../../src/nest/places/places.service';

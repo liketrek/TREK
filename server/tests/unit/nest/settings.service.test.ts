@@ -35,7 +35,7 @@ vi.mock('../../../src/config', () => ({
 }));
 
 // Passthrough crypto — value comes back unchanged for most tests
-vi.mock('../../../src/services/apiKeyCrypto', () => ({
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   maybe_encrypt_api_key: (v: string) => v,
   decrypt_api_key: (v: string) => v,
 }));

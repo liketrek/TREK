@@ -7,7 +7,7 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
-import { encryptMfaSecret, decryptMfaSecret } from '../../../src/services/mfaCrypto';
+import { encryptMfaSecret, decryptMfaSecret } from '../../../src/nest/common/crypto/mfaCrypto';
 
 describe('mfaCrypto', () => {
   const TOTP_SECRET = 'JBSWY3DPEHPK3PXP'; // typical base32 TOTP secret

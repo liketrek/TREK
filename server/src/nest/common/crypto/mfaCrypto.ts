@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { ENCRYPTION_KEY } from '../config';
+import { ENCRYPTION_KEY } from '../../../config';
 
 function getKey(): Buffer {
   return crypto.createHash('sha256').update(`${ENCRYPTION_KEY}:mfa:v1`).digest();

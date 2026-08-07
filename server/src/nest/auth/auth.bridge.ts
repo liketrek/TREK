@@ -35,7 +35,7 @@ const auth = new AuthService(
 );
 
 export { stripUserForClient } from './auth.helpers';
-export { avatarUrl } from '../../services/avatarUrl';
+export { avatarUrl } from '../common/avatarUrl';
 
 export function isDemoUser(userId: number): boolean {
   return auth.isDemoUser(userId);

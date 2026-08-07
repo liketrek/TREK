@@ -3,7 +3,7 @@ import { db } from '../../db/database';
 import { DatabaseService } from '../database/database.service';
 import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
-import { maybe_encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { readAudit } from './host/plugin-audit';
 import { keyFingerprint } from './signature-status';
 import { pluginBudgetUsage } from './host/plugin-host-state';

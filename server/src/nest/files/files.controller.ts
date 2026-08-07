@@ -28,7 +28,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { MAX_FILE_SIZE, MAX_VIDEO_SIZE, BLOCKED_EXTENSIONS, filesDir, isVideoExtension } from './files.constants';
 import { getAllowedExtensions } from './files.bridge';
 import { FileUploadDto, FileUpdateDto, FileLinkDto } from './files.dto';
-import { isDemoEmail } from '../../services/demo';
+import { isDemoEmail } from '../common/demo';
 
 const UPLOAD = {
   storage: diskStorage({

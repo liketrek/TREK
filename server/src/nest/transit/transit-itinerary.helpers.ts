@@ -9,7 +9,7 @@
  */
 import { haversineKm } from '../../services/distanceService';
 import type { EndpointInput } from '../reservations/reservations.service';
-import { localParts, resolveTimeZone } from '../../services/timezoneService';
+import { localParts, resolveTimeZone } from '../common/timezoneService';
 import { deriveTransitStats, type TransitItinerary, type TransitLeg } from './transit.helpers';
 
 import { z } from 'zod';

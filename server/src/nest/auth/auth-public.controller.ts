@@ -6,7 +6,7 @@ import { RateLimitService } from '../common/rate-limit.service';
 import { OptionalJwtGuard } from './optional-jwt.guard';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
-import { willDropSecureCookie } from '../../services/cookie';
+import { willDropSecureCookie } from '../common/cookie';
 import type { User } from '../../types';
 
 const WINDOW = 15 * 60 * 1000;

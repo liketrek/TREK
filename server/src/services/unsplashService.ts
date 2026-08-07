@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { readEnv } from '../app-config';
 import { safeFetch } from '../utils/ssrfGuard';
 import { db } from '../db/database';
-import { decrypt_api_key } from './apiKeyCrypto';
+import { decrypt_api_key } from '../nest/common/crypto/apiKeyCrypto';
 
 interface UnsplashSearchResponse {
   results?: {

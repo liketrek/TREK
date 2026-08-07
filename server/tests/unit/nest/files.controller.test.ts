@@ -5,14 +5,14 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs';
 
-vi.mock('../../../src/services/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
+vi.mock('../../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
 
 import { FilesController } from '../../../src/nest/files/files.controller';
 import { FilesDownloadController } from '../../../src/nest/files/files-download.controller';
 import { PhotosController } from '../../../src/nest/photos/photos.controller';
 import type { FilesService } from '../../../src/nest/files/files.service';
 import type { PhotosService } from '../../../src/nest/photos/photos.service';
-import { isDemoEmail } from '../../../src/services/demo';
+import { isDemoEmail } from '../../../src/nest/common/demo';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, username: 'u', role: 'user', email: 'u@example.test' } as User;

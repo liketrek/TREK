@@ -57,7 +57,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
-import { avatarUrl } from '../../../src/services/avatarUrl';
+import { avatarUrl } from '../../../src/nest/common/avatarUrl';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { CollabService } from '../../../src/nest/collab/collab.service';

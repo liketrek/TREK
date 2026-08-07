@@ -13,9 +13,9 @@ import { DatabaseService } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { AtlasService } from '../atlas/atlas.service';
 import { getCountryFromCoords } from '../atlas/atlas-geo';
-import { validatePassword } from '../../services/passwordPolicy';
-import { encryptMfaSecret, decryptMfaSecret } from '../../services/mfaCrypto';
-import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../../services/apiKeyCrypto';
+import { validatePassword } from '../common/passwordPolicy';
+import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
+import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { createEphemeralToken } from '../../services/ephemeralTokens';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
@@ -27,11 +27,11 @@ import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { getFlightDistanceKm } from '../../services/distanceService';
 import { verifyJwtAndLoadUser } from '../../middleware/auth';
 import { User } from '../../types';
-import { DEMO_EMAIL_PRIMARY, isDemoEmail } from '../../services/demo';
-import { avatarUrl } from '../../services/avatarUrl';
+import { DEMO_EMAIL_PRIMARY, isDemoEmail } from '../common/demo';
+import { avatarUrl } from '../common/avatarUrl';
 import { joinTripAsMember } from '../../services/tripMembership';
 import { isPasskeyConfigured } from '../../services/webauthnConfig';
-import { setAuthCookie, clearAuthCookie } from '../../services/cookie';
+import { setAuthCookie, clearAuthCookie } from '../common/cookie';
 import { sendPasswordResetEmail } from '../../services/notifications';
 import { getAppUrl } from '../../app-config';
 import {

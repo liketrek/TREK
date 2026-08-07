@@ -9,7 +9,7 @@ import {
   Selection,
 } from './helpersService';
 import { getOrCreateTrekPhoto, deleteTrekPhotoIfOrphan } from './photoResolverService';
-import { encrypt_api_key } from '../apiKeyCrypto';
+import { encrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 
 
 function _providers(): Array<{id: string; enabled: boolean}> {

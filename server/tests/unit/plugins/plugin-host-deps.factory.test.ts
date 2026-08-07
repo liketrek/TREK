@@ -148,7 +148,7 @@ const packingStub = {
   deleteBag: vi.fn((_tid: number | string, bagId: string) => Number(bagId) !== 404),
   setBagMembers: vi.fn((_tid: number | string, bagId: string, userIds: number[]) => (Number(bagId) === 404 ? null : userIds.map((u) => ({ user_id: u })))),
 } as unknown as PackingService;
-vi.mock('../../../src/services/conflictResult', () => ({ isUpdateConflict: (r: unknown) => !!(r as { conflict?: boolean })?.conflict }));
+vi.mock('../../../src/nest/common/conflictResult', () => ({ isUpdateConflict: (r: unknown) => !!(r as { conflict?: boolean })?.conflict }));
 vi.mock('../../../src/services/weatherService', () => ({ getWeather: vi.fn(async (lat: string, lng: string) => ({ lat, lng, temp: 20 })) }));
 const categoriesStub = { list: vi.fn(() => [{ id: 1, name: 'Food' }]) } as unknown as CategoriesService;
 const tagsStub = {

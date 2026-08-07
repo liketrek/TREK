@@ -51,11 +51,11 @@ vi.mock('../../../src/config', () => ({
 // as auth.service.test.ts) — services/tripMembership is deliberately NOT
 // mocked: OIDC-SVC-045 asserts the real trip_members row a trip-bound invite
 // creates.
-vi.mock('../../../src/services/mfaCrypto', () => ({
+vi.mock('../../../src/nest/common/crypto/mfaCrypto', () => ({
   encryptMfaSecret: vi.fn((s) => `enc:${s}`),
   decryptMfaSecret: vi.fn((s: string) => s.replace('enc:', '')),
 }));
-vi.mock('../../../src/services/apiKeyCrypto', () => ({
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: vi.fn((v) => v),
   maybe_encrypt_api_key: vi.fn((v) => v),
   mask_stored_api_key: vi.fn((v: string | null | undefined) => (v ? '••••••••' : null)),
@@ -78,8 +78,8 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
 });
 
 const { setAuthCookieMock } = vi.hoisted(() => ({ setAuthCookieMock: vi.fn() }));
-vi.mock('../../../src/services/cookie', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../src/services/cookie')>();
+vi.mock('../../../src/nest/common/cookie', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/nest/common/cookie')>();
   return { ...actual, setAuthCookie: setAuthCookieMock };
 });
 

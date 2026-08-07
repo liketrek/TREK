@@ -5,7 +5,7 @@ import type { Request } from 'express';
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
 const { isDemoEmail } = vi.hoisted(() => ({ isDemoEmail: vi.fn(() => false) }));
-vi.mock('../../../src/services/demo', () => ({ isDemoEmail }));
+vi.mock('../../../src/nest/common/demo', () => ({ isDemoEmail }));
 // Mock the Unsplash cover internalisation so the controller test never hits the
 // network; isUnsplashCoverUrl keeps its real (host-based) logic.
 vi.mock('../../../src/services/unsplashService', () => ({

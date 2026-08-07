@@ -5,7 +5,7 @@ import { db } from '../db/database';
 import { JWT_SECRET } from '../config';
 import { AuthRequest, OptionalAuthRequest, User } from '../types';
 import { applyIdempotency } from './idempotency';
-import { isDemoEmail } from '../services/demo';
+import { isDemoEmail } from '../nest/common/demo';
 
 export function extractToken(req: Request): string | null {
   // Prefer httpOnly cookie; fall back to Authorization: Bearer (MCP, API clients)

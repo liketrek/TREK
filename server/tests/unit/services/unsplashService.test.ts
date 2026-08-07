@@ -11,7 +11,7 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({ safeFetch }));
 vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: mockDbGet, all: vi.fn(() => []), run: vi.fn() }) },
 }));
-vi.mock('../../../src/services/apiKeyCrypto', () => ({ decrypt_api_key: (v: string | null) => v }));
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({ decrypt_api_key: (v: string | null) => v }));
 
 import { searchUnsplashPhotos, getUnsplashKey, saveUnsplashCover, isUnsplashCoverUrl } from '../../../src/services/unsplashService';
 

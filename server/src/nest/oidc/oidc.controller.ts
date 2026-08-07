@@ -2,7 +2,7 @@ import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { readEnv } from '../../app-config';
 import { OidcService, OIDC_STATE_TTL_MS } from './oidc.service';
-import { cookieOptions } from '../../services/cookie';
+import { cookieOptions } from '../common/cookie';
 
 const OIDC_STATE_COOKIE = 'trek_oidc_state';
 

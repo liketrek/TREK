@@ -1,7 +1,7 @@
 import { getAppUrl, readEnv } from '../app-config';
 import { db } from '../db/database';
 import { checkSsrf, createPinnedDispatcher } from '../utils/ssrfGuard';
-import { decrypt_api_key } from './apiKeyCrypto';
+import { decrypt_api_key } from '../nest/common/crypto/apiKeyCrypto';
 import { logInfo, logDebug, logError } from '../nest/audit/audit-log.logger';
 // ── Types ──────────────────────────────────────────────────────────────────
 

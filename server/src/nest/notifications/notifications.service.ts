@@ -25,7 +25,7 @@ import {
 } from '../../services/notificationPreferencesService';
 import { getChannel, listChannels, type ChannelMessage, type ExternalChannel } from '../../services/notifications/channelRegistry';
 import { getAction } from '../../services/inAppNotificationActions';
-import { avatarUrl } from '../../services/avatarUrl';
+import { avatarUrl } from '../common/avatarUrl';
 import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
 

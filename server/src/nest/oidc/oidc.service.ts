@@ -8,9 +8,9 @@ import type { Request, Response } from 'express';
 import { readEnv, getAppUrl } from '../../app-config';
 import { JWT_SECRET, SESSION_DURATION_SECONDS } from '../../config';
 import { User } from '../../types';
-import { decrypt_api_key } from '../../services/apiKeyCrypto';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { joinTripAsMember } from '../../services/tripMembership';
-import { setAuthCookie } from '../../services/cookie';
+import { setAuthCookie } from '../common/cookie';
 import { AuthService } from '../auth/auth.service';
 import { DatabaseService } from '../database/database.service';
 

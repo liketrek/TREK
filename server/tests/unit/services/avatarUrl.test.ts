@@ -4,7 +4,7 @@
  * an OIDC `picture` claim (#1399); the helper resolves both to a renderable src.
  */
 import { describe, it, expect } from 'vitest';
-import { avatarUrl } from '../../../src/services/avatarUrl';
+import { avatarUrl } from '../../../src/nest/common/avatarUrl';
 
 describe('avatarUrl', () => {
   it('AVATAR-URL-001: prefixes an uploaded file name with the avatars path', () => {

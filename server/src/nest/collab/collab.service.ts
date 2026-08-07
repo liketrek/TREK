@@ -6,7 +6,7 @@ import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { verifyTripAccess } from '../../services/tripAccess';
-import { avatarUrl } from '../../services/avatarUrl';
+import { avatarUrl } from '../common/avatarUrl';
 import { checkSsrf, createPinnedDispatcher } from '../../utils/ssrfGuard';
 import type { CollabNote, CollabPoll, CollabMessage, TripFile, User } from '../../types';
 

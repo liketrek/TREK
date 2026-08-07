@@ -19,7 +19,7 @@ import {
   resolveCategoryIdForFolder,
 } from '../../services/kmlImport';
 import { searchUnsplashPhotos, getUnsplashKey } from '../../services/unsplashService';
-import { type UpdateConflict, isUpdateConflict } from '../../services/conflictResult';
+import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
 import { reclaimPlaceImage } from '../../services/placeImage';
 import { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } from '../../services/journeyService';
 import {

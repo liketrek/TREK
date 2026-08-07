@@ -43,11 +43,11 @@ vi.mock('../../../src/config', () => ({
 
 // Construction insurance for the injected AuthService's import graph (same set
 // as oidc.service.test.ts / auth.service.test.ts).
-vi.mock('../../../src/services/mfaCrypto', () => ({
+vi.mock('../../../src/nest/common/crypto/mfaCrypto', () => ({
   encryptMfaSecret: vi.fn((s) => `enc:${s}`),
   decryptMfaSecret: vi.fn((s: string) => s.replace('enc:', '')),
 }));
-vi.mock('../../../src/services/apiKeyCrypto', () => ({
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: vi.fn((v) => v),
   maybe_encrypt_api_key: vi.fn((v) => v),
   mask_stored_api_key: vi.fn((v: string | null | undefined) => (v ? '••••••••' : null)),

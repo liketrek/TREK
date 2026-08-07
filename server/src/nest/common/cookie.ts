@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { readEnv } from '../app-config';
-import { SESSION_DURATION_MS, SESSION_DURATION_REMEMBER_MS } from '../config';
+import { readEnv } from '../../app-config';
+import { SESSION_DURATION_MS, SESSION_DURATION_REMEMBER_MS } from '../../config';
 
 const COOKIE_NAME = 'trek_session';
 

@@ -6,8 +6,8 @@
 
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
-import { encryptMfaSecret } from '../../src/services/mfaCrypto';
-import { encrypt_api_key } from '../../src/services/apiKeyCrypto';
+import { encryptMfaSecret } from '../../src/nest/common/crypto/mfaCrypto';
+import { encrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
 
 let _userSeq = 0;
 let _tripSeq = 0;

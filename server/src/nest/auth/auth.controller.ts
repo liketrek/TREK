@@ -39,7 +39,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
-import { isDemoEmail } from '../../services/demo';
+import { isDemoEmail } from '../common/demo';
 import type { User } from '../../types';
 
 const WINDOW = 15 * 60 * 1000;

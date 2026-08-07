@@ -79,7 +79,7 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
   };
 });
 
-vi.mock('../../../src/services/apiKeyCrypto', () => ({
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: (v: string | null) => v,
 }));
 

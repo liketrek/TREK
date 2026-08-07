@@ -1,7 +1,7 @@
 
 import { Response } from 'express';
 import { db } from '../../db/database';
-import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../apiKeyCrypto';
+import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 import { safeFetch, SsrfBlockedError, checkSsrf } from '../../utils/ssrfGuard';
 import { addTripPhotos } from './unifiedService';
 import {

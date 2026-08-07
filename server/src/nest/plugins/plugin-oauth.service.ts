@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import crypto from 'node:crypto';
 import { DatabaseService } from '../database/database.service';
-import { encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
+import { encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { getAppUrl } from '../../app-config';
 import { isPrivateIp } from './install/safe-fetch';
 import { safeFetchLlm } from '../../utils/ssrfGuard';
