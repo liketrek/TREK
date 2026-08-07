@@ -6,6 +6,7 @@ import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { safeHexColor } from '../../utils/safeColor'
+import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
@@ -42,8 +43,7 @@ const trackColour = (on: boolean) => (on ? 'var(--accent, #111827)' : 'var(--bor
 const knobOffset = (on: boolean) => (on ? '22px' : '2px')
 
 function renderLucideIcon(icon:LucideIcon, props = {}) {
-  if (!_renderToStaticMarkup) return ''
-  return _renderToStaticMarkup(
+  return renderIconMarkup(
     createElement(icon, props)
   );
 }
@@ -97,17 +97,9 @@ function safeImg(url) {
 }
 
 // Generate SVG string from Lucide icon name (for category thumbnails)
-let _renderToStaticMarkup = null
-async function ensureRenderer() {
-  if (!_renderToStaticMarkup) {
-    const mod = await import('react-dom/server')
-    _renderToStaticMarkup = mod.renderToStaticMarkup
-  }
-}
 function categoryIconSvg(iconName, color = '#6366f1', size = 24) {
-  if (!_renderToStaticMarkup) return ''
   const Icon = getCategoryIcon(iconName)
-  return _renderToStaticMarkup(
+  return renderIconMarkup(
     createElement(Icon, { size, strokeWidth: 1.8, color: 'rgba(255,255,255,0.92)' })
   )
 }
@@ -181,7 +173,6 @@ interface downloadTripPDFProps {
 // `assignments` is normalised here once — every read below (and fetchPlacePhotos)
 // relies on it being an object.
 export async function downloadTripPDF({ trip, days, places, assignments = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale }: downloadTripPDFProps) {
-  await ensureRenderer()
   const breaksPerDay = pageBreakPerDay()
   const loc = _locale || undefined
   const tr = _t || (k => k)

@@ -16,7 +16,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { createElement, useEffect, useRef } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderIconMarkup } from '../utils/iconMarkup';
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import { getCategoryIcon } from '../components/shared/categoryIcons';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/mapDefaults';
@@ -39,7 +39,7 @@ function createMarkerIcon(place: any) {
   // people who have no account on the instance at all.
   const color = safeHexColor(cat?.color, '#6366f1');
   const CatIcon = getCategoryIcon(cat?.icon);
-  const iconSvg = renderToStaticMarkup(createElement(CatIcon, { size: 14, strokeWidth: 2, color: 'white' }));
+  const iconSvg = renderIconMarkup(createElement(CatIcon, { size: 14, strokeWidth: 2, color: 'white' }));
   return L.divIcon({
     className: '',
     iconSize: [28, 28],

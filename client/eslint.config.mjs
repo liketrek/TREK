@@ -75,4 +75,25 @@ export default tseslint.config(
       'preserve-caught-error': 'warn',
     },
   },
+  {
+    // react-dom/server was worth ~190 KB raw / 57 KB gzip in a chunk three lazy
+    // routes share — including the Leaflet renderer, which is the default — for
+    // output that is always a single <svg>. utils/iconMarkup.ts does that job
+    // without Fizz, and this keeps the import from creeping back: nothing else
+    // would notice, the build stays green and the app keeps working.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: 'react-dom/server',
+          message: 'Use renderIconMarkup from utils/iconMarkup — Fizz is ~190 KB for one <svg>.',
+        }],
+      }],
+      'no-restricted-syntax': ['error', {
+        selector: "ImportExpression > Literal[value=/^react-dom\\u002F(server|static)/]",
+        message: 'Use renderIconMarkup from utils/iconMarkup — Fizz is ~190 KB for one <svg>.',
+      }],
+    },
+  },
 );

@@ -7,7 +7,7 @@
 // renderers produce the same visual result on the globe or a flat projection.
 
 import { createElement } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { getTransitMapSegments } from './transitGeometry'
@@ -155,7 +155,7 @@ function buildItems(reservations: Reservation[]): TransportItem[] {
 // ── DOM helpers for HTML markers ──────────────────────────────────────────
 function endpointMarkerHtml(type: TransportType, label: string | null): string {
   const { icon: IconCmp } = TYPE_META[type]
-  const svg = renderToStaticMarkup(createElement(IconCmp, { size: 13, color: 'white', strokeWidth: 2.5 }))
+  const svg = renderIconMarkup(createElement(IconCmp, { size: 13, color: 'white', strokeWidth: 2.5 }))
   const labelHtml = label ? `<span style="display:inline-flex;align-items:center;line-height:1">${escapeHtml(label)}</span>` : ''
   return `<div style="
     display:inline-flex;align-items:center;justify-content:center;gap:4px;

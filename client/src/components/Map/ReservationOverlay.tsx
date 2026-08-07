@@ -1,5 +1,5 @@
 import { Fragment, createElement, useMemo, useState } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { renderIconMarkup } from '../../utils/iconMarkup'
 import { Marker, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
@@ -43,7 +43,7 @@ function useEndpointPane() {
 
 function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
   const { icon: IconCmp, color } = TYPE_META[type]
-  const svg = renderToStaticMarkup(createElement(IconCmp, { size: 13, color: 'white', strokeWidth: 2.5 }))
+  const svg = renderIconMarkup(createElement(IconCmp, { size: 13, color: 'white', strokeWidth: 2.5 }))
   const labelHtml = label ? `<span style="display:inline-flex;align-items:center;line-height:1">${escapeHtml(label)}</span>` : ''
   const estWidth = label ? Math.max(40, label.length * 6 + 28) : 26
   return L.divIcon({

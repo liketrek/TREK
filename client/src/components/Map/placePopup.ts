@@ -1,5 +1,5 @@
 import { createElement } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { renderIconMarkup } from '../../utils/iconMarkup'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import type { Place } from '../../types'
@@ -28,7 +28,7 @@ function esc(s: string | null | undefined): string {
 function iconSvg(iconName: string | null | undefined, size: number, color: string): string {
   const Icon = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
   try {
-    return renderToStaticMarkup(createElement(Icon, { size, color, strokeWidth: 2 }))
+    return renderIconMarkup(createElement(Icon, { size, color, strokeWidth: 2 }))
   } catch {
     return ''
   }
@@ -61,7 +61,7 @@ export function buildPlacePopupHtml(place: PlaceWithCategory, photoUrl: string |
 export function buildPoiPopupHtml(poi: Poi): string {
   const cat = POI_CATEGORY_BY_KEY[poi.category]
   const color = cat?.color || '#6b7280'
-  const icon = cat ? renderToStaticMarkup(createElement(cat.Icon, { size: 12, color, strokeWidth: 2 })) : ''
+  const icon = cat ? renderIconMarkup(createElement(cat.Icon, { size: 12, color, strokeWidth: 2 })) : ''
   const head = `<div style="display:flex;align-items:center;gap:5px;"><span style="flex-shrink:0;display:inline-flex;line-height:0;">${icon}</span><span style="${NAME_STYLE}">${esc(poi.name)}</span></div>`
   const address = poi.address ? `<div style="${ADDR_STYLE}">${esc(poi.address)}</div>` : ''
   return `${CARD_OPEN}${head}${address}</div>`
