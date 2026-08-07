@@ -36,7 +36,6 @@ import { startConnectivityProbe } from './sync/connectivity'
 import { requestPersistentStorage } from './sync/persistentStorage'
 import ErrorBoundary, { RootErrorFallback } from './components/shared/ErrorBoundary'
 import { installGlobalErrorHandlers } from './utils/globalErrorHandlers'
-import { clearChunkReloadMarker } from './utils/chunkReload'
 
 maybeInstallTouchDragPolyfill()
 startConnectivityProbe()
@@ -57,6 +56,3 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </React.StrictMode>,
 )
-
-// The app rendered, so a later deploy is allowed to trigger its own reload.
-clearChunkReloadMarker()
