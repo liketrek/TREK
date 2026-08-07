@@ -7,13 +7,23 @@ import path from 'path';
 // db is mocked so getUnsplashKey resolves from a controllable stub, and
 // decrypt_api_key is a passthrough so stored values compare as plaintext.
 const { safeFetch, mockDbGet } = vi.hoisted(() => ({ safeFetch: vi.fn(), mockDbGet: vi.fn(() => undefined as unknown) }));
-vi.mock('../../../src/utils/ssrfGuard', () => ({ safeFetch }));
-vi.mock('../../../src/db/database', () => ({
+vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetch }));
+vi.mock('../../../../src/db/database', () => ({
   db: { prepare: () => ({ get: mockDbGet, all: vi.fn(() => []), run: vi.fn() }) },
 }));
-vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({ decrypt_api_key: (v: string | null) => v }));
+vi.mock('../../../../src/nest/common/crypto/apiKeyCrypto', () => ({ decrypt_api_key: (v: string | null) => v }));
 
-import { searchUnsplashPhotos, getUnsplashKey, saveUnsplashCover, isUnsplashCoverUrl } from '../../../src/services/unsplashService';
+import { UnsplashService } from '../../../../src/nest/unsplash/unsplash.service';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
+import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { db } from '../../../../src/db/database';
+
+// Same four entry points, now methods. The db mock above still feeds them.
+const svc = new UnsplashService(new DatabaseService(db), new RuntimeEnvService());
+const searchUnsplashPhotos = svc.searchUnsplashPhotos.bind(svc);
+const getUnsplashKey = svc.getUnsplashKey.bind(svc);
+const saveUnsplashCover = svc.saveUnsplashCover.bind(svc);
+const isUnsplashCoverUrl = svc.isUnsplashCoverUrl.bind(svc);
 
 const ORIGINAL_UNSPLASH_ENV = process.env.UNSPLASH_ACCESS_KEY;
 

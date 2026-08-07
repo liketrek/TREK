@@ -33,7 +33,7 @@ import { logInfo } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';
 import { NotFoundError, ValidationError } from './trips.service';
 import { TripCreateDto, TripUpdateDto, TripCopyDto, TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRenameGuestDto } from './trips.dto';
-import { saveUnsplashCover, isUnsplashCoverUrl } from '../../services/unsplashService';
+import { UnsplashService } from '../unsplash/unsplash.service';
 
 const MAX_COVER_SIZE = 20 * 1024 * 1024;
 const coversDir = path.join(__dirname, '../../../uploads/covers');
@@ -69,7 +69,7 @@ const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.get
 @Controller('api/trips')
 @UseGuards(JwtAuthGuard)
 export class TripsController {
-  constructor(private readonly trips: TripsService, private readonly audit: AuditService, private readonly env: RuntimeEnvService) {}
+  constructor(private readonly trips: TripsService, private readonly audit: AuditService, private readonly env: RuntimeEnvService, private readonly unsplash: UnsplashService) {}
 
   @Get()
   list(@CurrentUser() user: User, @Query('archived') archived?: string) {
@@ -142,9 +142,9 @@ export class TripsController {
     }
     // A chosen Unsplash cover arrives as an images.unsplash.com hot-link; download
     // it into uploads/covers so the cover survives offline + CDN link-rot (#1277).
-    if (isUnsplashCoverUrl(body.cover_image)) {
+    if (this.unsplash.isUnsplashCoverUrl(body.cover_image)) {
       try {
-        const filename = await saveUnsplashCover(body.cover_image, coversDir);
+        const filename = await this.unsplash.saveUnsplashCover(body.cover_image, coversDir);
         body.cover_image = `/uploads/covers/${filename}`;
       } catch (e) {
         console.error('Unsplash cover download failed:', e);

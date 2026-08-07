@@ -17,7 +17,7 @@ import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import type { User, Addon } from '../../types';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { avatarUrl } from '../common/avatarUrl';
-import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../../services/llmConfig';
+import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
 import { getPhotoProviderConfig } from '../../services/memories/helpersService';
 import { validatePassword } from '../common/passwordPolicy';
 import { deleteUserCompletely } from '../../services/userCleanupService';

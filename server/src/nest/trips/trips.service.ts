@@ -20,7 +20,7 @@ import { ReservationsService } from '../reservations/reservations.service';
 import { FilesService } from '../files/files.service';
 import { CollabService } from '../collab/collab.service';
 import { VacayService } from '../vacay/vacay.service';
-import { searchUnsplashPhotos, getUnsplashKey } from '../../services/unsplashService';
+import { UnsplashService } from '../unsplash/unsplash.service';
 
 export const MS_PER_DAY = 86400000;
 export const MAX_TRIP_DAYS = 365;
@@ -227,6 +227,7 @@ export class TripsService {
     private readonly vacay: VacayService,
     private readonly realtime: RealtimeService,
     private readonly places: PlacesService,
+    private readonly unsplash: UnsplashService,
   ) {}
 
   private get db() {
@@ -419,7 +420,7 @@ export class TripsService {
   }
 
   searchCoverImages(query: string, userId: number) {
-    return searchUnsplashPhotos(query, 9, getUnsplashKey(userId));
+    return this.unsplash.searchUnsplashPhotos(query, 9, this.unsplash.getUnsplashKey(userId));
   }
 
   getOwner(tripId: string | number): { user_id: number } | undefined {

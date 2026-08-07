@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
@@ -7,12 +8,13 @@ vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
 const { isDemoEmail } = vi.hoisted(() => ({ isDemoEmail: vi.fn(() => false) }));
 vi.mock('../../../src/nest/common/demo', () => ({ isDemoEmail }));
-// Mock the Unsplash cover internalisation so the controller test never hits the
-// network; isUnsplashCoverUrl keeps its real (host-based) logic.
-vi.mock('../../../src/services/unsplashService', () => ({
+// Injected stub since the unsplash fold (was a path mock of the service module),
+// so the controller test never hits the network. isUnsplashCoverUrl keeps its
+// real host-based logic.
+const unsplashStub = {
   isUnsplashCoverUrl: (v: unknown) => typeof v === 'string' && v.startsWith('https://images.unsplash.com/'),
   saveUnsplashCover: vi.fn().mockResolvedValue('mock-cover.jpg'),
-}));
+} as unknown as UnsplashService;
 
 import { TripsController } from '../../../src/nest/trips/trips.controller';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
@@ -27,7 +29,7 @@ const req = { headers: {} } as Request;
 // wrapper keeps the historical construction sites positional.
 const writeAudit = vi.fn();
 const audit = { writeAudit } as unknown as AuditService;
-const tc = (s: TripsService) => new TripsController(s, audit, new RuntimeEnvService());
+const tc = (s: TripsService) => new TripsController(s, audit, new RuntimeEnvService(), unsplashStub);
 
 function svc(o: Partial<TripsService> = {}): TripsService {
   return {

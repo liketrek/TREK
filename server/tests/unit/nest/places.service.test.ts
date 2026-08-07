@@ -10,6 +10,8 @@
  * are mocked where needed.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { TRACK_COLORS } from '@trek/shared';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -74,7 +76,7 @@ const GPX_FIXTURE = path.join(__dirname, '../../fixtures/test.gpx');
 const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
 
 const dbs = new DatabaseService(testDb);
-const svc = new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), new MapsService(dbs), new QueryHelpersService(dbs));
+const svc = new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), new MapsService(dbs), new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()));
 
 beforeAll(() => {
   createTables(testDb);
@@ -1012,7 +1014,7 @@ describe('PlacesService — automatic track colours (#776)', () => {
 
 describe('enrichImportedPlaces', () => {
   function enrichSvc(maps: Partial<MapsService>) {
-    return new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), maps as MapsService, new QueryHelpersService(dbs));
+    return new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), maps as MapsService, new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()));
   }
 
   it('PLACE-SVC-058 — no-ops when no Google Maps key is configured', async () => {

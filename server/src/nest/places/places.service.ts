@@ -19,7 +19,7 @@ import {
   parsePlacemarkNode,
   resolveCategoryIdForFolder,
 } from '../../services/kmlImport';
-import { searchUnsplashPhotos, getUnsplashKey } from '../../services/unsplashService';
+import { UnsplashService } from '../unsplash/unsplash.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
 import { reclaimPlaceImage } from '../../services/placeImage';
 import { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } from '../../services/journeyService';
@@ -105,6 +105,7 @@ export class PlacesService {
     private readonly realtime: RealtimeService,
     private readonly maps: MapsService,
     private readonly queryHelpers: QueryHelpersService,
+    private readonly unsplash: UnsplashService,
   ) {}
 
   verifyTripAccess(tripId: string, userId: number) {
@@ -1113,7 +1114,7 @@ export class PlacesService {
     const place = this.dbs.get<Place>('SELECT * FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
     if (!place) return { error: 'Place not found', status: 404 };
 
-    return searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, getUnsplashKey(userId));
+    return this.unsplash.searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, this.unsplash.getUnsplashKey(userId));
   }
 
   // -------------------------------------------------------------------------

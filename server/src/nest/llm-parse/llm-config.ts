@@ -1,4 +1,4 @@
-import { maybe_encrypt_api_key, decrypt_api_key } from '../nest/common/crypto/apiKeyCrypto';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 
 /**
  * Shared types + helpers for the `llm_parsing` addon configuration.

@@ -1,10 +1,11 @@
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { readEnv } from '../app-config';
-import { safeFetch } from '../utils/ssrfGuard';
-import { db } from '../db/database';
-import { decrypt_api_key } from '../nest/common/crypto/apiKeyCrypto';
+import { Injectable } from '@nestjs/common';
+import { safeFetch } from '../../utils/ssrfGuard';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DatabaseService } from '../database/database.service';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
 interface UnsplashSearchResponse {
   results?: {
@@ -28,24 +29,47 @@ export interface UnsplashPhoto {
   link: string | null;
 }
 
+const UNSPLASH_IMAGE_HOST = 'images.unsplash.com';
+const MAX_COVER_BYTES = 15 * 1024 * 1024;
+const COVER_EXT_BY_TYPE: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
+
 /**
+ * Unsplash search and cover download.
+ *
+ * Its own module rather than a method on trips or places: both call it, and the
+ * key resolution reads the env AND the users table, so it needs the injected
+ * connection either way.
+ */
+@Injectable()
+export class UnsplashService {
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly env: RuntimeEnvService,
+  ) {}
+
+  /**
  * Resolve an Unsplash access key for a request, in precedence order:
  * the `UNSPLASH_ACCESS_KEY` env var (instance-wide override, matching the
  * SMTP/OIDC env-over-DB convention) → the caller's own stored key → any
  * admin's stored key. Mirrors `getMapsKey`. Returns null when none is set,
  * in which case the search falls back to the unauthenticated endpoint.
  */
-export function getUnsplashKey(userId: number): string | null {
-  const env_key = readEnv().integrations.unsplashAccessKey;
-  if (env_key) return env_key;
-  const user = db.prepare('SELECT unsplash_api_key FROM users WHERE id = ?').get(userId) as { unsplash_api_key: string | null } | undefined;
-  const user_key = decrypt_api_key(user?.unsplash_api_key);
-  if (user_key) return user_key;
-  const admin = db.prepare("SELECT unsplash_api_key FROM users WHERE role = 'admin' AND unsplash_api_key IS NOT NULL AND unsplash_api_key != '' LIMIT 1").get() as { unsplash_api_key: string } | undefined;
-  return decrypt_api_key(admin?.unsplash_api_key) || null;
-}
+  getUnsplashKey(userId: number): string | null {
+    const env_key = this.env.env().integrations.unsplashAccessKey;
+    if (env_key) return env_key;
+    const user = this.db.get<{ unsplash_api_key: string | null }>('SELECT unsplash_api_key FROM users WHERE id = ?', userId);
+    const user_key = decrypt_api_key(user?.unsplash_api_key);
+    if (user_key) return user_key;
+    const admin = this.db.get<{ unsplash_api_key: string }>("SELECT unsplash_api_key FROM users WHERE role = 'admin' AND unsplash_api_key IS NOT NULL AND unsplash_api_key != '' LIMIT 1");
+    return decrypt_api_key(admin?.unsplash_api_key) || null;
+  }
 
-export async function searchUnsplashPhotos(query: string, perPage = 9, accessKey?: string | null) {
+  async searchUnsplashPhotos(query: string, perPage = 9, accessKey?: string | null) {
   const trimmed = query.trim();
   if (!trimmed) {
     return { error: 'Search query is required', status: 400 };
@@ -103,17 +127,8 @@ export async function searchUnsplashPhotos(query: string, perPage = 9, accessKey
   return { photos };
 }
 
-const UNSPLASH_IMAGE_HOST = 'images.unsplash.com';
-const MAX_COVER_BYTES = 15 * 1024 * 1024;
-const COVER_EXT_BY_TYPE: Record<string, string> = {
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/webp': '.webp',
-  'image/gif': '.gif',
-};
-
 /** True when a cover_image value is an Unsplash CDN hot-link we should internalise. */
-export function isUnsplashCoverUrl(value: unknown): value is string {
+  isUnsplashCoverUrl(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   try {
     return new URL(value).hostname.toLowerCase() === UNSPLASH_IMAGE_HOST;
@@ -129,8 +144,8 @@ export function isUnsplashCoverUrl(value: unknown): value is string {
  * guard. Returns the saved filename. Throws on a non-Unsplash host, a failed
  * download, an unsupported content type, or an oversized image.
  */
-export async function saveUnsplashCover(url: string, destDir: string): Promise<string> {
-  if (!isUnsplashCoverUrl(url)) throw new Error('Not an Unsplash image URL');
+  async saveUnsplashCover(url: string, destDir: string): Promise<string> {
+    if (!this.isUnsplashCoverUrl(url)) throw new Error('Not an Unsplash image URL');
   const res = await safeFetch(url);
   if (!res.ok) throw new Error(`Unsplash image download failed (HTTP ${res.status})`);
   const type = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
@@ -142,4 +157,5 @@ export async function saveUnsplashCover(url: string, destDir: string): Promise<s
   const filename = `${uuidv4()}${ext}`;
   fs.writeFileSync(path.join(destDir, filename), buf);
   return filename;
+}
 }
