@@ -41,7 +41,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, disableNotificationPref } from '../../helpers/factories';
-import { registerAction } from '../../../src/services/inAppNotificationActions';
+import { registerAction } from '../../../src/nest/notifications/in-app-actions';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';

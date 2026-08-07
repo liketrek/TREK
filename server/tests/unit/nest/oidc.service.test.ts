@@ -61,7 +61,7 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   mask_stored_api_key: vi.fn((v: string | null | undefined) => (v ? '••••••••' : null)),
   encrypt_api_key: vi.fn((v) => v),
 }));
-vi.mock('../../../src/services/ephemeralTokens', () => ({ createEphemeralToken: vi.fn() }));
+vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/services/notifications', () => ({ sendPasswordResetEmail: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 vi.mock('../../../src/scheduler', () => ({

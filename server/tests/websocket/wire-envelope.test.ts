@@ -56,7 +56,7 @@ import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
 import { createUser, createTrip } from '../helpers/factories';
 import { setupWebSocket, broadcast, broadcastToUser } from '../../src/websocket';
-import { createEphemeralToken } from '../../src/services/ephemeralTokens';
+import { createEphemeralToken } from '../../src/nest/auth/ephemeral-tokens';
 
 let server: http.Server;
 let wsUrl: string;

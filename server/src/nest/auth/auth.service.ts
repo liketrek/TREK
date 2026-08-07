@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import path from 'path';
@@ -16,7 +16,7 @@ import { getCountryFromCoords } from '../atlas/atlas-geo';
 import { validatePassword } from '../common/passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
 import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { createEphemeralToken } from '../../services/ephemeralTokens';
+import { createEphemeralToken, startTokenCleanup, stopTokenCleanup } from './ephemeral-tokens';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
@@ -119,7 +119,20 @@ export interface ResetPasswordOutcome {
  * passkeyService) go through auth.bridge.ts.
  */
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit, OnModuleDestroy {
+  /**
+   * The ephemeral-token store sweeps itself every minute. index.ts used to kick
+   * that off with a bare require() after listen(); it belongs to the domain that
+   * issues the tokens.
+   */
+  onModuleInit(): void {
+    startTokenCleanup();
+  }
+
+  onModuleDestroy(): void {
+    stopTokenCleanup();
+  }
+
   constructor(
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,

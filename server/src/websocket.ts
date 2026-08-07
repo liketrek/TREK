@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { readEnv } from './app-config';
 import { db, canAccessTrip } from './db/database';
-import { consumeEphemeralTokenWithMeta } from './services/ephemeralTokens';
+import { consumeEphemeralTokenWithMeta } from './nest/auth/ephemeral-tokens';
 import { emitPluginEvent, pluginEventMeta } from './plugin-event-sink';
 import { User } from './types';
 import http from 'node:http';

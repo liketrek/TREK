@@ -53,7 +53,7 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   mask_stored_api_key: vi.fn((v: string | null | undefined) => (v ? '••••••••' : null)),
   encrypt_api_key: vi.fn((v) => v),
 }));
-vi.mock('../../../src/services/ephemeralTokens', () => ({ createEphemeralToken: vi.fn() }));
+vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/services/notifications', () => ({ sendPasswordResetEmail: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 vi.mock('../../../src/scheduler', () => ({
@@ -80,7 +80,7 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
 import { authenticator } from 'otplib';
 import { hashBackupCode } from '../../../src/nest/auth/auth.helpers';
-import { createEphemeralToken } from '../../../src/services/ephemeralTokens';
+import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { revokeUserSessions } from '../../../src/mcp/sessionManager';
 

@@ -3,7 +3,7 @@
  * Pure Map registry — no DB or external dependencies.
  */
 import { describe, it, expect } from 'vitest';
-import { getAction } from '../../../src/services/inAppNotificationActions';
+import { getAction } from '../../../../src/nest/notifications/in-app-actions';
 
 describe('getAction — built-in registrations', () => {
   it('NOTIF-ACT-001 — test_approve is pre-registered', () => {

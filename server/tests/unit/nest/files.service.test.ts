@@ -52,7 +52,7 @@ const { verifyJwtAndLoadUser } = vi.hoisted(() => ({ verifyJwtAndLoadUser: vi.fn
 vi.mock('../../../src/nest/auth/jwt-verify', () => ({ verifyJwtAndLoadUser }));
 
 const { consumeEphemeralToken } = vi.hoisted(() => ({ consumeEphemeralToken: vi.fn() }));
-vi.mock('../../../src/services/ephemeralTokens', () => ({ consumeEphemeralToken }));
+vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ consumeEphemeralToken }));
 
 import type { Request } from 'express';
 import { createTables } from '../../../src/db/schema';
