@@ -35,7 +35,7 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-vi.mock('../../../src/services/weatherService', () => ({
+vi.mock('../../../src/nest/weather/weather.impl', () => ({
   getWeather: vi.fn().mockResolvedValue({ temp: 20, condition: 'sunny' }),
   getDetailedWeather: vi.fn().mockResolvedValue({ hourly: [] }),
 }));

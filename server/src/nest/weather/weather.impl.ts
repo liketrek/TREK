@@ -100,7 +100,8 @@ const CACHE_MAX_ENTRIES = 1000;
 const CACHE_PRUNE_TARGET = 500;
 const CACHE_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-setInterval(() => {
+/** Drop expired entries, then trim the cache back if it is still over the cap. */
+function pruneCache(): void {
   const now = Date.now();
   for (const [key, entry] of weatherCache) {
     if (now > entry.expiresAt) weatherCache.delete(key);
@@ -110,7 +111,31 @@ setInterval(() => {
     const toDelete = entries.slice(0, entries.length - CACHE_PRUNE_TARGET);
     toDelete.forEach(([key]) => weatherCache.delete(key));
   }
-}, CACHE_CLEANUP_INTERVAL);
+}
+
+let cleanupTimer: NodeJS.Timeout | null = null;
+
+/**
+ * Start the cache sweep. WeatherService calls this from onModuleInit.
+ *
+ * It used to be a bare setInterval at module scope, which meant every process
+ * that so much as imported this file — including every test worker — started a
+ * five-minute timer it never stopped. Nothing cleaned it up because there was
+ * nothing to call.
+ */
+export function startCacheCleanup(): void {
+  if (cleanupTimer) return;
+  cleanupTimer = setInterval(pruneCache, CACHE_CLEANUP_INTERVAL);
+  // Never hold the process open for a cache sweep.
+  cleanupTimer.unref?.();
+}
+
+/** Stop the sweep (onModuleDestroy). Idempotent. */
+export function stopCacheCleanup(): void {
+  if (!cleanupTimer) return;
+  clearInterval(cleanupTimer);
+  cleanupTimer = null;
+}
 
 const TTL_FORECAST_MS = 60 * 60 * 1000;      // 1 hour
 const TTL_CURRENT_MS  = 15 * 60 * 1000;      // 15 minutes

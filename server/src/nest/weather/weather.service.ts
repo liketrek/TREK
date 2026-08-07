@@ -1,16 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import type { WeatherResult } from '@trek/shared';
-import { getWeather, getDetailedWeather } from '../../services/weatherService';
+import { getWeather, getDetailedWeather, startCacheCleanup, stopCacheCleanup } from './weather.impl';
 
 /**
- * Thin Nest wrapper around the existing weather service. It delegates to the
- * exact same `getWeather` / `getDetailedWeather` functions the legacy route and
- * the MCP tools use, so behaviour — including the shared in-memory cache and the
- * Open-Meteo calls — is identical. No logic is duplicated; the upstream service
- * stays the single source of truth (still consumed by the MCP weather tools).
+ * The weather domain's container face, and the owner of the cache sweep's
+ * lifecycle.
+ *
+ * The Open-Meteo calls and the response shaping live in weather.impl.ts, which
+ * also holds the process-wide cache. That cache stays module state on purpose:
+ * the MCP weather tools call getWeather directly, from outside the container,
+ * and a cache is only worth having if every caller sees the same one. Moving it
+ * into this class would mean handing the registrar the container instance to
+ * achieve exactly what a module singleton already gives.
+ *
+ * What did have to move is the sweep timer — see startCacheCleanup.
  */
 @Injectable()
-export class WeatherService {
+export class WeatherService implements OnModuleInit, OnModuleDestroy {
+  onModuleInit(): void {
+    startCacheCleanup();
+  }
+
+  onModuleDestroy(): void {
+    stopCacheCleanup();
+  }
+
   get(lat: string, lng: string, date: string | undefined, lang: string): Promise<WeatherResult> {
     return getWeather(lat, lng, date, lang) as Promise<WeatherResult>;
   }

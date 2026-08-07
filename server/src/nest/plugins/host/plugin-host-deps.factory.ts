@@ -3,7 +3,7 @@ import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { readEnv } from '../../../app-config';
 import { RealtimeService } from '../../realtime/realtime.service';
 import { isUpdateConflict } from '../../common/conflictResult';
-import { getWeather } from '../../../services/weatherService';
+import { getWeather } from '../../weather/weather.impl';
 import { BLOCKED_EXTENSIONS, filesDir } from '../../files/files.constants';
 import { TripMembershipService } from '../../trip-membership/trip-membership.service';
 import { NotificationsService } from '../../notifications/notifications.service';

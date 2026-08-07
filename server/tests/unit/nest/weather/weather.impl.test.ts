@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 
-// Prevent the module-level setInterval from running during tests
+// Fake timers for the cache-expiry cases below. The module no longer starts a
+// timer of its own on import — that moved to WeatherService's lifecycle.
 vi.useFakeTimers();
 
 // Prevent real HTTP requests
@@ -15,7 +16,7 @@ import {
   getDetailedWeather,
   ApiError,
   type WeatherResult,
-} from '../../../src/services/weatherService';
+} from '../../../../src/nest/weather/weather.impl';
 
 // ── estimateCondition ────────────────────────────────────────────────────────
 
@@ -715,5 +716,72 @@ describe('getDetailedWeather', () => {
       // avgTemp = (20+10)/2 = 15, precip = 10 > 5 and temp 15 > 0 -> 'Rain'
       expect(result.main).toBe('Rain');
     });
+  });
+});
+
+// ── error paths ──────────────────────────────────────────────────────────────
+//
+// Three branches the suite never reached. They came into the coverage gate with
+// the file when it moved out of services/, and they are the paths a user hits
+// when Open-Meteo is having a bad day.
+
+describe('getWeather error paths', () => {
+  beforeEach(() => {
+    vi.mocked(fetch).mockReset();
+  });
+
+  it('WEATHER-ERR-001: a failing archive lookup surfaces as ApiError with the upstream reason', async () => {
+    const past = dateOffset(-30);
+    vi.mocked(fetch).mockResolvedValueOnce(
+      mockResponse({ error: true, reason: 'Archive temporarily unavailable' }, false, 503),
+    );
+
+    await expect(getWeather('41.10', '9.10', past, 'en')).rejects.toMatchObject({
+      status: 503,
+      message: 'Archive temporarily unavailable',
+    });
+  });
+
+  it('WEATHER-ERR-002: a failing archive lookup without a reason falls back to the generic message', async () => {
+    const past = dateOffset(-31);
+    vi.mocked(fetch).mockResolvedValueOnce(mockResponse({}, false, 500));
+
+    await expect(getWeather('41.20', '9.20', past, 'en')).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('WEATHER-ERR-003: a far-future date with no usable climate rows answers no_forecast', async () => {
+    const farOut = dateOffset(200);
+    // Climate API responds 200 but every row is null, so nothing can be averaged.
+    vi.mocked(fetch).mockResolvedValueOnce(
+      mockResponse({
+        daily: {
+          time: [farOut],
+          temperature_2m_max: [null],
+          temperature_2m_min: [null],
+          precipitation_sum: [null],
+        },
+      }),
+    );
+
+    const result = await getWeather('41.30', '9.30', farOut, 'en');
+    expect(result.error).toBe('no_forecast');
+    expect(result.temp).toBe(0);
+  });
+
+  it('WEATHER-ERR-004: an expired cache entry is dropped and the upstream is asked again', async () => {
+    const date = dateOffset(4);
+    const body = {
+      daily: { time: [date], temperature_2m_max: [20], temperature_2m_min: [10], weathercode: [0] },
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse(body));
+
+    await getWeather('41.40', '9.40', date, 'en');
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    // Forecast entries live an hour; step past it.
+    vi.advanceTimersByTime(60 * 60 * 1000 + 1000);
+
+    await getWeather('41.40', '9.40', date, 'en');
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 });

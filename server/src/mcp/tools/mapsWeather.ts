@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
 import { findByIata, searchAirports } from '../../nest/airports/airports.data';
-import { getWeather, getDetailedWeather } from '../../services/weatherService';
+import { getWeather, getDetailedWeather } from '../../nest/weather/weather.impl';
 import {
   TOOL_ANNOTATIONS_READONLY,
   ok,
