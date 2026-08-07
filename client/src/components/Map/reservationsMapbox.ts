@@ -17,6 +17,8 @@ import type { Reservation, ReservationEndpoint } from '../../types'
 
 export const RESERVATION_SOURCE_ID = 'trek-reservations'
 export const RESERVATION_LINE_LAYER_ID = 'trek-reservations-lines'
+/** Sits under the coloured transit lines; named here so teardown can find it. */
+export const TRANSIT_CASING_LAYER_ID = `${RESERVATION_LINE_LAYER_ID}-transit-casing`
 
 type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transit' | 'transport_other'
 const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transit', 'transport_other']
@@ -218,7 +220,14 @@ export class ReservationMapboxOverlay {
     this.endpointMarkers.forEach(m => m.remove())
     this.endpointMarkers = []
     try {
-      if (this.map.getLayer(RESERVATION_LINE_LAYER_ID)) this.map.removeLayer(RESERVATION_LINE_LAYER_ID)
+      // Every layer before the source: the engine refuses to drop a source while
+      // anything still references it, and it reports that by firing an error event
+      // rather than throwing — so the catch below never saw it and the source was
+      // left behind. The casing layer arrived with the transit paths and was missed
+      // here, which is what made the console complain on every map teardown.
+      for (const id of [TRANSIT_CASING_LAYER_ID, RESERVATION_LINE_LAYER_ID]) {
+        if (this.map.getLayer(id)) this.map.removeLayer(id)
+      }
       if (this.map.getSource(RESERVATION_SOURCE_ID)) this.map.removeSource(RESERVATION_SOURCE_ID)
     } catch { /* map already gone */ }
   }
@@ -229,7 +238,7 @@ export class ReservationMapboxOverlay {
     map.addSource(RESERVATION_SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
     // White casing under real transit paths so the colored lines read cleanly.
     map.addLayer({
-      id: RESERVATION_LINE_LAYER_ID + '-transit-casing',
+      id: TRANSIT_CASING_LAYER_ID,
       type: 'line',
       source: RESERVATION_SOURCE_ID,
       filter: ['all', ['==', ['get', 'transitPath'], true], ['!=', ['get', 'walk'], true]] as any,

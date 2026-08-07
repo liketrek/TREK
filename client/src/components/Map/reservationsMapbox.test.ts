@@ -3,6 +3,7 @@ import {
   ReservationMapboxOverlay,
   RESERVATION_SOURCE_ID,
   RESERVATION_LINE_LAYER_ID,
+  TRANSIT_CASING_LAYER_ID,
   type ReservationOverlayOptions,
 } from './reservationsMapbox'
 import type { Reservation, ReservationEndpoint } from '../../types'
@@ -165,7 +166,17 @@ function freshMap(projection: Projection = spread) {
     addLayer: vi.fn((layer: { id: string }) => { layers.set(layer.id, layer) }),
     getLayer: (id: string) => layers.get(id),
     removeLayer: vi.fn((id: string) => { layers.delete(id) }),
-    removeSource: vi.fn((id: string) => { sources.delete(id) }),
+    // The real engine refuses to drop a source that a layer still points at, and
+    // reports it by firing an error rather than throwing. Modelled as a throw here
+    // so a missed layer fails the test instead of only dirtying a console.
+    removeSource: vi.fn((id: string) => {
+      for (const [layerId, layer] of layers) {
+        if ((layer as { source?: string }).source === id) {
+          throw new Error(`Source "${id}" cannot be removed while layer "${layerId}" is using it.`)
+        }
+      }
+      sources.delete(id)
+    }),
     on: vi.fn(function (this: void, event: string, fn: Handler) { (handlers[event] ||= []).push(fn) }),
     off: vi.fn((event: string, fn: Handler) => { handlers[event] = (handlers[event] || []).filter(h => h !== fn) }),
     getZoom: () => 12,
@@ -265,7 +276,12 @@ describe('ReservationMapboxOverlay lifecycle', () => {
     expect(map.listeners('zoomend')).toBe(0)
     expect(map.listeners('moveend')).toBe(0)
     expect(map.removeLayer).toHaveBeenCalledWith(RESERVATION_LINE_LAYER_ID)
+    expect(map.removeLayer).toHaveBeenCalledWith(TRANSIT_CASING_LAYER_ID)
     expect(map.removeSource).toHaveBeenCalledWith(RESERVATION_SOURCE_ID)
+    // Nothing left behind: the casing layer used to survive teardown, which kept
+    // the source alive with it and made every map unmount log an error.
+    expect(map._layers.size).toBe(0)
+    expect(map._sources.size).toBe(0)
   })
 
   it('FE-COMP-RESGL-004: destroy survives a map whose style is already gone', () => {
