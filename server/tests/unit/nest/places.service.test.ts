@@ -10,6 +10,7 @@
  * are mocked where needed.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { TRACK_COLORS } from '@trek/shared';
@@ -52,11 +53,9 @@ vi.mock('../../../src/config', () => ({
 
 // Spy on the photo-cache reclaim hook so delete tests assert the wiring without
 // touching disk. The removal logic itself is covered in placePhotoCache.test.ts.
-const { removeIfUnreferencedSpy } = vi.hoisted(() => ({ removeIfUnreferencedSpy: vi.fn() }));
-vi.mock('../../../src/services/placePhotoCache', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../src/services/placePhotoCache')>()),
-  removeIfUnreferenced: removeIfUnreferencedSpy,
-}));
+// Injected stub since the photo-cache fold (was a partial path mock).
+const removeIfUnreferencedSpy = vi.fn();
+const photoCacheStub = { removeIfUnreferenced: removeIfUnreferencedSpy } as unknown as PlacePhotoCacheService;
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
@@ -76,7 +75,7 @@ const GPX_FIXTURE = path.join(__dirname, '../../fixtures/test.gpx');
 const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
 
 const dbs = new DatabaseService(testDb);
-const svc = new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), new MapsService(dbs), new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()));
+const svc = new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), new MapsService(dbs), new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()), photoCacheStub);
 
 beforeAll(() => {
   createTables(testDb);
@@ -1014,7 +1013,7 @@ describe('PlacesService — automatic track colours (#776)', () => {
 
 describe('enrichImportedPlaces', () => {
   function enrichSvc(maps: Partial<MapsService>) {
-    return new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), maps as MapsService, new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()));
+    return new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), maps as MapsService, new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()), photoCacheStub);
   }
 
   it('PLACE-SVC-058 — no-ops when no Google Maps key is configured', async () => {

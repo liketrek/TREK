@@ -13,15 +13,21 @@ import crypto from 'node:crypto';
 import { Jimp, JimpMime } from 'jimp';
 import Database from 'better-sqlite3';
 
-// Throwaway upload dir — set before importing the module under test (it reads the
-// env at load time and mkdirs the dir).
-const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'ppc-'));
-process.env.TREK_PLACE_PHOTO_DIR = TMP_DIR;
+// Throwaway upload dir, hoisted with the DB below: the service is a static
+// import now, so vi.mock's factory runs before any top-level statement.
+const { TMP_DIR, testDb } = vi.hoisted(() => {
+  const nodeFs = require('node:fs');
+  const nodePath = require('node:path');
+  const nodeOs = require('node:os');
+  const Db = require('better-sqlite3');
+  const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'ppc-'));
+  process.env.TREK_PLACE_PHOTO_DIR = dir;
+  return { TMP_DIR: dir, testDb: new Db(':memory:') };
+});
 
-// Minimal real DB with just the tables placePhotoCache touches. isReferenced now
+// Minimal real DB with just the tables the cache touches. isReferenced now
 // UNIONs collection_places (#1081 photo-cache fix), so the bare fixture must
 // declare it too or the reference check would throw "no such table".
-const testDb = new Database(':memory:');
 testDb.exec(`
   CREATE TABLE places (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,7 +47,7 @@ testDb.exec(`
   );
 `);
 
-vi.mock('../../../src/db/database', () => ({ db: testDb }));
+vi.mock('../../../../src/db/database', () => ({ db: testDb }));
 
 function filePathFor(placeId: string): string {
   const hash = crypto.createHash('sha1').update(placeId).digest('hex');
@@ -53,10 +59,16 @@ async function makeJpeg(width: number, height: number): Promise<Buffer> {
   return img.getBuffer(JimpMime.jpeg, { quality: 80 });
 }
 
-let cache: typeof import('../../../src/services/placePhotoCache');
+import { PlacePhotoCacheService } from '../../../../src/nest/place-photos/place-photo-cache.service';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
+import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 
-beforeAll(async () => {
-  cache = await import('../../../src/services/placePhotoCache');
+let cache: PlacePhotoCacheService;
+
+beforeAll(() => {
+  // onModuleInit does what the module-scope mkdirSync used to do on import.
+  cache = new PlacePhotoCacheService(new DatabaseService(testDb as never), new RuntimeEnvService());
+  cache.onModuleInit();
 });
 
 beforeEach(() => {

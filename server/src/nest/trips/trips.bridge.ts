@@ -4,6 +4,7 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { TripsService } from './trips.service';
 import { TodoService } from '../todo/todo.service';
@@ -34,6 +35,9 @@ import { MapsService } from '../maps/maps.service';
  * the shared better-sqlite3 singleton.
  */
 const dbs = () => new DatabaseService(db);
+// One instance, not one per consumer: the in-flight dedup only works if the
+// stampede guard is shared (see PlacePhotoCacheService).
+const photoCache = new PlacePhotoCacheService(dbs(), new RuntimeEnvService());
 const budget = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
 const trips = new TripsService(
   dbs(),
@@ -47,7 +51,7 @@ const trips = new TripsService(
   new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new VacayService(dbs(), new RealtimeService()),
   new RealtimeService(),
-  new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs()), new QueryHelpersService(dbs()), new UnsplashService(dbs(), new RuntimeEnvService())),
+  new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs(), photoCache), new QueryHelpersService(dbs()), new UnsplashService(dbs(), new RuntimeEnvService()), photoCache),
   new UnsplashService(dbs(), new RuntimeEnvService()),
 );
 

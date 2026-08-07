@@ -7,6 +7,7 @@
  * SQL logic is exercised faithfully.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -43,8 +44,9 @@ vi.mock('../../../src/config', () => ({
 const checkPermission = vi.fn();
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
-const { serveFilePath } = vi.hoisted(() => ({ serveFilePath: vi.fn() }));
-vi.mock('../../../src/services/placePhotoCache', () => ({ serveFilePath }));
+// Injected stub since the photo-cache fold (was a path mock of the module).
+const serveFilePath = vi.fn();
+const photoCacheStub = { serveFilePath } as unknown as PlacePhotoCacheService;
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
@@ -59,7 +61,7 @@ import { SettingsService } from '../../../src/nest/settings/settings.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import type { User } from '../../../src/types';
 
-const svc = new ShareService(new DatabaseService(testDb), new SettingsService(new DatabaseService(testDb)), permissionsStub, new QueryHelpersService(new DatabaseService(testDb)));
+const svc = new ShareService(new DatabaseService(testDb), new SettingsService(new DatabaseService(testDb)), permissionsStub, new QueryHelpersService(new DatabaseService(testDb)), photoCacheStub);
 
 beforeAll(() => {
   createTables(testDb);

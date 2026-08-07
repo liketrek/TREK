@@ -88,7 +88,9 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: '0'.repeat(64),
 }));
 
-vi.mock('../../../src/services/placePhotoCache', () => ({
+// Injected stub since the photo-cache fold (was a path mock of the module).
+// Same seven seams, same mock functions behind them.
+const photoCacheStub = {
   get: (placeId: string) => mockCacheGet(placeId),
   getErrored: (placeId: string) => mockCacheGetErrored(placeId),
   put: (placeId: string, bytes: Buffer, attribution: string | null) => mockCachePut(placeId, bytes, attribution),
@@ -96,16 +98,17 @@ vi.mock('../../../src/services/placePhotoCache', () => ({
   getInFlight: (placeId: string) => mockCacheGetInFlight(placeId),
   setInFlight: (placeId: string, p: Promise<any>) => mockCacheSetInFlight(placeId, p),
   serveFilePath: (placeId: string) => mockServeFilePath(placeId),
-}));
+} as unknown as PlacePhotoCacheService;
 
 import { db } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
 // The service under test, constructed over the mocked db stub — DatabaseService
 // routes get/run through the stubbed prepare(), so mockDbGet/mockDbRun keep
 // flowing exactly as they did for the legacy module.
-const svc = new MapsService(new DatabaseService(db as never));
+const svc = new MapsService(new DatabaseService(db as never), photoCacheStub);
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -2155,7 +2158,7 @@ function makeSettingsDb(row?: { value: string }) {
 }
 
 function settingsSvc(row?: { value: string }) {
-  return new MapsService(makeSettingsDb(row).db);
+  return new MapsService(makeSettingsDb(row).db, photoCacheStub);
 }
 
 describe('kill-switch settings reads', () => {
@@ -2179,7 +2182,7 @@ describe('kill-switch settings reads', () => {
 
   it('queries the matching app_settings key', () => {
     const { db: settingsDb, get } = makeSettingsDb({ value: 'true' });
-    const s = new MapsService(settingsDb);
+    const s = new MapsService(settingsDb, photoCacheStub);
     s.autocompleteDisabled();
     expect(get).toHaveBeenCalledWith(expect.stringContaining('app_settings'), 'places_autocomplete_enabled');
     s.detailsDisabled();

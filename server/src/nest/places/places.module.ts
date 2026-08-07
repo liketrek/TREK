@@ -5,6 +5,7 @@ import { PlacesMcp } from './places.mcp';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { UnsplashModule } from '../unsplash/unsplash.module';
+import { PlacePhotosModule } from '../place-photos/place-photos.module';
 import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
 import { MapsModule } from '../maps/maps.module';
 import { AuthModule } from '../auth/auth.module';
@@ -18,7 +19,7 @@ import { AuthModule } from '../auth/auth.module';
  * is no places.bridge.ts: nothing outside the container consumes this domain.
  */
 @Module({
-  imports: [PermissionsModule, QueryHelpersModule, MapsModule, AuthModule, AppConfigModule, UnsplashModule],
+  imports: [PermissionsModule, QueryHelpersModule, MapsModule, AuthModule, AppConfigModule, UnsplashModule, PlacePhotosModule],
   controllers: [PlacesController],
   providers: [PlacesService, PlacesMcp],
   exports: [PlacesService],

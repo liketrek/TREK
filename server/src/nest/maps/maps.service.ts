@@ -11,7 +11,7 @@ import { readEnv, getAppUrl } from '../../app-config';
 import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
-import * as placePhotoCache from '../../services/placePhotoCache';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { DatabaseService } from '../database/database.service';
 import {
   UA,
@@ -238,7 +238,10 @@ type LocationBias = { low: { lat: number; lng: number }; high: { lat: number; ln
  */
 @Injectable()
 export class MapsService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly photoCache: PlacePhotoCacheService,
+  ) {}
 
   private isSettingDisabled(key: string): boolean {
     const row = this.database.get<{ value: string }>(
@@ -283,7 +286,7 @@ export class MapsService {
   }
 
   photoBytesPath(placeId: string): string | null {
-    return placePhotoCache.serveFilePath(placeId);
+    return this.photoCache.serveFilePath(placeId);
   }
 
   reverse(lat: string, lng: string, lang?: string): Promise<MapsReverseResult> {
@@ -949,7 +952,7 @@ export class MapsService {
     name?: string,
   ): Promise<{ photoUrl: string | null; attribution: string | null }> {
     // Disk cache hit — serve immediately, no Google call
-    const diskHit = placePhotoCache.get(placeId);
+    const diskHit = this.photoCache.get(placeId);
     if (diskHit) return { photoUrl: diskHit.photoUrl, attribution: diskHit.attribution };
 
     // "No photo for this place" is an empty result, not a missing resource: a trip
@@ -960,10 +963,10 @@ export class MapsService {
     const noPhoto = { photoUrl: null, attribution: null };
 
     // Recent miss — don't hammer the API
-    if (placePhotoCache.getErrored(placeId)) return noPhoto;
+    if (this.photoCache.getErrored(placeId)) return noPhoto;
 
     // Deduplicate concurrent requests for the same placeId
-    const existing = placePhotoCache.getInFlight(placeId);
+    const existing = this.photoCache.getInFlight(placeId);
     if (existing) {
       const result = await existing;
       if (!result) return noPhoto;
@@ -997,7 +1000,7 @@ export class MapsService {
               return null;
             }
             const bytes = Buffer.from(await imgRes.arrayBuffer());
-            const cached = await placePhotoCache.put(placeId, bytes, wiki.attribution);
+            const cached = await this.photoCache.put(placeId, bytes, wiki.attribution);
             return { filePath: cached.filePath, attribution: cached.attribution };
           } catch {
             providerFailed = true;
@@ -1060,7 +1063,7 @@ export class MapsService {
             return null;
           }
 
-          const cached = await placePhotoCache.put(placeId, bytes, attribution);
+          const cached = await this.photoCache.put(placeId, bytes, attribution);
 
           // Persist stable proxy URL to database
           try {
@@ -1087,14 +1090,14 @@ export class MapsService {
         const fallback = await fetchWikimediaFallback();
         if (fallback) return fallback;
 
-        placePhotoCache.markError(placeId, providerFailed ? 'provider-error' : 'no-photo');
+        this.photoCache.markError(placeId, providerFailed ? 'provider-error' : 'no-photo');
         return null;
       } finally {
         releasePhotoFetchSlot();
       }
     })();
 
-    placePhotoCache.setInFlight(placeId, fetchPromise);
+    this.photoCache.setInFlight(placeId, fetchPromise);
 
     const result = await fetchPromise;
     if (!result) return noPhoto;

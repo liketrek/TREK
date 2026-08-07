@@ -10,6 +10,7 @@ import http from 'node:http';
 import type { INestApplication } from '@nestjs/common';
 import { buildApp } from './bootstrap';
 import { BackupService } from './nest/backup/backup.service';
+import { PlacePhotoCacheService } from './nest/place-photos/place-photo-cache.service';
 
 // Create upload and data directories on startup.
 // Every uploads subdir the app writes to must be listed here (#1762): a dir
@@ -91,7 +92,12 @@ const onListen = () => {
   // The scheduler runs outside the container but needs things inside it. It is
   // handed them here, from the app buildApp() already initialised, rather than
   // reaching for src/services at call time.
-  scheduler.setSchedulerDeps({ backups: nestApp.get(BackupService) });
+  scheduler.setSchedulerDeps({
+    backups: nestApp.get(BackupService),
+    // The container singleton, not a fresh instance: the in-flight dedup and the
+    // known-on-disk set only work if the whole process shares one.
+    placePhotos: nestApp.get(PlacePhotoCacheService),
+  });
   scheduler.start();
   scheduler.startTripReminders();
   scheduler.startTodoReminders();

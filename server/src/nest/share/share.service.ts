@@ -4,7 +4,7 @@ import { DatabaseService } from '../database/database.service';
 import type { TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
-import { serveFilePath } from '../../services/placePhotoCache';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { SettingsService } from '../settings/settings.service';
 import type { User } from '../../types';
 
@@ -57,6 +57,7 @@ export class ShareService {
     private readonly settings: SettingsService,
     private readonly permissions: PermissionsService,
     private readonly queryHelpers: QueryHelpersService,
+    private readonly photoCache: PlacePhotoCacheService,
   ) {}
 
   verifyTripAccess(tripId: string, userId: number) {
@@ -318,6 +319,6 @@ export class ShareService {
     const place = this.dbs.get('SELECT 1 FROM places WHERE trip_id = ? AND image_url = ?', shareRow.trip_id, expectedUrl);
     if (!place) return null;
 
-    return serveFilePath(placeId);
+    return this.photoCache.serveFilePath(placeId);
   }
 }

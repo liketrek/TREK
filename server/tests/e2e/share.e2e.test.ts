@@ -45,8 +45,8 @@ import { PermissionsService } from '../../src/nest/permissions/permissions.servi
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
 
-const { serveFilePath } = vi.hoisted(() => ({ serveFilePath: vi.fn() }));
-vi.mock('../../src/services/placePhotoCache', () => ({ serveFilePath }));
+// Overridden in the container rather than path-mocked: the cache is a provider now.
+const serveFilePath = vi.fn();
 
 import os from 'node:os';
 import path from 'node:path';
@@ -54,6 +54,7 @@ import fs from 'node:fs';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { ShareModule } from '../../src/nest/share/share.module';
+import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
@@ -64,7 +65,9 @@ describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, ShareModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, ShareModule] })
+      .overrideProvider(PlacePhotoCacheService).useValue({ serveFilePath })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

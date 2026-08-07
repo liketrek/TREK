@@ -73,6 +73,7 @@ function saveSettings(settings: BackupSettings): void {
  */
 export interface SchedulerDeps {
   backups: { createBackup(prefix?: 'backup' | 'auto-backup'): Promise<{ filename: string }> };
+  placePhotos: { sweepOrphans(): number };
 }
 
 let deps: SchedulerDeps | undefined;
@@ -381,8 +382,11 @@ function startPlacePhotoCacheCleanup(): void {
 
   const sweep = () => {
     try {
-      const { sweepOrphans } = require('./services/placePhotoCache');
-      const removed = sweepOrphans();
+      if (!deps) {
+        logError('Place-photo cache cleanup: skipped, the scheduler was started without its container dependencies');
+        return;
+      }
+      const removed = deps.placePhotos.sweepOrphans();
       if (removed > 0) logInfo(`Place-photo cache cleanup: removed ${removed} orphaned file(s)/row(s)`);
     } catch (err: unknown) {
       logError(`Place-photo cache cleanup: ${err instanceof Error ? err.message : err}`);

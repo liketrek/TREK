@@ -20,6 +20,7 @@ import {
   resolveCategoryIdForFolder,
 } from './kml-import.helpers';
 import { UnsplashService } from '../unsplash/unsplash.service';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
 import { reclaimPlaceImage } from './place-image';
 import { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } from '../../services/journeyService';
@@ -106,6 +107,7 @@ export class PlacesService {
     private readonly maps: MapsService,
     private readonly queryHelpers: QueryHelpersService,
     private readonly unsplash: UnsplashService,
+    private readonly photoCache: PlacePhotoCacheService,
   ) {}
 
   verifyTripAccess(tripId: string, userId: number) {
@@ -343,7 +345,7 @@ export class PlacesService {
     );
     if (!place) return false;
     this.dbs.run('DELETE FROM places WHERE id = ?', placeId);
-    reclaimPhotoCache(place.google_place_id, place.image_url);
+    reclaimPhotoCache(this.photoCache, place.google_place_id, place.image_url);
     reclaimPlaceImage(place.image_url);
     return true;
   }
@@ -365,7 +367,7 @@ export class PlacesService {
     });
     // Reclaim after the transaction commits so isReferenced() sees the final place set.
     for (const row of reclaimable) {
-      reclaimPhotoCache(row.google_place_id, row.image_url);
+      reclaimPhotoCache(this.photoCache, row.google_place_id, row.image_url);
       reclaimPlaceImage(row.image_url);
     }
     return deleted;

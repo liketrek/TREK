@@ -5,10 +5,11 @@ import { ShareMcp } from './share.mcp';
 import { SettingsModule } from '../settings/settings.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
+import { PlacePhotosModule } from '../place-photos/place-photos.module';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [SettingsModule, PermissionsModule, QueryHelpersModule, AuthModule],
+  imports: [SettingsModule, PermissionsModule, QueryHelpersModule, AuthModule, PlacePhotosModule],
   controllers: [TripShareController, SharedController],
   providers: [ShareService, ShareMcp],
 })

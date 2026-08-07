@@ -53,10 +53,15 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { CollectionsService } from '../../../src/nest/collections/collections.service';
-import { removeIfUnreferenced } from '../../../src/services/placePhotoCache';
+import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { PLACE_IMAGES_DIR } from '../../../src/nest/places/place-image';
 
 const svc = new CollectionsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+// The real cache: these cases assert what removeIfUnreferenced actually does
+// about collection_places (#1081), so a stub would assert nothing.
+const photoCache = new PlacePhotoCacheService(new DatabaseService(testDb), new RuntimeEnvService());
+const removeIfUnreferenced = (id: string) => photoCache.removeIfUnreferenced(id);
 
 function clearCollections() {
   testDb.exec(`
