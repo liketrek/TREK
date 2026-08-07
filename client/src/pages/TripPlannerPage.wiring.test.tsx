@@ -813,8 +813,10 @@ describe('TripPlannerPage — other tabs', () => {
   const hotel = buildReservation({ id: 2, type: 'hotel' })
   const transit = buildReservation({ id: 3, type: 'train' })
 
-  it('FE-PAGE-TPW-034: the transports tab lists only transport bookings and wires its actions', () => {
+  it('FE-PAGE-TPW-034: the transports tab lists only transport bookings and wires its actions', async () => {
     renderPage({ activeTab: 'transports', reservations: [flight, hotel, transit] })
+    // The panel loads on demand now; its props only exist once the chunk is in.
+    await screen.findByTestId('reservations-panel')
 
     const listed = props('reservationsPanel').reservations as unknown as Reservation[]
     expect(listed.map(r => r.id)).toEqual([1, 3])
@@ -838,17 +840,19 @@ describe('TripPlannerPage — other tabs', () => {
     expect(hookState.handleTabChange).toHaveBeenCalledWith('dateien')
   })
 
-  it('FE-PAGE-TPW-035: a saved transit journey opens the journey view instead of the editor', () => {
+  it('FE-PAGE-TPW-035: a saved transit journey opens the journey view instead of the editor', async () => {
     const journey = buildReservation({ id: 9, type: 'transit' })
     renderPage({ activeTab: 'transports', reservations: [journey] })
+    await screen.findByTestId('reservations-panel')
 
     act(() => { props('reservationsPanel').onEdit(journey) })
     expect(hookState.setTransitJourney).toHaveBeenCalledWith(journey)
     expect(hookState.setShowTransportModal).not.toHaveBeenCalled()
   })
 
-  it('FE-PAGE-TPW-036: the bookings tab lists everything that is not transport', () => {
+  it('FE-PAGE-TPW-036: the bookings tab lists everything that is not transport', async () => {
     renderPage({ activeTab: 'buchungen', reservations: [flight, hotel] })
+    await screen.findByTestId('reservations-panel')
 
     const listed = props('reservationsPanel').reservations as unknown as Reservation[]
     expect(listed.map(r => r.id)).toEqual([2])
@@ -866,15 +870,17 @@ describe('TripPlannerPage — other tabs', () => {
     expect(hookState.handleTabChange).toHaveBeenCalledWith('dateien')
   })
 
-  it('FE-PAGE-TPW-037: the costs, collab and plugin tabs mount their panel', () => {
+  it('FE-PAGE-TPW-037: the costs, collab and plugin tabs mount their panel', async () => {
     renderPage({ activeTab: 'finanzplan' })
-    expect(screen.getByTestId('costs-panel')).toBeInTheDocument()
+    expect(await screen.findByTestId('costs-panel')).toBeInTheDocument()
 
     cleanup()
     renderPage({ activeTab: 'collab' })
-    expect(screen.getByTestId('collab-panel')).toBeInTheDocument()
+    expect(await screen.findByTestId('collab-panel')).toBeInTheDocument()
 
     cleanup()
+    // PluginFrame is deliberately not lazy — DayDetailPanel and PlaceInspector
+    // pull it in from the plan tab anyway — so this stays synchronous.
     renderPage({ activeTab: 'plugin:routes' })
     expect(props('pluginFrame').pluginId).toBe('routes')
     expect(props('pluginFrame').tripId).toBe('42')
@@ -882,6 +888,7 @@ describe('TripPlannerPage — other tabs', () => {
 
   it('FE-PAGE-TPW-038: the files tab hands the manager the trip files and the write callbacks', async () => {
     renderPage({ activeTab: 'dateien', files: [] })
+    await screen.findByTestId('file-manager')
 
     expect(props('fileManager').allowedFileTypes).toBe('pdf')
 
@@ -897,51 +904,55 @@ describe('TripPlannerPage — other tabs', () => {
 })
 
 describe('TripPlannerPage — lists tab', () => {
-  it('FE-PAGE-TPW-039: the lists tab starts on packing and remembers the chosen subtab', () => {
+  it('FE-PAGE-TPW-039: the lists tab starts on packing and remembers the chosen subtab', async () => {
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })], todoItems: [buildTodoItem()] })
 
-    expect(screen.getByTestId('packing-list-panel')).toBeInTheDocument()
+    expect(await screen.findByTestId('packing-list-panel')).toBeInTheDocument()
     fireEvent.click(screen.getByText('To-Do'))
 
-    expect(screen.getByTestId('todo-list-panel')).toBeInTheDocument()
+    expect(await screen.findByTestId('todo-list-panel')).toBeInTheDocument()
     expect(sessionStorage.getItem('trip-lists-subtab-42')).toBe('todo')
   })
 
-  it('FE-PAGE-TPW-040: a persisted subtab wins over the packing default', () => {
+  it('FE-PAGE-TPW-040: a persisted subtab wins over the packing default', async () => {
     sessionStorage.setItem('trip-lists-subtab-42', 'todo')
     renderPage({ activeTab: 'listen' })
 
-    expect(screen.getByTestId('todo-list-panel')).toBeInTheDocument()
+    expect(await screen.findByTestId('todo-list-panel')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Add new task/i }))
     expect(props('todoPanel').addItemSignal).toBe(1)
   })
 
-  it('FE-PAGE-TPW-041: the clear-checked action only appears once something is checked', () => {
+  it('FE-PAGE-TPW-041: the clear-checked action only appears once something is checked', async () => {
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 1 })] })
+    await screen.findByTestId('packing-list-panel')
 
     const clear = screen.getByRole('button', { name: /Remove 1 checked/i })
     fireEvent.click(clear)
     expect(props('packingPanel').clearCheckedSignal).toBe(1)
   })
 
-  it('FE-PAGE-TPW-042: an admin can save the current list as a template', () => {
+  it('FE-PAGE-TPW-042: an admin can save the current list as a template', async () => {
     seedStore(useAuthStore, { user: buildUser({ id: 5, role: 'admin' }) })
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })] })
+    await screen.findByTestId('packing-list-panel')
 
     fireEvent.click(screen.getByRole('button', { name: /Save as template/i }))
     expect(props('packingPanel').saveTemplateSignal).toBe(1)
   })
 
-  it('FE-PAGE-TPW-043: a non-admin sees import but no save-as-template', () => {
+  it('FE-PAGE-TPW-043: a non-admin sees import but no save-as-template', async () => {
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })] })
+    await screen.findByTestId('packing-list-panel')
 
     expect(screen.queryByRole('button', { name: /Save as template/i })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Import/i }))
     expect(props('packingPanel').openImportSignal).toBe(1)
   })
 
-  it('FE-PAGE-TPW-044: switching the packing visibility is forwarded to the template button', () => {
+  it('FE-PAGE-TPW-044: switching the packing visibility is forwarded to the template button', async () => {
     renderPage({ activeTab: 'listen', packingItems: [] })
+    await screen.findByTestId('packing-list-panel')
 
     expect(props('applyTemplate').visibility).toBe('common')
     act(() => { props('packingPanel').onViewChange('personal') })

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import ReactDOM from 'react-dom'
 import { useParams, useNavigate, useSearchParams } from 'react-router'
 import { useTripStore } from '../store/tripStore'
@@ -22,16 +22,13 @@ import TransitJourneyModal from '../components/Planner/TransitJourneyModal'
 import BookingImportModal from '../components/Planner/BookingImportModal'
 import AirTrailImportModal from '../components/Planner/AirTrailImportModal'
 // MemoriesPanel moved to Journey addon
-import ReservationsPanel from '../components/Planner/ReservationsPanel'
-import PackingListPanel from '../components/Packing/PackingListPanel'
 import ApplyTemplateButton from '../components/Packing/ApplyTemplateButton'
-import TodoListPanel from '../components/Todo/TodoListPanel'
-import FileManager from '../components/Files/FileManager'
-import CostsPanel, { ExpenseModal, type ExpensePrefill } from '../components/Budget/CostsPanel'
+import type { ExpensePrefill } from '../components/Budget/CostsPanel'
 import type { BookingExpenseRequest } from '../components/Planner/BookingCostsSection.types'
 import type { BudgetItem } from '../types'
-import CollabPanel from '../components/Collab/CollabPanel'
 import PluginFrame from '../components/Plugins/PluginFrame'
+import ErrorBoundary from '../components/shared/ErrorBoundary'
+import { lazyWithRetry } from '../utils/lazyWithRetry'
 import TripWarningsBanner from '../components/Planner/TripWarningsBanner'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
@@ -54,6 +51,46 @@ import PoiCategoryPill from '../components/Map/PoiCategoryPill'
 import { useIsPhone } from '../mobile/useIsPhone'
 import { useTouchDragBridge } from '../hooks/useTouchDragBridge'
 import MTripShell from '../mobile/screens/trip/MTripShell'
+
+// The tab panels are the planner's dead weight: each one mounts only while its
+// own tab is active, so the page chunk carried code most sessions never run. They
+// load on demand now, through the same lazyWithRetry the route chunks use.
+//
+// PluginFrame stays static on purpose: DayDetailPanel and PlaceInspector import it
+// too and both belong to the plan tab, so splitting it here would move nothing.
+const ReservationsPanel = lazyWithRetry(() => import('../components/Planner/ReservationsPanel'))
+const PackingListPanel = lazyWithRetry(() => import('../components/Packing/PackingListPanel'))
+const TodoListPanel = lazyWithRetry(() => import('../components/Todo/TodoListPanel'))
+const FileManager = lazyWithRetry(() => import('../components/Files/FileManager'))
+const CostsPanel = lazyWithRetry(() => import('../components/Budget/CostsPanel'))
+// Named export, so it needs the extra hop. Importing it statically would keep the
+// whole CostsPanel module in the page chunk and undo the split above.
+const ExpenseModal = lazyWithRetry(() =>
+  import('../components/Budget/CostsPanel').then(m => ({ default: m.ExpenseModal }))
+)
+const CollabPanel = lazyWithRetry(() => import('../components/Collab/CollabPanel'))
+
+/**
+ * One tab panel, with its own net.
+ *
+ * The boundary sits outside the Suspense, not inside: Suspense owns the pending
+ * promise, a rejected one throws straight past it. And it has to be per panel —
+ * a single boundary around the whole content area would already be mounted with
+ * the visible tab, so switching tabs would swap the entire planner for the
+ * placeholder instead of just the part that is still loading.
+ *
+ * No label: ErrorBoundary lets label win over the panel level and would title a
+ * broken packing list "This plugin could not be shown".
+ */
+function LazyPanel({ id, children }: { id: string; children: React.ReactNode }): React.ReactElement {
+  return (
+    <ErrorBoundary boundaryId={`planner-panel:${id}`}>
+      <Suspense fallback={<div className="h-full w-full min-h-[180px] rounded-xl bg-surface-secondary animate-pulse" />}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
+  )
+}
 
 function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
   const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
@@ -173,8 +210,16 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
         </div>
       </div>
       <div style={{ padding: '16px 28px 0' }} className="max-md:!px-4">
-        {subTab === 'packing' && <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} />}
-        {subTab === 'todo' && <TodoListPanel tripId={tripId} items={todoItems} addItemSignal={addTodoSignal} />}
+        {subTab === 'packing' && (
+          <LazyPanel id="packing">
+            <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} />
+          </LazyPanel>
+        )}
+        {subTab === 'todo' && (
+          <LazyPanel id="todo">
+            <TodoListPanel tripId={tripId} items={todoItems} addItemSignal={addTodoSignal} />
+          </LazyPanel>
+        )}
       </div>
     </div>
   )
@@ -650,44 +695,48 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
 
         {activeTab === 'transports' && (
           <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <ReservationsPanel
-              tripId={tripId}
-              reservations={reservations.filter(r => TRANSPORT_TYPES.has(r.type))}
-              days={days}
-              assignments={assignments}
-              files={files}
-              onAdd={() => { setEditingTransport(null); setTransitPrefill(null); setTransportModalAutomated(false); setShowTransportModal(true) }}
-              onImport={() => setShowBookingImport(true)}
-              bookingImportAvailable={bookingImportAvailable}
-              onAirTrailImport={() => setShowAirTrailImport(true)}
-              airTrailAvailable={airTrailAvailable}
-              onEdit={(r) => { if (r.type === 'transit') { setTransitJourney(r) } else { setEditingTransport(r); setTransportModalAutomated(false); setShowTransportModal(true) } }}
-              onDelete={handleDeleteReservation}
-              onNavigateToFiles={() => handleTabChange('dateien')}
-              titleKey="transport.title"
-              addManualKey="transport.addManual"
-              contributionView="transports"
-              tripMembers={tripMembers}
-            />
+            <LazyPanel id="transports">
+              <ReservationsPanel
+                tripId={tripId}
+                reservations={reservations.filter(r => TRANSPORT_TYPES.has(r.type))}
+                days={days}
+                assignments={assignments}
+                files={files}
+                onAdd={() => { setEditingTransport(null); setTransitPrefill(null); setTransportModalAutomated(false); setShowTransportModal(true) }}
+                onImport={() => setShowBookingImport(true)}
+                bookingImportAvailable={bookingImportAvailable}
+                onAirTrailImport={() => setShowAirTrailImport(true)}
+                airTrailAvailable={airTrailAvailable}
+                onEdit={(r) => { if (r.type === 'transit') { setTransitJourney(r) } else { setEditingTransport(r); setTransportModalAutomated(false); setShowTransportModal(true) } }}
+                onDelete={handleDeleteReservation}
+                onNavigateToFiles={() => handleTabChange('dateien')}
+                titleKey="transport.title"
+                addManualKey="transport.addManual"
+                contributionView="transports"
+                tripMembers={tripMembers}
+              />
+            </LazyPanel>
           </div>
         )}
 
         {activeTab === 'buchungen' && (
           <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <ReservationsPanel
-              tripId={tripId}
-              reservations={reservations.filter(r => !TRANSPORT_TYPES.has(r.type))}
-              days={days}
-              assignments={assignments}
-              files={files}
-              onAdd={() => { setEditingReservation(null); setShowReservationModal(true) }}
-              onImport={() => setShowBookingImport(true)}
-              bookingImportAvailable={bookingImportAvailable}
-              onEdit={(r) => { setEditingReservation(r); setShowReservationModal(true) }}
-              onDelete={handleDeleteReservation}
-              onNavigateToFiles={() => handleTabChange('dateien')}
-              tripMembers={tripMembers}
-            />
+            <LazyPanel id="buchungen">
+              <ReservationsPanel
+                tripId={tripId}
+                reservations={reservations.filter(r => !TRANSPORT_TYPES.has(r.type))}
+                days={days}
+                assignments={assignments}
+                files={files}
+                onAdd={() => { setEditingReservation(null); setShowReservationModal(true) }}
+                onImport={() => setShowBookingImport(true)}
+                bookingImportAvailable={bookingImportAvailable}
+                onEdit={(r) => { setEditingReservation(r); setShowReservationModal(true) }}
+                onDelete={handleDeleteReservation}
+                onNavigateToFiles={() => handleTabChange('dateien')}
+                tripMembers={tripMembers}
+              />
+            </LazyPanel>
           </div>
         )}
 
@@ -699,30 +748,36 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
 
         {activeTab === 'finanzplan' && (
           <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <CostsPanel tripId={tripId} tripMembers={tripMembers} />
+            <LazyPanel id="finanzplan">
+              <CostsPanel tripId={tripId} tripMembers={tripMembers} />
+            </LazyPanel>
           </div>
         )}
 
         {activeTab === 'dateien' && (
           <div style={{ height: '100%', overflow: 'hidden', overscrollBehavior: 'contain', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <FileManager
-              files={files || []}
-              onUpload={(fd) => tripActions.addFile(tripId, fd)}
-              onDelete={(id) => tripActions.deleteFile(tripId, id)}
-              onUpdate={() => tripActions.loadFiles(tripId)}
-              places={places}
-              days={days}
-              assignments={assignments}
-              reservations={reservations}
-              tripId={tripId}
-              allowedFileTypes={allowedFileTypes}
-            />
+            <LazyPanel id="dateien">
+              <FileManager
+                files={files || []}
+                onUpload={(fd) => tripActions.addFile(tripId, fd)}
+                onDelete={(id) => tripActions.deleteFile(tripId, id)}
+                onUpdate={() => tripActions.loadFiles(tripId)}
+                places={places}
+                days={days}
+                assignments={assignments}
+                reservations={reservations}
+                tripId={tripId}
+                allowedFileTypes={allowedFileTypes}
+              />
+            </LazyPanel>
           </div>
         )}
 
         {activeTab === 'collab' && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 'var(--bottom-nav-h)', overflow: 'hidden' }}>
-            <CollabPanel tripId={tripId} tripMembers={tripMembers} collabFeatures={collabFeatures} />
+            <LazyPanel id="collab">
+              <CollabPanel tripId={tripId} tripMembers={tripMembers} collabFeatures={collabFeatures} />
+            </LazyPanel>
           </div>
         )}
 
@@ -772,16 +827,20 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
         />
       )}
       {bookingExpense && (
-        <ExpenseModal
-          tripId={tripId}
-          base={costsBase}
-          people={tripMembers}
-          me={meId}
-          editing={bookingExpense.editing}
-          prefill={bookingExpense.prefill}
-          onClose={() => setBookingExpense(null)}
-          onSaved={() => { setBookingExpense(null); loadBudgetItems(tripId) }}
-        />
+        <ErrorBoundary boundaryId="planner-panel:expense" fallback={null}>
+          <Suspense fallback={null}>
+            <ExpenseModal
+              tripId={tripId}
+              base={costsBase}
+              people={tripMembers}
+              me={meId}
+              editing={bookingExpense.editing}
+              prefill={bookingExpense.prefill}
+              onClose={() => setBookingExpense(null)}
+              onSaved={() => { setBookingExpense(null); loadBudgetItems(tripId) }}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
       <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={tripId} />
       <AirTrailImportModal isOpen={showAirTrailImport} onClose={() => setShowAirTrailImport(false)} tripId={tripId} pushUndo={pushUndo} />
