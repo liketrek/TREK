@@ -15,7 +15,6 @@ import FilesPage from './pages/FilesPage'
 import AdminPage from './pages/AdminPage'
 import SettingsPage from './pages/SettingsPage'
 import VacayPage from './pages/VacayPage'
-import HelpPage from './pages/HelpPage'
 import AtlasPage from './pages/AtlasPage'
 import JourneyPage from './pages/JourneyPage'
 import JourneyDetailPage from './pages/JourneyDetailPage'
@@ -237,22 +236,6 @@ export default function App() {
           element={
             <ProtectedRoute>
               <JoinTripPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/help"
-          element={
-            <ProtectedRoute>
-              <HelpPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/help/:slug"
-          element={
-            <ProtectedRoute>
-              <HelpPage />
             </ProtectedRoute>
           }
         />

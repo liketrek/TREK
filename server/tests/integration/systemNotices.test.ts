@@ -95,14 +95,13 @@ describe('GET /api/system-notices/active', () => {
   it('returns no login/version-gated notices for an established user', async () => {
     const { user } = createUser(testDb);
     // login_count > 1 means firstLogin does not match; first_seen_version >= 3.0.0 means
-    // existingUserBeforeVersion('3.0.0') does not match either. The always-on thank-you
-    // notice (no conditions) may still apply, so only filter it out.
+    // existingUserBeforeVersion('3.0.0') does not match either.
     testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
     const res = await request(app)
       .get('/api/system-notices/active')
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
-    expect(res.body.filter((n: { id: string }) => n.id !== 'thank-you-support')).toEqual([]);
+    expect(res.body).toEqual([]);
   });
 
   it('returns firstLogin notice for user with login_count <= 1', async () => {
@@ -116,7 +115,6 @@ describe('GET /api/system-notices/active', () => {
         .get('/api/system-notices/active')
         .set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
-      // The always-on thank-you notice may also be present, so just assert TEST_NOTICE is there
       const testNotice = res.body.find((n: { id: string }) => n.id === TEST_NOTICE.id);
       expect(testNotice).toBeDefined();
       // DTO should not expose conditions, publishedAt, minVersion, maxVersion, priority
@@ -162,7 +160,6 @@ describe('GET /api/system-notices/active', () => {
         .get('/api/system-notices/active')
         .set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
-      // TEST_NOTICE should be filtered out; the thank-you notice may still appear
       const found = res.body.find((n: { id: string }) => n.id === TEST_NOTICE.id);
       expect(found).toBeUndefined();
     } finally {
@@ -171,33 +168,16 @@ describe('GET /api/system-notices/active', () => {
     }
   });
 
-  it('re-surfaces a per-version notice after an upgrade but hides it within the same version', async () => {
-    const TY = 'thank-you-support';
+  it('does not expose the retired support notice', async () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
 
-    const shows = async () => {
-      const res = await request(app)
-        .get('/api/system-notices/active')
-        .set('Cookie', authCookie(user.id));
-      expect(res.status).toBe(200);
-      return res.body.some((n: { id: string }) => n.id === TY);
-    };
+    const res = await request(app)
+      .get('/api/system-notices/active')
+      .set('Cookie', authCookie(user.id));
 
-    // Fresh user with no dismissal: the recurring thank-you shows.
-    expect(await shows()).toBe(true);
-
-    // Dismissed at an old version → it returns once the running version is newer.
-    testDb.prepare(
-      'INSERT INTO user_notice_dismissals (user_id, notice_id, dismissed_at, dismissed_app_version) VALUES (?, ?, ?, ?)'
-    ).run(user.id, TY, Date.now(), '0.0.1');
-    expect(await shows()).toBe(true);
-
-    // Dismissed at a version >= the running one → stays hidden until the next upgrade.
-    testDb.prepare(
-      'UPDATE user_notice_dismissals SET dismissed_app_version = ? WHERE user_id = ? AND notice_id = ?'
-    ).run('99.0.0', user.id, TY);
-    expect(await shows()).toBe(false);
+    expect(res.status).toBe(200);
+    expect(res.body.some((n: { id: string }) => n.id === 'thank-you-support')).toBe(false);
   });
 });
 
