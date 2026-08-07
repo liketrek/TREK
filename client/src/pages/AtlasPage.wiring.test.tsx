@@ -14,10 +14,9 @@ import AtlasPage from './AtlasPage';
 // confirm popup and the sidebar can be driven into every state directly, which the
 // map-click driven suite in AtlasPage.test.tsx cannot reach.
 
-const mocks = vi.hoisted(() => ({ atlas: {} as AtlasController, isPhone: false }));
+const mocks = vi.hoisted(() => ({ atlas: {} as AtlasController }));
 
 vi.mock('./atlas/useAtlas', () => ({ useAtlas: () => mocks.atlas }));
-vi.mock('../mobile/useIsPhone', () => ({ useIsPhone: () => mocks.isPhone }));
 vi.mock('../components/Layout/Navbar', () => ({
   default: () => React.createElement('nav', { 'data-testid': 'navbar' }),
 }));
@@ -35,7 +34,6 @@ function selectTriggers(): HTMLElement[] {
 }
 
 beforeEach(() => {
-  mocks.isPhone = false;
   toast.mockClear();
   window.__addToast = toast;
   setAtlas();
@@ -54,14 +52,6 @@ afterEach(() => {
 });
 
 describe('AtlasPage wiring', () => {
-  it('FE-PAGE-ATLASW-001: hands the whole screen to the mobile atlas on a phone', () => {
-    mocks.isPhone = true;
-    render(<AtlasPage />);
-
-    expect(screen.getByRole('button', { name: 'atlas.bucketTab' })).toBeInTheDocument();
-    expect(screen.queryByTestId('navbar')).not.toBeInTheDocument();
-  });
-
   it('FE-PAGE-ATLASW-002: shows navbar and spinner while the atlas is loading', () => {
     setAtlas({ loading: true });
     render(<AtlasPage />);

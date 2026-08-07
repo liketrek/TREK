@@ -16,15 +16,14 @@ import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDeta
 import LabelManager from '../components/Collections/LabelManager'
 import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal'
 import { useCollections } from './collections/useCollections'
-import { useIsPhone } from '../mobile/useIsPhone'
-import MCollections from '../mobile/screens/collections/MCollections'
 import EmptyState from '../components/shared/EmptyState'
 import '../styles/dashboard.css'
 import '../styles/collections.css'
 
 export default function CollectionsPage(): React.ReactElement {
-  const isPhone = useIsPhone()
-  return isPhone ? <MCollections /> : <CollectionsPageDesktop />
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <CollectionsPageDesktop />
 }
 
 function CollectionsPageDesktop(): React.ReactElement {

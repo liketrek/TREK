@@ -42,12 +42,6 @@ function props(name: string): Record<string, AnyProp> {
   return (captured[name] ?? {}) as Record<string, AnyProp>
 }
 
-const isPhone = vi.hoisted(() => ({ value: false }))
-vi.mock('../mobile/useIsPhone', () => ({ useIsPhone: () => isPhone.value }))
-vi.mock('../mobile/screens/trip/MTripShell', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'm-trip-shell' }),
-}))
-
 vi.mock('../components/Map/MapViewAuto', () => ({ MapViewAuto: stub('map', 'map-view') }))
 vi.mock('../components/Map/MapCompassPill', () => ({ MapCompassPill: stub('compass', 'compass-pill') }))
 vi.mock('../components/Map/PoiCategoryPill', () => ({ default: stub('poiPill', 'poi-pill') }))
@@ -301,21 +295,12 @@ beforeEach(() => {
   resetAllStores()
   for (const key of Object.keys(captured)) delete captured[key]
   confirmDialogs.length = 0
-  isPhone.value = false
   hookState = baseState()
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser({ id: 5 }) })
   useTripStore.setState({ loadBudgetItems: vi.fn(async () => undefined) } as never)
 })
 
 describe('TripPlannerPage — shell', () => {
-  it('FE-PAGE-TPW-001: below the md breakpoint the mobile trip shell replaces the planner', () => {
-    isPhone.value = true
-    renderPage()
-
-    expect(screen.getByTestId('m-trip-shell')).toBeInTheDocument()
-    expect(screen.queryByTestId('map-view')).not.toBeInTheDocument()
-  })
-
   it('FE-PAGE-TPW-002: the splash holds the page until the trip finished loading', () => {
     renderPage({ isLoading: true, splashDone: false })
 

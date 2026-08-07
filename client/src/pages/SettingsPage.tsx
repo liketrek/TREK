@@ -14,12 +14,11 @@ import OfflineTab from '../components/Settings/OfflineTab'
 import PluginSettingsTab from '../components/Settings/PluginSettingsTab'
 import { usePluginStore } from '../store/pluginStore'
 import { useSettings } from './settings/useSettings'
-import { useIsPhone } from '../mobile/useIsPhone'
-import MSettings from '../mobile/screens/settings/MSettings'
 
 export default function SettingsPage(): React.ReactElement {
-  const isPhone = useIsPhone()
-  return isPhone ? <MSettings /> : <SettingsPageDesktop />
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <SettingsPageDesktop />
 }
 
 function SettingsPageDesktop(): React.ReactElement {

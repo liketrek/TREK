@@ -14,8 +14,6 @@ import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
 import AdminPluginsPanel from '../components/Admin/AdminPluginsPanel'
 import { Users, Map, Briefcase, Shield, FileText, SlidersHorizontal, UserCog, Puzzle, Blocks, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug } from 'lucide-react'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
-import { useIsPhone } from '../mobile/useIsPhone'
-import MAdmin from '../mobile/screens/admin/MAdmin'
 import { useAdmin } from './admin/useAdmin'
 import AdminUpdateBanner from './admin/AdminUpdateBanner'
 import AdminStatCard from './admin/AdminStatCard'
@@ -25,8 +23,9 @@ import AdminNotificationsTab from './admin/AdminNotificationsTab'
 import AdminUserModals from './admin/AdminUserModals'
 
 export default function AdminPage(): React.ReactElement {
-  const isPhone = useIsPhone()
-  return isPhone ? <MAdmin /> : <AdminPageDesktop />
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <AdminPageDesktop />
 }
 
 function AdminPageDesktop(): React.ReactElement {

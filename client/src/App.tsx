@@ -14,6 +14,7 @@ import SaveToCollectionModal from './components/Collections/SaveToCollectionModa
 import MSaveToCollectionSheet from './components/Collections/MSaveToCollectionSheet'
 import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget'
 import MobileShell from './mobile/MobileShell'
+import MRouteFallback from './mobile/components/MRouteFallback'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useIsPhone } from './mobile/useIsPhone'
@@ -51,6 +52,23 @@ const SharedTripPage = lazyWithRetry(() => import('./pages/SharedTripPage'))
 const JoinTripPage = lazyWithRetry(() => import('./pages/JoinTripPage'))
 const InAppNotificationsPage = lazyWithRetry(() => import('./pages/InAppNotificationsPage.tsx'))
 const OAuthAuthorizePage = lazyWithRetry(() => import('./pages/OAuthAuthorizePage'))
+
+// The ten phone screens are chunks of their own, alongside the desktop pages
+// rather than inside them. Each page used to import its M screen statically and
+// decide while rendering, so the route chunk always carried both trees and the
+// viewport only picked which half stayed dark. Here the branch decides the
+// chunk: a phone never loads the desktop planner, a desktop never the mobile
+// shell.
+const MDashboardScreen = lazyWithRetry(() => import('./mobile/screens/dashboard/MDashboard'))
+const MTripScreen = lazyWithRetry(() => import('./mobile/screens/trip/MTripShell'))
+const MAdminScreen = lazyWithRetry(() => import('./mobile/screens/admin/MAdmin'))
+const MSettingsScreen = lazyWithRetry(() => import('./mobile/screens/settings/MSettings'))
+const MVacayScreen = lazyWithRetry(() => import('./mobile/screens/vacay/MVacay'))
+const MAtlasScreen = lazyWithRetry(() => import('./mobile/screens/atlas/MAtlas'))
+const MJourneyScreen = lazyWithRetry(() => import('./mobile/screens/journey/MJourney'))
+const MJourneyDetailScreen = lazyWithRetry(() => import('./mobile/screens/journey/MJourneyDetail'))
+const MCollectionsScreen = lazyWithRetry(() => import('./mobile/screens/collections/MCollections'))
+const MNotificationsScreen = lazyWithRetry(() => import('./mobile/screens/notifications/MNotifications'))
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -140,6 +158,20 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   )
 }
 
+/**
+ * Picks the chunk, not just the branch. Both sides come through lazyWithRetry,
+ * so exactly one of them is fetched for a given viewport — which is the whole
+ * point: the ternary that used to sit in each page only ran once the browser
+ * had already paid for both trees.
+ */
+function ViewportRoute({ phone: Phone, desktop: Desktop }: {
+  phone: React.ComponentType
+  desktop: React.ComponentType
+}): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <Phone /> : <Desktop />
+}
+
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuthStore()
 
@@ -160,6 +192,11 @@ function RootRedirect() {
  * get to inherit its raw slate.
  */
 function RouteFallback() {
+  // The fallback renders above MobileShell, so it has to pick its own palette —
+  // on a phone the desktop spinner on bg-surface would be a foreign white sheet
+  // in front of the mobile screen.
+  const isPhone = useIsPhone()
+  if (isPhone) return <MRouteFallback />
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface">
       <div className="w-10 h-10 border-4 border-edge border-t-content rounded-full animate-spin"></div>
@@ -290,7 +327,7 @@ export default function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <ViewportRoute phone={MDashboardScreen} desktop={DashboardPage} />
               </ProtectedRoute>
             }
           />
@@ -324,7 +361,7 @@ export default function App() {
             path="/trips/:id"
             element={
               <ProtectedRoute>
-                <TripPlannerPage />
+                <ViewportRoute phone={MTripScreen} desktop={TripPlannerPage} />
               </ProtectedRoute>
             }
           />
@@ -340,7 +377,7 @@ export default function App() {
             path="/admin"
             element={
               <ProtectedRoute adminRequired>
-                <AdminPage />
+                <ViewportRoute phone={MAdminScreen} desktop={AdminPage} />
               </ProtectedRoute>
             }
           />
@@ -348,7 +385,7 @@ export default function App() {
             path="/settings"
             element={
               <ProtectedRoute>
-                <SettingsPage />
+                <ViewportRoute phone={MSettingsScreen} desktop={SettingsPage} />
               </ProtectedRoute>
             }
           />
@@ -364,7 +401,7 @@ export default function App() {
             path="/vacay"
             element={
               <ProtectedRoute>
-                <VacayPage />
+                <ViewportRoute phone={MVacayScreen} desktop={VacayPage} />
               </ProtectedRoute>
             }
           />
@@ -372,7 +409,7 @@ export default function App() {
             path="/atlas"
             element={
               <ProtectedRoute>
-                <AtlasPage />
+                <ViewportRoute phone={MAtlasScreen} desktop={AtlasPage} />
               </ProtectedRoute>
             }
           />
@@ -380,7 +417,7 @@ export default function App() {
             path="/journey"
             element={
               <ProtectedRoute addonId="journey">
-                <JourneyPage />
+                <ViewportRoute phone={MJourneyScreen} desktop={JourneyPage} />
               </ProtectedRoute>
             }
           />
@@ -388,7 +425,7 @@ export default function App() {
             path="/journey/:id"
             element={
               <ProtectedRoute addonId="journey">
-                <JourneyDetailPage />
+                <ViewportRoute phone={MJourneyDetailScreen} desktop={JourneyDetailPage} />
               </ProtectedRoute>
             }
           />
@@ -396,7 +433,7 @@ export default function App() {
             path="/collections"
             element={
               <ProtectedRoute addonId="collections">
-                <CollectionsPage />
+                <ViewportRoute phone={MCollectionsScreen} desktop={CollectionsPage} />
               </ProtectedRoute>
             }
           />
@@ -404,7 +441,7 @@ export default function App() {
             path="/collections/:id"
             element={
               <ProtectedRoute addonId="collections">
-                <CollectionsPage />
+                <ViewportRoute phone={MCollectionsScreen} desktop={CollectionsPage} />
               </ProtectedRoute>
             }
           />
@@ -412,7 +449,7 @@ export default function App() {
             path="/notifications"
             element={
               <ProtectedRoute>
-                <InAppNotificationsPage />
+                <ViewportRoute phone={MNotificationsScreen} desktop={InAppNotificationsPage} />
               </ProtectedRoute>
             }
           />

@@ -1,7 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { act } from '@testing-library/react';
 import { render, screen, fireEvent, waitFor, within } from '../../tests/helpers/render';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
@@ -41,11 +40,6 @@ function installMatchMedia(): void {
       dispatchEvent: () => true,
     }),
   });
-}
-
-function setPhone(next: boolean): void {
-  phone = next;
-  mqListeners.forEach(set => set.forEach(l => l({ matches: next } as MediaQueryListEvent)));
 }
 
 const TRIP = buildTrip({ id: 101, title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' });
@@ -375,14 +369,4 @@ describe('DashboardPage (desktop)', () => {
     }
   });
 
-  it('FE-PAGE-DESKDASH-017: crossing the phone breakpoint swaps in the mobile dashboard', async () => {
-    const { container } = render(<DashboardPage />);
-    await waitFor(() => expect(screen.getAllByText('Paris Adventure').length).toBeGreaterThan(0));
-    expect(container.querySelector('.trek-dash')).toBeInTheDocument();
-
-    act(() => { setPhone(true); });
-
-    await waitFor(() => expect(container.querySelector('.trek-dash')).toBeNull());
-    expect(screen.getByRole('button', { name: 'TREK' })).toBeInTheDocument();
-  });
 });

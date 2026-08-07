@@ -6,12 +6,11 @@ import EmptyState from '../components/shared/EmptyState'
 import { Spinner } from '../components/shared/Spinner'
 import InAppNotificationItem from '../components/Notifications/InAppNotificationItem.tsx'
 import { useInAppNotifications } from './inAppNotifications/useInAppNotifications'
-import { useIsPhone } from '../mobile/useIsPhone'
-import MNotifications from '../mobile/screens/notifications/MNotifications'
 
 export default function InAppNotificationsPage(): React.ReactElement {
-  const isPhone = useIsPhone()
-  return isPhone ? <MNotifications /> : <InAppNotificationsPageDesktop />
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <InAppNotificationsPageDesktop />
 }
 
 function InAppNotificationsPageDesktop(): React.ReactElement {

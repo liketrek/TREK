@@ -32,8 +32,6 @@ import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAddonStore } from '../store/addonStore'
 import { normalizeAppearance } from '@trek/shared'
-import { useIsPhone } from '../mobile/useIsPhone'
-import MDashboard from '../mobile/screens/dashboard/MDashboard'
 import '../styles/dashboard.css'
 
 const GRADIENTS = [
@@ -97,10 +95,9 @@ const RES_ICON: Record<string, React.ReactElement> = {
 const RES_TYPE_CLASS: Record<string, string> = { flight: 'flight', hotel: 'hotel', restaurant: 'food' }
 
 export default function DashboardPage(): React.ReactElement {
-  // Phones get the mobile screen, everything else the untouched desktop page.
-  // Both branches call hooks of their own, so the split lives above them.
-  const isPhone = useIsPhone()
-  return isPhone ? <MDashboard /> : <DashboardPageDesktop />
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <DashboardPageDesktop />
 }
 
 function DashboardPageDesktop(): React.ReactElement {

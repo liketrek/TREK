@@ -48,9 +48,7 @@ import { ListTodo, Upload, Plus, Trash2, FolderPlus } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import PoiCategoryPill from '../components/Map/PoiCategoryPill'
-import { useIsPhone } from '../mobile/useIsPhone'
 import { useTouchDragBridge } from '../hooks/useTouchDragBridge'
-import MTripShell from '../mobile/screens/trip/MTripShell'
 
 // The tab panels are the planner's dead weight: each one mounts only while its
 // own tab is active, so the page chunk carried code most sessions never run. They
@@ -226,11 +224,9 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
 }
 
 export default function TripPlannerPage(): React.ReactElement | null {
-  // Below md the trip renders as the new mobile shell; the desktop planner is
-  // untouched for tablets and up. Each branch mounts its own useTripPlanner,
-  // so no hook is called conditionally here.
-  const isPhone = useIsPhone()
-  return isPhone ? <MTripShell /> : <TripPlannerPageDesktop />
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <TripPlannerPageDesktop />
 }
 
 function TripPlannerPageDesktop(): React.ReactElement | null {

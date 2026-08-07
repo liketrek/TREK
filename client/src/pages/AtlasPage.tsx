@@ -13,12 +13,11 @@ import AtlasCountrySearch from './atlas/AtlasCountrySearch'
 import AtlasLayerToggle from './atlas/AtlasLayerToggle'
 import { useToast } from '../components/shared/Toast'
 import { getApiErrorMessage } from '../types'
-import { useIsPhone } from '../mobile/useIsPhone'
-import MAtlas from '../mobile/screens/atlas/MAtlas'
 
 export default function AtlasPage(): React.ReactElement {
-  const isPhone = useIsPhone()
-  return isPhone ? <MAtlas /> : <AtlasPageDesktop />
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <AtlasPageDesktop />
 }
 
 function AtlasPageDesktop(): React.ReactElement {

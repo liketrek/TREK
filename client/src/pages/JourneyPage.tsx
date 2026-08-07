@@ -7,8 +7,6 @@ import {
 import type { Journey } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
 import { useJourney } from './journey/useJourney'
-import { useIsPhone } from '../mobile/useIsPhone'
-import MJourney from '../mobile/screens/journey/MJourney'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #6366F1 45%, #EC4899 100%)',
@@ -24,8 +22,9 @@ function pickGradient(id: number): string {
 }
 
 export default function JourneyPage() {
-  const isPhone = useIsPhone()
-  return isPhone ? <MJourney /> : <JourneyPageDesktop />
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <JourneyPageDesktop />
 }
 
 function JourneyPageDesktop() {

@@ -10,12 +10,11 @@ import VacaySettings from '../components/Vacay/VacaySettings'
 import { Plus, Minus, ChevronLeft, ChevronRight, Settings, CalendarDays, AlertTriangle, Eye, Pencil, Trash2, Unlink, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import Modal from '../components/shared/Modal'
 import { useVacay } from './vacay/useVacay'
-import { useIsPhone } from '../mobile/useIsPhone'
-import MVacay from '../mobile/screens/vacay/MVacay'
 
 export default function VacayPage(): React.ReactElement {
-  const isPhone = useIsPhone()
-  return isPhone ? <MVacay /> : <VacayPageDesktop />
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <VacayPageDesktop />
 }
 
 function VacayPageDesktop(): React.ReactElement {

@@ -8,10 +8,7 @@ import { render, screen, fireEvent } from '../../tests/helpers/render'
 import CollectionsPage from './CollectionsPage'
 
 vi.mock('../components/Layout/Navbar', () => ({ default: () => <nav data-testid="navbar" /> }))
-vi.mock('../mobile/screens/collections/MCollections', () => ({ default: () => <div data-testid="mobile-collections" /> }))
 
-let isPhone = false
-vi.mock('../mobile/useIsPhone', () => ({ useIsPhone: () => isPhone }))
 
 vi.mock('../components/Collections/ListsRail', () => ({
   default: (p: {
@@ -299,19 +296,10 @@ function renderPage(overrides: Hook = {}): Hook {
 }
 
 beforeEach(() => {
-  isPhone = false
   mockUseCollections.mockReset()
 })
 
 describe('CollectionsPage — shell', () => {
-  it('FE-PAGE-COLLPAGE-001: hands a phone viewport to the mobile screen', () => {
-    isPhone = true
-    mockUseCollections.mockReturnValue(makeHook())
-    render(<CollectionsPage />)
-    expect(screen.getByTestId('mobile-collections')).toBeInTheDocument()
-    expect(screen.queryByTestId('navbar')).toBeNull()
-  })
-
   it('FE-PAGE-COLLPAGE-002: renders the desktop shell with hero, rail and list', () => {
     renderPage()
     expect(screen.getByTestId('navbar')).toBeInTheDocument()

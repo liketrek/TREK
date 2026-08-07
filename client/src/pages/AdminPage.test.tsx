@@ -69,19 +69,8 @@ vi.mock('../components/Admin/DefaultUserSettingsTab', () => ({
   default: () => <div data-testid="default-user-settings" />,
 }));
 
-vi.mock('../mobile/screens/admin/MAdmin', () => ({
-  default: () => <div data-testid="mobile-admin" />,
-}));
-
-// Viewport switch — flipped per test instead of at module scope.
-let phoneViewport = false;
-vi.mock('../mobile/useIsPhone', () => ({
-  useIsPhone: () => phoneViewport,
-}));
-
 beforeEach(() => {
   resetAllStores();
-  phoneViewport = false;
 });
 
 describe('AdminPage', () => {
@@ -1614,18 +1603,6 @@ describe('AdminPage', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /user defaults/i }));
       expect(screen.getByTestId('default-user-settings')).toBeInTheDocument();
-    });
-  });
-
-  describe('FE-PAGE-ADMIN-058: Phone viewport', () => {
-    it('renders the mobile admin screen instead of the desktop layout', async () => {
-      phoneViewport = true;
-      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
-
-      render(<AdminPage />);
-
-      expect(screen.getByTestId('mobile-admin')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /^users$/i })).not.toBeInTheDocument();
     });
   });
 
