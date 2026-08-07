@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { PasskeyController } from './passkey.controller';
 import { AuthService } from './auth.service';
 import { PasskeyService } from './passkey.service';
+import { AppConfigModule } from '../app-config/app-config.module';
 import { AuditModule } from '../audit/audit.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AtlasModule } from '../atlas/atlas.module';
@@ -23,7 +24,7 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * everything outside the container goes through auth.bridge.ts.
  */
 @Module({
-  imports: [RateLimitModule, AuditModule, PermissionsModule, AtlasModule, TripMembershipModule],
+  imports: [RateLimitModule, AuditModule, PermissionsModule, AtlasModule, TripMembershipModule, AppConfigModule],
   controllers: [AuthPublicController, AuthController, PasskeyController],
   providers: [AuthService, PasskeyService],
   exports: [AuthService, PasskeyService],

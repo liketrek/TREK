@@ -22,7 +22,9 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import type { User } from '../../types';
 import { JourneyService } from './journey.service';
-import { JourneyAddonGuard } from './journey-addon.guard';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { ADDON_IDS } from '../../addons';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { isVideoMime, isVideoExtension, MAX_VIDEO_SIZE } from '../files/files.constants';
@@ -99,7 +101,8 @@ const VIDEO_UPLOAD = {
  * are declared before /:id so they win over the param.
  */
 @Controller('api/journeys')
-@UseGuards(JourneyAddonGuard, JwtAuthGuard)
+@UseGuards(AddonGuard, JwtAuthGuard)
+@RequireAddon(ADDON_IDS.JOURNEY, 'Journey')
 export class JourneyController {
   constructor(private readonly journey: JourneyService) {}
 

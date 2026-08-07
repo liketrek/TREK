@@ -16,11 +16,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { diskStorage } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { readEnv } from '../../app-config';
 import type { User } from '../../types';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -28,7 +29,6 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { MAX_FILE_SIZE, MAX_VIDEO_SIZE, BLOCKED_EXTENSIONS, filesDir, isVideoExtension } from './files.constants';
 import { getAllowedExtensions } from './files.bridge';
 import { FileUploadDto, FileUpdateDto, FileLinkDto } from './files.dto';
-import { isDemoEmail } from '../common/demo';
 
 const UPLOAD = {
   storage: diskStorage({
@@ -69,7 +69,10 @@ const UPLOAD = {
 @Controller('api/trips/:tripId/files')
 @UseGuards(JwtAuthGuard)
 export class FilesController {
-  constructor(private readonly files: FilesService) {}
+  constructor(
+    private readonly files: FilesService,
+    private readonly env: RuntimeEnvService,
+  ) {}
 
   private requireTrip(tripId: string, user: User) {
     const trip = this.files.verifyTripAccess(tripId, user.id);
@@ -109,8 +112,10 @@ export class FilesController {
     const cleanup = () => { if (file?.path) { try { fs.unlinkSync(file.path); } catch { /* best-effort */ } } };
     try {
       const trip = this.requireTrip(tripId, user);
-      if (readEnv().demo.enabled && isDemoEmail(user.email)) {
-        throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+      // Inline rather than DemoWriteGuard: requireTrip above answers 404 for a
+      // trip the caller cannot reach, and a guard would run before it.
+      if (isDemoWriteBlocked(this.env, user.email)) {
+        throw new HttpException(DEMO_WRITE_ERROR, 403);
       }
       if (!this.files.can('file_upload', trip, user)) {
         throw new HttpException({ error: 'No permission to upload files' }, 403);

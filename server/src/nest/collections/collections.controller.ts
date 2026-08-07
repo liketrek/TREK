@@ -16,20 +16,22 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { Request } from 'express';
 import { diskStorage } from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { readEnv } from '../../app-config';
 import { v4 as uuidv4 } from 'uuid';
 import type { User } from '../../types';
 import { CollectionsService } from './collections.service';
-import { CollectionsAddonGuard } from './collections-addon.guard';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { ADDON_IDS } from '../../addons';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PLACE_IMAGE_UPLOAD } from '../common/place-image-upload';
 import { placeImageUrl } from '../../services/placeImage';
-import { isDemoEmail } from '../common/demo';
 import {
   CollectionCreateDto,
   CollectionUpdateDto,
@@ -82,9 +84,10 @@ const COVER_UPLOAD = {
  * excluded from the WS broadcast.
  */
 @Controller('api/addons/collections')
-@UseGuards(CollectionsAddonGuard, JwtAuthGuard)
+@UseGuards(AddonGuard, JwtAuthGuard)
+@RequireAddon(ADDON_IDS.COLLECTIONS, 'Collections')
 export class CollectionsController {
-  constructor(private readonly collections: CollectionsService) {}
+  constructor(private readonly collections: CollectionsService, private readonly env: RuntimeEnvService) {}
 
   // ── Lists ─────────────────────────────────────────────────────────────────
   @Get()
@@ -174,8 +177,8 @@ export class CollectionsController {
     @UploadedFile() file: Express.Multer.File | undefined,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (readEnv().demo.enabled && isDemoEmail(user.email)) {
-      throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+    if (isDemoWriteBlocked(this.env, user.email)) {
+      throw new HttpException(DEMO_WRITE_ERROR, 403);
     }
     if (!file) throw new HttpException({ error: 'No image uploaded' }, 400);
     return this.collections.setPlaceImage(user.id, Number(pid), placeImageUrl(file.filename), socketId);
@@ -345,8 +348,8 @@ export class CollectionsController {
   @Post(':id/cover')
   @UseInterceptors(FileInterceptor('cover', COVER_UPLOAD))
   uploadCover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Headers('x-socket-id') socketId?: string) {
-    if (readEnv().demo.enabled && isDemoEmail(user.email)) {
-      throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+    if (isDemoWriteBlocked(this.env, user.email)) {
+      throw new HttpException(DEMO_WRITE_ERROR, 403);
     }
     if (!file) throw new HttpException({ error: 'No image uploaded' }, 400);
     const coverUrl = `/uploads/covers/${file.filename}`;

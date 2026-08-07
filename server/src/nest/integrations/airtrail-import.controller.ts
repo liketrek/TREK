@@ -2,7 +2,9 @@ import { Body, Controller, Headers, HttpException, Param, Post, UseGuards } from
 import type { User } from '../../types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { AirtrailAddonGuard } from './airtrail-addon.guard';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { ADDON_IDS } from '../../addons';
 import { AirtrailImportDto } from './airtrail.dto';
 import type { AirtrailImportResult } from '@trek/shared';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -15,7 +17,8 @@ import { importAirtrailFlights } from '../../services/airtrail/airtrailImport';
  * flights are re-fetched server-side with the caller's own key.
  */
 @Controller('api/trips/:tripId/reservations/import')
-@UseGuards(AirtrailAddonGuard, JwtAuthGuard)
+@UseGuards(AddonGuard, JwtAuthGuard)
+@RequireAddon(ADDON_IDS.AIRTRAIL, 'AirTrail')
 export class AirtrailImportController {
   constructor(
     private readonly permissions: PermissionsService,

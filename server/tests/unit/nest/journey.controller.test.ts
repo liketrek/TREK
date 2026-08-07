@@ -6,7 +6,6 @@ import fs from 'node:fs';
 
 import { JourneyController } from '../../../src/nest/journey/journey.controller';
 import { JourneyPublicController } from '../../../src/nest/journey/journey-public.controller';
-import { JourneyAddonGuard } from '../../../src/nest/journey/journey-addon.guard';
 import type { JourneyService } from '../../../src/nest/journey/journey.service';
 import type { User } from '../../../src/types';
 
@@ -34,13 +33,6 @@ async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number
 }
 
 beforeEach(() => vi.clearAllMocks());
-
-describe('JourneyAddonGuard', () => {
-  it('404 when the addon is disabled, passes when enabled', () => {
-    expect(thrown(() => new JourneyAddonGuard(svc({ journeyAddonEnabled: vi.fn().mockReturnValue(false) })).canActivate())).toEqual({ status: 404, body: { error: 'Journey addon is not enabled' } });
-    expect(new JourneyAddonGuard(svc()).canActivate()).toBe(true);
-  });
-});
 
 describe('JourneyController', () => {
   it('GET / lists; POST / 400 without title, else creates', () => {

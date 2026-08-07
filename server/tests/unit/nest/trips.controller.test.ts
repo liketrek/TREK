@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -26,7 +27,7 @@ const req = { headers: {} } as Request;
 // wrapper keeps the historical construction sites positional.
 const writeAudit = vi.fn();
 const audit = { writeAudit } as unknown as AuditService;
-const tc = (s: TripsService) => new TripsController(s, audit);
+const tc = (s: TripsService) => new TripsController(s, audit, new RuntimeEnvService());
 
 function svc(o: Partial<TripsService> = {}): TripsService {
   return {

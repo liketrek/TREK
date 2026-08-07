@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { HttpException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
@@ -28,7 +29,7 @@ function rl(): RateLimitService { return new RateLimitService(); }
 const writeAudit = vi.fn();
 const audit = { writeAudit } as unknown as AuditService;
 const apc = (a: AuthService, limiter: RateLimitService) => new AuthPublicController(a, limiter, audit);
-const ac = (a: AuthService, limiter: RateLimitService) => new AuthController(a, limiter, audit);
+const ac = (a: AuthService, limiter: RateLimitService) => new AuthController(a, limiter, audit, new RuntimeEnvService());
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try { fn(); } catch (err) {

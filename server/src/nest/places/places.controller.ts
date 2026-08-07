@@ -15,9 +15,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { memoryStorage } from 'multer';
 import { hexColorSchema } from '@trek/shared';
-import { readEnv } from '../../app-config';
 import type { User } from '../../types';
 import { PlacesService } from './places.service';
 import { isUpdateConflict } from '../common/conflictResult';
@@ -25,7 +26,6 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PLACE_IMAGE_UPLOAD } from '../common/place-image-upload';
 import { placeImageUrl } from '../../services/placeImage';
-import { isDemoEmail } from '../common/demo';
 import {
   PlaceBulkDeleteDto,
   PlaceBulkUpdateDto,
@@ -86,7 +86,10 @@ function parseBool(v: unknown, defaultVal: boolean): boolean {
 @Controller('api/trips/:tripId/places')
 @UseGuards(JwtAuthGuard)
 export class PlacesController {
-  constructor(private readonly places: PlacesService) {}
+  constructor(
+    private readonly places: PlacesService,
+    private readonly env: RuntimeEnvService,
+  ) {}
 
   private requireTrip(tripId: string, user: User) {
     const trip = this.places.verifyTripAccess(tripId, user.id);
@@ -309,8 +312,10 @@ export class PlacesController {
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (readEnv().demo.enabled && isDemoEmail(user.email)) {
-      throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+    // Inline rather than DemoWriteGuard: requireEdit above answers 404/403 for a
+    // trip the caller cannot reach, and a guard would run before it.
+    if (isDemoWriteBlocked(this.env, user.email)) {
+      throw new HttpException(DEMO_WRITE_ERROR, 403);
     }
     if (!file) {
       throw new HttpException({ error: 'No image uploaded' }, 400);

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AddonsController } from './addons.controller';
 import { AddonsService } from './addons.service';
+import { AddonGuard } from './addon.guard';
 
 /**
  * GET /api/addons — enabled add-ons + photo providers (was an inline handler in
@@ -15,7 +16,7 @@ import { AddonsService } from './addons.service';
  */
 @Module({
   controllers: [AddonsController],
-  providers: [AddonsService],
-  exports: [AddonsService],
+  providers: [AddonsService, AddonGuard],
+  exports: [AddonsService, AddonGuard],
 })
 export class AddonsModule {}

@@ -3,7 +3,6 @@ import { AirtrailController } from './airtrail.controller';
 import { AirtrailImportController } from './airtrail-import.controller';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AddonsModule } from '../addons/addons.module';
-import { AirtrailAddonGuard } from './airtrail-addon.guard';
 
 /**
  * AirTrail integration domain. The connection lives under
@@ -14,6 +13,5 @@ import { AirtrailAddonGuard } from './airtrail-addon.guard';
 @Module({
   imports: [PermissionsModule, AddonsModule],
   controllers: [AirtrailController, AirtrailImportController],
-  providers: [AirtrailAddonGuard],
 })
 export class AirtrailModule {}

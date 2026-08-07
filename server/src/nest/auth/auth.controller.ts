@@ -15,12 +15,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { diskStorage } from 'multer';
 import type { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuid } from 'uuid';
-import { readEnv } from '../../app-config';
 import { AuthService } from './auth.service';
 import { avatarDir } from './auth.helpers';
 import {
@@ -39,7 +40,6 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
-import { isDemoEmail } from '../common/demo';
 import type { User } from '../../types';
 
 const WINDOW = 15 * 60 * 1000;
@@ -72,7 +72,7 @@ const AVATAR_UPLOAD = {
 @Controller('api/auth')
 @UseGuards(JwtAuthGuard)
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly rl: RateLimitService, private readonly audit: AuditService) {}
+  constructor(private readonly auth: AuthService, private readonly rl: RateLimitService, private readonly audit: AuditService, private readonly env: RuntimeEnvService) {}
 
   private limit(bucket: string, req: Request, max: number): void {
     if (!this.rl.check(bucket, req.ip || 'unknown', max, WINDOW, Date.now())) {
@@ -145,8 +145,8 @@ export class AuthController {
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('avatar', AVATAR_UPLOAD))
   async avatar(@CurrentUser() user: User, @UploadedFile() file: Express.Multer.File | undefined) {
-    if (readEnv().demo.enabled && isDemoEmail(user.email)) {
-      throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+    if (isDemoWriteBlocked(this.env, user.email)) {
+      throw new HttpException(DEMO_WRITE_ERROR, 403);
     }
     if (!file) {
       throw new HttpException({ error: 'No image uploaded' }, 400);
