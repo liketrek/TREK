@@ -1,5 +1,5 @@
 import type { CostCategory } from '@trek/shared'
-import { splitEqualShares } from '../../../../components/Budget/CostsPanel'
+import { splitEqualShares } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CATEGORY_LIST } from '../../../../components/Budget/costsCategories'
 import { currencyDecimals } from '../../../../utils/formatters'
 import type { BudgetItem } from '../../../../types'

@@ -16,75 +16,13 @@ import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
-import { payersBalanced, rebalancePayers } from './CostsPanel.helpers'
+import { calculateTicketShares, payersBalanced, rebalancePayers, splitEqualShares, type TicketItem } from './CostsPanel.helpers'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 import GuestBadge from '../shared/GuestBadge'
 import { NumericInput } from '../shared/NumericInput'
 import EmptyState from '../shared/EmptyState'
-
-export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
-  const n = members.length
-  if (n === 0) return {}
-
-  const totalCents = Math.round(total * 100)
-  const baseCents = Math.floor(totalCents / n)
-  const remainder = totalCents % n
-
-  const shares: Record<number, number> = {}
-  const sortedMembers = [...members].sort((a, b) => a.user_id - b.user_id)
-  const startIndex = itemId % n
-
-  for (let i = 0; i < n; i++) {
-    const member = sortedMembers[i]
-    const hasExtraCent = ((i - startIndex + n) % n) < remainder
-    shares[member.user_id] = (baseCents + (hasExtraCent ? 1 : 0)) / 100
-  }
-
-  return shares
-}
-
-export interface TicketItem {
-  id: string
-  name: string
-  price: string
-  participants: Set<number>
-}
-
-export function calculateTicketShares(items: TicketItem[]): { shares: Record<number, number>; total: number } {
-  const shares: Record<number, number> = {}
-  let totalCents = 0
-
-  for (const item of items) {
-    const priceNum = parseFloat(item.price) || 0
-    const priceCents = Math.round(priceNum * 100)
-    totalCents += priceCents
-
-    const partIds = [...item.participants]
-    const n = partIds.length
-    if (n === 0) continue
-
-    const baseCents = Math.floor(priceCents / n)
-    const remainder = priceCents % n
-
-    const sortedPartIds = [...partIds].sort((a, b) => a - b)
-
-    for (let i = 0; i < n; i++) {
-      const id = sortedPartIds[i]
-      const hasExtraCent = i < remainder
-      const shareCents = baseCents + (hasExtraCent ? 1 : 0)
-      shares[id] = (shares[id] || 0) + shareCents
-    }
-  }
-
-  const finalShares: Record<number, number> = {}
-  for (const id of Object.keys(shares)) {
-    finalShares[Number(id)] = shares[Number(id)] / 100
-  }
-
-  return { shares: finalShares, total: totalCents / 100 }
-}
 
 interface CostsPanelProps {
   tripId: number

@@ -12,7 +12,8 @@ import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildBudgetItem } from '../../../tests/helpers/factories'
 import type { BudgetItem } from '../../types'
-import CostsPanel, { ExpenseModal, splitEqualShares, calculateTicketShares, type TicketItem } from './CostsPanel'
+import CostsPanel, { ExpenseModal } from './CostsPanel'
+import { splitEqualShares, calculateTicketShares, type TicketItem } from './CostsPanel.helpers'
 
 const tripMembers = [
   { id: 1, username: 'alice', avatar_url: null },
