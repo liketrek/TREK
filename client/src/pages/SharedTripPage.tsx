@@ -23,6 +23,7 @@ import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/mapDefaults';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { useSettingsStore } from '../store/settingsStore';
 import { avatarSrc } from '../utils/avatarSrc';
+import { safeHexColor } from '../utils/safeColor';
 import { getMergedItems, getTransportForDay } from '../utils/dayMerge';
 import { isDayInAccommodationRange } from '../utils/dayOrder';
 import { getFlightLegs, getTrainLegs } from '../utils/flightLegs';
@@ -34,7 +35,9 @@ const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruis
 
 function createMarkerIcon(place: any) {
   const cat = place.category;
-  const color = cat?.color || '#6366f1';
+  // This page answers without a guard, so an unescaped colour here reaches
+  // people who have no account on the instance at all.
+  const color = safeHexColor(cat?.color, '#6366f1');
   const CatIcon = getCategoryIcon(cat?.icon);
   const iconSvg = renderToStaticMarkup(createElement(CatIcon, { size: 14, strokeWidth: 2, color: 'white' }));
   return L.divIcon({

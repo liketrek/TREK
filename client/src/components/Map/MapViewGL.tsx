@@ -11,6 +11,8 @@ import { attachLocationMarker, type LocationMarkerHandle } from './locationMarke
 import { ReservationMapboxOverlay } from './reservationsMapbox'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
+import { safeHexColor } from '../../utils/safeColor'
+import { escapeHtml } from '@trek/shared'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -130,12 +132,13 @@ interface Props {
 
 function createMarkerElement(place: Place & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
   const size = selected ? 44 : 36
-  const borderColor = selected ? '#111827' : (place.category_color || 'white')
+  // See MapView: allow-listed rather than escaped, because this is a CSS context.
+  const borderColor = selected ? '#111827' : safeHexColor(place.category_color, 'white')
   const borderWidth = selected ? 3 : 2.5
   const shadow = selected
     ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
     : '0 2px 8px rgba(0,0,0,0.22)'
-  const bgColor = place.category_color || '#6b7280'
+  const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // The visual circle is `size` + 2*border on each side. To make the
   // mapbox `anchor: 'center'` land on the real visual middle of the marker
@@ -182,7 +185,7 @@ function createMarkerElement(place: Place & { category_color?: string; category_
         overflow:hidden;background:${bgColor};
         box-sizing:content-box;
       ">
-        <img src="${photoUrl}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
+        <img src="${escapeHtml(photoUrl)}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
       </div>
       ${badgeHtml}
     `

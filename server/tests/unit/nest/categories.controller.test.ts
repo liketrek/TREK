@@ -31,17 +31,13 @@ describe('CategoriesController (parity with the legacy /api/categories route)', 
   });
 
   describe('POST /', () => {
-    it('400 when name is missing', () => {
-      const create = vi.fn();
-      expect(thrown(() => makeController({ create }).create(admin, undefined))).toEqual({
-        status: 400, body: { error: 'Category name is required' },
-      });
-      expect(create).not.toHaveBeenCalled();
-    });
+    // A body without a name no longer reaches the handler: createCategoryRequestSchema
+    // requires it, and the global ZodValidationPipe rejects it by metatype. The
+    // contract itself is covered by shared/src/category/category.schema.spec.ts.
 
     it('creates and returns { category }', () => {
       const create = vi.fn().mockReturnValue(cat);
-      expect(makeController({ create }).create(admin, 'Food', '#fff', '🍔')).toEqual({ category: cat });
+      expect(makeController({ create }).create(admin, { name: 'Food', color: '#fff', icon: '🍔' })).toEqual({ category: cat });
       expect(create).toHaveBeenCalledWith(1, 'Food', '#fff', '🍔');
     });
   });
@@ -59,7 +55,7 @@ describe('CategoriesController (parity with the legacy /api/categories route)', 
     it('updates and returns { category }', () => {
       const getById = vi.fn().mockReturnValue(cat);
       const update = vi.fn().mockReturnValue({ ...cat, name: 'Drinks' });
-      expect(makeController({ getById, update }).update('1', 'Drinks')).toEqual({ category: { ...cat, name: 'Drinks' } });
+      expect(makeController({ getById, update }).update('1', { name: 'Drinks' })).toEqual({ category: { ...cat, name: 'Drinks' } });
       expect(update).toHaveBeenCalledWith('1', 'Drinks', undefined, undefined);
     });
   });

@@ -35,6 +35,7 @@ vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: (
 import { CategoriesModule } from '../../src/nest/categories/categories.module';
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 function insertCategory(name: string, color = '#6366f1', icon = '📍', userId = 1): number {
   const res = db
@@ -52,6 +53,11 @@ describe('Categories e2e (real JwtAuthGuard + AdminGuard + temp SQLite)', () => 
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
+    // The harness builds a container around the one domain module, so the APP_PIPE
+    // from app.module.ts is not in it. Registering it here is what the other e2e
+    // suites do (see places.e2e.test.ts) and it is required for the DTO bodies to
+    // be validated at all.
+    nest.useGlobalPipes(new ZodValidationPipe());
     await nest.init();
     return nest;
   }
@@ -107,7 +113,27 @@ describe('Categories e2e (real JwtAuthGuard + AdminGuard + temp SQLite)', () => 
   it('400 when an admin creates without a name', async () => {
     const res = await request(server).post('/api/categories').set('Cookie', sessionCookie(1)).send({});
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Category name is required' });
+  });
+
+  // The colour is pasted into a style="…" attribute of hand-built marker HTML on
+  // both map renderers and on the share page, which answers without a guard. It
+  // was reaching the database unvalidated, because @Body('color') reads a property
+  // and carries no metatype for the pipe to work with.
+  it('400 when an admin sends a colour that is not a hex value', async () => {
+    const res = await request(server)
+      .post('/api/categories')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Food', color: 'red" onmouseover="alert(1)' });
+    expect(res.status).toBe(400);
+  });
+
+  it('400 when an admin updates a category to a non-hex colour', async () => {
+    const id = insertCategory('Food', '#fff', '🍔');
+    const res = await request(server)
+      .put(`/api/categories/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ color: 'url(https://evil.example/px)' });
+    expect(res.status).toBe(400);
   });
 
   it('200 when an admin updates, COALESCE preserving omitted fields', async () => {

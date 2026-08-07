@@ -5,6 +5,7 @@ import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship
 import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
+import { safeHexColor } from '../../utils/safeColor'
 import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
@@ -354,7 +355,7 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
           const place = item.data.place
           if (!place) return ''
           const cat = categories.find(c => c.id === place.category_id)
-          const color = cat?.color || '#6366f1'
+          const color = safeHexColor(cat?.color, '#6366f1')
 
           // Image: direct > google photo > fallback icon. Both go through safeImg
           // so the proxy path is resolved to an absolute URL the PDF can load.

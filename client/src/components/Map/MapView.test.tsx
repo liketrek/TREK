@@ -1017,3 +1017,39 @@ describe('MapView photo thumbnails', () => {
     expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
   })
 })
+
+// The marker HTML is a hand-built string handed to L.divIcon, i.e. innerHTML.
+// Two of its interpolations carry values a user controls.
+describe('MapView — untrusted values in the marker HTML', () => {
+  const iconHtml = () => screen.getAllByTestId('marker').map(el => el.getAttribute('data-icon-html') || '').join('')
+
+  it('FE-COMP-MAPVIEW-072: a category colour that is not a hex value is dropped, not escaped', () => {
+    // Escaping alone would stop the attribute breakout but still leave a working
+    // CSS value, so the colour is allow-listed and anything else falls back.
+    render(<MapView places={[buildMapPlace({
+      lat: 48, lng: 2, category_color: 'red" onmouseover="alert(1)',
+    })]} />)
+    expect(iconHtml()).not.toContain('onmouseover')
+    expect(iconHtml()).toContain('#6b7280')
+  })
+
+  it('FE-COMP-MAPVIEW-073: a CSS url() in the category colour never reaches the style attribute', () => {
+    render(<MapView places={[buildMapPlace({ lat: 48, lng: 2, category_color: 'url(https://evil.example/px)' })]} />)
+    expect(iconHtml()).not.toContain('evil.example')
+  })
+
+  it('FE-COMP-MAPVIEW-074: an image_url that passes the /uploads/ prefix check is still escaped', () => {
+    // The prefix check only looks at the start of the string, so a payload can
+    // satisfy it and then break out of the src="…" attribute.
+    render(<MapView places={[buildMapPlace({
+      lat: 48, lng: 2, image_url: '/uploads/x" onerror="alert(1)" y="',
+    })]} />)
+    expect(iconHtml()).not.toContain('onerror="alert(1)"')
+    expect(iconHtml()).toContain('&quot;')
+  })
+
+  it('FE-COMP-MAPVIEW-075: an ordinary hex colour is passed through untouched', () => {
+    render(<MapView places={[buildMapPlace({ lat: 48, lng: 2, category_color: '#00ff00' })]} />)
+    expect(iconHtml()).toContain('#00ff00')
+  })
+})

@@ -13,6 +13,8 @@ import { PluginMapMarkers } from './MapPluginMarkers'
 import { PluginMapLayers } from './MapPluginLayers'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
+import { safeHexColor } from '../../utils/safeColor'
+import { escapeHtml } from '@trek/shared'
 import type { Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
@@ -75,12 +77,14 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
   const cached = iconCache.get(cacheKey)
   if (cached) return cached
   const size = isSelected ? 44 : 36
-  const borderColor = isSelected ? '#111827' : (place.category_color || 'white')
+  // Allow-listed, not escaped: the value lands in style="…" of a divIcon, where
+  // escaping stops the attribute breakout but still permits a CSS url().
+  const borderColor = isSelected ? '#111827' : safeHexColor(place.category_color, 'white')
   const borderWidth = isSelected ? 3 : 2.5
   const shadow = isSelected
     ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
     : '0 2px 8px rgba(0,0,0,0.22)'
-  const bgColor = place.category_color || '#6b7280'
+  const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // Number badges (bottom-right)
   let badgeHtml = ''
@@ -115,7 +119,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
           box-shadow:${shadow};
           overflow:hidden;background:${bgColor};
         ">
-          <img src="${place.image_url}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
+          <img src="${escapeHtml(place.image_url)}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
         </div>
         ${badgeHtml}
       </div>`,
