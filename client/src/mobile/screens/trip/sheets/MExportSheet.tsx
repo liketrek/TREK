@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react'
 import { CalendarPlus, ChevronRight, FileDown } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { IcsSubscribeModal } from '../../../../components/Planner/IcsSubscribeModal'
-import { downloadTripPDF } from '../../../../components/PDF/TripPDF'
 import { useTripStore } from '../../../../store/tripStore'
 import { useTranslation } from '../../../../i18n'
 import { INNER_CLS, TileHeader } from './MTripSheetUi'
@@ -30,6 +29,8 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
     )
     setPdfBusy(true)
     try {
+      // See DayPlanSidebarToolbar: loaded on demand, not with the trip.
+      const { downloadTripPDF } = await import('../../../../components/PDF/TripPDF')
       await downloadTripPDF({
         trip: planner.trip,
         days: planner.days,

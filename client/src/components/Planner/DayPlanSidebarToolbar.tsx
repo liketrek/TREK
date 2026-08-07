@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react'
 import { ChevronsDownUp, ChevronsUpDown, FileDown, Undo2, ArrowUpDown, CalendarPlus, Route as RouteIcon } from 'lucide-react'
-import { downloadTripPDF } from '../PDF/TripPDF'
 import { DayReorderPopup } from './DayReorderPopup'
 import Tooltip from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
@@ -79,6 +78,11 @@ export function DayPlanSidebarToolbar({
                 notes.map(n => ({ ...n, day_id: Number(dayId) }))
               )
               try {
+                // Loaded on click: the PDF builder is ~226 kB and hangs off the
+                // days sidebar, so every trip used to pay for it whether or not
+                // anyone exported. A missing chunk lands in the catch below and
+                // shows the same error the export already had.
+                const { downloadTripPDF } = await import('../PDF/TripPDF')
                 await downloadTripPDF({ trip, days, places, assignments, categories, dayNotes: flatNotes, reservations, t, locale })
               } catch (e) {
                 console.error('PDF error:', e)

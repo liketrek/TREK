@@ -1041,7 +1041,9 @@ describe('TripPlannerPage — modals', () => {
 
     cleanup()
     renderPage({ showTransportModal: true })
-    expect(screen.getByTestId('transport-modal')).toBeInTheDocument()
+    // Loads on demand now — it is the only path to TransitSearchPanel, which
+    // carries tz-lookup.
+    expect(await screen.findByTestId('transport-modal')).toBeInTheDocument()
 
     await act(async () => { await props('transportModal').onSave({ title: 'ICE' }) })
     expect(hookState.handleSaveTransport).toHaveBeenCalledWith({ title: 'ICE' })

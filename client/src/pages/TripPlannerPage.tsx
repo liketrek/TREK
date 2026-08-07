@@ -17,7 +17,6 @@ import TripFormModal from '../components/Trips/TripFormModal'
 import SlidingTabs from '../components/shared/SlidingTabs'
 import TripMembersModal from '../components/Trips/TripMembersModal'
 import { ReservationModal } from '../components/Planner/ReservationModal'
-import { TransportModal } from '../components/Planner/TransportModal'
 import TransitJourneyModal from '../components/Planner/TransitJourneyModal'
 import BookingImportModal from '../components/Planner/BookingImportModal'
 import AirTrailImportModal from '../components/Planner/AirTrailImportModal'
@@ -67,6 +66,12 @@ const ExpenseModal = lazyWithRetry(() =>
   import('../components/Budget/CostsPanel').then(m => ({ default: m.ExpenseModal }))
 )
 const CollabPanel = lazyWithRetry(() => import('../components/Collab/CollabPanel'))
+// Already rendered conditionally, so lazy bites immediately. Worth it beyond its
+// own 63 kB: it is the only path to TransitSearchPanel, which drags in tz-lookup
+// — about 200 kB of packed zone geometry that every trip used to load.
+const TransportModal = lazyWithRetry(() =>
+  import('../components/Planner/TransportModal').then(m => ({ default: m.TransportModal }))
+)
 
 /**
  * One tab panel, with its own net.
@@ -794,7 +799,13 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
       />
       <TripMembersModal isOpen={showMembersModal} onClose={() => setShowMembersModal(false)} tripId={tripId} tripTitle={trip?.title} onMembersChanged={refreshMembers} />
       <ReservationModal isOpen={showReservationModal} onClose={() => { if (importReviewActive) { advanceImportReview() } else { setShowReservationModal(false); setEditingReservation(null); setBookingForAssignmentId(null) } }} onSave={async (data) => { const r = await handleSaveReservation(data); if (importReviewActive && r) advanceImportReview(); return r }} reservation={editingReservation} prefill={reservationPrefill} days={days} places={places} assignments={assignments} selectedDayId={selectedDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} accommodations={tripAccommodations} defaultAssignmentId={bookingForAssignmentId} onOpenExpense={openBookingExpense} tripMembers={tripMembers} />
-      {showTransportModal && <TransportModal isOpen={showTransportModal} onClose={() => { if (importReviewActive) { advanceImportReview() } else { setShowTransportModal(false); setEditingTransport(null); setTransportModalDayId(null); setTransportModalAutomated(false); setTransitPrefill(null) } }} onSave={async (data) => { const r = await handleSaveTransport(data); if (importReviewActive && r) advanceImportReview(); return r }} reservation={editingTransport} prefill={transportPrefill} days={days} selectedDayId={transportModalDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} onOpenExpense={openBookingExpense} places={places} assignments={assignments} accommodations={tripAccommodations} initialAutomated={transportModalAutomated} transitPrefill={transitPrefill} tripHasDates={tripHasDates} tripMembers={tripMembers} />}
+      {showTransportModal && (
+        <ErrorBoundary boundaryId="planner-panel:transport" fallback={null}>
+          <Suspense fallback={null}>
+            <TransportModal isOpen={showTransportModal} onClose={() => { if (importReviewActive) { advanceImportReview() } else { setShowTransportModal(false); setEditingTransport(null); setTransportModalDayId(null); setTransportModalAutomated(false); setTransitPrefill(null) } }} onSave={async (data) => { const r = await handleSaveTransport(data); if (importReviewActive && r) advanceImportReview(); return r }} reservation={editingTransport} prefill={transportPrefill} days={days} selectedDayId={transportModalDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} onOpenExpense={openBookingExpense} places={places} assignments={assignments} accommodations={tripAccommodations} initialAutomated={transportModalAutomated} transitPrefill={transitPrefill} tripHasDates={tripHasDates} tripMembers={tripMembers} />
+          </Suspense>
+        </ErrorBoundary>
+      )}
       {/* Journey view for a saved public-transit entry (#1065) */}
       {transitJourney && (
         <TransitJourneyModal
