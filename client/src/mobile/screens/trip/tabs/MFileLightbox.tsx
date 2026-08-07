@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Download, ExternalLink, X } from 'lucide-rea
 import { getAuthUrl } from '../../../../api/authUrl'
 import { downloadFile, openFile } from '../../../../utils/fileDownload'
 import { isVideo } from '../../../../components/Files/FileManager.helpers'
-import VideoPlayer from '../../../../components/Journey/VideoPlayer'
+import VideoPlayer from '../../../../components/Journey/VideoPlayerLazy'
 import type { TranslationFn, TripFile } from '../../../../types'
 
 interface MFileLightboxProps {

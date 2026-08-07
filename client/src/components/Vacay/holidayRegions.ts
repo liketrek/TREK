@@ -1,5 +1,4 @@
 import apiClient from '../../api/client'
-import iso31662 from 'iso-3166-2'
 import { SCHOOL_HOLIDAY_COUNTRY_CONFIG } from '../../vacay/schoolHolidayCountries'
 
 // Loads the subdivision (state/region) options for a holiday-calendar country.
@@ -16,6 +15,13 @@ export async function fetchRegionOptions(country: string): Promise<{ value: stri
     const r = await apiClient.get(`/addons/vacay/holidays/${year}/${country}`)
     const hasRegions = r.data.some(h => h.counties && h.counties.length > 0)
     if (!hasRegions) return []
+
+    // Loaded here, after the hasRegions check: the package is a single 238 kB data
+    // blob (64 kB gzip, no tree-shaking to be had) and is only needed for countries
+    // that get a region picker at all. Deliberately inside the try — if the chunk
+    // fails, the result is the same empty array as a failed request, rather than an
+    // unhandled rejection in the two callers that only do .then(setRegions).
+    const iso31662 = (await import('iso-3166-2')).default
 
     const opts = new Map<string, string>() // ISO code -> display name
     const sub = iso31662.country(country)?.sub || {}

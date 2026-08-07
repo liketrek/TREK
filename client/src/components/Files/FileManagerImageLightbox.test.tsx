@@ -182,11 +182,12 @@ describe('ImageLightbox', () => {
     expect(screen.getAllByRole('button')).toHaveLength(3)
   })
 
-  it('FE-W4LBX-015: a video plays in the player and never mints a download token', () => {
+  it('FE-W4LBX-015: a video plays in the player and never mints a download token', async () => {
     const video = file({ id: 9, original_name: 'clip.mp4', mime_type: 'video/mp4', url: '/f/clip.mp4' })
     const { container } = render(<ImageLightbox files={[video]} initialIndex={0} onClose={() => {}} />)
 
-    expect(screen.getByTestId('video')).toHaveAttribute('data-src', '/f/clip.mp4')
+    // The player loads on demand now — plyr no longer ships with the file manager.
+    expect(await screen.findByTestId('video')).toHaveAttribute('data-src', '/f/clip.mp4')
     expect(getAuthUrl).not.toHaveBeenCalled()
     expect(container.querySelector('img')).toBeNull()
   })

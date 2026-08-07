@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
-import VideoPlayer from './VideoPlayer'
+import VideoPlayer from './VideoPlayerLazy'
 
 interface LightboxPhoto {
   id: string

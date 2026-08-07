@@ -151,14 +151,15 @@ describe('PhotoLightbox', () => {
     expect(screen.getByText('Mountain trail')).toBeInTheDocument();
   });
 
-  it('FE-COMP-LIGHTBOX-014: renders a video item through the player instead of an image', () => {
+  it('FE-COMP-LIGHTBOX-014: renders a video item through the player instead of an image', async () => {
     render(
       <PhotoLightbox
         photos={[{ id: 'v1', src: '/videos/1.mp4', caption: null, mediaType: 'video' }]}
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('video-player')).toHaveAttribute('src', '/videos/1.mp4');
+    // The player loads on demand now — plyr no longer ships with the journal.
+    expect(await screen.findByTestId('video-player')).toHaveAttribute('src', '/videos/1.mp4');
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
