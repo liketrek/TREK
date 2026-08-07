@@ -61,6 +61,13 @@ describe('Navbar', () => {
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
+  it('FE-COMP-NAVBAR-036: does not show a Help link in the user menu', async () => {
+    const user = userEvent.setup();
+    render(<Navbar />);
+    await user.click(screen.getByText('testuser'));
+    expect(screen.queryByRole('link', { name: /help/i })).not.toBeInTheDocument();
+  });
+
   it('FE-COMP-NAVBAR-007: shows My Trips link in navbar', () => {
     render(<Navbar />);
     // nav.myTrips = "My Trips" is in the main navbar (hidden on mobile via CSS, but CSS is not processed in tests)

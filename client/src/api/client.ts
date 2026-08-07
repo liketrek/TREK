@@ -898,17 +898,6 @@ export const configApi = {
       apiClient.get('/config').then(r => r.data),
 }
 
-export interface HelpNavItem { title: string; slug: string }
-export interface HelpNavSection { title: string; pages: HelpNavItem[] }
-export interface HelpPageData { slug: string; title: string; markdown: string }
-
-export const helpApi = {
-  index: (): Promise<{ sections: HelpNavSection[] }> =>
-    apiClient.get('/help/index').then(r => r.data),
-  page: (slug: string): Promise<HelpPageData> =>
-    apiClient.get(`/help/page/${encodeURIComponent(slug)}`).then(r => r.data),
-}
-
 export const settingsApi = {
   get: () => apiClient.get('/settings').then(r => r.data),
   set: (key: string, value: unknown) => {

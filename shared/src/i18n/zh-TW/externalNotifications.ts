@@ -25,7 +25,7 @@ const zhTW: NotificationLocale = {
       body: `「${p.trip}」中的「${p.todo}」將於 ${p.due} 到期。`,
     }),
     vacay_invite: (p) => ({
-      title: 'Vacay 融合邀請',
+      title: '假期融合邀請',
       body: `${p.actor} 邀請您合併假期計畫。開啟 TREK 以接受或拒絕。`,
     }),
     collection_invite: (p) => ({

@@ -31,42 +31,10 @@ export const RETIRED_NOTICE_IDS = [
   'v3-mcp',
   'v3-features',
   'welcome-v1',
+  'thank-you-support',
 ] as const;
 
 export const SYSTEM_NOTICES: SystemNotice[] = [
-  // ── Thank-you + support the project — shown once per install AND once per upgrade ──
-  // `recurring: 'per-version'` re-surfaces it whenever the app version moves up.
-  {
-    id: 'thank-you-support',
-    display: 'modal',
-    severity: 'info',
-    icon: 'Heart',
-    titleKey: 'system_notice.thank_you_support.title',
-    bodyKey: 'system_notice.thank_you_support.body',
-    highlights: [
-      { labelKey: 'system_notice.thank_you_support.highlight_opensource', iconName: 'Github' },
-      { labelKey: 'system_notice.thank_you_support.highlight_free', iconName: 'Infinity' },
-      { labelKey: 'system_notice.thank_you_support.highlight_community', iconName: 'Users' },
-    ],
-    cta: {
-      kind: 'link',
-      labelKey: 'system_notice.thank_you_support.cta_bmc',
-      href: 'https://buymeacoffee.com/mauriceboe',
-    },
-    secondaryCta: {
-      kind: 'link',
-      labelKey: 'system_notice.thank_you_support.cta_kofi',
-      href: 'https://ko-fi.com/mauriceboe',
-    },
-    dismissible: true,
-    // Desktop-only: the support modal is suppressed on small/mobile viewports.
-    desktopOnly: true,
-    conditions: [],
-    publishedAt: '2026-06-27T00:00:00Z',
-    priority: 100,
-    recurring: 'per-version',
-  },
-
   // ── 3.0.14 admin notice — whitespace migration collision ───────────────────
   // Operational alert (not promo): shown only to admins who upgraded across the
   // 3.0.14 boundary AND only when the migration actually renamed colliding accounts.

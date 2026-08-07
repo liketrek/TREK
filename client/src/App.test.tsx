@@ -186,6 +186,12 @@ describe('Public routes', () => {
     renderApp('/does-not-exist')
     await waitFor(() => expect(screen.getByText('Login')).toBeInTheDocument())
   })
+
+  it('FE-COMP-APP-026: removed Help route redirects authenticated users to the dashboard', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    renderApp('/help')
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+  })
 })
 
 // ── App — on-mount effects ─────────────────────────────────────────────────────

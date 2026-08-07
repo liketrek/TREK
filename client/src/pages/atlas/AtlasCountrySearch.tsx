@@ -94,7 +94,7 @@ export default function AtlasCountrySearch({
               }}
               className="text-content-faint"
               style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}
-              aria-label="Clear"
+              aria-label={t('common.clear')}
             >
               <X size={14} />
             </button>
