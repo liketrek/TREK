@@ -8,7 +8,7 @@ import {
 } from '../../nest/reservations/reservations.bridge';
 import { linkBudgetItemToReservation } from '../../nest/budget/budget.bridge';
 import { getDay } from '../../nest/days/days.bridge';
-import { findByIata } from '../../services/airportService';
+import { findByIata } from '../../nest/airports/airports.data';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_WRITE, demoDenied, noAccess, ok, hasTripPermission, permissionDenied,

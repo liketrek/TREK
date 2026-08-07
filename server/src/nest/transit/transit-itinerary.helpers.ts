@@ -7,7 +7,7 @@
  * transit.mcp.ts's @Tool inputSchema decorators, which evaluate at module
  * load — before any DI container exists — so they must stay module-level.
  */
-import { haversineKm } from '../../services/distanceService';
+import { haversineKm } from '../common/geo';
 import type { EndpointInput } from '../reservations/reservations.service';
 import { localParts, resolveTimeZone } from '../common/timezoneService';
 import { deriveTransitStats, type TransitItinerary, type TransitLeg } from './transit.helpers';

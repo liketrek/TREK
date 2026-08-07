@@ -24,7 +24,7 @@ import { revokeUserSessions } from '../../mcp/sessionManager';
 import { startTripReminders } from '../../scheduler';
 import { deleteUserCompletely } from '../../services/userCleanupService';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
-import { getFlightDistanceKm } from '../../services/distanceService';
+import { haversineKm } from '../common/geo';
 import { verifyJwtAndLoadUser } from './jwt-verify';
 import { User } from '../../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from '../common/demo';
@@ -991,8 +991,39 @@ export class AuthService {
       totalTrips: tripStats?.trips || 0,
       totalDays: tripStats?.days || 0,
       totalPlaces: places.length,
-      totalDistanceKm: getFlightDistanceKm(userId),
+      totalDistanceKm: this.flightDistanceKm(userId),
     };
+  }
+
+  /**
+   * Total flight distance a user has covered, summed across every non-cancelled
+   * flight reservation in their trips. Each flight stores its waypoints in
+   * reservation_endpoints (from → stops → to, ordered by sequence); the legs
+   * between consecutive points are added up so multi-stop flights count
+   * correctly.
+   */
+  private flightDistanceKm(userId: number): number {
+    const rows = this.db.all<{ reservation_id: number; lat: number; lng: number }>(`
+      SELECT re.reservation_id, re.lat, re.lng
+      FROM reservation_endpoints re
+      JOIN reservations r ON r.id = re.reservation_id
+      JOIN trips t ON t.id = r.trip_id
+      LEFT JOIN trip_members tm ON tm.trip_id = t.id AND tm.user_id = ?
+      WHERE (t.user_id = ? OR tm.user_id IS NOT NULL)
+        AND r.type = 'flight'
+        AND r.status != 'cancelled'
+      ORDER BY re.reservation_id, re.sequence
+    `, userId, userId);
+
+    let total = 0;
+    let prev: { id: number; lat: number; lng: number } | null = null;
+    for (const point of rows) {
+      if (prev && prev.id === point.reservation_id) {
+        total += haversineKm(prev.lat, prev.lng, point.lat, point.lng);
+      }
+      prev = { id: point.reservation_id, lat: point.lat, lng: point.lng };
+    }
+    return Math.round(total);
   }
 
   // -------------------------------------------------------------------------

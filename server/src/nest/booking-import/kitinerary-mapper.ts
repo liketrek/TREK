@@ -1,4 +1,4 @@
-import { findByIata } from '../../services/airportService';
+import { findByIata } from '../airports/airports.data';
 import type {
   KiReservation, KiFlight, KiTrainTrip, KiBusTrip, KiBoatTrip,
   KiLodgingBusiness, KiFoodEstablishment, KiRentalCar, KiEvent,

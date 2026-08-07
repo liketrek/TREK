@@ -14,17 +14,17 @@
 //    incrementally and never replays steps against a current schema; guarding
 //    the steps in src/ would change production output, so the replay artifact
 //    is filtered here instead. Non-duplicate-column step failures still print.
-// 2. `[DB] Flight endpoint backfill failed:` + `Cannot find module
-//    '../services/airportService'` — database.ts runs a boot-time backfill via
-//    a bare CJS require() at module eval, which the vitest transform pipeline
-//    cannot resolve (the compiled production dist can). Fires once in every
-//    test file that evaluates the real database.ts (~60 files).
+// 2. `[DB] Flight endpoint backfill failed:` + `no such table` — the backfill
+//    runs on application bootstrap now, so it fires in e2e TestingModules whose
+//    fixture DB has no reservations table. It used to be a module-eval require()
+//    in database.ts that vitest could not resolve at all, in ~60 files; this is
+//    the same suppression, narrowed to what actually still happens.
 
 const MIGRATION_WARN_HEAD = '[migrations] Non-fatal migration step failed:';
 const DUPLICATE_COLUMN = /duplicate column name: /;
 
 const BACKFILL_ERROR_HEAD = '[DB] Flight endpoint backfill failed:';
-const AIRPORT_MODULE_MISSING = /Cannot find module '\.\.\/services\/airportService'/;
+const BACKFILL_TABLE_MISSING = /no such table/;
 
 const errorText = (value: unknown): string =>
   value instanceof Error ? value.message : String(value);
@@ -37,6 +37,6 @@ console.warn = (...args: unknown[]) => {
 
 const realError = console.error.bind(console);
 console.error = (...args: unknown[]) => {
-  if (args[0] === BACKFILL_ERROR_HEAD && AIRPORT_MODULE_MISSING.test(errorText(args[1]))) return;
+  if (args[0] === BACKFILL_ERROR_HEAD && BACKFILL_TABLE_MISSING.test(errorText(args[1]))) return;
   realError(...args);
 };
