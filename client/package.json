@@ -58,7 +58,7 @@
     "topojson-client": "^3.1.0",
     "tz-lookup": "^6.1.25",
     "zod": "^4.3.6",
-    "zustand": "^4.5.2"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
