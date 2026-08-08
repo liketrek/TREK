@@ -24,7 +24,7 @@ Costs is **multi-currency** (#551). Three settings are involved, and they do dif
 - Each **expense** carries **its own currency** — pick it in the expense modal and enter what the receipt says (a $100 dinner on a rouble trip is `100 USD`). It is converted into the trip currency at a rate **frozen when you save it**, so a settled debt doesn't reopen when the market moves.
 - Your **display currency** (Settings → General) converts what you *read* — totals, chart, balances — into one currency. It changes nothing that is stored. Left on **Trip currency** (the default), each trip is shown in its own currency.
 
-165 currencies are supported, with rates from [Frankfurter](https://frankfurter.dev) (no API key needed). When an item's currency differs from the display currency, the modal shows the converted amount alongside the rate (`1 {from} in {to}`), and the ledger row shows both (`$100.00 → 7 668,71 ₽`).
+165 currencies are supported, with a durable server-side snapshot sourced from [Frankfurter](https://frankfurter.dev). For every foreign-currency expense and payment, the modal shows an editable rate as `1 item currency = X trip currency`, together with its source, effective date, and any stale-snapshot warning.
 
 > **Read [Currencies](Currencies) for the full picture** — how the three interact, what happens when you change a trip's currency, and which currency a public share link is shown in.
 

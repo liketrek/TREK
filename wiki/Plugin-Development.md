@@ -248,6 +248,9 @@ declaration for readers — the manifest parser does not consume it.
 | `ctx.trips` | `getById` / `getPlaces` / `getReservations` / `getDays` / `getAccommodations` / `listMine()` — enumerate every trip the acting user can access (membership-checked). `getDays` includes each day's `assignments` + `notes_items`; `getReservations` includes `endpoints` + `day_positions` | `db:read:trips` |
 | `ctx.trips.update(tripId, fields)` | update trip fields (title/dates/currency/reminder_days/…) | `db:write:trips` |
 | `ctx.trips.create(input)` | create a **new trip owned by the acting user** (importers) — `title` required, plus `description?`/`start_date?`/`end_date?`/`currency?`/`reminder_days?`/`day_count?` | `db:create:trips` (+ `trip_create`) |
+| `ctx.costs.listRates/resolveRate` | list trip rate defaults or obtain a read-only rate suggestion | `db:read:costs` |
+| `ctx.costs.setRate/deleteRate` | manage trip rate defaults without rewriting frozen items | `db:write:costs` (+ `budget_edit`) |
+| `ctx.costs.listSettlements/createSettlement/updateSettlement/deleteSettlement` | read and write settlement payments with the same frozen-rate fields as REST/MCP | `db:read:costs` / `db:write:costs` (+ `budget_edit`) |
 | `ctx.places` | `create(tripId, fields)` / `update(tripId, placeId, fields)` / `delete(tripId, placeId)` | `db:write:places` |
 | `ctx.days` | `create(tripId, {date?, notes?})` / `update(tripId, dayId, {notes?, title?})` / `delete(tripId, dayId)` | `db:write:days` |
 | `ctx.itinerary` | `assign(tripId, dayId, placeId, notes?)` / `unassign(tripId, assignmentId)` — place↔day | `db:write:itinerary` |
@@ -1142,8 +1145,8 @@ guard optional `ctx.*` namespaces.
 | `db:read:trips` | `ctx.trips.*` (membership-checked, route handlers only) |
 | `db:read:packing` | `ctx.packing.list(tripId)` — a trip's packing items (membership-checked) |
 | `db:read:files` | `ctx.files.list(tripId)` — a trip's files, trash excluded (membership-checked) |
-| `db:read:costs` | `ctx.costs.getByTrip` / `ctx.costs.listMine` (Costs addon, route handlers only) |
-| `db:write:costs` | `ctx.costs.create/update/delete` (Costs addon + acting user's `budget_edit`) |
+| `db:read:costs` | `ctx.costs.getByTrip/listMine/listRates/resolveRate/listSettlements` (Costs addon, route handlers only) |
+| `db:write:costs` | `ctx.costs.create/update/delete`, trip rates, and settlement payments (Costs addon + acting user's `budget_edit`) |
 | `db:write:places` | `ctx.places.create/update/delete` (acting user's `place_edit`) |
 | `db:write:days` | `ctx.days.create/update/delete` (acting user's `day_edit`) |
 | `db:write:itinerary` | `ctx.itinerary.assign/unassign` (acting user's `day_edit`) |

@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
 import { fetchExchangeRates, clearExchangeRateCache } from './useExchangeRates'
 
-const FX_URL = 'https://api.frankfurter.dev/v2/rates'
+const FX_URL = '/api/exchange-rates'
 
 // Contract tests for the plain fetcher the PDF export relies on: it must never
 // reject, and "no usable rates" must come back as null (→ breakdown fallback),
@@ -17,7 +17,7 @@ describe('fetchExchangeRates (#1561)', () => {
     let calls = 0
     server.use(http.get(FX_URL, () => {
       calls++
-      return HttpResponse.json([{ quote: 'USD', rate: 0.095 }, { quote: 'bogus' }])
+      return HttpResponse.json({ rates: { NOK: 1, USD: 0.095 }, effective_date: '2026-06-16', stale: false })
     }))
     const rates = await fetchExchangeRates('nok')
     expect(rates).toEqual({ NOK: 1, USD: 0.095 })
@@ -31,7 +31,7 @@ describe('fetchExchangeRates (#1561)', () => {
     expect(await fetchExchangeRates('NOK')).toBeNull()
   })
 
-  it('returns null for a non-array body', async () => {
+  it('returns null for a body without rates', async () => {
     server.use(http.get(FX_URL, () => HttpResponse.json({ message: 'not found' })))
     expect(await fetchExchangeRates('NOK')).toBeNull()
   })

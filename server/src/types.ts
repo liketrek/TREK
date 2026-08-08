@@ -128,6 +128,13 @@ export interface BudgetItem {
   total_price: number;
   currency?: string | null;
   exchange_rate?: number;
+  exchange_rate_source?: 'identity' | 'global' | 'trip' | 'explicit' | 'legacy';
+  exchange_rate_source_version?: string | null;
+  exchange_rate_effective_date?: string | null;
+  exchange_rate_set_at?: string | null;
+  exchange_rate_set_by_user_id?: number | null;
+  exchange_rate_note?: string | null;
+  exchange_rate_reset_at?: string | null;
   persons?: number | null;
   days?: number | null;
   note?: string | null;

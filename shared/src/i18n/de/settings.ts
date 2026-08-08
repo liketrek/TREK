@@ -497,7 +497,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Zeitpunkt',
   'settings.pluginActivity.columns.status': 'Ergebnis',
   'settings.alwaysShowRoutes': 'Buchungsrouten immer anzeigen',
-  'settings.alwaysShowRoutesHint': 'Zeigt die Route für jeden Flug, jede Zugfahrt und jede andere Buchung automatisch auf der Karte an – ohne sie einzeln aktivieren zu müssen.',
+  'settings.alwaysShowRoutesHint':
+    'Zeigt die Route für jeden Flug, jede Zugfahrt und jede andere Buchung automatisch auf der Karte an – ohne sie einzeln aktivieren zu müssen.',
 };
 
 export default settings;

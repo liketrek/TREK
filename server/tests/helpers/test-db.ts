@@ -53,7 +53,12 @@ const RESET_TABLES = [
   'packing_templates',
   'packing_items',
   // Budget
+  'exchange_rate_batch_previews',
+  'trip_exchange_rates',
+  'global_exchange_rate_snapshots',
   'budget_item_members',
+  'budget_item_payers',
+  'budget_settlements',
   'budget_items',
   // Photos & files
   'trip_photos',

@@ -482,7 +482,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': '시간',
   'settings.pluginActivity.columns.status': '결과',
   'settings.alwaysShowRoutes': '예약 경로 항상 표시',
-  'settings.alwaysShowRoutesHint': '항공편, 기차 등 모든 예약의 경로를 개별적으로 켤 필요 없이 지도에 자동으로 표시합니다.',
+  'settings.alwaysShowRoutesHint':
+    '항공편, 기차 등 모든 예약의 경로를 개별적으로 켤 필요 없이 지도에 자동으로 표시합니다.',
 };
 
 export default settings;

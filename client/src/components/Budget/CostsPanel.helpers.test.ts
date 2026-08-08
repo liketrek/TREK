@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { splitCents, payerSum, payersBalanced, rebalancePayers } from './CostsPanel.helpers'
+import { displayRateToStored, splitCents, payerSum, payersBalanced, rebalancePayers, storedRateToDisplay } from './CostsPanel.helpers'
+
+describe('exchange-rate direction', () => {
+  it('inverts between the stored and displayed directions without rounding', () => {
+    expect(storedRateToDisplay(1.25)).toBe(0.8)
+    expect(displayRateToStored(0.8)).toBe(1.25)
+  })
+
+  it('rejects non-positive and non-finite rates', () => {
+    expect(storedRateToDisplay(0)).toBeNull()
+    expect(displayRateToStored(Number.POSITIVE_INFINITY)).toBeNull()
+  })
+})
 
 describe('splitCents', () => {
   it('splits evenly when it divides cleanly', () => {

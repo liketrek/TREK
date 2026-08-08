@@ -37,6 +37,10 @@ export const adminHandlers = [
     return HttpResponse.json({ invites: [] });
   }),
 
+  http.get('/api/admin/invites/trips', () => {
+    return HttpResponse.json({ trips: [] });
+  }),
+
   http.post('/api/admin/invites', async ({ request }) => {
     const body = await request.json() as Record<string, unknown>;
     return HttpResponse.json({ invite: { id: 1, token: 'test-invite-token', ...body } });

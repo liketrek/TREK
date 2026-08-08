@@ -408,6 +408,24 @@ function startAirTrailSync(): void {
   }, { timezone: tz });
 }
 
+let exchangeRateTask: ScheduledTask | null = null;
+
+/** Refresh every persisted provider base every six hours; failed runs keep the last snapshot. */
+function startExchangeRateRefresh(): void {
+  if (exchangeRateTask) { exchangeRateTask.stop(); exchangeRateTask = null; }
+  const refresh = async () => {
+    try {
+      const { cleanupExpiredExchangeRatePreviews, refreshStoredRateBases } = require('./services/exchangeRateService');
+      cleanupExpiredExchangeRatePreviews();
+      await refreshStoredRateBases();
+    } catch (err: unknown) {
+      logError(`Exchange-rate refresh failed: ${err instanceof Error ? err.message : err}`);
+    }
+  };
+  void refresh();
+  exchangeRateTask = cron.schedule('0 */6 * * *', refresh, { timezone: 'UTC' });
+}
+
 function stop(): void {
   if (currentTask) { currentTask.stop(); currentTask = null; }
   if (demoTask) { demoTask.stop(); demoTask = null; }
@@ -417,6 +435,7 @@ function stop(): void {
   if (trekPhotoCacheTask) { trekPhotoCacheTask.stop(); trekPhotoCacheTask = null; }
   if (placePhotoCacheTask) { placePhotoCacheTask.stop(); placePhotoCacheTask = null; }
   if (airtrailSyncTask) { airtrailSyncTask.stop(); airtrailSyncTask = null; }
+  if (exchangeRateTask) { exchangeRateTask.stop(); exchangeRateTask = null; }
 }
 
-export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, purgeExpiredIdempotencyKeys, startTrekPhotoCacheCleanup, startPlacePhotoCacheCleanup, startAirTrailSync, loadSettings, saveSettings, VALID_INTERVALS };
+export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, purgeExpiredIdempotencyKeys, startTrekPhotoCacheCleanup, startPlacePhotoCacheCleanup, startAirTrailSync, startExchangeRateRefresh, loadSettings, saveSettings, VALID_INTERVALS };

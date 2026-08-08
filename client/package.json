@@ -19,7 +19,7 @@
     "lint:pages": "node scripts/check-page-pattern.mjs",
     "theme:lint": "node scripts/theme-lint.mjs",
     "theme:lint:strict": "node scripts/theme-lint.mjs --strict",
-    "e2e": "playwright test",
+    "e2e": "playwright test --project=public --project=app",
     "shots": "playwright test --project=screenshots",
     "shots:promote": "node e2e/screenshots/promote.mjs",
     "e2e:report": "playwright show-report",

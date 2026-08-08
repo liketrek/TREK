@@ -9,7 +9,14 @@ import { listTags, createTag, updateTag, deleteTag, getTagByIdAndUser } from '..
 import { listItems as listTodosSvc, createItem as createTodoSvc, updateItem as updateTodoSvc, deleteItem as deleteTodoSvc } from '../../../services/todoService';
 import { listFiles, createFile, createFileLink, getFileById, updateFile, softDeleteFile, findForeignLinkTarget, resolveFilePath, BLOCKED_EXTENSIONS, filesDir } from '../../../services/fileService';
 import { createNote as createCollabNoteSvc, createPoll as createCollabPollSvc, votePoll as voteCollabPollSvc, createMessage as createCollabMessageSvc, listNotes as listCollabNotesSvc, listPolls as listCollabPollsSvc, listMessages as listCollabMessagesSvc } from '../../../services/collabService';
-import { getRates as getExchangeRates } from '../../../services/exchangeRateService';
+import {
+  deleteTripExchangeRate,
+  getRates as getExchangeRates,
+  listTripExchangeRates,
+  resolveExchangeRate,
+  setTripExchangeRate,
+} from '../../../services/exchangeRateService';
+import { deleteSettlement, listSettlements } from '../../../services/budgetService';
 import { joinTripAsMember } from '../../../services/tripMembership';
 import { send as sendNotification } from '../../../services/notificationService';
 import { resolveLlmConfig } from '../../llm-parse/llm-config.resolver';
@@ -20,7 +27,7 @@ import fsMod from 'node:fs';
 import pathMod from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { checkPermission } from '../../../services/permissions';
-import { listTrips, updateTrip, createTrip, removeMember as removeTripMemberSvc, NotFoundError, ValidationError } from '../../../services/tripService';
+import { listTrips, updateTripAggregate, createTrip, removeMember as removeTripMemberSvc, NotFoundError, ValidationError } from '../../../services/tripService';
 import { createPlace, updatePlace, deletePlace } from '../../../services/placeService';
 import { createDay, getDay, updateDay, deleteDay, listDays, listAccommodations, validateAccommodationRefs, createAccommodation as createAccommodationSvc, getAccommodation, updateAccommodation as updateAccommodationSvc, deleteAccommodation as deleteAccommodationSvc } from '../../../services/dayService';
 import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../services/assignmentService';
@@ -485,6 +492,36 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       broadcast(tripId, 'budget:deleted', { itemId });
       return { deleted: true };
     },
+    listCostRates: (tripId) => listTripExchangeRates(tripId),
+    resolveCostRate: (tripId, currency) => resolveExchangeRate(tripId, currency),
+    setCostRate: (tripId, currency, exchangeRate, userId, note) => {
+      const rate = setTripExchangeRate(tripId, currency, exchangeRate, userId, note);
+      broadcast(tripId, 'budget:exchange-rates-updated', { rate });
+      return rate;
+    },
+    deleteCostRate: (tripId, currency) => {
+      const deleted = deleteTripExchangeRate(tripId, currency);
+      if (!deleted) throw new ForbiddenResource(`no trip exchange rate for ${currency}`);
+      broadcast(tripId, 'budget:exchange-rates-updated', { currency, deleted: true });
+      return { deleted: true };
+    },
+    listCostSettlements: (tripId) => listSettlements(tripId),
+    createCostSettlement: async (tripId, input, userId) => {
+      const settlement = await budgetSvc.createSettlement(String(tripId), input as any, userId);
+      broadcast(tripId, 'budget:settlement-created', { settlement });
+      return settlement;
+    },
+    updateCostSettlement: async (tripId, settlementId, input, userId) => {
+      const settlement = await budgetSvc.updateSettlement(String(settlementId), String(tripId), input as any, userId);
+      if (!settlement) throw new ForbiddenResource(`no settlement ${settlementId} on trip ${tripId}`);
+      broadcast(tripId, 'budget:settlement-updated', { settlement });
+      return settlement;
+    },
+    deleteCostSettlement: (tripId, settlementId) => {
+      if (!deleteSettlement(settlementId, tripId)) throw new ForbiddenResource(`no settlement ${settlementId} on trip ${tripId}`);
+      broadcast(tripId, 'budget:settlement-deleted', { settlementId });
+      return { deleted: true };
+    },
     // --- Places (place_edit). Delegate to the same placeService the REST/MCP paths
     // use, then broadcast the same events so open web sessions update live. ---
     canEditPlaces: (tripId, userId) => canEditTripAs('place_edit', tripId, userId),
@@ -563,7 +600,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     // --- Trip (trip_edit). Only the schema-writable fields reach updateTrip; its
     // NotFound/Validation errors are mapped to clean RPC codes. ---
     canEditTrip: (tripId, userId) => canEditTripAs('trip_edit', tripId, userId),
-    updateTrip: (tripId, userId, input) => {
+    updateTrip: async (tripId, userId, input) => {
       // The REST controller gates two fields behind their OWN admin-configurable
       // permissions, separate from trip_edit — reproduce that here so a plugin (or
       // its member user) can't archive or re-cover a trip it may only edit.
@@ -575,7 +612,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       }
       const u = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
       try {
-        const result = updateTrip(tripId, userId, input as Parameters<typeof updateTrip>[2], u?.role ?? 'user');
+        const result = await updateTripAggregate(tripId, userId, input as Parameters<typeof updateTripAggregate>[2], u?.role ?? 'user');
         broadcast(tripId, 'trip:updated', { trip: result.updatedTrip });
         return result.updatedTrip;
       } catch (e) {

@@ -182,5 +182,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Add timezone', // en-fallback
   'dashboard.aria.removeTimezone': 'Remove {city}', // en-fallback
   'dashboard.dayCountRequired': 'Ο αριθμός ημερών είναι υποχρεωτικός',
+  'dashboard.fx.staleSnapshot': 'Παρωχημένο στιγμιότυπο',
 };
 export default dashboard;

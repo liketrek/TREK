@@ -833,11 +833,26 @@ export const budgetApi = {
   setPayers: (tripId: number | string, id: number, payers: { user_id: number; amount: number }[]) => apiClient.put(`/trips/${tripId}/budget/${id}/payers`, { payers }).then(r => r.data),
   perPersonSummary: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/summary/per-person`).then(r => r.data),
   settlement: (tripId: number | string, base?: string) => apiClient.get(`/trips/${tripId}/budget/settlement`, base ? { params: { base } } : undefined).then(r => r.data),
-  createSettlement: (tripId: number | string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string }) => apiClient.post(`/trips/${tripId}/budget/settlements`, data).then(r => r.data),
-  updateSettlement: (tripId: number | string, settlementId: number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string }) => apiClient.put(`/trips/${tripId}/budget/settlements/${settlementId}`, data).then(r => r.data),
+  createSettlement: (tripId: number | string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string; exchange_rate?: number; exchange_rate_note?: string | null }) => apiClient.post(`/trips/${tripId}/budget/settlements`, data).then(r => r.data),
+  updateSettlement: (tripId: number | string, settlementId: number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string; exchange_rate?: number; exchange_rate_note?: string | null }) => apiClient.put(`/trips/${tripId}/budget/settlements/${settlementId}`, data).then(r => r.data),
   deleteSettlement: (tripId: number | string, settlementId: number) => apiClient.delete(`/trips/${tripId}/budget/settlements/${settlementId}`).then(r => r.data),
   reorderItems: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/budget/reorder/items`, { orderedIds }).then(r => r.data),
   reorderCategories: (tripId: number | string, orderedCategories: string[]) => apiClient.put(`/trips/${tripId}/budget/reorder/categories`, { orderedCategories } satisfies BudgetReorderCategoriesRequest).then(r => r.data),
+}
+
+export const exchangeRateApi = {
+  global: (base: string) => apiClient.get('/exchange-rates', { params: { base } }).then(r => r.data),
+  listTrip: (tripId: number | string) => apiClient.get(`/trips/${tripId}/exchange-rates`).then(r => r.data),
+  resolve: (tripId: number | string, currency: string) =>
+    apiClient.get(`/trips/${tripId}/exchange-rates/resolve`, { params: { currency } }).then(r => r.data),
+  setTrip: (tripId: number | string, currency: string, data: { exchange_rate: number; note?: string | null }) =>
+    apiClient.put(`/trips/${tripId}/exchange-rates/${currency}`, data).then(r => r.data),
+  deleteTrip: (tripId: number | string, currency: string) =>
+    apiClient.delete(`/trips/${tripId}/exchange-rates/${currency}`).then(r => r.data),
+  preview: (tripId: number | string, currency: string, data: { exchange_rate: number; note?: string | null }) =>
+    apiClient.post(`/trips/${tripId}/exchange-rates/${currency}/preview`, data).then(r => r.data),
+  apply: (tripId: number | string, currency: string, data: { preview_id: string; selected: Array<{ type: 'expense' | 'settlement'; id: number }> }) =>
+    apiClient.post(`/trips/${tripId}/exchange-rates/${currency}/apply`, data).then(r => r.data),
 }
 
 export const filesApi = {

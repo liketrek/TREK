@@ -33,6 +33,10 @@ Requires `trips:read` or `trips:write` scope.
 | `list_trips` | List all trips you own or are a member of. Supports `include_archived` flag. |
 | `create_trip` | Create a trip with title, dates, and currency. Days are auto-generated from the date range. |
 | `update_trip` | Update a trip's title, description, dates, or currency. |
+| `list_trip_exchange_rates` | List trip-specific rate defaults without changing frozen items. |
+| `resolve_trip_exchange_rate` | Quote the exact trip/global rate version a new item would freeze. |
+| `set_trip_exchange_rate` | Set a trip rate default; existing items remain unchanged. |
+| `delete_trip_exchange_rate` | Delete a trip rate default; existing items remain unchanged. |
 | `delete_trip` | Delete a trip. Owner only. Requires `trips:delete`. |
 | `list_trip_members` | List the owner and all collaborators of a trip. |
 | `add_trip_member` | Add a user to a trip by username or email. Owner only. |

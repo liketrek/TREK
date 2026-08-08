@@ -9,12 +9,31 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import {
+  budgetCreateItemRequestSchema,
+  budgetCreateSettlementRequestSchema,
+  budgetUpdateItemRequestSchema,
+  budgetUpdateSettlementRequestSchema,
+} from '@trek/shared';
+import type { Request } from 'express';
 import type { User } from '../../types';
+import { getClientIp, writeAudit } from '../../services/auditLog';
 import { BudgetService } from './budget.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+
+function parseBudgetRequest<T>(schema: { safeParse(value: unknown): { success: true; data: T } | { success: false } }, body: unknown): T {
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) throw new HttpException({ error: 'Invalid budget request' }, 400);
+  return parsed.data;
+}
+
+function budgetRecord(body: unknown): Record<string, unknown> {
+  return body !== null && typeof body === 'object' ? body as Record<string, unknown> : {};
+}
 
 /**
  * /api/trips/:tripId/budget — trip-scoped expense planner.
@@ -77,20 +96,19 @@ export class BudgetController {
   async createSettlement(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number; currency?: string | null },
+    @Body() body: unknown,
     @Headers('x-socket-id') socketId?: string,
+    @Req() req?: Request,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (body.from_user_id == null || body.to_user_id == null || body.amount == null) {
+    const raw = budgetRecord(body);
+    if (raw.from_user_id == null || raw.to_user_id == null || raw.amount == null) {
       throw new HttpException({ error: 'from_user_id, to_user_id and amount are required' }, 400);
     }
-    const settlement = await this.budget.createSettlement(
-      tripId,
-      { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount, currency: body.currency },
-      user.id,
-    );
+    const settlement = await this.budget.createSettlement(tripId, parseBudgetRequest(budgetCreateSettlementRequestSchema, body), user.id);
     this.budget.broadcast(tripId, 'budget:settlement-created', { settlement }, socketId);
+    writeAudit({ userId: user.id, action: 'budget.settlement_create', resource: String(tripId), ip: req ? getClientIp(req) : null, details: { tripId: Number(tripId), settlementId: settlement?.id, currency: settlement?.currency, exchange_rate_source: settlement?.exchange_rate_source } });
     return { settlement };
   }
 
@@ -99,24 +117,22 @@ export class BudgetController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('settlementId') settlementId: string,
-    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number; currency?: string | null },
+    @Body() body: unknown,
     @Headers('x-socket-id') socketId?: string,
+    @Req() req?: Request,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (body.from_user_id == null || body.to_user_id == null || body.amount == null) {
+    const raw = budgetRecord(body);
+    if (raw.from_user_id == null || raw.to_user_id == null || raw.amount == null) {
       throw new HttpException({ error: 'from_user_id, to_user_id and amount are required' }, 400);
     }
-    const settlement = await this.budget.updateSettlement(settlementId, tripId, {
-      from_user_id: body.from_user_id,
-      to_user_id: body.to_user_id,
-      amount: body.amount,
-      currency: body.currency,
-    });
+    const settlement = await this.budget.updateSettlement(settlementId, tripId, parseBudgetRequest(budgetUpdateSettlementRequestSchema, body), user.id);
     if (!settlement) {
       throw new HttpException({ error: 'Settlement not found' }, 404);
     }
     this.budget.broadcast(tripId, 'budget:settlement-updated', { settlement }, socketId);
+    writeAudit({ userId: user.id, action: 'budget.settlement_update', resource: String(tripId), ip: req ? getClientIp(req) : null, details: { tripId: Number(tripId), settlementId: settlement.id, currency: settlement.currency, exchange_rate_source: settlement.exchange_rate_source } });
     return { settlement };
   }
 
@@ -140,16 +156,19 @@ export class BudgetController {
   async create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { name?: string; category?: string; total_price?: number; persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null; reservation_id?: number },
+    @Body() body: unknown,
     @Headers('x-socket-id') socketId?: string,
+    @Req() req?: Request,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!body.name) {
+    const name = budgetRecord(body).name;
+    if (typeof name !== 'string' || name.trim().length === 0) {
       throw new HttpException({ error: 'Name is required' }, 400);
     }
-    const item = await this.budget.create(tripId, body as { name: string });
+    const item = await this.budget.create(tripId, parseBudgetRequest(budgetCreateItemRequestSchema, body), user.id);
     this.budget.broadcast(tripId, 'budget:created', { item }, socketId);
+    writeAudit({ userId: user.id, action: 'budget.expense_create', resource: String(tripId), ip: req ? getClientIp(req) : null, details: { tripId: Number(tripId), itemId: item.id, currency: item.currency, exchange_rate_source: item.exchange_rate_source } });
     return { item };
   }
 
@@ -186,19 +205,22 @@ export class BudgetController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: unknown,
     @Headers('x-socket-id') socketId?: string,
+    @Req() req?: Request,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const updated = await this.budget.update(id, tripId, body);
+    const data = parseBudgetRequest(budgetUpdateItemRequestSchema, body);
+    const updated = await this.budget.update(id, tripId, data, user.id);
     if (!updated) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
-    if (updated.reservation_id && body.total_price !== undefined) {
+    if (updated.reservation_id && data.total_price !== undefined) {
       this.budget.syncReservationPrice(tripId, updated.reservation_id, updated.total_price, socketId);
     }
     this.budget.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
+    writeAudit({ userId: user.id, action: 'budget.expense_update', resource: String(tripId), ip: req ? getClientIp(req) : null, details: { tripId: Number(tripId), itemId: updated.id, currency: updated.currency, exchange_rate_source: updated.exchange_rate_source } });
     return { item: updated };
   }
 

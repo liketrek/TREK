@@ -1,23 +1,22 @@
 import { useCallback, useEffect, useState } from 'react'
 
 /**
- * Live FX rates for the Costs panel, used to convert every amount into the user's
- * display currency. Fetches api.frankfurter.dev (no key, already CSP-allowlisted
- * for the dashboard widget) for the given base and caches per base in memory +
- * localStorage for a few hours. rates[X] = units of X per 1 base, so an amount in
- * currency C converts to base as `amount / rates[C]`.
+ * Server-authoritative FX snapshot used by every product surface. The browser
+ * never contacts the provider: the server persists the last successful snapshot
+ * and reports whether it is stale.
  */
 
 const TTL_MS = 6 * 60 * 60 * 1000 // 6h
-const mem = new Map<string, { rates: Record<string, number>; ts: number }>()
+interface CachedRates { rates: Record<string, number>; ts: number; effective_date?: string | null; stale?: boolean }
+const mem = new Map<string, CachedRates>()
 
-function readCache(base: string): { rates: Record<string, number>; ts: number } | null {
+function readCache(base: string): CachedRates | null {
   const m = mem.get(base)
   if (m) return m
   try {
     const raw = localStorage.getItem('trek_fx_' + base)
     if (raw) {
-      const parsed = JSON.parse(raw) as { rates: Record<string, number>; ts: number }
+      const parsed = JSON.parse(raw) as CachedRates
       if (parsed?.rates) { mem.set(base, parsed); return parsed }
     }
   } catch { /* ignore */ }
@@ -35,15 +34,12 @@ export async function fetchExchangeRates(base: string): Promise<Record<string, n
   const cached = readCache(upper)
   if (cached && Date.now() - cached.ts < TTL_MS) return cached.rates
   try {
-    const d = await fetch(`https://api.frankfurter.dev/v2/rates?base=${encodeURIComponent(upper)}`)
-      .then(r => r.json()) as Array<{ quote?: string; rate?: number }>
-    if (!Array.isArray(d)) return cached?.rates ?? null
-    // Frankfurter omits the base's own self-rate, so seed it with `base = 1`.
-    const rates: Record<string, number> = { [upper]: 1 }
-    for (const r of d) {
-      if (r && typeof r.quote === 'string' && typeof r.rate === 'number') rates[r.quote] = r.rate
-    }
-    const entry = { rates, ts: Date.now() }
+    const response = await fetch(`/api/exchange-rates?base=${encodeURIComponent(upper)}`)
+    if (!response.ok) return cached?.rates ?? null
+    const d = await response.json() as { rates?: Record<string, number>; effective_date?: string | null; stale?: boolean }
+    if (!d?.rates) return cached?.rates ?? null
+    const rates = d.rates
+    const entry: CachedRates = { rates, ts: Date.now(), effective_date: d.effective_date, stale: d.stale }
     mem.set(upper, entry)
     try { localStorage.setItem('trek_fx_' + upper, JSON.stringify(entry)) } catch { /* ignore */ }
     return rates
@@ -65,14 +61,25 @@ export function clearExchangeRateCache(): void {
 export function useExchangeRates(base: string) {
   const upper = (base || 'EUR').toUpperCase()
   const [rates, setRates] = useState<Record<string, number> | null>(() => readCache(upper)?.rates ?? null)
+  const [metadata, setMetadata] = useState(() => {
+    const cached = readCache(upper)
+    return { effectiveDate: cached?.effective_date ?? null, stale: cached?.stale ?? false }
+  })
 
   useEffect(() => {
     const cached = readCache(upper)
-    if (cached) setRates(cached.rates)
+    if (cached) {
+      setRates(cached.rates)
+      setMetadata({ effectiveDate: cached.effective_date ?? null, stale: cached.stale ?? false })
+    }
     if (cached && Date.now() - cached.ts < TTL_MS) return
     let cancelled = false
     fetchExchangeRates(upper).then(r => {
-      if (!cancelled && r) setRates(r)
+      if (!cancelled && r) {
+        setRates(r)
+        const fresh = readCache(upper)
+        setMetadata({ effectiveDate: fresh?.effective_date ?? null, stale: fresh?.stale ?? false })
+      }
     })
     return () => { cancelled = true }
   }, [upper])
@@ -87,5 +94,5 @@ export function useExchangeRates(base: string) {
     [rates, upper],
   )
 
-  return { rates, convert }
+  return { rates, convert, ...metadata }
 }
