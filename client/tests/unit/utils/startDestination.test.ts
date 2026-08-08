@@ -18,8 +18,12 @@ afterEach(() => {
 })
 
 describe('readStartDestination', () => {
-  it('FE-UTIL-START-001: falls back to the dashboard when nothing was ever mirrored', () => {
-    expect(readStartDestination()).toEqual({ page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB })
+  // Not the dashboard: the preference lives on the server, so a device that has
+  // never seen it has to say "I don't know" and let the caller wait for the
+  // settings. Answering 'dashboard' here ignored the setting on every device
+  // that hadn't set it — including any browser that had logged out since.
+  it('FE-UTIL-START-001: reports "unknown" when nothing was ever mirrored', () => {
+    expect(readStartDestination()).toBeNull()
   })
 
   it('FE-UTIL-START-002: returns what was mirrored', () => {
@@ -27,19 +31,27 @@ describe('readStartDestination', () => {
     expect(readStartDestination()).toEqual({ page: 'active_trip', tab: 'finanzplan' })
   })
 
+  it('FE-UTIL-START-002b: an explicitly mirrored dashboard is an answer, not "unknown"', () => {
+    rememberStartDestination({ start_page: 'dashboard' })
+    expect(readStartDestination()).toEqual({ page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB })
+  })
+
   // A value a user (or an older/newer build) could have written by hand must not
   // become a route we then navigate to.
   it('FE-UTIL-START-003: ignores values that are not a known page or tab', () => {
     localStorage.setItem('trek_start_page', 'somewhere_else')
+    expect(readStartDestination()).toBeNull()
+
+    localStorage.setItem('trek_start_page', 'active_trip')
     localStorage.setItem('trek_start_trip_tab', '../../etc/passwd')
-    expect(readStartDestination()).toEqual({ page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB })
+    expect(readStartDestination()).toEqual({ page: 'active_trip', tab: DEFAULT_START_TRIP_TAB })
   })
 
   it('FE-UTIL-START-004: survives a browser that refuses storage access', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('SecurityError')
     })
-    expect(readStartDestination()).toEqual({ page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB })
+    expect(readStartDestination()).toBeNull()
   })
 })
 
@@ -65,10 +77,12 @@ describe('rememberStartDestination', () => {
 })
 
 describe('forgetStartDestination', () => {
-  it('FE-UTIL-START-008: leaves the next account on this browser with the default', () => {
+  it('FE-UTIL-START-008: leaves the next account on this browser knowing nothing', () => {
     rememberStartDestination({ start_page: 'active_trip', start_trip_tab: 'finanzplan' })
     forgetStartDestination()
-    expect(readStartDestination()).toEqual({ page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB })
+    // "unknown", so the next login waits for its own settings instead of
+    // inheriting the previous account's preference.
+    expect(readStartDestination()).toBeNull()
   })
 })
 

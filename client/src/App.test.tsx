@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -8,6 +8,7 @@ import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { resetAllStores } from '../tests/helpers/store'
 import { buildUser, buildSettings } from '../tests/helpers/factories'
+import { SETTINGS_WAIT_MS } from './utils/startDestination'
 import App from './App'
 
 // ── Mock page components ───────────────────────────────────────────────────────
@@ -395,5 +396,44 @@ describe('Version cache-busting', () => {
     seedAuth()
     renderApp('/')
     await waitFor(() => expect(reload).toHaveBeenCalled())
+  })
+})
+
+// Regression: a device that has never mirrored the preference must not treat
+// "nothing mirrored" as "user wants the dashboard".
+describe('RootRedirect — preference not mirrored on this device', () => {
+  it('FE-COMP-APP-031: honours the server setting when localStorage is empty', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    // Cold start: settings are still in flight when RootRedirect first runs.
+    useSettingsStore.setState({ isLoaded: false })
+    server.use(http.get('/api/trips/active', () => HttpResponse.json({ trip: { id: 42, title: 'Japan' } })))
+
+    renderApp('/')
+
+    // ...and land a moment later, exactly as loadSettings() does.
+    await act(async () => {
+      useSettingsStore.setState({
+        isLoaded: true,
+        settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'finanzplan' }),
+      })
+    })
+
+    await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
+  })
+
+  // loadSettings leaves isLoaded false on a failed request so it can retry, so
+  // the wait above needs a floor or a launch with no backend never resolves.
+  it('FE-COMP-APP-032: gives up on the settings after the timeout and opens the dashboard', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({ isLoaded: false })
+
+    renderApp('/')
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
+
+    await act(async () => { vi.advanceTimersByTime(SETTINGS_WAIT_MS + 100) })
+
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+    vi.useRealTimers()
   })
 })

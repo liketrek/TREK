@@ -20,7 +20,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useIsPhone } from './mobile/useIsPhone'
 import { TranslationProvider, useTranslation } from './i18n'
 import { authApi, tripsApi } from './api/client'
-import { readStartDestination, tripStartPath, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from './utils/startDestination'
+import { readStartDestination, tripStartPath, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB, SETTINGS_WAIT_MS } from './utils/startDestination'
 import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
 import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts'
 import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
@@ -179,31 +179,44 @@ function ViewportRoute({ phone: Phone, desktop: Desktop }: {
  * here rather than on /dashboard — landing on the dashboard directly has to keep
  * working, or there would be no way back to it.
  *
- * The preference is read from the localStorage mirror, so the default path stays
- * exactly as fast as before: no settings request to wait for. Only someone who
- * asked for 'active_trip' pays for the one lookup that finds their trip, and a
- * failure there just falls back to the dashboard.
+ * Once this device has seen the preference it comes from the localStorage
+ * mirror, so the common launch waits for nothing. A device that has never seen
+ * it waits for the settings instead of assuming the default — the preference
+ * lives on the server, and guessing here would ignore it on every browser that
+ * didn't set it. Only 'active_trip' costs the one lookup that finds the trip,
+ * and any failure along the way lands on the dashboard.
  */
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuthStore()
   const settingsLoaded = useSettingsStore((s) => s.isLoaded)
   const settings = useSettingsStore((s) => s.settings)
   const [target, setTarget] = useState<string | null>(null)
+  // Bounds the wait below: loadSettings deliberately leaves isLoaded false on a
+  // failed request so it can retry, which would otherwise strand a launch that
+  // started offline on the spinner.
+  const [settingsGaveUp, setSettingsGaveUp] = useState(false)
+
+  useEffect(() => {
+    if (settingsLoaded) return
+    const timer = setTimeout(() => setSettingsGaveUp(true), SETTINGS_WAIT_MS)
+    return () => clearTimeout(timer)
+  }, [settingsLoaded])
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || target) return
-    // Straight after login the real settings are already in the store, so use
-    // them; on a cold start they aren't, and waiting would defeat the point.
+    const mirrored = readStartDestination()
+    if (!mirrored && !settingsLoaded && !settingsGaveUp) return
+    // Loaded settings are the truth; the mirror is what we knew last time.
     const { page, tab } = settingsLoaded
       ? { page: settings.start_page ?? DEFAULT_START_PAGE, tab: settings.start_trip_tab ?? DEFAULT_START_TRIP_TAB }
-      : readStartDestination()
+      : (mirrored ?? { page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB })
     if (page !== 'active_trip') { setTarget('/dashboard'); return }
     let cancelled = false
     tripsApi.active()
       .then(({ trip }) => { if (!cancelled) setTarget(trip ? tripStartPath(trip.id, tab) : '/dashboard') })
       .catch(() => { if (!cancelled) setTarget('/dashboard') })
     return () => { cancelled = true }
-  }, [isLoading, isAuthenticated, settingsLoaded, target])
+  }, [isLoading, isAuthenticated, settingsLoaded, settingsGaveUp, settings, target])
 
   if (isLoading || (isAuthenticated && !target)) {
     return (
