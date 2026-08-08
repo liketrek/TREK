@@ -136,6 +136,12 @@ singleton rather than a second instance.
   webhook and ntfy without a failure. They are built from injected transports and
   registered in `NotificationsService`'s constructor now, so every path that can
   dispatch has them.
+- **The coverage gate reads `src/nest/**` and nothing else.** Moving code in from
+  `src/mcp/` or `src/services/` does not just relocate it — it starts being
+  measured. PR #1844 landed `airports.mcp.ts` at 0% branches because
+  `search_airports`/`get_airport` had never had a test in either world, and the
+  aggregate fell to 79.86% with every suite green. Before pushing anything that
+  moves files into this tree, run `npm run test:coverage`, not just `npm test`.
 - A guard with a constructor dependency has to be a registered provider
   everywhere it is used. The three auth guards are dependency-free on purpose —
   38 directories apply them and 21 do not import `AuthModule`, so giving them a
