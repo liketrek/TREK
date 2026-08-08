@@ -12,7 +12,7 @@ If your account requires MFA setup, TREK redirects you directly to the **Account
 
 | Tab | Purpose | Shown when |
 |-----|---------|------------|
-| General | Currency, language, temperature unit, distance unit, time format, booking route labels, map POI pills, and blur booking codes | Always |
+| General | Start page and start tab, currency, language, temperature unit, distance unit, time format, booking route labels, map POI pills, and blur booking codes | Always |
 | Appearance | Color mode, color scheme / accent, readability (transparency, reduce motion, density, text size), and which widgets appear on your dashboard | Always |
 | Map | Map provider (Leaflet, Mapbox GL, or MapLibre GL), tile presets, map style and Mapbox token, 3D buildings, high-quality mode | Always |
 | Notifications | Email, webhook, ntfy, and in-app notification preferences | Always |
@@ -25,6 +25,11 @@ If your account requires MFA setup, TREK redirects you directly to the **Account
 ## General tab
 
 The General tab controls the following preferences, all saved immediately on change. See [Display-Settings](Display-Settings) for the detail.
+
+**Startup**
+
+- **Start page** — open TREK on the dashboard (the default) or straight in your active trip.
+- **Start tab** — which planner tab that trip opens on, e.g. Costs for entering expenses on the road.
 
 **Language & region**
 

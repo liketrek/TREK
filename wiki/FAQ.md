@@ -40,3 +40,9 @@ Yes. An admin can disable open registration so that new accounts can only be cre
 ## Does TREK support single sign-on?
 
 Yes, via OpenID Connect (OIDC). Compatible providers include Google, Authentik, Keycloak, and any standard OIDC-compliant IdP. Set `OIDC_ONLY=true` to disable password login entirely. See [OIDC SSO](OIDC-SSO).
+
+## Can TREK open straight on my trip instead of the dashboard?
+
+Yes. In Settings → General → **Startup**, set the start page to **Active trip** and pick the tab it should open on — Costs, for instance, if you mostly add expenses while travelling. Opening TREK (including the installed PWA or a home-screen shortcut) then goes there in one step instead of three.
+
+If you would rather build the shortcut yourself, or point a wrapper app at it, any trip URL takes a tab directly: `/trips/42?tab=finanzplan`. See [Display-Settings](Display-Settings) for the full list of tab ids.
