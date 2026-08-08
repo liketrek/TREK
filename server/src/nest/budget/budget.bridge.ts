@@ -6,8 +6,7 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { ExchangeRatesService } from './exchange-rates.service';
 
 /**
- * Non-Nest entry point for the budget domain — for the legacy create_transport
- * registrar in src/mcp/tools/transports.ts, plus one in-container exception:
+ * One in-container exception, and nothing else left:
  * UserCleanupService (nest/auth) takes removeUserFromBudgetItems from here
  * because BudgetModule imports AuthModule for BudgetMcp's demo guard, so
  * AuthModule cannot import BudgetModule back — see the note there. (The budget MCP
@@ -16,9 +15,10 @@ import { ExchangeRatesService } from './exchange-rates.service';
  * domain folded into the DI-native TripsService, which injects BudgetService —
  * its bridge exports were pruned with it). Exports only the legacy
  * services/budgetService names still consumed outside the container, 1:1, so
- * repointing a consumer is an import-path-only diff. Inside the container,
- * inject BudgetService instead. Delete this file when the transports registrar
- * migrates and BudgetMcp stops needing AuthService.
+ * Inside the container, inject BudgetService instead. The create_transport
+ * registrar was the last outside-container consumer; it moved into
+ * reservations.mcp.ts, so this file dies the moment BudgetMcp stops needing
+ * AuthService.
  *
  * Module-level construction is safe: `db` is the reinitialize-proof Proxy onto
  * the shared better-sqlite3 singleton, and ExchangeRatesService keeps its FX
@@ -29,12 +29,4 @@ const budget = new BudgetService(new DatabaseService(db), new PermissionsService
 
 export function removeUserFromBudgetItems(userId: number): void {
   budget.removeUserFromBudgetItems(userId);
-}
-
-export function linkBudgetItemToReservation(
-  tripId: string | number,
-  reservationId: number,
-  data: Parameters<BudgetService['linkBudgetItemToReservation']>[2],
-) {
-  return budget.linkBudgetItemToReservation(tripId, reservationId, data);
 }

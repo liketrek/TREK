@@ -408,10 +408,11 @@ describe('rebaseTripCurrency', () => {
 });
 
 describe('budget.bridge delegation', () => {
-  // The listBudgetItems / rebaseTripCurrency / removeUserFromBudgetItems bridge
-  // exports were pruned when their last outside-container consumers (legacy
-  // tripService, the trips MCP registrar, services/userCleanupService) migrated
-  // — 015/016/017 pin the same behavior on the service.
+  // Every bridge export except removeUserFromBudgetItems has been pruned as its
+  // last outside-container consumer migrated (legacy tripService, the trips MCP
+  // registrar, services/userCleanupService, and the create_transport registrar,
+  // which moved into reservations.mcp.ts). 015-018 pin the same behavior on the
+  // service.
   it('BUDGET-SVC-DB-015: listBudgetItems returns the hydrated list', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -447,14 +448,14 @@ describe('budget.bridge delegation', () => {
     expect(row).toEqual({ currency: 'EUR', exchange_rate: RATES.RUB.EUR });
   });
 
-  it('BUDGET-SVC-DB-018: linkBudgetItemToReservation stamps the reservation id through the bridge', () => {
+  it('BUDGET-SVC-DB-018: linkBudgetItemToReservation stamps the reservation id', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const reservationId = Number(testDb
       .prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Flight', 'flight')")
       .run(trip.id).lastInsertRowid);
 
-    const item = bridge.linkBudgetItemToReservation(trip.id, reservationId, { name: 'Flight', total_price: 200 });
+    const item = budget.linkBudgetItemToReservation(trip.id, reservationId, { name: 'Flight', total_price: 200 });
 
     expect(item.reservation_id).toBe(reservationId);
     const row = testDb.prepare('SELECT reservation_id FROM budget_items WHERE id = ?').get(item.id) as { reservation_id: number | null };

@@ -1,7 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { registerJourneyTools } from './tools/journey';
-import { registerMapsWeatherTools } from './tools/mapsWeather';
-import { registerTransportTools } from './tools/transports';
 import { registerMcpPrompts } from './tools/prompts';
 import { getMcpRegistry } from './registry-handoff';
 
@@ -32,7 +30,9 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   // The assignment tools moved to the DI-discovered src/nest/assignments/
   // assignments.mcp.ts (@McpController, attached via the nest-mcp registry below).
 
-  registerMapsWeatherTools(server, userId, scopes);
+  // The weather tools moved to the DI-discovered src/nest/weather/weather.mcp.ts
+  // and the airport tools to src/nest/airports/airports.mcp.ts (@McpController,
+  // attached via the nest-mcp registry below).
 
   // The notification tools moved to the DI-discovered src/nest/notifications/
   // notifications.mcp.ts (@McpController, attached via the nest-mcp registry below).
@@ -43,7 +43,10 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   // The collab tools moved to the DI-discovered src/nest/collab/collab.mcp.ts
   // (@McpController, attached via the nest-mcp registry below).
 
-  registerTransportTools(server, userId, scopes);
+  // The transport tools moved to the DI-discovered
+  // src/nest/reservations/reservations.mcp.ts — a transport is a reservation,
+  // same table and same service (@McpController, attached via the nest-mcp
+  // registry below).
 
   // The transit tools moved to the DI-discovered src/nest/transit/transit.mcp.ts
   // (@McpController, attached via the nest-mcp registry below).

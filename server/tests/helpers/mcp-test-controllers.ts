@@ -21,6 +21,9 @@ import { DayNotesService } from '../../src/nest/days/day-notes.service';
 import { DaysMcp } from '../../src/nest/days/days.mcp';
 import { DaysService } from '../../src/nest/days/days.service';
 import { MapsMcp } from '../../src/nest/maps/maps.mcp';
+import { WeatherMcp } from '../../src/nest/weather/weather.mcp';
+import { WeatherService } from '../../src/nest/weather/weather.service';
+import { AirportsMcp } from '../../src/nest/airports/airports.mcp';
 import { MapsService } from '../../src/nest/maps/maps.service';
 import { NotificationsMcp } from '../../src/nest/notifications/notifications.mcp';
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
@@ -89,6 +92,9 @@ export function createMcpTestRegistry(): McpRegistry {
     [
       new TagsMcp(new TagsService(dbService), authService),
       new CategoriesMcp(new CategoriesService(dbService)),
+      // The weather and airport tools left the legacy mapsWeather registrar.
+      new WeatherMcp(new WeatherService()),
+      new AirportsMcp(),
       new TodoMcp(todoService, authService),
       new PackingMcp(packingService, authService),
       new BudgetMcp(budgetService, exchangeRatesService, dbService, authService),
