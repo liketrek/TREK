@@ -20,6 +20,7 @@ export * from './maps/maps.schema';
 export * from './category/category.schema';
 export * from './tag/tag.schema';
 export * from './notification/notification.schema';
+export * from './memories/memories.schema';
 export * from './atlas/atlas.schema';
 export * from './vacay/vacay.schema';
 export * from './packing/packing.schema';
