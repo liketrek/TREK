@@ -46,6 +46,8 @@ export const COST_CATEGORIES = [
   'fees',
   'health',
   'tips',
+  'fuel',
+  'parkings',
   'other',
 ] as const;
 export type CostCategory = (typeof COST_CATEGORIES)[number];

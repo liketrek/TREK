@@ -117,6 +117,8 @@ const budget: TranslationStrings = {
   'costs.cat.fees': 'Phí & vé',
   'costs.cat.health': 'Sức khỏe',
   'costs.cat.tips': 'Mẹo',
+  'costs.cat.fuel': 'Nhiên liệu',
+  'costs.cat.parkings': 'Bãi đỗ xe',
   'costs.cat.other': 'Khác',
   'costs.daysCount': '{count} ngày',
   'costs.travelers': '{count} người',
