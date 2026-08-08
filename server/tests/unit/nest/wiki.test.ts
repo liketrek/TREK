@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'path';
 
-// wikiService picks its source (local disk vs GitHub) once at module load, so each
+// The wiki module picks its source (local disk vs GitHub) once at module load, so each
 // mode needs a fresh import with TREK_WIKI_DIR already set.
 const FIXTURE_WIKI = path.join(__dirname, '..', '..', 'fixtures', 'wiki');
 const MISSING_WIKI = path.join(__dirname, '..', '..', 'fixtures', 'no-such-wiki');
 
-type WikiModule = typeof import('../../../src/services/wikiService');
+type WikiModule = typeof import('../../../src/nest/help/wiki');
 
 async function loadWiki(dir: string | undefined): Promise<WikiModule> {
   vi.resetModules();
   if (dir === undefined) delete process.env.TREK_WIKI_DIR;
   else process.env.TREK_WIKI_DIR = dir;
-  return import('../../../src/services/wikiService');
+  return import('../../../src/nest/help/wiki');
 }
 
 const fetchSpy = vi.fn();
@@ -27,7 +27,7 @@ afterEach(() => {
   delete process.env.TREK_WIKI_DIR;
 });
 
-describe('wikiService — local wiki on disk', () => {
+describe('wiki — local wiki on disk', () => {
   it('serves the sidebar from disk and never touches the network', async () => {
     const wiki = await loadWiki(FIXTURE_WIKI);
     expect(wiki.isLocalWiki()).toBe(true);
@@ -144,7 +144,7 @@ describe('wikiService — local wiki on disk', () => {
   });
 });
 
-describe('wikiService — GitHub fallback when no wiki is on disk', () => {
+describe('wiki — GitHub fallback when no wiki is on disk', () => {
   const ok = (body: string): Response =>
     ({ ok: true, status: 200, text: async () => body, arrayBuffer: async () => new ArrayBuffer(4) }) as unknown as Response;
 
@@ -183,7 +183,7 @@ describe('wikiService — GitHub fallback when no wiki is on disk', () => {
   });
 });
 
-describe('wikiService — default path resolution', () => {
+describe('wiki — default path resolution', () => {
   it("resolves the repo's wiki/ with no override, so a release never ships without docs", async () => {
     // Guards the __dirname anchor and the Dockerfile COPY: if either breaks, help
     // silently degrades to the GitHub fallback and nobody notices.

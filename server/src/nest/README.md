@@ -29,7 +29,8 @@ remains as the platform underneath `@nestjs/platform-express`.
   todo, packing, day-notes, trip-invite, assignments, share, settings, files,
   collab, vacay, reservations, day, permissions, audit, budget, trip, maps,
   transit, place, transit-itinerary, collections, atlas, auth, oidc, passkey,
-  notifications, admin — see the migration recipe below.
+  notifications, admin, webauthn-config, user-cleanup, oauth, wiki — see the
+  migration recipe below.
 - **Foundation (BE-Phase 1, complete):** the eight stateless helpers moved to
   `common/`; every trip-access check routes through `DatabaseService`
   (`services/tripAccess.ts` and the dead `middleware/tripAccess.ts` are gone);
@@ -40,7 +41,9 @@ remains as the platform underneath `@nestjs/platform-express`.
   addon guards are one `AddonGuard` + `@RequireAddon`; the demo-mode block is one
   condition. Still open: `TripAccessGuard`, default-deny, the MFA policy.
 
-`src/services/` is down to 19 top-level files. Note that the trip-access and
+`src/services/` is down to five top-level files (journey, journeyShare,
+notifications, notificationPreferences, backup) plus the `airtrail/`,
+`memories/` and `notifications/` directories. Note that the trip-access and
 `canEdit` methods on the domain services are **not** dead weight waiting for a
 guard: their callers are overwhelmingly the `*.mcp.ts` tools, which never pass
 through an HTTP guard. In the five domains piloted for `TripAccessGuard`, 40 of
@@ -266,8 +269,11 @@ composites kept their wrapper names while the raw settlement writes became
 freeze; the 11-tool `mcp/tools/budget.ts` registrar + 3 `resources.ts` budget
 resources moved to `budget.mcp.ts`; TripsService, ReservationsService (+ its
 MCP class) and BookingImportService inject `BudgetService`; a 4-export
-`budget.bridge.ts` serves the legacy tripService/userCleanupService and the
-trips/transports registrars; `exchange-rates.bridge.ts` was deleted with its
+`budget.bridge.ts` served the legacy tripService/userCleanupService and the
+trips/transports registrars (down to two exports since; `UserCleanupService`
+still takes `removeUserFromBudgetItems` from it, because BudgetModule imports
+AuthModule for BudgetMcp's demo guard and AuthModule therefore cannot import
+BudgetModule back); `exchange-rates.bridge.ts` was deleted with its
 last consumers, and the controller adopted `budget.dto.ts` — all nine
 allow-list entries removed).
 tripService followed (the 1121-line Wave-4 hub — the biggest fold — moved into
@@ -463,8 +469,9 @@ passkeyService followed (the last frontier member of the auth stack: the
 `PasskeyService` over DatabaseService + injected AuthService — its three
 `auth.bridge` imports resolved to `this.auth.generateToken` plus plain
 `stripUserForClient`/`avatarUrl` helper imports, and `resolveWebauthnConfig`
-stays a plain `services/webauthnConfig` import (the helper also feeds
-auth.service's `isPasskeyConfigured`). No MCP registrar, no plugin-host
+stayed a plain `services/webauthnConfig` import at the time (it has since
+become the injected `WebauthnConfigService`, which also feeds auth.service's
+`passkey_configured`). No MCP registrar, no plugin-host
 import, and **no bridge at all** — both consumers were already in-container:
 `PasskeyController` swapped its `import *` shim for the injection, and
 `AdminService` swapped its `adminResetPasskeys` function import for the

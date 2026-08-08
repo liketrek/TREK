@@ -1,6 +1,6 @@
 import { existsSync, promises as fs } from 'fs';
 import path from 'path';
-import { readEnv } from '../app-config';
+import { readEnv } from '../../app-config';
 
 /**
  * In-app Help/Wiki content, sourced from the `wiki/**` directory that ships with
@@ -20,12 +20,13 @@ const TTL_MS = 60 * 60 * 1000; // remote fallback only: refresh from GitHub at m
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 /**
- * `server/{src,dist}/services` both sit three levels under the repo root, so this
+ * `server/{src,dist}/nest/help` both sit four levels under the repo root, so this
  * one anchor resolves in dev, a built source install, vitest, and Docker (where
  * the Dockerfile copies `wiki/` to /app/wiki). `process.cwd()` would not — Docker
- * runs the server from /app/server.
+ * runs the server from /app/server. The depth is counted from THIS file: it was
+ * three while the module lived in `src/services`.
  */
-const WIKI_DIR = readEnv().paths.wikiDir ?? path.join(__dirname, '..', '..', '..', 'wiki');
+const WIKI_DIR = readEnv().paths.wikiDir ?? path.join(__dirname, '..', '..', '..', '..', 'wiki');
 
 /**
  * Probe for the sidebar rather than the bare directory: an empty or half-copied
