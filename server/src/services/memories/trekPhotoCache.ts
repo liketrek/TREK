@@ -4,8 +4,9 @@ import fsPromises from 'node:fs/promises';
 import crypto from 'node:crypto';
 import { Response } from 'express';
 import { db } from '../../db/database';
+import { UPLOADS_ROOT } from '../../nest/memories/uploads-root';
 
-const TREK_PHOTO_DIR = path.join(__dirname, '../../../uploads/photos/trek');
+const TREK_PHOTO_DIR = path.join(UPLOADS_ROOT, 'photos/trek');
 export const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 const inFlight = new Map<string, Promise<Buffer | null>>();

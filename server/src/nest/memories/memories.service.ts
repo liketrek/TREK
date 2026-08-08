@@ -37,7 +37,7 @@ import {
   streamSynologyAsset,
 } from '../../services/memories/synologyService';
 import { canAccessUserPhoto } from '../../services/memories/helpersService';
-import type { Selection } from '../../services/memories/helpersService';
+import type { Selection } from './memories.helpers';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 

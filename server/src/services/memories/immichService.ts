@@ -4,6 +4,7 @@ import { maybe_encrypt_api_key, decrypt_api_key } from '../../nest/common/crypto
 import { checkSsrf, safeFetch } from '../../utils/ssrfGuard';
 import { writeAudit } from '../../nest/audit/audit.bridge';
 import { getAlbumIdFromLink, updateSyncTimeForAlbumLink, Selection, pipeAsset } from './helpersService';
+import { UPLOADS_ROOT } from '../../nest/memories/uploads-root';
 
 // ── Credentials ────────────────────────────────────────────────────────────
 
@@ -534,7 +535,7 @@ export async function uploadToImmich(userId: number, filePath: string, fileName:
   const fs = await import('node:fs');
   const path = await import('node:path');
 
-  const fullPath = path.join(__dirname, '../../../uploads', filePath);
+  const fullPath = path.join(UPLOADS_ROOT, filePath);
   if (!fs.existsSync(fullPath)) return null;
 
   try {

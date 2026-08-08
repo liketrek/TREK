@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Put, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import type { User } from '../../types';
-import type { Selection } from '../../services/memories/helpersService';
+import type { Selection } from './memories.helpers';
 import { MemoriesService } from './memories.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';

@@ -6,6 +6,7 @@ import type { TrekPhoto } from '../../types';
 // The trek_photos rows live in nest/photos now — this module is the provider
 // dispatch half of what used to be one file.
 import { resolveTrekPhoto } from '../../nest/photos/photos.bridge';
+import { UPLOADS_ROOT } from '../../nest/memories/uploads-root';
 import { streamImmichAsset, fetchImmichThumbnailBytes, getAssetInfo as getImmichAssetInfo } from './immichService';
 import { streamSynologyAsset, fetchSynologyThumbnailBytes, getSynologyAssetInfo } from './synologyService';
 import type { ServiceResult, AssetInfo } from './helpersService';
@@ -60,7 +61,7 @@ export async function streamPhoto(
   }
 
   if (photo.file_path) {
-    const uploadsRoot = path.join(__dirname, '../../../uploads');
+    const uploadsRoot = UPLOADS_ROOT;
 
     if (kind === 'thumbnail') {
       const isVideo = photo.media_type === 'video';
