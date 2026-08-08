@@ -3,62 +3,16 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '../../db/database';
 import type { TrekPhoto } from '../../types';
+// The trek_photos rows live in nest/photos now — this module is the provider
+// dispatch half of what used to be one file.
+import { resolveTrekPhoto } from '../../nest/photos/photos.bridge';
 import { streamImmichAsset, fetchImmichThumbnailBytes, getAssetInfo as getImmichAssetInfo } from './immichService';
 import { streamSynologyAsset, fetchSynologyThumbnailBytes, getSynologyAssetInfo } from './synologyService';
 import type { ServiceResult, AssetInfo } from './helpersService';
 import { fail, success } from './helpersService';
-import { encrypt_api_key, decrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
+import { decrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 import * as photoCache from './trekPhotoCache';
 import { ensureLocalThumbnail } from './thumbnailService';
-
-// ── Lookup / Register ────────────────────────────────────────────────────
-
-export function getOrCreateTrekPhoto(
-  provider: string,
-  assetId: string,
-  ownerId: number,
-  passphrase?: string,
-  mediaType: string = 'image',
-): number {
-  const existing = db.prepare(
-    'SELECT id FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?'
-  ).get(provider, assetId, ownerId) as { id: number } | undefined;
-  if (existing) {
-    if (passphrase) {
-      db.prepare('UPDATE trek_photos SET passphrase = ? WHERE id = ?')
-        .run(encrypt_api_key(passphrase), existing.id);
-    }
-    return existing.id;
-  }
-
-  const res = db.prepare(
-    'INSERT INTO trek_photos (provider, asset_id, owner_id, passphrase, media_type) VALUES (?, ?, ?, ?, ?)'
-  ).run(provider, assetId, ownerId, passphrase ? encrypt_api_key(passphrase) : null, mediaType);
-  return Number(res.lastInsertRowid);
-}
-
-export function getOrCreateLocalTrekPhoto(
-  filePath: string,
-  thumbnailPath?: string | null,
-  width?: number | null,
-  height?: number | null,
-  mediaType: string = 'image',
-  durationMs?: number | null,
-): number {
-  const existing = db.prepare(
-    "SELECT id FROM trek_photos WHERE provider = 'local' AND file_path = ?"
-  ).get(filePath) as { id: number } | undefined;
-  if (existing) return existing.id;
-
-  const res = db.prepare(
-    'INSERT INTO trek_photos (provider, file_path, thumbnail_path, width, height, media_type, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run('local', filePath, thumbnailPath || null, width || null, height || null, mediaType, durationMs ?? null);
-  return Number(res.lastInsertRowid);
-}
-
-export function resolveTrekPhoto(photoId: number): TrekPhoto | null {
-  return db.prepare('SELECT * FROM trek_photos WHERE id = ?').get(photoId) as TrekPhoto | undefined || null;
-}
 
 // ── Streaming ────────────────────────────────────────────────────────────
 
@@ -218,30 +172,3 @@ export async function getPhotoInfo(
       return fail(`Unknown provider: ${photo.provider}`, 400);
   }
 }
-
-// ── Update provider on existing trek_photo (for Immich upload sync) ─────
-
-export function setTrekPhotoProvider(
-  trekPhotoId: number,
-  provider: string,
-  assetId: string,
-  ownerId: number,
-): void {
-  db.prepare(
-    'UPDATE trek_photos SET provider = ?, asset_id = ?, owner_id = ? WHERE id = ?'
-  ).run(provider, assetId, ownerId, trekPhotoId);
-}
-
-// ── Orphan cleanup ───────────────────────────────────────────────────────
-
-export function deleteTrekPhotoIfOrphan(photoId: number): void {
-  const stillUsed = db.prepare(`
-    SELECT 1 FROM trip_photos WHERE photo_id = ?
-    UNION ALL
-    SELECT 1 FROM journey_photos WHERE photo_id = ?
-    LIMIT 1
-  `).get(photoId, photoId);
-  if (stillUsed) return;
-  db.prepare("DELETE FROM trek_photos WHERE id = ? AND provider != 'local'").run(photoId);
-}
-

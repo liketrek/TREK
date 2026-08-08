@@ -7,7 +7,7 @@ import {
   getOrCreateLocalTrekPhoto,
   setTrekPhotoProvider,
   deleteTrekPhotoIfOrphan,
-} from './memories/photoResolverService';
+} from '../nest/photos/photos.bridge';
 
 function ts(): number {
   return Date.now();

@@ -10,7 +10,7 @@ import {
   Selection,
   updateSyncTimeForAlbumLink,
 } from './helpersService';
-import { getOrCreateTrekPhoto, deleteTrekPhotoIfOrphan } from './photoResolverService';
+import { getOrCreateTrekPhoto, deleteTrekPhotoIfOrphan } from '../../nest/photos/photos.bridge';
 import { collectAlbumSelection } from './immichService';
 import { collectSynologyAlbumSelection } from './synologyService';
 import { encrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
