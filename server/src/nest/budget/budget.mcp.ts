@@ -1,5 +1,5 @@
 import {
-  McpController, Tool, ResourceTemplate, type McpContext,
+  McpController, Prompt, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   demoDenied, errorResult, ok,
@@ -9,7 +9,7 @@ import { AuthService } from '../auth/auth.service';
 import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
-import { getTripOwner, listMembers } from '../trips/trips.bridge';
+import { getTripOwner, listMembers, getTripSummary } from '../trips/trips.bridge';
 import { DatabaseService } from '../database/database.service';
 import { BudgetService } from './budget.service';
 import { ExchangeRatesService } from './exchange-rates.service';
@@ -464,6 +464,49 @@ export class BudgetMcp {
         mimeType: 'application/json',
         text: JSON.stringify(settlement, null, 2),
       }],
+    };
+  }
+
+  /**
+   * Moved 1:1 from the legacy registrar src/mcp/tools/prompts.ts. The
+   * registration-time `if (isAddonEnabled(BUDGET))` became the same `when` gate
+   * the tools above use, and the trip lookup keeps going through trips.bridge —
+   * injecting TripsService here would close a TripsModule/BudgetModule cycle.
+   */
+  @Prompt({
+    name: 'budget-overview',
+    title: 'Budget Overview',
+    description: 'Get a formatted budget summary for a trip',
+    argsSchema: {
+      tripId: z.number().int().positive().describe('Trip ID'),
+    },
+    when: budgetAddonOn,
+  })
+  async budgetOverviewPrompt({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) {
+      return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } }] };
+    }
+    const summary = getTripSummary(tripId, ctx.userId);
+    if (!summary) {
+      return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found.' } }] };
+    }
+    const { trip, budget } = summary;
+    const currency = trip?.currency || 'EUR';
+    const byCategory = (budget?.items || []).reduce((acc: Record<string, number>, item: { category?: string; total_price?: number }) => {
+      const cat = item.category || 'Uncategorized';
+      acc[cat] = (acc[cat] || 0) + (item.total_price || 0);
+      return acc;
+    }, {} as Record<string, number>);
+    const total = Object.values(byCategory).reduce((sum, v) => sum + v, 0);
+    const lines = Object.entries(byCategory)
+      .sort(([, a], [, b]) => b - a)
+      .map(([cat, amount]) => `- ${cat}: ${amount} ${currency}`)
+      .join('\n');
+    const memberCount = Math.max(1, [summary.members?.owner, ...(summary.members?.collaborators || [])].filter(Boolean).length);
+    const perPerson = (total / memberCount).toFixed(2);
+    return {
+      description: `Budget overview for "${trip?.title || tripId}"`,
+      messages: [{ role: 'user' as const, content: { type: 'text' as const, text: `# Budget: ${trip?.title || 'Trip'}\n\n**Total: ${total} ${currency}** (${perPerson} ${currency} per person)\n\n${lines || 'No expenses recorded.'}` } }],
     };
   }
 }

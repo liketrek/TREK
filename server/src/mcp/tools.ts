@@ -1,6 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { registerJourneyTools } from './tools/journey';
-import { registerMcpPrompts } from './tools/prompts';
 import { getMcpRegistry } from './registry-handoff';
 
 export function registerTools(server: McpServer, userId: number, scopes: string[] | null, isStaticToken = false, getDeprecationNotice: () => string | null = () => null): void {
@@ -59,7 +58,10 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   // The todo tools moved to the DI-discovered src/nest/todo/todo.mcp.ts
   // (@McpController, attached via the nest-mcp registry below).
 
-  registerMcpPrompts(server, userId, isStaticToken);
+  // The prompts moved to the DI-discovered @McpController classes:
+  // packing-list to packing.mcp.ts, budget-overview to budget.mcp.ts and the
+  // static-token notice to auth.mcp.ts (its `if (isStaticToken)` became a
+  // `when` gate — the registry hands `when` the session context).
 
   // Decorator-registered domains (@trek/nest-mcp) — migrating off the legacy
   // registrar fan-out above, one domain at a time. Unset registry (direct

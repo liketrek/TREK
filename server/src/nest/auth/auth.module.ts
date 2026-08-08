@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { PasskeyController } from './passkey.controller';
 import { AuthService } from './auth.service';
 import { PasskeyService } from './passkey.service';
+import { AuthMcp } from './auth.mcp';
 import { UserCleanupService } from './user-cleanup.service';
 import { WebauthnConfigService } from './webauthn-config.service';
 import { AppConfigModule } from '../app-config/app-config.module';
@@ -33,7 +34,7 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
 @Module({
   imports: [RateLimitModule, AuditModule, PermissionsModule, AtlasModule, TripMembershipModule, MailerModule, AppConfigModule],
   controllers: [AuthPublicController, AuthController, PasskeyController],
-  providers: [AuthService, PasskeyService, UserCleanupService, WebauthnConfigService],
+  providers: [AuthService, PasskeyService, UserCleanupService, WebauthnConfigService, AuthMcp],
   exports: [AuthService, PasskeyService, UserCleanupService],
 })
 export class AuthModule {}
