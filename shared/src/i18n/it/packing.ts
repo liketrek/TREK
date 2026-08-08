@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Azioni',
+  'packing.editDone': 'Fatto',
+  'packing.personalEmptyHint': 'La tua lista personale è vuota: copia gli elementi condivisi o aggiungi i tuoi.',
+  'packing.assignMembers': 'Assegna membri',
+  'packing.categoryOptions': 'Opzioni elenco',
+  'packing.editItem': 'Modifica elemento',
+  'packing.itemName': 'Nome',
+  'packing.itemQuantity': 'Quantità',
+  'packing.itemWeight': 'Peso (g)',
   'packing.title': 'Lista valigia',
   'packing.empty': 'La lista valigia è vuota',
   'packing.import': 'Importa',
@@ -198,5 +207,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': "Posso portarlo anch'io",
   'packing.alsoBringingStop': 'Non lo porto',
   'packing.cloneToMine': 'Copia nella mia lista',
+  'packing.bagLimit': 'Limite di peso',
+  'packing.setBagLimit': 'Imposta limite',
 };
 export default packing;

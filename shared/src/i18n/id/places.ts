@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Tambah Tempat/Aktivitas',
   'places.importFile': 'Impor file',
+  'places.trackIndicator': 'Jalur / rute',
   'places.sidebarDrop': 'Lepas untuk mengimpor',
   'places.importFileHint': 'Impor file .gpx, .kml, atau .kmz dari Google My Maps, Google Earth, atau pelacak GPS.',
   'places.importFileDropHere': 'Klik untuk memilih file atau seret dan lepas di sini',
@@ -41,7 +42,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Tambah ke hari mana?',
   'places.all': 'Semua',
   'places.unplanned': 'Belum direncanakan',
+  'places.planned': 'Direncanakan',
   'places.filterTracks': 'Trek',
+  'places.sortByRating': 'Urutkan berdasarkan rating',
+  'places.yourRating': 'Rating kamu',
+  'places.notRated': 'Belum dinilai',
   'places.search': 'Cari tempat...',
   'places.allCategories': 'Semua Kategori',
   'places.categoriesSelected': 'kategori',
@@ -61,6 +66,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Bujur (mis. 2.3522)',
   'places.formCategory': 'Kategori',
   'places.noCategory': 'Tanpa Kategori',
+  'places.newCategory': 'Kategori baru',
   'places.categoryNamePlaceholder': 'Nama kategori',
   'places.formTime': 'Waktu',
   'places.startTime': 'Mulai',
@@ -87,5 +93,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Perkaya tempat via Google',
   'places.enrichOnImportHint':
     'Mencari setiap tempat yang diimpor untuk menambahkan foto, alamat, dan kontak. Memerlukan kunci Google Maps.',
+  'places.uploadImage': 'Unggah gambar',
+  'places.changeImage': 'Ganti gambar',
+  'places.removeImage': 'Hapus gambar',
+  'places.imageUploadError': 'Tidak dapat mengunggah gambar',
+  'places.imageRemoveError': 'Tidak dapat menghapus gambar',
 };
 export default places;

@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Szablon mapy',
   'settings.mapTemplatePlaceholder.select': 'Wybierz szablon...',
   'settings.mapDefaultHint': 'Pozostaw puste dla OpenStreetMap (domyślnie)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Szablon URL dla kafelków mapy',
   'settings.mapProvider': 'Dostawca mapy',
   'settings.mapProviderHint': 'Dotyczy map Trip Planner i Journey. Atlas zawsze używa Leaflet.',
@@ -78,6 +77,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Przypomnienia o podróżach',
   'settings.notifyTodoDue': 'Zadanie z terminem',
   'settings.notifyVacayInvite': 'Zaproszenia do połączenia kalendarzy',
+  'settings.notifyVacayShare': 'Udostępnienia kalendarza Vacay',
   'settings.notifyPhotosShared': 'Udostępnione zdjęcia (Immich)',
   'settings.notifyCollabMessage': 'Wiadomości czatu (Collab)',
   'settings.notifyPackingTagged': 'Lista pakowania: przypisania',
@@ -228,6 +228,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Zdjęcie profilowe zostało zaktualizowane',
   'settings.avatarRemoved': 'Zdjęcie profilowe zostało usunięte',
   'settings.avatarError': 'Przesyłanie nie powiodło się',
+  'settings.avatarRemoveError': 'Usuwanie nie powiodło się',
   'settings.mfa.title': 'Uwierzytelnianie dwuskładnikowe (2FA)',
   'settings.mfa.description':
     'Dodaje drugi krok, kiedy logujesz się e-mailem i hasłem. Użyj aplikacji uwierzytelniającej (Google Authenticator, Authy, itp.).',
@@ -297,8 +298,9 @@ const settings: TranslationStrings = {
   'settings.notificationsActive': 'Aktywny kanał',
   'settings.notificationsManagedByAdmin': 'Zdarzenia konfigurowane przez administratora.',
   'settings.mustChangePassword': 'Musisz zmienić hasło przed kontynuowaniem.',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Waluta wyświetlania',
+  'settings.currencyHint':
+    'Kwoty w Kosztach są przeliczane na tę walutę wyłącznie na potrzeby wyświetlania — oryginalne kwoty pozostają bez zmian.',
   'settings.currencyTrip': 'Waluta wyjazdu',
   'settings.passkey.title': 'Klucze dostępu',
   'settings.passkey.description':
@@ -428,6 +430,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Dolny pasek nawigacji',
+  'settings.appearance.mobileNav.hint':
+    'Wybierz, które elementy pojawią się na pasku, a które w menu „Więcej”. Dashboard zawsze pozostaje pierwszy.',
+  'settings.appearance.mobileNav.inBar': 'Na pasku',
+  'settings.appearance.mobileNav.underMore': 'W menu „Więcej”',
+  'settings.appearance.mobileNav.moreEmpty': 'Nic tu jeszcze nie ma — wszystko mieści się na pasku.',
+  'settings.appearance.mobileNav.pinned': 'Przypięte',
+  'settings.appearance.mobileNav.toMore': 'Przenieś do menu „Więcej”',
+  'settings.appearance.mobileNav.toBar': 'Przenieś na pasek',
+  'settings.appearance.dashOrder': 'Kolejność panelu',
+  'settings.appearance.dashOrder.hint':
+    'Zmień kolejność układania listy podróży i widżetów na panelu telefonu. Wyróżniona podróż zawsze pozostaje na górze.',
+  'settings.appearance.dashOrder.trips': 'Podróże',
+  'settings.appearance.dashOrder.hidden': 'Ukryte',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -494,7 +510,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Kiedy',
   'settings.pluginActivity.columns.status': 'Wynik',
   'settings.alwaysShowRoutes': 'Zawsze pokazuj trasy rezerwacji',
-  'settings.alwaysShowRoutesHint': 'Automatycznie pokazuje na mapie trasę każdego lotu, pociągu i innej rezerwacji, bez konieczności włączania jej pojedynczo.',
+  'settings.alwaysShowRoutesHint':
+    'Automatycznie pokazuje na mapie trasę każdego lotu, pociągu i innej rezerwacji, bez konieczności włączania jej pojedynczo.',
 };
 
 export default settings;

@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { X, MapPin, Ticket, Check } from 'lucide-react'
 import { filesApi } from '../../api/client'
 import type { Place, Reservation, Day } from '../../types'
@@ -8,7 +8,7 @@ import { transportIcon } from './FileManager.helpers'
 
 export function AssignModal(S: FileManagerState) {
   const { files, assignFileId, setAssignFileId, t, days, assignments, places, reservations, tripId, handleAssign, refreshFiles } = S
-  return ReactDOM.createPortal(
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={() => setAssignFileId(null)}>
       <div style={{

@@ -4,6 +4,7 @@ import { existsSync, readdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, extname } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { readEnv } from '../../app-config';
 import { execSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { KiReservation } from './kitinerary.types';
@@ -78,7 +79,7 @@ export class KitineraryExtractorService implements OnModuleInit {
   }
 
   private findBinary(): string | null {
-    const envPath = process.env.KITINERARY_EXTRACTOR_PATH;
+    const envPath = readEnv().integrations.kitineraryExtractorPath;
     if (envPath) {
       if (existsSync(envPath)) return envPath;
       console.warn(`[KItinerary] KITINERARY_EXTRACTOR_PATH="${envPath}" not found`);

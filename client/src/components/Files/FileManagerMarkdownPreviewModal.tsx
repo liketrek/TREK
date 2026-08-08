@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { ExternalLink, Download, X } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -32,7 +32,7 @@ export function MarkdownPreviewModal(S: FileManagerState) {
     return () => { cancelled = true }
   }, [previewFileUrl])
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={() => setPreviewFile(null)}

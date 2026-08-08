@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { readEnv } from '../../app-config';
 
 /**
  * Filesystem layout for the plugin system (#plugins). Code and data are two
@@ -16,10 +17,10 @@ const DATA_ROOT = path.resolve(__dirname, '../../../data');
 // Read lazily so a deployment (or a test) can point these at dedicated volumes
 // via env without import-order surprises.
 export function pluginsCodeRoot(): string {
-  return process.env.TREK_PLUGINS_DIR || path.join(DATA_ROOT, 'plugins');
+  return readEnv().plugins.dir || path.join(DATA_ROOT, 'plugins');
 }
 export function pluginsDataRoot(): string {
-  return process.env.TREK_PLUGINS_DATA_DIR || path.join(DATA_ROOT, 'plugins-data');
+  return readEnv().plugins.dataDir || path.join(DATA_ROOT, 'plugins-data');
 }
 
 /** A plugin's installed code directory (contains trek-plugin.json + server/index.js). */
@@ -112,7 +113,7 @@ export function serverCodeRoot(): string {
  */
 let warnedPermissionsOff = false;
 export function pluginPermissionArgs(pluginId: string): string[] {
-  if ((process.env.TREK_PLUGIN_PERMISSIONS ?? 'on').toLowerCase() === 'off') {
+  if (readEnv().plugins.permissionsOff) {
     // The OS permission jail is the boundary that stops an installed plugin from
     // reading trek.db / the secret files / shelling out. Turning it off makes plugin
     // isolation crash-only — surface that loudly once so an operator can't leave it

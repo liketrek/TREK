@@ -160,6 +160,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Erreur de chargement des modèles',
   'admin.packingTemplates.createError': 'Erreur de création du modèle',
   'admin.packingTemplates.deleteError': 'Erreur de suppression du modèle',
+  'admin.packingTemplates.deleteCategoryError': 'Échec de la suppression de la catégorie',
+  'admin.packingTemplates.deleteItemError': 'Échec de la suppression de cet élément',
   'admin.packingTemplates.saveError': 'Erreur de sauvegarde',
   'admin.tabs.addons': 'Extensions',
   'admin.tabs.plugins': 'Plugins',
@@ -320,6 +322,16 @@ const admin: TranslationStrings = {
     'Ajouter des colonnes et des actions aux vues du voyage (réservations, lieux, jours)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Ajouter des marqueurs à la carte du voyage (p. ex. afficher réservations ou POIs)',
+  'admin.plugins.perm.hook:map-layer-provider':
+    'Tracer des itinéraires, des corridors et des zones sur la carte du voyage',
+  'admin.plugins.perm.hook:route-provider':
+    'Proposer des profils de routage avec lesquels le planificateur calcule les itinéraires des jours (p. ex. routage pour véhicule électrique avec arrêts de recharge)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Ajouter des entrées horaires au plan de la journée (arrêts de recharge, marges de sécurité)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Colorer les jours du plan de la journée (par exemple, à quelle étape du voyage appartient un jour)',
+  'admin.plugins.perm.geolocation:read':
+    "Demander votre position en temps réel tant que l'une de ses vues est ouverte (votre navigateur vous demandera d'abord l'autorisation)",
   'admin.plugins.perm.hook:pdf-section-provider': "Ajouter des sections de texte à l'export PDF du voyage",
   'admin.plugins.perm.hook:atlas-layer-provider':
     "Mettre en évidence des pays sur la carte du monde Atlas (p. ex. listes d'envies ou avis aux voyageurs)",
@@ -440,6 +452,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Fournit des événements de calendrier',
   'admin.plugins.cap.placeDetails': 'Enrichit les lieux',
   'admin.plugins.cap.warnings': 'Signale les problèmes',
+  'admin.plugins.cap.mapLayers': 'Dessine sur la carte',
+  'admin.plugins.cap.routing': 'Propose des itinéraires',
+  'admin.plugins.cap.daySchedule': 'Ajoute des horaires',
+  'admin.plugins.cap.dayTint': 'Colore les jours',
+  'admin.plugins.cap.geolocation': 'Lit votre position',
   'admin.plugins.cap.events': 'Réagit à l’activité',
   'admin.plugins.cap.requiresAddon': 'Nécessite {addon}',
   'admin.plugins.cap.dependsOn': 'Requiert {id} {version}',

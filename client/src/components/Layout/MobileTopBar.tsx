@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { useAuthStore } from '../../store/authStore'
 import { useInAppNotificationStore } from '../../store/inAppNotificationStore'
 import { useTranslation } from '../../i18n'

@@ -12,6 +12,8 @@ const { pluginsEnabled, getMock } = vi.hoisted(() => ({
 }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: getMock }) } }));
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
 
 import { PluginOAuthController } from '../../../src/nest/plugins/plugin-oauth.controller';
 import type { PluginOAuthService } from '../../../src/nest/plugins/plugin-oauth.service';
@@ -30,7 +32,7 @@ function ctrl(over: Partial<PluginOAuthService> = {}) {
     disconnect: vi.fn(),
     ...over,
   } as unknown as PluginOAuthService;
-  return { c: new PluginOAuthController(svc), svc };
+  return { c: new PluginOAuthController(svc, new DatabaseService(dbConn)), svc };
 }
 
 describe('PluginOAuthController', () => {

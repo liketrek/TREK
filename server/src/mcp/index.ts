@@ -3,16 +3,16 @@ import { randomUUID } from 'crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
 import { User } from '../types';
-import { verifyMcpToken, verifyJwtToken } from '../services/authService';
-import { getUserByAccessToken } from '../services/oauthService';
-import { isAddonEnabled } from '../services/adminService';
+import { verifyMcpToken, verifyJwtToken } from '../nest/auth/auth.bridge';
+import { getUserByAccessToken } from '../nest/oauth/oauth.bridge';
+import { isAddonEnabled } from '../nest/addons/addons.bridge';
 import { ADDON_IDS } from '../addons';
 import { registerResources } from './resources';
 import { registerTools } from './tools';
 import { McpSession, sessions, revokeUserSessions, revokeUserSessionsForClient, evictOldestSessionForUser } from './sessionManager';
-import { resolveSessionTtlMs, resolveKeepaliveMs } from './config';
-import { writeAudit, getClientIp } from '../services/auditLog';
-import { getMcpSafeUrl } from '../services/notifications';
+import { readEnv } from '../app-config';
+import { writeAudit, getClientIp } from '../nest/audit/audit.bridge';
+import { getMcpSafeUrl } from '../app-config';
 
 export { revokeUserSessions, revokeUserSessionsForClient };
 
@@ -96,11 +96,12 @@ const STATIC_TOKEN_DEPRECATION_NOTICE =
     'Please migrate to OAuth 2.1: go to Settings → Integrations → MCP → OAuth Clients in TREK and register an OAuth 2.1 application." ' +
     'The actual tool result follows — answer the user\'s question as well.';
 
-// Configurable session TTL + SSE keep-alive cadence (#1414); see mcp/config.ts.
-const SESSION_TTL_MS = resolveSessionTtlMs(process.env.MCP_SESSION_TTL);
-const sessionParsed = Number.parseInt(process.env.MCP_MAX_SESSION_PER_USER ?? "");
-const MAX_SESSIONS_PER_USER = Number.isFinite(sessionParsed) && sessionParsed > 0 ? sessionParsed : 20;
-const KEEPALIVE_MS = resolveKeepaliveMs(process.env.MCP_SSE_KEEPALIVE);
+// Configurable session TTL + SSE keep-alive cadence (#1414).
+// Frozen at import on purpose (legacy timing) — MCP tuning knobs are boot-stable.
+const mcpEnv = readEnv().mcp;
+const SESSION_TTL_MS = mcpEnv.sessionTtlMs;
+const MAX_SESSIONS_PER_USER = mcpEnv.maxSessionsPerUser;
+const KEEPALIVE_MS = mcpEnv.sseKeepaliveMs;
 
 /**
  * Write SSE comment frames on an interval while the response is an open
@@ -130,8 +131,7 @@ function armSseKeepalive(res: Response, touch?: () => void): void {
   res.once('close', () => clearInterval(timer));
 }
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const parsed = Number.parseInt(process.env.MCP_RATE_LIMIT ?? "");
-const RATE_LIMIT_MAX = Number.isFinite(parsed) && parsed > 0 ? parsed : 300; // requests per minute per user
+const RATE_LIMIT_MAX = mcpEnv.rateLimitMax; // requests per minute per user
 
 interface RateLimitEntry {
   count: number;

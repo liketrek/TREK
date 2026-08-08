@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Kartmall',
   'settings.mapTemplatePlaceholder.select': 'Välj mall...',
   'settings.mapDefaultHint': 'Lämna fältet tomt för OpenStreetMap (standard)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-mall för kartrutor',
   'settings.mapProvider': 'Kartleverantör',
   'settings.mapProviderHint': 'Påverkar resplaneraren och resedagbokens kartor. Atlas använder alltid Leaflet.',
@@ -85,6 +84,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Påminnelser inför resan',
   'settings.notifyTodoDue': 'Att göra ska göras snart',
   'settings.notifyVacayInvite': 'Vacay samanslagnings inbjudningar',
+  'settings.notifyVacayShare': 'Vacay kalender delningar',
   'settings.notifyPhotosShared': 'Delade foton (Immich)',
   'settings.notifyCollabMessage': 'Chatt meddelande (Samarbete)',
   'settings.notifyPackingTagged': 'Packningslista: uppgifter',
@@ -275,6 +275,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profilbilden har uppdaterats',
   'settings.avatarRemoved': 'Profilbilden har tagits bort',
   'settings.avatarError': 'Uppladdning misslyckades',
+  'settings.avatarRemoveError': 'Borttagningen misslyckades',
   'settings.mfa.title': 'Tvåfaktorsautentisering (2FA)',
   'settings.mfa.description':
     'Lägger till ett extra steg när du loggar in med e-postadress och lösenord. Använd en autentiseringsapp (Google Authenticator, Authy m.fl.).',
@@ -302,8 +303,9 @@ const settings: TranslationStrings = {
   'settings.mfa.toastEnabled': 'Tvåfaktorsautentisering är aktiverad',
   'settings.mfa.toastDisabled': 'Tvåfaktorsautentisering är inaktiverad',
   'settings.mfa.demoBlocked': 'Finns inte i demoläge',
-  'settings.currency': 'Valuta',
-  'settings.currencyHint': 'Alla belopp under kostnader omräknas till och redovisas i denna valuta.',
+  'settings.currency': 'Visningsvaluta',
+  'settings.currencyHint':
+    'Belopp under Kostnader visas omräknade till denna valuta endast för visning – de ursprungliga beloppen ändras inte.',
   'settings.currencyTrip': 'Resans valuta',
   'settings.passkey.title': 'Inloggningsnycklar',
   'settings.passkey.description':
@@ -427,6 +429,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Nedre navigeringsfält',
+  'settings.appearance.mobileNav.hint':
+    'Välj vilka objekt som ska visas i fältet och vilka som hamnar under ”Mer”. Dashboard ligger alltid först.',
+  'settings.appearance.mobileNav.inBar': 'I fältet',
+  'settings.appearance.mobileNav.underMore': 'Under ”Mer”',
+  'settings.appearance.mobileNav.moreEmpty': 'Inget här ännu — allt får plats i fältet.',
+  'settings.appearance.mobileNav.pinned': 'Fäst',
+  'settings.appearance.mobileNav.toMore': 'Flytta under ”Mer”',
+  'settings.appearance.mobileNav.toBar': 'Flytta till fältet',
+  'settings.appearance.dashOrder': 'Instrumentpanelens ordning',
+  'settings.appearance.dashOrder.hint':
+    'Ändra ordningen på hur reselistan och widgetarna staplas på telefonens instrumentpanel. Den utvalda resan ligger alltid överst.',
+  'settings.appearance.dashOrder.trips': 'Resor',
+  'settings.appearance.dashOrder.hidden': 'Dold',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -491,7 +507,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'När',
   'settings.pluginActivity.columns.status': 'Resultat',
   'settings.alwaysShowRoutes': 'Visa alltid bokningsrutter',
-  'settings.alwaysShowRoutesHint': 'Visar automatiskt rutten för varje flyg, tåg och annan bokning på kartan, utan att du behöver aktivera det för varje bokning för sig.',
+  'settings.alwaysShowRoutesHint':
+    'Visar automatiskt rutten för varje flyg, tåg och annan bokning på kartan, utan att du behöver aktivera det för varje bokning för sig.',
 };
 
 export default settings;

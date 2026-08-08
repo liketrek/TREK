@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Aktivity',
   'map.showAllConnections': 'Zobrazit všechny trasy rezervací',
   'map.hideAllConnections': 'Skrýt všechny trasy rezervací',
+  'map.baseLayer.default': 'Mapa',
+  'map.baseLayer.satellite': 'Satelit',
+  'map.baseLayer.switchToSatellite': 'Přepnout na satelitní zobrazení',
+  'map.baseLayer.switchToDefault': 'Přepnout na mapové zobrazení',
 };
 export default map;

@@ -8,7 +8,7 @@ import { PluginRegistryService, RegistryError } from './registry/registry.servic
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { getClientIp } from '../../services/auditLog';
+import { getClientIp } from '../audit/client-ip';
 import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
 

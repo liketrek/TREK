@@ -16,6 +16,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { PdfSectionsController } from '../../../src/nest/plugins/pdf-sections.controller';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -24,7 +25,7 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     providersOf: vi.fn(() => providers),
     invokeHook: vi.fn(async (id: string) => invoke(id)),
   } as unknown as PluginRuntimeService;
-  return { c: new PdfSectionsController(runtime), runtime };
+  return { c: new PdfSectionsController(runtime, { canAccessTrip } as unknown as DatabaseService), runtime };
 }
 const sec = (over: Record<string, unknown> = {}) => ({ title: 'Weather', ...over });
 

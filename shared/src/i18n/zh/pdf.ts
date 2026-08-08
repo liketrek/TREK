@@ -6,5 +6,6 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': '费用',
   'pdf.preview': 'PDF 预览',
   'pdf.saveAsPdf': '保存为 PDF',
+  'pdf.pageBreakPerDay': '每天分页',
 };
 export default pdf;

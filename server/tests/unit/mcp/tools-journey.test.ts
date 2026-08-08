@@ -34,7 +34,7 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock, broadcastToUser: broadcastMock }));
 
-vi.mock('../../../src/services/adminService', async (importOriginal) => {
+vi.mock('../../../src/nest/addons/addons.bridge', async (importOriginal) => {
   const original = await importOriginal() as Record<string, unknown>;
   return { ...original, isAddonEnabled: vi.fn().mockReturnValue(true) };
 });

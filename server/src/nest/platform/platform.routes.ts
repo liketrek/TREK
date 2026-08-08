@@ -2,18 +2,19 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 
-import { verifyJwtAndLoadUser } from '../../middleware/auth';
+import { readEnv } from '../../app-config';
+import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import { db } from '../../db/database';
 import { mcpHandler } from '../../mcp';
 import { trekOAuthProvider, trekClientsStore } from '../../mcp/oauthProvider';
-import { isAddonEnabled } from '../../services/adminService';
+import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { ALL_SCOPES } from '../../mcp/scopes';
 import { mcpAuthMetadataRouter } from '@modelcontextprotocol/sdk/server/auth/router';
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize';
 import { clientRegistrationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/register';
 import type { OAuthMetadata } from '@modelcontextprotocol/sdk/shared/auth';
-import { getMcpSafeUrl } from '../../services/notifications';
+import { getMcpSafeUrl } from '../../app-config';
 
 // Platform / transport routes extracted verbatim from createApp() (app.ts) so they can be
 // mounted on either the legacy Express app or the NestJS Express instance (strangler A6/A8).
@@ -56,6 +57,7 @@ export function applyPlatformUploads(app: express.Application): void {
   app.use('/uploads/avatars', express.static(path.join(UPLOADS_DIR, 'avatars')));
   app.use('/uploads/covers', express.static(path.join(UPLOADS_DIR, 'covers')));
   app.use('/uploads/journey', express.static(path.join(UPLOADS_DIR, 'journey')));
+  app.use('/uploads/places', express.static(path.join(UPLOADS_DIR, 'places')));
 
   // Photos require either a valid logged-in session (via JWT with the
   // password_version gate) OR a share token that covers the SPECIFIC
@@ -124,8 +126,8 @@ export function applyPlatformTransport(app: express.Application): void {
     next();
   };
 
-  // SDK metadata router — built lazily on first request so getAppUrl() (which queries the DB)
-  // is not called at createApp() time, before test tables have been created.
+  // SDK metadata router — built lazily on first request so the issuer URL is
+  // resolved from the live env, not frozen at createApp() time.
   // mcpAuthMetadataRouter serves:
   //   /.well-known/oauth-authorization-server   — RFC 8414 AS metadata
   //   /.well-known/oauth-protected-resource/mcp — RFC 9728 path-based PRM (fixes issue #959 bug 1)
@@ -238,7 +240,8 @@ export function applyPlatformTransport(app: express.Application): void {
  */
 export function applyPlatformSpa(app: express.Application): void {
   applyPlatformStatic(app);
-  if (process.env.NODE_ENV !== 'production') return;
+  // Case-sensitive on purpose (legacy parity).
+  if (readEnv().app.nodeEnv !== 'production') return;
   // /.*/ rather than '*' so the helper is Express-4 and Express-5 safe.
   app.get(/.*/, (_req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -254,7 +257,8 @@ export function applyPlatformSpa(app: express.Application): void {
  * app.get catch-all; Nest: SpaFallbackFilter). No-op outside production.
  */
 export function applyPlatformStatic(app: express.Application): void {
-  if (process.env.NODE_ENV !== 'production') return;
+  // Case-sensitive on purpose (legacy parity).
+  if (readEnv().app.nodeEnv !== 'production') return;
   app.use(
     express.static(PUBLIC_DIR, {
       setHeaders: (res, filePath) => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router'
 import { tripInviteApi } from '../../api/client'
 
 export type JoinTripState = 'loading' | 'ready' | 'joining' | 'invalid'

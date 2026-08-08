@@ -158,6 +158,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Impossibile caricare i modelli',
   'admin.packingTemplates.createError': 'Impossibile creare il modello',
   'admin.packingTemplates.deleteError': 'Impossibile eliminare il modello',
+  'admin.packingTemplates.deleteCategoryError': 'Impossibile eliminare la categoria',
+  'admin.packingTemplates.deleteItemError': 'Impossibile eliminare la voce',
   'admin.packingTemplates.saveError': 'Impossibile salvare',
   'admin.tabs.addons': 'Moduli',
   'admin.tabs.plugins': 'Plugin',
@@ -318,6 +320,15 @@ const admin: TranslationStrings = {
     'Aggiungere colonne e azioni alle viste del viaggio (prenotazioni, luoghi, giorni)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Aggiungere indicatori alla mappa del viaggio (es. mostrare prenotazioni o POI)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Disegnare percorsi, corridoi e zone sulla mappa del viaggio',
+  'admin.plugins.perm.hook:route-provider':
+    'Offrire profili di routing con cui il pianificatore calcola i giorni (es. routing per auto elettriche con soste di ricarica)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Aggiungere voci orarie al piano della giornata (soste di ricarica, margini di sicurezza)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Colorare i giorni nel piano della giornata (ad esempio a quale tratta del viaggio appartiene un giorno)',
+  'admin.plugins.perm.geolocation:read':
+    'Richiedere la tua posizione in tempo reale mentre una delle sue viste è aperta (il tuo browser chiederà comunque conferma)',
   'admin.plugins.perm.hook:pdf-section-provider': "Aggiungere sezioni di testo all'esportazione PDF del viaggio",
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Evidenziare paesi sulla mappa del mondo di Atlas (es. liste dei desideri o avvisi di viaggio)',
@@ -436,6 +447,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Fornisce eventi calendario',
   'admin.plugins.cap.placeDetails': 'Arricchisce luoghi',
   'admin.plugins.cap.warnings': 'Segnala problemi',
+  'admin.plugins.cap.mapLayers': 'Disegna sulla mappa',
+  'admin.plugins.cap.routing': 'Offre routing',
+  'admin.plugins.cap.daySchedule': 'Aggiunge orari al piano',
+  'admin.plugins.cap.dayTint': 'Colora i giorni',
+  'admin.plugins.cap.geolocation': 'Legge la tua posizione',
   'admin.plugins.cap.events': "Reagisce all'attività",
   'admin.plugins.cap.requiresAddon': 'Richiede {addon}',
   'admin.plugins.cap.dependsOn': 'Richiede {id} {version}',

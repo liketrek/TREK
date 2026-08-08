@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'الإجراءات',
+  'packing.editDone': 'تم',
+  'packing.personalEmptyHint': 'قائمتك الشخصية فارغة — انسخ عناصر مشتركة أو أضف عناصرك الخاصة.',
+  'packing.assignMembers': 'تعيين الأعضاء',
+  'packing.categoryOptions': 'خيارات القائمة',
+  'packing.editItem': 'تعديل العنصر',
+  'packing.itemName': 'الاسم',
+  'packing.itemQuantity': 'الكمية',
+  'packing.itemWeight': 'الوزن (غ)',
   'packing.title': 'قائمة التجهيز',
   'packing.empty': 'قائمة التجهيز فارغة',
   'packing.import': 'استيراد',
@@ -197,5 +206,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'يمكنني إحضاره أيضًا',
   'packing.alsoBringingStop': 'لن أحضره',
   'packing.cloneToMine': 'نسخ إلى قائمتي',
+  'packing.bagLimit': 'حد الوزن',
+  'packing.setBagLimit': 'تعيين حد',
 };
 export default packing;

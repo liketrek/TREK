@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 
@@ -12,6 +12,16 @@ interface ConfirmDialogProps {
   confirmLabel?: string
   cancelLabel?: string
   danger?: boolean
+}
+
+// Callers commonly pass an async handler that reports its own failure and then
+// rethrows. The dialog has already closed at that point, so the rejection would
+// escape as an unhandled promise — absorb it here.
+function runConfirm(onConfirm: () => void): void {
+  const result = onConfirm() as unknown
+  if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
+    void Promise.resolve(result).catch(() => {})
+  }
 }
 
 export default function ConfirmDialog({
@@ -39,7 +49,7 @@ export default function ConfirmDialog({
 
   if (!isOpen) return null
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
       style={{ paddingBottom: 'var(--bottom-nav-h)' }}
@@ -73,7 +83,7 @@ export default function ConfirmDialog({
             {cancelLabel || t('common.cancel')}
           </button>
           <button
-            onClick={() => { onConfirm(); onClose() }}
+            onClick={() => { runConfirm(onConfirm); onClose() }}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors text-white ${
               danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
             }`}

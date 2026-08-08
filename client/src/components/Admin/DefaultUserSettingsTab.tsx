@@ -8,6 +8,7 @@ import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
 import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
 import type { DistanceUnit, Place } from '../../types'
+import { normalizeTileUrl } from '../../utils/tileUrl'
 import {
   MAPBOX_DEFAULT_STYLE,
   defaultStyleForProvider,
@@ -19,7 +20,7 @@ import {
 } from '../Map/glProviders'
 
 const MAP_PRESETS = [
-  { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
+  { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
   { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
   { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
@@ -48,8 +49,8 @@ function normalizeProvider(value: unknown): MapProvider {
   return value === 'mapbox-gl' || value === 'maplibre-gl' ? value : 'leaflet'
 }
 
-function styleForProvider(provider: MapProvider, style?: string | null): string {
-  if (provider === 'leaflet') return style || MAPBOX_DEFAULT_STYLE
+/** Only the GL providers keep a style — Leaflet is handled by its callers. */
+function styleForProvider(provider: GlMapProvider, style?: string | null): string {
   if (provider === 'mapbox-gl' && isOpenFreeMapStyle(style)) return MAPBOX_DEFAULT_STYLE
   return normalizeStyleForProvider(provider, style)
 }
@@ -114,7 +115,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
     adminApi.getDefaultUserSettings().then((data: Defaults) => {
       const provider = normalizeProvider(data.map_provider)
       setDefaults(data)
-      setMapTileUrl(data.map_tile_url || '')
+      setMapTileUrl(normalizeTileUrl(data.map_tile_url || ''))
       setMapboxToken(data.mapbox_access_token || '')
       setMapboxStyle(provider === 'leaflet' ? (data.mapbox_style || '') : styleForProvider(provider, provider === 'maplibre-gl' ? data.maplibre_style : data.mapbox_style))
       setLoaded(true)
@@ -328,7 +329,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           value={mapTileUrl}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapTileUrl(e.target.value)}
           onBlur={() => save({ map_tile_url: mapTileUrl })}
-          placeholder="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
         />
         <p className="text-xs mt-1 text-content-faint">{t('settings.mapDefaultHint')}</p>

@@ -17,6 +17,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { TripCardContributionsController } from '../../../src/nest/plugins/trip-card-contributions.controller';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -25,7 +26,7 @@ function controller(invoke: (id: string, args: unknown[]) => unknown, providers 
     providersOf: vi.fn(() => providers),
     invokeHook: vi.fn(async (id: string, _h: string, _fn: string, args: unknown[]) => invoke(id, args)),
   } as unknown as PluginRuntimeService;
-  return { c: new TripCardContributionsController(runtime), runtime };
+  return { c: new TripCardContributionsController(runtime, { canAccessTrip } as unknown as DatabaseService), runtime };
 }
 const badge = (over: Record<string, unknown> = {}) => ({ tripId: 1, id: 'b1', label: 'Visa', ...over });
 

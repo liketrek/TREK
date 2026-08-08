@@ -15,6 +15,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { registerResources } from '../../src/mcp/resources';
 import { registerTools } from '../../src/mcp/tools';
+import { setMcpRegistry } from '../../src/mcp/registry-handoff';
+import { createMcpTestRegistry } from './mcp-test-controllers';
 
 export interface McpHarness {
   client: Client;
@@ -32,15 +34,24 @@ export interface McpHarnessOptions {
   scopes?: string[] | null;
   /** Whether the session is authenticated via a static API token (default: false) */
   isStaticToken?: boolean;
+  /** Fire-once deprecation-notice closure (default: registerTools' () => null) */
+  getDeprecationNotice?: () => string | null;
 }
 
 export async function createMcpHarness(options: McpHarnessOptions): Promise<McpHarness> {
-  const { userId, withResources = true, withTools = true, scopes = null, isStaticToken = false } = options;
+  const { userId, withResources = true, withTools = true, scopes = null, isStaticToken = false, getDeprecationNotice } = options;
 
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
   if (withResources) registerResources(server, userId);
-  if (withTools) registerTools(server, userId, scopes ?? null, isStaticToken);
+  if (withTools) {
+    // In production bootstrap.ts hands the Nest-discovered registry to
+    // registerTools after app.init(); the harness has no Nest app, so it
+    // builds the same registry by hand (see mcp-test-controllers.ts).
+    // registerTools' own ctx construction stays exercised.
+    setMcpRegistry(createMcpTestRegistry());
+    registerTools(server, userId, scopes ?? null, isStaticToken, getDeprecationNotice);
+  }
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 

@@ -1,7 +1,7 @@
 import type { AirtrailImportResult } from '@trek/shared';
 import { db } from '../../db/database';
 import { broadcast } from '../../websocket';
-import { createReservation } from '../reservationService';
+import { createReservation } from '../../nest/reservations/reservations.bridge';
 import { getAirtrailCredentials } from './airtrailService';
 import { AirtrailRequestError, listFlights } from './airtrailClient';
 import type { AirtrailFlightRaw } from './airtrailClient';

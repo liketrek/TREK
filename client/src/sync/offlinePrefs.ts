@@ -91,7 +91,7 @@ export function setTripOfflineEnabled(tripId: number, on: boolean): void {
 /** Subscribe to preference changes. Returns an unsubscribe function. */
 export function onOfflinePrefsChange(fn: () => void): () => void {
   listeners.add(fn)
-  return () => listeners.delete(fn)
+  return () => { listeners.delete(fn) }
 }
 
 /** Reset to defaults — test helper only. */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { splitReservationDateTime, resolveDayId, formatMoney, formatMoneySum, currencyDecimals } from './formatters'
+import { splitReservationDateTime, resolveDayId, formatMoney, formatMoneySum, currencyDecimals, localizeAmountInput } from './formatters'
 import { CURRENCIES, SYMBOLS, currenciesWith } from '../components/Budget/BudgetPanel.constants'
 import type { Day } from '../types'
 
@@ -23,6 +23,20 @@ describe('resolveDayId', () => {
     expect(resolveDayId(days, null)).toBe('')
     expect(resolveDayId(days, 'not a date')).toBe('')
     expect(resolveDayId([], '2026-05-04')).toBe('')
+  })
+})
+
+describe('localizeAmountInput (#1624)', () => {
+  it('shows the amount with the currency comma separator so the field matches the list', () => {
+    expect(localizeAmountInput('12.5', 'EUR')).toBe('12,5')
+    expect(localizeAmountInput('0.00', 'EUR')).toBe('0,00')
+  })
+  it('keeps the dot for dot-separator currencies', () => {
+    expect(localizeAmountInput('12.5', 'USD')).toBe('12.5')
+  })
+  it('passes an empty/nullish value through unchanged', () => {
+    expect(localizeAmountInput('', 'EUR')).toBe('')
+    expect(localizeAmountInput(null, 'EUR')).toBe('')
   })
 })
 
@@ -205,5 +219,17 @@ describe('splitReservationDateTime', () => {
 
   it('returns nulls for unrecognized string', () => {
     expect(splitReservationDateTime('garbage')).toEqual({ date: null, time: null })
+  })
+
+  // #1725 — slicing the time part to five characters used to swallow the meridiem,
+  // so an afternoon booking came back as a morning one.
+  it('converts a meridiem time part instead of cutting it off', () => {
+    expect(splitReservationDateTime('2026-08-01T3:00 PM')).toEqual({ date: '2026-08-01', time: '15:00' })
+    expect(splitReservationDateTime('2026-08-01T12:30 am')).toEqual({ date: '2026-08-01', time: '00:30' })
+  })
+
+  it('converts a bare meridiem time', () => {
+    expect(splitReservationDateTime('3:00 PM')).toEqual({ date: null, time: '15:00' })
+    expect(splitReservationDateTime('3 PM')).toEqual({ date: null, time: '15:00' })
   })
 })

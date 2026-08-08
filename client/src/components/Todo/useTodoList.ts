@@ -71,7 +71,8 @@ export function useTodoList(tripId: number, items: TodoItem[], addItemSignal: nu
     let result: TodoItem[]
     if (filter === 'all') result = items.filter(i => !i.checked)
     else if (filter === 'done') result = items.filter(i => !!i.checked)
-    else if (filter === 'my') result = items.filter(i => !i.checked && i.assigned_user_id === currentUserId)
+    // No resolved user means nothing is "mine" — matching the myCount badge.
+    else if (filter === 'my') result = currentUserId ? items.filter(i => !i.checked && i.assigned_user_id === currentUserId) : []
     else if (filter === 'overdue') result = items.filter(i => !i.checked && i.due_date && i.due_date < today)
     else result = items.filter(i => i.category === filter)
     if (sortByPrio) result = [...result].sort((a, b) => {

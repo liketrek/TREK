@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': '즐겨찾기',
+  'files.link': '연결',
+  'files.linkTitle': '파일 연결',
+  'files.linkEmpty': '연결할 장소나 예약이 아직 없습니다',
+  'files.menu': '추가 옵션',
+  'files.uploadErrorSize': '파일이 너무 큽니다 (최대 50MB)',
   'files.title': '파일',
   'files.pageTitle': '파일 및 서류',
   'files.subtitle': '{trip}의 파일 {count}개',

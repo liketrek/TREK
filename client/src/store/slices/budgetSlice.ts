@@ -95,10 +95,12 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
     // Optimistic: reorder locally
     set(state => {
       const byId = new Map(state.budgetItems.map(i => [i.id, i]))
-      const reordered = orderedIds.map((id, idx): BudgetItem | null => {
-        const item = byId.get(id)
-        return item ? { ...item, sort_order: idx } : null
-      }).filter((i): i is BudgetItem => i !== null)
+      // Drop unknown ids before reindexing, otherwise a stale id leaves a gap
+      // in the local sort_order sequence.
+      const reordered = orderedIds
+        .map(id => byId.get(id))
+        .filter((i): i is BudgetItem => i !== undefined)
+        .map((item, idx): BudgetItem => ({ ...item, sort_order: idx }))
       // Keep items not in orderedIds at the end
       const remaining = state.budgetItems.filter(i => !orderedIds.includes(i.id))
       return { budgetItems: [...reordered, ...remaining] }
@@ -107,9 +109,12 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
       await budgetApi.reorderItems(tripId, orderedIds)
     } catch (err: unknown) {
       // Reload on failure to restore the server's ordering, and tell the user
-      // their reorder didn't stick (the caller fires this without awaiting).
-      const data = await budgetApi.list(tripId)
-      set({ budgetItems: data.items })
+      // their reorder didn't stick (the caller fires this without awaiting, so
+      // a failing reload must not escape as an unhandled rejection).
+      try {
+        const data = await budgetApi.list(tripId)
+        set({ budgetItems: data.items })
+      } catch { /* offline too — the next successful load restores the order */ }
       notify(getApiErrorMessage(err, 'Error reordering budget items'), 'error')
     }
   },
@@ -137,9 +142,12 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
       await budgetApi.reorderCategories(tripId, orderedCategories)
     } catch (err: unknown) {
       // Reload on failure to restore the server's ordering, and tell the user
-      // their reorder didn't stick (the caller fires this without awaiting).
-      const data = await budgetApi.list(tripId)
-      set({ budgetItems: data.items })
+      // their reorder didn't stick (the caller fires this without awaiting, so
+      // a failing reload must not escape as an unhandled rejection).
+      try {
+        const data = await budgetApi.list(tripId)
+        set({ budgetItems: data.items })
+      } catch { /* offline too — the next successful load restores the order */ }
       notify(getApiErrorMessage(err, 'Error reordering budget items'), 'error')
     }
   },

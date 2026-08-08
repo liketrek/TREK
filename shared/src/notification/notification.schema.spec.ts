@@ -3,6 +3,7 @@ import {
   notificationRespondRequestSchema,
   channelTestResultSchema,
   inAppListResultSchema,
+  testNtfyRequestSchema,
 } from './notification.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -26,6 +27,14 @@ describe('notificationRespondRequestSchema', () => {
   it('only accepts positive/negative', () => {
     expect(notificationRespondRequestSchema.safeParse({ response: 'positive' }).success).toBe(true);
     expect(notificationRespondRequestSchema.safeParse({ response: 'maybe' }).success).toBe(false);
+  });
+});
+
+describe('testNtfyRequestSchema', () => {
+  it('accepts null server/token — the client sends null to mean "use the saved value"', () => {
+    expect(testNtfyRequestSchema.safeParse({ topic: 't', server: null, token: null }).success).toBe(true);
+    expect(testNtfyRequestSchema.safeParse({}).success).toBe(true);
+    expect(testNtfyRequestSchema.safeParse({ topic: 1 }).success).toBe(false);
   });
 });
 

@@ -5,6 +5,7 @@ import type { Selection } from '../../services/memories/helpersService';
 import { MemoriesService } from './memories.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AddTripPhotosDto, CreateAlbumLinkDto, SetTripPhotoSharingDto } from './memories.dto';
 
 /**
  * /api/integrations/memories/unified — provider-agnostic trip photo + album-link
@@ -35,7 +36,7 @@ export class UnifiedMemoriesController {
   async addPhotos(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: AddTripPhotosDto,
     @Headers('x-socket-id') sid: string,
     @Res() res: Response,
   ): Promise<void> {
@@ -53,7 +54,7 @@ export class UnifiedMemoriesController {
   async setSharing(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: SetTripPhotoSharingDto,
     @Res() res: Response,
   ): Promise<void> {
     const result = await this.memories.setTripPhotoSharing(tripId, user.id, Number(body?.photo_id), body?.shared as boolean);
@@ -94,7 +95,7 @@ export class UnifiedMemoriesController {
   createAlbumLink(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: CreateAlbumLinkDto,
     @Res() res: Response,
   ): void {
     const passphrase = body?.passphrase ? String(body.passphrase) : undefined;

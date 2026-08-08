@@ -1,54 +1,62 @@
 import { Injectable } from '@nestjs/common';
-import { broadcast } from '../../websocket';
-import { canAccessTrip } from '../../db/database';
-import { checkPermission } from '../../services/permissions';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { RealtimeService } from '../realtime/realtime.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
+import { PermissionsService } from '../permissions/permissions.service';
 import type { User } from '../../types';
-import * as dayService from '../../services/dayService';
+import { DaysService } from '../days/days.service';
 
-type Trip = { user_id: number };
+type Trip = TripAccess;
 
 /**
- * Thin Nest wrapper around the accommodation parts of the existing day service.
+ * Thin Nest wrapper around the accommodation parts of the day domain.
  * Accommodations are gated by the 'day_edit' permission (same as days) and the
- * SQL + cascade (linked reservation / budget cleanup on delete) reuse the legacy
- * code unchanged.
+ * SQL + cascade (linked reservation / budget cleanup on delete) live on the
+ * injected DaysService (the DI-native home of the legacy dayService).
  */
 @Injectable()
 export class AccommodationsService {
-  /** Mirrors the requireTripAccess middleware (owner or member), returning the trip. */
+  constructor(
+    private readonly dbs: DatabaseService,
+    private readonly days: DaysService,
+    private readonly permissions: PermissionsService,
+    private readonly realtime: RealtimeService,
+  ) {}
+
+  /** Owner or member, returning the trip. */
   verifyTripAccess(tripId: string, userId: number) {
-    return canAccessTrip(Number(tripId), userId) as Trip | null | undefined;
+    return this.dbs.canAccessTrip(Number(tripId), userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {
-    return checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
+    return this.permissions.checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast(tripId: string, event: string, payload: Record<string, unknown>, socketId: string | undefined): void {
-    broadcast(tripId, event, payload, socketId);
+  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+    this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
   list(tripId: string) {
-    return dayService.listAccommodations(tripId);
+    return this.days.listAccommodations(tripId);
   }
 
   validateRefs(tripId: string, placeId?: number, startDayId?: number, endDayId?: number) {
-    return dayService.validateAccommodationRefs(tripId, placeId, startDayId, endDayId);
+    return this.days.validateAccommodationRefs(tripId, placeId, startDayId, endDayId);
   }
 
   get(id: string, tripId: string) {
-    return dayService.getAccommodation(id, tripId);
+    return this.days.getAccommodation(id, tripId);
   }
 
-  create(tripId: string, data: Parameters<typeof dayService.createAccommodation>[1]) {
-    return dayService.createAccommodation(tripId, data);
+  create(tripId: string, data: Parameters<DaysService['createAccommodation']>[1]) {
+    return this.days.createAccommodation(tripId, data);
   }
 
-  update(id: string, existing: Parameters<typeof dayService.updateAccommodation>[1], fields: Parameters<typeof dayService.updateAccommodation>[2]) {
-    return dayService.updateAccommodation(id, existing, fields);
+  update(id: string, existing: Parameters<DaysService['updateAccommodation']>[1], fields: Parameters<DaysService['updateAccommodation']>[2]) {
+    return this.days.updateAccommodation(id, existing, fields);
   }
 
   remove(id: string) {
-    return dayService.deleteAccommodation(id);
+    return this.days.deleteAccommodation(id);
   }
 }

@@ -1,102 +1,881 @@
 import { Injectable } from '@nestjs/common';
-import { db } from '../../db/database';
-import { broadcast } from '../../websocket';
-import { checkPermission } from '../../services/permissions';
-import type { User } from '../../types';
-import * as svc from '../../services/budgetService';
-import { getRates } from '../../services/exchangeRateService';
+import { DatabaseService, type TripAccess } from '../database/database.service';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { RealtimeService } from '../realtime/realtime.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { avatarUrl } from '../common/avatarUrl';
+import type { User, BudgetItem, BudgetItemMember, BudgetItemPayer } from '../../types';
+import { ExchangeRatesService } from './exchange-rates.service';
 
-type Trip = NonNullable<ReturnType<typeof svc.verifyTripAccess>>;
+type Trip = TripAccess;
+
+type SettlementRow = {
+  id: number; trip_id: string; from_user_id: number; to_user_id: number;
+  amount: number; currency: string | null; exchange_rate: number | null;
+  created_at: string; created_by_user_id: number | null;
+  from_username: string; from_avatar: string | null;
+  to_username: string; to_avatar: string | null;
+};
 
 /**
- * Thin Nest wrapper around the existing budget service. Trip-access, the
- * 'budget_edit' permission, the SQL, settlement maths and the WebSocket
- * broadcasts all reuse the legacy code unchanged.
+ * Budget domain service — owns the budget SQL (moved from the legacy
+ * services/budgetService.ts: identical statements, the `||` falsy-coercion
+ * defaults, the COALESCE / CASE WHEN sentinel conventions on update and the
+ * post-write re-selects). Trip access, the 'budget_edit' permission and the
+ * WebSocket broadcast keep their legacy call paths. Non-Nest consumers (the
+ * legacy tripService/userCleanupService and the legacy MCP trips/transports
+ * registrars) go through budget.bridge.ts instead of importing this class
+ * directly.
+ *
+ * Quirk fixes on top of the relocated legacy behavior: every multi-statement
+ * write now runs in db.transaction() ("transactions are not optional"),
+ * linkBudgetItemToReservation passes reservation_id through the insert instead
+ * of a redundant second UPDATE, settlement re-selects are targeted single-row
+ * queries instead of a full listSettlements() scan, settlement usernames use
+ * COALESCE(display_name, username) like every item query, and updateMembers no
+ * longer double-applies avatarUrl.
  */
 @Injectable()
 export class BudgetService {
-  verifyTripAccess(tripId: string, userId: number) {
-    return svc.verifyTripAccess(tripId, userId);
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly permissions: PermissionsService,
+    private readonly exchangeRates: ExchangeRatesService,
+    private readonly realtime: RealtimeService,
+  ) {}
+
+  verifyTripAccess(tripId: string | number, userId: number) {
+    return this.db.canAccessTrip(tripId, userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {
-    return checkPermission('budget_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
+    return this.permissions.checkPermission('budget_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast(tripId: string, event: string, payload: Record<string, unknown>, socketId: string | undefined): void {
-    broadcast(tripId, event, payload, socketId);
+  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+    this.realtime.broadcast(tripId, event, payload, socketId);
   }
+
+  // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
+
+  private loadItemMembers(itemId: number | string) {
+    const rows = this.db.all<BudgetItemMember>(`
+    SELECT bm.user_id, bm.paid, bm.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
+    FROM budget_item_members bm
+    JOIN users u ON bm.user_id = u.id
+    WHERE bm.budget_item_id = ?
+  `, itemId);
+    return rows.map(m => ({ ...m, avatar_url: avatarUrl(m) }));
+  }
+
+  private loadItemPayers(itemId: number | string) {
+    const rows = this.db.all<BudgetItemPayer>(`
+    SELECT bp.user_id, bp.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
+    FROM budget_item_payers bp
+    JOIN users u ON bp.user_id = u.id
+    WHERE bp.budget_item_id = ?
+  `, itemId);
+    return rows.map(p => ({ ...p, avatar_url: avatarUrl(p) }));
+  }
+
+  private knownUserIds(userIds: number[]): Set<number> {
+    const unique = [...new Set(userIds)];
+    if (unique.length === 0) return new Set();
+    const rows = this.db.all<{ id: number }>(
+      `SELECT id FROM users WHERE id IN (${unique.map(() => '?').join(',')})`,
+      ...unique,
+    );
+    return new Set(rows.map(r => r.id));
+  }
+
+  /** Replace the payer rows of an item and keep total_price = sum of payer amounts. */
+  private writeItemPayers(itemId: number | string, payers: { user_id: number; amount: number }[]) {
+    this.db.run('DELETE FROM budget_item_payers WHERE budget_item_id = ?', itemId);
+    const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)');
+    const known = this.knownUserIds(payers.map(p => p.user_id));
+    let total = 0;
+    for (const p of payers) {
+      if (!(p.amount > 0) || !known.has(p.user_id)) continue;
+      insert.run(itemId, p.user_id, p.amount);
+      total += p.amount;
+    }
+    this.db.run('UPDATE budget_items SET total_price = ? WHERE id = ?', total, itemId);
+    return total;
+  }
+
+  // -------------------------------------------------------------------------
+  // CRUD
+  // -------------------------------------------------------------------------
+
+  listBudgetItems(tripId: string | number) {
+    const items = this.db.all<BudgetItem>(`
+    SELECT bi.* FROM budget_items bi
+    LEFT JOIN budget_category_order bco ON bco.trip_id = bi.trip_id AND bco.category = bi.category
+    WHERE bi.trip_id = ?
+    ORDER BY COALESCE(bco.sort_order, 999999) ASC, bi.sort_order ASC
+  `, tripId);
+
+    const itemIds = items.map(i => i.id);
+    const membersByItem: Record<number, (BudgetItemMember & { avatar_url: string | null })[]> = {};
+
+    if (itemIds.length > 0) {
+      const allMembers = this.db.all<BudgetItemMember & { budget_item_id: number }>(`
+      SELECT bm.budget_item_id, bm.user_id, bm.paid, bm.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
+      FROM budget_item_members bm
+      JOIN users u ON bm.user_id = u.id
+      WHERE bm.budget_item_id IN (${itemIds.map(() => '?').join(',')})
+    `, ...itemIds);
+
+      for (const m of allMembers) {
+        if (!membersByItem[m.budget_item_id]) membersByItem[m.budget_item_id] = [];
+        membersByItem[m.budget_item_id].push({
+          user_id: m.user_id, paid: m.paid, username: m.username, avatar_url: avatarUrl(m), amount: m.amount,
+        });
+      }
+    }
+
+    const payersByItem: Record<number, (BudgetItemPayer & { avatar_url: string | null })[]> = {};
+    if (itemIds.length > 0) {
+      const allPayers = this.db.all<BudgetItemPayer & { budget_item_id: number }>(`
+      SELECT bp.budget_item_id, bp.user_id, bp.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
+      FROM budget_item_payers bp
+      JOIN users u ON bp.user_id = u.id
+      WHERE bp.budget_item_id IN (${itemIds.map(() => '?').join(',')})
+    `, ...itemIds);
+
+      for (const p of allPayers) {
+        if (!payersByItem[p.budget_item_id]) payersByItem[p.budget_item_id] = [];
+        payersByItem[p.budget_item_id].push({
+          user_id: p.user_id, amount: p.amount, username: p.username, avatar_url: avatarUrl(p),
+        });
+      }
+    }
+
+    items.forEach(item => {
+      item.members = membersByItem[item.id] || [];
+      item.payers = payersByItem[item.id] || [];
+    });
+    return items;
+  }
+
+  /**
+   * Freeze the live FX rate at entry time into `exchange_rate` so a settled position
+   * isn't re-opened when live rates drift later (#1335 / #1445). The stored rate is
+   * "units of the item/display currency per 1 trip currency" — the settlement
+   * converts with it via `amount / rate`.
+   *
+   * Only freezes for a foreign currency with no explicit rate; degrades to live
+   * rates if the fetch fails. On update it (re)freezes only when the currency
+   * changes (checked against `budget_items`), so an unrelated edit never moves
+   * money. Callers must invoke this *before* the (synchronous) DB write — the raw
+   * create/update stay sync because better-sqlite3 transactions can't await.
+   */
+  async freezeForeignRate(
+    tripId: string | number,
+    data: { currency?: string | null; exchange_rate?: number },
+    existingItemId?: string | number,
+    existingCurrency?: string | null,
+  ): Promise<void> {
+    if (data.exchange_rate != null) return; // an explicit rate from the caller wins
+    const cur = (data.currency || '').toUpperCase();
+    if (!cur) return; // currency not being set in this request
+    // Skip the re-freeze when the currency isn't actually changing, so an unrelated
+    // edit never moves money. Items resolve the prior currency from budget_items; a
+    // settlement lives in a different table, so its caller passes it in directly.
+    let prior: string | undefined;
+    if (existingCurrency !== undefined) {
+      prior = (existingCurrency || '').toUpperCase();
+    } else if (existingItemId != null) {
+      const existing = this.db.get<{ currency?: string }>('SELECT currency FROM budget_items WHERE id = ?', existingItemId);
+      if (existing) prior = (existing.currency || '').toUpperCase();
+    }
+    if (prior !== undefined && prior === cur) return; // currency unchanged
+    const trip = this.db.get<{ currency?: string }>('SELECT currency FROM trips WHERE id = ?', tripId);
+    const tripCur = (trip?.currency || 'EUR').toUpperCase();
+    if (cur === tripCur) return; // same as the trip currency → no conversion to freeze
+    const rates = await this.exchangeRates.getRates(tripCur);
+    const r = rates?.[cur];
+    if (r && r > 0) data.exchange_rate = r;
+  }
+
+  /**
+   * Re-anchor a trip's money when its base currency changes (#1543).
+   *
+   * Every frozen `exchange_rate` is "units of the row's currency per 1 *trip*
+   * currency", and `currency = NULL` means "the trip's own currency" — both are
+   * relative to the trip currency, so swapping it out from under them silently
+   * corrupts the settlement: NULL rows redenominate (9 000 RUB becomes 9 000 EUR)
+   * and frozen rates keep pointing at the old base, which is exactly the mismatch
+   * that inflated #1543 by ~27x.
+   *
+   * So, before the switch: pin the implicit rows to the outgoing currency (their
+   * amounts really were in it) and re-freeze every row against the incoming one.
+   * No stored amount is rewritten — each expense keeps the figure the user typed,
+   * in the currency they typed it in, and its real-world value is preserved.
+   *
+   * Place prices follow the same NULL = "the trip's own currency" convention (that
+   * is how the PDF export and the place chips read them), so they are pinned too —
+   * otherwise a €15 museum on a trip switched to JPY starts reading as ¥15. They
+   * carry no frozen rate, so pinning the currency is all they need.
+   *
+   * Must run *before* the (synchronous) trip update, while the old currency is
+   * still in `trips`, and is a no-op when the currency isn't actually changing.
+   */
+  async rebaseTripCurrency(
+    tripId: string | number,
+    newCurrency: string | null | undefined,
+  ): Promise<void> {
+    const next = (newCurrency || '').toUpperCase();
+    if (!next) return;
+    const trip = this.db.get<{ currency?: string }>('SELECT currency FROM trips WHERE id = ?', tripId);
+    if (!trip) return;
+    const prev = (trip.currency || 'EUR').toUpperCase();
+    if (prev === next) return;
+
+    const rates = await this.exchangeRates.getRates(next);
+    // A row already denominated in the new base needs no conversion (rate 1). When no
+    // live rate is available we also store 1 rather than a stale one: rate 1 means "not
+    // frozen", so the settlement falls back to live rates instead of trusting a figure
+    // anchored to a currency this trip no longer uses.
+    const rateFor = (cur: string): number => {
+      if (cur === next) return 1;
+      const r = rates?.[cur];
+      return r && r > 0 ? r : 1;
+    };
+
+    const rebase = (table: 'budget_items' | 'budget_settlements') => {
+      this.db.run(`UPDATE ${table} SET currency = ? WHERE trip_id = ? AND (currency IS NULL OR currency = '')`, prev, tripId);
+      const rows = this.db.all<{ cur: string }>(
+        `SELECT DISTINCT currency AS cur FROM ${table} WHERE trip_id = ? AND currency IS NOT NULL`,
+        tripId,
+      );
+      for (const { cur } of rows) {
+        this.db.run(`UPDATE ${table} SET exchange_rate = ? WHERE trip_id = ? AND currency = ?`, rateFor(cur.toUpperCase()), tripId, cur);
+      }
+    };
+
+    // Only priced places have anything to denominate; a currency on a free place would
+    // just be noise. `updated_at` doubles as the optimistic-concurrency token (#1135),
+    // so bumping it stops a client holding the pre-switch row from writing the pin away.
+    const pinPlaces = () => {
+      this.db.run(`
+      UPDATE places SET currency = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE trip_id = ? AND price IS NOT NULL AND (currency IS NULL OR currency = '')
+    `, prev, tripId);
+    };
+
+    this.db.transaction(() => { rebase('budget_items'); rebase('budget_settlements'); pinPlaces(); });
+  }
+
+  createBudgetItem(
+    tripId: string | number,
+    data: {
+      category?: string; name: string; total_price?: number;
+      currency?: string | null; exchange_rate?: number;
+      payers?: { user_id: number; amount: number }[]; member_ids?: number[];
+      members?: { user_id: number; amount?: number | null }[];
+      persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null;
+      reservation_id?: number | null;
+    },
+  ) {
+    return this.db.transaction(() => {
+      const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM budget_items WHERE trip_id = ?', tripId)!;
+      const sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
+
+      const cat = data.category || 'other';
+
+      // Ensure category has a sort_order entry
+      const catExists = this.db.get('SELECT 1 FROM budget_category_order WHERE trip_id = ? AND category = ?', tripId, cat);
+      if (!catExists) {
+        const maxCatOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM budget_category_order WHERE trip_id = ?', tripId);
+        const catOrder = (maxCatOrder?.max !== null && maxCatOrder?.max !== undefined ? maxCatOrder.max : -1) + 1;
+        this.db.run('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order) VALUES (?, ?, ?)', tripId, cat, catOrder);
+      }
+
+      // total_price is derived from explicit payers when given; otherwise the caller
+      // value (planning entries, or a bill no one has paid yet).
+      const payerTotal = (data.payers || []).reduce((a, p) => a + (p.amount > 0 ? p.amount : 0), 0);
+      const total = data.payers && data.payers.length > 0 ? payerTotal : (data.total_price || 0);
+
+      const knownMembers = data.members ? this.knownUserIds(data.members.map(m => m.user_id)) : null;
+      const members = data.members && knownMembers ? data.members.filter(m => knownMembers.has(m.user_id)) : undefined;
+      const knownIds = data.member_ids ? this.knownUserIds(data.member_ids) : null;
+      const memberIds = data.member_ids && knownIds ? data.member_ids.filter(uid => knownIds.has(uid)) : undefined;
+
+      const result = this.db.run(
+        'INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate, persons, days, note, sort_order, expense_date, reservation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        tripId,
+        cat,
+        data.name,
+        total,
+        data.currency || null,
+        data.exchange_rate != null ? data.exchange_rate : 1,
+        memberIds ? memberIds.length : (data.persons != null ? data.persons : null),
+        data.days !== undefined && data.days !== null ? data.days : null,
+        data.note || null,
+        sortOrder,
+        data.expense_date || null,
+        data.reservation_id != null ? data.reservation_id : null,
+      );
+
+      const itemId = result.lastInsertRowid as number;
+      if (data.payers && data.payers.length > 0) this.writeItemPayers(itemId, data.payers);
+      if (members && members.length > 0) {
+        const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, ?)');
+        for (const m of members) insert.run(itemId, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
+      } else if (memberIds && memberIds.length > 0) {
+        const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, NULL)');
+        for (const uid of memberIds) insert.run(itemId, uid);
+      }
+
+      const item = this.db.get<BudgetItem>('SELECT * FROM budget_items WHERE id = ?', itemId)!;
+      item.members = this.loadItemMembers(itemId);
+      item.payers = this.loadItemPayers(itemId);
+      return item;
+    });
+  }
+
+  /** Fetch a single budget item hydrated with its members and payers, scoped to the trip. */
+  getBudgetItem(id: string | number, tripId: string | number): BudgetItem | null {
+    const item = this.db.get<BudgetItem>('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?', id, tripId);
+    if (!item) return null;
+    item.members = this.loadItemMembers(id);
+    item.payers = this.loadItemPayers(id);
+    return item;
+  }
+
+  linkBudgetItemToReservation(
+    tripId: string | number,
+    reservationId: number,
+    data: { name: string; category?: string; total_price: number },
+  ) {
+    // createBudgetItem accepts reservation_id directly — the legacy separate
+    // UPDATE after the insert was redundant (and non-atomic).
+    return this.createBudgetItem(tripId, { ...data, reservation_id: reservationId });
+  }
+
+  updateBudgetItem(
+    id: string | number,
+    tripId: string | number,
+    data: {
+      category?: string; name?: string; total_price?: number;
+      currency?: string | null; exchange_rate?: number;
+      payers?: { user_id: number; amount: number }[]; member_ids?: number[];
+      members?: { user_id: number; amount?: number | null }[];
+      persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null;
+    },
+  ) {
+    return this.db.transaction(() => {
+      const item = this.db.get('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?', id, tripId);
+      if (!item) return null;
+
+      this.db.run(`
+    UPDATE budget_items SET
+      category = COALESCE(?, category),
+      name = COALESCE(?, name),
+      total_price = CASE WHEN ? IS NOT NULL THEN ? ELSE total_price END,
+      currency = CASE WHEN ? THEN ? ELSE currency END,
+      exchange_rate = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate END,
+      persons = CASE WHEN ? IS NOT NULL THEN ? ELSE persons END,
+      days = CASE WHEN ? THEN ? ELSE days END,
+      note = CASE WHEN ? THEN ? ELSE note END,
+      sort_order = CASE WHEN ? IS NOT NULL THEN ? ELSE sort_order END,
+      expense_date = CASE WHEN ? THEN ? ELSE expense_date END
+    WHERE id = ?
+  `,
+        data.category || null,
+        data.name || null,
+        data.total_price !== undefined ? 1 : null, data.total_price !== undefined ? data.total_price : 0,
+        data.currency !== undefined ? 1 : 0, data.currency !== undefined ? (data.currency || null) : null,
+        data.exchange_rate !== undefined ? 1 : null, data.exchange_rate !== undefined ? data.exchange_rate : 1,
+        data.persons !== undefined ? 1 : null, data.persons !== undefined ? data.persons : null,
+        data.days !== undefined ? 1 : 0, data.days !== undefined ? data.days : null,
+        data.note !== undefined ? 1 : 0, data.note !== undefined ? data.note : null,
+        data.sort_order !== undefined ? 1 : null, data.sort_order !== undefined ? data.sort_order : 0,
+        data.expense_date !== undefined ? 1 : 0, data.expense_date !== undefined ? (data.expense_date || null) : null,
+        id,
+      );
+
+      // Optional inline payer/member replacement (the edit modal saves all at once).
+      if (data.payers !== undefined) {
+        this.writeItemPayers(id, data.payers);
+        // writeItemPayers derives total_price from the payer sum (0 for no payers).
+        // A "recorded total, nobody assigned" expense clears payers but still carries
+        // an explicit total_price — re-apply it so it isn't clobbered to 0.
+        if (data.payers.length === 0 && data.total_price !== undefined) {
+          this.db.run('UPDATE budget_items SET total_price = ? WHERE id = ?', data.total_price, id);
+        }
+      }
+      if (data.members !== undefined) {
+        const known = this.knownUserIds(data.members.map(m => m.user_id));
+        const members = data.members.filter(m => known.has(m.user_id));
+        this.db.run('DELETE FROM budget_item_members WHERE budget_item_id = ?', id);
+        const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, ?)');
+        for (const m of members) insert.run(id, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
+        this.db.run('UPDATE budget_items SET persons = ? WHERE id = ?', members.length || null, id);
+      } else if (data.member_ids !== undefined) {
+        const known = this.knownUserIds(data.member_ids);
+        const memberIds = data.member_ids.filter(uid => known.has(uid));
+        this.db.run('DELETE FROM budget_item_members WHERE budget_item_id = ?', id);
+        const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, NULL)');
+        for (const uid of memberIds) insert.run(id, uid);
+        this.db.run('UPDATE budget_items SET persons = ? WHERE id = ?', memberIds.length || null, id);
+      }
+
+      // If category changed, update category order table
+      if (data.category) {
+        const catExists = this.db.get('SELECT 1 FROM budget_category_order WHERE trip_id = ? AND category = ?', tripId, data.category);
+        if (!catExists) {
+          const maxCatOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM budget_category_order WHERE trip_id = ?', tripId);
+          const catOrder = (maxCatOrder?.max !== null && maxCatOrder?.max !== undefined ? maxCatOrder.max : -1) + 1;
+          this.db.run('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order) VALUES (?, ?, ?)', tripId, data.category, catOrder);
+        }
+      }
+
+      const updated = this.db.get<BudgetItem>('SELECT * FROM budget_items WHERE id = ?', id)!;
+      updated.members = this.loadItemMembers(id);
+      updated.payers = this.loadItemPayers(id);
+      return updated;
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Payers
+  // -------------------------------------------------------------------------
+
+  setItemPayers(id: string | number, tripId: string | number, payers: { user_id: number; amount: number }[]) {
+    return this.db.transaction(() => {
+      const item = this.db.get('SELECT id FROM budget_items WHERE id = ? AND trip_id = ?', id, tripId);
+      if (!item) return null;
+      this.writeItemPayers(id, payers);
+      const updated = this.db.get<BudgetItem>('SELECT * FROM budget_items WHERE id = ?', id)!;
+      updated.members = this.loadItemMembers(id);
+      updated.payers = this.loadItemPayers(id);
+      return updated;
+    });
+  }
+
+  deleteBudgetItem(id: string | number, tripId: string | number): boolean {
+    const item = this.db.get('SELECT id FROM budget_items WHERE id = ? AND trip_id = ?', id, tripId);
+    if (!item) return false;
+    this.db.run('DELETE FROM budget_items WHERE id = ?', id);
+    return true;
+  }
+
+  // -------------------------------------------------------------------------
+  // Members
+  // -------------------------------------------------------------------------
+
+  updateMembers(id: string | number, tripId: string | number, userIds: number[]) {
+    return this.db.transaction(() => {
+      const item = this.db.get('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?', id, tripId);
+      if (!item) return null;
+
+      const existingPaid: Record<number, number> = {};
+      const existing = this.db.all<{ user_id: number; paid: number }>('SELECT user_id, paid FROM budget_item_members WHERE budget_item_id = ?', id);
+      for (const e of existing) existingPaid[e.user_id] = e.paid;
+
+      this.db.run('DELETE FROM budget_item_members WHERE budget_item_id = ?', id);
+
+      const known = this.knownUserIds(userIds);
+      const memberIds = userIds.filter(uid => known.has(uid));
+      if (memberIds.length > 0) {
+        const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, ?)');
+        for (const userId of memberIds) insert.run(id, userId, existingPaid[userId] || 0);
+        this.db.run('UPDATE budget_items SET persons = ? WHERE id = ?', memberIds.length, id);
+      } else {
+        this.db.run('UPDATE budget_items SET persons = NULL WHERE id = ?', id);
+      }
+
+      // loadItemMembers already applies avatar_url — the legacy second .map was redundant.
+      const members = this.loadItemMembers(id);
+      const updated = this.db.get<BudgetItem>('SELECT * FROM budget_items WHERE id = ?', id)!;
+      return { members, item: updated };
+    });
+  }
+
+  removeUserFromBudgetItems(userId: number): void {
+    this.db.transaction(() => {
+      const itemIds = this.db.all<{ budget_item_id: number }>(
+        'SELECT DISTINCT budget_item_id FROM budget_item_members WHERE user_id = ?',
+        userId,
+      ).map(r => r.budget_item_id);
+      if (itemIds.length === 0) {
+        return;
+      }
+
+      this.db.run('DELETE FROM budget_item_members WHERE user_id = ?', userId);
+
+      const remaining = this.db.prepare('SELECT COUNT(*) AS count FROM budget_item_members WHERE budget_item_id = ?');
+      const setPersons = this.db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?');
+      for (const itemId of itemIds) {
+        const { count } = remaining.get(itemId) as { count: number };
+        setPersons.run(count || null, itemId);
+      }
+    });
+  }
+
+  toggleMemberPaid(id: string | number, tripId: string | number, userId: string | number, paid: boolean) {
+    // Resolve the item within the caller's trip before updating.
+    const item = this.db.get('SELECT id FROM budget_items WHERE id = ? AND trip_id = ?', id, tripId);
+    if (!item) return null;
+
+    this.db.run('UPDATE budget_item_members SET paid = ? WHERE budget_item_id = ? AND user_id = ?', paid ? 1 : 0, id, userId);
+
+    const member = this.db.get<BudgetItemMember>(`
+    SELECT bm.user_id, bm.paid, COALESCE(u.display_name, u.username) AS username, u.avatar
+    FROM budget_item_members bm JOIN users u ON bm.user_id = u.id
+    WHERE bm.budget_item_id = ? AND bm.user_id = ?
+  `, id, userId);
+
+    return member ? { ...member, avatar_url: avatarUrl(member) } : null;
+  }
+
+  // -------------------------------------------------------------------------
+  // Per-person summary
+  // -------------------------------------------------------------------------
+
+  getPerPersonSummary(tripId: string | number) {
+    const summary = this.db.all<{ user_id: number; username: string; avatar: string | null; total_assigned: number; total_paid: number; items_count: number }>(`
+    SELECT bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar,
+      SUM(COALESCE(bm.amount, bi.total_price * 1.0 / (SELECT COUNT(*) FROM budget_item_members WHERE budget_item_id = bi.id))) as total_assigned,
+      SUM(CASE WHEN bm.paid = 1 THEN COALESCE(bm.amount, bi.total_price * 1.0 / (SELECT COUNT(*) FROM budget_item_members WHERE budget_item_id = bi.id)) ELSE 0 END) as total_paid,
+      COUNT(bi.id) as items_count
+    FROM budget_item_members bm
+    JOIN budget_items bi ON bm.budget_item_id = bi.id
+    JOIN users u ON bm.user_id = u.id
+    WHERE bi.trip_id = ?
+    GROUP BY bm.user_id
+  `, tripId);
+
+    return summary.map(s => ({ ...s, avatar_url: avatarUrl(s) }));
+  }
+
+  private splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
+    const n = members.length;
+    if (n === 0) return {};
+
+    const totalCents = Math.round(total * 100);
+    const baseCents = Math.floor(totalCents / n);
+    const remainder = totalCents % n;
+
+    const shares: Record<number, number> = {};
+    const sortedMembers = [...members].sort((a, b) => a.user_id - b.user_id);
+    const startIndex = itemId % n;
+
+    for (let i = 0; i < n; i++) {
+      const member = sortedMembers[i];
+      const hasExtraCent = ((i - startIndex + n) % n) < remainder;
+      shares[member.user_id] = (baseCents + (hasExtraCent ? 1 : 0)) / 100;
+    }
+
+    return shares;
+  }
+
+  calculateSettlement(
+    tripId: string | number,
+    opts: { base?: string; rates?: Record<string, number> | null; tripCurrency?: string } = {},
+  ) {
+    const base = (opts.base || opts.tripCurrency || 'EUR').toUpperCase();
+    const tripCurrency = (opts.tripCurrency || base).toUpperCase();
+    const rates = opts.rates ?? null;
+    // Net the whole settlement in the trip's canonical currency and convert the final
+    // totals to the display currency once, instead of netting in the (moving) display
+    // currency. Otherwise per-expense rounding shifts as live FX drifts and the greedy
+    // debt-simplifier reshuffles it into phantom third-party micro-flows (#1382). When
+    // the display currency IS the trip currency (the common case) every conversion below
+    // is the identity, so behaviour is unchanged.
+    // rates[X] = units of X per 1 base; the frozen exchange_rate is units of item-currency
+    // per 1 trip-currency. Pre-rework rows store currency = NULL = "the trip's own currency".
+    const toTrip = (amount: number, itemCurrency: string | null | undefined, itemRate?: number | null): number => {
+      const cur = (itemCurrency || tripCurrency).toUpperCase();
+      if (cur === tripCurrency) return amount;
+      // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate
+      // it was booked at, so a later live-rate drift doesn't re-open it with a residual.
+      if (itemRate != null && itemRate > 0 && itemRate !== 1) return amount / itemRate;
+      // Legacy rows without a frozen rate: convert via base with live rates.
+      if (!rates) return amount;
+      const rCur = rates[cur];
+      const rTrip = rates[tripCurrency];
+      if (rCur && rCur > 0 && rTrip && rTrip > 0) return (amount / rCur) * rTrip;
+      return amount;
+    };
+    // trip-currency → display currency, applied once to the final netted totals.
+    const toDisplay = (v: number): number =>
+      base === tripCurrency ? v : (rates && rates[tripCurrency] > 0 ? v / rates[tripCurrency] : v);
+    // A recorded settle-up amount is entered in whatever display currency the payer
+    // was viewing. New rows capture that currency and the rate frozen at settle time
+    // (#1445), so a settled position stays balanced when live rates drift — mirroring
+    // toTrip for expenses. Legacy rows (currency = NULL) have no frozen rate, so fall
+    // back to the old behaviour: assume they were entered in the current display base
+    // and convert with live rates.
+    const settleToTrip = (amount: number, sCurrency?: string | null, sRate?: number | null): number => {
+      if (sCurrency) {
+        const cur = sCurrency.toUpperCase();
+        if (cur === tripCurrency) return amount;
+        if (sRate != null && sRate > 0 && sRate !== 1) return amount / sRate;
+        // Frozen currency but no usable rate (fetch failed at settle time): live fallback.
+        if (rates) {
+          const rCur = rates[cur];
+          const rTrip = rates[tripCurrency];
+          if (rCur && rCur > 0 && rTrip && rTrip > 0) return (amount / rCur) * rTrip;
+        }
+        return amount;
+      }
+      return base === tripCurrency ? amount : (rates && rates[tripCurrency] > 0 ? amount * rates[tripCurrency] : amount);
+    };
+
+    const items = this.db.all<BudgetItem>('SELECT * FROM budget_items WHERE trip_id = ?', tripId);
+    const allMembers = this.db.all<BudgetItemMember & { budget_item_id: number }>(`
+    SELECT bm.budget_item_id, bm.user_id, bm.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
+    FROM budget_item_members bm
+    JOIN users u ON bm.user_id = u.id
+    WHERE bm.budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)
+  `, tripId);
+    const allPayers = this.db.all<BudgetItemPayer & { budget_item_id: number }>(`
+    SELECT bp.budget_item_id, bp.user_id, bp.amount, COALESCE(u.display_name, u.username) AS username, u.avatar
+    FROM budget_item_payers bp
+    JOIN users u ON bp.user_id = u.id
+    WHERE bp.budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)
+  `, tripId);
+
+    // Net balance per user, in the requested base currency: positive = is owed
+    // money, negative = owes money. Each expense's amounts are converted from their
+    // own currency to the base with live rates, so mixed-currency trips net correctly.
+    const balances: Record<number, { user_id: number; username: string; avatar_url: string | null; balance: number }> = {};
+    const ensure = (id: number, src: { username?: string; avatar?: string | null }) => {
+      if (!balances[id]) balances[id] = { user_id: id, username: src.username || '', avatar_url: avatarUrl(src), balance: 0 };
+      return balances[id];
+    };
+
+    for (const item of items) {
+      const members = allMembers.filter(m => m.budget_item_id === item.id);
+      const payers = allPayers.filter(p => p.budget_item_id === item.id);
+      if (members.length === 0) continue; // planning-only entry → doesn't affect balances
+
+      // Payers are credited what they actually paid (converted to trip currency with
+      // the item's stored exchange rate)…
+      for (const p of payers) ensure(p.user_id, p).balance += toTrip(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate);
+      // …and each split participant owes their share — a custom per-member amount
+      // when one is set, otherwise an equal share of the expense total.
+      const hasCustomSplit = members.some(m => m.amount !== null && m.amount !== undefined);
+      const equalShares = !hasCustomSplit ? this.splitEqualShares(item.total_price, members, item.id) : {};
+      for (const m of members) {
+        const memberShare = hasCustomSplit && m.amount !== null && m.amount !== undefined
+          ? toTrip(m.amount, item.currency, item.exchange_rate)
+          : toTrip(equalShares[m.user_id] || 0, item.currency, item.exchange_rate);
+        ensure(m.user_id, m).balance -= memberShare;
+      }
+    }
+
+    // Persisted settle-up transfers already moved money: the payer's debt shrinks,
+    // the receiver's credit shrinks, so the corresponding flow disappears. A transfer
+    // counts even when neither user has an expense-derived balance yet — a manual
+    // payment, or one left behind after its expense was deleted, then correctly
+    // surfaces as an amount still to square up instead of silently vanishing.
+    const settlements = this.listSettlements(tripId);
+    const ensureSettled = (id: number, username: string | undefined, avatar_url: string | null | undefined) => {
+      if (!balances[id]) balances[id] = { user_id: id, username: username || '', avatar_url: avatar_url ?? null, balance: 0 };
+      return balances[id];
+    };
+    for (const s of settlements) {
+      const inTrip = settleToTrip(s.amount, s.currency, s.exchange_rate);
+      ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).balance += inTrip;
+      ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).balance -= inTrip;
+    }
+
+    // Calculate optimized payment flows (greedy algorithm)
+    const people = Object.values(balances).filter(b => Math.abs(b.balance) > 0.01);
+    const debtors = people.filter(p => p.balance < -0.01).map(p => ({ ...p, amount: -p.balance }));
+    const creditors = people.filter(p => p.balance > 0.01).map(p => ({ ...p, amount: p.balance }));
+
+    // Sort by amount descending for efficient matching
+    debtors.sort((a, b) => b.amount - a.amount);
+    creditors.sort((a, b) => b.amount - a.amount);
+
+    const flows: { from: { user_id: number; username: string; avatar_url: string | null }; to: { user_id: number; username: string; avatar_url: string | null }; amount: number }[] = [];
+
+    let di = 0, ci = 0;
+    while (di < debtors.length && ci < creditors.length) {
+      const transfer = Math.min(debtors[di].amount, creditors[ci].amount);
+      if (transfer > 0.01) {
+        flows.push({
+          from: { user_id: debtors[di].user_id, username: debtors[di].username, avatar_url: debtors[di].avatar_url },
+          to: { user_id: creditors[ci].user_id, username: creditors[ci].username, avatar_url: creditors[ci].avatar_url },
+          amount: Math.round(toDisplay(transfer) * 100) / 100,
+        });
+      }
+      debtors[di].amount -= transfer;
+      creditors[ci].amount -= transfer;
+      if (debtors[di].amount < 0.01) di++;
+      if (creditors[ci].amount < 0.01) ci++;
+    }
+
+    return {
+      balances: Object.values(balances).map(b => ({ ...b, balance: Math.round(toDisplay(b.balance) * 100) / 100 })),
+      flows,
+      settlements,
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // Settlements (persisted settle-up transfers — history + undo)
+  // -------------------------------------------------------------------------
+
+  // Settlement usernames use COALESCE(display_name, username) like every item
+  // query (the legacy raw fu.username was the odd one out).
+  private static readonly SETTLEMENT_SELECT = `
+    SELECT s.id, s.trip_id, s.from_user_id, s.to_user_id, s.amount, s.currency, s.exchange_rate, s.created_at, s.created_by_user_id,
+           COALESCE(fu.display_name, fu.username) AS from_username, fu.avatar AS from_avatar,
+           COALESCE(tu.display_name, tu.username) AS to_username,   tu.avatar AS to_avatar
+    FROM budget_settlements s
+    JOIN users fu ON s.from_user_id = fu.id
+    JOIN users tu ON s.to_user_id = tu.id
+  `;
+
+  private mapSettlementRow(r: SettlementRow) {
+    return {
+      id: r.id, trip_id: r.trip_id,
+      from_user_id: r.from_user_id, to_user_id: r.to_user_id,
+      amount: r.amount, currency: r.currency ?? null, exchange_rate: r.exchange_rate ?? 1,
+      created_at: r.created_at, created_by_user_id: r.created_by_user_id,
+      from_username: r.from_username, from_avatar_url: avatarUrl({ avatar: r.from_avatar }),
+      to_username: r.to_username, to_avatar_url: avatarUrl({ avatar: r.to_avatar }),
+    };
+  }
+
+  listSettlements(tripId: string | number) {
+    const rows = this.db.all<SettlementRow>(
+      `${BudgetService.SETTLEMENT_SELECT}
+    WHERE s.trip_id = ?
+    ORDER BY s.created_at DESC, s.id DESC
+  `, tripId);
+    return rows.map(r => this.mapSettlementRow(r));
+  }
+
+  /** Targeted single-row read (the legacy re-select was a full listSettlements scan). */
+  getSettlement(id: string | number, tripId: string | number) {
+    const row = this.db.get<SettlementRow>(
+      `${BudgetService.SETTLEMENT_SELECT}
+    WHERE s.trip_id = ? AND s.id = ?
+  `, tripId, id);
+    return row ? this.mapSettlementRow(row) : null;
+  }
+
+  /** Raw settlement insert (no FX freeze) — the REST path wraps it in createSettlement. */
+  insertSettlement(
+    tripId: string | number,
+    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number },
+    createdByUserId?: number,
+  ) {
+    const result = this.db.run(
+      'INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount, currency, exchange_rate, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      tripId, data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100,
+      data.currency ? data.currency.toUpperCase() : null,
+      data.exchange_rate != null ? data.exchange_rate : 1,
+      createdByUserId ?? null,
+    );
+    return this.getSettlement(Number(result.lastInsertRowid), tripId);
+  }
+
+  /** Raw settlement update (no FX freeze) — the REST path wraps it in updateSettlement. */
+  applySettlementUpdate(
+    id: string | number,
+    tripId: string | number,
+    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number },
+  ) {
+    const row = this.db.get('SELECT id FROM budget_settlements WHERE id = ? AND trip_id = ?', id, tripId);
+    if (!row) return null;
+    this.db.run(`
+    UPDATE budget_settlements SET
+      from_user_id = ?, to_user_id = ?, amount = ?,
+      currency = CASE WHEN ? THEN ? ELSE currency END,
+      exchange_rate = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate END
+    WHERE id = ?
+  `,
+      data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100,
+      data.currency !== undefined ? 1 : 0, data.currency ? data.currency.toUpperCase() : null,
+      data.exchange_rate !== undefined ? 1 : null, data.exchange_rate !== undefined ? data.exchange_rate : 1,
+      id,
+    );
+    return this.getSettlement(id, tripId);
+  }
+
+  deleteSettlement(id: string | number, tripId: string | number): boolean {
+    const row = this.db.get('SELECT id FROM budget_settlements WHERE id = ? AND trip_id = ?', id, tripId);
+    if (!row) return false;
+    this.db.run('DELETE FROM budget_settlements WHERE id = ?', id);
+    return true;
+  }
+
+  // -------------------------------------------------------------------------
+  // Controller-facing surface (unchanged from the pre-fold wrapper)
+  // -------------------------------------------------------------------------
 
   list(tripId: string) {
-    return svc.listBudgetItems(tripId);
+    return this.listBudgetItems(tripId);
   }
 
   perPersonSummary(tripId: string) {
-    return svc.getPerPersonSummary(tripId);
+    return this.getPerPersonSummary(tripId);
   }
 
   async settlement(tripId: string, base: string | undefined, tripCurrency: string) {
     const effectiveBase = (base || tripCurrency || 'EUR').toUpperCase();
-    const rates = await getRates(effectiveBase);
-    return svc.calculateSettlement(tripId, { base: effectiveBase, rates, tripCurrency });
+    const rates = await this.exchangeRates.getRates(effectiveBase);
+    return this.calculateSettlement(tripId, { base: effectiveBase, rates, tripCurrency });
   }
 
-  async create(tripId: string, data: Parameters<typeof svc.createBudgetItem>[1]) {
-    await svc.freezeForeignRate(tripId, data);
-    return svc.createBudgetItem(tripId, data);
+  async create(tripId: string, data: Parameters<BudgetService['createBudgetItem']>[1]) {
+    await this.freezeForeignRate(tripId, data);
+    return this.createBudgetItem(tripId, data);
   }
 
-  async update(id: string, tripId: string, data: Parameters<typeof svc.updateBudgetItem>[2]) {
-    await svc.freezeForeignRate(tripId, data, id);
-    return svc.updateBudgetItem(id, tripId, data);
+  async update(id: string | number, tripId: string | number, data: Parameters<BudgetService['updateBudgetItem']>[2]) {
+    await this.freezeForeignRate(tripId, data, id);
+    return this.updateBudgetItem(id, tripId, data);
   }
 
   remove(id: string, tripId: string): boolean {
-    return svc.deleteBudgetItem(id, tripId);
-  }
-
-  updateMembers(id: string, tripId: string, userIds: number[]) {
-    return svc.updateMembers(id, tripId, userIds);
-  }
-
-  toggleMemberPaid(id: string, tripId: string, userId: string, paid: boolean) {
-    return svc.toggleMemberPaid(id, tripId, userId, paid);
+    return this.deleteBudgetItem(id, tripId);
   }
 
   setPayers(id: string, tripId: string, payers: { user_id: number; amount: number }[]) {
-    return svc.setItemPayers(id, tripId, payers);
+    return this.setItemPayers(id, tripId, payers);
   }
 
-  listSettlements(tripId: string) {
-    return svc.listSettlements(tripId);
-  }
-
-  async createSettlement(tripId: string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }, userId: number) {
+  async createSettlement(tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }, userId: number) {
     // Freeze the FX rate for the display currency the amount was entered in so the
     // transfer keeps cancelling its expense when live rates drift (#1445).
-    await svc.freezeForeignRate(tripId, data);
-    return svc.createSettlement(tripId, data, userId);
+    await this.freezeForeignRate(tripId, data);
+    return this.insertSettlement(tripId, data, userId);
   }
 
-  async updateSettlement(id: string, tripId: string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }) {
+  async updateSettlement(id: string | number, tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }) {
     // Pass the settlement's stored currency so an edit that doesn't change it keeps
     // the already-frozen rate (#1445) — otherwise a live-rate drift would re-open a
     // settled position on an unrelated edit.
-    const existing = svc.listSettlements(tripId).find((s) => s.id === Number(id));
-    await svc.freezeForeignRate(tripId, data, undefined, existing?.currency ?? null);
-    return svc.updateSettlement(id, tripId, data);
-  }
-
-  deleteSettlement(id: string, tripId: string): boolean {
-    return svc.deleteSettlement(id, tripId);
+    const existing = this.getSettlement(id, tripId);
+    await this.freezeForeignRate(tripId, data, undefined, existing?.currency ?? null);
+    return this.applySettlementUpdate(id, tripId, data);
   }
 
   reorderItems(tripId: string, orderedIds: number[]): void {
-    svc.reorderBudgetItems(tripId, orderedIds);
+    const update = this.db.prepare('UPDATE budget_items SET sort_order = ? WHERE id = ? AND trip_id = ?');
+    this.db.transaction(() => {
+      orderedIds.forEach((id, index) => update.run(index, id, tripId));
+    });
   }
 
   reorderCategories(tripId: string, orderedCategories: string[]): void {
-    svc.reorderBudgetCategories(tripId, orderedCategories);
+    const upsert = this.db.prepare(
+      'INSERT INTO budget_category_order (trip_id, category, sort_order) VALUES (?, ?, ?) ON CONFLICT(trip_id, category) DO UPDATE SET sort_order = excluded.sort_order'
+    );
+    this.db.transaction(() => {
+      orderedCategories.forEach((cat, index) => upsert.run(tripId, cat, index));
+    });
   }
 
   /**
@@ -106,15 +885,16 @@ export class BudgetService {
    */
   syncReservationPrice(tripId: string, reservationId: number, totalPrice: number, socketId: string | undefined): void {
     try {
-      const reservation = db.prepare(
+      const reservation = this.db.get<{ id: number; metadata: string | null }>(
         'SELECT id, metadata FROM reservations WHERE id = ? AND trip_id = ?',
-      ).get(reservationId, tripId) as { id: number; metadata: string | null } | undefined;
+        reservationId, tripId,
+      );
       if (!reservation) return;
       const meta = reservation.metadata ? JSON.parse(reservation.metadata) : {};
       meta.price = String(totalPrice);
-      db.prepare('UPDATE reservations SET metadata = ? WHERE id = ?').run(JSON.stringify(meta), reservation.id);
-      const updatedRes = db.prepare('SELECT * FROM reservations WHERE id = ?').get(reservation.id);
-      broadcast(tripId, 'reservation:updated', { reservation: updatedRes }, socketId);
+      this.db.run('UPDATE reservations SET metadata = ? WHERE id = ?', JSON.stringify(meta), reservation.id);
+      const updatedRes = this.db.get('SELECT * FROM reservations WHERE id = ?', reservation.id);
+      this.realtime.broadcast(tripId, 'reservation:updated', { reservation: updatedRes }, socketId);
     } catch (err) {
       console.error('[budget] Failed to sync price to reservation:', err);
     }

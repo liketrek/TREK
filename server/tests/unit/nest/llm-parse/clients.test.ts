@@ -47,6 +47,23 @@ describe('OpenAiCompatibleClient', () => {
     expect(out).toEqual([{ '@type': 'TrainReservation' }]);
   });
 
+  it('tolerates single-quoted, non-strict JSON output (Gemini, #1638)', async () => {
+    mockFetch(() =>
+      jsonResponse({
+        choices: [
+          {
+            message: {
+              content:
+                "[{ '@type': 'LodgingReservation', checkinTime: '2026-08-28T00:00:00', price: 146.25, }]",
+            },
+          },
+        ],
+      }),
+    );
+    const out = await new OpenAiCompatibleClient().extract(baseInput);
+    expect(out).toEqual([{ '@type': 'LodgingReservation', checkinTime: '2026-08-28T00:00:00', price: 146.25 }]);
+  });
+
   it('returns [] on malformed content', async () => {
     mockFetch(() => jsonResponse({ choices: [{ message: { content: 'not json' } }] }));
     expect(await new OpenAiCompatibleClient().extract(baseInput)).toEqual([]);
@@ -74,6 +91,33 @@ describe('OpenAiCompatibleClient', () => {
     expect(second.response_format).toEqual({ type: 'json_object' });
     expect(second.messages).toEqual(first.messages);
     expect(second.model).toBe(first.model);
+  });
+
+  it('retries with max_completion_tokens when the model rejects max_tokens (400, #1760)', async () => {
+    safeFetchLlmMock
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { error: { message: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.", code: 'unsupported_parameter' } },
+          false,
+          400,
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ choices: [{ message: { content: '{"reservations":[{"@type":"FlightReservation"}]}' } }] }),
+      );
+    const out = await new OpenAiCompatibleClient().extract(baseInput);
+    expect(out).toEqual([{ '@type': 'FlightReservation' }]);
+    expect(safeFetchLlmMock).toHaveBeenCalledTimes(2);
+
+    const first = JSON.parse((safeFetchLlmMock.mock.calls[0][1] as RequestInit).body as string);
+    const second = JSON.parse((safeFetchLlmMock.mock.calls[1][1] as RequestInit).body as string);
+    expect(first.max_tokens).toBe(4096);
+    expect(first.max_completion_tokens).toBeUndefined();
+    // The retry swaps the token param but keeps everything else, json_schema included.
+    expect(second.max_completion_tokens).toBe(4096);
+    expect(second.max_tokens).toBeUndefined();
+    expect(second.response_format.type).toBe('json_schema');
+    expect(second.messages).toEqual(first.messages);
   });
 
   it('throws when the json_object retry also fails (400 twice)', async () => {

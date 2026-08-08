@@ -17,12 +17,14 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
 import fs from 'fs';
+import { readEnv } from '../../app-config';
 import type { User } from '../../types';
 import { BackupService } from './backup.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { writeAudit, getClientIp } from '../../services/auditLog';
+import { getClientIp } from '../audit/client-ip';
+import { AuditService } from '../audit/audit.service';
 import { getUploadTmpDir, MAX_BACKUP_UPLOAD_SIZE } from '../../services/backupService';
 
 const UPLOAD = {
@@ -46,7 +48,7 @@ const UPLOAD = {
 @Controller('api/backup')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class BackupController {
-  constructor(private readonly backup: BackupService) {}
+  constructor(private readonly backup: BackupService, private readonly audit: AuditService) {}
 
   @Get('list')
   list() {
@@ -65,7 +67,7 @@ export class BackupController {
     }
     try {
       const backup = await this.backup.createBackup();
-      writeAudit({ userId: user.id, action: 'backup.create', resource: backup.filename, ip: getClientIp(req), details: { size: backup.size } });
+      this.audit.writeAudit({ userId: user.id, action: 'backup.create', resource: backup.filename, ip: getClientIp(req), details: { size: backup.size } });
       return { success: true, backup };
     } catch {
       throw new HttpException({ error: 'Error creating backup' }, 500);
@@ -97,7 +99,7 @@ export class BackupController {
       if (!result.success) {
         throw new HttpException({ error: result.error }, result.status || 400);
       }
-      writeAudit({ userId: user.id, action: 'backup.restore', resource: filename, ip: getClientIp(req) });
+      this.audit.writeAudit({ userId: user.id, action: 'backup.restore', resource: filename, ip: getClientIp(req) });
       return { success: true };
     } catch (err) {
       if (err instanceof HttpException) throw err;
@@ -119,7 +121,7 @@ export class BackupController {
       if (!result.success) {
         throw new HttpException({ error: result.error }, result.status || 400);
       }
-      writeAudit({ userId: user.id, action: 'backup.upload_restore', resource: origName, ip: getClientIp(req) });
+      this.audit.writeAudit({ userId: user.id, action: 'backup.upload_restore', resource: origName, ip: getClientIp(req) });
       return { success: true };
     } catch (err) {
       if (err instanceof HttpException) throw err;
@@ -143,12 +145,12 @@ export class BackupController {
   updateAutoSettings(@CurrentUser() user: User, @Body() body: Record<string, unknown>, @Req() req: Request) {
     try {
       const settings = this.backup.updateAutoSettings(body || {});
-      writeAudit({ userId: user.id, action: 'backup.auto_settings', ip: getClientIp(req), details: { enabled: settings.enabled, interval: settings.interval, keep_days: settings.keep_days } });
+      this.audit.writeAudit({ userId: user.id, action: 'backup.auto_settings', ip: getClientIp(req), details: { enabled: settings.enabled, interval: settings.interval, keep_days: settings.keep_days } });
       return { settings };
     } catch (err) {
       console.error('[backup] PUT auto-settings:', err);
       const msg = err instanceof Error ? err.message : String(err);
-      throw new HttpException({ error: 'Could not save auto-backup settings', detail: process.env.NODE_ENV?.toLowerCase() !== 'production' ? msg : undefined }, 500);
+      throw new HttpException({ error: 'Could not save auto-backup settings', detail: !readEnv().app.isProduction ? msg : undefined }, 500);
     }
   }
 
@@ -161,7 +163,7 @@ export class BackupController {
       throw new HttpException({ error: 'Backup not found' }, 404);
     }
     this.backup.deleteBackup(filename);
-    writeAudit({ userId: user.id, action: 'backup.delete', resource: filename, ip: getClientIp(req) });
+    this.audit.writeAudit({ userId: user.id, action: 'backup.delete', resource: filename, ip: getClientIp(req) });
     return { success: true };
   }
 }

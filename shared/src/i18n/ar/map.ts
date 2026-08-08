@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'أنشطة',
   'map.showAllConnections': 'إظهار جميع مسارات الحجوزات',
   'map.hideAllConnections': 'إخفاء جميع مسارات الحجوزات',
+  'map.baseLayer.default': 'خريطة',
+  'map.baseLayer.satellite': 'قمر صناعي',
+  'map.baseLayer.switchToSatellite': 'التبديل إلى عرض القمر الصناعي',
+  'map.baseLayer.switchToDefault': 'التبديل إلى عرض الخريطة',
 };
 export default map;

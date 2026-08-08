@@ -10,6 +10,7 @@ on:
       - 'server/**'
       - 'client/**'
       - 'shared/**'
+      - 'nest-mcp/**'
       - '.github/workflows/test.yml'
 
 jobs:
@@ -49,6 +50,41 @@ jobs:
       - name: Run tests
         run: cd shared && npm test
 
+  nest-mcp-package:
+    name: nest-mcp Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --workspace nest-mcp
+
+      - name: Ensure @swc/core's Linux binary for unplugin-swc
+        # Same lockfile quirk as server-tests: the Linux native binary is
+        # omitted, and nest-mcp's vitest config uses the SWC transform too.
+        run: |
+          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
+          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
+
+      - name: Build
+        run: npm run build --workspace=nest-mcp
+
+      - name: Typecheck
+        run: cd nest-mcp && npm run typecheck
+
+      - name: Lint
+        run: cd nest-mcp && npm run lint:check
+
+      - name: Run tests
+        run: cd nest-mcp && npm test
+
   server-tests:
     name: Server Tests
     runs-on: ubuntu-latest
@@ -77,8 +113,19 @@ jobs:
       - name: Build shared
         run: npm run build --workspace=shared
 
+      - name: Build nest-mcp
+        # Server typecheck/build resolve @trek/nest-mcp's types from its dist
+        # (tests alias the package source, but tsc does not).
+        run: npm run build --workspace=nest-mcp
+
       - name: Build server (tsc -> dist)
         run: cd server && npm run build
+
+      - name: Smoke production require chain
+        # Vitest aliases @trek/nest-mcp to its source, so only this exercises
+        # what production runs: nest-mcp's built dist resolving the MCP SDK's
+        # subpath exports through the tsconfig-paths/register runtime hook.
+        run: cd server && node --require tsconfig-paths/register -e "require('@trek/nest-mcp')"
 
       - name: Typecheck
         run: cd server && npm run typecheck
@@ -97,8 +144,12 @@ jobs:
           path: server/coverage/
           retention-days: 7
 
-  client-tests:
-    name: Client Tests
+  client-quality:
+    # Split out of client-tests: the suite takes ~11 minutes, and having the
+    # gates in front of it meant a single lint finding threw away the whole test
+    # signal for that run. Both jobs pay the install/build, which is cheap next
+    # to running the two in series.
+    name: Client Types & Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -124,6 +175,25 @@ jobs:
 
       - name: Page pattern check
         run: cd client && npm run lint:pages
+
+  client-tests:
+    name: Client Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --workspace shared && npm ci --workspace client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
 
       - name: Run tests
         run: cd client && npm run test:coverage

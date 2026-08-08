@@ -1,4 +1,4 @@
-import { useNavigate, useLocation, useMatch } from 'react-router-dom'
+import { useNavigate, useLocation, useMatch } from 'react-router'
 import { useAddonStore } from '../../store/addonStore'
 import { usePluginStore } from '../../store/pluginStore'
 import { useSettingsStore } from '../../store/settingsStore'

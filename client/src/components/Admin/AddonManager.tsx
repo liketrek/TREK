@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { adminApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -27,7 +27,7 @@ function SynologyIcon({ size = 14 }: { size?: number }) {
   )
 }
 
-const PROVIDER_ICONS: Record<string, React.FC<{ size?: number }>> = {
+const PROVIDER_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   immich: ImmichIcon,
   synologyphotos: SynologyIcon,
 }
@@ -399,7 +399,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     setSaving(true)
     try {
       // Send the masked sentinel unchanged so the server keeps the stored key.
-      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: baseUrl.trim(), apiKey, multimodal: cfg.multimodal === true } })
+      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: provider === 'anthropic' ? '' : baseUrl.trim(), apiKey, multimodal: cfg.multimodal === true } })
       toast.success('Saved')
     } catch {
       toast.error('Failed to save')

@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': 'Accesso in sola lettura a questa chat',
+  'collab.chat.messageOptions': 'Opzioni messaggio',
+  'collab.polls.confirmDeleteTitle': 'Eliminare il sondaggio?',
+  'collab.polls.confirmDeleteBody': 'Questo sondaggio verrà eliminato permanentemente.',
+  'collab.polls.countdownDaysHours': 'Mancano {d}g {h}h',
+  'collab.polls.countdownHoursMinutes': 'Mancano {h}h {m}min',
+  'collab.polls.countdownMinutes': 'Mancano {m}min',
+  'collab.polls.clearDeadline': 'Rimuovi scadenza',
   'collab.tabs.chat': 'Chat',
   'collab.tabs.notes': 'Note',
   'collab.tabs.polls': 'Sondaggi',
@@ -29,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Inizia a raccogliere idee e programmi',
   'collab.notes.all': 'Tutte',
   'collab.notes.titlePlaceholder': 'Titolo della nota',
+  'collab.notes.content': 'Contenuto',
+  'collab.notes.removeFile': 'Rimuovi {name}',
   'collab.notes.contentPlaceholder': 'Scrivi qualcosa...',
   'collab.notes.categoryPlaceholder': 'Categoria',
   'collab.notes.newCategory': 'Nuova categoria...',

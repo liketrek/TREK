@@ -4,8 +4,12 @@ import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy } from 'lucide-react'
+import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy, Route } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
+import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
+import PlaceRating from '../shared/StarRating'
+import TrackColorPicker from '../shared/TrackColorPicker'
+import { resolveTrackColor, inheritedTrackColor } from '../Map/trackColors'
 import GuestBadge from '../shared/GuestBadge'
 import StatusBadge from '../Collections/StatusBadge'
 import { mapsApi, pluginsApi } from '../../api/client'
@@ -25,6 +29,7 @@ import { useTripStore } from '../../store/tripStore'
 import { formatDistance, formatElevation } from '../../utils/units'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 import { getOpenStreetMapUrlForPlace } from './placeOpenStreetMap'
+import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 
 const detailsCache = new Map()
 
@@ -57,10 +62,10 @@ function usePlaceDetails(googlePlaceId, osmId, language) {
   return details
 }
 
-function getWeekdayIndex(dateStr) {
+function getWeekdayIndex(dateStr, timeZone) {
   // weekdayDescriptions[0] = Monday … [6] = Sunday
-  const d = dateStr ? new Date(dateStr + 'T12:00:00') : new Date()
-  const jsDay = d.getDay()
+  if (!dateStr) return placeWeekdayIndex(new Date(), timeZone)
+  const jsDay = new Date(dateStr + 'T12:00:00').getDay()
   return jsDay === 0 ? 6 : jsDay - 1
 }
 
@@ -128,6 +133,10 @@ interface PlaceInspectorProps {
   tripMembers?: TripMember[]
   onSetParticipants?: (assignmentId: number, dayId: number, participantIds: number[]) => void
   onUpdatePlace?: (placeId: number, data: Partial<Place>) => void
+  /** Upload a custom thumbnail (#1136); enables the click-to-change avatar in trip mode. */
+  onUploadImage?: (placeId: number, file: File) => Promise<void>
+  /** Cast/clear the current user's star vote (#1435); enables the rating row. */
+  onRate?: (placeId: number, rating: number | null) => Promise<void> | void
   leftWidth?: number
   rightWidth?: number
   // ── Collection-mode props ──
@@ -141,7 +150,7 @@ export default function PlaceInspector({
   place, categories, mode = 'trip', days = [], selectedDayId = null, selectedAssignmentId = null,
   assignments = {}, reservations = [],
   onClose, onEdit, onDelete, onAssignToDay, onRemoveAssignment,
-  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace,
+  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace, onUploadImage, onRate,
   leftWidth = 0, rightWidth = 0,
   collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList,
 }: PlaceInspectorProps) {
@@ -222,6 +231,31 @@ export default function PlaceInspector({
     })
   }, [place, openSavePicker])
 
+  // Sits above the `if (!place)` bail-out below: a hook after an early return is
+  // only reached while a place is selected, so deselecting one mid-session
+  // changes the hook count and React tears the tree down.
+  const placeId = place?.id
+  const handleFileUpload = useCallback(async (e) => {
+    const selectedFiles = Array.from((e.target as HTMLInputElement).files || [])
+    if (!selectedFiles.length || !onFileUpload || !placeId) return
+    setIsUploading(true)
+    try {
+      for (const file of selectedFiles) {
+        const fd = new FormData()
+        fd.append('file', file)
+        fd.append('place_id', String(placeId))
+        await onFileUpload(fd)
+      }
+      setFilesExpanded(true)
+    } catch (err: unknown) {
+      console.error('Upload failed', err)
+      toast.error(translateApiError(t, err, 'files.uploadError'))
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }, [onFileUpload, placeId, toast, t])
+
   const startNameEdit = () => {
     if (!onUpdatePlace) return
     setNameValue(place.name || '')
@@ -251,8 +285,18 @@ export default function PlaceInspector({
       ?? dayAssignments.find(a => a.place?.id === place.id))
     : null
 
+  // The weekday lines are display text; the ring is computed from the structured
+  // periods next to them, in the place's own timezone. open_now stays the fallback.
   const openingHours = googleDetails?.opening_hours || null
-  const openNow = googleDetails?.open_now ?? null
+  const detailLat = place.lat ?? googleDetails?.lat
+  const detailLng = place.lng ?? googleDetails?.lng
+  const placeTimeZone = resolvePlaceTimeZone(detailLat, detailLng)
+  const openNow = resolveOpenNow(
+    { periods: googleDetails?.opening_periods, specialDays: googleDetails?.opening_special_days },
+    detailLat,
+    detailLng,
+    googleDetails?.open_now,
+  )
   // Prefer the place's stored ftid; if it has none yet, use the one just fetched from Google.
   const googleMapsUrl = getGoogleMapsUrlForPlace(
     place ? { ...place, google_ftid: place.google_ftid || googleDetails?.google_ftid || null } : null,
@@ -260,30 +304,9 @@ export default function PlaceInspector({
   )
   const openStreetMapUrl = getOpenStreetMapUrlForPlace(place)
   const selectedDay = days?.find(d => d.id === selectedDayId)
-  const weekdayIndex = getWeekdayIndex(selectedDay?.date)
+  const weekdayIndex = getWeekdayIndex(selectedDay?.date, placeTimeZone)
 
   const placeFiles = (files || []).filter(f => String(f.place_id) === String(place.id) || (f.linked_place_ids || []).includes(place.id))
-
-  const handleFileUpload = useCallback(async (e) => {
-    const selectedFiles = Array.from((e.target as HTMLInputElement).files || [])
-    if (!selectedFiles.length || !onFileUpload) return
-    setIsUploading(true)
-    try {
-      for (const file of selectedFiles) {
-        const fd = new FormData()
-        fd.append('file', file)
-        fd.append('place_id', String(place.id))
-        await onFileUpload(fd)
-      }
-      setFilesExpanded(true)
-    } catch (err: unknown) {
-      console.error('Upload failed', err)
-      toast.error(translateApiError(t, err, 'files.uploadError'))
-    } finally {
-      setIsUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }, [onFileUpload, place.id, toast, t])
 
   return (
     <div
@@ -311,6 +334,7 @@ export default function PlaceInspector({
         <PlaceInspectorHeader openNow={openNow} place={place} category={category} t={t} editingName={editingName}
           nameInputRef={nameInputRef} nameValue={nameValue} setNameValue={setNameValue} commitNameEdit={commitNameEdit}
           handleNameKeyDown={handleNameKeyDown} startNameEdit={startNameEdit} onUpdatePlace={onUpdatePlace}
+          onUploadImage={mode === 'trip' && onUpdatePlace ? onUploadImage : undefined}
           locale={locale} timeFormat={timeFormat} onClose={onClose} />
 
         {/* Content — scrollable */}
@@ -336,6 +360,17 @@ export default function PlaceInspector({
               <Chip icon={<Banknote size={12} />} text={formatMoney(Number(place.price) || 0, place.currency || tripCurrency || 'EUR', locale)} color="#059669" bg="#ecfdf5" />
             )}
           </div>
+
+          {/* Collaborative rating (#1435) — every member's own vote, shown as the average. */}
+          {mode === 'trip' && onRate && (
+            <div className="bg-surface-hover" style={{ borderRadius: 10, padding: '8px 12px' }}>
+              <PlaceRating
+                ratings={place.ratings ?? []}
+                ratingAvg={place.rating_avg}
+                onRate={rating => onRate(place.id, rating)}
+              />
+            </div>
+          )}
 
           {/* Telefon */}
           {(place.phone || googleDetails?.phone) && (
@@ -374,7 +409,7 @@ export default function PlaceInspector({
             setHoursExpanded={setHoursExpanded} timeFormat={timeFormat} t={t} place={place} placeFiles={placeFiles}
             onFileUpload={onFileUpload} filesExpanded={filesExpanded} setFilesExpanded={setFilesExpanded}
             fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isUploading={isUploading}
-            distanceUnit={distanceUnit} />
+            distanceUnit={distanceUnit} onUpdatePlace={onUpdatePlace} />
 
           {/* Extra native rows from placeDetailProvider plugins (#1429). */}
           {mode === 'trip' && providerDetails.length > 0 && (
@@ -473,20 +508,6 @@ function Chip({ icon, text, color = 'var(--text-secondary)', bg = 'var(--bg-hove
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 99, background: bg, color, fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
       <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{text}</span>
-    </div>
-  )
-}
-
-interface RowProps {
-  icon: React.ReactNode
-  children: React.ReactNode
-}
-
-function Row({ icon, children }: RowProps) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ flexShrink: 0 }}>{icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
     </div>
   )
 }
@@ -648,7 +669,7 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
 
 
 function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameInputRef, nameValue, setNameValue,
-  commitNameEdit, handleNameKeyDown, startNameEdit, onUpdatePlace, locale, timeFormat, onClose }: any) {
+  commitNameEdit, handleNameKeyDown, startNameEdit, onUpdatePlace, onUploadImage, locale, timeFormat, onClose }: any) {
   return (
         <div style={{ display: 'flex', alignItems: 'center', gap: openNow !== null ? 26 : 14, padding: openNow !== null ? '18px 16px 14px 28px' : '18px 16px 14px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
           {/* Avatar with open/closed ring + tag */}
@@ -657,7 +678,11 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
               borderRadius: '50%', padding: 2.5,
               background: openNow === true ? '#22c55e' : openNow === false ? '#ef4444' : 'transparent',
             }}>
-              <PlaceAvatar place={place} category={category} size={52} />
+              {onUploadImage
+                ? <PlaceAvatarUpload place={place} category={category} size={52}
+                    onUpload={(file: File) => onUploadImage(place.id, file)}
+                    onRemove={() => onUpdatePlace(place.id, { image_url: null })} />
+                : <PlaceAvatar place={place} category={category} size={52} />}
             </div>
             {openNow !== null && (
               <span style={{
@@ -834,8 +859,51 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
   )
 }
 
+/**
+ * Track colour row (#776) — only for places that carry GPX geometry. Sits next
+ * to the stats block rather than inside it: that block bails out on unparsable
+ * geometry, and the colour control has no business disappearing with it.
+ */
+function TrackColorRow({ place, trackColor, onUpdatePlace, t }: any) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="bg-surface-hover" style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Route size={13} color="#9ca3af" />
+          <span className="text-content-secondary" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500 }}>
+            {t('inspector.trackColor')}
+          </span>
+        </div>
+        <span
+          className="ring-1 ring-inset ring-black/10 dark:ring-white/15"
+          style={{ width: 20, height: 20, borderRadius: 999, backgroundColor: trackColor, flexShrink: 0 }}
+        />
+      </button>
+      {open && (
+        <div className="border-edge" style={{ borderTopWidth: 1, paddingTop: 8 }}>
+          <TrackColorPicker
+            value={place.route_color ?? null}
+            inheritedColor={inheritedTrackColor(place)}
+            onChange={color => onUpdatePlace?.(place.id, { route_color: color })}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpanded, timeFormat, t, place,
-  placeFiles, onFileUpload, filesExpanded, setFilesExpanded, fileInputRef, handleFileUpload, isUploading, distanceUnit }: any) {
+  placeFiles, onFileUpload, filesExpanded, setFilesExpanded, fileInputRef, handleFileUpload, isUploading, distanceUnit,
+  onUpdatePlace }: any) {
+  const trackColor = resolveTrackColor(place)
   return (
           <div className={`grid grid-cols-1 ${openingHours?.length > 0 ? 'sm:grid-cols-2' : ''} gap-2`}>
           {openingHours && openingHours.length > 0 && (
@@ -870,6 +938,10 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
             </div>
           )}
 
+
+          {place.route_geometry && (
+            <TrackColorRow place={place} trackColor={trackColor} onUpdatePlace={onUpdatePlace} t={t} />
+          )}
 
           {/* GPX Track stats */}
           {place.route_geometry && (() => {
@@ -927,7 +999,7 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600 }}>
-                      <MapPin size={12} color="#3b82f6" />
+                      <MapPin size={12} color={trackColor} />
                       {formatDistance(distKm, distanceUnit)}
                     </div>
                     {hasEle && (
@@ -950,12 +1022,12 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
                     <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" className="bg-surface-tertiary" style={{ display: 'block', borderRadius: 6 }}>
                       <defs>
                         <linearGradient id={`ele-grad-${place.id}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+                          <stop offset="0%" stopColor={trackColor} stopOpacity="0.25" />
+                          <stop offset="100%" stopColor={trackColor} stopOpacity="0.02" />
                         </linearGradient>
                       </defs>
                       <path d={`${pathD} L${chartW},${chartH} L0,${chartH} Z`} fill={`url(#ele-grad-${place.id})`} />
-                      <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                      <path d={pathD} fill="none" stroke={trackColor} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
                     </svg>
                   )}
                 </div>

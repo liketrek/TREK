@@ -9,6 +9,8 @@ vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: (placeId: number) => placeTrip(placeId) }) },
   canAccessTrip,
 }));
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { PlaceDetailsController } from '../../../src/nest/plugins/place-details.controller';
@@ -22,7 +24,7 @@ function controller(over: Partial<PluginRuntimeService> = {}) {
     invokeHook: vi.fn(async (id: string) => (id === 'p2' ? [{ label: 'Rating', value: '4.5' }] : [{ label: 'Reviews', value: '12', url: 'https://x' }])),
     ...over,
   } as unknown as PluginRuntimeService;
-  return { c: new PlaceDetailsController(runtime), runtime };
+  return { c: new PlaceDetailsController(runtime, new DatabaseService(dbConn)), runtime };
 }
 
 describe('PlaceDetailsController', () => {

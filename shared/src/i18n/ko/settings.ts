@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '지도 템플릿',
   'settings.mapTemplatePlaceholder.select': '템플릿 선택...',
   'settings.mapDefaultHint': '비워두면 OpenStreetMap (기본값) 사용',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '지도 타일 URL 템플릿',
   'settings.mapProvider': '지도 공급자',
   'settings.mapProviderHint': '여행 플래너 및 Journey 지도에 영향을 줍니다. Atlas는 항상 Leaflet을 사용합니다.',
@@ -79,6 +78,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': '여행 리마인더',
   'settings.notifyTodoDue': '할 일 마감 임박',
   'settings.notifyVacayInvite': 'Vacay 퓨전 초대',
+  'settings.notifyVacayShare': 'Vacay 캘린더 공유',
   'settings.notifyPhotosShared': '공유된 사진 (Immich)',
   'settings.notifyCollabMessage': '채팅 메시지 (Collab)',
   'settings.notifyPackingTagged': '짐 목록: 배정',
@@ -258,6 +258,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': '프로필 사진이 업데이트되었습니다',
   'settings.avatarRemoved': '프로필 사진이 삭제되었습니다',
   'settings.avatarError': '업로드 실패',
+  'settings.avatarRemoveError': '삭제 실패',
   'settings.mfa.title': '2단계 인증 (2FA)',
   'settings.mfa.description':
     '이메일 및 비밀번호로 로그인할 때 두 번째 단계를 추가합니다. 인증 앱 (Google Authenticator, Authy 등)을 사용하세요.',
@@ -290,8 +291,8 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.machineClientUsage':
     '토큰 받기: grant_type=client_credentials, client_id, client_secret으로 POST /oauth/token을 호출하세요. 브라우저도 새로 고침 토큰도 필요 없습니다.',
   'settings.oauth.badge.machine': '머신',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': '표시 통화',
+  'settings.currencyHint': '비용의 금액은 표시 목적으로만 이 통화로 환산되어 표시되며, 원래 금액은 변경되지 않습니다.',
   'settings.currencyTrip': '여행 통화',
   'settings.passkey.title': '패스키',
   'settings.passkey.description':
@@ -416,6 +417,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': '하단 내비게이션 바',
+  'settings.appearance.mobileNav.hint':
+    '바에 표시할 항목과 「더보기」에 넣을 항목을 선택하세요. 대시보드는 항상 맨 앞에 고정됩니다.',
+  'settings.appearance.mobileNav.inBar': '바에 표시',
+  'settings.appearance.mobileNav.underMore': '「더보기」에 표시',
+  'settings.appearance.mobileNav.moreEmpty': '아직 비어 있습니다 — 모든 항목이 바에 들어갑니다.',
+  'settings.appearance.mobileNav.pinned': '고정됨',
+  'settings.appearance.mobileNav.toMore': '「더보기」에 넣기',
+  'settings.appearance.mobileNav.toBar': '바에 넣기',
+  'settings.appearance.dashOrder': '대시보드 순서',
+  'settings.appearance.dashOrder.hint':
+    '휴대폰 대시보드에서 여행 목록과 위젯이 표시되는 순서를 조정하세요. 대표 여행은 항상 맨 위에 고정됩니다.',
+  'settings.appearance.dashOrder.trips': '여행',
+  'settings.appearance.dashOrder.hidden': '숨김',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -482,7 +497,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': '시간',
   'settings.pluginActivity.columns.status': '결과',
   'settings.alwaysShowRoutes': '예약 경로 항상 표시',
-  'settings.alwaysShowRoutesHint': '항공편, 기차 등 모든 예약의 경로를 개별적으로 켤 필요 없이 지도에 자동으로 표시합니다.',
+  'settings.alwaysShowRoutesHint':
+    '항공편, 기차 등 모든 예약의 경로를 개별적으로 켤 필요 없이 지도에 자동으로 표시합니다.',
 };
 
 export default settings;

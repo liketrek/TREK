@@ -1,12 +1,11 @@
 import cron, { type ScheduledTask } from 'node-cron';
-import archiver from 'archiver';
+import { readEnv } from './app-config';
 import path from 'node:path';
 import fs from 'node:fs';
-import { logInfo, logError } from './services/auditLog';
+import { logInfo, logError } from './nest/audit/audit-log.logger';
 
 const dataDir = path.join(__dirname, '../data');
 const backupsDir = path.join(dataDir, 'backups');
-const uploadsDir = path.join(__dirname, '../uploads');
 const settingsFile = path.join(dataDir, 'backup-settings.json');
 
 const VALID_INTERVALS = ['hourly', 'daily', 'weekly', 'monthly'];
@@ -58,32 +57,49 @@ function saveSettings(settings: BackupSettings): void {
   fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
 }
 
+/**
+ * What the scheduler needs from the Nest container.
+ *
+ * The shapes are structural on purpose: the scheduler names the capability it
+ * wants, never the provider class. Importing BackupService here would drag in
+ * src/nest/backup → src/services/backupService → src/scheduler and put the
+ * cycle straight back — the same cycle the lazy `await import()` in runBackup
+ * existed to dodge.
+ *
+ * index.ts fills this in from the container after buildApp(), the way
+ * bootstrap.ts hands the /mcp handler its registry. Nothing here is resolved at
+ * import time, so the scheduler stays loadable without a container (which is
+ * what its unit tests rely on).
+ */
+export interface SchedulerDeps {
+  backups: { createBackup(prefix?: 'backup' | 'auto-backup'): Promise<{ filename: string }> };
+  placePhotos: { sweepOrphans(): number };
+}
+
+let deps: SchedulerDeps | undefined;
+
+/** Hand the scheduler its container-resolved dependencies. Call after app.init(). */
+export function setSchedulerDeps(next: SchedulerDeps): void {
+  deps = next;
+}
+
 async function runBackup(): Promise<void> {
-  if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const filename = `auto-backup-${timestamp}.zip`;
-  const outputPath = path.join(backupsDir, filename);
-
   try {
-    // Flush WAL to main DB file before archiving
-    try { const { db } = require('./db/database'); db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}
-
-    await new Promise<void>((resolve, reject) => {
-      const output = fs.createWriteStream(outputPath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      output.on('close', resolve);
-      archive.on('error', reject);
-      archive.pipe(output);
-      const dbPath = path.join(dataDir, 'travel.db');
-      if (fs.existsSync(dbPath)) archive.file(dbPath, { name: 'travel.db' });
-      if (fs.existsSync(uploadsDir)) archive.directory(uploadsDir, 'uploads');
-      archive.finalize();
-    });
+    // Same archive the admin panel builds, only under the auto-backup name: it
+    // snapshots travel.db with VACUUM INTO instead of archiving the live file
+    // (the archiver reads its entries during finalize, so a WAL auto-checkpoint
+    // landing in between tears the copy), and it carries .encryption_key and the
+    // plugin trees — without the key a scheduled backup cannot be decrypted on
+    // another install.
+    if (!deps) {
+      logError('Auto-Backup: skipped, the scheduler was started without its container dependencies');
+      return;
+    }
+    const { filename } = await deps.backups.createBackup('auto-backup');
     logInfo(`Auto-Backup created: ${filename}`);
   } catch (err: unknown) {
+    // createBackup removes its own half-written zip before rethrowing.
     logError(`Auto-Backup: ${err instanceof Error ? err.message : err}`);
-    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
     return;
   }
 
@@ -131,7 +147,7 @@ function start(): void {
   }
 
   const expression = buildCronExpression(settings);
-  const tz = process.env.TZ || 'UTC';
+  const tz = readEnv().app.tz || 'UTC';
   currentTask = cron.schedule(expression, runBackup, { timezone: tz });
   logInfo(`Auto-Backup scheduled: ${settings.interval} (${expression}), tz: ${tz}, retention: ${settings.keep_days === 0 ? 'forever' : settings.keep_days + ' days'}`);
 }
@@ -141,7 +157,7 @@ let demoTask: ScheduledTask | null = null;
 
 function startDemoReset(): void {
   if (demoTask) { demoTask.stop(); demoTask = null; }
-  if (process.env.DEMO_MODE?.toLowerCase() !== 'true') return;
+  if (!readEnv().demo.enabled) return;
 
   demoTask = cron.schedule('0 * * * *', () => {
     try {
@@ -177,11 +193,11 @@ function startTripReminders(): void {
     return;
   }
 
-  const tz = process.env.TZ || 'UTC';
+  const tz = readEnv().app.tz || 'UTC';
   reminderTask = cron.schedule('0 9 * * *', async () => {
     try {
       const { db } = require('./db/database');
-      const { send } = require('./services/notificationService');
+      const { send } = require('./nest/notifications/notifications.bridge');
 
       const trips = db.prepare(`
         SELECT t.id, t.title, t.user_id, t.reminder_days FROM trips t
@@ -223,10 +239,10 @@ function startTodoReminders(): void {
   }
   logInfo(`Todo due reminders: enabled (lead ${TODO_REMINDER_LEAD_DAYS}d)`);
 
-  const tz = process.env.TZ || 'UTC';
+  const tz = readEnv().app.tz || 'UTC';
   todoReminderTask = cron.schedule('0 9 * * *', async () => {
     try {
-      const { send } = require('./services/notificationService');
+      const { send } = require('./nest/notifications/notifications.bridge');
 
       // Select unchecked todos with a due date inside the lead window
       // that haven't been reminded in the last 24 hours. `due_date` is
@@ -280,10 +296,10 @@ let versionCheckTask: ScheduledTask | null = null;
 function startVersionCheck(): void {
   if (versionCheckTask) { versionCheckTask.stop(); versionCheckTask = null; }
 
-  const tz = process.env.TZ || 'UTC';
+  const tz = readEnv().app.tz || 'UTC';
   versionCheckTask = cron.schedule('0 9 * * *', async () => {
     try {
-      const { checkAndNotifyVersion } = require('./services/adminService');
+      const { checkAndNotifyVersion } = require('./nest/admin/admin.bridge');
       await checkAndNotifyVersion();
     } catch (err: unknown) {
       logError(`Version check: ${err instanceof Error ? err.message : err}`);
@@ -296,13 +312,11 @@ function startVersionCheck(): void {
 // queued mutations with their X-Idempotency-Key when it reconnects, so a key
 // GC'd before the device comes back online would let the replay create a
 // duplicate. 24h was far too short for a multi-day offline trip; default 30d,
-// overridable via IDEMPOTENCY_TTL_SECONDS.
-const DEFAULT_IDEMPOTENCY_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
+// overridable via IDEMPOTENCY_TTL_SECONDS (default lives in app-config).
 let idempotencyCleanupTask: ScheduledTask | null = null;
 
 function idempotencyTtlSeconds(): number {
-  const n = Number(process.env.IDEMPOTENCY_TTL_SECONDS);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_IDEMPOTENCY_TTL_SECONDS;
+  return readEnv().session.idempotencyTtlSeconds;
 }
 
 interface PurgeDb {
@@ -324,7 +338,7 @@ function purgeExpiredIdempotencyKeys(
 function startIdempotencyCleanup(): void {
   if (idempotencyCleanupTask) { idempotencyCleanupTask.stop(); idempotencyCleanupTask = null; }
 
-  const tz = process.env.TZ || 'UTC';
+  const tz = readEnv().app.tz || 'UTC';
   idempotencyCleanupTask = cron.schedule('0 3 * * *', () => {
     try {
       const removed = purgeExpiredIdempotencyKeys();
@@ -368,8 +382,11 @@ function startPlacePhotoCacheCleanup(): void {
 
   const sweep = () => {
     try {
-      const { sweepOrphans } = require('./services/placePhotoCache');
-      const removed = sweepOrphans();
+      if (!deps) {
+        logError('Place-photo cache cleanup: skipped, the scheduler was started without its container dependencies');
+        return;
+      }
+      const removed = deps.placePhotos.sweepOrphans();
       if (removed > 0) logInfo(`Place-photo cache cleanup: removed ${removed} orphaned file(s)/row(s)`);
     } catch (err: unknown) {
       logError(`Place-photo cache cleanup: ${err instanceof Error ? err.message : err}`);
@@ -379,7 +396,7 @@ function startPlacePhotoCacheCleanup(): void {
   // Run once on startup to reclaim orphans left over from before this sweeper existed.
   sweep();
 
-  const tz = process.env.TZ || 'UTC';
+  const tz = readEnv().app.tz || 'UTC';
   placePhotoCacheTask = cron.schedule('30 3 * * *', sweep, { timezone: tz });
 }
 
@@ -395,7 +412,7 @@ function startAirTrailSync(): void {
   const getSetting = (key: string) => (db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined)?.value;
   const raw = parseInt(getSetting('airtrail_poll_interval_minutes') || '5', 10);
   const minutes = Number.isFinite(raw) && raw >= 1 && raw <= 59 ? raw : 5;
-  const tz = process.env.TZ || 'UTC';
+  const tz = readEnv().app.tz || 'UTC';
   logInfo(`AirTrail sync: scheduled every ${minutes}m`);
 
   airtrailSyncTask = cron.schedule(`*/${minutes} * * * *`, async () => {

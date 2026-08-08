@@ -1,15 +1,17 @@
-// FE-PLANNER-TRANSIT-001 to FE-PLANNER-TRANSIT-006 — the transit search panel
+// FE-PLANNER-TRANSIT-001 to FE-PLANNER-TRANSIT-027 — the transit search panel
 // (embedded as the TransportModal's Automated mode).
-import { render, screen, waitFor } from '../../../tests/helpers/render'
+import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { buildUser, buildDay, buildPlace } from '../../../tests/helpers/factories'
+import type { Accommodation, Day } from '../../types'
 import TransitSearchPanel from './TransitSearchPanel'
 
-const { transitApiMock } = vi.hoisted(() => ({
+const { transitApiMock, toastErrors } = vi.hoisted(() => ({
   transitApiMock: { geocode: vi.fn(), plan: vi.fn() },
+  toastErrors: [] as string[],
 }))
 
 vi.mock('../../api/client', async (importOriginal) => {
@@ -17,7 +19,9 @@ vi.mock('../../api/client', async (importOriginal) => {
   return { ...actual, transitApi: transitApiMock }
 })
 
-vi.mock('../shared/Toast', () => ({ useToast: () => ({ error: vi.fn(), success: vi.fn() }) }))
+vi.mock('../shared/Toast', () => ({
+  useToast: () => ({ error: (m: string) => { toastErrors.push(m) }, success: vi.fn() }),
+}))
 
 // Berlin, summer time (UTC+2): 06:30Z departs 08:30 local, 07:00Z arrives 09:00.
 const ITINERARY = {
@@ -60,6 +64,7 @@ async function pickFromAndTo(user: ReturnType<typeof userEvent.setup>) {
 beforeEach(() => {
   resetAllStores()
   vi.clearAllMocks()
+  toastErrors.length = 0
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true })
   seedStore(useSettingsStore, { settings: { time_format: '24h' } } as any)
 })
@@ -198,5 +203,308 @@ describe('TransitSearchPanel', () => {
     const inputs = screen.getAllByPlaceholderText('Search stop or station…')
     expect((inputs[0] as HTMLInputElement).value).toBe('')
     expect((inputs[1] as HTMLInputElement).value).toBe('Fernsehturm')
+  })
+
+  // ── quick picks ─────────────────────────────────────────────────────────────
+
+  it('FE-PLANNER-TRANSIT-010: quick picks add located accommodations and drop duplicates', async () => {
+    const user = userEvent.setup()
+    const accommodations = [
+      { place_lat: 52.5, place_lng: 13.3, place_name: 'Hotel Berlin' },
+      // No coordinates / no name — neither may become a quick pick.
+      { place_lat: null, place_lng: null, place_name: 'Unlocated Inn' },
+      { place_lat: 52.4, place_lng: 13.2, place_name: null },
+    ] as unknown as Accommodation[]
+    render(<TransitSearchPanel {...makeProps({
+      places: [
+        buildPlace({ id: 1, name: 'Fernsehturm', lat: 52.5208, lng: 13.4094 }),
+        buildPlace({ id: 2, name: 'Fernsehturm', lat: 52.5208, lng: 13.4094 }),
+        buildPlace({ id: 3, name: 'No coords', lat: null, lng: null }),
+      ],
+      accommodations,
+    })} />)
+    const [fromInput] = screen.getAllByPlaceholderText('Search stop or station…')
+    await user.click(fromInput)
+    expect(await screen.findByText('Hotel Berlin')).toBeInTheDocument()
+    expect(screen.getAllByText('Fernsehturm')).toHaveLength(1)
+    expect(screen.queryByText('Unlocated Inn')).not.toBeInTheDocument()
+    expect(screen.queryByText('No coords')).not.toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-TRANSIT-011: hovering a quick pick and a geocode result toggles the row background', async () => {
+    const user = userEvent.setup()
+    render(<TransitSearchPanel {...makeProps()} />)
+    const [fromInput, toInput] = screen.getAllByPlaceholderText('Search stop or station…')
+    await user.click(fromInput)
+    const quick = (await screen.findByText('Fernsehturm')).closest('button') as HTMLButtonElement
+    fireEvent.mouseEnter(quick)
+    expect(quick.style.background).toBe('var(--bg-hover)')
+    fireEvent.mouseLeave(quick)
+    expect(quick.style.background).toBe('none')
+
+    transitApiMock.geocode.mockResolvedValueOnce({ results: [{ name: 'Ostbahnhof', lat: 52.51, lng: 13.43, type: 'STOP', area: 'Berlin' }] })
+    await user.click(toInput)
+    await user.type(toInput, 'Ost')
+    const hit = (await screen.findByText('Ostbahnhof')).closest('button') as HTMLButtonElement
+    fireEvent.mouseEnter(hit)
+    expect(hit.style.background).toBe('var(--bg-hover)')
+    fireEvent.mouseLeave(hit)
+    expect(hit.style.background).toBe('none')
+  })
+
+  it('FE-PLANNER-TRANSIT-012: a failing stop lookup clears the result list instead of throwing', async () => {
+    const user = userEvent.setup()
+    transitApiMock.geocode.mockRejectedValueOnce(new Error('offline'))
+    render(<TransitSearchPanel {...makeProps()} />)
+    const [, toInput] = screen.getAllByPlaceholderText('Search stop or station…')
+    await user.click(toInput)
+    await user.type(toInput, 'Zoo')
+    await waitFor(() => expect(transitApiMock.geocode).toHaveBeenCalled())
+    // No dropdown rows, and the panel still works.
+    await waitFor(() => expect(screen.queryByText('Fernsehturm')).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /^Search$/ })).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-TRANSIT-013: a query shorter than two characters never reaches the API', async () => {
+    const user = userEvent.setup()
+    render(<TransitSearchPanel {...makeProps()} />)
+    const [, toInput] = screen.getAllByPlaceholderText('Search stop or station…')
+    await user.type(toInput, 'Z')
+    await new Promise(r => setTimeout(r, 350))
+    expect(transitApiMock.geocode).not.toHaveBeenCalled()
+  })
+
+  // ── filters ─────────────────────────────────────────────────────────────────
+
+  it('FE-PLANNER-TRANSIT-014: deselecting a mode narrows the requested modes, the last one cannot be dropped', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    for (const label of ['Train', 'Subway', 'Tram', 'Ferry', 'Cable car']) {
+      await user.click(screen.getByText(label))
+    }
+    // Only "Bus" is left — clicking it must not empty the selection.
+    await user.click(screen.getByText('Bus'))
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await waitFor(() => expect(transitApiMock.plan).toHaveBeenCalled())
+    expect(transitApiMock.plan.mock.calls[0][0].modes).toBe('BUS,COACH')
+  })
+
+  it('FE-PLANNER-TRANSIT-015: re-enabling every mode sends no mode filter at all', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByText('Ferry'))
+    await user.click(screen.getByText('Ferry'))
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await waitFor(() => expect(transitApiMock.plan).toHaveBeenCalled())
+    expect(transitApiMock.plan.mock.calls[0][0].modes).toBeUndefined()
+  })
+
+  it('FE-PLANNER-TRANSIT-016: switching back to Depart resets arriveBy', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: 'Arrive' }))
+    await user.click(screen.getByRole('button', { name: 'Depart' }))
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await waitFor(() => expect(transitApiMock.plan).toHaveBeenCalled())
+    expect(transitApiMock.plan.mock.calls[0][0].arriveBy).toBe(false)
+  })
+
+  it('FE-PLANNER-TRANSIT-017: "Less walking" ranks the least-walking itinerary first, "Best route" restores the original order', async () => {
+    const user = userEvent.setup()
+    const lessWalking = { ...ITINERARY, startTime: '2025-06-01T06:45:00Z', endTime: '2025-06-01T07:25:00Z', walkSeconds: 60 }
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY, lessWalking] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await screen.findByText(/08:30 – 09:00/)
+
+    await user.click(screen.getByText('Less walking'))
+    const headings = () => screen.getAllByText(/\d{2}:\d{2} – \d{2}:\d{2}/)
+    expect(headings()[0].textContent).toContain('08:45')
+
+    await user.click(screen.getByText('Best route'))
+    expect(headings()[0].textContent).toContain('08:30')
+  })
+
+  // ── search + add edge cases ─────────────────────────────────────────────────
+
+  it('FE-PLANNER-TRANSIT-018: a day without a date never triggers a search', async () => {
+    const user = userEvent.setup()
+    const dateless = buildDay({ id: 11, trip_id: 1, date: null, title: 'Unscheduled' } as unknown as Partial<Day>)
+    render(<TransitSearchPanel {...makeProps({ day: dateless, days: [dateless] })} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    expect(transitApiMock.plan).not.toHaveBeenCalled()
+  })
+
+  it('FE-PLANNER-TRANSIT-019: an unresolvable coordinate falls back to UTC instead of throwing', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY] })
+    render(<TransitSearchPanel {...makeProps({
+      places: [buildPlace({ id: 9, name: 'Nowhere', lat: 999, lng: 999 })],
+    })} />)
+    const [fromInput, toInput] = screen.getAllByPlaceholderText('Search stop or station…')
+    await user.click(fromInput)
+    await user.click(await screen.findByText('Nowhere'))
+    transitApiMock.geocode.mockResolvedValueOnce({ results: [{ name: 'Zoologischer Garten', lat: 52.507, lng: 13.332, type: 'STOP', area: 'Berlin' }] })
+    await user.click(toInput)
+    await user.type(toInput, 'Zoo')
+    await user.click(await screen.findByText(/Zoologischer Garten/))
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await waitFor(() => expect(transitApiMock.plan).toHaveBeenCalled())
+    // 09:00 read as UTC because tz-lookup rejected the coordinate.
+    expect(transitApiMock.plan.mock.calls[0][0].time).toBe('2025-06-01T09:00:00.000Z')
+  })
+
+  it('FE-PLANNER-TRANSIT-020: a multi-transfer itinerary persists an endpoint per transfer stop', async () => {
+    const user = userEvent.setup()
+    const onAdd = vi.fn().mockResolvedValue({})
+    const twoLegs = {
+      ...ITINERARY,
+      transfers: 2,
+      legs: [
+        ITINERARY.legs[1],
+        { ...ITINERARY.legs[1], mode: 'BUS', line: '100', from: { name: 'Zoologischer Garten', lat: 52.507, lng: 13.332, time: '2025-06-01T06:50:00Z', scheduledTime: null, track: null }, to: { name: 'Hauptbahnhof', lat: 52.525, lng: 13.369, time: '2025-06-01T07:00:00Z', scheduledTime: null, track: null } },
+      ],
+    }
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [twoLegs] })
+    render(<TransitSearchPanel {...makeProps({ onAdd })} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/08:30 – 09:00/))
+    await user.click(await screen.findByRole('button', { name: 'Add to day' }))
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalled())
+    const endpoints = onAdd.mock.calls[0][0].endpoints
+    expect(endpoints).toHaveLength(3)
+    expect(endpoints[1]).toMatchObject({ role: 'stop', sequence: 1, name: 'Zoologischer Garten', local_time: '09:00' })
+    expect(endpoints[2]).toMatchObject({ role: 'to', sequence: 2 })
+  })
+
+  it('FE-PLANNER-TRANSIT-021: an after-midnight arrival is attached to the following trip day', async () => {
+    const user = userEvent.setup()
+    const onAdd = vi.fn().mockResolvedValue({})
+    const nextDay = buildDay({ id: 11, trip_id: 1, date: '2025-06-02', title: 'Day 2' })
+    const overnight = { ...ITINERARY, startTime: '2025-06-01T21:00:00Z', endTime: '2025-06-01T23:30:00Z' }
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [overnight] })
+    render(<TransitSearchPanel {...makeProps({ onAdd, days: [day, nextDay] })} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/23:00 – 01:30/))
+    await user.click(await screen.findByRole('button', { name: 'Add to day' }))
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalled())
+    const payload = onAdd.mock.calls[0][0]
+    expect(payload.day_id).toBe(10)
+    expect(payload.end_day_id).toBe(11)
+    expect(payload.reservation_end_time).toBe('2025-06-02T01:30')
+  })
+
+  it('FE-PLANNER-TRANSIT-022: a failing save toasts instead of leaving the button stuck', async () => {
+    const user = userEvent.setup()
+    const onAdd = vi.fn().mockRejectedValue(new Error('save failed'))
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY] })
+    render(<TransitSearchPanel {...makeProps({ onAdd })} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/08:30 – 09:00/))
+    await user.click(await screen.findByRole('button', { name: 'Add to day' }))
+    await waitFor(() => expect(toastErrors).toContain('Unknown error'))
+    expect(await screen.findByRole('button', { name: 'Add to day' })).toBeEnabled()
+  })
+
+  it('FE-PLANNER-TRANSIT-023: losing the day date between search and add blocks the save', async () => {
+    const user = userEvent.setup()
+    const onAdd = vi.fn().mockResolvedValue({})
+    const dateless = buildDay({ id: 10, trip_id: 1, date: null, title: 'Unscheduled' } as unknown as Partial<Day>)
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY] })
+    const props = makeProps({ onAdd })
+    const { rerender } = render(<TransitSearchPanel {...props} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/08:30 – 09:00/))
+
+    rerender(<TransitSearchPanel {...props} day={dateless} days={[dateless]} />)
+    await user.click(await screen.findByRole('button', { name: 'Add to day' }))
+    expect(onAdd).not.toHaveBeenCalled()
+  })
+
+  // ── itinerary rendering ─────────────────────────────────────────────────────
+
+  it('FE-PLANNER-TRANSIT-024: durations of an hour or more render as hours and minutes', async () => {
+    const user = userEvent.setup()
+    const long = { ...ITINERARY, duration: 5400, endTime: '2025-06-01T08:00:00Z' }
+    const exact = { ...ITINERARY, startTime: '2025-06-01T10:00:00Z', endTime: '2025-06-01T11:00:00Z', duration: 3600 }
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [long, exact] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    expect(await screen.findByText('1 h 30 min')).toBeInTheDocument()
+    expect(screen.getByText('1 h')).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-TRANSIT-025: every transit mode gets its own line badge icon', async () => {
+    const user = userEvent.setup()
+    const leg = (mode: string, line: string) => ({
+      ...ITINERARY.legs[1], mode, line, lineColor: null, lineTextColor: null,
+    })
+    const mixed = {
+      ...ITINERARY,
+      legs: [leg('BUS', 'B1'), leg('TRAM', 'M4'), leg('FERRY', 'F10'), leg('FUNICULAR', 'FU'), leg('AERIAL_LIFT', 'AL'), leg('SUBWAY', 'U2'), leg('HIGHSPEED_RAIL', 'ICE 599')],
+    }
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [mixed] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await screen.findByText('B1')
+    const icon = (text: string) => screen.getAllByText(text)[0].closest('span')?.querySelector('svg')?.getAttribute('class')
+    expect(icon('B1')).toContain('lucide-bus')
+    expect(icon('M4')).toContain('lucide-tram-front')
+    expect(icon('F10')).toContain('lucide-sailboat')
+    expect(icon('FU')).toContain('lucide-cable-car')
+    expect(icon('AL')).toContain('lucide-cable-car')
+    expect(icon('U2')).toContain('lucide-train-front-tunnel')
+    // Anything else (rail and friends) falls through to TrainFront, which stays
+    // distinct from the tram glyph.
+    expect(icon('ICE 599')).toContain('lucide-train-front')
+    expect(icon('ICE 599')).not.toContain('tunnel')
+  })
+
+  it('FE-PLANNER-TRANSIT-026: a leg without a usable timestamp renders an empty time cell, not "Invalid Date"', async () => {
+    const user = userEvent.setup()
+    const broken = {
+      ...ITINERARY,
+      legs: [
+        { ...ITINERARY.legs[1], from: { ...ITINERARY.legs[1].from, time: null } },
+        { ...ITINERARY.legs[1], line: 'U5', from: { ...ITINERARY.legs[1].from, name: 'Frankfurter Tor', time: 'not-a-time' } },
+      ],
+    }
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [broken] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/08:30 – 09:00/))
+    expect(await screen.findByText('Frankfurter Tor')).toBeInTheDocument()
+    expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-TRANSIT-027: an expanded itinerary lists agencies, platform and walking distance', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/08:30 – 09:00/))
+    expect(await screen.findByText('BVG')).toBeInTheDocument()
+    expect(screen.getByText(/Platform 2/)).toBeInTheDocument()
+    expect(screen.getByText('Walk to Alexanderplatz')).toBeInTheDocument()
+    expect(screen.getByText('300 m')).toBeInTheDocument()
+    expect(screen.getByText('6 stops')).toBeInTheDocument()
   })
 })

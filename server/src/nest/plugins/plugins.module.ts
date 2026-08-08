@@ -10,6 +10,10 @@ import { TripCardContributionsController } from './trip-card-contributions.contr
 import { PluginPhotosController } from './plugin-photos.controller';
 import { PluginCalendarController } from './plugin-calendar.controller';
 import { MapMarkersController } from './map-markers.controller';
+import { MapLayersController } from './map-layers.controller';
+import { PluginRoutesController } from './plugin-routes.controller';
+import { DayScheduleController } from './day-schedule.controller';
+import { DayTintsController } from './day-tints.controller';
 import { PluginActivityController } from './plugin-activity.controller';
 import { PdfSectionsController } from './pdf-sections.controller';
 import { AtlasLayersController } from './atlas-layers.controller';
@@ -20,6 +24,28 @@ import { PluginOAuthService } from './plugin-oauth.service';
 import { PluginsService } from './plugins.service';
 import { PluginRuntimeService } from './plugin-runtime.service';
 import { PluginRegistryService } from './registry/registry.service';
+import { PluginHostDepsFactory } from './host/plugin-host-deps.factory';
+import { TagsModule } from '../tags/tags.module';
+import { CategoriesModule } from '../categories/categories.module';
+import { BudgetModule } from '../budget/budget.module';
+import { ReservationsModule } from '../reservations/reservations.module';
+import { TodoModule } from '../todo/todo.module';
+import { PackingModule } from '../packing/packing.module';
+import { DaysModule } from '../days/days.module';
+import { AssignmentsModule } from '../assignments/assignments.module';
+import { LlmParseModule } from '../llm-parse/llm-parse.module';
+import { FilesModule } from '../files/files.module';
+import { CollabModule } from '../collab/collab.module';
+import { VacayModule } from '../vacay/vacay.module';
+import { TripsModule } from '../trips/trips.module';
+import { PlacesModule } from '../places/places.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { AuditModule } from '../audit/audit.module';
+import { AddonsModule } from '../addons/addons.module';
+import { CollectionsModule } from '../collections/collections.module';
+import { AtlasModule } from '../atlas/atlas.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 /**
  * Plugin system (#plugins). M0 read side + M2 isolated runtime + M3 frontend:
@@ -29,8 +55,11 @@ import { PluginRegistryService } from './registry/registry.service';
  * widget assets at /plugin-frame/:id/*.
  */
 @Module({
-  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, TripCardContributionsController, PluginPhotosController, PluginCalendarController, MapMarkersController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController],
-  providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService],
+  // The DI-native domain services the plugin host wiring injects
+  // (PluginHostDepsFactory); DatabaseModule is @Global, so not listed.
+  imports: [TagsModule, CategoriesModule, BudgetModule, ReservationsModule, TodoModule, PackingModule, DaysModule, AssignmentsModule, LlmParseModule, FilesModule, CollabModule, VacayModule, TripsModule, PermissionsModule, AuditModule, AddonsModule, PlacesModule, CollectionsModule, AtlasModule, NotificationsModule, TripMembershipModule],
+  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, TripCardContributionsController, PluginPhotosController, PluginCalendarController, MapMarkersController, MapLayersController, PluginRoutesController, DayScheduleController, DayTintsController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController],
+  providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService, PluginHostDepsFactory],
   // Exported so the admin addon-toggle handler can cascade-disable plugins whose
   // required addon was just turned off (#plugins dependencies).
   exports: [PluginRuntimeService],

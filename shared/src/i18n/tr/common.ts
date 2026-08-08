@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Tümünü seç',
   'common.deselectAll': 'Seçimi kaldır',
   'common.error': 'Hata',
+  'common.success': 'Başarılı',
   'common.unknownError': 'Bilinmeyen hata',
   'common.tooManyAttempts': 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.',
   'common.back': 'Geri',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'Bir şeyler ters gitti',
+  'common.errorBody': 'Uygulamanın bu bölümü çalışmayı durdurdu. Verileriniz güvende.',
+  'common.errorPanelTitle': 'Bu bölüm gösterilemedi',
+  'common.errorPanelBody': 'Sayfanın geri kalanı çalışmaya devam ediyor.',
+  'common.errorRetry': 'Yeniden dene',
+  'common.errorReload': 'Sayfayı yenile',
+  'common.errorUpdateTitle': 'Yeni bir sürüm mevcut',
+  'common.errorUpdateBody': 'Bu sekme açıkken TREK güncellendi. Yeni sürümü almak için sayfayı yenileyin.',
+  'common.errorPluginTitle': 'Bu eklenti gösterilemedi',
 };
 export default common;

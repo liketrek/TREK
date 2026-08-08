@@ -73,7 +73,7 @@ import {
   addJourneyContributor,
 } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import { invalidatePermissionsCache } from '../../src/services/permissions';
+import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions.bridge';
 
 let nestApp: INestApplication;
 let app: Application;

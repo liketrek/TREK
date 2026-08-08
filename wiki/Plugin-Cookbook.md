@@ -380,7 +380,7 @@ Both jobs and scheduled tasks run with **no acting user** (trip reads are refuse
 
 ## Contribute native primitives to core views
 
-Six declarative hooks let a plugin push data into TREK's own screens — the host renders and sanitizes everything, so no iframe and no plugin JS on the canvas. Each needs its own `hook:*` permission, runs with the current user bound on a short timeout, and a slow or failing call is skipped (never fatal). The host caps counts and lengths.
+Seven declarative hooks let a plugin push data into TREK's own screens — the host renders and sanitizes everything, so no iframe and no plugin JS on the canvas. Each needs its own `hook:*` permission, runs with the current user bound on a short timeout, and a slow or failing call is skipped (never fatal). The host caps counts and lengths.
 
 ```js
 hooks: {
@@ -392,6 +392,14 @@ hooks: {
   // hook:map-marker-provider — pins on the trip map (#587)
   mapMarkerProvider: { async getMarkers(tripId, ctx) {
     return [{ id: 'm1', lat: 35.62, lng: 139.78, label: 'Teamlab', popupText: 'Opens 10:00' }]
+  } },
+
+  // hook:map-layer-provider — routes/corridors/zones drawn on the trip map
+  mapLayerProvider: { async getLayers(tripId, ctx) {
+    return [{ id: 'route', name: 'Suggested route', features: [
+      { type: 'polyline', points: [[35.62, 139.78], [35.66, 139.70]], tone: 'success', width: 4 },
+      { type: 'circle', center: [35.66, 139.70], radiusM: 1500, dash: 'dash', fill: true, label: 'Reachable on foot' },
+    ] }]
   } },
 
   // hook:pdf-section-provider — text sections appended to the trip PDF export
@@ -417,6 +425,154 @@ hooks: {
 ```
 
 `tone` is `'default' | 'success' | 'warn' | 'danger'`; any `url` must be http/https/mailto; `icon` is a lucide icon name. A table `action` (instead of a `column`) is a labelled button whose target opens your sandboxed frame or calls one of your routes.
+
+---
+
+## Offer a routing profile (EV charging stops)
+
+Declare a profile and implement the `routeProvider` hook — your profile appears in the planner's route toggle next to Driving/Walking, and TREK asks *you* to route the day. Needs `hook:route-provider`; add `http:outbound:<solver-host>` if you call an external routing service.
+
+```json
+"permissions": ["hook:route-provider", "http:outbound:api.example-ev.com"],
+"egress": ["api.example-ev.com"],
+"capabilities": { "routeProfiles": [{ "id": "ev", "label": "EV (charging)" }] }
+```
+
+```js
+hooks: {
+  routeProvider: {
+    async getRoute({ tripId, dayId, profile, waypoints }, ctx) {
+      // waypoints = the day's located stops in visit order (2..30).
+      const plan = await solveEvRoute(waypoints) // your solver / external API
+      return {
+        coordinates: plan.polyline,          // [lat,lng][] for the map line
+        distance: plan.meters,
+        duration: plan.seconds,              // driving + charging
+        legs: waypoints.slice(1).map((_, i) => ({
+          distance: plan.legs[i].meters,
+          duration: plan.legs[i].seconds,
+          note: plan.legs[i].chargeMin ? `${plan.legs[i].chargeMin} min charge` : undefined,
+        })),
+        viaPoints: plan.chargers.map((c) => ({
+          lat: c.lat, lng: c.lng, tone: 'success',
+          label: `${c.name} · to ${c.targetSoc}%`, dwellSeconds: c.chargeMin * 60,
+        })),
+      }
+    },
+  },
+},
+```
+
+The legs must line up 1:1 with the waypoint pairs (TREK rejects the result whole otherwise), `note` shows on the day-plan connector, and via points are drawn as stops on the route line. You have 20 s per request; a throw or timeout simply falls back to straight lines. Pair this with `mapLayerProvider` if you also want corridors/zones, and with `db:write:places` + `db:write:itinerary` if the user should be able to persist charging stops as real places.
+
+To also make the *time plan* reflect your stops, add `hook:day-schedule-provider` and return anchored time rows — they render in the day plan on desktop and mobile, and their minutes count into the day's route-footer total:
+
+```js
+dayScheduleProvider: {
+  async getSchedule(tripId, ctx) {
+    const days = await ctx.trips.getDays(tripId)
+    return days.flatMap((d) => (d.assignments ?? [])
+      .filter((a) => needsCharge(a))
+      .map((a) => ({
+        id: `charge-${a.id}`, dayId: d.id, assignmentId: a.id,
+        minutes: 35, label: 'Charge to 80% nearby', tone: 'warn',
+      })))
+  },
+},
+```
+
+### Colour-code the days of a multi-destination trip
+
+`hook:day-schedule-provider` can announce "Kanazawa begins" as a row, but it cannot make
+day 12 *look* like it belongs to Kanazawa. `hook:day-tint-provider` does — it colours a
+day card in the Plan sidebar (and that day's mobile chip), with one of the four tones or
+with a colour of your own:
+
+```js
+dayTintProvider: {
+  async getDayTints(tripId, ctx) {
+    const legs = await loadLegs(ctx, tripId)          // your own db:own rows
+    const days = await ctx.trips.getDays(tripId)
+    return days
+      .map((d) => ({ d, leg: legs.find((l) => covers(l, d)) }))
+      .filter(({ leg }) => leg)                        // days no leg covers stay untinted
+      .map(({ d, leg }) => ({ dayId: d.id, tone: leg.tone, label: leg.name }))
+  },
+},
+```
+
+Return **one entry per day** — the bound here is the trip's day count, not a fixed item
+cap, so this stays correct on a six-month itinerary where the ≤60-item day-schedule hook
+would tint only the first 60 days.
+
+#### Bring your own colour
+
+Four tones cannot keep a twenty-stop trip's legs apart. Send `color` instead — `#rrggbb`
+only, and nothing else survives (`#abc`, `rgb(...)` and CSS names are all ignored,
+because the value ends up inside a CSS colour the host builds):
+
+```js
+// One hue per leg, from your own palette.
+return days.map((d) => ({ dayId: d.id, color: legColor(d), label: legName(d) }))
+
+// Mix freely: your colour on the badge, a shared tone for the rest of the card.
+return days.map((d) => ({ dayId: d.id, tone: 'default', badgeColor: legColor(d) }))
+```
+
+Each region takes `<region>Color` alongside `<region>Tone`. Within one region a colour
+wins over a tone, and anything you name on a region beats the shorthand — so the second
+example above tints the badge with your colour and the header and activity list with
+`default`.
+
+You choose the hue; the host still chooses the weight. It sets the alpha per theme and
+per region and clamps the colour's lightness into a band that reads on both the light
+and the dark sidebar, so the tint always lands as a wash behind the day rather than a
+fill, and no colour you send can make a day unreadable. An ordinary mid-range colour
+comes through as you sent it; only the extremes (near-white, near-black) are pulled in.
+
+Colour is decoration, not information — pair it with `label` (and a day-schedule row
+where the meaning matters) so it still works for anyone who can't tell your legs apart
+by hue.
+
+#### Tint one region instead of the whole card
+
+A day card has three separately tintable regions, and `tone` above is just the shorthand
+that fills all of them. Name them individually when colouring the whole card would fight
+the content — a packed day is much easier to read with only its badge marked:
+
+```js
+// Bold on the badge (and the mobile day chip), plain everywhere else.
+return days.map((d) => ({ dayId: d.id, badgeTone: legTone(d), label: legName(d) }))
+
+// Or: a quiet leg colour on the card, with the activity list left completely alone.
+return days.map((d) => ({
+  dayId: d.id,
+  badgeTone: legTone(d),
+  headerTone: legTone(d),
+  label: legName(d),
+}))
+
+// Or: reserve the activity list for a per-day signal of your own.
+return days.map((d) => ({ dayId: d.id, headerTone: legTone(d), activityTone: overbooked(d) ? 'danger' : undefined }))
+```
+
+| Field | Region |
+|---|---|
+| `badgeTone` / `badgeColor` | the day-number badge — smallest and boldest; also the mobile day chip |
+| `headerTone` / `headerColor` | the day header row (number, title, date, cost); hovering deepens the tint |
+| `activityTone` / `activityColor` | the expanded activity list — largest, behind the densest text, tinted faintest |
+
+A region you never name is not tinted and renders exactly as it does without your plugin.
+
+The regions follow the **desktop** day card. On mobile only the badge renders, as the
+day chip's tint — header and activity tints do not show on phones. Keep whatever every
+user must see on the badge (or the shorthands, which include it), and treat the finer
+regions as desktop refinement.
+
+`label` becomes the day's tooltip. A day takes at most one contribution and it is
+resolved **whole** — within your list the first entry for a day wins, and if another
+plugin also tints that day the first granted provider wins outright, so days never
+flicker and two plugins can't each own part of one card.
 
 ---
 

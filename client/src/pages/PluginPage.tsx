@@ -1,5 +1,5 @@
 import React from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router'
 import PageShell from '../components/Layout/PageShell'
 import PluginFrame from '../components/Plugins/PluginFrame'
 import { usePluginStore } from '../store/pluginStore'

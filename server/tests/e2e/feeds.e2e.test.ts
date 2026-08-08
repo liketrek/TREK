@@ -15,6 +15,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
+import { DatabaseModule } from '../../src/nest/database/database.module';
 import { Test } from '@nestjs/testing';
 import { seedUser, sessionCookie } from './harness';
 
@@ -41,10 +42,13 @@ const SAMPLE_ICS =
   'BEGIN:VEVENT\r\nUID:trek-trip-x@trek\r\nDTSTAMP:20260101T000000Z\r\n' +
   'DTSTART;VALUE=DATE:20260101\r\nDTEND;VALUE=DATE:20260102\r\nSUMMARY:Sample\r\nEND:VEVENT\r\n' +
   'END:VCALENDAR\r\n';
-const { exportICS } = vi.hoisted(() => ({ exportICS: vi.fn() }));
-vi.mock('../../src/services/tripService', () => ({ exportICS }));
+// Since the trip fold, FeedsService injects TripsService — the mock is a spy on
+// the container singleton (created in beforeAll, after build()).
+const exportICS = vi.fn();
 
 import { FeedsModule } from '../../src/nest/feeds/feeds.module';
+import { TripsService } from '../../src/nest/trips/trips.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 const BASE = 'https://trek.example.test';
@@ -55,7 +59,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   let prevAppUrl: string | undefined;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [FeedsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, FeedsModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -69,6 +73,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     seedUser(db as never, { id: 1, username: 'e2e-user' });
     seedUser(db as never, { id: 2, username: 'other-user', email: 'other@example.test' });
     app = await build();
+    vi.spyOn(app.get(TripsService), 'exportICS').mockImplementation(exportICS as never);
     server = app.getHttpServer();
   });
 

@@ -1,39 +1,62 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type Database from 'better-sqlite3';
-import { db } from '../../db/database';
+import { canAccessTrip, getPlaceWithTags, isOwner } from '../../db/database';
+import type { PlaceWithTags, TripAccess } from '../../db/database';
+import { DATABASE_CONNECTION } from './database.tokens';
+
+export type { PlaceWithTags, TripAccess };
 
 /**
  * Injectable wrapper around TREK's existing better-sqlite3 connection.
  *
- * `db` is a Proxy onto the singleton connection the legacy app already uses
- * (WAL enabled), so Nest modules share the exact same connection — no second
- * connection, no split state, single writer preserved.
+ * The injected connection is the Proxy onto the singleton the legacy app
+ * already uses (WAL enabled), so Nest modules share the exact same
+ * connection — no second connection, no split state, single writer preserved.
  */
 @Injectable()
 export class DatabaseService {
+  constructor(@Inject(DATABASE_CONNECTION) private readonly conn: Database.Database) {}
+
   /** The shared better-sqlite3 connection (same singleton the legacy app uses). */
   get connection(): Database.Database {
-    return db;
+    return this.conn;
   }
 
   prepare(sql: string): Database.Statement {
-    return db.prepare(sql);
+    return this.conn.prepare(sql);
   }
 
   get<T = unknown>(sql: string, ...params: unknown[]): T | undefined {
-    return db.prepare(sql).get(...params) as T | undefined;
+    return this.conn.prepare(sql).get(...params) as T | undefined;
   }
 
   all<T = unknown>(sql: string, ...params: unknown[]): T[] {
-    return db.prepare(sql).all(...params) as T[];
+    return this.conn.prepare(sql).all(...params) as T[];
   }
 
   run(sql: string, ...params: unknown[]): Database.RunResult {
-    return db.prepare(sql).run(...params);
+    return this.conn.prepare(sql).run(...params);
   }
 
   /** Run `fn` inside a synchronous better-sqlite3 transaction. */
   transaction<T>(fn: (conn: Database.Database) => T): T {
-    return db.transaction(() => fn(db))();
+    return this.conn.transaction(() => fn(this.conn))();
+  }
+
+  // Trip-access helpers delegate to the db/database exports (not this.conn):
+  // tests vi.mock that module and stub the helpers themselves, so the stubs
+  // must keep flowing through here.
+
+  /** Trip visible to the user (owner or member); undefined when no access. */
+  canAccessTrip(tripId: number | string, userId: number): TripAccess | undefined {
+    return canAccessTrip(tripId, userId);
+  }
+
+  isOwner(tripId: number | string, userId: number): boolean {
+    return isOwner(tripId, userId);
+  }
+
+  getPlaceWithTags(placeId: number | string): PlaceWithTags | null {
+    return getPlaceWithTags(placeId);
   }
 }

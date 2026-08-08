@@ -1,6 +1,16 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Műveletek',
+  'packing.editDone': 'Kész',
+  'packing.personalEmptyHint':
+    'A személyes listád üres — másold át a megosztott elemeket, vagy add hozzá a sajátjaidat.',
+  'packing.assignMembers': 'Tagok hozzárendelése',
+  'packing.categoryOptions': 'Lista beállításai',
+  'packing.editItem': 'Elem szerkesztése',
+  'packing.itemName': 'Név',
+  'packing.itemQuantity': 'Mennyiség',
+  'packing.itemWeight': 'Súly (g)',
   'packing.title': 'Csomagolási lista',
   'packing.empty': 'A csomagolási lista üres',
   'packing.import': 'Importálás',
@@ -198,5 +208,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Én is tudom hozni',
   'packing.alsoBringingStop': 'Mégsem hozom',
   'packing.cloneToMine': 'Másolás a listámra',
+  'packing.bagLimit': 'Súlykorlát',
+  'packing.setBagLimit': 'Korlát beállítása',
 };
 export default packing;

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import type { User } from '../../types';
 import { AccommodationsService } from './accommodations.service';
+import { AccommodationCreateDto, AccommodationUpdateDto } from './reservations.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -65,9 +66,10 @@ export class AccommodationsController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: AccommodationBody,
+    @Body() rawBody: AccommodationCreateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
+    const body = rawBody as AccommodationBody;
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
     const { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } = body;
@@ -89,9 +91,10 @@ export class AccommodationsController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
-    @Body() body: AccommodationBody,
+    @Body() rawBody: AccommodationUpdateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
+    const body = rawBody as AccommodationBody;
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
     const existing = this.accommodations.get(id, tripId);

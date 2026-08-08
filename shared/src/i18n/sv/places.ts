@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Lägg till plats/aktivitet',
   'places.importFile': 'Importera fil',
+  'places.trackIndicator': 'Spår / rutt',
   'places.sidebarDrop': 'Släpp för att importera',
   'places.importFileHint':
     'Importera .gpx-, .kml- eller .kmz-filer från verktyg som Google My Maps, Google Earth eller en GPS-spårare.',
@@ -42,7 +43,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Lägg till vilken dag?',
   'places.all': 'Alla',
   'places.unplanned': 'Oplanerat',
+  'places.planned': 'Planerat',
   'places.filterTracks': 'Spår',
+  'places.sortByRating': 'Sortera efter betyg',
+  'places.yourRating': 'Ditt betyg',
+  'places.notRated': 'Inte betygsatt ännu',
   'places.search': 'Sök efter platser...',
   'places.allCategories': 'Alla kategorier',
   'places.categoriesSelected': 'kategorier',
@@ -62,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Longitud (t.ex. 2.3522)',
   'places.formCategory': 'Kategori',
   'places.noCategory': 'Ingen kategori',
+  'places.newCategory': 'Ny kategori',
   'places.categoryNamePlaceholder': 'Kategorinamn',
   'places.formTime': 'Tid',
   'places.startTime': 'Börjar',
@@ -88,5 +94,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Berika platser via Google',
   'places.enrichOnImportHint':
     'Sök upp varje importerad plats för att fylla i bilder, adress och kontaktuppgifter. Använder din Google Maps-nyckel.',
+  'places.uploadImage': 'Ladda upp bild',
+  'places.changeImage': 'Byt bild',
+  'places.removeImage': 'Ta bort bild',
+  'places.imageUploadError': 'Det gick inte att ladda upp bilden',
+  'places.imageRemoveError': 'Det gick inte att ta bort bilden',
 };
 export default places;

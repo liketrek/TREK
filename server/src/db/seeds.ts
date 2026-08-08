@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
+import { readEnv } from '../app-config';
 
 // bcrypt cost factor for the seeded admin password — kept in sync with authService.
 const BCRYPT_COST = 12;
@@ -9,14 +10,15 @@ const BCRYPT_COST = 12;
 // are only relevant after the first user exists; at that point seeds have already
 // finished and skip via the userCount > 0 guard above.
 function isOidcOnlyConfigured(): boolean {
-  if (process.env.OIDC_ONLY?.toLowerCase() !== 'true') return false;
-  return !!(process.env.OIDC_ISSUER && process.env.OIDC_CLIENT_ID);
+  const oidc = readEnv().oidc;
+  if (!oidc.only) return false;
+  return !!(oidc.issuer && oidc.clientId);
 }
 
 function seedAdminAccount(db: Database.Database): void {
   try {
-    const env_admin_email = process.env.ADMIN_EMAIL;
-    const env_admin_pw = process.env.ADMIN_PASSWORD;
+    const env_admin_email = readEnv().adminBootstrap.email;
+    const env_admin_pw = readEnv().adminBootstrap.password;
     const adminEnvProvided = !!(env_admin_email || env_admin_pw);
 
     const userCount = (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }).count;
@@ -34,7 +36,7 @@ function seedAdminAccount(db: Database.Database): void {
     // Demo mode seeds its own admin (admin@trek.app, username 'admin') right after this.
     // Creating a first-run admin here would grab username 'admin' first and make the demo
     // seeder fail on the UNIQUE(username) constraint, leaving the demo user uncreated.
-    if (process.env.DEMO_MODE?.toLowerCase() === 'true') return;
+    if (readEnv().demo.enabled) return;
 
     if (isOidcOnlyConfigured()) {
       console.log('');

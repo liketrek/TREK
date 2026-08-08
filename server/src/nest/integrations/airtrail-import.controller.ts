@@ -2,11 +2,13 @@ import { Body, Controller, Headers, HttpException, Param, Post, UseGuards } from
 import type { User } from '../../types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { AirtrailAddonGuard } from './airtrail-addon.guard';
-import { airtrailImportSchema, type AirtrailImport, type AirtrailImportResult } from '@trek/shared';
-import { verifyTripAccess } from '../../services/tripAccess';
-import { checkPermission } from '../../services/permissions';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { ADDON_IDS } from '../../addons';
+import { AirtrailImportDto } from './airtrail.dto';
+import type { AirtrailImportResult } from '@trek/shared';
+import { PermissionsService } from '../permissions/permissions.service';
+import { DatabaseService } from '../database/database.service';
 import { importAirtrailFlights } from '../../services/airtrail/airtrailImport';
 
 /**
@@ -15,12 +17,18 @@ import { importAirtrailFlights } from '../../services/airtrail/airtrailImport';
  * flights are re-fetched server-side with the caller's own key.
  */
 @Controller('api/trips/:tripId/reservations/import')
-@UseGuards(AirtrailAddonGuard, JwtAuthGuard)
+@UseGuards(AddonGuard, JwtAuthGuard)
+@RequireAddon(ADDON_IDS.AIRTRAIL, 'AirTrail')
 export class AirtrailImportController {
+  constructor(
+    private readonly permissions: PermissionsService,
+    private readonly db: DatabaseService,
+  ) {}
+
   private requireEdit(tripId: string, user: User): void {
-    const trip = verifyTripAccess(tripId, user.id);
+    const trip = this.db.canAccessTrip(tripId, user.id);
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);
-    if (!checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id)) {
+    if (!this.permissions.checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id)) {
       throw new HttpException({ error: 'No permission' }, 403);
     }
   }
@@ -29,7 +37,7 @@ export class AirtrailImportController {
   async importAirtrail(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body(new ZodValidationPipe(airtrailImportSchema)) body: AirtrailImport,
+    @Body() body: AirtrailImportDto,
     @Headers('x-socket-id') socketId?: string,
   ): Promise<AirtrailImportResult> {
     this.requireEdit(tripId, user);

@@ -43,9 +43,12 @@ const { testDb } = vi.hoisted(() => {
   return { testDb: db };
 });
 vi.mock('../../../src/db/database', () => ({ db: testDb, canAccessTrip: () => undefined }));
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
 import { PluginRuntimeService, PluginDependencyError } from '../../../src/nest/plugins/plugin-runtime.service';
+import { createPluginRuntime } from '../../helpers/plugin-host';
 import { DependencyCycleError } from '../../../src/nest/plugins/dependencies';
 
 let codeRoot: string;
@@ -77,7 +80,7 @@ beforeAll(() => {
   );
 
   testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('counter','active','[\"db:own\"]','{}')").run();
-  runtime = new PluginRuntimeService();
+  runtime = createPluginRuntime(new DatabaseService(dbConn));
 });
 
 afterAll(async () => {
@@ -147,7 +150,7 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
 
   it('onModuleInit is a no-op when the runtime is disabled', () => {
     process.env.TREK_PLUGINS_ENABLED = 'false';
-    expect(() => new PluginRuntimeService().onModuleInit()).not.toThrow();
+    expect(() => createPluginRuntime(new DatabaseService(dbConn)).onModuleInit()).not.toThrow();
     process.env.TREK_PLUGINS_ENABLED = 'true';
   });
 
@@ -170,7 +173,7 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     fs.mkdirSync(path.join(codeRoot, 'messy', 'server'), { recursive: true });
     fs.writeFileSync(path.join(codeRoot, 'messy', 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
     testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('messy','inactive','not-json','not-json')").run();
-    const rt = new PluginRuntimeService();
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
     await rt.activate('messy'); // must not throw despite the garbage JSON
     expect(rt.isActive('messy')).toBe(true);
     await rt.deactivate('messy');
@@ -249,7 +252,7 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     // status='error' from a previous crash, but enabled=1 → must still boot
     testDb.prepare("INSERT INTO plugins (id, status, enabled, granted_permissions, config) VALUES ('booter','error',1,'[]','{}')").run();
 
-    const rt = new PluginRuntimeService();
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
     rt.onModuleInit(); // fire-and-forget spawn
     for (let i = 0; i < 40 && !rt.isActive('booter'); i++) await new Promise((r) => setTimeout(r, 50));
     expect(rt.isActive('booter')).toBe(true);
@@ -261,7 +264,7 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     fs.writeFileSync(path.join(codeRoot, 'sleeper', 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
     testDb.prepare("INSERT INTO plugins (id, status, enabled, granted_permissions, config) VALUES ('sleeper','inactive',0,'[]','{}')").run();
 
-    const rt = new PluginRuntimeService();
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
     rt.onModuleInit();
     await new Promise((r) => setTimeout(r, 300));
     expect(rt.isActive('sleeper')).toBe(false);
@@ -269,7 +272,7 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
 
   it('outboundHostsOf extracts declared http:outbound hosts', () => {
     testDb.prepare("INSERT INTO plugins (id, status, granted_permissions, config) VALUES ('net','inactive','[\"db:own\",\"http:outbound:api.x.com\",\"http:outbound:*.y.com\"]','{}')").run();
-    const rt = new PluginRuntimeService();
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
     expect(rt.outboundHostsOf('net')).toEqual(['api.x.com', '*.y.com']);
     expect(rt.outboundHostsOf('missing')).toEqual([]);
   });
@@ -291,7 +294,7 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     testDb.prepare("INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at) VALUES ('gone', 'poll', 0)").run();
     testDb.prepare("INSERT INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES ('gone', 7)").run();
 
-    await new PluginRuntimeService().uninstall('gone', true);
+    await createPluginRuntime(new DatabaseService(dbConn)).uninstall('gone', true);
 
     expect(fs.existsSync(path.join(codeRoot, 'gone'))).toBe(false);
     expect(testDb.prepare("SELECT COUNT(*) c FROM plugins WHERE id='gone'").get()).toMatchObject({ c: 0 });
@@ -310,7 +313,7 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     // a deleted user's erasure is still pending for this plugin
     testDb.prepare("INSERT INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES ('keepdata', 42)").run();
 
-    await new PluginRuntimeService().uninstall('keepdata', false); // keep the plugin's data
+    await createPluginRuntime(new DatabaseService(dbConn)).uninstall('keepdata', false); // keep the plugin's data
 
     // the plugin row is gone, but the erasure obligation is retained — a reinstall of the
     // same id will drain it and finally honour the deletion, instead of silently keeping
@@ -325,12 +328,12 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
       "module.exports = { async onLoad() { await fetch('https://blocked.example/x'); } };");
     testDb.prepare("INSERT INTO plugins (id, status, permissions, config) VALUES ('nettry','inactive','[]','{}')").run();
     // no http:outbound granted -> egress guard blocks all outbound -> onLoad throws
-    await expect(new PluginRuntimeService().activate('nettry')).rejects.toThrow(/egress/);
-    await new PluginRuntimeService().deactivate('nettry').catch(() => {});
+    await expect(createPluginRuntime(new DatabaseService(dbConn)).activate('nettry')).rejects.toThrow(/egress/);
+    await createPluginRuntime(new DatabaseService(dbConn)).deactivate('nettry').catch(() => {});
   });
 
   it('onModuleDestroy tears down cleanly', async () => {
-    await expect(new PluginRuntimeService().onModuleDestroy()).resolves.toBeUndefined();
+    await expect(createPluginRuntime(new DatabaseService(dbConn)).onModuleDestroy()).resolves.toBeUndefined();
   });
 });
 
@@ -352,7 +355,7 @@ describe('PluginRuntimeService.update (re-consent gate)', () => {
 
   it('restarts transparently when the new version requests no new permissions', async () => {
     seed('upd-same', 1, ['db:own'], ['db:own']);
-    const rt = new PluginRuntimeService(fakeRegistry(() => {})); // declared perms unchanged
+    const rt = createPluginRuntime(new DatabaseService(dbConn), fakeRegistry(() => {})); // declared perms unchanged
     await rt.activate('upd-same');
     const res = await rt.update('upd-same');
     expect(res).toMatchObject({ activated: true, newPermissions: [], newEgress: [] });
@@ -362,7 +365,8 @@ describe('PluginRuntimeService.update (re-consent gate)', () => {
 
   it('leaves the plugin inactive and reports the delta when new rights are requested', async () => {
     seed('upd-wider', 1, ['db:own'], ['db:own']);
-    const rt = new PluginRuntimeService(
+    const rt = createPluginRuntime(
+      new DatabaseService(dbConn),
       fakeRegistry(() => {
         testDb.prepare("UPDATE plugins SET permissions = ? WHERE id = 'upd-wider'")
           .run(JSON.stringify(['db:own', 'db:read:trips', 'http:outbound:api.new.com']));
@@ -379,17 +383,17 @@ describe('PluginRuntimeService.update (re-consent gate)', () => {
 
   it('a disabled plugin stays disabled even with no new permissions', async () => {
     seed('upd-off', 0, ['db:own'], ['db:own']);
-    const res = await new PluginRuntimeService(fakeRegistry(() => {})).update('upd-off');
+    const res = await createPluginRuntime(new DatabaseService(dbConn), fakeRegistry(() => {})).update('upd-off');
     expect(res).toMatchObject({ activated: false, newPermissions: [], newEgress: [] });
   });
 
   it('throws for an unknown plugin id', async () => {
-    await expect(new PluginRuntimeService(fakeRegistry(() => {})).update('ghost-upd')).rejects.toThrow(/not found/);
+    await expect(createPluginRuntime(new DatabaseService(dbConn), fakeRegistry(() => {})).update('ghost-upd')).rejects.toThrow(/not found/);
   });
 
   it('throws if no registry service is wired', async () => {
     seed('upd-noreg', 0, ['db:own'], ['db:own']);
-    await expect(new PluginRuntimeService().update('upd-noreg')).rejects.toThrow(/registry service unavailable/);
+    await expect(createPluginRuntime(new DatabaseService(dbConn)).update('upd-noreg')).rejects.toThrow(/registry service unavailable/);
   });
 });
 
@@ -556,7 +560,7 @@ describe('PluginRuntimeService.retrust', () => {
   it('re-pins AND installs in one call: the new key is pinned, the version moved, the block gone', async () => {
     seed('rt-ok', 'OLDKEY');
     const registry = registryFor('rt-ok');
-    const rt = new PluginRuntimeService(registry);
+    const rt = createPluginRuntime(new DatabaseService(dbConn), registry);
     await rt.activate('rt-ok');
 
     await rt.retrust('rt-ok', '2.0.0', 'NEWKEY', { userId: 1, ip: '10.0.0.1' });
@@ -601,7 +605,7 @@ describe('PluginRuntimeService.retrust', () => {
     seed('rt-no', 'OLDKEY');
     const registry = registryFor('rt-no');
     vi.mocked(registry.assertRetrustable).mockRejectedValue(new Error('nothing to re-trust'));
-    const rt = new PluginRuntimeService(registry);
+    const rt = createPluginRuntime(new DatabaseService(dbConn), registry);
 
     await expect(rt.retrust('rt-no', '2.0.0', 'NEWKEY', { userId: 1 })).rejects.toThrow(/nothing to re-trust/);
 
@@ -627,7 +631,7 @@ describe('PluginRuntimeService.retrust', () => {
   // exactly the "quietly stops updating" failure the block exists to prevent.
   it('activate does NOT clear a recorded update block', async () => {
     seed('rt-act', 'OLDKEY');
-    const rt = new PluginRuntimeService(registryFor('rt-act'));
+    const rt = createPluginRuntime(new DatabaseService(dbConn), registryFor('rt-act'));
 
     await rt.deactivate('rt-act');
     await rt.activate('rt-act');
@@ -663,7 +667,7 @@ describe('TREK host-version gating', () => {
   it('refuses to activate a plugin this TREK has outgrown, and says so with a code', async () => {
     process.env.APP_VERSION = '4.0.0';
     seedRanged('outgrown', '>=3.2.0 <4.0.0');
-    const err = await new PluginRuntimeService().activate('outgrown').catch((e) => e);
+    const err = await createPluginRuntime(new DatabaseService(dbConn)).activate('outgrown').catch((e) => e);
     expect(err).toBeInstanceOf(PluginDependencyError);
     expect(err).toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
     expect(err.detail).toMatchObject({ trekRange: '>=3.2.0 <4.0.0', hostVersion: '4.0.0' });
@@ -675,14 +679,14 @@ describe('TREK host-version gating', () => {
   it('refuses a plugin that never declared a range at all', async () => {
     process.env.APP_VERSION = '3.3.0';
     seedRanged('undeclared', null);
-    await expect(new PluginRuntimeService().activate('undeclared')).rejects.toMatchObject({ code: 'TREK_VERSION_UNKNOWN' });
+    await expect(createPluginRuntime(new DatabaseService(dbConn)).activate('undeclared')).rejects.toMatchObject({ code: 'TREK_VERSION_UNKNOWN' });
     cleanup('undeclared');
   });
 
   it('activates normally when the range admits the host', async () => {
     process.env.APP_VERSION = '3.3.0';
     seedRanged('fits', '>=3.2.0 <4.0.0');
-    const rt = new PluginRuntimeService();
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
     await rt.activate('fits');
     expect(rt.isActive('fits')).toBe(true);
     await rt.deactivate('fits');
@@ -696,7 +700,7 @@ describe('TREK host-version gating', () => {
     // panel showing a green, running plugin that does not exist.
     process.env.APP_VERSION = '4.0.0';
     seedRanged('boot-broken', '>=3.2.0 <4.0.0', 1);
-    const rt = new PluginRuntimeService();
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
     expect(() => rt.onModuleInit()).not.toThrow();
     for (let i = 0; i < 40; i++) {
       const row = testDb.prepare("SELECT enabled FROM plugins WHERE id='boot-broken'").get() as { enabled: number };
@@ -714,7 +718,7 @@ describe('TREK host-version gating', () => {
     fs.mkdirSync(path.join(codeRoot, 'both-wrong', 'server'), { recursive: true });
     fs.writeFileSync(path.join(codeRoot, 'both-wrong', 'server', 'index.js'), 'module.exports = {};');
     testDb.prepare("INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config, trek_range) VALUES ('both-wrong','inactive',0,'[\"db:own\"]','[]','{}','>=3.2.0 <4.0.0')").run();
-    await expect(new PluginRuntimeService().activate('both-wrong')).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
+    await expect(createPluginRuntime(new DatabaseService(dbConn)).activate('both-wrong')).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
     cleanup('both-wrong');
   });
 });

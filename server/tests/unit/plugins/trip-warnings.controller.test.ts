@@ -9,6 +9,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { TripWarningsController } from '../../../src/nest/plugins/trip-warnings.controller';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -19,7 +20,7 @@ function controller(over: Partial<PluginRuntimeService> = {}) {
       id === 'p2' ? [{ level: 'error', message: 'Day 3 is overpacked', dayId: 3 }] : [{ level: 'warning', message: 'Museum closed Mon', placeId: 7 }]),
     ...over,
   } as unknown as PluginRuntimeService;
-  return { c: new TripWarningsController(runtime), runtime };
+  return { c: new TripWarningsController(runtime, { canAccessTrip } as unknown as DatabaseService), runtime };
 }
 
 describe('TripWarningsController', () => {

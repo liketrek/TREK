@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Vybrat vše',
   'common.deselectAll': 'Zrušit výběr všeho',
   'common.error': 'Chyba',
+  'common.success': 'Úspěch',
   'common.unknownError': 'Neznámá chyba',
   'common.tooManyAttempts': 'Příliš mnoho pokusů. Zkuste to prosím znovu.',
   'common.back': 'Zpět',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'Něco se pokazilo',
+  'common.errorBody': 'Tato část aplikace přestala fungovat. Vaše data jsou v bezpečí.',
+  'common.errorPanelTitle': 'Tuto sekci se nepodařilo zobrazit',
+  'common.errorPanelBody': 'Zbytek stránky funguje dál.',
+  'common.errorRetry': 'Zkusit znovu',
+  'common.errorReload': 'Načíst stránku znovu',
+  'common.errorUpdateTitle': 'Je dostupná nová verze',
+  'common.errorUpdateBody': 'TREK byl aktualizován, zatímco byla tato karta otevřená. Načtěte znovu pro novou verzi.',
+  'common.errorPluginTitle': 'Tento plugin se nepodařilo zobrazit',
 };
 export default common;

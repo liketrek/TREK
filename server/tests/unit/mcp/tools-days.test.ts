@@ -1,5 +1,7 @@
 /**
- * Unit tests for MCP day tools: update_day.
+ * Unit tests for the DI-discovered DaysMcp: the update_day tool and the
+ * trek://trips/{tripId}/days resource (moved from resources.test.ts when the
+ * legacy registrar was ported).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -35,8 +37,8 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createUser, createTrip, createDay, createPlace, createDayAssignment } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
   createTables(testDb);
@@ -93,6 +95,22 @@ describe('Tool: update_day', () => {
     });
   });
 
+  it('setting a title preserves the day notes (post-port defect fix)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    testDb.prepare('UPDATE days SET notes = ? WHERE id = ?').run('Walking day', day.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_day',
+        arguments: { tripId: trip.id, dayId: day.id, title: 'Arrival' },
+      });
+      const data = parseToolResult(result) as { day: { title: string; notes: string } };
+      expect(data.day).toMatchObject({ title: 'Arrival', notes: 'Walking day' });
+    });
+  });
+
   it('broadcasts day:updated event', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -137,6 +155,44 @@ describe('Tool: update_day', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'update_day', arguments: { tripId: trip.id, dayId: day.id, title: 'X' } });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// trek://trips/{tripId}/days resource (moved from resources.test.ts)
+// ---------------------------------------------------------------------------
+
+describe('Resource: trek://trips/{tripId}/days', () => {
+  it('returns days with assignments in order', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day1 = createDay(testDb, trip.id, { day_number: 1 });
+    const day2 = createDay(testDb, trip.id, { day_number: 2 });
+    const place = createPlace(testDb, trip.id);
+    createDayAssignment(testDb, day1.id, place.id);
+    void day2;
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/days` });
+      const days = parseResourceResult(result) as any[];
+      expect(days).toHaveLength(2);
+      expect(days[0].day_number).toBe(1);
+      expect(days[0].assignments).toHaveLength(1);
+      expect(days[1].day_number).toBe(2);
+      expect(days[1].assignments).toHaveLength(0);
+    });
+  });
+
+  it('returns access denied for unauthorized trip', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/days` });
+      const data = parseResourceResult(result) as any;
+      expect(data.error).toBeTruthy();
     });
   });
 });

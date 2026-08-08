@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { db, canAccessTrip } from '../../db/database';
+import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
@@ -61,7 +61,10 @@ function normalize(raw: unknown): DetailItem[] {
 @Controller('api/place-details')
 @UseGuards(JwtAuthGuard)
 export class PlaceDetailsController {
-  constructor(private readonly runtime: PluginRuntimeService) {}
+  constructor(
+    private readonly runtime: PluginRuntimeService,
+    private readonly dbs: DatabaseService,
+  ) {}
 
   @Get(':placeId')
   async get(
@@ -74,8 +77,8 @@ export class PlaceDetailsController {
     if (!Number.isFinite(placeId) || userId == null) return { providers: [] };
 
     // The place must belong to a trip the caller can access — same gate as a read.
-    const row = db.prepare('SELECT trip_id FROM places WHERE id = ?').get(placeId) as { trip_id: number } | undefined;
-    if (!row || !canAccessTrip(row.trip_id, userId)) return { providers: [] };
+    const row = this.dbs.connection.prepare('SELECT trip_id FROM places WHERE id = ?').get(placeId) as { trip_id: number } | undefined;
+    if (!row || !this.dbs.canAccessTrip(row.trip_id, userId)) return { providers: [] };
 
     const ids = this.runtime.providersOf('placeDetailProvider');
     const results = await Promise.all(

@@ -1,8 +1,8 @@
 import { Controller, Get, HttpException, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RateLimitService } from '../auth/rate-limit.service';
-import * as transit from '../../services/transitService';
+import { RateLimitService } from '../common/rate-limit.service';
+import { TransitService } from './transit.service';
 
 const RL_WINDOW = 15 * 60 * 1000;
 
@@ -15,7 +15,10 @@ const RL_WINDOW = 15 * 60 * 1000;
 @Controller('api/transit')
 @UseGuards(JwtAuthGuard)
 export class TransitController {
-  constructor(private readonly rl: RateLimitService) {}
+  constructor(
+    private readonly rl: RateLimitService,
+    private readonly transit: TransitService,
+  ) {}
 
   private limit(bucket: string, req: Request, max: number): void {
     if (!this.rl.check(bucket, req.ip || 'unknown', max, RL_WINDOW, Date.now())) {
@@ -38,7 +41,7 @@ export class TransitController {
   ) {
     this.limit('transit_geocode', req, 300);
     try {
-      return await transit.geocode(q || '', lang, near);
+      return await this.transit.geocode(q || '', lang, near);
     } catch (err) { this.rethrow(err); }
   }
 
@@ -54,7 +57,7 @@ export class TransitController {
   ) {
     this.limit('transit_plan', req, 60);
     try {
-      return await transit.plan({
+      return await this.transit.plan({
         from: from || '',
         to: to || '',
         time,

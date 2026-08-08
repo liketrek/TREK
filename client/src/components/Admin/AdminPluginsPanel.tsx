@@ -5,7 +5,7 @@ import {
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Globe, Image, CalendarDays, Bell,
-  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText,
+  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette,
 } from 'lucide-react'
 import PluginIcon from '../shared/PluginIcon'
 import { adminApi } from '../../api/client'
@@ -96,15 +96,19 @@ interface RegistryDetail extends RegistryItem {
   size: number | null
   publishedAt: string | null
   manifest: {
-    permissions: string[]
-    egress: string[]
+    // Optional because a registry may omit an empty list — the detail view has to
+    // degrade rather than throw halfway through its render.
+    permissions?: string[]
+    egress?: string[]
     /** The plugin needs OPERATOR-supplied hosts — its egress list is not the whole story. */
     operatorEgress?: boolean
-    settings: Array<{ key: string; label: string; inputType: string; scope: string; required: boolean }>
+    settings?: Array<{ key: string; label: string; inputType: string; scope: string; required: boolean }>
     license: string | null
     icon: string | null
     requiredAddons?: string[]
     pluginDependencies?: PluginDep[]
+    /** Display slice of the manifest's capabilities — drives the same chips as an installed row. */
+    capabilities?: { widget?: { slot?: string }; tripPage?: { replaces?: string[] } }
   } | null
 }
 
@@ -188,6 +192,7 @@ const PERM_KEYS = [
   'events:subscribe', 'jobs:run',
   'ws:broadcast:trip', 'ws:broadcast:user',
   'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'hook:map-marker-provider',
+  'hook:map-layer-provider', 'hook:route-provider', 'hook:day-schedule-provider', 'hook:day-tint-provider', 'geolocation:read',
   'hook:pdf-section-provider', 'hook:atlas-layer-provider', 'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data', 'http:outbound',
 ]
 
@@ -239,6 +244,11 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
   if (perms.includes('hook:calendar-source')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.calendar') })
   if (perms.includes('hook:place-detail-provider')) out.push({ icon: MapPin, label: t('admin.plugins.cap.placeDetails') })
   if (perms.includes('hook:trip-warning-provider')) out.push({ icon: AlertTriangle, label: t('admin.plugins.cap.warnings') })
+  if (perms.includes('hook:map-layer-provider')) out.push({ icon: Route, label: t('admin.plugins.cap.mapLayers') })
+  if (perms.includes('hook:route-provider')) out.push({ icon: Navigation, label: t('admin.plugins.cap.routing') })
+  if (perms.includes('hook:day-schedule-provider')) out.push({ icon: Clock, label: t('admin.plugins.cap.daySchedule') })
+  if (perms.includes('hook:day-tint-provider')) out.push({ icon: Palette, label: t('admin.plugins.cap.dayTint') })
+  if (perms.includes('geolocation:read')) out.push({ icon: LocateFixed, label: t('admin.plugins.cap.geolocation') })
   if (perms.includes('hook:notification-channel')) out.push({ icon: Bell, label: t('admin.plugins.cap.notificationChannel') })
   if (perms.includes('events:subscribe')) out.push({ icon: Radio, label: t('admin.plugins.cap.events') })
   for (const h of perms.filter(p => p.startsWith('http:outbound:')).map(p => p.slice('http:outbound:'.length)).filter(Boolean)) {
@@ -295,13 +305,8 @@ function installOffer(item: RegistryItem, t: T): { blocked: boolean; version?: s
   return { blocked: true, label: t('admin.plugins.incompatible'), title }
 }
 
-function ReviewedBadge({ t, compact }: { t: T; compact?: boolean }) {
-  if (compact) return <ShieldCheck size={13} className="text-success shrink-0" aria-label={t('admin.plugins.reviewed')} />
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success-soft text-success">
-      <ShieldCheck size={11} /> {t('admin.plugins.reviewed')}
-    </span>
-  )
+function ReviewedBadge({ t }: { t: T }) {
+  return <ShieldCheck size={13} className="text-success shrink-0" aria-label={t('admin.plugins.reviewed')} />
 }
 
 /** Marks a manually-uploaded (sideloaded) plugin: no registry, unsigned, not reviewed. */
@@ -1144,7 +1149,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, blocked
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[14.5px] font-semibold tracking-[-.006em] text-content">{p.name}</span>
           {p.version && <span className="text-[11.5px] text-content-faint font-medium tabular-nums">v{p.version}</span>}
-          {p.reviewed_at && <ReviewedBadge t={t} compact />}
+          {p.reviewed_at && <ReviewedBadge t={t} />}
           {p.source_repo === 'local:upload' && <SideloadedBadge t={t} />}
           {p.source_repo === 'local:link' && <DevLinkBadge t={t} />}
           {/* Registry plugins only — a sideloaded/dev-linked plugin already says something
@@ -1396,7 +1401,10 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
   }, [item.id])
 
   const manifest = detail?.manifest ?? null
-  const caps = manifest ? deriveCaps(manifest.permissions, {}, t) : []
+  const permissions = manifest?.permissions ?? []
+  const egress = manifest?.egress ?? []
+  const settings = manifest?.settings ?? []
+  const caps = manifest ? deriveCaps(permissions, manifest.capabilities ?? {}, t) : []
   const repoUrl = `https://github.com/${item.repo}`
   const homepage = item.homepage && /^https?:\/\//i.test(item.homepage) && item.homepage !== repoUrl ? item.homepage : null
   const sizeKb = detail?.size ? Math.max(1, Math.round(detail.size / 1024)) : null
@@ -1420,7 +1428,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
           <div className="flex-1 min-w-0 pt-8">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-lg font-semibold tracking-tight text-content">{item.name}</h3>
-              {item.reviewedAt && <ReviewedBadge t={t} compact />}
+              {item.reviewedAt && <ReviewedBadge t={t} />}
             </div>
             <p className="text-[12.5px] text-content-faint mt-0.5">{item.author}{item.latest ? ` · v${item.latest}` : ''}</p>
           </div>
@@ -1446,7 +1454,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
           {manifest && (
             <div className="mt-5">
               <h4 className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{t('admin.plugins.accessTitle')}</h4>
-              {caps.filter(c => !c.net).length === 0 && !manifest.permissions.includes('db:own') ? (
+              {caps.filter(c => !c.net).length === 0 && !permissions.includes('db:own') ? (
                 <p className="text-xs text-content-faint mt-2">{t('admin.plugins.noAccess')}</p>
               ) : (
                 <div className="mt-2 space-y-1.5">
@@ -1455,7 +1463,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
                       <c.icon size={15} className="text-accent mt-0.5 shrink-0" /><span>{c.label}</span>
                     </div>
                   ))}
-                  {manifest.permissions.includes('db:own') && (
+                  {permissions.includes('db:own') && (
                     <div className="flex items-start gap-2.5 text-[13px] text-content-secondary py-0.5">
                       <Database size={15} className="text-accent mt-0.5 shrink-0" /><span>{t('admin.plugins.perm.db:own')}</span>
                     </div>
@@ -1465,11 +1473,11 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             </div>
           )}
 
-          {manifest && (manifest.egress.length > 0 || manifest.operatorEgress) && (
+          {manifest && (egress.length > 0 || manifest.operatorEgress) && (
             <div className="mt-5">
               <h4 className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{t('admin.plugins.connectsTitle')}</h4>
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                {manifest.egress.map(h => (
+                {egress.map(h => (
                   <code key={h} className="text-[12px] font-mono text-info bg-info-soft rounded-md px-2 py-1">{h}</code>
                 ))}
                 {/* The hosts above are NOT the whole story for this plugin: it talks to a
@@ -1488,11 +1496,11 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             </div>
           )}
 
-          {manifest && manifest.settings.length > 0 && (
+          {manifest && settings.length > 0 && (
             <div className="mt-5">
               <h4 className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{t('admin.plugins.setupTitle')}</h4>
               <ul className="mt-2 space-y-1.5">
-                {manifest.settings.map(s => (
+                {settings.map(s => (
                   <li key={s.key} className="flex items-center gap-2 text-xs text-content-muted flex-wrap">
                     <span className="font-medium">{s.label}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-tertiary text-content-faint">{t(`admin.plugins.scope.${s.scope}` as never)}</span>

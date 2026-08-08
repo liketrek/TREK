@@ -1,8 +1,10 @@
 import { http, HttpResponse } from 'msw'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
 import { server } from '../../../tests/helpers/msw/server'
-import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render'
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render'
 import { resetAllStores } from '../../../tests/helpers/store'
+import { ToastContainer } from '../shared/Toast'
 import AdminPluginsPanel from './AdminPluginsPanel'
 
 /**
@@ -480,5 +482,1383 @@ describe('AdminPluginsPanel — TREK-version compatibility', () => {
     }))
     render(<AdminPluginsPanel />)
     expect(await screen.findByText(/needs trek >=3\.2\.0 <4\.0\.0/i)).toBeInTheDocument()
+  })
+})
+
+/**
+ * The rest of the panel: load states, the toolbar, sideloading, the row actions behind the
+ * ⋯ menu, and the dialog each 409 routes to.
+ */
+function panelWith(
+  plugins: Record<string, unknown>[],
+  opts: { enabled?: boolean; devLink?: boolean; registry?: Record<string, unknown>[] } = {},
+) {
+  server.use(
+    http.get('*/api/admin/plugins', () => HttpResponse.json({
+      enabled: opts.enabled ?? true, devLink: opts.devLink ?? false, plugins,
+    })),
+    http.get('*/api/admin/plugins/registry', () => HttpResponse.json(opts.registry ?? [])),
+  )
+}
+
+function withToast() {
+  return render(<><ToastContainer /><AdminPluginsPanel /></>)
+}
+
+/** The Discover tab is a role="tab"; the empty state offers a plain button with the same label. */
+async function clickDiscover() {
+  const tabs = await screen.findAllByRole('tab', { name: /^discover/i })
+  fireEvent.click(tabs[0])
+}
+
+/** The panel root, which owns the drag-and-drop handlers. */
+function panelRoot(container: HTMLElement): HTMLElement {
+  return (container.querySelector('input[type="file"]') as HTMLElement).parentElement as HTMLElement
+}
+
+/** Opens one of the toolbar dropdowns (identified by its current title) and picks an option. */
+async function pickFilter(trigger: RegExp, option: RegExp) {
+  fireEvent.click(await screen.findByTitle(trigger))
+  fireEvent.click(await screen.findByRole('button', { name: option }))
+}
+
+/** The enable toggle of a named installed row. */
+function rowToggle(name: string): HTMLElement {
+  const row = screen.getByText(name).closest('.group') as HTMLElement
+  return within(row).getByRole('button', { name: 'Enable plugin' })
+}
+
+describe('AdminPluginsPanel — load states and toolbar', () => {
+  it('FE-COMP-PLUGINS-PANEL-001: a failing plugin list shows the load error instead of an empty list', async () => {
+    server.use(http.get('*/api/admin/plugins', () => HttpResponse.error()))
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByText('Could not load plugins.')).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Search plugins…')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-002: a disabled runtime replaces the whole body with the notice', async () => {
+    panelWith([plugin()], { enabled: false })
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByText('Plugins are disabled')).toBeInTheDocument()
+    expect(screen.queryByText('Gotify')).not.toBeInTheDocument()
+    expect(screen.queryByText('Runtime on')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-003: with nothing installed the empty state jumps to Discover', async () => {
+    panelWith([])
+    render(<AdminPluginsPanel />)
+
+    await screen.findByText('No plugins installed yet.')
+    expect(screen.getByText('Runtime on')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: /^discover/i }).pop()!)
+
+    expect(await screen.findByText('No plugins available in the registry yet.')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-004: the search box filters the installed list and says when nothing matches', async () => {
+    panelWith([plugin({ id: 'a', name: 'Gotify' }), plugin({ id: 'b', name: 'Ntfy', description: 'Push too' })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    fireEvent.change(screen.getByPlaceholderText('Search plugins…'), { target: { value: 'ntfy' } })
+    expect(screen.queryByText('Gotify')).not.toBeInTheDocument()
+    expect(screen.getByText('Ntfy')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Search plugins…'), { target: { value: 'zzz' } })
+    expect(screen.getByText('No installed plugins match your search.')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-005: the type filter narrows the list and marks itself active', async () => {
+    panelWith([
+      plugin({ id: 'a', name: 'Gotify', type: 'integration' }),
+      plugin({ id: 'b', name: 'Countdown', type: 'widget' }),
+    ])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    await pickFilter(/^Type: All types$/, /^Widget$/)
+
+    expect(await screen.findByTitle('Type: Widget')).toBeInTheDocument()
+    expect(screen.getByText('Countdown')).toBeInTheDocument()
+    expect(screen.queryByText('Gotify')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-006: the status filter separates off, error and update-available rows', async () => {
+    panelWith([
+      plugin({ id: 'trek-gotify', name: 'OnOne', enabled: 1, status: 'active', version: '1.0.0', source_repo: 'acme/gotify' }),
+      plugin({ id: 'off-one', name: 'OffOne', enabled: 0, status: 'inactive' }),
+      plugin({ id: 'bad-one', name: 'BadOne', enabled: 1, status: 'error', last_error: 'boom' }),
+    ], { registry: [registryEntry({ latest: '2.0.0' })] })
+    render(<AdminPluginsPanel />)
+    await screen.findByText('OnOne')
+
+    await pickFilter(/^Status: All$/, /^Off$/)
+    expect(await screen.findByText('OffOne')).toBeInTheDocument()
+    expect(screen.queryByText('OnOne')).not.toBeInTheDocument()
+
+    await pickFilter(/^Status: Off$/, /^Error$/)
+    expect(await screen.findByText('BadOne')).toBeInTheDocument()
+    expect(screen.getByText('boom')).toBeInTheDocument()
+
+    await pickFilter(/^Status: Error$/, /^Update available$/)
+    expect(await screen.findByText('OnOne')).toBeInTheDocument()
+    expect(screen.queryByText('BadOne')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-007: an installed-only sort key snaps back to Name on the Discover tab', async () => {
+    panelWith([plugin()], { registry: [registryEntry()] })
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    await pickFilter(/^Sort: Name$/, /^Updates first$/)
+    expect(await screen.findByTitle('Sort: Updates first')).toBeInTheDocument()
+
+    await clickDiscover()
+    await waitFor(() => expect(screen.getByTitle('Sort: Name')).toBeInTheDocument())
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-008: rescan re-pulls the registry past its cache and confirms with a toast', async () => {
+    const refreshFlags: (string | null)[] = []
+    panelWith([plugin()])
+    server.use(
+      http.post('*/api/admin/plugins/rescan', () => HttpResponse.json({ ok: true })),
+      http.get('*/api/admin/plugins/registry', ({ request }) => {
+        refreshFlags.push(new URL(request.url).searchParams.get('refresh'))
+        return HttpResponse.json([registryEntry({ latest: '2.0.0' })])
+      }),
+    )
+    withToast()
+    await screen.findByText('Gotify')
+
+    fireEvent.click(screen.getAllByTitle('Rescan')[0])
+
+    expect(await screen.findByText('Rescanned the plugins folder')).toBeInTheDocument()
+    expect(refreshFlags).toContain('1')
+  })
+})
+
+describe('AdminPluginsPanel — sideloading', () => {
+  const zip = () => new File(['zip'], 'plugin.zip', { type: 'application/zip' })
+
+  it('FE-COMP-PLUGINS-PANEL-009: the toolbar button opens the hidden picker and uploads the pick', async () => {
+    panelWith([plugin()])
+    server.use(http.post('*/api/admin/plugins/upload', () => HttpResponse.json({ id: 'trek-new' })))
+    const { container } = withToast()
+    await screen.findByText('Gotify')
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+    const clickSpy = vi.spyOn(input, 'click').mockImplementation(() => {})
+    fireEvent.click(screen.getAllByTitle('Upload plugin')[0])
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
+
+    await userEvent.upload(input, zip())
+    expect(await screen.findByText(/trek-new.*uploaded/i)).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-010: a rejected upload surfaces the server message', async () => {
+    panelWith([plugin()])
+    server.use(http.post('*/api/admin/plugins/upload', () => HttpResponse.json({ error: 'not a plugin archive' }, { status: 400 })))
+    const { container } = withToast()
+    await screen.findByText('Gotify')
+
+    await userEvent.upload(container.querySelector('input[type="file"]') as HTMLInputElement, zip())
+
+    expect(await screen.findByText('not a plugin archive')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-011: dragging a file over the panel offers a drop target and installs it', async () => {
+    let uploaded = false
+    panelWith([plugin()])
+    server.use(http.post('*/api/admin/plugins/upload', () => { uploaded = true; return HttpResponse.json({ id: 'trek-dropped' }) }))
+    const { container } = withToast()
+    await screen.findByText('Gotify')
+
+    const panel = panelRoot(container)
+    const dataTransfer = { types: ['Files'], files: [zip()] }
+    fireEvent.dragEnter(panel, { dataTransfer })
+    expect(await screen.findByText('Drop a plugin .zip to install')).toBeInTheDocument()
+
+    fireEvent.dragLeave(panel, { dataTransfer })
+    await waitFor(() => expect(screen.queryByText('Drop a plugin .zip to install')).not.toBeInTheDocument())
+
+    fireEvent.dragEnter(panel, { dataTransfer })
+    fireEvent.dragOver(panel, { dataTransfer })
+    fireEvent.drop(panel, { dataTransfer })
+
+    await waitFor(() => expect(uploaded).toBe(true))
+    expect(await screen.findByText(/trek-dropped.*uploaded/i)).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-012: a drag that carries no files is ignored', async () => {
+    panelWith([plugin()])
+    const { container } = render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    fireEvent.dragEnter(panelRoot(container), { dataTransfer: { types: ['text/plain'], files: [] } })
+
+    expect(screen.queryByText('Drop a plugin .zip to install')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-013: the dev-link form registers a local path and reports failures', async () => {
+    const paths: string[] = []
+    panelWith([plugin()], { devLink: true })
+    server.use(http.post('*/api/admin/plugins/link', async ({ request }) => {
+      const body = await request.json() as { path: string }
+      paths.push(body.path)
+      return paths.length === 1
+        ? HttpResponse.json({ id: 'trek-local' })
+        : HttpResponse.json({ error: 'no manifest there' }, { status: 400 })
+    }))
+    withToast()
+    const input = await screen.findByPlaceholderText('/absolute/path/to/your/plugin')
+
+    expect(screen.getByRole('button', { name: /^link$/i })).toBeDisabled()
+
+    fireEvent.change(input, { target: { value: '/srv/plugins/mine' } })
+    fireEvent.click(screen.getByRole('button', { name: /^link$/i }))
+    expect(await screen.findByText(/linked trek-local/i)).toBeInTheDocument()
+    expect(paths).toEqual(['/srv/plugins/mine'])
+
+    fireEvent.change(screen.getByPlaceholderText('/absolute/path/to/your/plugin'), { target: { value: '/nope' } })
+    fireEvent.click(screen.getByRole('button', { name: /^link$/i }))
+    expect(await screen.findByText('no manifest there')).toBeInTheDocument()
+  })
+})
+
+describe('AdminPluginsPanel — row actions', () => {
+  async function openRowMenu(p: Record<string, unknown> = plugin()) {
+    panelWith([p])
+    withToast()
+    fireEvent.click(await screen.findByTestId(`plugin-row-menu-btn-${p.id}`))
+  }
+
+  /** Every modal in the panel closes by clicking its backdrop. */
+  function closeModal() {
+    fireEvent.click(document.querySelector('.fixed.inset-0.z-50') as HTMLElement)
+  }
+
+  it('FE-COMP-PLUGINS-PANEL-014: the error log lists what the runtime recorded', async () => {
+    server.use(http.get('*/api/admin/plugins/trek-gotify/errors', () =>
+      HttpResponse.json({ errors: [{ ts: '2026-01-01T00:00:00Z', level: 'error', message: 'connect ECONNREFUSED' }] })))
+    await openRowMenu()
+
+    fireEvent.click(screen.getByText('View error log'))
+    expect(await screen.findByText('connect ECONNREFUSED')).toBeInTheDocument()
+    expect(screen.getByText('error')).toBeInTheDocument()
+
+    closeModal()
+    await waitFor(() => expect(screen.queryByText('connect ECONNREFUSED')).not.toBeInTheDocument())
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-015: an unreachable error log still opens, empty', async () => {
+    server.use(http.get('*/api/admin/plugins/trek-gotify/errors', () => HttpResponse.error()))
+    await openRowMenu()
+
+    fireEvent.click(screen.getByText('View error log'))
+
+    expect(await screen.findByText('No errors logged.')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-016: allowed hosts can be added and removed, and a rejected save says why', async () => {
+    let hosts: string[] = []
+    let puts = 0
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/egress-hosts', () => HttpResponse.json({ supported: true, hosts })),
+      http.put('*/api/admin/plugins/trek-gotify/egress-hosts', async ({ request }) => {
+        puts += 1
+        const body = await request.json() as { hosts: string[] }
+        if (puts === 3) return HttpResponse.json({ error: 'not a valid host' }, { status: 400 })
+        hosts = body.hosts
+        return HttpResponse.json({ hosts })
+      }),
+    )
+    await openRowMenu()
+
+    fireEvent.click(screen.getByText('Allowed hosts'))
+    expect(await screen.findByText('No hosts added yet.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^add$/i })).toBeDisabled()
+
+    fireEvent.change(screen.getByPlaceholderText('gotify.example.com'), { target: { value: 'gotify.lan' } })
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }))
+    expect(await screen.findByText('gotify.lan')).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByLabelText('Delete')[0])
+    await waitFor(() => expect(screen.getByText('No hosts added yet.')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByPlaceholderText('gotify.example.com'), { target: { value: 'bad host' } })
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }))
+    expect(await screen.findByText('not a valid host')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-017: a plugin whose hosts are fixed in its manifest says the list is unsupported', async () => {
+    server.use(http.get('*/api/admin/plugins/trek-gotify/egress-hosts', () => HttpResponse.error()))
+    await openRowMenu()
+
+    fireEvent.click(screen.getByText('Allowed hosts'))
+
+    expect(await screen.findByText(/does not use operator-supplied hosts/i)).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('gotify.example.com')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-018: Delete asks first, then uninstalls with its data', async () => {
+    let body: unknown = null
+    server.use(http.post('*/api/admin/plugins/trek-gotify/uninstall', async ({ request }) => {
+      body = await request.json()
+      return HttpResponse.json({ ok: true })
+    }))
+    await openRowMenu()
+
+    fireEvent.click(screen.getByText('Delete'))
+    expect(await screen.findByText('Uninstall plugin?')).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^delete$/i }).pop()!)
+
+    expect(await screen.findByText('Plugin uninstalled')).toBeInTheDocument()
+    expect(body).toEqual({ deleteData: true })
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-019: Restart cycles the plugin off and on again', async () => {
+    const seen: string[] = []
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/deactivate', () => { seen.push('deactivate'); return HttpResponse.json({ ok: true }) }),
+      http.post('*/api/admin/plugins/trek-gotify/activate', () => { seen.push('activate'); return HttpResponse.json({ ok: true }) }),
+    )
+    await openRowMenu(plugin({ enabled: 1, status: 'active' }))
+
+    fireEvent.click(screen.getByText('Restart'))
+
+    expect(await screen.findByText('Plugin restarted')).toBeInTheDocument()
+    expect(seen).toEqual(['deactivate', 'activate'])
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-020: a disabled plugin offers no Restart', async () => {
+    await openRowMenu(plugin({ enabled: 0, status: 'inactive' }))
+
+    expect(screen.getByText('View error log')).toBeInTheDocument()
+    expect(screen.queryByText('Restart')).not.toBeInTheDocument()
+  })
+})
+
+describe('AdminPluginsPanel — enabling a plugin', () => {
+  it('FE-COMP-PLUGINS-PANEL-021: turning a plugin off deactivates it', async () => {
+    let called = false
+    panelWith([plugin({ enabled: 1, status: 'active' })])
+    server.use(http.post('*/api/admin/plugins/trek-gotify/deactivate', () => { called = true; return HttpResponse.json({ ok: true }) }))
+    withToast()
+    await screen.findByText('Gotify')
+
+    fireEvent.click(rowToggle('Gotify'))
+
+    expect(await screen.findByText('Plugin deactivated')).toBeInTheDocument()
+    expect(called).toBe(true)
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-022: turning one on also reports the dependencies it enabled first', async () => {
+    panelWith([
+      plugin({ enabled: 0, status: 'inactive', dependencies: { pluginDependencies: [{ id: 'trek-core', version: '^1.0.0' }] } }),
+      plugin({ id: 'trek-core', name: 'Core', enabled: 0, status: 'inactive' }),
+    ])
+    server.use(http.post('*/api/admin/plugins/trek-gotify/activate', () => HttpResponse.json({ ok: true })))
+    withToast()
+    await screen.findByText('Gotify')
+
+    fireEvent.click(rowToggle('Gotify'))
+
+    expect(await screen.findByText('Plugin activated')).toBeInTheDocument()
+    expect(await screen.findByText(/enabled required plugin\(s\) first: core/i)).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-023: a disabled required addon is reported as a toast, not a dialog', async () => {
+    panelWith([plugin({ enabled: 0, status: 'inactive' })])
+    server.use(http.post('*/api/admin/plugins/trek-gotify/activate', () =>
+      HttpResponse.json({ code: 'ADDON_DISABLED', addons: ['journey'] }, { status: 409 })))
+    withToast()
+    await screen.findByText('Gotify')
+
+    fireEvent.click(rowToggle('Gotify'))
+
+    expect(await screen.findByText(/enable the required addon\(s\) first: journey/i)).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-024: any other activation failure surfaces the server message', async () => {
+    panelWith([plugin({ enabled: 0, status: 'inactive' })])
+    server.use(http.post('*/api/admin/plugins/trek-gotify/activate', () =>
+      HttpResponse.json({ code: 'DEPENDENCY_CYCLE', error: 'circular dependency' }, { status: 409 })))
+    withToast()
+    await screen.findByText('Gotify')
+
+    fireEvent.click(rowToggle('Gotify'))
+
+    expect(await screen.findByText('circular dependency')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-025: a missing dependency opens the resolve dialog and one click fixes it', async () => {
+    let activates = 0
+    let installed: unknown = null
+    panelWith([plugin({ enabled: 0, status: 'inactive' })])
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/activate', () => {
+        activates += 1
+        return activates === 1
+          ? HttpResponse.json({
+            code: 'DEPENDENCY_MISSING',
+            missing: [{ id: 'trek-core', version: '^1.0.0' }],
+            versionMismatch: [{ id: 'trek-old', wanted: '^2.0.0', installed: '1.0.0' }],
+          }, { status: 409 })
+          : HttpResponse.json({ ok: true })
+      }),
+      http.post('*/api/admin/plugins/install', async ({ request }) => {
+        installed = await request.json()
+        return HttpResponse.json({ installed: ['trek-core'], requiredAddons: ['journey'] })
+      }),
+    )
+    withToast()
+    await screen.findByText('Gotify')
+
+    fireEvent.click(rowToggle('Gotify'))
+    expect(await screen.findByText('Missing dependencies')).toBeInTheDocument()
+    expect(screen.getByText('Requires ^1.0.0')).toBeInTheDocument()
+    expect(screen.getByText('Needs ^2.0.0 — 1.0.0 is installed')).toBeInTheDocument()
+    expect(screen.getByText(/downloads the latest compatible version/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /^download$/i }))
+
+    expect(await screen.findByText('Downloaded trek-core')).toBeInTheDocument()
+    expect(installed).toEqual({ id: 'trek-core', constraint: '^1.0.0', withDependencies: true })
+    expect(await screen.findByText(/enable the required addon\(s\) first: journey/i)).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Missing dependencies')).not.toBeInTheDocument())
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-026: the resolve dialog can be dismissed without downloading anything', async () => {
+    let installs = 0
+    panelWith([plugin({ enabled: 0, status: 'inactive' })])
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/activate', () =>
+        HttpResponse.json({ code: 'DEPENDENCY_MISSING', missing: [{ id: 'trek-core', version: '^1.0.0' }], versionMismatch: [] }, { status: 409 })),
+      http.post('*/api/admin/plugins/install', () => { installs += 1; return HttpResponse.json({}) }),
+    )
+    withToast()
+    await screen.findByText('Gotify')
+
+    fireEvent.click(rowToggle('Gotify'))
+    fireEvent.click(await screen.findByRole('button', { name: /^cancel$/i }))
+
+    await waitFor(() => expect(screen.queryByText('Missing dependencies')).not.toBeInTheDocument())
+    expect(installs).toBe(0)
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-027: widened permissions route to the consent dialog, which can be deferred', async () => {
+    panelWith([plugin({ enabled: 0, status: 'inactive', source_repo: 'acme/gotify', signed: false })])
+    server.use(http.post('*/api/admin/plugins/trek-gotify/activate', () =>
+      HttpResponse.json({ code: 'CONSENT_REQUIRED', newPermissions: ['db:read:trips', 'weird:perm'], newEgress: ['api.acme.io'] }, { status: 409 })))
+    withToast()
+    await screen.findByText('Gotify')
+
+    fireEvent.click(rowToggle('Gotify'))
+
+    expect(await screen.findByText('This update needs new permissions')).toBeInTheDocument()
+    expect(screen.getByText('Read trips the acting user can access')).toBeInTheDocument()
+    // An unknown permission is still shown — as its raw code
+    expect(screen.getByText('weird:perm')).toBeInTheDocument()
+    expect(screen.getByText('api.acme.io')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /keep off for now/i }))
+    expect(await screen.findByText(/left off until you approve/i)).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-028: approving consent re-activates with the consent flag', async () => {
+    const bodies: unknown[] = []
+    panelWith([plugin({ enabled: 0, status: 'inactive' })])
+    server.use(http.post('*/api/admin/plugins/trek-gotify/activate', async ({ request }) => {
+      bodies.push(await request.json())
+      return bodies.length === 1
+        ? HttpResponse.json({ code: 'CONSENT_REQUIRED', newPermissions: ['db:read:trips'], newEgress: [] }, { status: 409 })
+        : HttpResponse.json({ ok: true })
+    }))
+    withToast()
+    await screen.findByText('Gotify')
+
+    fireEvent.click(rowToggle('Gotify'))
+    fireEvent.click(await screen.findByRole('button', { name: /approve & turn on/i }))
+
+    expect(await screen.findByText('Plugin updated')).toBeInTheDocument()
+    expect(bodies[1]).toEqual({ consent: true })
+  })
+})
+
+describe('AdminPluginsPanel — updates', () => {
+  const outdated = plugin({ source_repo: 'acme/gotify', version: '1.0.0', operatorEgress: false })
+
+  it('FE-COMP-PLUGINS-PANEL-029: the update banner updates every outdated plugin at once', async () => {
+    const updated: string[] = []
+    panelWith(
+      [outdated, plugin({ id: 'trek-ntfy', name: 'Ntfy', source_repo: 'acme/ntfy', version: '1.0.0', operatorEgress: false })],
+      { registry: [registryEntry({ latest: '2.0.0' }), registryEntry({ id: 'trek-ntfy', latest: '3.0.0' })] },
+    )
+    server.use(http.post('*/api/admin/plugins/:id/update', ({ params }) => {
+      updated.push(String(params.id))
+      return HttpResponse.json({ version: '2.0.0', activated: true, newPermissions: [], newEgress: [] })
+    }))
+    withToast()
+
+    expect(await screen.findByText('2 updates available for your plugins.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /update all/i }))
+
+    await waitFor(() => expect([...updated].sort()).toEqual(['trek-gotify', 'trek-ntfy']))
+    expect((await screen.findAllByText('Plugin updated')).length).toBeGreaterThan(0)
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-030: an update that widens permissions queues the consent dialog', async () => {
+    panelWith([outdated], { registry: [registryEntry({ latest: '2.0.0', signed: false })] })
+    server.use(http.post('*/api/admin/plugins/trek-gotify/update', () =>
+      HttpResponse.json({ version: '2.0.0', activated: false, newPermissions: ['db:read:users'], newEgress: [] })))
+    withToast()
+
+    fireEvent.click(await screen.findByRole('button', { name: /update → v2\.0\.0/i }))
+
+    expect(await screen.findByText('This update needs new permissions')).toBeInTheDocument()
+    expect(screen.getByText(/read basic profile info/i)).toBeInTheDocument()
+    // The registry says the new code is unsigned — say so where the rights get widened
+    expect(screen.getByText(/nothing ties this version to its author/i)).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-031: a failed update that is not a signature refusal is a plain toast', async () => {
+    panelWith([outdated], { registry: [registryEntry({ latest: '2.0.0' })] })
+    server.use(http.post('*/api/admin/plugins/trek-gotify/update', () =>
+      HttpResponse.json({ error: 'registry unreachable' }, { status: 502 })))
+    withToast()
+
+    fireEvent.click(await screen.findByRole('button', { name: /update → v2\.0\.0/i }))
+
+    expect(await screen.findByText('registry unreachable')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-032: a re-trusted update that widens rights still asks for consent', async () => {
+    panelWith([plugin({
+      source_repo: 'acme/gotify', version: '1.0.0', keyFingerprint: 'OLDAAAAA…BBBBBBBB', operatorEgress: false,
+      updateBlock: { code: 'SIGNATURE_KEY_CHANGED', version: '2.0.0', detail: 'key rotated' },
+    })], { registry: [registryEntry({ latest: '2.0.0' })] })
+    server.use(http.post('*/api/admin/plugins/trek-gotify/retrust', () =>
+      HttpResponse.json({ version: '2.0.0', activated: false, newPermissions: ['db:read:trips'], newEgress: ['api.acme.io'] })))
+    withToast()
+
+    fireEvent.click(await screen.findByRole('button', { name: /^review$/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /trust the new key/i }))
+
+    expect(await screen.findByText('This update needs new permissions')).toBeInTheDocument()
+    expect(screen.getByText('api.acme.io')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-033: a failed re-trust surfaces the server message', async () => {
+    panelWith([plugin({
+      source_repo: 'acme/gotify', version: '1.0.0', keyFingerprint: 'OLDAAAAA…BBBBBBBB', operatorEgress: false,
+      updateBlock: { code: 'SIGNATURE_KEY_CHANGED', version: '2.0.0', detail: 'key rotated' },
+    })], { registry: [registryEntry({ latest: '2.0.0' })] })
+    server.use(http.post('*/api/admin/plugins/trek-gotify/retrust', () =>
+      HttpResponse.json({ error: 'key does not match' }, { status: 400 })))
+    withToast()
+
+    fireEvent.click(await screen.findByRole('button', { name: /^review$/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /trust the new key/i }))
+
+    expect(await screen.findByText('key does not match')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-034a: a stable release counts as newer than the prerelease of the same version', async () => {
+    panelWith([plugin({ source_repo: 'acme/gotify', version: '2.0.0-beta.1', operatorEgress: false })], {
+      registry: [registryEntry({ latest: '2.0.0' })],
+    })
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByRole('button', { name: /update → v2\.0\.0/i })).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-034: a block with no recorded version stands while the registry is silent', async () => {
+    panelWith([plugin({
+      source_repo: 'acme/gotify', operatorEgress: false,
+      updateBlock: { code: 'SIGNATURE_INVALID', version: null, detail: 'digest mismatch' },
+    })], { registry: [] })
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByText(/update blocked — digest mismatch/i)).toBeInTheDocument()
+  })
+})
+
+describe('AdminPluginsPanel — capability and dependency chips', () => {
+  it('FE-COMP-PLUGINS-PANEL-035: a permission-rich plugin renders one chip per capability', async () => {
+    panelWith([plugin({
+      operatorEgress: false,
+      permissions: JSON.stringify([
+        'db:read:trips', 'db:read:users', 'db:write:costs', 'db:read:packing', 'db:read:files',
+        'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips', 'db:meta',
+        'ws:broadcast:trip', 'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider',
+        'hook:trip-warning-provider', 'hook:map-layer-provider', 'hook:route-provider',
+        'hook:day-schedule-provider', 'geolocation:read', 'events:subscribe', 'http:outbound:api.acme.io',
+      ]),
+      capabilities: JSON.stringify({ widget: { slot: 'hero' }, tripPage: { replaces: ['places'] } }),
+    })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    for (const label of [
+      'Reads your trips', 'Reads basic profiles', 'Adds costs', 'Reads packing lists', 'Reads trip files',
+      'Edits places', 'Edits days', 'Edits itinerary', 'Edits trips', 'Adds metadata',
+      'Boarding-pass widget', 'Replaces planner tabs', 'Real-time updates', 'Provides photos',
+      'Provides calendar events', 'Enriches places', 'Flags issues', 'Draws on the map', 'Offers routing',
+      'Adds plan times', 'Reads your position', 'Reacts to activity', 'api.acme.io',
+    ]) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-036: read-only costs and a slotted widget each get their own wording', async () => {
+    panelWith([plugin({
+      operatorEgress: false,
+      permissions: JSON.stringify(['db:read:costs']),
+      capabilities: JSON.stringify({ widget: { slot: 'place-detail' } }),
+    })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    expect(screen.getByText('Reads your costs')).toBeInTheDocument()
+    expect(screen.getByText('Place detail')).toBeInTheDocument()
+    expect(screen.queryByText('Adds costs')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-037: an unparseable capabilities blob degrades to the plain widget chip', async () => {
+    panelWith([plugin({ operatorEgress: false, permissions: 'not json', capabilities: JSON.stringify({ widget: {} }) })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    expect(screen.getByText('Dashboard widget')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-038: dependency chips flag the addon and plugin the row is waiting on', async () => {
+    panelWith([plugin({
+      operatorEgress: false,
+      dependencies: { requiredAddons: ['journey'], pluginDependencies: [{ id: 'trek-core', version: '^1.0.0' }] },
+      dependencyIssues: { disabledAddons: ['journey'], missing: [{ id: 'trek-core', version: '^1.0.0' }], versionMismatch: [] },
+    })])
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByText('Requires journey')).toBeInTheDocument()
+    expect(screen.getByText('Needs trek-core ^1.0.0')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-039: a plugin that names no TREK range says so', async () => {
+    panelWith([plugin({ operatorEgress: false, dependencyStatus: 'hostIncompatible' })])
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByText('Does not say which TREK versions it supports')).toBeInTheDocument()
+  })
+})
+
+describe('AdminPluginsPanel — Discover cards and the detail modal', () => {
+  function discoverWith(entry: Record<string, unknown>, detail?: Record<string, unknown>) {
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({ enabled: true, devLink: false, plugins: [] })),
+      http.get('*/api/admin/plugins/registry', () => HttpResponse.json([registryEntry(entry)])),
+      http.get('*/api/admin/plugins/registry/trek-gotify', () =>
+        detail ? HttpResponse.json(detail) : HttpResponse.json({ error: 'gone' }, { status: 404 })),
+    )
+  }
+
+  function manifestDetail(over: Record<string, unknown> = {}, manifest: Record<string, unknown> = {}) {
+    return {
+      id: 'trek-gotify', name: 'Gotify', author: 'Acme', description: 'Push', repo: 'acme/gotify',
+      type: 'integration', tags: [], size: 4096, publishedAt: null, latest: '2.0.0',
+      manifest: { permissions: [], egress: [], settings: [], license: 'MIT', icon: null, operatorEgress: false, ...manifest },
+      ...over,
+    }
+  }
+
+  it('FE-COMP-PLUGINS-PANEL-040: a card shows its compact download count and falls back on a broken shot', async () => {
+    discoverWith({ downloadCount: 1234, screenshotUrl: 'https://example.com/shot.png', reviewedAt: '2026-01-05T00:00:00Z' })
+    const { container } = render(<AdminPluginsPanel />)
+    await clickDiscover()
+
+    expect(await screen.findByText('1.2k')).toBeInTheDocument()
+    const img = container.querySelector('img') as HTMLImageElement
+    expect(screen.getByText('Reviewed')).toBeInTheDocument()
+    expect(img).toBeInTheDocument()
+    fireEvent.error(img)
+    await waitFor(() => expect(container.querySelector('img')).not.toBeInTheDocument())
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-040a: a two-digit download count is printed verbatim', async () => {
+    discoverWith({ downloadCount: 42 })
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+
+    expect(await screen.findByText('42')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-041: opening a card by keyboard shows the modal, and a failed lookup says so', async () => {
+    discoverWith({})
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+
+    const card = (await screen.findByText('Gotify')).closest('[role="button"]') as HTMLElement
+    fireEvent.keyDown(card, { key: 'Enter' })
+
+    expect(await screen.findByText('Could not load plugin details.')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-042: the detail modal lists setup fields, metadata and a separate homepage', async () => {
+    discoverWith(
+      { downloadCount: 999_500, reviewedAt: '2026-01-05T00:00:00Z', homepage: 'https://gotify.example', trek: '>=3.2.0' },
+      manifestDetail({}, {
+        permissions: ['db:own'],
+        settings: [{ key: 'url', label: 'Server URL', scope: 'instance', required: true }],
+      }),
+    )
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+    fireEvent.click(await screen.findByText('Gotify'))
+
+    expect(await screen.findByText('Server URL')).toBeInTheDocument()
+    expect(screen.getByText('Instance-wide')).toBeInTheDocument()
+    expect(screen.getByText('Required')).toBeInTheDocument()
+    expect(screen.getByText('4 KB')).toBeInTheDocument()
+    expect(screen.getByText('TREK >=3.2.0')).toBeInTheDocument()
+    expect(screen.getByText('Store its own data in an isolated database')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /homepage/i })).toHaveAttribute('href', 'https://gotify.example')
+    // 999 500 rounds to a whole megabyte on the card, never "1000k"
+    expect(screen.getByText('1M')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-043: a manifest with no readable access says exactly that', async () => {
+    discoverWith({ minTrekVersion: '3.2.0' }, manifestDetail({ size: 0 }))
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+    fireEvent.click(await screen.findByText('Gotify'))
+
+    expect(await screen.findByText('Needs no special access.')).toBeInTheDocument()
+    expect(screen.getByText('TREK 3.2.0+')).toBeInTheDocument()
+    expect(screen.queryByText('Connects to')).not.toBeInTheDocument()
+    expect(screen.queryByText('Setup')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-043b: a manifest that omits the lists still renders the modal', async () => {
+    const detail = manifestDetail({ size: 0 })
+    delete (detail.manifest as Record<string, unknown>).egress
+    delete (detail.manifest as Record<string, unknown>).settings
+    delete (detail.manifest as Record<string, unknown>).permissions
+    discoverWith({}, detail)
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+    fireEvent.click(await screen.findByText('Gotify'))
+
+    expect(await screen.findByText('Needs no special access.')).toBeInTheDocument()
+    expect(screen.queryByText('Connects to')).not.toBeInTheDocument()
+    expect(screen.queryByText('Setup')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-044: an incompatible entry explains the blocked button in the modal body', async () => {
+    discoverWith({ compatible: false, latestCompatible: null, trek: '>=4.0.0', hostVersion: '3.3.0' })
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+    fireEvent.click(await screen.findByText('Gotify'))
+
+    const explanations = await screen.findAllByText(/needs trek >=4\.0\.0 — this server runs 3\.3\.0/i)
+    expect(explanations.length).toBeGreaterThan(0)
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-045: searching Discover with no hit says the registry has no match', async () => {
+    discoverWith({})
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+    await screen.findByText('Gotify')
+
+    fireEvent.change(screen.getByPlaceholderText('Search plugins…'), { target: { value: 'nothing' } })
+
+    expect(screen.getByText('No plugins in the registry match your search.')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-046: installing from a card posts the offered version', async () => {
+    let body: unknown = null
+    discoverWith({ compatible: false, latestCompatible: '1.5.0', trek: '>=4.0.0', hostVersion: '3.3.0' })
+    server.use(http.post('*/api/admin/plugins/install', async ({ request }) => {
+      body = await request.json()
+      return HttpResponse.json({ ok: true })
+    }))
+    withToast()
+    await clickDiscover()
+
+    fireEvent.click(await screen.findByRole('button', { name: /^install 1\.5\.0$/i }))
+
+    await waitFor(() => expect(body).toEqual({ id: 'trek-gotify', version: '1.5.0' }))
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-047: an unreachable registry leaves Discover empty rather than spinning', async () => {
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({ enabled: true, devLink: false, plugins: [] })),
+      http.get('*/api/admin/plugins/registry', () => HttpResponse.error()),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('No plugins installed yet.')
+
+    await clickDiscover()
+
+    expect(await screen.findByText('No plugins available in the registry yet.')).toBeInTheDocument()
+  })
+})
+
+describe('AdminPluginsPanel — security footer', () => {
+  it('FE-COMP-PLUGINS-PANEL-048: the containment note expands into its sections', async () => {
+    panelWith([])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('No plugins installed yet.')
+
+    expect(screen.queryByText('Every plugin runs boxed in')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('How plugins are contained — and the limits'))
+
+    expect(screen.getByText('Every plugin runs boxed in')).toBeInTheDocument()
+    expect(screen.getByText('What "Reviewed" means')).toBeInTheDocument()
+    expect(screen.getByText('What "Signed" means')).toBeInTheDocument()
+  })
+})
+
+// FE-W5PLG-001 to FE-W5PLG-014 — toolbar filters and sorting, the error-log and
+// allowed-hosts dialogs, and the drag-to-install overlay.
+describe('AdminPluginsPanel toolbar and dialogs', () => {
+  const row = (over: Record<string, unknown> = {}) => plugin({
+    id: 'a-widget', name: 'Alpha Widget', description: 'a widget', type: 'widget',
+    version: '1.0.0', status: 'active', enabled: 1, operatorEgress: false,
+    ...over,
+  })
+
+  function mockPanel(rows: Record<string, unknown>[], registry: unknown = []) {
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({ enabled: true, devLink: false, plugins: rows })),
+      http.get('*/api/admin/plugins/registry', () => HttpResponse.json(registry)),
+    )
+  }
+
+  const three = () => [
+    row(),
+    row({ id: 'b-integration', name: 'Beta Bridge', description: 'a bridge', type: 'integration', enabled: 0, status: 'inactive' }),
+    row({ id: 'c-page', name: 'Gamma Page', description: 'a page', type: 'page', enabled: 1, status: 'error', last_error: 'boom' }),
+  ]
+
+  const pickFilter = async (user: ReturnType<typeof userEvent.setup>, filter: RegExp, option: RegExp) => {
+    await user.click(screen.getByTitle(filter))
+    await user.click(screen.getByRole('button', { name: option }))
+  }
+
+  it('FE-W5PLG-001: the search box narrows the installed list by name and description', async () => {
+    const user = userEvent.setup()
+    mockPanel(three())
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.type(screen.getByPlaceholderText(/search/i), 'bridge')
+
+    await waitFor(() => expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument())
+    expect(screen.getByText('Beta Bridge')).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-002: a search with no hits shows the no-match state', async () => {
+    const user = userEvent.setup()
+    mockPanel(three())
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.type(screen.getByPlaceholderText(/search/i), 'zzzz')
+
+    expect(await screen.findByText(/no.*match/i)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-003: the type filter keeps only plugins of that type', async () => {
+    const user = userEvent.setup()
+    mockPanel(three())
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await pickFilter(user, /^Type:/, /^Widget$/)
+
+    await waitFor(() => expect(screen.queryByText('Beta Bridge')).not.toBeInTheDocument())
+    expect(screen.getByText('Alpha Widget')).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-004: the status filter separates active, off and errored plugins', async () => {
+    const user = userEvent.setup()
+    mockPanel(three())
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await pickFilter(user, /^Status:/, /^Active$/)
+    await waitFor(() => expect(screen.queryByText('Beta Bridge')).not.toBeInTheDocument())
+    expect(screen.queryByText('Gamma Page')).not.toBeInTheDocument()
+
+    await pickFilter(user, /^Status:/, /^Off$/)
+    await waitFor(() => expect(screen.getByText('Beta Bridge')).toBeInTheDocument())
+    expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument()
+
+    await pickFilter(user, /^Status:/, /^Error$/)
+    await waitFor(() => expect(screen.getByText('Gamma Page')).toBeInTheDocument())
+    expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-005: the update filter and the updates-first sort both use the registry version', async () => {
+    const user = userEvent.setup()
+    mockPanel(three(), [{ id: 'c-page', name: 'Gamma Page', latest: '9.9.9' }])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await waitFor(() => expect(screen.getByText(/updates? available/i)).toBeInTheDocument())
+
+    await pickFilter(user, /^Sort:/, /^Updates first$/)
+    await waitFor(() => {
+      const names = screen.getAllByText(/Alpha Widget|Beta Bridge|Gamma Page/).map(e => e.textContent)
+      expect(names[0]).toBe('Gamma Page')
+    })
+
+    await pickFilter(user, /^Status:/, /^Update available$/)
+    await waitFor(() => expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument())
+    expect(screen.getByText('Gamma Page')).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-006: switching tabs snaps a tab-only sort key back to name', async () => {
+    const user = userEvent.setup()
+    mockPanel(three(), [{ id: 'c-page', name: 'Gamma Page', latest: '9.9.9' }])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await pickFilter(user, /^Sort:/, /^Updates first$/)
+    expect(screen.getByTitle(/^Sort: Updates first$/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: /Discover/ }))
+    await waitFor(() => expect(screen.getByTitle(/^Sort: Name$/)).toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-007: the registry sorts by downloads and by review date', async () => {
+    const user = userEvent.setup()
+    const reg = [
+      { id: 'r-old', name: 'Old Tool', author: 'a', description: 'd', type: 'widget', downloadCount: 10, reviewedAt: '2024-01-01T00:00:00Z' },
+      { id: 'r-new', name: 'New Tool', author: 'b', description: 'd', type: 'widget', downloadCount: 999, reviewedAt: '2026-01-01T00:00:00Z' },
+    ]
+    mockPanel(three(), reg)
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await user.click(screen.getByRole('tab', { name: /Discover/ }))
+    await screen.findByText('Old Tool')
+
+    await pickFilter(user, /^Sort:/, /^Most downloads$/)
+    await waitFor(() => {
+      const names = screen.getAllByText(/^(Old|New) Tool$/).map(e => e.textContent)
+      expect(names[0]).toBe('New Tool')
+    })
+
+    await pickFilter(user, /^Sort:/, /^Recently updated$/)
+    await waitFor(() => {
+      const names = screen.getAllByText(/^(Old|New) Tool$/).map(e => e.textContent)
+      expect(names[0]).toBe('New Tool')
+    })
+
+    await pickFilter(user, /^Sort:/, /^Name$/)
+    await waitFor(() => {
+      const names = screen.getAllByText(/^(Old|New) Tool$/).map(e => e.textContent)
+      expect(names[0]).toBe('New Tool')
+    })
+  })
+
+  it('FE-W5PLG-008: the registry search and type filter narrow the discover grid', async () => {
+    const user = userEvent.setup()
+    const reg = [
+      { id: 'r-a', name: 'Mapper', author: 'ann', description: 'maps things', type: 'widget' },
+      { id: 'r-b', name: 'Poster', author: 'bob', description: 'posts things', type: 'page' },
+    ]
+    mockPanel(three(), reg)
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await user.click(screen.getByRole('tab', { name: /Discover/ }))
+    await screen.findByText('Mapper')
+
+    await pickFilter(user, /^Type:/, /^Page$/)
+    await waitFor(() => expect(screen.queryByText('Mapper')).not.toBeInTheDocument())
+    expect(screen.getByText('Poster')).toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText(/search/i), 'ann')
+    await waitFor(() => expect(screen.queryByText('Poster')).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-009: the error log lists both levels and closes again', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    server.use(
+      http.get('*/api/admin/plugins/a-widget/errors', () =>
+        HttpResponse.json({ errors: [
+          { level: 'error', ts: '2026-01-01 10:00', message: 'exploded' },
+          { level: 'warn', ts: '2026-01-01 10:01', message: 'wobbled' },
+        ] }),
+      ),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    await user.click(screen.getByRole('button', { name: /view error log/i }))
+
+    expect(await screen.findByText('exploded')).toBeInTheDocument()
+    expect(screen.getByText('wobbled')).toBeInTheDocument()
+    expect(screen.getByText('error')).toBeInTheDocument()
+    expect(screen.getByText('warn')).toBeInTheDocument()
+
+    const dialog = screen.getByText('exploded').closest('.fixed') as HTMLElement
+    await user.click(within(dialog).getAllByRole('button')[0])
+    await waitFor(() => expect(screen.queryByText('exploded')).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-010: an empty error log says so and the backdrop closes it', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    server.use(
+      http.get('*/api/admin/plugins/a-widget/errors', () => HttpResponse.json({ errors: [] })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    await user.click(screen.getByRole('button', { name: /view error log/i }))
+
+    const empty = await screen.findByText(/no errors/i)
+    fireEvent.click(empty.closest('.fixed') as HTMLElement)
+    await waitFor(() => expect(screen.queryByText(/no errors/i)).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-011: a plugin whose runtime cannot take extra hosts says so', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    server.use(
+      http.get('*/api/admin/plugins/a-widget/egress-hosts', () => HttpResponse.json({ supported: false, hosts: [] })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    await user.click(screen.getByRole('button', { name: /allowed hosts/i }))
+
+    expect(await screen.findByText(/does not|not supported|no outbound/i)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-012: a failing egress lookup still opens the dialog in the unsupported state', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    server.use(
+      http.get('*/api/admin/plugins/a-widget/egress-hosts', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    await user.click(screen.getByRole('button', { name: /allowed hosts/i }))
+
+    expect(await screen.findByText(/a-widget —/)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-013: dragging a file over the panel arms the drop overlay', async () => {
+    mockPanel([row()])
+    const { container } = render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    const panel = container.firstElementChild as HTMLElement
+
+    fireEvent.dragEnter(panel, { dataTransfer: { types: ['Files'] } })
+    expect(await screen.findByText(/drop.*to (upload|install)/i)).toBeInTheDocument()
+
+    // nested enter/leave pairs must not disarm it early
+    fireEvent.dragEnter(panel, { dataTransfer: { types: ['Files'] } })
+    fireEvent.dragLeave(panel)
+    expect(screen.getByText(/drop.*to (upload|install)/i)).toBeInTheDocument()
+
+    fireEvent.dragLeave(panel)
+    await waitFor(() => expect(screen.queryByText(/drop.*to (upload|install)/i)).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-014: dropping a plugin archive uploads it', async () => {
+    let uploaded = false
+    mockPanel([row()])
+    server.use(
+      http.post('*/api/admin/plugins/upload', () => { uploaded = true; return HttpResponse.json({ id: 'a-widget' }) }),
+    )
+    const { container } = render(
+      <>
+        <AdminPluginsPanel />
+        <ToastContainer />
+      </>,
+    )
+    await screen.findByText('Alpha Widget')
+    const panel = container.firstElementChild as HTMLElement
+
+    const file = new File(['zip'], 'plugin.zip', { type: 'application/zip' })
+    fireEvent.drop(panel, { dataTransfer: { files: [file] } })
+
+    await waitFor(() => expect(uploaded).toBe(true))
+  })
+
+  it('FE-W5PLG-015: the click-away layer closes an open filter menu', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()])
+    const { container } = render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTitle(/^Type:/))
+    expect(screen.getByRole('button', { name: /^Widget$/ })).toBeInTheDocument()
+
+    const layer = container.querySelector('.fixed.inset-0.z-20') as HTMLElement
+    fireEvent.click(layer)
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Widget$/ })).not.toBeInTheDocument())
+  })
+})
+
+// FE-W5PLG-016 to FE-W5PLG-023 — registry cards, the detail modal and the
+// dependency chips of an installed row.
+describe('AdminPluginsPanel registry cards and dependency chips', () => {
+  const row = (over: Record<string, unknown> = {}) => plugin({
+    id: 'a-widget', name: 'Alpha Widget', description: 'a widget', type: 'widget',
+    version: '1.0.0', status: 'active', enabled: 1, operatorEgress: false,
+    permissions: JSON.stringify([]),
+    ...over,
+  })
+
+  const regItem = (over: Record<string, unknown> = {}) => ({
+    id: 'r-a', name: 'Mapper', author: 'ann', description: 'maps things', type: 'widget',
+    latest: '2.0.0', repo: 'ann/mapper', signed: true, ...over,
+  })
+
+  function mockPanel(rows: Record<string, unknown>[], registry: unknown = []) {
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({ enabled: true, devLink: false, plugins: rows })),
+      http.get('*/api/admin/plugins/registry', () => HttpResponse.json(registry)),
+    )
+  }
+
+  const openDiscover = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole('tab', { name: /Discover/ }))
+  }
+
+  it('FE-W5PLG-016: leaving Discover snaps the downloads sort back to name', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()], [regItem({ downloadCount: 5 })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await openDiscover(user)
+    await user.click(screen.getByTitle(/^Sort:/))
+    await user.click(screen.getByRole('button', { name: /^Most downloads$/ }))
+    expect(screen.getByTitle(/^Sort: Most downloads$/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: /Installed/ }))
+    await waitFor(() => expect(screen.getByTitle(/^Sort: Name$/)).toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-017: an outrun release offers the newest compatible version instead of a dead button', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()], [
+      regItem({ id: 'r-old', name: 'Older Fit', compatible: false, latestCompatible: '1.4.0', trek: '>=4', hostVersion: '3.5.0' }),
+      regItem({ id: 'r-dead', name: 'No Fit', compatible: false, latestCompatible: null, trek: null }),
+    ])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await openDiscover(user)
+
+    const offer = await screen.findByRole('button', { name: /^Install 1\.4\.0$/ })
+    expect(offer).not.toBeDisabled()
+    expect(offer).toHaveAttribute('title', expect.stringContaining('3.5.0'))
+
+    const dead = screen.getByRole('button', { name: /^Incompatible$/ })
+    expect(dead).toBeDisabled()
+    expect(dead.getAttribute('title')).toBeTruthy()
+  })
+
+  it('FE-W5PLG-018: an already installed registry entry cannot be installed again', async () => {
+    const user = userEvent.setup()
+    mockPanel([row({ id: 'r-a', name: 'Mapper' })], [regItem({ reviewedAt: '2026-01-01T00:00:00Z', downloadCount: 1234 })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Mapper')
+    await openDiscover(user)
+
+    expect(await screen.findByText('1.2k')).toBeInTheDocument()
+    const installBtn = screen.getAllByRole('button', { name: /^Installed$/ })[0]
+    expect(installBtn).toBeDisabled()
+  })
+
+  it('FE-W5PLG-019: a registry card opens its detail modal by click and by keyboard', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()], [regItem({ reviewedAt: '2026-01-01T00:00:00Z', homepage: 'https://mapper.example' })])
+    server.use(
+      http.get('*/api/admin/plugins/registry/r-a', () =>
+        HttpResponse.json({ size: 4096, manifest: { icon: 'Map', permissions: ['db:read:trips'], egress: ['api.mapper.example'], operatorEgress: false, settings: [] } })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await openDiscover(user)
+
+    const card = screen.getByText('Mapper').closest('[role="button"]') as HTMLElement
+    fireEvent.keyDown(card, { key: 'Enter' })
+    expect(await screen.findByRole('heading', { name: 'Mapper' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('heading', { name: 'Mapper' }).closest('.fixed') as HTMLElement)
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Mapper' })).not.toBeInTheDocument())
+
+    fireEvent.keyDown(card, { key: ' ' })
+    expect(await screen.findByRole('heading', { name: 'Mapper' })).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-020: a failing detail fetch still shows the modal shell', async () => {
+    const user = userEvent.setup()
+    mockPanel([row()], [regItem()])
+    server.use(
+      http.get('*/api/admin/plugins/registry/r-a', () => HttpResponse.json({ error: 'gone' }, { status: 404 })),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+    await openDiscover(user)
+
+    await user.click(screen.getByText('Mapper'))
+
+    expect(await screen.findByRole('heading', { name: 'Mapper' })).toBeInTheDocument()
+    expect(screen.getByText(/ann · v2\.0\.0/)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-021: dependency chips flag a disabled addon and a missing plugin', async () => {
+    mockPanel([row({
+      dependencies: { requiredAddons: ['budget', 'vacay'], pluginDependencies: [{ id: 'dep-a', version: '^1' }, { id: 'dep-b', version: '^2' }] },
+      dependencyStatus: 'blocked',
+      dependencyIssues: { disabledAddons: ['vacay'], missing: [{ id: 'dep-a' }], versionMismatch: [{ id: 'dep-b' }] },
+    })])
+    render(<AdminPluginsPanel />)
+
+    await screen.findByText('Alpha Widget')
+    expect(screen.getByText(/budget/)).toBeInTheDocument()
+    expect(screen.getByText(/vacay/)).toBeInTheDocument()
+    expect(screen.getByText(/dep-a/)).toBeInTheDocument()
+    expect(screen.getByText(/dep-b/)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-022: a plugin whose TREK range is unknown still gets an incompatibility chip', async () => {
+    mockPanel([row({ dependencyStatus: 'hostIncompatible', trekRange: null, hostVersion: null })])
+    render(<AdminPluginsPanel />)
+
+    await screen.findByText('Alpha Widget')
+    expect(screen.getByText(/does not say which trek/i)).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-023: a registry-sourced row links to its repository and issue tracker', async () => {
+    const user = userEvent.setup()
+    mockPanel([row({ source_repo: 'ann/mapper', reviewed_at: '2026-01-01T00:00:00Z', version: null, description: null, status: 'weird' })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Alpha Widget')
+
+    await user.click(screen.getByTestId('plugin-row-menu-btn-a-widget'))
+    const repo = screen.getByRole('link', { name: /source|repository/i })
+    expect(repo).toHaveAttribute('href', 'https://github.com/ann/mapper')
+    expect(screen.getByRole('link', { name: /issue/i })).toHaveAttribute('href', 'https://github.com/ann/mapper/issues')
+
+    await user.click(repo)
+    await waitFor(() => expect(screen.queryByRole('link', { name: /issue/i })).not.toBeInTheDocument())
+  })
+})
+
+// FE-W5PLG-024 to FE-W5PLG-028 — the signature dialog's fingerprint rendering
+// and the remaining dialog dismissals.
+describe('AdminPluginsPanel signature fingerprints and dismissals', () => {
+  const blocked = (over: Record<string, unknown> = {}) => plugin({
+    source_repo: 'acme/gotify', signed: true, keyFingerprint: 'OLDKEYaa…aaaaaaaa',
+    updateBlock: { code: 'SIGNATURE_KEY_CHANGED', detail: 'the signing key changed', version: '2.0.0' },
+    ...over,
+  })
+
+  function mockPanel(row: Record<string, unknown>, registry: unknown[] = []) {
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({ enabled: true, devLink: false, plugins: [row] })),
+      http.get('*/api/admin/plugins/registry', () => HttpResponse.json(registry)),
+    )
+  }
+
+  it('FE-W5PLG-024: a long new key is shown head…tail next to the pinned one', async () => {
+    const key = 'untrusted comment: minisign key\nRWQf6LRCGA9iA1234567890ABCDEFGH'
+    mockPanel(blocked(), [{ id: 'trek-gotify', name: 'Gotify', author: 'acme', description: 'd', type: 'integration', latest: '2.0.0', authorPublicKey: key }])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    fireEvent.click(await screen.findByRole('button', { name: /review/i }))
+
+    expect(await screen.findByText('OLDKEYaa…aaaaaaaa')).toBeInTheDocument()
+    expect(screen.getByText('RWQf6LRC…ABCDEFGH')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /trust the new key/i })).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-025: a short key is shown in full and a missing pinned key falls back to a dash', async () => {
+    mockPanel(blocked({ keyFingerprint: null }), [
+      { id: 'trek-gotify', name: 'Gotify', author: 'acme', description: 'd', type: 'integration', latest: '2.0.0', authorPublicKey: 'SHORTKEY' },
+    ])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    fireEvent.click(await screen.findByRole('button', { name: /review/i }))
+
+    expect(await screen.findByText('SHORTKEY')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-026: without a registry entry there is no key to offer and no override', async () => {
+    mockPanel(blocked())
+    render(<AdminPluginsPanel />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /review/i }))
+
+    expect(await screen.findByText('OLDKEYaa…aaaaaaaa')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /trust the new key/i })).not.toBeInTheDocument()
+  })
+
+  it('FE-W5PLG-027: an incomplete signature gets its own explanation and closes on the backdrop', async () => {
+    mockPanel(blocked({ updateBlock: { code: 'SIGNATURE_INCOMPLETE', detail: 'only half signed', version: '2.0.0' } }))
+    render(<AdminPluginsPanel />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /review/i }))
+    const detail = await screen.findByText('only half signed')
+
+    fireEvent.click(detail.closest('.fixed') as HTMLElement)
+    await waitFor(() => expect(screen.queryByText('only half signed')).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-028: the allowed-hosts dialog closes from its header button and its backdrop', async () => {
+    const user = userEvent.setup()
+    mockPanel(plugin({ egressHostCount: 1 }))
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/egress-hosts', () =>
+        HttpResponse.json({ supported: true, hosts: ['gotify.mydomain.com'] })),
+    )
+    render(<AdminPluginsPanel />)
+
+    await user.click(await screen.findByRole('button', { name: /1 allowed host/i }))
+    const host = await screen.findByText('gotify.mydomain.com')
+    const dialog = host.closest('.fixed') as HTMLElement
+
+    await user.click(within(dialog).getAllByRole('button')[0])
+    await waitFor(() => expect(screen.queryByText('gotify.mydomain.com')).not.toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /1 allowed host/i }))
+    const reopened = (await screen.findByText('gotify.mydomain.com')).closest('.fixed') as HTMLElement
+    fireEvent.click(reopened)
+    await waitFor(() => expect(screen.queryByText('gotify.mydomain.com')).not.toBeInTheDocument())
+  })
+
+  it('FE-W5PLG-029: a drop without a file is ignored', async () => {
+    let uploaded = false
+    mockPanel(plugin())
+    server.use(
+      http.post('*/api/admin/plugins/upload', () => { uploaded = true; return HttpResponse.json({ id: 'x' }) }),
+    )
+    const { container } = render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    fireEvent.drop(container.firstElementChild as HTMLElement, { dataTransfer: { files: [] } })
+
+    await waitFor(() => expect(uploaded).toBe(false))
   })
 })

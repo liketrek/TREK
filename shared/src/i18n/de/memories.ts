@@ -3,7 +3,8 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'Fotos',
   'memories.notConnected': '{provider_name} nicht verbunden',
-  'memories.notConnectedHint': 'Verbinde deine {provider_name}-Instanz in den Einstellungen, um deine Reisefotos hier zu sehen.',
+  'memories.notConnectedHint':
+    'Verbinde deine {provider_name}-Instanz in den Einstellungen, um deine Reisefotos hier zu sehen.',
   'memories.notConnectedMultipleHint':
     'Verbinde einen dieser Fotoanbieter: {provider_names} in den Einstellungen, um Fotos zu dieser Reise hinzufügen zu können.',
   'memories.noDates': 'Füge Daten zu deiner Reise hinzu, um Fotos zu laden.',

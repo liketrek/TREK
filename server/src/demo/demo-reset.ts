@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { readEnv } from '../app-config';
 
 const dataDir = path.join(__dirname, '../../data');
 const dbPath = path.join(dataDir, 'travel.db');
@@ -14,7 +15,8 @@ function resetDemoUser(): void {
   const { db, closeDb, reinitialize } = require('../db/database');
 
   // Save admin's current credentials and API keys (these should survive the reset)
-  const adminEmail = process.env.DEMO_ADMIN_EMAIL || 'admin@nomad.app';
+  // NOTE: different default than demo-seed (admin@trek.app) — pinned legacy quirk.
+  const adminEmail = readEnv().demo.adminEmailRaw || 'admin@nomad.app';
   interface AdminData { password_hash: string; maps_api_key: string | null; openweather_api_key: string | null; unsplash_api_key: string | null; avatar: string | null; }
   let adminData: AdminData | undefined = undefined;
   try {

@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Pilih semua',
   'common.deselectAll': 'Batalkan semua pilihan',
   'common.error': 'Kesalahan',
+  'common.success': 'Berhasil',
   'common.unknownError': 'Kesalahan tidak diketahui',
   'common.tooManyAttempts': 'Terlalu banyak percobaan. Coba lagi nanti.',
   'common.back': 'Kembali',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'Terjadi kesalahan',
+  'common.errorBody': 'Bagian aplikasi ini berhenti bekerja. Data Anda aman.',
+  'common.errorPanelTitle': 'Bagian ini tidak dapat ditampilkan',
+  'common.errorPanelBody': 'Bagian lain dari halaman masih berfungsi.',
+  'common.errorRetry': 'Coba lagi',
+  'common.errorReload': 'Muat ulang halaman',
+  'common.errorUpdateTitle': 'Versi baru tersedia',
+  'common.errorUpdateBody': 'TREK diperbarui saat tab ini terbuka. Muat ulang untuk mendapatkan versi baru.',
+  'common.errorPluginTitle': 'Plugin ini tidak dapat ditampilkan',
 };
 export default common;

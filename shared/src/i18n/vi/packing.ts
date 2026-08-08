@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Hành động',
+  'packing.editDone': 'Xong',
+  'packing.personalEmptyHint': 'Danh sách cá nhân của bạn trống — sao chép mục dùng chung hoặc thêm mục của riêng bạn.',
+  'packing.assignMembers': 'Gán thành viên',
+  'packing.categoryOptions': 'Tùy chọn danh sách',
+  'packing.editItem': 'Chỉnh sửa mục',
+  'packing.itemName': 'Tên',
+  'packing.itemQuantity': 'Số lượng',
+  'packing.itemWeight': 'Trọng lượng (g)',
   'packing.title': 'Danh sách đóng gói',
   'packing.empty': 'Danh sách đóng gói trống',
   'packing.import': 'Nhập',
@@ -198,5 +207,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Tôi cũng có thể mang',
   'packing.alsoBringingStop': 'Tôi không mang',
   'packing.cloneToMine': 'Sao chép vào danh sách của tôi',
+  'packing.bagLimit': 'Giới hạn cân nặng',
+  'packing.setBagLimit': 'Đặt giới hạn',
 };
 export default packing;

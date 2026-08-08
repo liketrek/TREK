@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Rezervasyonu Düzenle',
   'inspector.participants': 'Katılımcılar',
   'inspector.trackStats': 'İstatistikleri Takip Et',
+  'inspector.trackColor': 'İz rengi',
+  'inspector.trackColorAuto': 'Otomatik renk',
+  'inspector.trackColorCustom': 'Özel renk seç',
 };
 export default inspector;

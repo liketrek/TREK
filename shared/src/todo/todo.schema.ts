@@ -12,22 +12,27 @@ import { z } from 'zod';
 
 export const todoCreateItemRequestSchema = z.object({
   name: z.string().min(1),
-  category: z.string().optional(),
-  due_date: z.string().optional(),
-  description: z.string().optional(),
-  assigned_user_id: z.number().optional(),
+  // The client clears optional fields by sending explicit null (the service
+  // coerces falsy to its defaults), so every optional metadata field is nullable.
+  category: z.string().nullable().optional(),
+  due_date: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  assigned_user_id: z.number().nullable().optional(),
   priority: z.number().optional(),
 });
 export type TodoCreateItemRequest = z.infer<typeof todoCreateItemRequestSchema>;
 
 export const todoUpdateItemRequestSchema = z.object({
   name: z.string().optional(),
-  checked: z.boolean().optional(),
-  category: z.string().optional(),
-  due_date: z.string().optional(),
-  description: z.string().optional(),
-  assigned_user_id: z.number().optional(),
-  priority: z.number().optional(),
+  // The legacy route accepted both boolean and 0/1 for checked — both stay valid.
+  checked: z.union([z.boolean(), z.number().int().min(0).max(1)]).optional(),
+  // Nullable fields follow the bodyKeys protocol: a key present with null
+  // clears the field, an omitted key leaves it unchanged.
+  category: z.string().nullable().optional(),
+  due_date: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  assigned_user_id: z.number().nullable().optional(),
+  priority: z.number().nullable().optional(),
 });
 export type TodoUpdateItemRequest = z.infer<typeof todoUpdateItemRequestSchema>;
 

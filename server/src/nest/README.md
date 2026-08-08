@@ -15,24 +15,92 @@ server/src/nest/<domain>/<domain>.controller.ts     # same routes/verbs/params/s
 server/src/nest/<domain>/<domain>.module.ts         # registered in app.module.ts
 ```
 
-Add the prefix to `DEFAULT_NEST_PREFIXES` in `strangler.ts` to route it to Nest
-(operators can override at runtime via the `NEST_PREFIXES` env var — instant
-rollback, no redeploy). Trip-scoped mounts use a pattern prefix with a `:param`
-segment (e.g. `/api/trips/:tripId/packing`); the matcher routes only that nested
-mount to Nest and leaves the sibling trip routes (days, places, ...) on Express.
+Register the module in `app.module.ts` and it is live. There is no routing gate to
+flip any more: **every request goes through Nest**. The `strangler.ts` matcher and
+its `DEFAULT_NEST_PREFIXES` / `NEST_PREFIXES` escape hatch are gone — Express only
+remains as the platform underneath `@nestjs/platform-express`.
 
 ## Migrated so far
 
 - **Phase 1 (leaf):** weather, airports, config (public), system-notices, maps,
   categories, tags, notifications, atlas.
 - **Phase 2 (trip sub-domains):** vacay (addon), packing, todo.
+- **DI-native services (legacy `src/services/*` deleted):** tags, categories,
+  todo, packing, day-notes, trip-invite, assignments, share, settings, files,
+  collab, vacay, reservations, day, permissions, audit, budget, trip, maps,
+  transit, place, transit-itinerary, collections, atlas, auth, oidc, passkey,
+  notifications, admin, webauthn-config, user-cleanup, oauth, wiki, mailer,
+  notification transports, notification preferences — see the migration recipe
+  below.
+- **Foundation (BE-Phase 1, complete):** the eight stateless helpers moved to
+  `common/`; every trip-access check routes through `DatabaseService`
+  (`services/tripAccess.ts` and the dead `middleware/tripAccess.ts` are gone);
+  `queryHelpers` and `tripMembership` are providers; the scheduler takes its
+  dependencies from the container.
+- **Guards (BE-Phase 2, in progress):** the JWT verify lives in `auth/`, and
+  `middleware/auth.ts`, `validate.ts` and `idempotency.ts` are deleted; the three
+  addon guards are one `AddonGuard` + `@RequireAddon`; the demo-mode block is one
+  condition. Still open: `TripAccessGuard`, default-deny, the MFA policy.
+
+`src/services/` is down to three top-level files (journey, journeyShare, backup)
+plus the `airtrail/` and `memories/` directories. What is left each waits on an
+open decision: memories on its Zod contracts, journey on memories, backup on the
+plugins module split and the db-lifecycle question, airtrail on the credential
+handling. Note that the trip-access and
+`canEdit` methods on the domain services are **not** dead weight waiting for a
+guard: their callers are overwhelmingly the `*.mcp.ts` tools, which never pass
+through an HTTP guard. In the five domains piloted for `TripAccessGuard`, 40 of
+the 46 callers are MCP; only 6 sit in controllers.
 
 ## Cross-cutting Foundation pieces
 
 - `common/idempotency.interceptor.ts` — global `APP_INTERCEPTOR` replaying the
-  client's `X-Idempotency-Key` on mutations, mirroring the legacy
-  `applyIdempotency` middleware so retried writes don't double-apply.
-- `strangler.ts` — supports both static prefixes and `:param` pattern prefixes.
+  client's `X-Idempotency-Key` on mutations. It replaced the `applyIdempotency`
+  middleware, which is deleted; this is the only implementation.
+- `common/` — the stateless helpers (`avatarUrl`, `conflictResult`, `demo`,
+  `passwordPolicy`, `timezoneService`, `cookie`, `rowShape`, `crypto/`). Free
+  functions, not providers: `db/migrations.ts` and `middleware/mfaPolicy.ts`
+  import them from outside the container and could not inject one.
+- `auth/jwt-verify.ts` — `extractToken` + `verifyJwtAndLoadUser`, the canonical
+  session check behind the three guards, the MCP bearer path, the file-download
+  query token and the global MFA policy. Free functions for the same reason.
+  `JWT_SECRET` stays a live binding from `src/config` and must NOT move to
+  `app-config`: the admin panel rotates it at runtime, and a `registerAs` token
+  would freeze the boot value.
+- `query-helpers/` — the batch loaders that keep list endpoints off N+1 queries.
+- `trip-membership/` — `joinTripAsMember`. Its own module rather than folded into
+  auth or trip-invite, because both call it (as do oidc and the plugin host) and
+  either home would put `AuthModule` and `TripInviteModule` in a cycle.
+- `addons/addon.guard.ts` + `@RequireAddon(addonId, label)` — the addon route
+  gate. Declare `AddonGuard` **before** `JwtAuthGuard`: a disabled addon has to
+  answer 404 to anonymous callers, so the addon check must beat the 401.
+- `common/demo-write.ts` — `isDemoWriteBlocked`, the demo-mode upload block. A
+  function and not a guard on purpose; see the gotcha below.
+
+### Reaching the container from outside it
+
+Two shapes, and the choice is settled:
+
+**Prefer handing the dependency in.** `src/scheduler.ts` declares a
+`SchedulerDeps` interface of the capabilities it needs, and `index.ts` fills it
+from the app after `buildApp()` — the way `bootstrap.ts` hands the `/mcp`
+handler its registry. The declaration is **structural** (`{ backups: {
+createBackup } }`), never the provider class: importing `BackupService` would
+pull in `src/nest/backup` → `src/services/backupService` → `src/scheduler` and
+close a cycle.
+
+**`<domain>.bridge.ts` is the older shape** and still correct for the MCP
+registrars that reach a domain at import time. Its cost is real, though: a
+bridge rebuilds its services with `new`, so adding one constructor parameter to
+a service means hand-editing every bridge that constructs it — five of them in
+one PR, most recently. `app.get()` costs nothing there and returns the container
+singleton rather than a second instance.
+- `app-config/` — the `@nestjs/config` binding (`AppConfigModule`, global). Never
+  read `process.env` in a module (ESLint enforces this): inject a boot-stable
+  namespace via its `registerAs` token (`@Inject(mcpConfig.KEY) … ConfigType<…>`)
+  or read runtime-toggled values live through `RuntimeEnvService` / `readEnv()`
+  from `src/app-config`. The classification and invariants live in
+  `src/app-config/README.md`.
 
 ## Parity gotchas worth remembering
 
@@ -44,6 +112,34 @@ mount to Nest and leaves the sibling trip routes (days, places, ...) on Express.
   returns `{ error: 'Admin only' }`, not the AdminGuard's `Admin access required`.
 - Trip-scoped routes verify trip access (404) and the relevant permission (403)
   per handler and forward `X-Socket-Id` to the WebSocket broadcast.
+- **Never gate a multipart upload with a guard.** Guards run before the parser,
+  so throwing from one leaves the request body unread and Node resets the
+  connection — the client sees `ECONNRESET`, not your 403. Check inside the
+  handler, after the interceptor has drained the upload. `PROFILE-015` is the
+  regression test.
+- **`@Global()` only applies to modules that are in the graph.** An e2e
+  `TestingModule` built around one domain module does not get `AppConfigModule`
+  for free just because it is global: a provider injecting `RuntimeEnvService`
+  fails to resolve and takes every suite importing that module down with it.
+  Import it explicitly, the way `PermissionsModule` is handled.
+- **A module-scoped registry that outside code writes into must stay a module,
+  not a provider.** The notification channel registry is the live example:
+  `PluginRuntimeService` pushes its channel getter in at `onModuleInit`, and
+  `notifications.bridge.ts` builds its own `NotificationsService` for the
+  scheduler crons. As a provider the bridge would get a second, empty registry
+  and every plugin channel would go quiet — with no error anywhere.
+  `CHOVR-015` is the regression test. Same reasoning as
+  `oauth/oauth.pending-codes.ts`.
+- **Self-registration by side-effect import is a trap.** The built-in channels
+  used to register because `notificationPreferencesService` happened to `import
+  './notifications/builtins'`. Dropping that one line would have silenced email,
+  webhook and ntfy without a failure. They are built from injected transports and
+  registered in `NotificationsService`'s constructor now, so every path that can
+  dispatch has them.
+- A guard with a constructor dependency has to be a registered provider
+  everywhere it is used. The three auth guards are dependency-free on purpose —
+  38 directories apply them and 21 do not import `AuthModule`, so giving them a
+  dependency is its own migration, not a side effect of another change.
 
 ## Parity is law
 
@@ -55,21 +151,21 @@ the controller rather than relying on the generic `ZodValidationPipe` envelope.
 
 ## How to write the tests
 
-Every module ships three kinds of tests; the coverage gate (`vitest.config.ts`,
-scoped to `src/nest/**`) requires ≥80%.
+Every module ships two kinds of tests. The coverage gate (`vitest.config.ts`)
+requires ≥80% over `src/nest/**` — note that it is an **average across the whole
+tree**, not a per-file floor, so a large untested module can hide behind the
+well-covered small ones.
 
 1. **Service / controller unit spec** — `tests/unit/nest/<domain>.controller.test.ts`.
    Instantiate the controller with a mocked service; assert status codes, the exact
    `{ error }` bodies, and that inputs are forwarded correctly (defaults, coercion).
    See `weather.controller.test.ts`.
 
-2. **Parity test** — `tests/parity/<domain>.parity.test.ts`. Mock the shared service
-   identically for both apps, then fire the same request at the Express route and the
-   Nest controller with the `expectParity()` harness (`tests/parity/parity.ts`) and
-   assert identical status + body. This is the gate before flipping the toggle.
-   See `weather.parity.test.ts`.
+   Parity against the behaviour being replaced belongs here too — assert the exact
+   status codes and bodies the old path produced. There is no separate
+   `tests/parity/` directory; it was removed along with the routing toggle.
 
-3. **e2e** — `tests/e2e/<domain>.e2e.test.ts`. Boot the Nest module against a temp
+2. **e2e** — `tests/e2e/<domain>.e2e.test.ts`. Boot the Nest module against a temp
    in-memory SQLite db via the shared harness (`tests/e2e/harness.ts`:
    `createTempDb`/`seedUser`/`sessionCookie`), exercising the **real** `JwtAuthGuard`
    end-to-end (401 without cookie, 200 with a signed session). Mock external I/O
@@ -78,7 +174,453 @@ scoped to `src/nest/**`) requires ≥80%.
 ## Definition of Done (per module)
 
 Contract in `@trek/shared` → service ported 1:1 → controller with identical routes →
-validation/error parity → unit + parity + e2e tests over the gate → prefix toggled to
-Nest → parity verified on the demo DB → **then** decommission the old Express
-route/service (separate step, after the toggle is confirmed in prod) → frontend points
-at the typed contract (Frontend Track).
+validation/error parity → unit + e2e tests, with the old behaviour asserted in the
+unit test → module registered in `app.module.ts` → **then** decommission the legacy
+service (separate step) → frontend points at the typed contract (Frontend Track).
+
+## Migrating a legacy `src/services/*` service into its Nest module (recipe)
+
+Pilot: **tags** (`services/tagService.ts` → `nest/tags/tags.service.ts` +
+`nest/tags/tags.bridge.ts`); categories followed the same shape (and piloted the
+first `@Resource` in `categories.mcp.ts`); todo followed too (and piloted the
+first `@ResourceTemplate` plus the `when` addon gate in `todo.mcp.ts`, and the
+first in-container consumer wiring: `TripsService` injects `TodoService` via
+`exports: [TodoService]` instead of using the bridge); packing followed (the
+largest port so far: a 17-tool + 2-resource `packing.mcp.ts` with inline admin
+gates, and the first `PluginHostDepsFactory` swap done as part of a service
+migration — no bridge entry for the plugin host); day-notes followed (the first
+migration needing **no bridge at all**: after its three tools + resource moved
+to `day-notes.mcp.ts` and the plugin host injection, nothing outside the
+container consumed it); trip-invite followed (the smallest port: no MCP
+surface, no plugin-host import and no bridge — the SQL folded straight into
+`trip-invite.service.ts`); assignments followed (a 7-tool `assignments.mcp.ts`,
+the plugin-host swap, and a bridge kept only for the two legacy registrars —
+places and reservations — that borrow its existence checks; the batch loaders
+stay in `services/queryHelpers.ts`, shared with the unmigrated place
+service); share followed (never imported by the plugin host, and its three MCP
+tools stay in the legacy trips registrar — their `trips:share` scope gate has
+no declarative `access: { group, mode }` equivalent — so the port is the SQL
+fold plus a 3-export `share.bridge.ts` for `mcp/tools/trips.ts`); settings
+followed (no MCP surface, no bridge, and the first migration that converted an
+in-container plain-function consumer into a provider instead of bridging it:
+`llm-parse/llm-config.resolver.ts` became the injectable `LlmConfigResolver`,
+injected by `LlmParseService` and `PluginHostDepsFactory`); files followed (no
+MCP surface and no addon gate; the load-time constants + pure helpers consumed
+by three controllers' module-scope multer configs moved to
+`files.constants.ts`, and `files.bridge.ts` survives with a single export —
+the request-time `getAllowedExtensions` app_settings read those configs need
+outside DI — while every function consumer, including the plugin host and
+`TripsService`, injects `FilesService`); collab followed (a 12-tool +
+3-resource `collab.mcp.ts` that piloted **composite `when` gates** — the collab
+addon AND the per-sub-feature `getCollabFeatures()` flags (notes/polls/chat)
+that the legacy registrar and resources checked at registration time — plus
+the plugin-host swap and a 3-export `collab.bridge.ts` for the two remaining
+legacy consumers, `tripService`'s trip summary and `mcp/tools/trips.ts`);
+vacay followed (the largest MCP port yet — a 26-tool + 3-resource
+`vacay.mcp.ts`, including the first fixed-URI `@Resource` behind a `when`
+addon gate — plus the plugin-host swap and a 1-export `vacay.bridge.ts` for
+`tripService`'s trip-window entry shift; the DTO ratchet for its 13
+grandfathered body contracts landed as a sibling commit); reservations
+followed (the residue fold: the wrapper `ReservationsService` was already
+DI-native at the edge, so the 626-line legacy module folded into it — a 5-tool
++ 1-resource `reservations.mcp.ts`, the plugin host's last plain-function
+reservation import (`notifyBookingChange`) swapped for the injected service,
+`TripsService` and `BookingImportService` converted from function imports to
+injection, and a 9-export + 3-type `reservations.bridge.ts` for the legacy
+`tripService`, the airtrail import/sync pair and the still-legacy transports
+registrar (the transit registrar has since migrated to `transit.mcp.ts`); the
+DTO ratchet for its 4 grandfathered body contracts
+landed as a sibling commit, which also loosened the shared positions schema to
+the real wire contract — `day_plan_position` optional, pinned by RESV-006);
+day followed (the 592-line legacy `dayService` folded into the existing
+wrapper `DaysService` — including the accommodation SQL that
+`nest/reservations/accommodations.service.ts` now reaches via an injected
+`DaysService` — with the hand-rolled `BEGIN`/`COMMIT` blocks in
+reorder/insert converted to `db.transaction()`; a 7-tool + 2-resource
+`days.mcp.ts`, the plugin host's 11-symbol import swapped for the injected
+service, `TripsService` + the assignments/reservations MCP controllers
+converted to injection, and a 6-export `days.bridge.ts` for the legacy
+`tripService` and the still-legacy transports registrar (transit has since
+migrated); the DTO
+ratchet for its 4 day + 2 accommodation grandfathered body contracts landed
+as a sibling commit);
+permissions followed (the first Wave-2 **cross-cutting** migration and the
+first greenfield module in the series — no prior wrapper, controller, MCP
+surface or DTO of its own: a new `nest/permissions/` whose
+`PermissionsService` is injected by 16 domain services, the airtrail-import
+controller and `PluginHostDepsFactory` (its 16th constructor dep) in one move,
+plus a 5-function `permissions.bridge.ts` for `mcp/tools/_shared.ts` — one
+repoint covering every `hasTripPermission` call site — and the four legacy
+consumers adminService/authService/backupService/collectionsService; the
+permissions **cache stays module-scoped** in `permissions.service.ts` on
+purpose, so the bridge instance and the container singleton share one cache
+and backup-restore's bridge-side `invalidatePermissionsCache()` flushes what
+request handlers serve; the domain e2e suites swapped their path mocks for a
+`vi.spyOn(app.get(PermissionsService), 'checkPermission')` instance spy);
+auditLog followed (the other Wave-2 half, split into five files: the
+injectable `AuditService` (`writeAudit` over `DatabaseService`), the pure
+`client-ip.ts` (files.constants precedent — the four getClientIp-only
+controllers stay plain imports), the deliberately side-effectful plain
+`audit-log.logger.ts` — frozen-at-import `LOG_LEVEL` and the import-time
+`data/logs` mkdir are a documented parity exception to the no-side-effects
+rule because `index.ts` lazy-requires it pre-container and tests/setup.ts
+sets the level pre-import — plus `audit.module.ts` and a full-surface
+`audit.bridge.ts` for `mcp/index.ts`, `mcp/oauthProvider.ts` and the legacy
+airtrail/immich/oauth services, while log*-only consumers (index.ts's lazy
+require strings, scheduler, globalMiddleware, notifications) point at the
+logger directly; 8 controllers + `PluginRuntimeService` inject `AuditService`,
+and the domain e2e suites dropped the audit mock entirely — writeAudit runs
+for real against an `audit_log` table in their temp DBs).
+The exchangeRateService fold followed (the pure-infra FX helper — Frankfurter
+fetch + module-scoped 6h cache, no SQL, no controller, no MCP registrar of its
+own — folded into `nest/budget/` as a dep-free `ExchangeRatesService`, injected
+by `BudgetService` and `PluginHostDepsFactory` (its 17th constructor dep); the
+rate **cache stays module-scoped** like the permissions cache, so any
+out-of-container instance and the container singleton share one cached
+upstream feed).
+budgetService followed (the 755-line Wave-4 money core folded into the wrapper
+`BudgetService`: items/members/payers CRUD, the FX freeze + rebase paths and
+the settlement maths with `splitEqualShares` gone private; the freeze-then-write
+composites kept their wrapper names while the raw settlement writes became
+`insertSettlement`/`applySettlementUpdate` so the MCP paths keep skipping the
+freeze; the 11-tool `mcp/tools/budget.ts` registrar + 3 `resources.ts` budget
+resources moved to `budget.mcp.ts`; TripsService, ReservationsService (+ its
+MCP class) and BookingImportService inject `BudgetService`; a 4-export
+`budget.bridge.ts` served the legacy tripService/userCleanupService and the
+trips/transports registrars (down to two exports since; `UserCleanupService`
+still takes `removeUserFromBudgetItems` from it, because BudgetModule imports
+AuthModule for BudgetMcp's demo guard and AuthModule therefore cannot import
+BudgetModule back); `exchange-rates.bridge.ts` was deleted with its
+last consumers, and the controller adopted `budget.dto.ts` — all nine
+allow-list entries removed).
+tripService followed (the 1121-line Wave-4 hub — the biggest fold — moved into
+the wrapper `TripsService`: TRIP_SELECT + list/create/get, the
+`generateDays` two-phase renumber engine, the updateTrip date-shift
+transaction, the member/guest lifecycle (#973/#1362), the ICS export with its
+module-scoped tz-validity cache, `copyTripById` and `getTripSummary`; its six
+bridge imports became injected services (CollabService + VacayService joined
+the constructor); the 10-tool trips registrar + 3 `resources.ts` trip
+resources + the trip-summary prompt moved to `trips.mcp.ts` — the first
+`@Prompt` use, with the fire-once static-token deprecation notice now riding
+the `registry.attach` ctx — and the 3 share-link tools it carried moved to
+`share.mcp.ts` on the `canShareTrips` predicate (delete_trip and the
+canReadTrips reads are predicates too — the broadened legacy gates have no
+declarative equivalent); FeedsService and the plugin host inject
+`TripsService` (its 20th constructor dep); a 3-export `trips.bridge.ts`
+serves the legacy prompts registrar and budget.mcp.ts's owner/member seam
+(injecting there would need a forwardRef'd TripsModule↔BudgetModule cycle);
+`todo.bridge.ts`, `share.bridge.ts`, `collab.bridge.ts` and `vacay.bridge.ts`
+were deleted with their last consumers and the unused days/budget bridge
+exports pruned; the controller adopted `trips.dto.ts` — all seven allow-list
+entries removed).
+mapsService followed (the 1429-line geo core — Google Places, Nominatim,
+Overpass mirror racing, Wikimedia photos, Maps-URL resolution — folded into the
+wrapper `MapsService`; the pure parser/UA/POI-category helpers moved to
+`maps.helpers.ts` as plain exports (files.constants/client-ip precedent —
+the DI-native TransitService's User-Agent imports from there, not a bridge), the module-scoped
+POI cache / photo-fetch semaphore / frozen Overpass mirrors stayed module-scoped
+on purpose (permissions-cache precedent: any out-of-container instance and the
+DI singleton share them); the 3 geo tools left the mixed `mcp/tools/mapsWeather.ts`
+registrar for the decorator-driven `maps.mcp.ts` (the registrar file survives —
+its weather + airport tools await their own migrations); BookingImportService
+injects `MapsService` for its Nominatim geocoding, and a 3-export
+`maps.bridge.ts` served the legacy placeEnrichment helper and the places
+registrar — both absorbed by the 2026-07 place fold, which deleted the bridge).
+transitService followed (the first fully SQL-free domain fold — the 333-line
+Transitous/MOTIS proxy became a dep-free `TransitService` (no
+`DatabaseService`; the ExchangeRatesService precedent), its response cache,
+frozen-at-import `TRANSIT_API_BASE` and lazy User-Agent memo staying
+module-scoped on purpose; the pure `deriveTransitStats` + mode whitelist +
+itinerary types moved to `transit.helpers.ts` (maps.helpers precedent) so the
+downstream legacy `transitItineraryService` needed no bridge (since relocated
+into the domain as `transit-itinerary.helpers.ts`); the whole 3-tool
+`mcp/tools/transit.ts` registrar moved to `transit.mcp.ts` — the two geo
+search tools on `access: { group: 'geo', mode: 'read' }` and
+`create_transit_journey` on `reservations:write`, with its days/reservations
+bridge imports becoming injected `DaysService`/`ReservationsService` (+
+`DatabaseService` for `canAccessTrip`) — leaving **zero bridge files** and the
+transports registrar as `days.bridge.ts`'s last consumer).
+placeService followed (the step-4 tail: the 1029-line place core — the
+CRUD + ratings SQL, the GPX/KML/KMZ importers and the Google/Naver list
+importers — folded into the wrapper `PlacesService`, with the pure pieces
+(frozen XML parsers, the KMZ unpacker, the dedup predicates, the Google
+hex-id parsers, `reclaimPhotoCache`) moving to `places.helpers.ts` on the
+maps.helpers precedent; the 10-tool `mcp/tools/places.ts` registrar + the
+`trek://trips/{tripId}/places` resource moved to `places.mcp.ts` —
+`search_place` came along because its gate is `places:read`, not the geo
+group, and now injects `MapsService`; TripsService, DaysMcp,
+BookingImportService and the plugin host (its 21st constructor dep) inject
+`PlacesService`, leaving **zero bridge files** for the domain; the two
+`assignments.bridge` imports stay in `places.mcp.ts` on purpose —
+AssignmentsModule imports DaysModule and DaysModule now imports
+PlacesModule, so injecting would close a
+DaysModule → PlacesModule → AssignmentsModule → DaysModule cycle
+(reservations.mcp.ts uses the same seam for the same reason). The sibling
+`placeEnrichment` fold went further than the recipe's minimum: the 168-line
+helper's DB/websocket/Maps half became `PlacesService` methods over the
+injected `DatabaseService`/`RealtimeService`/`MapsService` and its pure
+match selector joined `places.helpers.ts`, which retired **`maps.bridge.ts`**
+with its last consumer. The DTO ratchet for its 7 grandfathered body
+contracts landed as a third commit, which also loosened
+`placeBulkUpdateRequestSchema.ids` (`.min(1)` dropped) so the endpoint's
+empty-list short-circuit stays reachable, and retired three bespoke 400
+strings — 'Place name is required', 'ids must be an array of numbers' and
+'URL is required' — in favour of the pipe envelope, accepting that a
+malformed body now 400s ahead of the trip-access 404 (the todo/trips trade).
+transitItineraryService followed (the first pure-helpers relocation with no
+service fold at all — the 287-line module is 100% pure, so the recipe's SQL /
+bridge / DTO / plugin-host steps were all no-ops: the Zod itinerary schemas +
+endpoint/metadata builders moved byte-identical to
+`transit-itinerary.helpers.ts`, next to `transit.helpers.ts`; the schemas
+**must** stay module-level plain exports because `transit.mcp.ts` consumes
+them inside `@Tool({ inputSchema })` decorators, which evaluate at module load
+before any container exists; the sole consumer — the in-container
+`transit.mcp.ts` — was a one-import repoint, closing step 4 of the
+dependency-honest order; the legacy module had no direct suite, so a new
+21-case `TRANSIT-ITIN-*` characterization suite now pins all 12 superRefine
+error strings, the `??` time fallbacks, the coordinate tolerances and the
+reservation endpoint/metadata builder).
+collectionsService followed (the biggest single fold yet — 1024 lines / 28
+exports into `CollectionsService` over DatabaseService + PermissionsService +
+RealtimeService, with the `deleteOldCollectionCover` path re-anchored one
+directory deeper and the `sendInvite` lazy notificationService `import()`
+kept, collab precedent; the 25-tool legacy registrar `mcp/tools/collections.ts`
+moved to `collections.mcp.ts` — at relocation time deliberately with NO
+`when:` addon gate, since the legacy registrar registered unconditionally
+while REST/plugin-host gate on the addon; the trailing `fix(server)` quirk
+commit then gated all 25 tools (the addon ships disabled by default, so the
+ungated surface was live on fresh installs) alongside wrapping every
+multi-statement write in `db.transaction()`, making the bulk ops
+all-or-nothing, and forwarding `X-Socket-Id` on the from-trip saves — each
+pinned by a new 23-case `tools-collections` characterization suite plus the
+`COLLECTIONS-SVC-090…092` band (the legacy registrar had no tool-level tests
+at all);
+the plugin host swapped its 7 collections imports for the injected service —
+its 22nd constructor dep — and NO bridge was needed anywhere; the dead
+`buildDedupSet` module helper was dropped in the move, the only line that
+didn't relocate verbatim).
+atlasService followed (1612 lines split two ways, places precedent: the DB
+half — stats aggregation, visited countries/regions with the #1490
+tombstone/cascade logic, bucket-list CRUD — folded into `AtlasService` over
+DatabaseService alone, while the ~750-line pure-geo half — the bundled
+admin0/admin1 stores and their #1576 OOM-shaped streaming builders, the
+point-in-polygon indexes, Nominatim geocoding with its shared ≥1.1s throttle,
+the 50k geocode cache with its import-time unref'd cleanup interval, and the
+`geocodingInFlight` dedup set — moved to the plain module `atlas-geo.ts` so
+those caches stay process-global across the container instance, the bridge
+instance and test helpers; `assetPath` re-anchored one directory deeper, the
+only non-verbatim line. The 10-tool legacy registrar `mcp/tools/atlas.ts`
+plus all four atlas resources in `mcp/resources.ts` (`trek://bucket-list`,
+`trek://visited-countries`, `trek://atlas/stats`, `trek://atlas/regions`)
+moved to `atlas.mcp.ts` — here the `when:` atlas-addon gate IS parity, since
+the legacy registrar and resources both gated on the addon while the REST
+controller deliberately does not; the mark_region_visited /
+get_country_atlas_places no-uppercase divergence from REST relocated
+untouched. The plugin host swapped its 9 atlas imports for the injected
+service — its 23rd constructor dep — and a minimal 2-export `atlas.bridge.ts`
+existed solely for the legacy `authService.getTravelStats` edge
+(`getCountryFromCoords` re-exported straight from atlas-geo,
+`getHiddenCountries` over the bridge instance); it died with the auth fold, as
+predicted. resources.test.ts retired with its last two cases — every resource
+it covered now lives in the domain suites. The trailing `fix(server)` quirk
+commit then wrapped the four multi-statement mark/unmark writes in
+`db.transaction()` (the region cascade nests as a savepoint), made the
+trip-less `countryPlaces` early return honour `manually_marked`, fixed the
+`|| null` bindings that dropped `lat: 0`/`lng: 0`/`notes: ''` on bucket
+update, user-scoped the mutating bucket SQL, and uppercased the MCP
+region/country-places codes to match REST — each pinned by
+`ATLAS-SVC-031…036` plus two MCP casing cases; see migration-graph.md's
+"Quirks fixed after the atlas fold".)
+authService followed (1497 lines, the biggest fold and the head of the
+auth → admin → oauth chain: the pure crypto half — backup-code
+hash/match/generate, `stripUserForClient`, key masking, the import-time
+`DUMMY_PASSWORD_HASH` timing equaliser and the `avatarDir` mkdir (both
+documented parity exceptions) — moved to the plain module `auth.helpers.ts`,
+while the DB half — toggles/app-config, register/login with the CWE-208
+dummy-hash path, MFA setup/enable/disable/verify, the password-reset
+throttle+token flows with their two `db.transaction()` revocation blocks,
+API keys/settings, travel stats, MCP/ws/resource tokens, `isDemoUser` and
+the two token verifiers — folded into `AuthService` over DatabaseService +
+injected PermissionsService (ex `permissions.bridge`) and AtlasService (ex
+`atlas.bridge`, which died on schedule). The `mfaSetupPending` and
+per-email reset-throttle maps stay module-scoped (with the unref'd cleanup
+interval) so the bridge instance and the container singleton share them; the
+otplib `window: 1` mutation runs at module top; `require('../../../package.json')`
+and `avatarDir` re-anchored one directory deeper — the only non-verbatim
+lines besides the two injection swaps. No MCP registrar existed and the
+plugin host never imported authService, so neither surface changed; the 15
+in-container `*.mcp.ts` demo guards now inject AuthService (their modules
+import AuthModule) — except `atlas.mcp.ts`, which keeps a bridge import
+because AuthService injects AtlasService and the reverse module edge would
+close a cycle (places.mcp precedent). The 8-export `auth.bridge.ts` serves
+`mcp/index.ts` token verification, the three legacy tool registrars'
+`isDemoUser`, and the un-migrated adminService.
+Tests moved with IDs preserved: authService.test.ts → auth.helpers.test.ts,
+authServiceDb.test.ts → auth.service.test.ts (+ AUTH-BR-001…007 bridge
+delegation); auth.e2e converted DI-native — the 30-method whole-module mock
+died, login now runs real bcrypt and real audit rows; oidc.e2e switched its
+dead path-mock for a `vi.spyOn(app.get(AuthService), …)` instance stub.)
+oidcService followed (the frontier cash-in the auth fold predicted: a pure
+fold of the 508-line module into the existing wrapper `OidcService` over
+DatabaseService + injected AuthService — the `resolveAuthToggles`
+`auth.bridge` import became the injection, the first repoint-consumer of that
+bridge to migrate. No MCP registrar, no plugin-host import, and **no bridge
+at all**: nothing outside the container consumes the domain (day-notes/
+trip-invite class), so the `pendingStates`/`authCodes` maps, their two sweep
+`setInterval`s, the single-slot discovery cache and the JWKS cache became
+**instance state** — the module-scope precedent (permissions/atlas-geo/auth
+maps) applies only where a bridge instance must share state, and none exists
+here; the sweepers start in the constructor and are cleared in
+`onModuleDestroy`, the one wire-invisible deviation. The `uuid`/`bcryptjs`
+lazy requires, the `invite_exhausted` reference-sentinel transaction (reshaped
+one line for `DatabaseService.transaction`) and every SQL string relocated
+verbatim; controller and its unit suite needed zero edits. Tests moved with
+IDs preserved: oidcService.test.ts → oidc.service.test.ts (OIDC-SVC-001…045,
+superseding the 18-case delegation-shim suite; 046–048 carry its wrapper
+cases); oidc.e2e swapped its whole-module path mock for
+`vi.spyOn(app.get(OidcService), …)` instance spies; the integration suite
+spies the four HTTP methods on the container instance while driving the real
+state maps on that same instance.)
+passkeyService followed (the last frontier member of the auth stack: the
+364-line WebAuthn module folded into a new `nest/auth/passkey.service.ts`
+`PasskeyService` over DatabaseService + injected AuthService — its three
+`auth.bridge` imports resolved to `this.auth.generateToken` plus plain
+`stripUserForClient`/`avatarUrl` helper imports, and `resolveWebauthnConfig`
+stayed a plain `services/webauthnConfig` import at the time (it has since
+become the injected `WebauthnConfigService`, which also feeds auth.service's
+`passkey_configured`). No MCP registrar, no plugin-host
+import, and **no bridge at all** — both consumers were already in-container:
+`PasskeyController` swapped its `import *` shim for the injection, and
+`AdminService` swapped its `adminResetPasskeys` function import for the
+injected service (`AuthModule` now exports PasskeyService and `AdminModule`
+imports AuthModule — the todo→TripsService in-container precedent). No
+module-level mutable state existed to preserve: the challenge store is
+DB-backed (`webauthn_challenges`, single-use `DELETE … RETURNING` claim,
+5-min TTL), so the fold is a plain stateless injectable — every SQL string,
+error string and the counter/login-bookkeeping transaction relocated
+verbatim. Tests: the legacy module had **no service-level suite**, so
+PASSKEY-SVC-001…030 were written fresh with the fold (characterization over a
+real `:memory:` DB, `@simplewebauthn/server` mocked at the ceremony-verdict
+boundary — the repo's first such mock); auth-guard.test.ts's PasskeyController
+block swapped its path mock for a constructor stub.)
+notificationService followed (the notifications fan-in, step 3 of the
+dependency-honest order: the `send()` dispatcher **and** the
+`inAppNotifications.ts` store folded together into the existing
+`NotificationsService` over DatabaseService + RealtimeService — the wrapper's
+in-app delegation became the real SQL, while the prefs matrix, the smtp/
+webhook/ntfy transports, the channel registry and `inAppNotificationActions`
+stay plain-module imports (graph-classified infra helpers, complete with
+their registry⇄prefs cycle). A one-export `notifications.bridge.ts` (`send`)
+covers the outside-container consumers — scheduler's two cron `require`s,
+legacy adminService and memories/{unified,synology} — **and** the six
+deliberately-lazy fire-and-forget `import().then(({ send }) => …)` sends in
+migrated Nest services (collab/collections/packing/reservations/trips/vacay,
+path-only repoints; kept lazy so a send can never block or cycle a domain
+module). In-container static consumers inject instead: `AdminController`'s
+dev test send (AdminModule → NotificationsModule) and the plugin host
+(`NotificationsService` = `PluginHostDepsFactory`'s 24th dep). The 5-tool
+legacy registrar + the `notifications-in-app` resource moved 1:1 to
+`notifications.mcp.ts` (no `when:` — the domain is core, not addon-gated).
+Tests moved with IDs preserved: notificationService.test.ts →
+notifications.service.test.ts (NSVC-001…019/NTFY-SVCB-*/NSVC-PLUG-001…007,
+plus the NSVC-020 bridge pin), inAppNotificationPrefs.test.ts →
+notifications.inapp-prefs.test.ts (INOTIF-*); ~18 suites repointed their
+path mocks/warm-ups to the bridge; admin.controller.test and the plugin-host
+suite converted theirs to constructor stubs; the module e2e went DI-native
+(real notifications DDL, prefs/transports still path-mocked).)
+adminService followed (the last Wave-5 god file and the first fold where recipe
+steps 2-4 were all no-ops or near-no-ops: **no `src/mcp/tools/admin.ts` has ever
+existed** — the "11 MCP consumers" figure carried in `migrate.md` /
+`migration-graph.md` predated the Phase-0 addons extraction, so no registrar
+moved, `mcp/tools.ts` / `mcp/resources.ts` / `mcp-test-controllers.ts` were
+untouched — and `plugin-host-deps.factory.ts` never imported the domain either
+(its addon reads already went through the DI-native `AddonsService`). The
+851-line module folded into the wrapper `AdminService` over `DatabaseService`
+plus injected Settings/Addons/Passkey/Packing/Auth/Permissions/Notifications
+services: the `auth.bridge` (`resolveAuthToggles`), `notifications.bridge`
+(`send`) and `permissions.bridge` (`getAllPermissions`/`savePermissions`)
+imports all became injections, while `PERMISSION_ACTIONS` stayed a plain const
+import and the `mcp/sessionManager` deep import kept its anti-cycle comment.
+The pure + module-scoped half moved to `admin.helpers.ts` — `compareVersions`,
+`utcSuffix`, `BCRYPT_COST`, the import-time `isDocker` probe (a documented
+parity exception, auth.helpers precedent) and the 5-minute version cache, which
+stays module-scoped so the bridge instance and the container singleton share it.
+Ahead of the fold the 11 packing-template functions relocated to
+`PackingService`, which already owned all three template tables
+(`saveAsTemplate` writes every one of them) — that also resolved the `admin-2`
+residual without a bridge, since `packing.mcp.ts` already injects the service;
+`AdminModule` gained PackingModule and PermissionsModule, both cycle-free.
+A 1-export `admin.bridge.ts` (`checkAndNotifyVersion`) serves the only
+out-of-container consumer, `scheduler.ts`'s daily cron. Four lines are
+non-verbatim, all path re-anchoring one directory deeper for `nest/admin/`
+(`rotateJwtSecret`'s data dir, the `package.json` version require, the
+websocket/demo-reset lazy requires) — both resolved paths verified against the
+emitted `dist/` layout. Tests moved with IDs preserved (adminService.test.ts →
+`nest/admin.service.test.ts`, ADMIN-SVC-001…069 incl. the pre-existing 029/030
+gap and duplicated 069, + ADMIN-BR-001 pinning the bridge and the shared version
+cache; versionNotification.test.ts → `nest/admin.version-notification.test.ts`,
+VNOTIF-001…007; the template cases rode along to `packing.service.test.ts`), and
+the module e2e went DI-native — its 3-method whole-module mock died, 6 cases
+became 15 over real SQL. A sibling DTO ratchet cleared all twenty
+`AdminController` allow-list entries — the largest single block — trading the
+three `'enabled must be a boolean'` checks plus `'permissions object required'`
+and `'Object body required'` for the pipe envelope; the schemas are
+deliberately permissive wherever the service owns a bespoke 400 of its own.)
+Repeat these steps per
+service (next up: **journeyService** / **oauthService** —
+per the dependency-honest order in
+`migration-graph.md`). This is a
+**pure relocation** — byte-identical
+SQL, statuses, bodies, and error strings. The plugin RPC host is **no longer a
+bridge consumer**: since Option A of `src/nest/plugins/DI-MIGRATION.md` it
+injects domain services via `PluginHostDepsFactory`, so a migrated domain adds
+`exports: [XService]` + a `PluginsModule` import instead of a bridge entry.
+Only legacy `src/mcp` registrars (and scheduler/websocket code) still need
+bridges.
+
+1. **Move the SQL** into `<domain>.service.ts` as methods over an injected
+   `DatabaseService` (`this.db.all<T>/get<T>/run/prepare/transaction`; strict
+   constructor injection, no `@Optional()`). Preserve every quirk: falsy-coercion
+   defaults (`x || fallback`, never `??`), post-insert/post-update re-selects (no
+   RETURNING), `COALESCE` semantics. If a controller already wraps the legacy
+   functions, do not change the service's method surface. The module needs no
+   `imports: [DatabaseModule]` — it's `@Global`.
+2. **Add `<domain>.bridge.ts`** next to the service **only if non-Nest consumers
+   exist** (legacy MCP tool registrars, scheduler, websocket — the plugin RPC
+   host now injects instead, see above). It builds a module-level instance over
+   the shared connection Proxy — `new XService(new DatabaseService(db))`,
+   reinitialize-proof, same pattern as `nest/todo/todo.bridge.ts` — and exports
+   the legacy function names 1:1.
+   Container code injects the service; only outside-container code imports the
+   bridge. When porting an MCP registrar, note the `access: { group, mode }`
+   markers are typed against the scope-derived `ScopeGroup` union and
+   boot-validated by `trekMcpValidateAccess` (`src/mcp/nest-mcp-policy.ts`) —
+   an unknown group, or `mode: 'write'` on a read-only group (`geo`,
+   `weather`), fails app boot. *(Design decision, settled with the tags pilot:
+   MCP tools stay outside the container and use the bridge. The alternative — handing the Nest app to the
+   MCP layer via `app.get(XService)` — was rejected: it would thread the container
+   through `mcpHandler` + every tool registrar and force a Nest bootstrap into the
+   container-less `tests/helpers/mcp-harness.ts` used by ~25 MCP suites.)*
+3. **Repoint non-Nest consumers** — import-path-only diffs from
+   `services/<x>Service` to `nest/<domain>/<domain>.bridge`; call sites unchanged.
+4. **Delete the legacy service** once `grep -rn "services/<x>Service" src tests`
+   only hits the tests you're rewriting.
+5. **Tests:**
+   - Move `tests/unit/services/<x>Service.test.ts` →
+     `tests/unit/nest/<domain>.service.test.ts`, preserving case IDs. Construct the
+     service directly — `new XService(new DatabaseService(testDb))` — no
+     TestingModule, no `overrideProvider` (repo convention). Add one delegation
+     case per bridge export: the bridge sits under `src/nest/**`, inside the ≥80%
+     coverage gate, and these cases pin it deterministically.
+   - Convert the module e2e to the DI-native pattern (exemplar
+     `tests/e2e/trips.e2e.test.ts`): temp-db DDL for the domain's tables,
+     `imports: [DatabaseModule, <Domain>Module]`, real SQL assertions. Keep only
+     the `vi.mock('../../src/db/database', …)` — the auth guard still reads users
+     through the singleton, and `DatabaseModule`'s factory picks up the same
+     mocked db. Drop the legacy-service mock entirely.
+   - Suites that mocked the legacy module mock the bridge path instead — same
+     factory shape, path-only change. (For the plugin host suite,
+     `plugin-host-deps.factory.test.ts`, the domain becomes a constructor stub
+     instead of a path mock.)
+6. **Verify** (from `server/`): `npm run typecheck`, `test:unit`,
+   `test:integration`, `test:e2e`, `lint:check`, `test:coverage`.

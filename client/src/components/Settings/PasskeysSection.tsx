@@ -63,8 +63,9 @@ export default function PasskeysSection({ demoMode }: { demoMode?: boolean }): R
 
   const canAdd = enabled && configured
 
+  // Both step-up flows are gated by disabled={busy || !pwd} on their submit button,
+  // so the password is always present by the time these run.
   const handleAdd = async () => {
-    if (!addPwd) { toast.error(t('settings.passkey.passwordRequired')); return }
     setBusy(true)
     try {
       const options = await authApi.passkey.registerOptions(addPwd)
@@ -94,7 +95,6 @@ export default function PasskeysSection({ demoMode }: { demoMode?: boolean }): R
   }
 
   const handleDelete = async (id: number) => {
-    if (!deletePwd) { toast.error(t('settings.passkey.passwordRequired')); return }
     setBusy(true)
     try {
       await authApi.passkey.delete(id, deletePwd)

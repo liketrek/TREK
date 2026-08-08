@@ -1,34 +1,23 @@
-import React, { useEffect, ReactNode } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import React, { useEffect, ReactNode, Suspense } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { applyAppearance } from './theme/applyAppearance'
 import { useAddonStore } from './store/addonStore'
 import { usePluginStore } from './store/pluginStore'
-import PluginPage from './pages/PluginPage'
+// The one page that stays in the entry chunk. Anyone logged out lands here, and
+// every other route redirects here first — a chunk round trip in front of the login
+// form would slow down the single screen that has to be there immediately.
 import LoginPage from './pages/LoginPage'
-import ForgotPasswordPage from './pages/ForgotPasswordPage'
-import ResetPasswordPage from './pages/ResetPasswordPage'
-import DashboardPage from './pages/DashboardPage'
-import TripPlannerPage from './pages/TripPlannerPage'
-import FilesPage from './pages/FilesPage'
-import AdminPage from './pages/AdminPage'
-import SettingsPage from './pages/SettingsPage'
-import VacayPage from './pages/VacayPage'
-import HelpPage from './pages/HelpPage'
-import AtlasPage from './pages/AtlasPage'
-import JourneyPage from './pages/JourneyPage'
-import JourneyDetailPage from './pages/JourneyDetailPage'
-import CollectionsPage from './pages/CollectionsPage'
-import JourneyPublicPage from './pages/JourneyPublicPage'
-import SharedTripPage from './pages/SharedTripPage'
-import JoinTripPage from './pages/JoinTripPage'
-import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
-import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import { ToastContainer } from './components/shared/Toast'
 import SaveToCollectionModal from './components/Collections/SaveToCollectionModal'
+import MSaveToCollectionSheet from './components/Collections/MSaveToCollectionSheet'
 import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget'
-import BottomNav from './components/Layout/BottomNav'
+import MobileShell from './mobile/MobileShell'
+import MRouteFallback from './mobile/components/MRouteFallback'
+import ErrorBoundary from './components/shared/ErrorBoundary'
+import { lazyWithRetry } from './utils/lazyWithRetry'
+import { useIsPhone } from './mobile/useIsPhone'
 import { TranslationProvider, useTranslation } from './i18n'
 import { authApi } from './api/client'
 import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
@@ -38,6 +27,48 @@ import OfflineBanner from './components/Layout/OfflineBanner'
 import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
 // Notice action registrations (side-effect imports):
 import './pages/Trips/noticeActions.js'
+
+// Every page below loads on demand. The entry chunk used to carry all twenty of
+// them eagerly, so opening /dashboard also paid for the planner, the journal, the
+// atlas and the vacation planner. lazyWithRetry rather than lazy: a chunk that
+// fails once gets a second, cache-busted attempt before the route boundary reaches
+// for a reload.
+const PluginPage = lazyWithRetry(() => import('./pages/PluginPage'))
+const ForgotPasswordPage = lazyWithRetry(() => import('./pages/ForgotPasswordPage'))
+const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'))
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'))
+const TripPlannerPage = lazyWithRetry(() => import('./pages/TripPlannerPage'))
+const FilesPage = lazyWithRetry(() => import('./pages/FilesPage'))
+const AdminPage = lazyWithRetry(() => import('./pages/AdminPage'))
+const SettingsPage = lazyWithRetry(() => import('./pages/SettingsPage'))
+const VacayPage = lazyWithRetry(() => import('./pages/VacayPage'))
+const HelpPage = lazyWithRetry(() => import('./pages/HelpPage'))
+const AtlasPage = lazyWithRetry(() => import('./pages/AtlasPage'))
+const JourneyPage = lazyWithRetry(() => import('./pages/JourneyPage'))
+const JourneyDetailPage = lazyWithRetry(() => import('./pages/JourneyDetailPage'))
+const CollectionsPage = lazyWithRetry(() => import('./pages/CollectionsPage'))
+const JourneyPublicPage = lazyWithRetry(() => import('./pages/JourneyPublicPage'))
+const SharedTripPage = lazyWithRetry(() => import('./pages/SharedTripPage'))
+const JoinTripPage = lazyWithRetry(() => import('./pages/JoinTripPage'))
+const InAppNotificationsPage = lazyWithRetry(() => import('./pages/InAppNotificationsPage.tsx'))
+const OAuthAuthorizePage = lazyWithRetry(() => import('./pages/OAuthAuthorizePage'))
+
+// The ten phone screens are chunks of their own, alongside the desktop pages
+// rather than inside them. Each page used to import its M screen statically and
+// decide while rendering, so the route chunk always carried both trees and the
+// viewport only picked which half stayed dark. Here the branch decides the
+// chunk: a phone never loads the desktop planner, a desktop never the mobile
+// shell.
+const MDashboardScreen = lazyWithRetry(() => import('./mobile/screens/dashboard/MDashboard'))
+const MTripScreen = lazyWithRetry(() => import('./mobile/screens/trip/MTripShell'))
+const MAdminScreen = lazyWithRetry(() => import('./mobile/screens/admin/MAdmin'))
+const MSettingsScreen = lazyWithRetry(() => import('./mobile/screens/settings/MSettings'))
+const MVacayScreen = lazyWithRetry(() => import('./mobile/screens/vacay/MVacay'))
+const MAtlasScreen = lazyWithRetry(() => import('./mobile/screens/atlas/MAtlas'))
+const MJourneyScreen = lazyWithRetry(() => import('./mobile/screens/journey/MJourney'))
+const MJourneyDetailScreen = lazyWithRetry(() => import('./mobile/screens/journey/MJourneyDetail'))
+const MCollectionsScreen = lazyWithRetry(() => import('./mobile/screens/collections/MCollections'))
+const MNotificationsScreen = lazyWithRetry(() => import('./mobile/screens/notifications/MNotifications'))
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -53,6 +84,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   const addonStore = useAddonStore()
   const { t } = useTranslation()
   const location = useLocation()
+  const isPhone = useIsPhone()
 
   if (isLoading) {
     return (
@@ -87,12 +119,57 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
     return <Navigate to="/dashboard" replace />
   }
 
+  // Below the md breakpoint the new mobile shell owns chrome (tokens, dock,
+  // sheets, toasts); from 768px up the legacy wrapper stays untouched. The
+  // shell branches internally so pages keep their state when the viewport
+  // crosses the breakpoint.
+  // The boundary sits inside the shell so a broken page keeps the navigation the
+  // user needs to leave it — outside, the route would be a dead end, and the
+  // mobile --m-* tokens live on the shell's .m-root anyway.
+  //
+  // key, not resetKeys: ProtectedRoute is the same component at the same position
+  // for all 16 protected routes, so without it React could keep the failed
+  // instance across a navigation and the error would follow the user around.
   return (
-    <div className="flex flex-col h-dvh md:block md:h-auto">
-      <div className="flex-1 overflow-y-auto md:overflow-visible">{children}</div>
-      <BottomNav />
-    </div>
+    <MobileShell isPhone={isPhone}>
+      <ErrorBoundary
+        key={location.pathname}
+        boundaryId="route"
+        level="route"
+        variant={isPhone ? 'mobile' : 'desktop'}
+      >
+        {children}
+      </ErrorBoundary>
+    </MobileShell>
   )
+}
+
+/**
+ * The public routes render outside ProtectedRoute, so the route boundary above
+ * never sees them — including /login, where someone lands when everything else
+ * failed, and the two anonymous share pages.
+ */
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
+  return (
+    <ErrorBoundary key={location.pathname} boundaryId="public-route" level="route">
+      {children}
+    </ErrorBoundary>
+  )
+}
+
+/**
+ * Picks the chunk, not just the branch. Both sides come through lazyWithRetry,
+ * so exactly one of them is fetched for a given viewport — which is the whole
+ * point: the ternary that used to sit in each page only ran once the browser
+ * had already paid for both trees.
+ */
+function ViewportRoute({ phone: Phone, desktop: Desktop }: {
+  phone: React.ComponentType
+  desktop: React.ComponentType
+}): React.ReactElement {
+  const isPhone = useIsPhone()
+  return isPhone ? <Phone /> : <Desktop />
 }
 
 function RootRedirect() {
@@ -107,6 +184,24 @@ function RootRedirect() {
   }
 
   return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
+}
+
+/**
+ * Shown while a route chunk is in flight. Same geometry as the auth spinner above,
+ * but on theme tokens — that one predates the styleguide and a new surface does not
+ * get to inherit its raw slate.
+ */
+function RouteFallback() {
+  // The fallback renders above MobileShell, so it has to pick its own palette —
+  // on a phone the desktop spinner on bg-surface would be a foreign white sheet
+  // in front of the mobile screen.
+  const isPhone = useIsPhone()
+  if (isPhone) return <MRouteFallback />
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-surface">
+      <div className="w-10 h-10 border-4 border-edge border-t-content rounded-full animate-spin"></div>
+    </div>
+  )
 }
 
 export default function App() {
@@ -200,6 +295,7 @@ export default function App() {
     }
   }, [settings.dark_mode, settings.appearance, isSharedPage])
 
+  const isPhone = useIsPhone()
   const isAuthPage = location.pathname.startsWith('/login')
     || location.pathname.startsWith('/register')
     || location.pathname.startsWith('/forgot-password')
@@ -207,153 +303,159 @@ export default function App() {
 
   return (
     <TranslationProvider>
-      {!isAuthPage && <SystemNoticeHost />}
-      <ToastContainer />
-      {!isAuthPage && <BackgroundTasksWidget />}
-      {!isAuthPage && <SaveToCollectionModal />}
-      <OfflineBanner />
-      <Routes>
-        <Route path="/" element={<RootRedirect />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/shared/:token" element={<SharedTripPage />} />
-        <Route path="/public/journey/:token" element={<JourneyPublicPage />} />
-        <Route path="/register" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        {/* OAuth 2.1 consent page — intentionally outside ProtectedRoute */}
-        <Route path="/oauth/consent" element={<OAuthAuthorizePage />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        {/* Trip invite link (#1143) — behind ProtectedRoute so an anonymous
-            visitor is redirected to /login (never registration) and returns here. */}
-        <Route
-          path="/join/:token"
-          element={
-            <ProtectedRoute>
-              <JoinTripPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/help"
-          element={
-            <ProtectedRoute>
-              <HelpPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/help/:slug"
-          element={
-            <ProtectedRoute>
-              <HelpPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trips/:id"
-          element={
-            <ProtectedRoute>
-              <TripPlannerPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trips/:id/files"
-          element={
-            <ProtectedRoute>
-              <FilesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute adminRequired>
-              <AdminPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plugins/:pluginId"
-          element={
-            <ProtectedRoute>
-              <PluginPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/vacay"
-          element={
-            <ProtectedRoute>
-              <VacayPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/atlas"
-          element={
-            <ProtectedRoute>
-              <AtlasPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/journey"
-          element={
-            <ProtectedRoute addonId="journey">
-              <JourneyPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/journey/:id"
-          element={
-            <ProtectedRoute addonId="journey">
-              <JourneyDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/collections"
-          element={
-            <ProtectedRoute addonId="collections">
-              <CollectionsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/collections/:id"
-          element={
-            <ProtectedRoute addonId="collections">
-              <CollectionsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/notifications"
-          element={
-            <ProtectedRoute>
-              <InAppNotificationsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      {!isAuthPage && <ErrorBoundary boundaryId="widget:system-notice" fallback={null}><SystemNoticeHost /></ErrorBoundary>}
+      <ErrorBoundary boundaryId="widget:toast" fallback={null}><ToastContainer /></ErrorBoundary>
+      {!isAuthPage && <ErrorBoundary boundaryId="widget:background-tasks" fallback={null}><BackgroundTasksWidget /></ErrorBoundary>}
+      {!isAuthPage && (isPhone ? <MSaveToCollectionSheet /> : <SaveToCollectionModal />)}
+      <ErrorBoundary boundaryId="widget:offline-banner" fallback={null}><OfflineBanner /></ErrorBoundary>
+      {/* One boundary for all route chunks, above <Routes> so it stays mounted
+          across navigations. react-router runs location updates inside a transition,
+          so a mounted boundary keeps the current page on screen instead of flashing
+          a spinner on every jump — the spinner is for the first paint of a deep link. */}
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/shared/:token" element={<PublicRoute><SharedTripPage /></PublicRoute>} />
+          <Route path="/public/journey/:token" element={<PublicRoute><JourneyPublicPage /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+          {/* OAuth 2.1 consent page — intentionally outside ProtectedRoute */}
+          <Route path="/oauth/consent" element={<PublicRoute><OAuthAuthorizePage /></PublicRoute>} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <ViewportRoute phone={MDashboardScreen} desktop={DashboardPage} />
+              </ProtectedRoute>
+            }
+          />
+          {/* Trip invite link (#1143) — behind ProtectedRoute so an anonymous
+              visitor is redirected to /login (never registration) and returns here. */}
+          <Route
+            path="/join/:token"
+            element={
+              <ProtectedRoute>
+                <JoinTripPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/help"
+            element={
+              <ProtectedRoute>
+                <HelpPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/help/:slug"
+            element={
+              <ProtectedRoute>
+                <HelpPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:id"
+            element={
+              <ProtectedRoute>
+                <ViewportRoute phone={MTripScreen} desktop={TripPlannerPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:id/files"
+            element={
+              <ProtectedRoute>
+                <FilesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminRequired>
+                <ViewportRoute phone={MAdminScreen} desktop={AdminPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <ViewportRoute phone={MSettingsScreen} desktop={SettingsPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/plugins/:pluginId"
+            element={
+              <ProtectedRoute>
+                <PluginPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vacay"
+            element={
+              <ProtectedRoute>
+                <ViewportRoute phone={MVacayScreen} desktop={VacayPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/atlas"
+            element={
+              <ProtectedRoute>
+                <ViewportRoute phone={MAtlasScreen} desktop={AtlasPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/journey"
+            element={
+              <ProtectedRoute addonId="journey">
+                <ViewportRoute phone={MJourneyScreen} desktop={JourneyPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/journey/:id"
+            element={
+              <ProtectedRoute addonId="journey">
+                <ViewportRoute phone={MJourneyDetailScreen} desktop={JourneyDetailPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/collections"
+            element={
+              <ProtectedRoute addonId="collections">
+                <ViewportRoute phone={MCollectionsScreen} desktop={CollectionsPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/collections/:id"
+            element={
+              <ProtectedRoute addonId="collections">
+                <ViewportRoute phone={MCollectionsScreen} desktop={CollectionsPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <ViewportRoute phone={MNotificationsScreen} desktop={InAppNotificationsPage} />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </TranslationProvider>
   )
 }

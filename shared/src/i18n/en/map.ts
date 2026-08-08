@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Activities',
   'map.showAllConnections': 'Show all booking routes',
   'map.hideAllConnections': 'Hide all booking routes',
+  'map.baseLayer.default': 'Map',
+  'map.baseLayer.satellite': 'Satellite',
+  'map.baseLayer.switchToSatellite': 'Switch to satellite view',
+  'map.baseLayer.switchToDefault': 'Switch to map view',
 };
 export default map;

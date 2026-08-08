@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Template Peta',
   'settings.mapTemplatePlaceholder.select': 'Pilih template...',
   'settings.mapDefaultHint': 'Kosongkan untuk OpenStreetMap (default)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Template URL untuk tile peta',
   'settings.mapProvider': 'Penyedia peta',
   'settings.mapProviderHint': 'Berlaku untuk peta Trip Planner dan Journey. Atlas selalu menggunakan Leaflet.',
@@ -78,6 +77,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Pengingat perjalanan',
   'settings.notifyTodoDue': 'Tugas jatuh tempo',
   'settings.notifyVacayInvite': 'Undangan Vacay fusion',
+  'settings.notifyVacayShare': 'Berbagi kalender Vacay',
   'settings.notifyPhotosShared': 'Foto dibagikan (Immich)',
   'settings.notifyCollabMessage': 'Pesan chat (Collab)',
   'settings.notifyPackingTagged': 'Daftar bawaan: penugasan',
@@ -268,6 +268,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Foto profil diperbarui',
   'settings.avatarRemoved': 'Foto profil dihapus',
   'settings.avatarError': 'Gagal mengunggah',
+  'settings.avatarRemoveError': 'Gagal menghapus',
   'settings.mfa.title': 'Autentikasi dua faktor (2FA)',
   'settings.mfa.description':
     'Menambahkan langkah kedua saat masuk dengan email dan kata sandi. Gunakan aplikasi autentikator (Google Authenticator, Authy, dll.).',
@@ -297,8 +298,9 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'Tidak tersedia dalam mode demo',
   'settings.bookingLabels': 'Label rute pemesanan',
   'settings.bookingLabelsHint': 'Menampilkan nama stasiun / bandara di peta. Jika mati, hanya ikon ditampilkan.',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Mata uang tampilan',
+  'settings.currencyHint':
+    'Jumlah di Biaya ditampilkan dalam mata uang ini hanya untuk tampilan — jumlah aslinya tidak berubah.',
   'settings.currencyTrip': 'Mata uang perjalanan',
   'settings.passkey.title': 'Passkey',
   'settings.passkey.description':
@@ -426,6 +428,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Bilah navigasi bawah',
+  'settings.appearance.mobileNav.hint':
+    'Pilih item yang tampil di bilah dan yang masuk ke “Lainnya”. Dasbor selalu tetap di urutan pertama.',
+  'settings.appearance.mobileNav.inBar': 'Di bilah',
+  'settings.appearance.mobileNav.underMore': 'Di bawah “Lainnya”',
+  'settings.appearance.mobileNav.moreEmpty': 'Belum ada apa pun di sini — semuanya muat di bilah.',
+  'settings.appearance.mobileNav.pinned': 'Disematkan',
+  'settings.appearance.mobileNav.toMore': 'Pindahkan ke “Lainnya”',
+  'settings.appearance.mobileNav.toBar': 'Pindahkan ke bilah',
+  'settings.appearance.dashOrder': 'Urutan dasbor',
+  'settings.appearance.dashOrder.hint':
+    'Atur ulang susunan daftar perjalanan dan widget di dasbor ponsel Anda. Perjalanan unggulan selalu berada di atas.',
+  'settings.appearance.dashOrder.trips': 'Perjalanan',
+  'settings.appearance.dashOrder.hidden': 'Tersembunyi',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -492,7 +508,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Waktu',
   'settings.pluginActivity.columns.status': 'Hasil',
   'settings.alwaysShowRoutes': 'Selalu tampilkan rute pemesanan',
-  'settings.alwaysShowRoutesHint': 'Menampilkan rute setiap penerbangan, kereta, dan pemesanan lainnya di peta secara otomatis, tanpa perlu mengaktifkannya satu per satu.',
+  'settings.alwaysShowRoutesHint':
+    'Menampilkan rute setiap penerbangan, kereta, dan pemesanan lainnya di peta secara otomatis, tanpa perlu mengaktifkannya satu per satu.',
 };
 
 export default settings;

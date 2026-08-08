@@ -1,6 +1,14 @@
 /**
- * Unit tests for MCP packing tools: create_packing_item, update_packing_item,
- * toggle_packing_item, delete_packing_item.
+ * Unit tests for the packing MCP surface (PackingMcp, DI-discovered):
+ * create_packing_item, update_packing_item, toggle_packing_item,
+ * delete_packing_item, plus the registration-time scope/addon gating and the
+ * trek://trips/{tripId}/packing + .../packing/bags resources (moved from the
+ * legacy registerResources — see resources.test.ts). The advanced tools live
+ * in tools-packing-advanced.test.ts.
+ *
+ * All of it attaches via the nest-mcp registry inside registerTools, so every
+ * harness here keeps withTools on (the resources are NOT registered by the
+ * legacy registerResources fan-out anymore).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -37,7 +45,8 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createPackingItem } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { ADDON_IDS } from '../../../src/addons';
 
 beforeAll(() => {
   createTables(testDb);
@@ -282,6 +291,150 @@ describe('Tool: delete_packing_item', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_packing_item', arguments: { tripId: trip.id, itemId: item.id } });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scope gating (packing read/write, registration-time)
+// ---------------------------------------------------------------------------
+
+describe('Packing tools — scope gating', () => {
+  const READ_TOOLS = ['list_packing_bags', 'get_packing_category_assignees', 'list_packing_templates'];
+  const WRITE_TOOLS = [
+    'create_packing_item', 'toggle_packing_item', 'delete_packing_item', 'update_packing_item',
+    'reorder_packing_items', 'create_packing_bag', 'update_packing_bag', 'delete_packing_bag',
+    'set_bag_members', 'set_packing_category_assignees', 'apply_packing_template',
+    'save_packing_template', 'delete_packing_template', 'bulk_import_packing',
+  ];
+
+  async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
+    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    try {
+      return (await h.client.listTools()).tools.map((t) => t.name);
+    } finally {
+      await h.cleanup();
+    }
+  }
+
+  it('registers all seventeen tools with null scopes (full access)', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, null);
+    for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);
+  });
+
+  it('registers only the read tools with packing:read', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['packing:read']);
+    for (const tool of READ_TOOLS) expect(names).toContain(tool);
+    for (const tool of WRITE_TOOLS) expect(names).not.toContain(tool);
+  });
+
+  it('registers no packing tools for an unrelated scope', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['budget:read']);
+    for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).not.toContain(tool);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Addon gating (packing addon, the legacy whole-registrar early return —
+// now the `when` predicate on every PackingMcp entry)
+// ---------------------------------------------------------------------------
+
+describe('Packing tools — packing addon gating', () => {
+  it('registers nothing (tools or resources) when the packing addon is disabled', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare('UPDATE addons SET enabled = 0 WHERE id = ?').run(ADDON_IDS.PACKING);
+    try {
+      await withHarness(user.id, async (h) => {
+        const names = (await h.client.listTools()).tools.map((t) => t.name);
+        expect(names).not.toContain('create_packing_item');
+        expect(names).not.toContain('list_packing_bags');
+        await expect(h.client.readResource({ uri: `trek://trips/${trip.id}/packing` })).rejects.toThrow();
+        await expect(h.client.readResource({ uri: `trek://trips/${trip.id}/packing/bags` })).rejects.toThrow();
+      });
+    } finally {
+      testDb.prepare('UPDATE addons SET enabled = 1 WHERE id = ?').run(ADDON_IDS.PACKING);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// trek://trips/{tripId}/packing resource (moved from the legacy registerResources)
+// ---------------------------------------------------------------------------
+
+describe('Resource: trek://trips/{tripId}/packing', () => {
+  it('returns packing items for a trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPackingItem(testDb, trip.id, { name: 'Passport' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/packing` });
+      const items = parseResourceResult(result) as { name: string }[];
+      expect(items).toHaveLength(1);
+      expect(items[0].name).toBe('Passport');
+    });
+  });
+
+  it('hides another member\'s private items from the requesting user (#858)', async () => {
+    const { user } = createUser(testDb);
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, checked, sort_order, is_private, owner_id) VALUES (?, ?, 0, 0, 1, ?)')
+      .run(trip.id, 'Secret gift', owner.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/packing` });
+      expect(parseResourceResult(result)).toEqual([]);
+    });
+  });
+
+  it('returns the access-denied payload for a non-member', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/packing` });
+      expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
+    });
+  });
+
+  it('returns the access-denied payload for a malformed trip id', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: 'trek://trips/not-a-number/packing' });
+      expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// trek://trips/{tripId}/packing/bags resource (moved from the legacy registerResources)
+// ---------------------------------------------------------------------------
+
+describe('Resource: trek://trips/{tripId}/packing/bags', () => {
+  it('returns the bags with their members', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bagId = Number(testDb.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(trip.id, 'Carry-On').lastInsertRowid);
+    testDb.prepare('INSERT INTO packing_bag_members (bag_id, user_id) VALUES (?, ?)').run(bagId, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/packing/bags` });
+      const bags = parseResourceResult(result) as { name: string; members: { user_id: number }[] }[];
+      expect(bags).toHaveLength(1);
+      expect(bags[0].name).toBe('Carry-On');
+      expect(bags[0].members.map((m) => m.user_id)).toEqual([user.id]);
+    });
+  });
+
+  it('returns the access-denied payload for a non-member', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/packing/bags` });
+      expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
     });
   });
 });

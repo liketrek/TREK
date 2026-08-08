@@ -83,7 +83,13 @@ describe('Tool: set_budget_item_members', () => {
       // Regression: returns a hydrated item, not the raw row from updateMembers.
       expect(data.item.members.map((m: any) => m.user_id)).toEqual([user.id]);
       expect(Array.isArray(data.item.payers)).toBe(true);
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:members-updated', expect.any(Object));
+      // Quirk fix: the broadcast carries the REST payload shape (the legacy
+      // MCP-specific { item } shape was a silent no-op in the client handler).
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:members-updated', expect.objectContaining({
+        itemId: item.id,
+        members: expect.arrayContaining([expect.objectContaining({ user_id: user.id })]),
+        persons: 1,
+      }));
     });
   });
 
@@ -215,7 +221,9 @@ describe('Tool: toggle_budget_member_paid', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.member).toBeDefined();
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:member-paid-updated', expect.any(Object));
+      // Quirk fix: the broadcast carries the REST payload shape (the legacy
+      // MCP-specific { itemId, member } shape was a silent no-op in the client).
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:member-paid-updated', expect.objectContaining({ itemId: item.id, userId: user.id, paid: 1 }));
     });
   });
 

@@ -455,6 +455,130 @@ export interface MapMarkerProvider {
   getMarkers(tripId: number, ctx: PluginContext): Promise<MapMarkerContribution[]>;
 }
 
+/** One shape in a map layer. Declarative only — the host draws it; styling is the
+ * tone palette plus clamped numerics (width 1–8, opacity 0.05–1) and a dash enum. */
+export interface MapLayerFeature {
+  type: 'polyline' | 'polygon' | 'circle';
+  points?: Array<[number, number]>; // [lat,lng] pairs — polyline (≥2) / polygon (≥3)
+  center?: [number, number];        // circle center [lat,lng]
+  radiusM?: number;                 // circle radius in metres (1..2,000,000)
+  tone?: ContributionTone;
+  width?: number;                   // stroke width, clamped 1..8 (default 3)
+  dash?: 'solid' | 'dash' | 'dot';  // stroke style (default solid)
+  opacity?: number;                 // stroke opacity, clamped 0.05..1 (default 0.8)
+  fill?: boolean;                   // polygon/circle: tint the inside (default true)
+  label?: string;                   // short tooltip text (≤80 chars)
+}
+/** A bounded vector overlay the host renders onto the trip map — a computed route,
+ * a reachable-range corridor, a zone. Complements mapMarkerProvider (points). */
+export interface MapLayerContribution {
+  id: string;                 // stable per-layer id (React key / dedupe)
+  name?: string;              // short layer name
+  features: MapLayerFeature[]; // host caps: 4 layers + 150 features + 8000 vertices per plugin
+}
+export interface MapLayerProvider {
+  /** Return layers to overlay on a trip's map. Runs with the current user bound,
+   * on a short timeout; the host caps the vertex budget and skips a failing call. */
+  getLayers(tripId: number, ctx: PluginContext): Promise<MapLayerContribution[]>;
+}
+
+/** One waypoint of a route request — a located stop of the day being routed. */
+export interface RouteWaypoint {
+  lat: number;
+  lng: number;
+  name?: string;    // the stop's display name, when known
+  placeId?: number; // the TREK place behind this stop, when it is one
+}
+/** What the planner asks a routeProvider to route. */
+export interface RouteRequest {
+  tripId: number;
+  dayId: number | null;   // the selected day, when the request is day-scoped
+  profile: string;        // one of the plugin's declared capabilities.routeProfiles ids
+  waypoints: RouteWaypoint[]; // 2..30 located stops, in visit order
+}
+/** One leg of the returned route — between consecutive request waypoints. */
+export interface RouteLeg {
+  distance: number; // metres
+  duration: number; // seconds (driving + any stop time you fold into the leg)
+  note?: string;    // short text shown on the leg connector (e.g. "25 min charge"), ≤120 chars
+}
+/** An intermediate stop on the returned route (a charging stop, a rest area). */
+export interface RouteViaPoint {
+  lat: number;
+  lng: number;
+  label?: string;        // short marker text, ≤80 chars
+  tone?: ContributionTone;
+  dwellSeconds?: number; // planned time at the stop (0..86400)
+}
+/** A computed route. The host validates it whole: coordinates are range-checked
+ * (≤10000 vertices), legs must be exactly waypoints-1 entries, vias are capped
+ * at 40 — a malformed result is discarded and the planner falls back to straight
+ * lines, like an OSRM outage. */
+export interface RouteProviderResult {
+  coordinates: Array<[number, number]>; // [lat,lng] polyline of the whole route
+  distance: number;                     // metres, whole route
+  duration: number;                     // seconds, whole route
+  legs: RouteLeg[];
+  viaPoints?: RouteViaPoint[];
+}
+export interface RouteProvider {
+  /** Route the given waypoints under one of the plugin's declared profiles.
+   * Runs with the current user bound, on a 20 s timeout (room for an external
+   * solver via declared egress); a failing call falls back to straight lines. */
+  getRoute(request: RouteRequest, ctx: PluginContext): Promise<RouteProviderResult>;
+}
+
+/** A time contribution the host renders into the day plan — "35 min charging at
+ * this stop", "45 min security before this flight". Anchored to an assignment or
+ * reservation row (or the start/end of a day); `minutes` also counts into the
+ * day's route-footer total. */
+export interface DayScheduleContribution {
+  id: string;              // stable per-item id (React key / dedupe)
+  dayId: number;           // must be a day of the requested trip
+  assignmentId?: number;   // anchor under this itinerary place row…
+  reservationId?: number;  // …or under this booking row…
+  position?: 'start' | 'end'; // …or at the start/end of the day (default 'end')
+  minutes?: number;        // planned time, 1..1440 — shown and totalled
+  label: string;           // short text (≤120 chars)
+  tone?: ContributionTone;
+}
+export interface DayScheduleProvider {
+  /** Return schedule contributions for a trip's days. Runs with the current user
+   * bound, on a short timeout; the host caps the item count and skips a failing
+   * call. */
+  getSchedule(tripId: number, ctx: PluginContext): Promise<DayScheduleContribution[]>;
+}
+
+/** A colour the host paints into one day card in the Plan sidebar (and into that day's
+ * mobile chip) — so a trip split into legs shows its leg membership while you scroll
+ * the itinerary. A region takes a `tone` from the shared palette or the plugin's own
+ * `#rrggbb` `color` (exactly six hex digits — anything else is ignored); either way
+ * the host picks the alpha per theme and per region and clamps a colour's lightness,
+ * so the tint always lands as a readable wash. The card has three separately tintable
+ * regions; the `tone`/`color` shorthands fill every region not named, and `color` wins
+ * over `tone` at the same level. The regions follow the DESKTOP card — mobile honours
+ * only the badge (as the day chip). */
+export interface DayTintContribution {
+  dayId: number;              // must be a day of the requested trip
+  tone?: ContributionTone;    // shorthand for every region not named below
+  color?: string;             // own-colour shorthand, `#rrggbb` only
+  badgeTone?: ContributionTone;    // the day-number badge (and the mobile day chip)
+  badgeColor?: string;
+  headerTone?: ContributionTone;   // the day header row
+  headerColor?: string;
+  activityTone?: ContributionTone; // the expanded activity list
+  activityColor?: string;
+  label?: string;             // optional tooltip on the day (≤60 chars)
+}
+export interface DayTintProvider {
+  /** Return one entry per day you want coloured. Runs with the current user bound, on
+   * a short timeout; a failing call is skipped. A day takes at most one contribution,
+   * resolved whole: within your own list the first entry for a day wins, and across
+   * plugins the first granted provider wins, so a day never flickers between two
+   * colours and two plugins can never each own part of one card. */
+  getDayTints(tripId: number, ctx: PluginContext): Promise<DayTintContribution[]>;
+}
+
 /** A text-only section the host appends to a trip's PDF export. Declarative only —
  * plain strings the host lays out and escapes; no markup ever reaches the document. */
 export interface PdfSection {
@@ -562,6 +686,10 @@ export interface PluginDefinition {
     warningProvider?: WarningProvider;
     tableContributor?: TableContributor;
     mapMarkerProvider?: MapMarkerProvider;
+    mapLayerProvider?: MapLayerProvider;
+    routeProvider?: RouteProvider;
+    dayScheduleProvider?: DayScheduleProvider;
+    dayTintProvider?: DayTintProvider;
     pdfSectionProvider?: PdfSectionProvider;
     atlasLayerProvider?: AtlasLayerProvider;
     journalEntryProvider?: JournalEntryProvider;

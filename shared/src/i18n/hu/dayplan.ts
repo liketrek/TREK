@@ -15,6 +15,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'Számítás...',
   'dayplan.route': 'Útvonal',
   'dayplan.optimize': 'Optimalizálás',
+  'dayplan.transportMode.change': 'Közlekedési mód módosítása',
+  'dayplan.transportMode.useDefault': 'Napi alapértelmezett',
   'dayplan.optimized': 'Útvonal optimalizálva',
   'dayplan.routeError': 'Nem sikerült kiszámítani az útvonalat',
   'dayplan.toast.needTwoPlaces': 'Legalább két hely szükséges az útvonal-optimalizáláshoz',

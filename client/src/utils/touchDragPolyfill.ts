@@ -6,11 +6,11 @@
  * dblclick fires the default double-click-zoom, so two quick one-finger pans zoomed
  * instead of panning (#1440).
  *
- * Reorder DnD is disabled wherever the primary pointer is coarse (#1432), so the only
- * device class left with a job for the polyfill is the hybrid laptop: a mouse as the
- * primary pointer, with a touchscreen also available. Loading it anywhere else — notably
- * on tablets, which a width check misclassifies as desktop — re-arms the very gesture
- * hijack #1432 removed, and drags the #1440 phantom-dblclick along with it.
+ * The hybrid laptop is the only device class left with a job for it: a mouse as the
+ * primary pointer, with a touchscreen also available. Loading it anywhere else re-arms
+ * the very gesture hijack #1432 removed, and drags the #1440 phantom-dblclick along
+ * with it. Coarse-pointer devices get touchDragBridge instead, which waits out a long
+ * press before it claims a gesture and so leaves scrolling alone (#1616).
  */
 export function maybeInstallTouchDragPolyfill(): Promise<unknown> | void {
   if (typeof window === 'undefined') return

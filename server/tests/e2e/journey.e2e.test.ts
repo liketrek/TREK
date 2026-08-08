@@ -9,6 +9,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
+import { DatabaseModule } from '../../src/nest/database/database.module';
 import { Test } from '@nestjs/testing';
 import { seedUser, sessionCookie } from './harness';
 
@@ -25,13 +26,10 @@ const { db } = vi.hoisted(() => {
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
-vi.mock('../../src/services/adminService', () => ({ isAddonEnabled }));
-vi.mock('../../src/services/fileService', () => ({
-  getAllowedExtensions: () => '*',
-  MAX_VIDEO_SIZE: 500 * 1024 * 1024,
-  isVideoExtension: (ext: string) => ['mp4', 'm4v', 'webm', 'mov'].includes(String(ext).toLowerCase().replace(/^\./, '')),
-  isVideoMime: (m?: string) => !!m && m.startsWith('video/'),
-}));
+// The controller's pure helpers (isVideoExtension/isVideoMime/MAX_VIDEO_SIZE)
+// now come from the real files.constants; only the request-time app_settings
+// read is mocked, preserving the old '*'-allowlist semantics for the fixtures.
+vi.mock('../../src/nest/files/files.bridge', () => ({ getAllowedExtensions: () => '*' }));
 vi.mock('../../src/services/memories/immichService', () => ({ uploadToImmich: vi.fn(), streamImmichAsset: vi.fn() }));
 vi.mock('../../src/services/memories/photoResolverService', () => ({ streamPhoto: vi.fn() }));
 
@@ -44,6 +42,7 @@ const { sharesvc } = vi.hoisted(() => ({ sharesvc: { getPublicJourney: vi.fn() }
 vi.mock('../../src/services/journeyShareService', () => sharesvc);
 
 import { JourneyModule } from '../../src/nest/journey/journey.module';
+import { AddonsService } from '../../src/nest/addons/addons.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 describe('Journey e2e (real auth guard + temp SQLite)', () => {
@@ -51,7 +50,10 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [JourneyModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, JourneyModule] })
+      .overrideProvider(AddonsService)
+      .useValue({ isAddonEnabled })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

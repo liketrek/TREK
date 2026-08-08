@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Yer/etkinlik Ekle',
   'places.importFile': 'Dosyayı içe aktar',
+  'places.trackIndicator': 'İz / rota',
   'places.sidebarDrop': 'İçe aktarmak için bırakın',
   'places.importFileHint':
     'Google Haritalarım, Google Earth veya GPS izleyici gibi araçlardan .gpx, .kml veya .kmz dosyalarını içe aktarın.',
@@ -44,7 +45,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Hangi güne eklensin?',
   'places.all': 'Tüm',
   'places.unplanned': 'Planlanmamış',
+  'places.planned': 'Planlanmış',
   'places.filterTracks': 'Parçalar',
+  'places.sortByRating': 'Puana göre sırala',
+  'places.yourRating': 'Senin puanın',
+  'places.notRated': 'Henüz puanlanmadı',
   'places.search': 'Yer ara...',
   'places.allCategories': 'Tüm Kategoriler',
   'places.categoriesSelected': 'kategoriler',
@@ -64,6 +69,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Boylam (ör. 2,3522)',
   'places.formCategory': 'Kategori',
   'places.noCategory': 'Kategori Yok',
+  'places.newCategory': 'Yeni kategori',
   'places.categoryNamePlaceholder': 'Kategori adı',
   'places.formTime': 'Zaman',
   'places.startTime': 'Başlangıç',
@@ -90,5 +96,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Yerleri Google ile zenginleştir',
   'places.enrichOnImportHint':
     'İçe aktarılan her yeri arayarak fotoğraf, adres ve iletişim bilgilerini ekler. Google Maps anahtarı gerekir.',
+  'places.uploadImage': 'Görsel yükle',
+  'places.changeImage': 'Görseli değiştir',
+  'places.removeImage': 'Görseli kaldır',
+  'places.imageUploadError': 'Görsel yüklenemedi',
+  'places.imageRemoveError': 'Görsel kaldırılamadı',
 };
 export default places;

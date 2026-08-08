@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Selecionar tudo',
   'common.deselectAll': 'Desmarcar tudo',
   'common.error': 'Erro',
+  'common.success': 'Sucesso',
   'common.unknownError': 'Erro desconhecido',
   'common.tooManyAttempts': 'Muitas tentativas. Tente novamente mais tarde.',
   'common.back': 'Voltar',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'Un dra bennak a zo aet a-dreuz',
+  'common.errorBody': 'Al lodenn-mañ eus an arload n\'a ket en-dro ken. Hoc\'h roadennoù a zo diarvar.',
+  'common.errorPanelTitle': 'N\'eus ket bet gallet diskwel al lodenn-mañ',
+  'common.errorPanelBody': 'Peurrest ar bajenn a ya en-dro atav.',
+  'common.errorRetry': 'Klask en-dro',
+  'common.errorReload': 'Adkargañ ar bajenn',
+  'common.errorUpdateTitle': 'Un handelv nevez a zo hegerz',
+  'common.errorUpdateBody': 'TREK a zo bet hizivaet e-pad ma oa digor an ivinell-mañ. Adkargit evit kaout an handelv nevez.',
+  'common.errorPluginTitle': 'N\'eus ket bet gallet diskwel an enlugellad-mañ',
 };
 export default common;

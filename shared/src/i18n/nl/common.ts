@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Alles selecteren',
   'common.deselectAll': 'Alles deselecteren',
   'common.error': 'Fout',
+  'common.success': 'Gelukt',
   'common.unknownError': 'Onbekende fout',
   'common.tooManyAttempts': 'Te veel pogingen. Probeer het later opnieuw.',
   'common.back': 'Terug',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'Er is iets misgegaan',
+  'common.errorBody': 'Dit deel van de app werkt niet meer. Je gegevens zijn veilig.',
+  'common.errorPanelTitle': 'Dit onderdeel kon niet worden getoond',
+  'common.errorPanelBody': 'De rest van de pagina werkt nog steeds.',
+  'common.errorRetry': 'Opnieuw proberen',
+  'common.errorReload': 'Pagina herladen',
+  'common.errorUpdateTitle': 'Er is een nieuwe versie beschikbaar',
+  'common.errorUpdateBody': 'TREK is bijgewerkt terwijl dit tabblad open stond. Herlaad om de nieuwe versie te krijgen.',
+  'common.errorPluginTitle': 'Deze plug-in kon niet worden getoond',
 };
 export default common;

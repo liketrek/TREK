@@ -29,8 +29,11 @@ const { testDb } = vi.hoisted(() => {
   return { testDb: db };
 });
 vi.mock('../../../src/db/database', () => ({ db: testDb, canAccessTrip: () => undefined }));
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
 
 import { PluginRegistryService, RegistryError, __clearRegistryCacheForTests } from '../../../src/nest/plugins/registry/registry.service';
+import type { ManifestPreview } from '../../../src/nest/plugins/registry/registry.service';
 
 // ── tiny tar.gz builder (wraps the plugin in a codeload-style top dir) ────────
 function tarHeader(name: string, size: number, typeflag = '0'): Buffer {
@@ -86,7 +89,7 @@ beforeEach(() => {
   testDb.exec('DELETE FROM plugins; DELETE FROM plugin_settings_fields; DELETE FROM plugin_error_log');
   __clearRegistryCacheForTests();
   vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => REGISTRY }) as unknown as Response));
-  svc = new PluginRegistryService();
+  svc = new PluginRegistryService(new DatabaseService(dbConn));
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -179,6 +182,27 @@ describe('PluginRegistryService', () => {
     });
   });
 
+  it('detail carries the UI-facing capabilities, so the review sheet can chip a tab takeover', async () => {
+    safeDownload.mockResolvedValue({
+      bytes: Buffer.from(JSON.stringify({
+        id: 'flight-tracker', permissions: [], egress: [],
+        capabilities: { widget: { slot: 'hero' }, tripPage: { replaces: ['places'], position: 3 }, settingsUi: true },
+      })),
+      sha256: 'unused',
+    });
+    const d = (await svc.detail('flight-tracker')) as { manifest: ManifestPreview };
+    expect(d.manifest.capabilities).toEqual({ widget: { slot: 'hero' }, tripPage: { replaces: ['places'] } });
+  });
+
+  it('detail leaves capabilities empty when the manifest declares none', async () => {
+    safeDownload.mockResolvedValue({
+      bytes: Buffer.from(JSON.stringify({ id: 'flight-tracker', permissions: [], capabilities: { widget: {} } })),
+      sha256: 'unused',
+    });
+    const d = (await svc.detail('flight-tracker')) as { manifest: ManifestPreview };
+    expect(d.manifest.capabilities).toEqual({ widget: {} });
+  });
+
   it('detail soft-fails the manifest fetch (registry metadata still renders)', async () => {
     safeDownload.mockRejectedValue(new Error('offline'));
     const d = await svc.detail('flight-tracker');
@@ -236,7 +260,7 @@ describe('PluginRegistryService', () => {
   it('fetchRegistry soft-fails to an empty registry on a cold cache', async () => {
     __clearRegistryCacheForTests();
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
-    expect((await new PluginRegistryService().fetchRegistry()).plugins).toEqual([]);
+    expect((await new PluginRegistryService(new DatabaseService(dbConn)).fetchRegistry()).plugins).toEqual([]);
   });
 
   it('installs a pinned version end to end (verify -> extract -> register inactive)', async () => {

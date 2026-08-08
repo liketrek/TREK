@@ -28,6 +28,10 @@ const pl: NotificationLocale = {
       title: 'Zaproszenie Vacay Fusion',
       body: `${p.actor} zaprosił Cię do połączenia planów urlopowych. Otwórz TREK, aby zaakceptować lub odrzucić.`,
     }),
+    vacay_share: (p) => ({
+      title: 'Kalendarz Vacay udostępniony',
+      body: `${p.actor} udostępnił Ci swój kalendarz urlopów. Otwórz TREK, aby go zobaczyć.`,
+    }),
     collection_invite: (p) => ({
       title: 'Zaproszenie do kolekcji',
       body: `${p.actor} zaprosił Cię do udostępnienia kolekcji. Otwórz TREK, aby zaakceptować lub odrzucić.`,

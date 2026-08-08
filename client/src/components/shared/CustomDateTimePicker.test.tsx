@@ -135,6 +135,45 @@ describe('CustomDatePicker', () => {
     expect(screen.queryByPlaceholderText('DD.MM.YYYY')).toBeNull();
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
   });
+
+  // ── min/max range restriction (#1662) ──────────────────────────────────────
+
+  it('FE-COMP-DATEPICKER-027: days outside [min,max] are disabled and not clickable', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    await user.click(screen.getAllByRole('button')[0]); // open March 2026
+    const day5 = screen.getAllByRole('button').find((b) => b.textContent?.trim() === '5');
+    expect((day5 as HTMLButtonElement).disabled).toBe(true);
+    await user.click(day5!);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-DATEPICKER-028: days within [min,max] stay selectable', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    await user.click(screen.getAllByRole('button')[0]); // open March 2026
+    const day12 = screen.getAllByRole('button').find((b) => b.textContent?.trim() === '12');
+    expect((day12 as HTMLButtonElement).disabled).toBe(false);
+    await user.click(day12!);
+    expect(onChange).toHaveBeenCalledWith('2026-03-12');
+  });
+
+  it('FE-COMP-DATEPICKER-029: manual entry of an out-of-range date is rejected', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    await user.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: '2026-03-25' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-DATEPICKER-030: empty value opens the calendar on the first in-range month', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    await user.click(screen.getAllByRole('button')[0]); // open — should land on March 2026
+    expect(screen.getByText(/march 2026/i)).toBeTruthy();
+  });
 });
 
 // ─── CustomDateTimePicker ─────────────────────────────────────────────────────
@@ -326,5 +365,353 @@ describe('CustomDateTimePicker', () => {
 
     const yr2026 = screen.getByRole('button', { name: '2026' });
     expect(yr2026.getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+// FE-W5DP-001 to FE-W5DP-021 — the remaining calendar branches: year/month
+// wrapping, the locale-order parser arms, viewport clamping of the popup,
+// compact/borderless layout and the hover styling of every grid cell.
+describe('CustomDatePicker branches', () => {
+  const onChange = vi.fn();
+  const openCalendar = () => fireEvent.click(screen.getAllByRole('button')[0]);
+  const dayCell = (label: string) =>
+    screen.getAllByRole('button').find((b) => b.textContent?.trim() === label) as HTMLButtonElement;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('FE-W5DP-001: a mousedown inside the trigger or the popup keeps the calendar open', () => {
+    const { container } = render(<CustomDatePicker value="2026-03-15" onChange={onChange} />);
+    openCalendar();
+    const dialog = screen.getByRole('dialog');
+
+    fireEvent.mouseDown(container.firstElementChild!);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.mouseDown(dialog);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('FE-W5DP-002: with only a max bound the calendar opens on that month', () => {
+    render(<CustomDatePicker value="" onChange={onChange} max="2026-11-20" />);
+    openCalendar();
+    expect(screen.getByText(/november 2026/i)).toBeInTheDocument();
+  });
+
+  it('FE-W5DP-003: paging back from January lands on the previous December', () => {
+    render(<CustomDatePicker value="2026-01-15" onChange={onChange} />);
+    openCalendar();
+    fireEvent.click(screen.getByRole('button', { name: /previous month/i }));
+    expect(screen.getByText(/december 2025/i)).toBeInTheDocument();
+  });
+
+  it('FE-W5DP-004: paging forward from December lands on the next January', () => {
+    render(<CustomDatePicker value="2026-12-15" onChange={onChange} />);
+    openCalendar();
+    fireEvent.click(screen.getByRole('button', { name: /next month/i }));
+    expect(screen.getByText(/january 2027/i)).toBeInTheDocument();
+  });
+
+  it('FE-W5DP-005: the months view pages the year in both directions', () => {
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} />);
+    openCalendar();
+    fireEvent.click(screen.getByRole('button', { name: /select month/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /next year/i }));
+    expect(screen.getByRole('button', { name: 'March 2027' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /previous year/i }));
+    expect(screen.getByRole('button', { name: 'March 2026' })).toBeInTheDocument();
+  });
+
+  it('FE-W5DP-006: the years view pages the grid in both directions', () => {
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} />);
+    openCalendar();
+    fireEvent.click(screen.getByRole('button', { name: /select month/i }));
+    fireEvent.click(screen.getByRole('button', { name: /select year/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /previous years/i }));
+    expect(screen.getByRole('button', { name: '2014' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /next years/i }));
+    expect(screen.getByRole('button', { name: '2026' })).toBeInTheDocument();
+  });
+
+  it('FE-W5DP-007: compact mode renders the short numeric date and drops the calendar glyph', () => {
+    const { container } = render(<CustomDatePicker value="2026-03-15" onChange={onChange} compact />);
+    expect(screen.getByText('03/15/26')).toBeInTheDocument();
+    expect(container.querySelector('.lucide-calendar')).toBeNull();
+  });
+
+  it('FE-W5DP-008: borderless mode drops the border and the inline keyboard trigger', () => {
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} borderless />);
+    const trigger = screen.getAllByRole('button')[0];
+    expect(trigger.style.borderStyle).toBe('none');
+    expect(trigger.style.background).toBe('transparent');
+    expect(screen.queryByRole('button', { name: /enter date manually/i })).not.toBeInTheDocument();
+  });
+
+  it('FE-W5DP-009: the trigger only resets its border colour while the calendar is closed', () => {
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    const trigger = screen.getAllByRole('button')[0];
+
+    fireEvent.mouseEnter(trigger);
+    expect(trigger.style.borderColor).toBe('var(--text-faint)');
+    fireEvent.mouseLeave(trigger);
+    expect(trigger.style.borderColor).toBe('var(--border-primary)');
+
+    fireEvent.click(trigger);
+    fireEvent.mouseEnter(trigger);
+    fireEvent.mouseLeave(trigger);
+    expect(trigger.style.borderColor).toBe('var(--text-faint)');
+  });
+
+  it('FE-W5DP-022: the inline manual-entry trigger highlights on hover', () => {
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    const keyboard = screen.getByRole('button', { name: /enter date manually/i });
+
+    fireEvent.mouseEnter(keyboard);
+    expect(keyboard.style.color).toBe('var(--text-primary)');
+    expect(keyboard.style.borderColor).toBe('var(--text-faint)');
+    fireEvent.mouseLeave(keyboard);
+    expect(keyboard.style.color).toBe('var(--text-faint)');
+    expect(keyboard.style.borderColor).toBe('var(--border-primary)');
+  });
+
+  it('FE-W5DP-023: the compact footer trigger opens an empty manual entry when no date is set', () => {
+    render(<CustomDatePicker value="" onChange={onChange} compact />);
+    openCalendar();
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+
+    expect(screen.getByPlaceholderText('DD.MM.YYYY')).toHaveProperty('value', '');
+  });
+
+  it('FE-W5DP-010: submitting an empty manual entry does nothing', () => {
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+    fireEvent.blur(screen.getByPlaceholderText('DD.MM.YYYY'));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText('DD.MM.YYYY')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5DP-011: a manual entry without three number groups is ignored', () => {
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: '17.07' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('FE-W5DP-012: a manual entry already in locale order is taken as typed', () => {
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: '07/17/2026' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onChange).toHaveBeenCalledWith('2026-07-17');
+  });
+
+  it('FE-W5DP-013: a two-digit year is expanded into the 2000s', () => {
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: '07/17/26' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onChange).toHaveBeenCalledWith('2026-07-17');
+  });
+
+  it('FE-W5DP-014: an impossible day/month combination is rejected', () => {
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: '13/45/2026' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('FE-W5DP-015: a localised manual entry outside [min,max] is rejected', () => {
+    render(<CustomDatePicker value="" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: '03/25/2026' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('FE-W5DP-016: the popup is clamped back into a narrow viewport', () => {
+    const originalRect = Element.prototype.getBoundingClientRect;
+    const originalWidth = window.innerWidth;
+    Element.prototype.getBoundingClientRect = function () {
+      return { left: 900, top: 700, right: 1100, bottom: 740, width: 200, height: 40, x: 900, y: 700, toJSON: () => ({}) } as DOMRect;
+    };
+    Object.defineProperty(window, 'innerWidth', { value: 320, configurable: true });
+
+    try {
+      render(<CustomDatePicker value="2026-03-15" onChange={onChange} />);
+      openCalendar();
+      const dialog = screen.getByRole('dialog');
+      // vw < 360 centres the 268px popup; the popup flips above the trigger
+      expect(dialog.style.left).toBe('26px');
+      expect(dialog.style.top).toBe('336px');
+    } finally {
+      Element.prototype.getBoundingClientRect = originalRect;
+      Object.defineProperty(window, 'innerWidth', { value: originalWidth, configurable: true });
+    }
+  });
+
+  it('FE-W5DP-017: the popup prefers the visual viewport height when one is reported', () => {
+    const originalRect = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function () {
+      return { left: 20, top: 40, right: 220, bottom: 80, width: 200, height: 40, x: 20, y: 40, toJSON: () => ({}) } as DOMRect;
+    };
+    Object.defineProperty(window, 'visualViewport', { value: { height: 900 }, configurable: true });
+
+    try {
+      render(<CustomDatePicker value="2026-03-15" onChange={onChange} />);
+      openCalendar();
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.style.left).toBe('20px');
+      expect(dialog.style.top).toBe('84px');
+    } finally {
+      Element.prototype.getBoundingClientRect = originalRect;
+      Object.defineProperty(window, 'visualViewport', { value: undefined, configurable: true });
+    }
+  });
+
+  it('FE-W5DP-018: the header arrows and the label highlight on hover', () => {
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} />);
+    openCalendar();
+
+    for (const name of [/previous month/i, /next month/i]) {
+      const btn = screen.getByRole('button', { name });
+      fireEvent.mouseEnter(btn);
+      expect(btn.style.color).toBe('var(--text-primary)');
+      fireEvent.mouseLeave(btn);
+      expect(btn.style.color).toBe('var(--text-faint)');
+    }
+
+    const header = screen.getByRole('button', { name: /select month/i });
+    fireEvent.mouseEnter(header);
+    expect(header.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(header);
+    expect(header.style.background).toBe('none');
+  });
+
+  it('FE-W5DP-019: only free day cells take the hover background', () => {
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} min="2026-03-10" max="2026-03-20" />);
+    openCalendar();
+
+    const free = dayCell('12');
+    fireEvent.mouseEnter(free);
+    expect(free.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(free);
+    expect(free.style.background).toBe('transparent');
+
+    const selected = dayCell('15');
+    fireEvent.mouseEnter(selected);
+    expect(selected.style.background).toBe('var(--accent)');
+    fireEvent.mouseLeave(selected);
+    expect(selected.style.background).toBe('var(--accent)');
+
+    const blocked = dayCell('5');
+    fireEvent.mouseEnter(blocked);
+    expect(blocked.style.background).toBe('transparent');
+  });
+
+  it('FE-W5DP-020: month and year cells take the hover background unless selected', () => {
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} />);
+    openCalendar();
+    fireEvent.click(screen.getByRole('button', { name: /select month/i }));
+
+    const may = screen.getByRole('button', { name: 'May 2026' });
+    fireEvent.mouseEnter(may);
+    expect(may.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(may);
+    expect(may.style.background).toBe('transparent');
+
+    const march = screen.getByRole('button', { name: 'March 2026' });
+    fireEvent.mouseEnter(march);
+    fireEvent.mouseLeave(march);
+    expect(march.style.background).toBe('var(--accent)');
+
+    fireEvent.click(screen.getByRole('button', { name: /select year/i }));
+    const y2027 = screen.getByRole('button', { name: '2027' });
+    fireEvent.mouseEnter(y2027);
+    expect(y2027.style.background).toBe('var(--bg-hover)');
+    fireEvent.mouseLeave(y2027);
+    expect(y2027.style.background).toBe('transparent');
+
+    const y2026 = screen.getByRole('button', { name: '2026' });
+    fireEvent.mouseEnter(y2026);
+    fireEvent.mouseLeave(y2026);
+    expect(y2026.style.background).toBe('var(--accent)');
+  });
+
+  it('FE-W5DP-021: in compact mode the manual-entry trigger moves into the popup footer', () => {
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} compact />);
+    openCalendar();
+
+    const keyboard = screen.getByRole('button', { name: /enter date manually/i });
+    fireEvent.mouseEnter(keyboard);
+    expect(keyboard.style.color).toBe('var(--text-primary)');
+    fireEvent.mouseLeave(keyboard);
+    expect(keyboard.style.color).toBe('var(--text-faint)');
+
+    const clear = screen.getByRole('button', { name: /clear date/i });
+    fireEvent.mouseEnter(clear);
+    expect(clear.style.color).toBe('rgb(239, 68, 68)');
+    fireEvent.mouseLeave(clear);
+    expect(clear.style.color).toBe('var(--text-faint)');
+
+    fireEvent.click(keyboard);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('DD.MM.YYYY')).toHaveProperty('value', '03/15/2026');
+  });
+});
+
+// FE-W5DTP-001 to FE-W5DTP-002
+describe('CustomDateTimePicker branches', () => {
+  const onChange = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, time_format: '24h' },
+    });
+  });
+
+  it('FE-W5DTP-001: clearing the date clears the whole value', () => {
+    render(<CustomDateTimePicker value="2026-03-15T09:30" onChange={onChange} />);
+    fireEvent.click(screen.getAllByRole('button')[0]);
+    fireEvent.click(screen.getByRole('button', { name: /clear date/i }));
+
+    expect(onChange).toHaveBeenCalledWith('');
+  });
+
+  it('FE-W5DTP-003: setting a time without a date falls back to today', () => {
+    render(<CustomDateTimePicker value="" onChange={onChange} />);
+    const clockBtn = screen.getAllByRole('button').filter((b) => b.textContent?.trim() === '').pop();
+    fireEvent.click(clockBtn!);
+    // hour up on an empty time yields 01:00 on today's date
+    const steppers = screen.getAllByRole('button').filter((b) => b.textContent?.trim() === '');
+    fireEvent.click(steppers[steppers.length - 4]);
+
+    const today = new Date().toISOString().split('T')[0];
+    expect(onChange).toHaveBeenCalledWith(`${today}T01:00`);
+  });
+
+  it('FE-W5DTP-002: clearing the time keeps the date part', () => {
+    render(<CustomDateTimePicker value="2026-03-15T09:30" onChange={onChange} />);
+    const clockBtn = screen.getAllByRole('button').filter((b) => b.textContent?.trim() === '').pop();
+    fireEvent.click(clockBtn!);
+    fireEvent.click(screen.getByText('✕'));
+
+    expect(onChange).toHaveBeenCalledWith('2026-03-15');
   });
 });

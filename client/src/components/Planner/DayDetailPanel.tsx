@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
-import ReactDOM from 'react-dom'
-import { X, Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle, CloudLightning, Wind, Droplets, Sunrise, Sunset, Hotel, Calendar, MapPin, LogIn, LogOut, Hash, Pencil, Plane, Utensils, Train, Car, Ship, Ticket, FileText, Users, ChevronsDown, ChevronsUp, TramFront } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { X, Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle, CloudLightning, Wind, Droplets, Sunrise, Sunset, Hotel, Calendar, MapPin, LogIn, LogOut, Hash, Pencil, Plane, Utensils, Train, Car, Ship, Ticket, FileText, Users, ChevronsDown, ChevronsUp, TramFront, ParkingSquare } from 'lucide-react'
 
-const RES_TYPE_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, transit: TramFront, event: Ticket, tour: Users, other: FileText }
-const RES_TYPE_COLORS = { flight: '#3b82f6', hotel: '#8b5cf6', restaurant: '#ef4444', train: '#06b6d4', car: '#6b7280', cruise: '#0ea5e9', transit: '#7c3aed', event: '#f59e0b', tour: '#10b981', other: '#6b7280' }
+const RES_TYPE_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, transit: TramFront, event: Ticket, tour: Users, parking: ParkingSquare, other: FileText }
+const RES_TYPE_COLORS = { flight: '#3b82f6', hotel: '#8b5cf6', restaurant: '#ef4444', train: '#06b6d4', car: '#6b7280', cruise: '#0ea5e9', transit: '#7c3aed', event: '#f59e0b', tour: '#10b981', parking: '#2563eb', other: '#6b7280' }
 import { weatherApi, accommodationsApi } from '../../api/client'
 import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 import { usePluginStore } from '../../store/pluginStore'
@@ -16,7 +16,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { getLocaleForLanguage, useTranslation } from '../../i18n'
 import type { Day, Place, Category, Reservation, AssignmentsMap } from '../../types'
 import { isDayInAccommodationRange } from '../../utils/dayOrder'
-import { splitReservationDateTime } from '../../utils/formatters'
+import { formatClockTime, splitReservationDateTime } from '../../utils/formatters'
 import { useDayDetail } from './useDayDetail'
 
 const WEATHER_ICON_MAP = {
@@ -35,16 +35,6 @@ function WIcon({ main, size = 14 }: WIconProps) {
 }
 
 function cTemp(c, f) { return Math.round(f ? c * 9 / 5 + 32 : c) }
-
-function formatTime12(val, is12h) {
-  if (!val) return val
-  const [h, m] = val.split(':').map(Number)
-  if (isNaN(h) || isNaN(m)) return val
-  if (!is12h) return val
-  const period = h >= 12 ? 'PM' : 'AM'
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-  return `${h12}:${String(m).padStart(2, '0')} ${period}`
-}
 
 interface DayDetailPanelProps {
   day: Day
@@ -78,7 +68,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
   const fmtTime = (v) => {
     if (!v) return v
     if (v.includes('T')) return new Date(v).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: is12h })
-    return formatTime12(v, is12h)
+    return formatClockTime(v, is12h)
   }
   const unit = isFahrenheit ? '°F' : '°C'
   const collapsed = collapsedProp
@@ -313,8 +303,8 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                           if (!startTime && !endTime) return null
                           return (
                             <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                              {startTime ? formatTime12(startTime, is12h) : ''}
-                              {endTime ? ` – ${formatTime12(endTime, is12h)}` : ''}
+                              {startTime ? formatClockTime(startTime, is12h) : ''}
+                              {endTime ? ` – ${formatClockTime(endTime, is12h)}` : ''}
                             </span>
                           )
                         })()}
@@ -377,66 +367,6 @@ function Chip({ icon: Icon, value }: ChipProps) {
     </div>
   )
 }
-
-interface InfoChipProps {
-  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>
-  label: string
-  value: string
-  placeholder: string
-  onEdit: (value: string) => void
-  type: 'text' | 'time'
-}
-
-function InfoChip({ icon: Icon, label, value, placeholder, onEdit, type }: InfoChipProps) {
-  const [editing, setEditing] = React.useState(false)
-  const [val, setVal] = React.useState(value || '')
-  const inputRef = React.useRef(null)
-
-  React.useEffect(() => { setVal(value || '') }, [value])
-  React.useEffect(() => { if (editing && inputRef.current) inputRef.current.focus() }, [editing])
-
-  const save = () => {
-    setEditing(false)
-    if (val !== (value || '')) onEdit(val)
-  }
-
-  return (
-    <div
-      onClick={() => setEditing(true)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 5, padding: '5px 9px', borderRadius: 8,
-        background: 'var(--bg-card)', border: '1px solid var(--border-faint)',
-        cursor: 'pointer', minWidth: 0, flex: type === 'text' ? 1 : undefined,
-      }}
-    >
-      <Icon size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1 }}>{label}</div>
-        {editing ? (
-          <input
-            ref={inputRef}
-            type={type}
-            value={val}
-            onChange={e => setVal(e.target.value)}
-            onBlur={save}
-            onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setVal(value || ''); setEditing(false) } }}
-            onClick={e => e.stopPropagation()}
-            style={{
-              border: 'none', outline: 'none', background: 'none', padding: 0, margin: 0,
-              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'inherit',
-              width: type === 'time' ? 50 : '100%', lineHeight: 1.3,
-            }}
-          />
-        ) : (
-          <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: value ? 'var(--text-primary)' : 'var(--text-faint)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {value || placeholder}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 
 function AccommodationList({ dayAccommodations, day, reservations, canEditDays, fmtTime, blurCodes, t,
   setAccommodation, setHotelForm, setHotelDayRange, setShowHotelPicker, handleRemoveAccommodation }: any) {
@@ -565,7 +495,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
   return (
     <>
             {/* Hotel Picker Popup — portal to body to escape transform stacking context */}
-            {showHotelPicker && ReactDOM.createPortal(
+            {showHotelPicker && createPortal(
               <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
                 onClick={() => setShowHotelPicker(false)}>
                 <div onClick={e => e.stopPropagation()} style={{

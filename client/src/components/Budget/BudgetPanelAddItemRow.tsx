@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Plus } from 'lucide-react'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
+import { normalizePastedAmount } from './BudgetPanel.helpers'
 
 interface AddItemRowProps {
   onAdd: (data: { name: string; total_price: number; persons: number | null; days: number | null; note: string | null; expense_date: string | null }) => void
@@ -33,7 +34,7 @@ export default function AddItemRow({ onAdd, t }: AddItemRowProps) {
       </td>
       <td style={{ padding: '4px 6px' }}>
         <input value={price} onChange={e => setPrice(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          onPaste={e => { e.preventDefault(); let t = e.clipboardData.getData('text').trim().replace(/[^\d.,-]/g, ''); const lc = t.lastIndexOf(','), ld = t.lastIndexOf('.'), dp = Math.max(lc, ld); if (dp > -1) { t = t.substring(0, dp).replace(/[.,]/g, '') + '.' + t.substring(dp + 1) } else { t = t.replace(/[.,]/g, '') } setPrice(t) }}
+          onPaste={e => { e.preventDefault(); setPrice(normalizePastedAmount(e.clipboardData.getData('text'))) }}
           placeholder="0,00" inputMode="decimal" style={{ ...inp, textAlign: 'center' }} />
       </td>
       <td className="hidden sm:table-cell" style={{ padding: '4px 6px', textAlign: 'center' }}>

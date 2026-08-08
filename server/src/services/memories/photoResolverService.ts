@@ -7,7 +7,7 @@ import { streamImmichAsset, fetchImmichThumbnailBytes, getAssetInfo as getImmich
 import { streamSynologyAsset, fetchSynologyThumbnailBytes, getSynologyAssetInfo } from './synologyService';
 import type { ServiceResult, AssetInfo } from './helpersService';
 import { fail, success } from './helpersService';
-import { encrypt_api_key, decrypt_api_key } from '../apiKeyCrypto';
+import { encrypt_api_key, decrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 import * as photoCache from './trekPhotoCache';
 import { ensureLocalThumbnail } from './thumbnailService';
 

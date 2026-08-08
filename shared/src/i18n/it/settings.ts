@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modello Mappa',
   'settings.mapTemplatePlaceholder.select': 'Seleziona modello...',
   'settings.mapDefaultHint': 'Lascia vuoto per OpenStreetMap (predefinito)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Modello URL per i tile della mappa',
   'settings.mapProvider': 'Provider mappa',
   'settings.mapProviderHint': 'Influisce sulle mappe Trip Planner e Journey. Atlas usa sempre Leaflet.',
@@ -80,6 +79,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Promemoria di viaggio',
   'settings.notifyTodoDue': 'Attività in scadenza',
   'settings.notifyVacayInvite': 'Inviti fusione Vacay',
+  'settings.notifyVacayShare': 'Condivisioni calendario Vacay',
   'settings.notifyPhotosShared': 'Foto condivise (Immich)',
   'settings.notifyCollabMessage': 'Messaggi chat (Collab)',
   'settings.notifyPackingTagged': 'Lista valigia: assegnazioni',
@@ -233,6 +233,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Immagine del profilo aggiornata',
   'settings.avatarRemoved': 'Immagine del profilo rimossa',
   'settings.avatarError': 'Impossibile caricare',
+  'settings.avatarRemoveError': 'Rimozione non riuscita',
   'settings.mfa.title': 'Autenticazione a due fattori (2FA)',
   'settings.mfa.description':
     "Aggiunge un secondo passaggio quando accedi con email e password. Usa un'app authenticator (Google Authenticator, Authy, ecc.).",
@@ -299,8 +300,9 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Valuta di visualizzazione',
+  'settings.currencyHint':
+    'Gli importi in Costi vengono mostrati convertiti in questa valuta solo per la visualizzazione — gli importi originali restano invariati.',
   'settings.currencyTrip': 'Valuta del viaggio',
   'settings.passkey.title': 'Passkey',
   'settings.passkey.description':
@@ -428,6 +430,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Barra di navigazione inferiore',
+  'settings.appearance.mobileNav.hint':
+    'Scegli quali elementi appaiono nella barra e quali sotto «Altro». La Dashboard resta sempre per prima.',
+  'settings.appearance.mobileNav.inBar': 'Nella barra',
+  'settings.appearance.mobileNav.underMore': 'Sotto «Altro»',
+  'settings.appearance.mobileNav.moreEmpty': 'Ancora niente qui — tutto entra nella barra.',
+  'settings.appearance.mobileNav.pinned': 'Fisso',
+  'settings.appearance.mobileNav.toMore': 'Sposta sotto «Altro»',
+  'settings.appearance.mobileNav.toBar': 'Sposta nella barra',
+  'settings.appearance.dashOrder': 'Ordine della dashboard',
+  'settings.appearance.dashOrder.hint':
+    'Riorganizza come si impilano l’elenco dei viaggi e i widget nella dashboard del telefono. Il viaggio in evidenza resta sempre in cima.',
+  'settings.appearance.dashOrder.trips': 'Viaggi',
+  'settings.appearance.dashOrder.hidden': 'Nascosto',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -494,7 +510,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Quando',
   'settings.pluginActivity.columns.status': 'Esito',
   'settings.alwaysShowRoutes': 'Mostra sempre i percorsi delle prenotazioni',
-  'settings.alwaysShowRoutesHint': 'Mostra automaticamente sulla mappa il percorso di ogni volo, treno e altra prenotazione, senza doverlo attivare singolarmente.',
+  'settings.alwaysShowRoutesHint':
+    'Mostra automaticamente sulla mappa il percorso di ogni volo, treno e altra prenotazione, senza doverlo attivare singolarmente.',
 };
 
 export default settings;

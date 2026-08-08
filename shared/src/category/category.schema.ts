@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { hexColorSchema } from '../place/place.schema';
 
 /**
  * Category API contract — single source of truth for the /api/categories endpoints.
@@ -12,6 +13,13 @@ import { z } from 'zod';
  * messages are reproduced in the controller so the bodies stay byte-identical.
  */
 
+/**
+ * Note the asymmetry below: the response keeps `color: z.string()` while the
+ * requests demand a hex value. Tightening the response would make an instance
+ * fail on its own stored rows — the write path was unvalidated for a long time,
+ * so anything could be in there. The client allow-lists on read for the same
+ * reason (client/src/utils/safeColor.ts).
+ */
 export const categorySchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -24,7 +32,10 @@ export type Category = z.infer<typeof categorySchema>;
 
 export const createCategoryRequestSchema = z.object({
   name: z.string().min(1),
-  color: z.string().optional(),
+  // Hex only: the value is interpolated into a style="…" attribute of the
+  // hand-built marker HTML on both map renderers, and on the share page that
+  // answers without a guard.
+  color: hexColorSchema.optional(),
   icon: z.string().optional(),
 });
 export type CreateCategoryRequest = z.infer<typeof createCategoryRequestSchema>;
@@ -32,7 +43,10 @@ export type CreateCategoryRequest = z.infer<typeof createCategoryRequestSchema>;
 /** All fields optional — the service COALESCEs each against the stored value. */
 export const updateCategoryRequestSchema = z.object({
   name: z.string().optional(),
-  color: z.string().optional(),
+  // Hex only: the value is interpolated into a style="…" attribute of the
+  // hand-built marker HTML on both map renderers, and on the share page that
+  // answers without a guard.
+  color: hexColorSchema.optional(),
   icon: z.string().optional(),
 });
 export type UpdateCategoryRequest = z.infer<typeof updateCategoryRequestSchema>;

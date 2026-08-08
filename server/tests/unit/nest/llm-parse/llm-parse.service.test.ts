@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { resolveLlmConfig } = vi.hoisted(() => ({ resolveLlmConfig: vi.fn() }));
-vi.mock('../../../../src/nest/llm-parse/llm-config.resolver', () => ({ resolveLlmConfig }));
+// LlmConfigResolver is constructor-injected — a stub instance instead of the
+// old path mock (same behaviors as before the DI move).
+const resolveLlmConfig = vi.fn();
 
 const { createLlmClient, extract } = vi.hoisted(() => {
   const extract = vi.fn();
@@ -22,9 +23,11 @@ const { routeExtraction, detectFlightNumbers } = vi.hoisted(() => ({
 vi.mock('../../../../src/nest/llm-parse/router/extraction-router', () => ({ routeExtraction, detectFlightNumbers }));
 
 import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
+import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
 
 const cfg = (over: Record<string, unknown> = {}) => ({ provider: 'openai', model: 'm', multimodal: false, ...over });
-const svc = () => new LlmParseService();
+const llmConfigStub = { resolve: resolveLlmConfig } as unknown as LlmConfigResolver;
+const svc = () => new LlmParseService(llmConfigStub);
 const file = (name: string, body = 'Flight AB123') => ({ buffer: Buffer.from(body), originalName: name });
 
 beforeEach(() => {

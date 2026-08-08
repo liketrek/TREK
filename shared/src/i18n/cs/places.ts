@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Přidat místo/aktivitu',
   'places.importFile': 'Importovat soubor',
+  'places.trackIndicator': 'Trasa',
   'places.sidebarDrop': 'Pusťte pro import',
   'places.importFileHint':
     'Importujte soubory .gpx, .kml nebo .kmz z nástrojů jako Google My Maps, Google Earth nebo GPS tracker.',
@@ -42,7 +43,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Přidat do kterého dne?',
   'places.all': 'Vše',
   'places.unplanned': 'Nezařazené',
+  'places.planned': 'Naplánované',
   'places.filterTracks': 'Trasy',
+  'places.sortByRating': 'Seřadit podle hodnocení',
+  'places.yourRating': 'Tvé hodnocení',
+  'places.notRated': 'Zatím bez hodnocení',
   'places.search': 'Hledat místa...',
   'places.allCategories': 'Všechny kategorie',
   'places.categoriesSelected': 'kategorií',
@@ -62,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Zeměpisná délka',
   'places.formCategory': 'Kategorie',
   'places.noCategory': 'Bez kategorie',
+  'places.newCategory': 'Nová kategorie',
   'places.categoryNamePlaceholder': 'Název kategorie',
   'places.formTime': 'Čas',
   'places.startTime': 'Od',
@@ -87,5 +93,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Obohatit místa přes Google',
   'places.enrichOnImportHint':
     'Vyhledá každé importované místo a doplní fotky, adresu a kontakty. Vyžaduje klíč Google Maps.',
+  'places.uploadImage': 'Nahrát obrázek',
+  'places.changeImage': 'Změnit obrázek',
+  'places.removeImage': 'Odebrat obrázek',
+  'places.imageUploadError': 'Obrázek se nepodařilo nahrát',
+  'places.imageRemoveError': 'Obrázek se nepodařilo odebrat',
 };
 export default places;

@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': 'Akses hanya-baca ke obrolan ini',
+  'collab.chat.messageOptions': 'Opsi pesan',
+  'collab.polls.confirmDeleteTitle': 'Hapus polling?',
+  'collab.polls.confirmDeleteBody': 'Polling ini akan dihapus secara permanen.',
+  'collab.polls.countdownDaysHours': '{d}h {h}j lagi',
+  'collab.polls.countdownHoursMinutes': '{h}j {m}m lagi',
+  'collab.polls.countdownMinutes': '{m}m lagi',
+  'collab.polls.clearDeadline': 'Hapus tenggat',
   'collab.tabs.chat': 'Chat',
   'collab.tabs.notes': 'Catatan',
   'collab.tabs.polls': 'Polling',
@@ -29,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Mulai catat ide dan rencana',
   'collab.notes.all': 'Semua',
   'collab.notes.titlePlaceholder': 'Judul catatan',
+  'collab.notes.content': 'Konten',
+  'collab.notes.removeFile': 'Hapus {name}',
   'collab.notes.contentPlaceholder': 'Tulis sesuatu...',
   'collab.notes.categoryPlaceholder': 'Kategori',
   'collab.notes.newCategory': 'Kategori baru...',

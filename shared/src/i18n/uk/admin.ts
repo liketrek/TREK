@@ -159,6 +159,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Помилка завантаження шаблонів',
   'admin.packingTemplates.createError': 'Помилка створення шаблону',
   'admin.packingTemplates.deleteError': 'Помилка видалення шаблону',
+  'admin.packingTemplates.deleteCategoryError': 'Не вдалося видалити категорію',
+  'admin.packingTemplates.deleteItemError': 'Не вдалося видалити елемент',
   'admin.packingTemplates.saveError': 'Помилка збереження',
   'admin.tabs.addons': 'Дополнения',
   'admin.tabs.plugins': 'Плагіни',
@@ -315,6 +317,15 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:table-contributor': 'Додавати стовпці та дії до подань подорожі (бронювання, місця, дні)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Додавати мітки на карту подорожі (наприклад, показувати бронювання або POI)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Малювати маршрути, коридори та зони на карті подорожі',
+  'admin.plugins.perm.hook:route-provider':
+    'Надавати профілі маршрутизації, за якими планувальник будує маршрути днів (наприклад, маршрути для електромобілів із зупинками для заряджання)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Додавати часові записи до плану дня (зупинки для заряджання, буфери часу)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Позначати дні в плані дня кольором (наприклад, до якого етапу подорожі належить день)',
+  'admin.plugins.perm.geolocation:read':
+    'Запитувати ваше місцезнаходження в реальному часі, поки відкрито одне з його подань (браузер додатково запитає дозвіл)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Додавати текстові розділи до PDF-експорту подорожі',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Виділяти країни на карті світу в Атласі (наприклад, списки бажань або попередження для мандрівників)',
@@ -434,6 +445,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Надає події календаря',
   'admin.plugins.cap.placeDetails': 'Збагачує місця',
   'admin.plugins.cap.warnings': 'Позначає проблеми',
+  'admin.plugins.cap.mapLayers': 'Малює на карті',
+  'admin.plugins.cap.routing': 'Пропонує маршрутизацію',
+  'admin.plugins.cap.daySchedule': 'Додає часи до плану',
+  'admin.plugins.cap.dayTint': 'Розфарбовує дні',
+  'admin.plugins.cap.geolocation': 'Читає ваше місцезнаходження',
   'admin.plugins.cap.events': 'Реагує на активність',
   'admin.plugins.cap.requiresAddon': 'Потрібен {addon}',
   'admin.plugins.cap.dependsOn': 'Потрібен {id} {version}',

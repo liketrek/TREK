@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'Met ster',
+  'files.link': 'Koppelen',
+  'files.linkTitle': 'Bestand koppelen',
+  'files.linkEmpty': 'Nog geen plaatsen of boekingen om te koppelen',
+  'files.menu': 'Meer opties',
+  'files.uploadErrorSize': 'Bestand is te groot (max. 50 MB)',
   'files.title': 'Bestanden',
   'files.pageTitle': 'Bestanden en documenten',
   'files.subtitle': '{count} bestanden voor {trip}',

@@ -24,7 +24,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Πρότυπο Χάρτη',
   'settings.mapTemplatePlaceholder.select': 'Επιλέξτε πρότυπο...',
   'settings.mapDefaultHint': 'Αφήστε κενό για OpenStreetMap (προεπιλογή)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Πρότυπο URL για πλακίδια χάρτη',
   'settings.mapProvider': 'Πάροχος Χάρτη',
   'settings.mapProviderHint':
@@ -86,6 +85,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Υπενθυμίσεις ταξιδιού',
   'settings.notifyTodoDue': 'Εκκρεμότητα λήγει σύντομα',
   'settings.notifyVacayInvite': 'Προσκλήσεις Vacay fusion',
+  'settings.notifyVacayShare': 'Κοινοποιήσεις ημερολογίου Vacay',
   'settings.notifyPhotosShared': 'Κοινόχρηστες φωτογραφίες (Immich)',
   'settings.notifyCollabMessage': 'Μηνύματα συνομιλίας (Collab)',
   'settings.notifyPackingTagged': 'Λίστα πακεταρίσματος: αναθέσεις',
@@ -279,6 +279,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Η εικόνα προφίλ ενημερώθηκε',
   'settings.avatarRemoved': 'Η εικόνα προφίλ αφαιρέθηκε',
   'settings.avatarError': 'Η μεταφόρτωση απέτυχε',
+  'settings.avatarRemoveError': 'Η αφαίρεση απέτυχε',
   'settings.mfa.title': 'Έλεγχος ταυτότητας δύο παραγόντων (2FA)',
   'settings.mfa.description':
     'Προσθέτει ένα δεύτερο βήμα όταν συνδέεστε με email και κωδικό. Χρησιμοποιήστε μια εφαρμογή authenticator (Google Authenticator, Authy, κ.λπ.).',
@@ -308,8 +309,9 @@ const settings: TranslationStrings = {
   'settings.mfa.toastEnabled': 'Ο έλεγχος ταυτότητας δύο παραγόντων ενεργοποιήθηκε',
   'settings.mfa.toastDisabled': 'Ο έλεγχος ταυτότητας δύο παραγόντων απενεργοποιήθηκε',
   'settings.mfa.demoBlocked': 'Δεν είναι διαθέσιμο σε λειτουργία demo',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Νόμισμα εμφάνισης',
+  'settings.currencyHint':
+    'Τα ποσά στα Κόστη εμφανίζονται σε αυτό το νόμισμα μόνο για λόγους προβολής — τα αρχικά ποσά δεν αλλάζουν.',
   'settings.currencyTrip': 'Νόμισμα ταξιδιού',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
@@ -438,6 +440,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Κάτω γραμμή πλοήγησης',
+  'settings.appearance.mobileNav.hint':
+    'Επιλέξτε ποια στοιχεία εμφανίζονται στη γραμμή και ποια βρίσκονται στο μενού «Περισσότερα». Ο πίνακας ελέγχου παραμένει πάντα πρώτος.',
+  'settings.appearance.mobileNav.inBar': 'Στη γραμμή',
+  'settings.appearance.mobileNav.underMore': 'Στο μενού «Περισσότερα»',
+  'settings.appearance.mobileNav.moreEmpty': 'Τίποτα εδώ ακόμη — όλα χωρούν στη γραμμή.',
+  'settings.appearance.mobileNav.pinned': 'Καρφιτσωμένο',
+  'settings.appearance.mobileNav.toMore': 'Μετακίνηση στο μενού «Περισσότερα»',
+  'settings.appearance.mobileNav.toBar': 'Μετακίνηση στη γραμμή',
+  'settings.appearance.dashOrder': 'Σειρά πίνακα',
+  'settings.appearance.dashOrder.hint':
+    'Αλλάξτε τη σειρά με την οποία στοιβάζονται η λίστα ταξιδιών και τα widget στον πίνακα του κινητού σας. Το προβεβλημένο ταξίδι παραμένει πάντα στην κορυφή.',
+  'settings.appearance.dashOrder.trips': 'Ταξίδια',
+  'settings.appearance.dashOrder.hidden': 'Κρυφό',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -505,7 +521,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Πότε',
   'settings.pluginActivity.columns.status': 'Αποτέλεσμα',
   'settings.alwaysShowRoutes': 'Πάντα εμφάνιση διαδρομών κράτησης',
-  'settings.alwaysShowRoutesHint': 'Εμφανίζει αυτόματα στον χάρτη τη διαδρομή κάθε πτήσης, τρένου και άλλης κράτησης, χωρίς να χρειάζεται να την ενεργοποιείτε μία προς μία.',
+  'settings.alwaysShowRoutesHint':
+    'Εμφανίζει αυτόματα στον χάρτη τη διαδρομή κάθε πτήσης, τρένου και άλλης κράτησης, χωρίς να χρειάζεται να την ενεργοποιείτε μία προς μία.',
 };
 
 export default settings;

@@ -26,6 +26,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': '계산 중...',
   'dayplan.route': '경로',
   'dayplan.optimize': '최적화',
+  'dayplan.transportMode.change': '이동 수단 변경',
+  'dayplan.transportMode.useDefault': '하루 기본값 사용',
   'dayplan.optimized': '경로가 최적화되었습니다',
   'dayplan.routeError': '경로 계산 실패',
   'dayplan.toast.needTwoPlaces': '경로 최적화에는 최소 두 개의 장소가 필요합니다',

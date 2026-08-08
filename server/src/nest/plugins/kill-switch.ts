@@ -9,7 +9,8 @@
  * directly here. Read at call time so tests and runtime env changes take effect
  * immediately.
  */
+import { readEnv } from '../../app-config';
+
 export function pluginsEnabled(): boolean {
-  const v = (process.env.TREK_PLUGINS_ENABLED || '').trim().toLowerCase();
-  return !['false', '0', 'off', 'no'].includes(v);
+  return readEnv().plugins.enabled;
 }

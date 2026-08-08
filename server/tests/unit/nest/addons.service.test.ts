@@ -7,12 +7,8 @@ const { dbMock } = vi.hoisted(() => {
   return { dbMock: { prepare: vi.fn(() => stmt), _stmt: stmt } };
 });
 vi.mock('../../../src/db/database', () => ({ db: dbMock, closeDb: () => {}, reinitialize: () => {} }));
-
-const { getBagTracking, getCollabFeatures } = vi.hoisted(() => ({
-  getBagTracking: vi.fn(() => ({ enabled: false })),
-  getCollabFeatures: vi.fn(() => ({})),
-}));
-vi.mock('../../../src/services/adminService', () => ({ getBagTracking, getCollabFeatures }));
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
 
 const { getPhotoProviderConfig } = vi.hoisted(() => ({ getPhotoProviderConfig: vi.fn(() => ({})) }));
 vi.mock('../../../src/services/memories/helpersService', () => ({ getPhotoProviderConfig }));
@@ -20,33 +16,39 @@ vi.mock('../../../src/services/memories/helpersService', () => ({ getPhotoProvid
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 
 function svc() {
-  return new AddonsService();
+  return new AddonsService(new DatabaseService(dbConn));
 }
 
-// Feed the three reads in order: addons, providers, fields.
-function feedReads(addons: unknown[], providers: unknown[], fields: unknown[]) {
+// Feed list()'s reads in call order: addons, providers, fields (.all), then the
+// collab-features rows (.all) and the bag-tracking row (.get) from app_settings.
+function feedReads(
+  addons: unknown[],
+  providers: unknown[],
+  fields: unknown[],
+  collabRows: unknown[] = [],
+  bagRow: { value: string } | undefined = undefined,
+) {
   dbMock._stmt.all
     .mockReturnValueOnce(addons)
     .mockReturnValueOnce(providers)
-    .mockReturnValueOnce(fields);
+    .mockReturnValueOnce(fields)
+    .mockReturnValueOnce(collabRows);
+  dbMock._stmt.get.mockReturnValueOnce(bagRow);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   dbMock._stmt.all.mockReturnValue([]);
-  getCollabFeatures.mockReturnValue({});
-  getBagTracking.mockReturnValue({ enabled: false });
+  dbMock._stmt.get.mockReturnValue(undefined);
   getPhotoProviderConfig.mockReturnValue({});
 });
 
 describe('AddonsService.list', () => {
-  it('returns the collab features and the bag-tracking flag from the admin service', () => {
-    getCollabFeatures.mockReturnValue({ comments: true });
-    getBagTracking.mockReturnValue({ enabled: true });
-    feedReads([], [], []);
+  it('returns the collab features and the bag-tracking flag from app_settings', () => {
+    feedReads([], [], [], [{ key: 'collab_chat_enabled', value: 'false' }], { value: 'true' });
 
     const res = svc().list();
-    expect(res.collabFeatures).toEqual({ comments: true });
+    expect(res.collabFeatures).toEqual({ chat: false, notes: true, polls: true, whatsnext: true });
     expect(res.bagTracking).toBe(true);
     expect(res.addons).toEqual([]);
   });
@@ -228,5 +230,69 @@ describe('AddonsService.list', () => {
     const res = svc().list();
     expect(res.addons.map((a) => (a as { id: string }).id)).toEqual(['atlas', 'immich']);
     expect((res.addons[1] as { type: string }).type).toBe('photo_provider');
+  });
+});
+
+// Direct coverage of the enablement reads/writers relocated from
+// services/adminService (finding `admin-1`). The polarity asymmetry is on
+// purpose: bag tracking is opt-in (=== 'true'), collab flags opt-out (!== 'false').
+describe('AddonsService addon/feature flags', () => {
+  it('isAddonEnabled coerces the enabled column (1/0/missing row)', () => {
+    dbMock._stmt.get.mockReturnValueOnce({ enabled: 1 });
+    expect(svc().isAddonEnabled('budget')).toBe(true);
+    dbMock._stmt.get.mockReturnValueOnce({ enabled: 0 });
+    expect(svc().isAddonEnabled('budget')).toBe(false);
+    dbMock._stmt.get.mockReturnValueOnce(undefined);
+    expect(svc().isAddonEnabled('nope')).toBe(false);
+  });
+
+  it('getBagTracking is opt-in: only the literal string true enables it', () => {
+    dbMock._stmt.get.mockReturnValueOnce({ value: 'true' });
+    expect(svc().getBagTracking()).toEqual({ enabled: true });
+    dbMock._stmt.get.mockReturnValueOnce({ value: 'false' });
+    expect(svc().getBagTracking()).toEqual({ enabled: false });
+    dbMock._stmt.get.mockReturnValueOnce(undefined); // absent row → OFF
+    expect(svc().getBagTracking()).toEqual({ enabled: false });
+  });
+
+  it('updateBagTracking persists true/false strings and echoes the flag (ADMIN-SVC-030)', () => {
+    expect(svc().updateBagTracking(true)).toEqual({ enabled: true });
+    expect(dbMock._stmt.run).toHaveBeenCalledWith('true');
+    expect(svc().updateBagTracking(false)).toEqual({ enabled: false });
+    expect(dbMock._stmt.run).toHaveBeenCalledWith('false');
+  });
+
+  it('getCollabFeatures is opt-out: absent rows default ON, only false disables', () => {
+    dbMock._stmt.all.mockReturnValueOnce([
+      { key: 'collab_chat_enabled', value: 'false' },
+      { key: 'collab_polls_enabled', value: 'true' },
+    ]);
+    expect(svc().getCollabFeatures()).toEqual({ chat: false, notes: true, polls: true, whatsnext: true });
+  });
+
+  it('updateCollabFeatures writes only the provided flags and reports changed (#1414, ADMIN-SVC-070)', () => {
+    // before-read: all default ON; after-read: chat flipped off → changed
+    dbMock._stmt.all.mockReturnValueOnce([]).mockReturnValueOnce([{ key: 'collab_chat_enabled', value: 'false' }]);
+    const first = svc().updateCollabFeatures({ chat: false });
+    expect(first.changed).toBe(true);
+    expect(first.features.chat).toBe(false);
+    expect(dbMock._stmt.run).toHaveBeenCalledTimes(1);
+    expect(dbMock._stmt.run).toHaveBeenCalledWith('collab_chat_enabled', 'false');
+
+    // identical save → before and after read the same → no change, MCP sessions must survive
+    dbMock._stmt.run.mockClear();
+    dbMock._stmt.all
+      .mockReturnValueOnce([{ key: 'collab_chat_enabled', value: 'false' }])
+      .mockReturnValueOnce([{ key: 'collab_chat_enabled', value: 'false' }]);
+    const second = svc().updateCollabFeatures({ chat: false });
+    expect(second.changed).toBe(false);
+    expect(dbMock._stmt.run).toHaveBeenCalledWith('collab_chat_enabled', 'false');
+
+    // undefined flags are not written
+    dbMock._stmt.run.mockClear();
+    dbMock._stmt.all.mockReturnValueOnce([]).mockReturnValueOnce([]);
+    const third = svc().updateCollabFeatures({});
+    expect(third.changed).toBe(false);
+    expect(dbMock._stmt.run).not.toHaveBeenCalled();
   });
 });

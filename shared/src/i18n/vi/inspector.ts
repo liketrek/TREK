@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Chỉnh sửa đặt chỗ',
   'inspector.participants': 'Người tham gia',
   'inspector.trackStats': 'Theo dõi số liệu thống kê',
+  'inspector.trackColor': 'Màu đường đi',
+  'inspector.trackColorAuto': 'Màu tự động',
+  'inspector.trackColorCustom': 'Chọn màu tùy chỉnh',
 };
 export default inspector;

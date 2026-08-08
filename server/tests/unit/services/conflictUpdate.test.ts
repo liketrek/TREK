@@ -38,9 +38,17 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
-import { updatePlace, createPlace } from '../../../src/services/placeService';
-import { createItem, updateItem } from '../../../src/services/packingService';
-import { isUpdateConflict } from '../../../src/services/conflictResult';
+import { isUpdateConflict } from '../../../src/nest/common/conflictResult';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import { PlacesService } from '../../../src/nest/places/places.service';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+
+const packing = new PackingService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const places = new PlacesService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new MapsService(new DatabaseService(testDb)), new QueryHelpersService(new DatabaseService(testDb)));
 
 beforeAll(() => {
   createTables(testDb);
@@ -56,17 +64,17 @@ afterAll(() => {
 });
 
 function freshPlace(tripId: number) {
-  const place = createPlace(String(tripId), { name: 'Original' }) as { id: number; updated_at: string };
+  const place = places.create(String(tripId), { name: 'Original' }) as unknown as { id: number; updated_at: string };
   return place;
 }
 
-describe('updatePlace — optimistic concurrency', () => {
+describe('PlacesService.update — optimistic concurrency', () => {
   it('updates normally when no If-Match token is sent (back-compat)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = freshPlace(trip.id);
 
-    const result = updatePlace(String(trip.id), String(place.id), { name: 'Edited' });
+    const result = places.update(String(trip.id), String(place.id), { name: 'Edited' });
     expect(isUpdateConflict(result)).toBe(false);
     expect((result as { name: string }).name).toBe('Edited');
   });
@@ -76,7 +84,7 @@ describe('updatePlace — optimistic concurrency', () => {
     const trip = createTrip(testDb, user.id);
     const place = freshPlace(trip.id);
 
-    const result = updatePlace(String(trip.id), String(place.id), { name: 'Edited' }, place.updated_at);
+    const result = places.update(String(trip.id), String(place.id), { name: 'Edited' }, place.updated_at);
     expect(isUpdateConflict(result)).toBe(false);
     expect((result as { name: string }).name).toBe('Edited');
   });
@@ -86,7 +94,7 @@ describe('updatePlace — optimistic concurrency', () => {
     const trip = createTrip(testDb, user.id);
     const place = freshPlace(trip.id);
 
-    const result = updatePlace(String(trip.id), String(place.id), { name: 'Mine' }, '1999-01-01 00:00:00');
+    const result = places.update(String(trip.id), String(place.id), { name: 'Mine' }, '1999-01-01 00:00:00');
     expect(isUpdateConflict(result)).toBe(true);
     if (isUpdateConflict(result)) {
       expect((result.server as { name: string }).name).toBe('Original');
@@ -99,7 +107,7 @@ describe('updatePlace — optimistic concurrency', () => {
   it('returns null for a place that does not exist', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    expect(updatePlace(String(trip.id), '999999', { name: 'x' }, 'whatever')).toBeNull();
+    expect(places.update(String(trip.id), '999999', { name: 'x' }, 'whatever')).toBeNull();
   });
 });
 
@@ -110,19 +118,19 @@ describe('updateItem (packing) — optimistic concurrency', () => {
 
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const item = createItem(trip.id, { name: 'Socks' }) as { id: number; updated_at: string | null };
+    const item = packing.createItem(trip.id, { name: 'Socks' }) as { id: number; updated_at: string | null };
     expect(item.updated_at).toBeTruthy();
   });
 
   it('returns a conflict when the packing token is stale', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const item = createItem(trip.id, { name: 'Socks' }) as { id: number; updated_at: string };
+    const item = packing.createItem(trip.id, { name: 'Socks' }) as { id: number; updated_at: string };
 
-    const stale = updateItem(trip.id, item.id, { name: 'Mine' }, ['name'], '1999-01-01 00:00:00');
+    const stale = packing.updateItem(trip.id, item.id, { name: 'Mine' }, ['name'], '1999-01-01 00:00:00');
     expect(isUpdateConflict(stale)).toBe(true);
 
-    const fresh = updateItem(trip.id, item.id, { name: 'Edited' }, ['name'], item.updated_at);
+    const fresh = packing.updateItem(trip.id, item.id, { name: 'Edited' }, ['name'], item.updated_at);
     expect(isUpdateConflict(fresh)).toBe(false);
     expect((fresh as { name: string }).name).toBe('Edited');
   });

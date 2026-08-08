@@ -66,7 +66,7 @@ describe('settingsStore', () => {
   });
 
   describe('FE-SETTINGS-005: loadSettings failure', () => {
-    it('sets isLoaded: true even on API failure (graceful)', async () => {
+    it('leaves isLoaded false on API failure so the load is retried (#1618)', async () => {
       server.use(
         http.get('/api/settings', () =>
           HttpResponse.json({ error: 'Server error' }, { status: 500 })
@@ -74,9 +74,31 @@ describe('settingsStore', () => {
       );
 
       await useSettingsStore.getState().loadSettings();
-      const state = useSettingsStore.getState();
 
+      // A transient failure must NOT be treated as "loaded" — otherwise the store
+      // stays on built-in DEFAULT_SETTINGS (wrong currency/units) for the whole
+      // session with no retry. isLoaded stays false so the reconnect triggers retry.
+      expect(useSettingsStore.getState().isLoaded).toBe(false);
+    });
+
+    it('recovers on a later retry after an initial failure (#1618)', async () => {
+      server.use(
+        http.get('/api/settings', () =>
+          HttpResponse.json({ error: 'Server error' }, { status: 500 })
+        )
+      );
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().isLoaded).toBe(false);
+
+      const settings = buildSettings({ default_currency: 'EUR' });
+      server.use(
+        http.get('/api/settings', () => HttpResponse.json({ settings }))
+      );
+      await useSettingsStore.getState().loadSettings();
+
+      const state = useSettingsStore.getState();
       expect(state.isLoaded).toBe(true);
+      expect(state.settings.default_currency).toBe('EUR');
     });
   });
 
@@ -217,6 +239,93 @@ describe('settingsStore', () => {
       ).rejects.toThrow();
 
       expect(useSettingsStore.getState().settings.default_currency).toBe('EUR');
+    });
+  });
+
+  describe('FE-STORE-SETTINGS-018: loadSettings normalizes a legacy OSM tile template (#1733)', () => {
+    it('rewrites the retired {s}.tile.openstreetmap.org host on read', async () => {
+      const settings = buildSettings({
+        map_tile_url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      });
+      server.use(http.get('/api/settings', () => HttpResponse.json({ settings })));
+
+      await useSettingsStore.getState().loadSettings();
+
+      // d.tile.openstreetmap.org no longer resolves, so a template stored before
+      // OSM dropped sharding must not reach the map or the tile prefetcher.
+      expect(useSettingsStore.getState().settings.map_tile_url).toBe(
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+      );
+    });
+
+    it('leaves a custom template from another provider untouched', async () => {
+      const url = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      server.use(
+        http.get('/api/settings', () =>
+          HttpResponse.json({ settings: buildSettings({ map_tile_url: url }) })
+        )
+      );
+
+      await useSettingsStore.getState().loadSettings();
+
+      expect(useSettingsStore.getState().settings.map_tile_url).toBe(url);
+    });
+  });
+
+  describe('FE-STORE-SETTINGS-019: saving normalizes the tile template too (#1733)', () => {
+    it('rewrites a hand-typed legacy host in updateSetting and persists the rewrite', async () => {
+      const bodies: unknown[] = [];
+      server.use(
+        http.put('/api/settings', async ({ request }) => {
+          bodies.push(await request.json());
+          return HttpResponse.json({ success: true });
+        })
+      );
+
+      await useSettingsStore
+        .getState()
+        .updateSetting('map_tile_url', 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+
+      // Normalizing only on read would leave the dead host in the database and
+      // hand it straight back on the next load.
+      expect(useSettingsStore.getState().settings.map_tile_url).toBe(
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+      );
+      expect(bodies).toEqual([
+        { key: 'map_tile_url', value: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
+      ]);
+    });
+
+    it('rewrites the template inside a bulk save and persists the rewrite', async () => {
+      const bodies: Array<{ settings: Record<string, unknown> }> = [];
+      server.use(
+        http.post('/api/settings/bulk', async ({ request }) => {
+          bodies.push((await request.json()) as { settings: Record<string, unknown> });
+          return HttpResponse.json({ success: true });
+        })
+      );
+
+      await useSettingsStore.getState().updateSettings({
+        map_tile_url: 'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        map_provider: 'leaflet',
+      });
+
+      expect(useSettingsStore.getState().settings.map_tile_url).toBe(
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+      );
+      expect(bodies[0].settings).toEqual({
+        map_tile_url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        map_provider: 'leaflet',
+      });
+    });
+
+    it('leaves other settings and other providers alone', async () => {
+      await useSettingsStore.getState().updateSetting('default_currency', 'CHF');
+      expect(useSettingsStore.getState().settings.default_currency).toBe('CHF');
+
+      const carto = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      await useSettingsStore.getState().updateSettings({ map_tile_url: carto });
+      expect(useSettingsStore.getState().settings.map_tile_url).toBe(carto);
     });
   });
 });

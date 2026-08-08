@@ -54,7 +54,7 @@ Once you select an airport, the **timezone** for that airport appears next to th
 
 Departure and arrival fields use the **generic location picker** — search by place name or enter a free-text location. Results come from the maps search service.
 
-For **car rentals**, the departure field is labelled **Pickup date/time** and the arrival field is labelled **Return date/time**.
+If you use **car rentals** instead of your own Car, the departure field is labelled **Pickup date/time** and the arrival field is labelled **Return date/time**.
 
 ## Flight-specific fields
 
@@ -92,7 +92,7 @@ When a transport is assigned to a day, it appears inline in the day timeline bet
 | Type | Start day | Middle days | End day |
 |------|-----------|-------------|---------|
 | Flight | Departure | In transit | Arrival |
-| Car rental | Pickup | Active | Return |
+| Car / Car rental | Pickup | Active | Return |
 | Train / Cruise | Start | Ongoing | End |
 
 A **multi-leg train** (and a multi-leg flight) instead shows **one row per leg**, each slotting into its own day at its own time and independently reorderable, rather than a single spanning row.

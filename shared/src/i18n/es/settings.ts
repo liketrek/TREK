@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Plantilla del mapa',
   'settings.mapTemplatePlaceholder.select': 'Seleccionar plantilla...',
   'settings.mapDefaultHint': 'Déjalo vacío para OpenStreetMap (por defecto)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Plantilla de URL para los mosaicos del mapa',
   'settings.mapProvider': 'Proveedor de mapa',
   'settings.mapProviderHint': 'Afecta a los mapas de Trip Planner y Journey. Atlas siempre usa Leaflet.',
@@ -80,6 +79,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Recordatorios de viaje',
   'settings.notifyTodoDue': 'Tarea próxima',
   'settings.notifyVacayInvite': 'Invitaciones de fusión Vacay',
+  'settings.notifyVacayShare': 'Calendarios Vacay compartidos',
   'settings.notifyPhotosShared': 'Fotos compartidas (Immich)',
   'settings.notifyCollabMessage': 'Mensajes de chat (Collab)',
   'settings.notifyPackingTagged': 'Lista de equipaje: asignaciones',
@@ -259,6 +259,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Foto de perfil actualizada',
   'settings.avatarRemoved': 'Foto de perfil eliminada',
   'settings.avatarError': 'Falló la subida',
+  'settings.avatarRemoveError': 'Error al eliminar',
   'settings.bookingLabels': 'Etiquetas de rutas de reservas',
   'settings.bookingLabelsHint':
     'Muestra nombres de estaciones / aeropuertos en el mapa. Desactivado, solo se muestra el icono.',
@@ -301,8 +302,9 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Moneda de visualización',
+  'settings.currencyHint':
+    'Los importes en Costes se muestran convertidos a esta moneda solo a efectos de visualización — los importes originales no se modifican.',
   'settings.currencyTrip': 'Moneda del viaje',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
@@ -429,6 +431,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Barra de navegación inferior',
+  'settings.appearance.mobileNav.hint':
+    'Elige qué elementos aparecen en la barra y cuáles quedan en «Más». Dashboard siempre va primero.',
+  'settings.appearance.mobileNav.inBar': 'En la barra',
+  'settings.appearance.mobileNav.underMore': 'En «Más»',
+  'settings.appearance.mobileNav.moreEmpty': 'Aún no hay nada aquí — todo cabe en la barra.',
+  'settings.appearance.mobileNav.pinned': 'Fijado',
+  'settings.appearance.mobileNav.toMore': 'Mover a «Más»',
+  'settings.appearance.mobileNav.toBar': 'Mover a la barra',
+  'settings.appearance.dashOrder': 'Orden del panel',
+  'settings.appearance.dashOrder.hint':
+    'Reordena cómo se apilan la lista de viajes y los widgets en el panel de tu teléfono. El viaje destacado siempre queda arriba.',
+  'settings.appearance.dashOrder.trips': 'Viajes',
+  'settings.appearance.dashOrder.hidden': 'Oculto',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -495,7 +511,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Cuándo',
   'settings.pluginActivity.columns.status': 'Resultado',
   'settings.alwaysShowRoutes': 'Mostrar siempre las rutas de reserva',
-  'settings.alwaysShowRoutesHint': 'Muestra automáticamente en el mapa la ruta de cada vuelo, tren y otra reserva, sin necesidad de activarla una por una.',
+  'settings.alwaysShowRoutesHint':
+    'Muestra automáticamente en el mapa la ruta de cada vuelo, tren y otra reserva, sin necesidad de activarla una por una.',
 };
 
 export default settings;

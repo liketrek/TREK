@@ -54,5 +54,9 @@ const atlas: TranslationStrings = {
   'atlas.tripPlural': '여행',
   'atlas.placeVisited': '방문한 장소',
   'atlas.placesVisited': '방문한 장소',
+  'atlas.planned': '예정',
+  'atlas.showPlanned': '예정된 국가 표시',
+  'atlas.plannedFor': '예정일',
+  'atlas.antarctica': '남극',
 };
 export default atlas;

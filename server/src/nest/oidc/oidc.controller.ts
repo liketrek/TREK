@@ -1,7 +1,8 @@
 import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { OidcService } from './oidc.service';
-import { cookieOptions } from '../../services/cookie';
+import { readEnv } from '../../app-config';
+import { OidcService, OIDC_STATE_TTL_MS } from './oidc.service';
+import { cookieOptions } from '../common/cookie';
 
 const OIDC_STATE_COOKIE = 'trek_oidc_state';
 
@@ -29,7 +30,7 @@ export class OidcController {
       res.status(400).json({ error: 'OIDC not configured' });
       return;
     }
-    if (config.issuer && !config.issuer.startsWith('https://') && process.env.NODE_ENV?.toLowerCase() === 'production') {
+    if (config.issuer && !config.issuer.startsWith('https://') && readEnv().app.isProduction) {
       res.status(400).json({ error: 'OIDC issuer must use HTTPS in production' });
       return;
     }
@@ -47,12 +48,14 @@ export class OidcController {
       // so an attacker-initiated login (whose callback URL carries a valid state
       // from the shared server map) cannot be replayed in a victim's browser to
       // log them into the attacker's account (OIDC login CSRF / session fixation).
-      res.cookie(OIDC_STATE_COOKIE, state, { ...cookieOptions(false, req), maxAge: 10 * 60 * 1000 });
+      // maxAge matches the server-side pending-state TTL — a cookie that
+      // outlives its state entry could only ever produce invalid_state.
+      res.cookie(OIDC_STATE_COOKIE, state, { ...cookieOptions(false, req), maxAge: OIDC_STATE_TTL_MS });
       const params = new URLSearchParams({
         response_type: 'code',
         client_id: config.clientId,
         redirect_uri: redirectUri,
-        scope: process.env.OIDC_SCOPE || 'openid email profile',
+        scope: readEnv().oidc.scope,
         state,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
@@ -93,7 +96,7 @@ export class OidcController {
 
     const config = this.oidc.getOidcConfig();
     if (!config) return f('/login?oidc_error=not_configured');
-    if (config.issuer && !config.issuer.startsWith('https://') && process.env.NODE_ENV?.toLowerCase() === 'production') {
+    if (config.issuer && !config.issuer.startsWith('https://') && readEnv().app.isProduction) {
       return f('/login?oidc_error=issuer_not_https');
     }
 

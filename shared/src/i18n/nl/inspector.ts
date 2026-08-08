@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Reservering bewerken',
   'inspector.participants': 'Deelnemers',
   'inspector.trackStats': 'Routegegevens',
+  'inspector.trackColor': 'Routekleur',
+  'inspector.trackColorAuto': 'Automatische kleur',
+  'inspector.trackColorCustom': 'Kies een aangepaste kleur',
 };
 export default inspector;

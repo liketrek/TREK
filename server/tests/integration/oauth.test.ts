@@ -44,17 +44,8 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 
-const { isAddonEnabledMock } = vi.hoisted(() => {
-    const isAddonEnabledMock = vi.fn().mockReturnValue(true);
-    return { isAddonEnabledMock };
-});
-vi.mock('../../src/services/adminService', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../src/services/adminService')>();
-    return { ...actual, isAddonEnabled: isAddonEnabledMock };
-});
-
-vi.mock('../../src/services/notifications', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../src/services/notifications')>();
+vi.mock('../../src/app-config', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../src/app-config')>();
     return { ...actual, getMcpSafeUrl: () => 'https://trek.example.com' };
 });
 
@@ -67,7 +58,7 @@ import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import { createOAuthClient, createAuthCode, getUserByAccessToken } from '../../src/services/oauthService';
+import { createOAuthClient, createAuthCode, getUserByAccessToken } from '../../src/nest/oauth/oauth.bridge';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -79,13 +70,11 @@ function makePkce() {
     return { verifier, challenge };
 }
 
-// A7: under the unified Nest app the adminService mock only reaches the directly
-// imported isAddonEnabled (OauthService.mcpEnabled); oauthService.ts reads the
-// addon state through its own import that the Nest module graph loads unmocked,
-// so it falls back to the real DB row. Drive BOTH so the MCP-enabled state is
-// consistent across mcpEnabled() AND validateAuthorizeRequest()/token/revoke.
+// Since the admin-1 extraction, both OauthService (injected AddonsService) and
+// the legacy oauthService (addons.bridge) resolve the MCP addon from the real
+// addons row, so driving the DB row keeps mcpEnabled() AND
+// validateAuthorizeRequest()/token/revoke consistent from one source.
 function setMcpEnabled(enabled: boolean) {
-    isAddonEnabledMock.mockReturnValue(enabled);
     testDb.prepare(
         "INSERT OR REPLACE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('mcp', 'MCP', 'AI assistant integration', 'integration', 'Terminal', ?, 12)"
     ).run(enabled ? 1 : 0);

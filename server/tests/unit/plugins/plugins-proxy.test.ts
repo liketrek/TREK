@@ -11,7 +11,7 @@ const { pluginsEnabledMock, extractTokenMock, verifyMock } = vi.hoisted(() => ({
   verifyMock: vi.fn(() => ({ id: 5, username: 'ada', role: 'user' })),
 }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled: pluginsEnabledMock }));
-vi.mock('../../../src/middleware/auth', () => ({ extractToken: extractTokenMock, verifyJwtAndLoadUser: verifyMock }));
+vi.mock('../../../src/nest/auth/jwt-verify', () => ({ extractToken: extractTokenMock, verifyJwtAndLoadUser: verifyMock }));
 
 import { PluginsProxyController } from '../../../src/nest/plugins/plugins-proxy.controller';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';

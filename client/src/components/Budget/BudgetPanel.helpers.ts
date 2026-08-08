@@ -77,3 +77,15 @@ export function splitColorFor(userId: number, order: number) {
 export function colorForUserId(userId: number) {
   return SPLIT_COLORS[((userId | 0) - 1 + SPLIT_COLORS.length * 1000) % SPLIT_COLORS.length]
 }
+
+/**
+ * Normalises a pasted amount to a plain `1234.56` string: drops currency
+ * symbols and spaces, treats the last comma/dot as the decimal separator and
+ * removes every thousand separator before it.
+ */
+export function normalizePastedAmount(raw: string): string {
+  const text = raw.trim().replace(/[^\d.,-]/g, '')
+  const decimalPos = Math.max(text.lastIndexOf(','), text.lastIndexOf('.'))
+  if (decimalPos === -1) return text.replace(/[.,]/g, '')
+  return text.substring(0, decimalPos).replace(/[.,]/g, '') + '.' + text.substring(decimalPos + 1)
+}

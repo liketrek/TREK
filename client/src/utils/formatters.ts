@@ -71,6 +71,20 @@ export function currencyLocale(currency: string): string {
   return CURRENCY_LOCALE[(currency || '').toUpperCase()] || 'en-US'
 }
 
+// The decimal separator formatMoney renders a currency with (',' for EUR, '.' for
+// USD) — same home-locale convention, so an amount input can match the displayed list.
+export function currencyDecimalSeparator(currency: string): string {
+  return (0.1).toLocaleString(currencyLocale(currency)).replace(/\d/g, '') || '.'
+}
+
+// Show a dot-normalized amount string in an input using the currency's decimal
+// separator, so the field reads the same way as the list. State stays dot-normalized;
+// callers still normalize typed input back to a dot on change.
+export function localizeAmountInput(value: string | number | null | undefined, currency: string): string {
+  const s = String(value ?? '')
+  return currencyDecimalSeparator(currency) === ',' ? s.replace('.', ',') : s
+}
+
 /**
  * Locale- and currency-correct money formatting via Intl: the symbol position,
  * thousands/decimal separators and decimal count all follow the user's locale
@@ -114,31 +128,67 @@ export function formatDate(dateStr: string | null | undefined, locale: string, t
   return date.toLocaleDateString(locale, opts)
 }
 
+// Times are stored as HH:MM, but a value can still carry a meridiem — typed while
+// 12h was configured, or handed over by a booking import. Convert those to 24h so
+// the configured time format decides how a time is shown, not the way it happens
+// to be stored. Returns null when there is no meridiem to convert.
+export function parseMeridiemTime(value: string | null | undefined): string | null {
+  const match = (value || '').trim().match(/^(\d{1,2}):?(\d{2})?\s*(am|pm)$/i)
+  if (!match) return null
+  let h = parseInt(match[1])
+  const m = match[2] ? parseInt(match[2]) : 0
+  const isPm = match[3].toLowerCase() === 'pm'
+  if (h === 12) h = isPm ? 12 : 0
+  else if (isPm) h += 12
+  return `${String(Math.min(23, h)).padStart(2, '0')}:${String(Math.min(59, m)).padStart(2, '0')}`
+}
+
+function to12h(h: number, m: number): string {
+  const period = h >= 12 ? 'PM' : 'AM'
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`
+}
+
 export function formatTime(timeStr: string | null | undefined, locale: string, timeFormat: string): string {
   if (!timeStr) return ''
   try {
-    const parts = timeStr.split(':')
+    const parts = (parseMeridiemTime(timeStr) ?? timeStr).split(':')
     const h = Number(parts[0]) || 0
     const m = Number(parts[1]) || 0
     if (isNaN(h)) return timeStr
-    if (timeFormat === '12h') {
-      const period = h >= 12 ? 'PM' : 'AM'
-      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-      return `${h12}:${String(m).padStart(2, '0')} ${period}`
-    }
+    if (timeFormat === '12h') return to12h(h, m)
     const str = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     return locale?.startsWith('de') ? `${str} Uhr` : str
   } catch { return timeStr }
 }
 
+/**
+ * Clock time for the compact spots that have no locale to work with — the time picker
+ * input and the dense day/booking rows. Same 12h/24h decision as formatTime, but it
+ * leaves a 24h value exactly as it is instead of adding the German "Uhr" suffix.
+ * A stored meridiem is normalised first, so the setting decides in both directions.
+ */
+export function formatClockTime(value: string | null | undefined, is12h: boolean): string {
+  if (!value) return ''
+  const norm = parseMeridiemTime(value) ?? value
+  const [h, m] = norm.split(':').map(Number)
+  if (isNaN(h) || isNaN(m)) return value
+  return is12h ? to12h(h, m) : norm
+}
+
 export function splitReservationDateTime(value?: string | null): { date: string | null; time: string | null } {
   if (!value) return { date: null, time: null }
   const isoDate = /^\d{4}-\d{2}-\d{2}$/
+  // Cutting the time part after five characters would drop the meridiem and turn
+  // "3:00 PM" into "3:00", i.e. 3 AM — convert it instead (#1725).
+  const timePart = (t: string) => parseMeridiemTime(t) ?? t.slice(0, 5)
   if (value.includes('T')) {
     const [d, t] = value.split('T')
-    return { date: isoDate.test(d) ? d : null, time: t ? t.slice(0, 5) : null }
+    return { date: isoDate.test(d) ? d : null, time: t ? timePart(t) : null }
   }
   if (isoDate.test(value)) return { date: value, time: null }
+  const meridiem = parseMeridiemTime(value)
+  if (meridiem) return { date: null, time: meridiem }
   if (/^\d{1,2}:\d{2}/.test(value)) return { date: null, time: value.slice(0, 5) }
   return { date: null, time: null }
 }

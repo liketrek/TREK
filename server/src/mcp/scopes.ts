@@ -9,6 +9,8 @@ export const SCOPES = {
   TRIPS_SHARE:         'trips:share',
   PLACES_READ:         'places:read',
   PLACES_WRITE:        'places:write',
+  COLLECTIONS_READ:    'collections:read',
+  COLLECTIONS_WRITE:   'collections:write',
   ATLAS_READ:          'atlas:read',
   ATLAS_WRITE:         'atlas:write',
   PACKING_READ:        'packing:read',
@@ -34,6 +36,9 @@ export const SCOPES = {
 
 export type Scope = typeof SCOPES[keyof typeof SCOPES];
 
+/** 'trips' | 'places' | ... — derived from SCOPES; adding a scope extends it. */
+export type ScopeGroup = Scope extends `${infer G}:${string}` ? G : never;
+
 export const ALL_SCOPES: Scope[] = Object.values(SCOPES) as Scope[];
 
 export interface ScopeInfo {
@@ -49,6 +54,8 @@ export const SCOPE_INFO: Record<Scope, ScopeInfo> = {
   'trips:share':         { label: 'Manage share links',         description: 'Create, update, and revoke public share links for trips',               group: 'Trips' },
   'places:read':         { label: 'View places & map data',     description: 'Read places, day assignments, tags, and categories',                    group: 'Places' },
   'places:write':        { label: 'Manage places',              description: 'Create, update, and delete places, assignments, and tags',              group: 'Places' },
+  'collections:read':    { label: 'View collections',           description: 'Read saved-place collections, their places, ratings, labels, and members', group: 'Collections' },
+  'collections:write':   { label: 'Manage collections',         description: 'Create/edit collections, save, rate, label and copy places, and share lists', group: 'Collections' },
   'atlas:read':          { label: 'View Atlas',                 description: 'Read visited countries, regions, and bucket list',                      group: 'Atlas' },
   'atlas:write':         { label: 'Manage Atlas',               description: 'Mark countries and regions visited, manage bucket list',                group: 'Atlas' },
   'packing:read':        { label: 'View packing lists',         description: 'Read packing items, bags, and category assignees',                      group: 'Packing' },
@@ -84,13 +91,13 @@ export function canReadTrips(scopes: string[] | null): boolean {
 }
 
 /** group:write grants write access; for trips canReadTrips handles read */
-export function canWrite(scopes: string[] | null, group: string): boolean {
+export function canWrite(scopes: string[] | null, group: ScopeGroup): boolean {
   if (!scopes) return true;
   return scopes.includes(`${group}:write`);
 }
 
 /** group:read OR group:write grant read access */
-export function canRead(scopes: string[] | null, group: string): boolean {
+export function canRead(scopes: string[] | null, group: ScopeGroup): boolean {
   if (!scopes) return true;
   return scopes.some(s => s === `${group}:read` || s === `${group}:write`);
 }

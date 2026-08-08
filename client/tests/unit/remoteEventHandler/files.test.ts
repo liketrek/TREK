@@ -47,6 +47,17 @@ describe('remoteEventHandler > files', () => {
     expect(files).toHaveLength(0);
   });
 
+  it('FE-WSEVT-FILE-006: file:updated leaves the other files untouched', () => {
+    useTripStore.setState({
+      files: [buildTripFile({ id: 1, original_name: 'a.pdf' }), buildTripFile({ id: 2, original_name: 'b.pdf' })],
+    });
+    useTripStore.getState().handleRemoteEvent({
+      type: 'file:updated',
+      file: buildTripFile({ id: 2, original_name: 'b-renamed.pdf' }),
+    });
+    expect(useTripStore.getState().files.map(f => f.original_name)).toEqual(['a.pdf', 'b-renamed.pdf']);
+  });
+
   it('FE-WSEVT-FILE-005: file:created ordering — newest is first', () => {
     seedData();
     const f2 = buildTripFile({ id: 2, original_name: 'second.pdf' });

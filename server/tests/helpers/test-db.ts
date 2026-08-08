@@ -21,7 +21,7 @@ import type { INestApplication } from '@nestjs/common';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { AuthPublicController } from '../../src/nest/auth/auth-public.controller';
-import type { RateLimitService } from '../../src/nest/auth/rate-limit.service';
+import type { RateLimitService } from '../../src/nest/common/rate-limit.service';
 
 // Tables to clear on reset, child-before-parent to be safe (FK checks are OFF during reset).
 // Keep in sync with schema.ts + migrations.ts. Intentionally excluded: categories, addons,
@@ -78,6 +78,8 @@ const RESET_TABLES = [
   'journey_trips',
   'journeys',
   // Vacay
+  'vacay_user_settings',
+  'vacay_shares',
   'vacay_entries',
   'vacay_company_holidays',
   'vacay_holiday_calendars',
@@ -102,6 +104,8 @@ const RESET_TABLES = [
   'invite_tokens',
   'tags',
   'app_settings',
+  'webauthn_challenges',
+  'webauthn_credentials',
   'users',
 ];
 

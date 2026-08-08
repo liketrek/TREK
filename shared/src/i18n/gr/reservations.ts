@@ -60,6 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'Κρουαζιέρα',
   'reservations.type.event': 'Εκδήλωση',
   'reservations.type.tour': 'Περιήγηση',
+  'reservations.type.parking': 'Στάθμευση',
   'reservations.type.other': 'Άλλο',
   'reservations.type.bus': 'Λεωφορείο',
   'reservations.type.ferry': 'Φέρι',
@@ -153,6 +154,8 @@ const reservations: TranslationStrings = {
     'Συγχρονισμένο από το AirTrail — οι αλλαγές συγχρονίζονται και προς τις δύο κατευθύνσεις.',
   'reservations.airtrail.notSynced': 'Μη συγχρονισμένο',
   'reservations.airtrail.notSyncedHint': 'Αυτή η πτήση αφαιρέθηκε στο AirTrail και δεν συγχρονίζεται πλέον.',
+  'reservations.airtrail.layoverHint':
+    'Εισαγωγή από το AirTrail. Μια πτήση πολλαπλών σκελών με ενδιάμεση στάση δεν αντιστοιχεί σε μία μόνο πτήση του AirTrail για συγχρονισμό, γι’ αυτό παραμένει εφάπαξ εισαγωγή.',
   'reservations.airtrail.loadError': 'Δεν ήταν δυνατή η φόρτωση των πτήσεών σας από το AirTrail.',
   'reservations.airtrail.imported': '{count} πτήση/πτήσεις εισήχθησαν',
   'reservations.airtrail.skippedDuplicate': '{count} υπάρχουν ήδη σε αυτό το ταξίδι, παραλείφθηκαν',
@@ -172,5 +175,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Σύνδεσμος',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Ταξιδιώτες',
+  'reservations.travelers.assign': 'Ανάθεση ταξιδιωτών',
+  'reservations.travelers.none': 'Δεν υπάρχουν ακόμη μέλη στο ταξίδι.',
 };
 export default reservations;

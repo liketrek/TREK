@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -151,7 +151,7 @@ export function useTripPlanner() {
       setActiveTab('plan')
       sessionStorage.setItem(`trip-tab-${tripId}`, 'plan')
     }
-  }, [enabledAddons, tripPluginIds, pluginsLoaded])
+  }, [activeTab, enabledAddons, tripPluginIds, pluginsLoaded])
 
   const handleTabChange = (rawTabId: string): void => {
     // A core tab a plugin replaced is gone from the bar, but a programmatic jump
@@ -230,9 +230,10 @@ export function useTripPlanner() {
   // The files this import was parsed from, so each reviewed booking can attach its source doc.
   const importSourceFilesRef = useRef<File[]>([])
   // Manual route planning: off by default, toggled from the day-plan footer. Mode
-  // (driving/walking) is per-session and selects which travel time the connectors show.
+  // is per-session and selects which travel time the connectors show — either a
+  // built-in OSRM profile or a plugin route profile ('plugin:<id>/<profile>').
   const [routeShown, setRouteShown] = useState(false)
-  const [routeProfile, setRouteProfile] = useState<'driving' | 'walking'>('driving')
+  const [routeProfile, setRouteProfile] = useState<string>('driving')
   const [fitKey, setFitKey] = useState<number>(0)
   const initialFitTripId = useRef<number | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<'left' | 'right' | null>(null)
@@ -297,7 +298,7 @@ export function useTripPlanner() {
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [])
-  // Layout is width-driven (isMobile); drag affordances are pointer-driven (isTouch).
+  // Layout is width-driven (isMobile); the drag bridge is pointer-driven (isTouch).
   // Conflating them is what left a tablet's places list undraggable-but-unscrollable (#1432).
   const isTouch = useIsTouch()
 
@@ -364,14 +365,15 @@ export function useTripPlanner() {
       for (const [dayId, dayAssignments] of Object.entries(assignments)) {
         if (expandedDayIds.has(Number(dayId))) {
           for (const a of dayAssignments) {
-            hiddenPlaceIds.delete(a.place?.id)
+            if (a.place?.id) hiddenPlaceIds.delete(a.place.id)
           }
         }
       }
     }
 
-    // Build set of planned place IDs for unplanned filter
-    const plannedIds = placesFilter === 'unplanned'
+    // Planned place IDs — needed by both the 'unplanned' filter (exclude them) and
+    // the new 'planned' filter (keep only them).
+    const plannedIds = placesFilter === 'unplanned' || placesFilter === 'planned'
       ? new Set(Object.values(assignments).flatMap(da => da.map(a => a.place?.id).filter(Boolean)))
       : null
 
@@ -383,13 +385,17 @@ export function useTripPlanner() {
           if (!placesCategoryFilter.has('uncategorized')) return false
         } else if (!placesCategoryFilter.has(String(p.category_id))) return false
       }
-      if (hiddenPlaceIds.has(p.id)) return false
-      if (plannedIds && plannedIds.has(p.id)) return false
+      // Collapsed-day declutter hides a day's stops on every filter EXCEPT 'planned':
+      // there the user asked to see the whole plan on the map, so a collapsed day
+      // must not drop its planned places.
+      if (placesFilter !== 'planned' && hiddenPlaceIds.has(p.id)) return false
+      if (placesFilter === 'unplanned' && plannedIds && plannedIds.has(p.id)) return false
+      if (placesFilter === 'planned' && plannedIds && !plannedIds.has(p.id)) return false
       return true
     })
   }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds])
 
-  const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
+  const { route, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
 
   const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {
     tripActions.setSelectedDay(dayId)
@@ -559,6 +565,9 @@ export function useTripPlanner() {
             address: capturedPlace.address,
             category_id: capturedPlace.category_id,
             price: capturedPlace.price,
+            // An undone track has to come back as a track, not a bare point.
+            route_geometry: capturedPlace.route_geometry,
+            route_color: capturedPlace.route_color,
           })
           for (const { dayId, orderIndex } of capturedAssignments) {
             await tripActions.assignPlaceToDay(tripId, dayId, newPlace.id, orderIndex)
@@ -589,6 +598,7 @@ export function useTripPlanner() {
               name: place.name, description: place.description,
               lat: place.lat, lng: place.lng, address: place.address,
               category_id: place.category_id, price: place.price,
+              route_geometry: place.route_geometry, route_color: place.route_color,
             })
             for (const a of capturedAssignments.filter(x => x.placeId === place.id)) {
               await tripActions.assignPlaceToDay(tripId, a.dayId, newPlace.id, a.orderIndex)
@@ -944,7 +954,7 @@ export function useTripPlanner() {
     transportModalDayId, setTransportModalDayId,
     transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
     reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
-    routeShown, setRouteShown, routeProfile, setRouteProfile, fitKey, setFitKey,
+    routeShown, setRouteShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
     visibleConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,

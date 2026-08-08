@@ -1,6 +1,6 @@
 import { All, Controller, Param, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { extractToken, verifyJwtAndLoadUser } from '../../middleware/auth';
+import { extractToken, verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
 

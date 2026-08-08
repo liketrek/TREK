@@ -1,6 +1,6 @@
 import type { KiReservation } from '../booking-import/kitinerary.types';
 import { createLlmClient } from './llm-client.factory';
-import { resolveLlmConfig } from './llm-config.resolver';
+import { LlmConfigResolver } from './llm-config.resolver';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
 import type { LlmExtractionInput } from './llm-provider.interface';
 import { isPdf, extractText } from './text-extract';
@@ -26,13 +26,15 @@ export interface LlmParseResult {
  */
 @Injectable()
 export class LlmParseService {
+  constructor(private readonly llmConfig: LlmConfigResolver) {}
+
   /** True when the addon is enabled AND a usable config resolves for this user. */
   isAvailable(userId: number): boolean {
-    return resolveLlmConfig(userId) !== null;
+    return this.llmConfig.resolve(userId) !== null;
   }
 
   async parse(file: { buffer: Buffer; originalName: string }, userId: number): Promise<LlmParseResult> {
-    const config = resolveLlmConfig(userId);
+    const config = this.llmConfig.resolve(userId);
     if (!config) return { kiItems: [], warnings: ['AI parsing is not configured'] };
 
     const warnings: string[] = [];

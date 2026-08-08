@@ -1,4 +1,4 @@
-import { localParts, resolveTimeZone } from '../../../src/services/timezoneService';
+import { localParts, resolveTimeZone } from '../../../src/nest/common/timezoneService';
 
 import { describe, expect, it } from 'vitest';
 

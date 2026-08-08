@@ -16,6 +16,9 @@ import { z } from 'zod';
 
 const open = z.record(z.string(), z.unknown());
 
+/** `#rgb` / `#rrggbb`, the form both map renderers and CSS accept. */
+export const hexColorSchema = z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+
 /**
  * Embedded category as returned on a place — a trimmed projection of the
  * categories row (id/name/color/icon), built inline by placeService and
@@ -38,6 +41,15 @@ export type PlaceCategory = z.infer<typeof placeCategorySchema>;
  * projection and `tags` array. Numbers (lat/lng/price) are SQLite REAL, ids are
  * INTEGER; provider-derived columns are nullable.
  */
+// One member's star vote on a place (#1435), with display info for the tooltip.
+export const placeRatingVoteSchema = z.object({
+  user_id: z.number(),
+  username: z.string(),
+  avatar: z.string().nullable().optional(),
+  rating: z.number(),
+});
+export type PlaceRatingVote = z.infer<typeof placeRatingVoteSchema>;
+
 export const placeSchema = z.object({
   id: z.number(),
   trip_id: z.number(),
@@ -61,6 +73,8 @@ export const placeSchema = z.object({
   google_ftid: z.string().nullable().optional(),
   osm_id: z.string().nullable().optional(),
   route_geometry: z.string().nullable().optional(),
+  // Manual track colour (#776). null = inherit the category colour like before.
+  route_color: hexColorSchema.nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   transport_mode: z.string().nullable().optional(),
@@ -68,6 +82,11 @@ export const placeSchema = z.object({
   updated_at: z.string().optional(),
   category: placeCategorySchema.optional(),
   tags: z.array(tagSchema.partial()).optional(),
+  // Collaborative ratings (#1435): every member's vote (for the who-voted
+  // tooltip) plus the aggregate the UI displays.
+  ratings: z.array(placeRatingVoteSchema).optional(),
+  rating_avg: z.number().nullable().optional(),
+  rating_count: z.number().optional(),
 });
 export type Place = z.infer<typeof placeSchema>;
 
@@ -95,6 +114,9 @@ export const assignmentPlaceSchema = z.object({
   transport_mode: z.string().nullable().optional(),
   google_place_id: z.string().nullable().optional(),
   google_ftid: z.string().nullable().optional(),
+  // Carried on the embedded place so the day-plan thumbnail can auto-fetch an
+  // OSM photo the same way the sidebar/inspector do (#1136 follow-up).
+  osm_id: z.string().nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   category: placeCategorySchema.optional(),
@@ -108,13 +130,22 @@ export type PlaceCreateRequest = z.infer<typeof placeCreateRequestSchema>;
 export const placeUpdateRequestSchema = open;
 export type PlaceUpdateRequest = z.infer<typeof placeUpdateRequestSchema>;
 
+// Collaborative ratings (#1435): one 1-5 star vote per user and place.
+export const placeRatingRequestSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+});
+export type PlaceRatingRequest = z.infer<typeof placeRatingRequestSchema>;
+
 export const placeBulkDeleteRequestSchema = z.object({
   ids: z.array(z.number()),
 });
 export type PlaceBulkDeleteRequest = z.infer<typeof placeBulkDeleteRequestSchema>;
 
 export const placeBulkUpdateRequestSchema = z.object({
-  ids: z.array(z.number()).min(1),
+  // Deliberately unbounded: the endpoint answers an empty list with
+  // `{ updated: [], count: 0 }` rather than a 400, so a `.min(1)` here would
+  // change that contract once the body validates through the Zod pipe.
+  ids: z.array(z.number()),
   // null clears the category ("No category"); a number sets it. Optional so the
   // field can be omitted, but the endpoint requires it to be present to act.
   category_id: z.number().nullable().optional(),
@@ -128,6 +159,27 @@ export const placeImportListRequestSchema = z.object({
   enrich: z.boolean().optional(),
 });
 export type PlaceImportListRequest = z.infer<typeof placeImportListRequestSchema>;
+
+/**
+ * GPX import (multipart/form-data alongside the `file` part). Form fields arrive
+ * as strings — the client sends `String(boolean)` — so they stay `z.string()`
+ * and the route keeps its own `'true'`-comparison coercion (same shape as
+ * fileUploadRequestSchema). Every field optional: an omitted flag defaults to
+ * true server-side.
+ */
+export const placeImportGpxRequestSchema = z.object({
+  importWaypoints: z.string().optional(),
+  importRoutes: z.string().optional(),
+  importTracks: z.string().optional(),
+});
+export type PlaceImportGpxRequest = z.infer<typeof placeImportGpxRequestSchema>;
+
+/** KML/KMZ import (multipart/form-data); same string-field contract as GPX. */
+export const placeImportMapRequestSchema = z.object({
+  importPoints: z.string().optional(),
+  importPaths: z.string().optional(),
+});
+export type PlaceImportMapRequest = z.infer<typeof placeImportMapRequestSchema>;
 
 /** Query filters for the place list. */
 export const placeListQuerySchema = z.object({

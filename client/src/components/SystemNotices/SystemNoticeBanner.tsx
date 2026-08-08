@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router';
 import { Info, AlertTriangle, AlertOctagon, X } from 'lucide-react';
 import { useSystemNoticeStore } from '../../store/systemNoticeStore.js';
 import type { SystemNoticeDTO } from '../../store/systemNoticeStore.js';
 import { useTranslation } from '../../i18n/index.js';
-import { isRtlLanguage } from '../../i18n/index.js';
 import { runNoticeAction } from './noticeActions.js';
 
 const SEVERITY_ICONS: Record<string, React.ElementType> = {
@@ -43,39 +42,37 @@ const SEVERITY = {
 interface BannerItemProps {
   notice: SystemNoticeDTO;
   onDismiss: () => void;
-  language: string;
 }
 
 function CTALink({
   notice,
+  cta,
   label,
   onDismiss,
 }: {
   notice: SystemNoticeDTO;
+  cta: NonNullable<SystemNoticeDTO['cta']>;
   label: string;
   onDismiss: () => void;
 }) {
   const navigate = useNavigate();
 
   function handleClick() {
-    if (!notice.cta) return;
-    if (notice.cta.kind === 'nav') {
-      navigate(notice.cta.href);
+    if (cta.kind === 'nav') {
+      navigate(cta.href);
       if (notice.dismissible) onDismiss();
-    } else if (notice.cta.kind === 'link') {
-      window.open(notice.cta.href, '_blank', 'noopener,noreferrer');
+    } else if (cta.kind === 'link') {
+      window.open(cta.href, '_blank', 'noopener,noreferrer');
     } else {
-      runNoticeAction(notice.cta.actionId, { navigate });
-      if (notice.cta.dismissOnAction !== false) onDismiss();
+      runNoticeAction(cta.actionId, { navigate });
+      if (cta.dismissOnAction !== false) onDismiss();
     }
   }
 
-  if (!notice.cta) return null;
-
-  if (notice.cta.kind === 'nav' || notice.cta.kind === 'link') {
+  if (cta.kind === 'nav' || cta.kind === 'link') {
     return (
       <a
-        href={notice.cta.href}
+        href={cta.href}
         onClick={e => { e.preventDefault(); handleClick(); }}
         className="underline hover:no-underline font-medium ml-3 shrink-0"
       >
@@ -94,7 +91,7 @@ function CTALink({
   );
 }
 
-function BannerItem({ notice, onDismiss, language }: BannerItemProps) {
+function BannerItem({ notice, onDismiss }: BannerItemProps) {
   const { t } = useTranslation();
   const s = SEVERITY[notice.severity] ?? SEVERITY.info;
   const title = t(notice.titleKey);
@@ -121,7 +118,7 @@ function BannerItem({ notice, onDismiss, language }: BannerItemProps) {
           <span className="ml-2 opacity-80">{body}</span>
         )}
         {ctaLabel && notice.cta && (
-          <CTALink notice={notice} label={ctaLabel} onDismiss={onDismiss} />
+          <CTALink notice={notice} cta={notice.cta} label={ctaLabel} onDismiss={onDismiss} />
         )}
       </div>
       {notice.dismissible && (
@@ -140,10 +137,9 @@ function BannerItem({ notice, onDismiss, language }: BannerItemProps) {
 interface AnimatedBannerItemProps {
   notice: SystemNoticeDTO;
   onDismiss: () => void;
-  language: string;
 }
 
-function AnimatedBannerItem({ notice, onDismiss, language }: AnimatedBannerItemProps) {
+function AnimatedBannerItem({ notice, onDismiss }: AnimatedBannerItemProps) {
   const [mounted, setMounted] = useState(false);
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
@@ -164,7 +160,7 @@ function AnimatedBannerItem({ notice, onDismiss, language }: AnimatedBannerItemP
 
   return (
     <div className={`${transition} ${state}`}>
-      <BannerItem notice={notice} onDismiss={onDismiss} language={language} />
+      <BannerItem notice={notice} onDismiss={onDismiss} />
     </div>
   );
 }
@@ -175,7 +171,6 @@ interface BannerRendererProps {
 
 export function BannerRenderer({ notices }: BannerRendererProps) {
   const { dismiss } = useSystemNoticeStore();
-  const { language } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Show at most 2 highest-priority banners
@@ -209,7 +204,6 @@ export function BannerRenderer({ notices }: BannerRendererProps) {
           <AnimatedBannerItem
             notice={notice}
             onDismiss={() => dismiss(notice.id)}
-            language={language}
           />
         </React.Fragment>
       ))}

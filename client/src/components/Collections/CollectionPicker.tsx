@@ -31,6 +31,28 @@ function distanceTo(p: CollectionPlace, center: { lat: number; lng: number }): n
 
 interface Opt { key: string | number; label: string; icon?: React.ReactNode; count?: number }
 
+/** Detail requests fired at once while building the union — keeps a user with
+ *  many lists from opening the modal with a burst of parallel requests. */
+const DETAIL_BATCH = 4
+
+/** Union of every list's places, in list order, without duplicates. */
+async function loadSavedPlaces(ids: number[]): Promise<CollectionPlace[]> {
+  const merged: CollectionPlace[] = []
+  const seen = new Set<number>()
+  for (let i = 0; i < ids.length; i += DETAIL_BATCH) {
+    const batch = await Promise.all(ids.slice(i, i + DETAIL_BATCH).map(id => collectionsApi.get(id).catch(() => null)))
+    for (const d of batch) {
+      if (!d) continue
+      for (const p of d.places) {
+        if (seen.has(p.id)) continue
+        seen.add(p.id)
+        merged.push(p)
+      }
+    }
+  }
+  return merged
+}
+
 /** Compact click-away dropdown (Tailwind — this panel lives outside .trek-dash). */
 function FilterDropdown({ current, options, onSelect, lead }: {
   current: string | number
@@ -93,13 +115,8 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
     setLoading(true)
     collectionsApi.list()
       .then(async (res) => {
-        const detail = await Promise.all(res.collections.map(c => collectionsApi.get(c.id).catch(() => null)))
+        const merged = await loadSavedPlaces(res.collections.map(c => c.id))
         if (cancelled) return
-        const merged: CollectionPlace[] = []
-        for (const d of detail) {
-          if (!d) continue
-          for (const p of d.places) merged.push(p)
-        }
         setLists(res.collections.map(c => ({ id: c.id, name: c.name, color: c.color ?? null })))
         setPlaces(merged)
       })

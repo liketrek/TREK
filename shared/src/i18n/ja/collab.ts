@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': 'このチャットは閲覧のみ可能です',
+  'collab.chat.messageOptions': 'メッセージオプション',
+  'collab.polls.confirmDeleteTitle': '投票を削除しますか？',
+  'collab.polls.confirmDeleteBody': 'この投票は完全に削除されます。',
+  'collab.polls.countdownDaysHours': 'あと{d}日{h}時間',
+  'collab.polls.countdownHoursMinutes': 'あと{h}時間{m}分',
+  'collab.polls.countdownMinutes': 'あと{m}分',
+  'collab.polls.clearDeadline': '締め切りを削除',
   'collab.tabs.chat': 'チャット',
   'collab.tabs.notes': 'ノート',
   'collab.tabs.polls': '投票',
@@ -29,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'アイデアや計画を書き留めましょう',
   'collab.notes.all': 'すべて',
   'collab.notes.titlePlaceholder': 'ノートのタイトル',
+  'collab.notes.content': '内容',
+  'collab.notes.removeFile': '{name} を削除',
   'collab.notes.contentPlaceholder': '内容を入力…',
   'collab.notes.categoryPlaceholder': 'カテゴリ',
   'collab.notes.newCategory': '新しいカテゴリ…',

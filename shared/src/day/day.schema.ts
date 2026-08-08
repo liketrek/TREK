@@ -6,11 +6,11 @@ import { z } from 'zod';
  * Day + day-note API contract — single source of truth for the
  * /api/trips/:tripId/days and /api/trips/:tripId/days/:dayId/notes endpoints.
  *
- * Trip-scoped, both gated by the 'day_edit' permission. The legacy routes
- * (server/src/routes/days.ts + routes/dayNotes.ts) wrap dayService /
- * dayNoteService. Day rows (with their assignments) are wide and DB-derived, so
- * list responses stay open. Day notes cap text at 500 and time at 150 chars
- * (the legacy validateStringLengths middleware) — reproduced in the controller.
+ * Trip-scoped, both gated by the 'day_edit' permission. Served by the Nest
+ * DaysController / DayNotesController (server/src/nest/days/). Day rows (with
+ * their assignments) are wide and DB-derived, so list responses stay open. Day
+ * notes cap text at 500 and time at 150 chars (the legacy
+ * validateStringLengths middleware) — reproduced in the controller.
  */
 
 /**
@@ -41,6 +41,8 @@ export const daySchema = z.object({
   date: z.string().nullable().optional(),
   title: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  // Whole-day default route mode (#1281); per-segment leg modes override it.
+  default_transport_mode: z.string().nullable().optional(),
   assignments: z.array(assignmentSchema).optional(),
   notes_items: z.array(dayNoteSchema).optional(),
 });
@@ -66,18 +68,31 @@ export const dayUpdateRequestSchema = z.object({
 });
 export type DayUpdateRequest = z.infer<typeof dayUpdateRequestSchema>;
 
+/**
+ * Whole-day default route mode (#1281). The client always sends
+ * `{ transport_mode: string | null }`; null clears the default. Kept loose (no
+ * enum, no max) — the legacy raw-body route accepted any string.
+ */
+export const dayTransportRequestSchema = z.object({
+  transport_mode: z.string().nullable().optional(),
+});
+export type DayTransportRequest = z.infer<typeof dayTransportRequestSchema>;
+
+// `time`/`icon` accept null on the wire: the client's moveDayNote re-sends the
+// entity fields (both nullable on dayNoteSchema) through create, and an explicit
+// null time on update means "clear" (the legacy raw-body route accepted both).
 export const dayNoteCreateRequestSchema = z.object({
   text: z.string().min(1).max(500),
-  time: z.string().max(250).optional(),
-  icon: z.string().optional(),
+  time: z.string().max(250).nullable().optional(),
+  icon: z.string().nullable().optional(),
   sort_order: z.number().optional(),
 });
 export type DayNoteCreateRequest = z.infer<typeof dayNoteCreateRequestSchema>;
 
 export const dayNoteUpdateRequestSchema = z.object({
   text: z.string().max(500).optional(),
-  time: z.string().max(250).optional(),
-  icon: z.string().optional(),
+  time: z.string().max(250).nullable().optional(),
+  icon: z.string().nullable().optional(),
   sort_order: z.number().optional(),
 });
 export type DayNoteUpdateRequest = z.infer<typeof dayNoteUpdateRequestSchema>;

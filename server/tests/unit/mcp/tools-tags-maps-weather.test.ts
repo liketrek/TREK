@@ -35,14 +35,7 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-vi.mock('../../../src/services/mapsService', () => ({
-  searchPlaces: vi.fn(),
-  getPlaceDetails: vi.fn().mockResolvedValue({ name: 'Eiffel Tower', address: 'Paris' }),
-  reverseGeocode: vi.fn().mockResolvedValue({ name: 'Paris', address: 'France' }),
-  resolveGoogleMapsUrl: vi.fn().mockResolvedValue({ lat: 48.8566, lng: 2.3522, name: 'Paris' }),
-}));
-
-vi.mock('../../../src/services/weatherService', () => ({
+vi.mock('../../../src/nest/weather/weather.impl', () => ({
   getWeather: vi.fn().mockResolvedValue({ temp: 20, condition: 'sunny' }),
   getDetailedWeather: vi.fn().mockResolvedValue({ hourly: [] }),
 }));
@@ -52,7 +45,23 @@ import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import * as mapsService from '../../../src/services/mapsService';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import { getWeather, getDetailedWeather } from '../../../src/nest/weather/weather.impl';
+
+// The geo tools live on the DI-discovered maps.mcp.ts since the maps fold; the
+// test registry builds a real MapsService over the mocked db proxy, so stub the
+// provider methods on the prototype (no auto-restore in the vitest config —
+// these survive across tests, exactly like the old module mock did).
+vi.spyOn(MapsService.prototype, 'getPlaceDetails').mockResolvedValue({
+  name: 'Eiffel Tower',
+  address: 'Paris',
+} as never);
+vi.spyOn(MapsService.prototype, 'reverseGeocode').mockResolvedValue({ name: 'Paris', address: 'France' });
+vi.spyOn(MapsService.prototype, 'resolveGoogleMapsUrl').mockResolvedValue({
+  lat: 48.8566,
+  lng: 2.3522,
+  name: 'Paris',
+} as never);
 
 beforeAll(() => {
   createTables(testDb);
@@ -178,6 +187,21 @@ describe('Tool: update_tag', () => {
       expect(result.isError).toBe(true);
     });
   });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const r = testDb.prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)').run(user.id, 'Demo Tag', '#aaaaaa');
+    const tagId = r.lastInsertRowid as number;
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_tag',
+        arguments: { tagId, name: 'Blocked' },
+      });
+      expect(result.isError).toBe(true);
+      expect(testDb.prepare('SELECT name FROM tags WHERE id = ?').get(tagId)).toEqual({ name: 'Demo Tag' });
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -199,6 +223,76 @@ describe('Tool: delete_tag', () => {
       expect(testDb.prepare('SELECT id FROM tags WHERE id = ?').get(tagId)).toBeUndefined();
     });
   });
+
+  it('returns isError for non-existent tagId', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'delete_tag',
+        arguments: { tagId: 99999 },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const r = testDb.prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)').run(user.id, 'Demo Tag', '#aaaaaa');
+    const tagId = r.lastInsertRowid as number;
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'delete_tag',
+        arguments: { tagId },
+      });
+      expect(result.isError).toBe(true);
+      expect(testDb.prepare('SELECT id FROM tags WHERE id = ?').get(tagId)).toBeDefined();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tags scope gating (places:read / places:write, registration-time)
+// ---------------------------------------------------------------------------
+
+describe('Tags tools: scope gating', () => {
+  const TAG_TOOLS = ['list_tags', 'create_tag', 'update_tag', 'delete_tag'];
+
+  async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
+    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    try {
+      return (await h.client.listTools()).tools.map((t) => t.name);
+    } finally {
+      await h.cleanup();
+    }
+  }
+
+  it('registers all four tag tools with null scopes (full access)', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, null);
+    for (const tool of TAG_TOOLS) expect(names).toContain(tool);
+  });
+
+  it('registers only list_tags with places:read', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['places:read']);
+    expect(names).toContain('list_tags');
+    expect(names).not.toContain('create_tag');
+    expect(names).not.toContain('update_tag');
+    expect(names).not.toContain('delete_tag');
+  });
+
+  it('registers all four tag tools with places:write (write implies read)', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['places:write']);
+    for (const tool of TAG_TOOLS) expect(names).toContain(tool);
+  });
+
+  it('registers no tag tools for an unrelated scope', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['budget:read']);
+    for (const tool of TAG_TOOLS) expect(names).not.toContain(tool);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -219,18 +313,9 @@ describe('Tool: get_place_details', () => {
     });
   });
 
-  it('returns isError when service returns null', async () => {
-    const { getPlaceDetails } = await import('../../../src/services/mapsService');
-    (getPlaceDetails as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
-    const { user } = createUser(testDb);
-    await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({
-        name: 'get_place_details',
-        arguments: { placeId: 'nonexistent-place-id' },
-      });
-      expect(result.isError).toBe(true);
-    });
-  });
+  // The former "isError when service returns null" case pinned a dead branch —
+  // MapsService.getPlaceDetails throws or returns an object, never null — and
+  // died with the guard in the fix(maps) quirk pass.
 });
 
 // ---------------------------------------------------------------------------
@@ -307,6 +392,118 @@ describe('Tool: get_detailed_weather', () => {
       const data = parseToolResult(result) as any;
       expect(data.weather).toBeDefined();
       expect(Array.isArray(data.weather.hourly)).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Weather failure path
+//
+// Both weather tools swallow a provider failure and answer with isError plus
+// the upstream message, rather than letting it surface as a transport-level
+// error. That branch never had a case: the tools lived in src/mcp/, which the
+// coverage gate does not measure, and the move into src/nest/ exposed it.
+// ---------------------------------------------------------------------------
+
+describe('Weather tools: provider failure', () => {
+  it('get_weather answers isError with the upstream message', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(getWeather).mockRejectedValueOnce(new Error('Open-Meteo unreachable'));
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_weather',
+        arguments: { lat: 48.8566, lng: 2.3522, date: '2025-07-01' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('Open-Meteo unreachable');
+    });
+  });
+
+  it('get_weather falls back to a generic message when the rejection is not an Error', async () => {
+    const { user } = createUser(testDb);
+    // A non-Error rejection has no .message, which is the only way the ?? fallback
+    // fires — `new Error('')` still carries an (empty) message and passes through.
+    vi.mocked(getWeather).mockRejectedValueOnce('boom' as unknown as Error);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_weather',
+        arguments: { lat: 48.8566, lng: 2.3522, date: '2025-07-01' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('Weather service not available.');
+    });
+  });
+
+  it('get_detailed_weather answers isError with the upstream message', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(getDetailedWeather).mockRejectedValueOnce(new Error('rate limited'));
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_detailed_weather',
+        arguments: { lat: 48.8566, lng: 2.3522, date: '2025-07-01' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('rate limited');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Airports
+//
+// The airport lookups had no coverage at all before they moved out of the
+// legacy registrar — the same blind spot as the weather catch above.
+// ---------------------------------------------------------------------------
+
+describe('Tool: search_airports', () => {
+  it('returns matches for a city name, capped by limit', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_airports', arguments: { query: 'zurich', limit: 5 } });
+      const data = parseToolResult(result) as { airports: { iata: string }[] };
+      expect(Array.isArray(data.airports)).toBe(true);
+      expect(data.airports.length).toBeGreaterThan(0);
+      expect(data.airports.length).toBeLessThanOrEqual(5);
+      expect(data.airports.some(a => a.iata === 'ZRH')).toBe(true);
+    });
+  });
+
+  it('applies the default limit of 10 when none is given', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_airports', arguments: { query: 'a' } });
+      const data = parseToolResult(result) as { airports: unknown[] };
+      expect(data.airports.length).toBeLessThanOrEqual(10);
+    });
+  });
+
+  it('returns an empty list for a query that matches nothing', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_airports', arguments: { query: 'zzzzzznotanairport' } });
+      const data = parseToolResult(result) as { airports: unknown[] };
+      expect(data.airports).toEqual([]);
+    });
+  });
+});
+
+describe('Tool: get_airport', () => {
+  it('returns the airport for a known IATA code, lowercase input included', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_airport', arguments: { iata: 'zrh' } });
+      const data = parseToolResult(result) as { airport: { iata: string; tz: string } };
+      expect(data.airport.iata).toBe('ZRH');
+      expect(typeof data.airport.tz).toBe('string');
+    });
+  });
+
+  it('answers isError for an unknown code rather than a null airport', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_airport', arguments: { iata: 'QQQ' } });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('Airport not found.');
     });
   });
 });

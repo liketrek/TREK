@@ -1,7 +1,10 @@
 /**
  * Unit tests for MCP day and accommodation tools:
  * create_day, delete_day,
- * create_accommodation, update_accommodation, delete_accommodation.
+ * create_accommodation, create_place_accommodation, update_accommodation,
+ * delete_accommodation — plus the trek://trips/{tripId}/accommodations
+ * resource (moved from resources.test.ts when the legacy registrar was
+ * ported to the DI-discovered DaysMcp).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -15,7 +18,18 @@ const { testDb, dbMock } = vi.hoisted(() => {
     db,
     closeDb: () => {},
     reinitialize: () => {},
-    getPlaceWithTags: () => null,
+    // Real-SQL implementation: create_place_accommodation's createPlace
+    // returns getPlaceWithTags(placeId) — a null stub would make the tool's
+    // atomic branch throw before the accommodation insert.
+    getPlaceWithTags: (placeId: number | string) => {
+      const place = db.prepare(`
+        SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+        FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?
+      `).get(placeId) as { category_id: number | null; category_name: string; category_color: string; category_icon: string } | undefined;
+      if (!place) return null;
+      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
+      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
+    },
     canAccessTrip: (tripId: any, userId: number) =>
       db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
@@ -38,7 +52,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createDay, createPlace, createDayAccommodation } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
   createTables(testDb);
@@ -131,7 +145,7 @@ describe('Tool: delete_day', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'day:deleted', expect.objectContaining({ id: day.id }));
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'day:deleted', expect.objectContaining({ dayId: day.id }));
       expect(testDb.prepare('SELECT id FROM days WHERE id = ?').get(day.id)).toBeUndefined();
     });
   });
@@ -291,6 +305,82 @@ describe('Tool: delete_accommodation', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_accommodation', arguments: { tripId: trip.id, accommodationId: 1 } });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// create_place_accommodation
+// ---------------------------------------------------------------------------
+
+describe('Tool: create_place_accommodation', () => {
+  it('creates the place and the accommodation atomically and broadcasts both', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_place_accommodation',
+        arguments: {
+          tripId: trip.id, name: 'Ryokan Sakura', start_day_id: day.id, end_day_id: day.id,
+          check_in: '15:00', accommodation_notes: 'Tatami room',
+        },
+      });
+      const data = parseToolResult(result) as { place: { id: number; name: string }; accommodation: { id: number } };
+      expect(data.place.name).toBe('Ryokan Sakura');
+      expect(data.accommodation).toMatchObject({ place_id: data.place.id, start_day_id: day.id, end_day_id: day.id, notes: 'Tatami room' });
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'place:created', expect.objectContaining({ place: expect.anything() }));
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:created', expect.objectContaining({ accommodation: expect.anything() }));
+      // The partner hotel reservation rides along.
+      const linked = testDb.prepare('SELECT type FROM reservations WHERE accommodation_id = ?').get(data.accommodation.id) as { type: string };
+      expect(linked.type).toBe('hotel');
+    });
+  });
+
+  it('reports the day-validation errors without creating anything', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_place_accommodation',
+        arguments: { tripId: trip.id, name: 'Nowhere Inn', start_day_id: 99999, end_day_id: 99999 },
+      });
+      expect(result.isError).toBe(true);
+      expect(testDb.prepare('SELECT COUNT(*) as n FROM places WHERE trip_id = ?').get(trip.id)).toMatchObject({ n: 0 });
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// trek://trips/{tripId}/accommodations resource (moved from resources.test.ts)
+// ---------------------------------------------------------------------------
+
+describe('Resource: trek://trips/{tripId}/accommodations', () => {
+  it('returns accommodations for a trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day1 = createDay(testDb, trip.id, { day_number: 1 });
+    const day2 = createDay(testDb, trip.id, { day_number: 2 });
+    const place = createPlace(testDb, trip.id, { name: 'Grand Hotel' });
+    createDayAccommodation(testDb, trip.id, place.id, day1.id, day2.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/accommodations` });
+      const items = parseResourceResult(result) as any[];
+      expect(items).toHaveLength(1);
+      expect(items[0].place_name).toBe('Grand Hotel');
+    });
+  });
+
+  it('returns access denied for unauthorized trip', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/accommodations` });
+      const data = parseResourceResult(result) as any;
+      expect(data.error).toBeTruthy();
     });
   });
 });

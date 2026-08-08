@@ -35,6 +35,20 @@ export const reservationEndpointSchema = z.object({
 export type ReservationEndpoint = z.infer<typeof reservationEndpointSchema>;
 
 /**
+ * A traveler assigned to a reservation — a trip member or a named guest (both are
+ * `users` rows; a guest carries is_guest=1). Mirrors the budget member read shape
+ * without the cost-split fields; joined + avatar-resolved in reservationService.
+ */
+export const reservationTravelerSchema = z.object({
+  user_id: z.number(),
+  username: z.string(),
+  avatar_url: z.string().nullable().optional(),
+  avatar: z.string().nullable().optional(),
+  is_guest: z.number().nullable().optional(),
+});
+export type ReservationTraveler = z.infer<typeof reservationTravelerSchema>;
+
+/**
  * Endpoints as accepted on a WRITE (create/update body `endpoints` array). This
  * pins the STRUCTURE (role must be a known value, name/code are strings) so a
  * plugin can't crash the service with a stray type, but stays permissive on the
@@ -102,6 +116,8 @@ export const reservationSchema = z.object({
   accommodation_end_day_id: z.number().nullable().optional(),
   day_positions: z.record(z.string(), z.number()).nullable().optional(),
   endpoints: z.array(reservationEndpointSchema).optional(),
+  // Trip members / named guests this booking is for (#1517). Joined in listReservations.
+  travelers: z.array(reservationTravelerSchema).optional(),
 });
 export type Reservation = z.infer<typeof reservationSchema>;
 
@@ -139,8 +155,17 @@ export type ReservationCreateRequest = z.infer<typeof reservationCreateRequestSc
 export const reservationUpdateRequestSchema = open;
 export type ReservationUpdateRequest = z.infer<typeof reservationUpdateRequestSchema>;
 
+/** Assign trip members/guests to a reservation (mirrors budget's PUT :id/members). */
+export const reservationTravelersRequestSchema = z.object({
+  user_ids: z.array(z.number()),
+});
+export type ReservationTravelersRequest = z.infer<typeof reservationTravelersRequestSchema>;
+
 export const reservationPositionsRequestSchema = z.object({
-  positions: z.array(z.object({ id: z.number(), day_plan_position: z.number() })),
+  // day_plan_position is optional on the wire: the legacy route never
+  // validated position items, and an absent value binds NULL (clears the
+  // stored position) — pinned by the server integration suite (RESV-006).
+  positions: z.array(z.object({ id: z.number(), day_plan_position: z.number().optional() })),
   day_id: z.union([z.number(), z.string()]).nullable().optional(),
 });
 export type ReservationPositionsRequest = z.infer<typeof reservationPositionsRequestSchema>;
@@ -156,6 +181,20 @@ export const accommodationCreateRequestSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 export type AccommodationCreateRequest = z.infer<typeof accommodationCreateRequestSchema>;
+
+/**
+ * REST body variant of the create contract: the three refs are required by the
+ * endpoint but optional on the wire — their absence answers with the bespoke
+ * controller 400 ('place_id, start_day_id, and end_day_id are required'),
+ * which the validation pipe must not pre-empt. The plugin RPC host keeps the
+ * strict schema above (missing refs are BAD_PARAMS there).
+ */
+export const accommodationCreateBodySchema = accommodationCreateRequestSchema.partial({
+  place_id: true,
+  start_day_id: true,
+  end_day_id: true,
+});
+export type AccommodationCreateBody = z.infer<typeof accommodationCreateBodySchema>;
 
 export const accommodationUpdateRequestSchema = open;
 export type AccommodationUpdateRequest = z.infer<typeof accommodationUpdateRequestSchema>;

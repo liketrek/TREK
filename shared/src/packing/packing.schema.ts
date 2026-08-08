@@ -84,7 +84,8 @@ export type PackingVisibility = z.infer<typeof packingVisibilitySchema>;
 export const packingCreateItemRequestSchema = z.object({
   name: z.string().min(1),
   category: z.string().optional(),
-  checked: z.boolean().optional(),
+  // The legacy route accepted both boolean and 0/1 for checked — both stay valid.
+  checked: z.union([z.boolean(), z.number().int().min(0).max(1)]).optional(),
   // Mark the new item private to its creator (#858, legacy flag).
   is_private: z.boolean().optional(),
   // Three-tier sharing (#858): which list the item belongs to, and — for 'shared' —
@@ -103,7 +104,8 @@ export type PackingSetSharingRequest = z.infer<typeof packingSetSharingRequestSc
 
 export const packingUpdateItemRequestSchema = z.object({
   name: z.string().optional(),
-  checked: z.boolean().optional(),
+  // The legacy route accepted both boolean and 0/1 for checked — both stay valid.
+  checked: z.union([z.boolean(), z.number().int().min(0).max(1)]).optional(),
   category: z.string().optional(),
   weight_grams: z.number().nullable().optional(),
   bag_id: z.number().nullable().optional(),
@@ -147,9 +149,13 @@ export const packingSaveTemplateRequestSchema = z.object({
 });
 export type PackingSaveTemplateRequest = z.infer<typeof packingSaveTemplateRequestSchema>;
 
-export const packingApplyTemplateRequestSchema = z.object({
-  visibility: z.enum(['common', 'personal']).optional(),
-});
+// The whole body is optional: the legacy route accepted a body-less POST
+// (visibility then defaults to 'common' in the controller).
+export const packingApplyTemplateRequestSchema = z
+  .object({
+    visibility: z.enum(['common', 'personal']).optional(),
+  })
+  .optional();
 export type PackingApplyTemplateRequest = z.infer<typeof packingApplyTemplateRequestSchema>;
 
 export const packingTemplateSummarySchema = z.object({

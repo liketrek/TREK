@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validatePassword } from '../../../src/services/passwordPolicy';
+import { validatePassword } from '../../../src/nest/common/passwordPolicy';
 
 describe('validatePassword', () => {
   // AUTH-006 — Registration with weak password

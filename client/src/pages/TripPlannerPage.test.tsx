@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '../../tests/helpers/render';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
@@ -93,6 +93,15 @@ vi.mock('../components/Memories/MemoriesPanel', () => ({
 
 vi.mock('../components/Collab/CollabPanel', () => ({
   default: () => React.createElement('div', { 'data-testid': 'collab-panel' }),
+}));
+
+// The trip-open splash cycles its mascot scenes on an infinite setInterval. Under
+// fake timers that interval never settles, so vi.runAllTimers() aborts with
+// "assuming an infinite loop". The animation is irrelevant to page wiring — stub it
+// to a lightweight status node (like the other heavy sub-components here).
+vi.mock('../components/shared/TripLoadingSplash', () => ({
+  default: ({ title }: { title?: string }) =>
+    React.createElement('div', { 'data-testid': 'trip-loading-splash', role: 'status' }, title || 'TREK'),
 }));
 
 const capturedFileManagerProps: { current: Record<string, any> } = { current: {} };
@@ -279,9 +288,8 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(99);
 
-      // Loading state: shows loading gif
-      const loadingImg = document.querySelector('img[alt="Loading"]');
-      expect(loadingImg).toBeInTheDocument();
+      // Loading state: shows the trip-open loading splash
+      expect(screen.getByTestId('trip-loading-splash')).toBeInTheDocument();
     });
   });
 

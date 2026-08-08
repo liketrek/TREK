@@ -16,12 +16,15 @@ const h = vi.hoisted(() => ({
   mcpHandler: vi.fn(),
 }));
 
-vi.mock('../../../src/middleware/auth', () => ({ verifyJwtAndLoadUser: h.verifyJwtAndLoadUser }));
+vi.mock('../../../src/nest/auth/jwt-verify', () => ({ verifyJwtAndLoadUser: h.verifyJwtAndLoadUser }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: h.dbPrepare } }));
 vi.mock('../../../src/mcp', () => ({ mcpHandler: h.mcpHandler }));
 vi.mock('../../../src/mcp/oauthProvider', () => ({ trekOAuthProvider: {}, trekClientsStore: {} }));
-vi.mock('../../../src/services/adminService', () => ({ isAddonEnabled: h.isAddonEnabled }));
-vi.mock('../../../src/services/notifications', () => ({ getMcpSafeUrl: h.getMcpSafeUrl }));
+vi.mock('../../../src/nest/addons/addons.bridge', () => ({ isAddonEnabled: h.isAddonEnabled }));
+vi.mock('../../../src/app-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/app-config')>();
+  return { ...actual, getMcpSafeUrl: h.getMcpSafeUrl };
+});
 
 // SDK router/handler factories return distinct tagged middleware so we never hit
 // real new URL(...) wiring during registration.

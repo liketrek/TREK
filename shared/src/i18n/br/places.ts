@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Adicionar lugar/atividade',
   'places.importFile': 'Importar arquivo',
+  'places.trackIndicator': 'Trilha / rota',
   'places.sidebarDrop': 'Solte para importar',
   'places.importFileHint':
     'Importe arquivos .gpx, .kml ou .kmz de ferramentas como Google My Maps, Google Earth ou um rastreador GPS.',
@@ -42,7 +43,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Adicionar a qual dia?',
   'places.all': 'Todos',
   'places.unplanned': 'Não planejados',
+  'places.planned': 'Planejados',
   'places.filterTracks': 'Trilhas',
+  'places.sortByRating': 'Ordenar por avaliação',
+  'places.yourRating': 'Sua avaliação',
+  'places.notRated': 'Ainda sem avaliações',
   'places.search': 'Buscar lugares...',
   'places.allCategories': 'Todas as categorias',
   'places.categoriesSelected': 'categorias',
@@ -62,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Longitude (ex.: -46.6333)',
   'places.formCategory': 'Categoria',
   'places.noCategory': 'Sem categoria',
+  'places.newCategory': 'Nova categoria',
   'places.categoryNamePlaceholder': 'Nome da categoria',
   'places.formTime': 'Horário',
   'places.startTime': 'Início',
@@ -88,5 +94,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Enriquecer lugares via Google',
   'places.enrichOnImportHint':
     'Busca cada lugar importado para adicionar fotos, endereço e contato. Usa sua chave do Google Maps.',
+  'places.uploadImage': 'Enviar imagem',
+  'places.changeImage': 'Alterar imagem',
+  'places.removeImage': 'Remover imagem',
+  'places.imageUploadError': 'Não foi possível enviar a imagem',
+  'places.imageRemoveError': 'Não foi possível remover a imagem',
 };
 export default places;

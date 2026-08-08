@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'アクション',
+  'packing.editDone': '完了',
+  'packing.personalEmptyHint': '個人リストが空です。共有アイテムをコピーするか、自分のアイテムを追加してください。',
+  'packing.assignMembers': 'メンバーを割り当て',
+  'packing.categoryOptions': 'リストオプション',
+  'packing.editItem': 'アイテムを編集',
+  'packing.itemName': '名前',
+  'packing.itemQuantity': '数量',
+  'packing.itemWeight': '重さ（g）',
   'packing.title': '持ち物リスト',
   'packing.empty': '持ち物リストは空です',
   'packing.import': 'インポート',
@@ -197,5 +206,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': '私も持っていけます',
   'packing.alsoBringingStop': 'やっぱり持っていきません',
   'packing.cloneToMine': 'マイリストにコピー',
+  'packing.bagLimit': '重量制限',
+  'packing.setBagLimit': '制限を設定',
 };
 export default packing;

@@ -203,6 +203,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Şablonlar yüklenemedi',
   'admin.packingTemplates.createError': 'Şablon oluşturulamadı',
   'admin.packingTemplates.deleteError': 'Şablon silinemedi',
+  'admin.packingTemplates.deleteCategoryError': 'Kategori silinemedi',
+  'admin.packingTemplates.deleteItemError': 'Öğe silinemedi',
   'admin.packingTemplates.saveError': 'Kaydedilemedi',
   'admin.tabs.addons': 'Eklentiler',
   'admin.tabs.plugins': 'Plugins',
@@ -362,6 +364,15 @@ const admin: TranslationStrings = {
     'Seyahat görünümlerine sütunlar ve eylemler ekler (rezervasyonlar, yerler, günler)',
   'admin.plugins.perm.hook:map-marker-provider':
     "Seyahat haritasına işaretçiler ekler (ör. rezervasyonları veya POI'leri gösterir)",
+  'admin.plugins.perm.hook:map-layer-provider': 'Seyahat haritasında rotalar, koridorlar ve bölgeler çizer',
+  'admin.plugins.perm.hook:route-provider':
+    'Planlayıcının günlerin rotasını hesaplamak için kullanabileceği rota profilleri sunar (ör. şarj duraklı elektrikli araç rotası)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Gün planına zaman girişleri ekler (şarj durakları, güvenlik tamponları)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Gün planındaki günleri renklendirir (örneğin bir günün yolculuğun hangi etabına ait olduğu)',
+  'admin.plugins.perm.geolocation:read':
+    'Görünümlerinden biri açıkken canlı konumunu sorar (tarayıcın ayrıca izin ister)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Seyahat PDF dışa aktarımına metin bölümleri ekler',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Atlas dünya haritasında ülkeleri vurgular (ör. istek listeleri veya seyahat uyarıları)',
@@ -480,6 +491,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Takvim etkinlikleri sağlar',
   'admin.plugins.cap.placeDetails': 'Yerleri zenginleştirir',
   'admin.plugins.cap.warnings': 'Sorunları işaretler',
+  'admin.plugins.cap.mapLayers': 'Haritada çizim yapar',
+  'admin.plugins.cap.routing': 'Rota sunar',
+  'admin.plugins.cap.daySchedule': 'Plana zaman ekler',
+  'admin.plugins.cap.dayTint': 'Günleri renklendirir',
+  'admin.plugins.cap.geolocation': 'Konumunu okur',
   'admin.plugins.cap.events': 'Etkinliğe tepki verir',
   'admin.plugins.cap.requiresAddon': '{addon} gerekir',
   'admin.plugins.cap.dependsOn': '{id} {version} gerekir',

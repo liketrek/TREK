@@ -8,13 +8,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Reversible crypto stub so we can assert encrypt-at-rest without a real key env.
-vi.mock('../../../src/services/apiKeyCrypto', () => ({
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   maybe_encrypt_api_key: (v: unknown) => (typeof v === 'string' ? `enc:${v}` : v),
   decrypt_api_key: (v: unknown) => (typeof v === 'string' && v.startsWith('enc:') ? v.slice(4) : v),
 }));
 
 const { getDb } = vi.hoisted(() => ({ getDb: { current: null as unknown } }));
 vi.mock('../../../src/db/database', () => ({ get db() { return getDb.current; } }));
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
 
 import Database from 'better-sqlite3';
 import { PluginsService, readUserSettingDecrypted } from '../../../src/nest/plugins/plugins.service';
@@ -35,7 +37,7 @@ function freshDb() {
 
 describe('per-user plugin settings', () => {
   let svc: PluginsService;
-  beforeEach(() => { getDb.current = freshDb(); svc = new PluginsService(); });
+  beforeEach(() => { getDb.current = freshDb(); svc = new PluginsService(new DatabaseService(dbConn)); });
 
   it('lists only the user-scope fields, in order', () => {
     const fields = svc.userSettingsFields('p');

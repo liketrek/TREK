@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Alakítsd utazásaidat történetekké, amelyeket soha nem felejtesz el',
   'journey.frontpage.createJourney': 'Útinapló létrehozása',
   'journey.frontpage.activeJourney': 'Aktív útinapló',
+  'journey.frontpage.latestJourney': 'Legutóbbi útinapló',
   'journey.frontpage.allJourneys': 'Összes útinapló',
   'journey.frontpage.journeys': 'útinapló',
   'journey.frontpage.createNew': 'Új útinapló létrehozása',
@@ -124,6 +125,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1.',
   'journey.editor.makeFirst': 'Legyen az 1.',
   'journey.editor.searching': 'Keresés...',
+  'journey.editor.useCurrentLocation': 'Jelenlegi helyzetem használata',
+  'journey.editor.locationPermissionDenied':
+    'A helymeghatározás engedélye megtagadva. Engedélyezd a böngésző beállításaiban, majd próbáld újra.',
+  'journey.editor.locationTimeout': 'Időtúllépés a helyzeted lekérése közben. Próbáld újra.',
+  'journey.editor.locationUnavailable': 'Nem sikerült meghatározni a helyzeted.',
+  'journey.editor.locationInsecureContext': 'A helymeghatározáshoz biztonságos (HTTPS) kapcsolat szükséges.',
   'journey.mood.amazing': 'Fantasztikus',
   'journey.mood.good': 'Jó',
   'journey.mood.neutral': 'Semleges',
@@ -227,5 +234,13 @@ const journey: TranslationStrings = {
   'journey.contributors.removeConfirm': 'Remove {username} from this journey?', // en-fallback
   'journey.contributors.removed': 'Contributor removed', // en-fallback
   'journey.contributors.removeFailed': 'Failed to remove contributor', // en-fallback
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

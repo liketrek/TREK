@@ -7,7 +7,8 @@
  *
  * Defaults to admin@trek.local with a generated password (printed below). The
  * account is flagged must_change_password, so you are prompted to set a new one
- * on first login. Honours TREK_DB_FILE the same way the server does.
+ * on first login. Honours TREK_DB_FILE, TREK_DB_JOURNAL_MODE and
+ * TREK_DB_SYNCHRONOUS the same way the server does.
  */
 const path = require('path');
 const crypto = require('crypto');
@@ -21,8 +22,36 @@ const email = process.env.RESET_ADMIN_EMAIL || 'admin@trek.local';
 const password = process.env.RESET_ADMIN_PASSWORD || crypto.randomBytes(12).toString('base64url');
 const generated = !process.env.RESET_ADMIN_PASSWORD;
 
+// journal_mode is stored in the database file header, not per connection, so
+// opening the file here decides the mode for the server too. Plain JS outside
+// the Nest context can't reach src/app-config, hence the direct read — the
+// defaults must match parsers.resolveDurability() (WAL + NORMAL, FULL once a
+// rollback journal is in play). Run this via `docker exec` and the container's
+// environment applies, same as for the server.
+const journalModes = ['DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'WAL', 'OFF'];
+const syncLevels = ['OFF', 'NORMAL', 'FULL', 'EXTRA'];
+
+const wantedJournal = (process.env.TREK_DB_JOURNAL_MODE || '').trim().toUpperCase();
+const journalMode = journalModes.includes(wantedJournal) ? wantedJournal : 'WAL';
+if (wantedJournal && journalMode !== wantedJournal) {
+  console.warn(`TREK_DB_JOURNAL_MODE="${process.env.TREK_DB_JOURNAL_MODE}" is not a SQLite journal mode — using ${journalMode}.`);
+}
+
+const wantedSync = (process.env.TREK_DB_SYNCHRONOUS || '').trim().toUpperCase();
+const defaultSync = journalMode === 'WAL' ? 'NORMAL' : 'FULL';
+const synchronous = syncLevels.includes(wantedSync) ? wantedSync : defaultSync;
+if (wantedSync && synchronous !== wantedSync) {
+  console.warn(`TREK_DB_SYNCHRONOUS="${process.env.TREK_DB_SYNCHRONOUS}" is not a SQLite synchronous level — using ${synchronous}.`);
+}
+
 const dbPath = process.env.TREK_DB_FILE || path.join(__dirname, 'data/travel.db');
 const db = new Database(dbPath);
+// Spelled out rather than left to better-sqlite3's default, so switching the
+// journal mode below waits for a busy server instead of failing on the spot.
+// Five seconds, same as src/db/database.ts.
+db.exec('PRAGMA busy_timeout = 5000');
+db.exec(`PRAGMA journal_mode = ${journalMode}`);
+db.exec(`PRAGMA synchronous = ${synchronous}`);
 
 const hash = bcrypt.hashSync(password, BCRYPT_COST);
 const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);

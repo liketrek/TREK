@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Editar reserva',
   'inspector.participants': 'Participantes',
   'inspector.trackStats': 'Dados da trilha',
+  'inspector.trackColor': 'Cor da trilha',
+  'inspector.trackColorAuto': 'Cor automática',
+  'inspector.trackColorCustom': 'Escolher cor personalizada',
 };
 export default inspector;

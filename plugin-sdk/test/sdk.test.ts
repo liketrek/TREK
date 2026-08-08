@@ -86,6 +86,29 @@ describe('validateManifest', () => {
     expect(r.manifest?.permissions).toEqual(permissions);
   });
 
+  it('accepts hook:map-layer-provider, hook:day-schedule-provider, hook:day-tint-provider and geolocation:read', () => {
+    const r = validateManifest({ ...base, permissions: ['hook:map-layer-provider', 'hook:day-schedule-provider', 'hook:day-tint-provider', 'geolocation:read'] });
+    expect(r.errors).toEqual([]);
+    expect(r.ok).toBe(true);
+  });
+
+  it('validates capabilities.routeProfiles and ties it to hook:route-provider', () => {
+    const profiles = [{ id: 'ev', label: 'EV' }];
+    const ok = validateManifest({ ...base, permissions: ['hook:route-provider'], capabilities: { routeProfiles: profiles } });
+    expect(ok.errors).toEqual([]);
+    expect(ok.ok).toBe(true);
+    // profiles without the grant are dead buttons — rejected at validate time
+    expect(validateManifest({ ...base, capabilities: { routeProfiles: profiles } }).ok).toBe(false);
+    // id shape, label cap, count cap, duplicates
+    const bad = (routeProfiles: unknown) => validateManifest({ ...base, permissions: ['hook:route-provider'], capabilities: { routeProfiles } }).ok;
+    expect(bad([{ id: 'EV', label: 'x' }])).toBe(false);
+    expect(bad([{ id: 'ev' }])).toBe(false);
+    expect(bad([{ id: 'ev', label: 'L'.repeat(41) }])).toBe(false);
+    expect(bad([{ id: 'ev', label: 'a' }, { id: 'ev', label: 'b' }])).toBe(false);
+    expect(bad([1, 2, 3, 4].map(i => ({ id: `p${i}`, label: 'x' })))).toBe(false);
+    expect(bad('ev')).toBe(false);
+  });
+
   it('accepts the read-symmetry + broker permissions (collab, file content, trip create, rates)', () => {
     const permissions = ['db:read:collab', 'db:create:trips', 'rates:read', 'db:read:files:content'];
     const r = validateManifest({ ...base, permissions });
@@ -108,6 +131,30 @@ describe('validateManifest', () => {
 });
 
 describe('createMockHost', () => {
+  it('mocks plugin UI session storage with scope isolation and production limits', async () => {
+    const host = createMockHost({ sessionTripId: 42 });
+    await host.session.set('filters', ['hotel']);
+    await host.session.set('filters', ['flight'], { scope: 'trip' });
+    await expect(host.session.get('filters')).resolves.toEqual(['hotel']);
+    await expect(host.session.get('filters', { scope: 'trip' })).resolves.toEqual(['flight']);
+
+    await expect(host.session.set('x'.repeat(65), true)).rejects.toThrow(/SESSION_INVALID_KEY/);
+    await expect(host.session.set('large', 'x'.repeat(1024))).rejects.toThrow(/SESSION_VALUE_TOO_LARGE/);
+    await expect(host.session.set('x'.repeat(64), 'x'.repeat(1022))).resolves.toBeUndefined();
+
+    await host.session.clear();
+    await host.session.clear({ scope: 'trip' });
+    for (let index = 0; index < 32; index += 1) await host.session.set(`key-${index}`, index);
+    await expect(host.session.set('key-32', 32)).rejects.toThrow(/SESSION_KEY_LIMIT/);
+    await expect(host.session.set('trip-key', true, { scope: 'trip' })).resolves.toBeUndefined();
+
+  });
+
+  it('requires a trip context for trip-scoped mock session storage', async () => {
+    const { session } = createMockHost();
+    await expect(session.get('filters', { scope: 'trip' })).rejects.toThrow(/NO_TRIP_CONTEXT/);
+  });
+
   it('enforces the granted permission set', async () => {
     const { ctx } = createMockHost({ grants: ['db:own'] });
     await expect(ctx.db.migrate('1', 'CREATE TABLE t (x)')).resolves.toEqual({ applied: true });

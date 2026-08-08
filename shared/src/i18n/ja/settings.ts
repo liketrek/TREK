@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '地図テンプレート',
   'settings.mapTemplatePlaceholder.select': 'テンプレートを選択…',
   'settings.mapDefaultHint': '空欄の場合は OpenStreetMap（既定）を使用',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': '地図タイルのURLテンプレート',
   'settings.mapProvider': '地図プロバイダー',
   'settings.mapProviderHint': '旅程プランナーと日記地図に影響します。Atlas は常に Leaflet を使用します。',
@@ -79,6 +78,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': '旅行リマインダー',
   'settings.notifyTodoDue': 'ToDoの期限',
   'settings.notifyVacayInvite': 'Vacay fusion の招待',
+  'settings.notifyVacayShare': 'Vacay カレンダーの共有',
   'settings.notifyPhotosShared': '共有写真（Immich）',
   'settings.notifyCollabMessage': 'チャットメッセージ（Collab）',
   'settings.notifyPackingTagged': '持ち物リスト：割り当て',
@@ -244,6 +244,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'プロフィール画像を更新しました',
   'settings.avatarRemoved': 'プロフィール画像を削除しました',
   'settings.avatarError': 'アップロードに失敗しました',
+  'settings.avatarRemoveError': '削除に失敗しました',
   'settings.mfa.title': '二要素認証（2FA）',
   'settings.mfa.description': 'サインイン時に追加の認証を行います。',
   'settings.mfa.requiredByPolicy': '管理者により2FAが必須です。',
@@ -274,8 +275,8 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.machineClientUsage':
     'トークンを取得するには、grant_type=client_credentials、client_id、client_secret を指定して POST /oauth/token を呼び出します。ブラウザもリフレッシュトークンも不要です。',
   'settings.oauth.badge.machine': 'マシン',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': '表示通貨',
+  'settings.currencyHint': '費用の金額は表示のためだけにこの通貨に換算されます。元の金額は変更されません。',
   'settings.currencyTrip': '旅行の通貨',
   'settings.passkey.title': 'パスキー',
   'settings.passkey.description':
@@ -402,6 +403,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': '下部ナビゲーションバー',
+  'settings.appearance.mobileNav.hint':
+    'バーに表示する項目と「その他」に入れる項目を選べます。ダッシュボードは常に先頭に固定されます。',
+  'settings.appearance.mobileNav.inBar': 'バー内',
+  'settings.appearance.mobileNav.underMore': '「その他」内',
+  'settings.appearance.mobileNav.moreEmpty': 'まだ何もありません — すべてバーに収まっています。',
+  'settings.appearance.mobileNav.pinned': '固定',
+  'settings.appearance.mobileNav.toMore': '「その他」に移動',
+  'settings.appearance.mobileNav.toBar': 'バーに移動',
+  'settings.appearance.dashOrder': 'ダッシュボードの並び順',
+  'settings.appearance.dashOrder.hint':
+    'スマホのダッシュボードで旅行リストやウィジェットが並ぶ順番を変更できます。注目の旅行は常に一番上に固定されます。',
+  'settings.appearance.dashOrder.trips': '旅行',
+  'settings.appearance.dashOrder.hidden': '非表示',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -466,7 +481,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': '日時',
   'settings.pluginActivity.columns.status': '結果',
   'settings.alwaysShowRoutes': '予約ルートを常に表示',
-  'settings.alwaysShowRoutesHint': 'フライトや電車などすべての予約のルートを、個別にオンにしなくても地図上に自動的に表示します。',
+  'settings.alwaysShowRoutesHint':
+    'フライトや電車などすべての予約のルートを、個別にオンにしなくても地図上に自動的に表示します。',
 };
 
 export default settings;

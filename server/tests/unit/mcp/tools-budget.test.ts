@@ -36,7 +36,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createBudgetItem, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
   createTables(testDb);
@@ -301,6 +301,38 @@ describe('Tool: delete_budget_item', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_budget_item', arguments: { tripId: trip.id, itemId: item.id } });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Resource: trek://trips/{tripId}/budget (moved from the legacy resources.ts
+// registrar to the DI-discovered BudgetMcp — attached via the nest-mcp registry)
+// ---------------------------------------------------------------------------
+
+describe('Resource: trek://trips/{tripId}/budget', () => {
+  it('returns budget items for a trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createBudgetItem(testDb, trip.id, { name: 'Hotel', category: 'Accommodation', total_price: 200 });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/budget` });
+      const items = parseResourceResult(result) as { name: string }[];
+      expect(items).toHaveLength(1);
+      expect(items[0].name).toBe('Hotel');
+    });
+  });
+
+  it('returns access denied for unauthorized trip', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/budget` });
+      const data = parseResourceResult(result) as { error?: string };
+      expect(data.error).toBeTruthy();
     });
   });
 });

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -8,8 +8,8 @@ import { useTranslation } from '../../i18n'
 import {
   Plane, Hotel, Utensils, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
-  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Download,
-  TramFront, Footprints, StickyNote,
+  ExternalLink, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Download,
+  TramFront, Footprints, StickyNote, ParkingSquare,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
 import { TransitTitle, TransitLegChips, TransitMetaBadges, fmtTransitDuration } from './transitDisplay'
@@ -22,6 +22,9 @@ import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginC
 import { usePluginStore, type ActivePlugin } from '../../store/pluginStore'
 import PluginFrame from '../Plugins/PluginFrame'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
+import EmptyState from '../shared/EmptyState'
+import { TravelerAvatarRow, TravelerFilterAvatars } from './TravelerPicker'
+import type { TripMember } from '../Budget/BudgetPanelMemberChips'
 
 interface AssignmentLookupEntry {
   dayNumber: number
@@ -47,6 +50,7 @@ const TYPE_OPTIONS = [
   { value: 'transport_other', labelKey: 'reservations.type.transport_other', Icon: Route, color: '#6b7280' },
   { value: 'event',       labelKey: 'reservations.type.event',       Icon: Ticket, color: '#f59e0b' },
   { value: 'tour',        labelKey: 'reservations.type.tour',        Icon: Users, color: '#10b981' },
+  { value: 'parking',     labelKey: 'reservations.type.parking',     Icon: ParkingSquare, color: '#2563eb' },
   { value: 'other',       labelKey: 'reservations.type.other',       Icon: FileText, color: '#6b7280' },
 ]
 
@@ -86,7 +90,6 @@ interface ReservationCardProps {
 }
 
 function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateToFiles, assignmentLookup, canEdit, days = [], contributions = [], detailPlugins = [] }: ReservationCardProps) {
-  const { toggleReservationStatus } = useTripStore()
   const toast = useToast()
   const { t, locale } = useTranslation()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
@@ -95,14 +98,24 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   const typeInfo = getType(r.type)
   const TypeIcon = typeInfo.Icon
   const confirmed = r.status === 'confirmed'
+  // A multi-leg AirTrail import is detached from sync *by design* — AirTrail has
+  // no single flight to round-trip a layover chain to, so it's created with
+  // sync_enabled=0 (#1535). Distinguish it from a flight that was removed
+  // upstream so the badge doesn't falsely claim it "was removed in AirTrail" (#1646).
+  // Mirror the server's hasLocalMultiLegShape (airtrailSync.ts): a metadata legs
+  // array of length > 1, OR — for a flight grown into multiple legs locally, which
+  // carries no legs array — more than two endpoints. Both are detached, not removed.
+  const airtrailMultiLeg = r.external_source === 'airtrail' && !r.sync_enabled && (() => {
+    try {
+      const m = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
+      if (Array.isArray(m?.legs) && m.legs.length > 1) return true
+    } catch { /* malformed metadata — fall through to the endpoint count */ }
+    return (r.endpoints || []).length > 2
+  })()
   const attachedFiles = files.filter(f => f.reservation_id === r.id || (f.linked_reservation_ids || []).includes(r.id))
   const linked = r.assignment_id ? assignmentLookup[r.assignment_id] : null
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  const handleToggle = async () => {
-    try { await toggleReservationStatus(tripId, r.id) }
-    catch { toast.error(t('reservations.toast.updateError')) }
-  }
   const handleDelete = async () => {
     setShowDeleteConfirm(false)
     try { await onDelete(r.id) } catch { toast.error(t('reservations.toast.deleteError')) }
@@ -194,12 +207,12 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           ) : null}
           {r.external_source === 'airtrail' ? (
             <span
-              className={r.sync_enabled ? 'text-[#2563eb] bg-[rgba(59,130,246,0.12)]' : 'text-content-faint bg-surface-tertiary'}
+              className={r.sync_enabled || airtrailMultiLeg ? 'text-[#2563eb] bg-[rgba(59,130,246,0.12)]' : 'text-content-faint bg-surface-tertiary'}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, padding: '3px 8px', borderRadius: 6 }}
-              title={r.sync_enabled ? t('reservations.airtrail.syncedHint') : t('reservations.airtrail.notSyncedHint')}
+              title={r.sync_enabled ? t('reservations.airtrail.syncedHint') : airtrailMultiLeg ? t('reservations.airtrail.layoverHint') : t('reservations.airtrail.notSyncedHint')}
             >
               <Plane size={11} />
-              {r.sync_enabled ? t('reservations.airtrail.synced') : t('reservations.airtrail.notSynced')}
+              {r.sync_enabled || airtrailMultiLeg ? t('reservations.airtrail.synced') : t('reservations.airtrail.notSynced')}
             </span>
           ) : null}
         </div>
@@ -412,6 +425,15 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             </div>
           </div>
         )}
+        {/* Travelers assigned to this booking — read-only; assignment lives in the edit/create modal (#1517). */}
+        {r.travelers && r.travelers.length > 0 && (
+          <div>
+            <div className={fieldLabelClass}>{t('reservations.travelers.label')}</div>
+            <div className={fieldValueClass}>
+              <TravelerAvatarRow travelers={r.travelers} />
+            </div>
+          </div>
+        )}
       </div>
 
       <PluginCardFooter items={contributions} tripId={tripId} />
@@ -428,7 +450,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
       )}
 
       {/* Delete confirmation */}
-      {showDeleteConfirm && ReactDOM.createPortal(
+      {showDeleteConfirm && createPortal(
         <div className="bg-[rgba(0,0,0,0.3)]" style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -589,6 +611,11 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
           </span>
         </div>
       )}
+      {r.travelers && r.travelers.length > 0 && (
+        <div style={{ paddingLeft: 44 }} onClick={e => e.stopPropagation()}>
+          <TravelerAvatarRow travelers={r.travelers} />
+        </div>
+      )}
       <PluginCardFooter items={contributions} tripId={tripId} />
       {/* Reservation-detail plugin slots: sandboxed, scoped to this journey. The
           card itself is clickable, so keep frame interactions from opening it. */}
@@ -601,7 +628,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
           ))}
         </div>
       )}
-      {confirmOpen && ReactDOM.createPortal(
+      {confirmOpen && createPortal(
         <div className="bg-[rgba(0,0,0,0.35)]" style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { e.stopPropagation(); setConfirmOpen(false) }}>
           <div className="bg-surface-card" style={{ borderRadius: 14, padding: 20, width: 340, boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }} onClick={e => e.stopPropagation()}>
             <div className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-body, 1))', marginBottom: 6 }}>{t('reservations.confirm.deleteTitle')}</div>
@@ -637,9 +664,11 @@ interface ReservationsPanelProps {
   /** Which plugin view this panel represents — the transports tab is its own
    * contribution view, the bookings tab stays 'reservations'. */
   contributionView?: 'reservations' | 'transports'
+  /** Trip members + guests, forwarded to each card's traveler picker (#1517). */
+  tripMembers?: TripMember[]
 }
 
-export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onImport, bookingImportAvailable, onAirTrailImport, airTrailAvailable, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual', contributionView = 'reservations' }: ReservationsPanelProps) {
+export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onImport, bookingImportAvailable, onAirTrailImport, airTrailAvailable, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual', contributionView = 'reservations', tripMembers = [] }: ReservationsPanelProps) {
   const { t, locale } = useTranslation()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
@@ -669,11 +698,31 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
     })
   }
 
+  // Filter by assigned traveler (#1517, #1557), persisted alongside the type filter.
+  const [travelerFilters, setTravelerFilters] = useState<Set<number>>(() => {
+    try {
+      const saved = sessionStorage.getItem(`${storageKey}-travelers`)
+      return saved ? new Set<number>(JSON.parse(saved)) : new Set<number>()
+    } catch { return new Set<number>() }
+  })
+  const toggleTravelerFilter = (userId: number) => {
+    setTravelerFilters(prev => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId); else next.add(userId)
+      sessionStorage.setItem(`${storageKey}-travelers`, JSON.stringify([...next]))
+      return next
+    })
+  }
+
   const assignmentLookup = useMemo(() => buildAssignmentLookup(days, assignments), [days, assignments])
 
-  const filtered = useMemo(() =>
-    typeFilters.size === 0 ? reservations : reservations.filter(r => typeFilters.has(r.type)),
-  [reservations, typeFilters])
+  const filtered = useMemo(() => {
+    let list = typeFilters.size === 0 ? reservations : reservations.filter(r => typeFilters.has(r.type))
+    if (travelerFilters.size > 0) {
+      list = list.filter(r => (r.travelers || []).some(tv => travelerFilters.has(tv.user_id)))
+    }
+    return list
+  }, [reservations, typeFilters, travelerFilters])
 
   // Chronological order (#1507): day-linked transports often carry no date in
   // reservation_time, so resolve each entry to an effective departure datetime —
@@ -782,6 +831,14 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
             </>
           )}
 
+          {/* Filter by traveler — members/guests assigned to bookings (#1517/#1557). */}
+          {tripMembers.length > 1 && reservations.some(r => (r.travelers || []).length > 0) && (
+            <>
+              <div className="hidden md:block" style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
+              <TravelerFilterAvatars members={tripMembers} active={travelerFilters} onToggle={toggleTravelerFilter} label={t('reservations.travelers.label')} />
+            </>
+          )}
+
           {canEdit && (
             <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
               {onImport && bookingImportAvailable && (
@@ -834,11 +891,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px 80px' }} className="max-md:!px-4 max-md:!pt-4">
         {total === 0 && reservations.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <BookMarked size={36} className="text-content-faint" style={{ display: 'block', margin: '0 auto 12px' }} />
-            <p className="text-content-secondary" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, margin: '0 0 4px' }}>{t('reservations.empty')}</p>
-            <p className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', margin: 0 }}>{t('reservations.emptyHint')}</p>
-          </div>
+          <EmptyState scene={contributionView === 'transports' ? 'transport' : 'bookings'} title={t('reservations.empty')} />
         ) : total === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <p className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('places.noneFound')}</p>

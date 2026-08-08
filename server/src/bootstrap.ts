@@ -1,11 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import type { INestApplication } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { AppModule } from './nest/app.module';
+import { httpConfig } from './nest/app-config';
 import { applyGlobalMiddleware } from './middleware/globalMiddleware';
 import { applyPlatformUploads, applyPlatformTransport, applyPlatformStatic } from './nest/platform/platform.routes';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
 import { setupApiDocs } from './nest/platform/api-docs';
+import { McpRegistryService } from '@trek/nest-mcp';
+import { setMcpRegistry } from './mcp/registry-handoff';
+import { validateBodyContracts } from './nest/common/validate-body-contracts';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -43,11 +48,23 @@ export async function buildApp(): Promise<INestApplication> {
   // parsed JSON alone can't be re-serialised byte-for-byte).
   const app = await NestFactory.create(AppModule, new ExpressAdapter(), { rawBody: true });
   const instance = app.getHttpAdapter().getInstance();
-  applyGlobalMiddleware(instance, { bodyParser: false });
+  // ConfigModule.forRoot's load factories already ran inside NestFactory.create,
+  // so the boot-stable snapshot is resolvable here, BEFORE app.init() — this is
+  // the one bridge that lets the pre-init Express layer consume the validated
+  // config instead of reading process.env itself.
+  const http = app.get<ConfigType<typeof httpConfig>>(httpConfig.KEY);
+  applyGlobalMiddleware(instance, { bodyParser: false, http });
   applyPlatformUploads(instance);
   applyPlatformTransport(instance);
   applyPlatformStatic(instance);
   if (apiDocsEnabled()) setupApiDocs(app);
   await app.init();
+  // The /mcp handler is mounted pre-init (step 3) and has no DI access — hand
+  // it the boot-discovered registry now that the container is fully built.
+  setMcpRegistry(app.get(McpRegistryService));
+  // Fail closed on unvalidated mutation bodies: every POST/PUT/PATCH @Body()
+  // must carry a createZodDto class (validated by the global ZodValidationPipe)
+  // or sit on the ratchet-only legacy allow-list — otherwise refuse to boot.
+  validateBodyContracts(app);
   return app;
 }

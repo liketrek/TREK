@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': 'Read-only access to this chat',
+  'collab.chat.messageOptions': 'Message options',
+  'collab.polls.confirmDeleteTitle': 'Delete poll?',
+  'collab.polls.confirmDeleteBody': 'This poll will be permanently deleted.',
+  'collab.polls.countdownDaysHours': '{d}d {h}h left',
+  'collab.polls.countdownHoursMinutes': '{h}h {m}m left',
+  'collab.polls.countdownMinutes': '{m}m left',
+  'collab.polls.clearDeadline': 'Clear deadline',
   'collab.tabs.chat': 'Chat',
   'collab.tabs.notes': 'Notes',
   'collab.tabs.polls': 'Polls',
@@ -29,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Start capturing ideas and plans',
   'collab.notes.all': 'All',
   'collab.notes.titlePlaceholder': 'Note title',
+  'collab.notes.content': 'Content',
+  'collab.notes.removeFile': 'Remove {name}',
   'collab.notes.contentPlaceholder': 'Write something...',
   'collab.notes.categoryPlaceholder': 'Category',
   'collab.notes.newCategory': 'New category...',

@@ -17,7 +17,7 @@ export default defineConfig({
     root: '.',
     include: ['tests/**/*.test.ts'],
     globals: true,
-    setupFiles: ['tests/setup.ts'],
+    setupFiles: ['tests/setup.ts', 'tests/setup.console-noise.ts'],
     testTimeout: 15000,
     hookTimeout: 15000,
     pool: 'forks',
@@ -47,6 +47,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // Use the package SOURCE in tests: the built CJS dist would be
+      // externalized by vite and its require('@modelcontextprotocol/sdk/...')
+      // would hit the SDK's unresolvable exports map natively (production
+      // resolves it via the tsconfig-paths/register runtime hook instead).
+      // Inlining the source also applies the SWC decorator transform and the
+      // SDK aliases below, and drops the build-freshness dependency.
+      '@trek/nest-mcp': new URL('../nest-mcp/src/index.ts', import.meta.url).pathname,
       // MCP SDK's exports map uses extension-less wildcard targets that neither
       // Node nor Vite can resolve. Point directly at the CJS dist files.
       // Paths are relative to the monorepo root (packages are hoisted there).

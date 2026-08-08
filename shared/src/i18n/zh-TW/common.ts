@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': '全選',
   'common.deselectAll': '取消全選',
   'common.error': '錯誤',
+  'common.success': '成功',
   'common.unknownError': '未知錯誤',
   'common.tooManyAttempts': '嘗試次數過多，請稍後再試。',
   'common.back': '返回',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': '發生錯誤',
+  'common.errorBody': '應用程式的這個部分已停止運作。您的資料是安全的。',
+  'common.errorPanelTitle': '無法顯示此區段',
+  'common.errorPanelBody': '頁面的其餘部分仍可正常使用。',
+  'common.errorRetry': '重試',
+  'common.errorReload': '重新載入頁面',
+  'common.errorUpdateTitle': '有新版本可用',
+  'common.errorUpdateBody': '此分頁開啟期間 TREK 已更新。請重新載入以取得新版本。',
+  'common.errorPluginTitle': '無法顯示此外掛程式',
 };
 export default common;

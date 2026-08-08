@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router'
 import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
@@ -10,79 +10,19 @@ import { useTranslation } from '../../i18n'
 import { budgetApi } from '../../api/client'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { formatMoney, currencyDecimals, currencyLocale } from '../../utils/formatters'
+import { formatMoney, currencyDecimals, currencyLocale, localizeAmountInput } from '../../utils/formatters'
+import { downloadBlob } from '../../utils/fileDownload'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
-import { payersBalanced, rebalancePayers } from './CostsPanel.helpers'
+import { calculateTicketShares, payersBalanced, rebalancePayers, splitEqualShares, type TicketItem } from './CostsPanel.helpers'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 import GuestBadge from '../shared/GuestBadge'
 import { NumericInput } from '../shared/NumericInput'
-
-export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
-  const n = members.length
-  if (n === 0) return {}
-
-  const totalCents = Math.round(total * 100)
-  const baseCents = Math.floor(totalCents / n)
-  const remainder = totalCents % n
-
-  const shares: Record<number, number> = {}
-  const sortedMembers = [...members].sort((a, b) => a.user_id - b.user_id)
-  const startIndex = itemId % n
-
-  for (let i = 0; i < n; i++) {
-    const member = sortedMembers[i]
-    const hasExtraCent = ((i - startIndex + n) % n) < remainder
-    shares[member.user_id] = (baseCents + (hasExtraCent ? 1 : 0)) / 100
-  }
-
-  return shares
-}
-
-export interface TicketItem {
-  id: string
-  name: string
-  price: string
-  participants: Set<number>
-}
-
-export function calculateTicketShares(items: TicketItem[]): { shares: Record<number, number>; total: number } {
-  const shares: Record<number, number> = {}
-  let totalCents = 0
-
-  for (const item of items) {
-    const priceNum = parseFloat(item.price) || 0
-    const priceCents = Math.round(priceNum * 100)
-    totalCents += priceCents
-
-    const partIds = [...item.participants]
-    const n = partIds.length
-    if (n === 0) continue
-
-    const baseCents = Math.floor(priceCents / n)
-    const remainder = priceCents % n
-
-    const sortedPartIds = [...partIds].sort((a, b) => a - b)
-
-    for (let i = 0; i < n; i++) {
-      const id = sortedPartIds[i]
-      const hasExtraCent = i < remainder
-      const shareCents = baseCents + (hasExtraCent ? 1 : 0)
-      shares[id] = (shares[id] || 0) + shareCents
-    }
-  }
-
-  const finalShares: Record<number, number> = {}
-  for (const id of Object.keys(shares)) {
-    finalShares[Number(id)] = shares[Number(id)] / 100
-  }
-
-  return { shares: finalShares, total: totalCents / 100 }
-}
+import EmptyState from '../shared/EmptyState'
 
 interface CostsPanelProps {
   tripId: number
@@ -318,13 +258,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
     const bom = '﻿'
     const blob = new Blob([bom + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
     const safeName = (trip?.title || 'trip').replace(/[^a-zA-Z0-9À-ɏ _-]/g, '').trim()
-    a.download = `costs-${safeName}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, `costs-${safeName}.csv`)
   }
 
   // ── small presentational helpers ────────────────────────────────────────
@@ -467,9 +402,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
           {dayBanner}
           {dayGroups.length === 0 ? (
-            <div className="text-content-faint" style={{ textAlign: 'center', padding: '60px 20px' }}>
-              {search ? t('costs.noMatch') : t('costs.emptyText')}
-            </div>
+            search ? (
+              <div className="text-content-faint" style={{ textAlign: 'center', padding: '60px 20px' }}>
+                {t('costs.noMatch')}
+              </div>
+            ) : (
+              <EmptyState scene="costs" title={t('costs.emptyText')} />
+            )
           ) : dayGroups.map(g => {
             const dtot = g.entries.reduce((a, en) => en.kind === 'expense' ? a + baseTotal(en.e) : a, 0)
             return (
@@ -758,7 +697,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
           <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
             <div className="text-content" style={{ fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600 }}>{fmt(baseTotal(e))}</div>
-            {!isUnfinished && (e.members || []).length > 0 && Math.abs(net) > 0.01 && (
+            {!unfinished && (e.members || []).length > 0 && Math.abs(net) > 0.01 && (
               <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginTop: 2, fontWeight: 500, whiteSpace: 'nowrap', color: net > 0 ? '#16a34a' : '#dc2626' }}>
                 {net > 0 ? t('costs.youLent', { amount: fmt(net) }) : t('costs.youBorrowed', { amount: fmt(-net) })}
               </div>
@@ -1227,11 +1166,14 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const save = async () => {
     if (!valid) return
     setSaving(true)
+    // A picked payer always goes out, even when nobody shares the expense: the
+    // server re-derives total_price from the payer sum (CostsPanel.helpers), so
+    // dropping the payer would store the entry with a total of 0.
     const payerList = multiPayer
       ? [...payerIds]
           .map(id => ({ user_id: id, amount: parseFloat(payerAmounts[id]) || 0 }))
           .filter(p => p.amount > 0)
-      : (payerId > 0 && participants.size > 0) ? [{ user_id: payerId, amount: totalNum }] : []
+      : payerId > 0 ? [{ user_id: payerId, amount: totalNum }] : []
     const memberList = [...participants].map(id => ({
       user_id: id,
       amount: splitMode === 'custom'
@@ -1290,7 +1232,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px', opacity: isTicketMode ? 0.6 : 1 }}>
             <span className="text-content-faint" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))' }}>{sym(currency)}</span>
-            <NumericInput mode="decimal" placeholder="0.00" value={isTicketMode ? ticketInfo.total.toFixed(2) : total}
+            <NumericInput mode="decimal" placeholder={localizeAmountInput('0.00', currency)} value={localizeAmountInput(isTicketMode ? ticketInfo.total.toFixed(2) : total, currency)}
               onValueChange={onTotalChange}
               disabled={isTicketMode}
               className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, paddingLeft: 6, width: '100%' }} />
@@ -1373,8 +1315,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                       {on ? (
                         <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
                           <span className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{sym(currency)}</span>
-                          <NumericInput mode="decimal" placeholder="0.00" data-testid="payer-amount"
-                            value={payerAmounts[p.id] || ''}
+                          <NumericInput mode="decimal" placeholder={localizeAmountInput('0.00', currency)} data-testid="payer-amount"
+                            value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
                             onValueChange={v => onPayerAmountChange(p.id, v)}
                             className="text-content"
                             style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
@@ -1438,8 +1380,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                         <span className="text-content-faint" style={{ fontSize: 12 }}>{sym(currency)}</span>
                         <NumericInput
                           mode="decimal"
-                          placeholder="0.00"
-                          value={item.price}
+                          placeholder={localizeAmountInput('0.00', currency)}
+                          value={localizeAmountInput(item.price, currency)}
                           onValueChange={v => handleUpdateItemPrice(item.id, v)}
                           className="text-content"
                           style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 13, fontWeight: 600, textAlign: 'right', padding: '6px 0' }}
@@ -1521,7 +1463,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                         on ? (
                           <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
                             <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
-                            <input type="text" inputMode="decimal" placeholder={(placeholderShares[p.id] || 0).toFixed(2)} value={customAmounts[p.id] || ''}
+                            <input type="text" inputMode="decimal" placeholder={localizeAmountInput((placeholderShares[p.id] || 0).toFixed(2), currency)} value={localizeAmountInput(customAmounts[p.id] || '', currency)}
                               onChange={e => handleCustomAmountChange(p.id, e.target.value)}
                               className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
                           </div>

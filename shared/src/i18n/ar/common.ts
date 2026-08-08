@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'تحديد الكل',
   'common.deselectAll': 'إلغاء تحديد الكل',
   'common.error': 'خطأ',
+  'common.success': 'تم بنجاح',
   'common.unknownError': 'خطأ غير معروف',
   'common.tooManyAttempts': 'محاولات كثيرة جدًا. يرجى المحاولة لاحقًا.',
   'common.back': 'رجوع',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'حدث خطأ ما',
+  'common.errorBody': 'توقف هذا الجزء من التطبيق عن العمل. بياناتك آمنة.',
+  'common.errorPanelTitle': 'تعذّر عرض هذا القسم',
+  'common.errorPanelBody': 'بقية الصفحة لا تزال تعمل.',
+  'common.errorRetry': 'إعادة المحاولة',
+  'common.errorReload': 'إعادة تحميل الصفحة',
+  'common.errorUpdateTitle': 'يتوفر إصدار جديد',
+  'common.errorUpdateBody': 'تم تحديث TREK أثناء فتح علامة التبويب هذه. أعد التحميل للحصول على الإصدار الجديد.',
+  'common.errorPluginTitle': 'تعذّر عرض هذه الإضافة',
 };
 export default common;

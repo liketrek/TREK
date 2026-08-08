@@ -1,0 +1,1316 @@
+/**
+ * Unit tests for PlacesService — the place SQL, the GPX/KML importers, the
+ * Google-list importer, the Unsplash image search and the collaborative
+ * ratings (PLACE-SVC-*, moved verbatim from tests/unit/services/placeService.test.ts
+ * when the domain went DI-native) plus the automatic track colours the Nest
+ * service already owned (PLACES-SVC-*, #776).
+ *
+ * Uses a real in-memory SQLite DB so the SQL is exercised faithfully; the
+ * service is constructed directly, no Nest container needed. External fetches
+ * are mocked where needed.
+ */
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { TRACK_COLORS } from '@trek/shared';
+
+// ── DB setup ──────────────────────────────────────────────────────────────────
+
+const { testDb, dbMock } = vi.hoisted(() => {
+  const Database = require('better-sqlite3');
+  const db = new Database(':memory:');
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
+  db.exec('PRAGMA busy_timeout = 5000');
+  const mock = {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: (placeId: any) => {
+      const place: any = db.prepare(`
+        SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+        FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?
+      `).get(placeId);
+      if (!place) return null;
+      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
+      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
+    },
+    canAccessTrip: (tripId: any, userId: number) =>
+      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+    isOwner: (tripId: any, userId: number) =>
+      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
+  };
+  return { testDb: db, dbMock: mock };
+});
+
+vi.mock('../../../src/db/database', () => dbMock);
+vi.mock('../../../src/config', () => ({
+  JWT_SECRET: 'test-secret',
+  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
+  updateJwtSecret: () => {},
+}));
+
+// Spy on the photo-cache reclaim hook so delete tests assert the wiring without
+// touching disk. The removal logic itself is covered in placePhotoCache.test.ts.
+// Injected stub since the photo-cache fold (was a partial path mock).
+const removeIfUnreferencedSpy = vi.fn();
+const photoCacheStub = { removeIfUnreferenced: removeIfUnreferencedSpy } as unknown as PlacePhotoCacheService;
+
+import { createTables } from '../../../src/db/schema';
+import { runMigrations } from '../../../src/db/migrations';
+import { resetTestDb } from '../../helpers/test-db';
+import { createUser, createTrip, createPlace, createCategory, createTag } from '../../helpers/factories';
+import path from 'path';
+import fs from 'fs';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { PlacesService } from '../../../src/nest/places/places.service';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { PLACE_IMAGES_DIR } from '../../../src/nest/places/place-image';
+
+const GPX_FIXTURE = path.join(__dirname, '../../fixtures/test.gpx');
+const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
+
+const dbs = new DatabaseService(testDb);
+const svc = new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), new MapsService(dbs), new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()), photoCacheStub);
+
+beforeAll(() => {
+  createTables(testDb);
+  runMigrations(testDb);
+});
+
+beforeEach(() => {
+  resetTestDb(testDb);
+});
+
+afterAll(() => {
+  testDb.close();
+});
+
+// ── list ──────────────────────────────────────────────────────────────────────
+
+describe('list', () => {
+  it('PLACE-SVC-001 — returns empty array when trip has no places', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    expect(svc.list(String(trip.id), {})).toEqual([]);
+  });
+
+  it('PLACE-SVC-002 — returns all places for a trip', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: 'Alpha' });
+    createPlace(testDb, trip.id, { name: 'Beta' });
+    const places = svc.list(String(trip.id), {}) as any[];
+    expect(places).toHaveLength(2);
+  });
+
+  it('PLACE-SVC-003 — does not return places from other trips', () => {
+    const { user } = createUser(testDb);
+    const t1 = createTrip(testDb, user.id);
+    const t2 = createTrip(testDb, user.id);
+    createPlace(testDb, t1.id, { name: 'T1 Place' });
+    createPlace(testDb, t2.id, { name: 'T2 Place' });
+    const places = svc.list(String(t1.id), {}) as any[];
+    expect(places).toHaveLength(1);
+    expect(places[0].name).toBe('T1 Place');
+  });
+
+  it('PLACE-SVC-004 — filters by search term (name)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
+    createPlace(testDb, trip.id, { name: 'Louvre Museum' });
+    const places = svc.list(String(trip.id), { search: 'Eiffel' }) as any[];
+    expect(places).toHaveLength(1);
+    expect(places[0].name).toBe('Eiffel Tower');
+  });
+
+  it('PLACE-SVC-005 — attaches tags array to each place (empty when none)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: 'No Tags' });
+    const places = svc.list(String(trip.id), {}) as any[];
+    expect(Array.isArray(places[0].tags)).toBe(true);
+    expect(places[0].tags).toHaveLength(0);
+  });
+
+  it('PLACE-SVC-006 — attaches category object when place has a category', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const cat = createCategory(testDb, { name: 'Museum', user_id: user.id }) as any;
+    const place = createPlace(testDb, trip.id, { name: 'Art Museum' }) as any;
+    testDb.prepare('UPDATE places SET category_id = ? WHERE id = ?').run(cat.id, place.id);
+
+    const places = svc.list(String(trip.id), {}) as any[];
+    expect(places[0].category).toBeDefined();
+    expect(places[0].category!.name).toBe('Museum');
+  });
+});
+
+// ── create ────────────────────────────────────────────────────────────────────
+
+describe('create', () => {
+  it('PLACE-SVC-007 — creates a place and returns it with tags array', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = svc.create(String(trip.id), { name: 'New Place', lat: 48.8, lng: 2.3 }) as any;
+    expect(place).toBeDefined();
+    expect(place.name).toBe('New Place');
+    expect(Array.isArray(place.tags)).toBe(true);
+  });
+
+  it('PLACE-SVC-008 — creates a place with tags', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const tag = createTag(testDb, user.id, { name: 'Highlight' }) as any;
+    const place = svc.create(String(trip.id), { name: 'Tagged Place', tags: [tag.id] }) as any;
+    expect(place.tags).toHaveLength(1);
+    expect(place.tags[0].id).toBe(tag.id);
+  });
+
+  it('PLACE-SVC-009 — place is associated with correct trip', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = svc.create(String(trip.id), { name: 'My Place' }) as any;
+    const row = testDb.prepare('SELECT trip_id FROM places WHERE id = ?').get(place.id) as any;
+    expect(row.trip_id).toBe(trip.id);
+  });
+});
+
+// ── get ───────────────────────────────────────────────────────────────────────
+
+describe('get', () => {
+  it('PLACE-SVC-010 — returns the place when tripId and placeId match', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Find Me' }) as any;
+    const found = svc.get(String(trip.id), String(place.id)) as any;
+    expect(found).toBeDefined();
+    expect(found.name).toBe('Find Me');
+  });
+
+  it('PLACE-SVC-011 — returns null when place belongs to different trip', () => {
+    const { user } = createUser(testDb);
+    const t1 = createTrip(testDb, user.id);
+    const t2 = createTrip(testDb, user.id);
+    const place = createPlace(testDb, t1.id, { name: 'T1 Place' }) as any;
+    expect(svc.get(String(t2.id), String(place.id))).toBeNull();
+  });
+
+  it('PLACE-SVC-012 — returns null for non-existent placeId', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    expect(svc.get(String(trip.id), '99999')).toBeNull();
+  });
+});
+
+// ── update ────────────────────────────────────────────────────────────────────
+
+describe('update', () => {
+  it('PLACE-SVC-013 — updates place name and lat/lng', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Old', lat: 0, lng: 0 }) as any;
+    const updated = svc.update(String(trip.id), String(place.id), { name: 'New', lat: 48.8, lng: 2.3 }) as any;
+    expect(updated.name).toBe('New');
+    expect(updated.lat).toBe(48.8);
+    expect(updated.lng).toBe(2.3);
+  });
+
+  it('PLACE-SVC-014 — returns null for non-existent place', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    expect(svc.update(String(trip.id), '99999', { name: 'Ghost' })).toBeNull();
+  });
+
+  it('PLACE-SVC-015 — updates tags (replaces old set)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const tag1 = createTag(testDb, user.id, { name: 'Old Tag' }) as any;
+    const tag2 = createTag(testDb, user.id, { name: 'New Tag' }) as any;
+    const place = svc.create(String(trip.id), { name: 'Taggable', tags: [tag1.id] }) as any;
+
+    const updated = svc.update(String(trip.id), String(place.id), { tags: [tag2.id] }) as any;
+    expect(updated.tags).toHaveLength(1);
+    expect(updated.tags[0].id).toBe(tag2.id);
+  });
+
+  it('PLACE-SVC-016 — clears tags when tags: [] is passed', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const tag = createTag(testDb, user.id, { name: 'Temp' }) as any;
+    const place = svc.create(String(trip.id), { name: 'Untaggable', tags: [tag.id] }) as any;
+
+    const updated = svc.update(String(trip.id), String(place.id), { tags: [] }) as any;
+    expect(updated.tags).toHaveLength(0);
+  });
+
+  // ── Track colour (#776) ─────────────────────────────────────────────────────
+
+  it('PLACE-SVC-052 — stores a picked route_color', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Walk' }) as any;
+    const updated = svc.update(String(trip.id), String(place.id), { route_color: '#e11d48' }) as any;
+    expect(updated.route_color).toBe('#e11d48');
+  });
+
+  it('PLACE-SVC-053 — an explicit null clears it again (the reset to auto)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Walk' }) as any;
+    svc.update(String(trip.id), String(place.id), { route_color: '#e11d48' });
+    // Guards the COALESCE trap: name/currency/transport_mode can never be
+    // emptied, and route_color built that way would be a one-way door.
+    const cleared = svc.update(String(trip.id), String(place.id), { route_color: null }) as any;
+    expect(cleared.route_color).toBeNull();
+  });
+
+  it('PLACE-SVC-054 — an unrelated update leaves the colour alone', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Walk' }) as any;
+    svc.update(String(trip.id), String(place.id), { route_color: '#059669' });
+    const renamed = svc.update(String(trip.id), String(place.id), { name: 'Hike' }) as any;
+    expect(renamed.name).toBe('Hike');
+    expect(renamed.route_color).toBe('#059669');
+  });
+
+  it('PLACE-SVC-055 — create carries geometry and colour instead of dropping them', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const created = svc.create(String(trip.id), {
+      name: 'Restored track',
+      route_geometry: '[[48.0,2.0],[49.0,3.0]]',
+      route_color: '#7c3aed',
+    }) as any;
+    expect(created.route_geometry).toBe('[[48.0,2.0],[49.0,3.0]]');
+    expect(created.route_color).toBe('#7c3aed');
+  });
+});
+
+// ── updateMany ────────────────────────────────────────────────────────────────
+
+describe('updateMany', () => {
+  it('PLACE-SVC-039 — applies the same fields to many places, preserving the rest', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const a = createPlace(testDb, trip.id, { name: 'A' }) as any;
+    const b = createPlace(testDb, trip.id, { name: 'B' }) as any;
+    const c = createPlace(testDb, trip.id, { name: 'C' }) as any;
+
+    const updated = svc.updateMany(String(trip.id), [a.id, b.id, c.id], { notes: 'visited', transport_mode: 'walking' });
+
+    expect(updated).toHaveLength(3);
+    for (const p of updated) {
+      expect((p as any).notes).toBe('visited');
+      expect((p as any).transport_mode).toBe('walking');
+    }
+    // Only the provided fields change — names are untouched.
+    expect(updated.map(p => (p as any).name).sort()).toEqual(['A', 'B', 'C']);
+  });
+
+  it('PLACE-SVC-040 — skips ids that are not in the trip and reports the rest', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const mine = createPlace(testDb, trip.id, { name: 'Mine' }) as any;
+    const foreign = createPlace(testDb, other.id, { name: 'Foreign' }) as any;
+
+    const updated = svc.updateMany(String(trip.id), [mine.id, foreign.id, 99999], { notes: 'tagged' });
+
+    expect(updated).toHaveLength(1);
+    expect((updated[0] as any).id).toBe(mine.id);
+    // The place from the other trip stays untouched.
+    expect((svc.get(String(other.id), String(foreign.id)) as any).notes).toBeNull();
+  });
+
+  it('PLACE-SVC-041 — returns [] for an empty id list', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    expect(svc.updateMany(String(trip.id), [], { notes: 'x' })).toEqual([]);
+  });
+});
+
+// ── remove ────────────────────────────────────────────────────────────────────
+
+describe('remove', () => {
+  it('PLACE-SVC-017 — deletes a place and returns true', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'To Delete' }) as any;
+    expect(svc.remove(String(trip.id), String(place.id))).toBe(true);
+    expect(svc.get(String(trip.id), String(place.id))).toBeNull();
+  });
+
+  it('PLACE-SVC-018 — returns false for non-existent place', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    expect(svc.remove(String(trip.id), '99999')).toBe(false);
+  });
+
+  it('PLACE-SVC-019 — deleting one place does not remove others', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const p1 = createPlace(testDb, trip.id, { name: 'Keep' }) as any;
+    const p2 = createPlace(testDb, trip.id, { name: 'Remove' }) as any;
+    svc.remove(String(trip.id), String(p2.id));
+    const remaining = svc.list(String(trip.id), {}) as any[];
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe(p1.id);
+  });
+
+  it('PLACE-SVC-019b — reclaims the photo cache for the deleted place', () => {
+    removeIfUnreferencedSpy.mockClear();
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'With Photo' }) as any;
+    testDb.prepare('UPDATE places SET google_place_id = ? WHERE id = ?').run('ChIJgid', place.id);
+
+    svc.remove(String(trip.id), String(place.id));
+
+    expect(removeIfUnreferencedSpy).toHaveBeenCalledWith('ChIJgid');
+  });
+});
+
+// ── removeMany ────────────────────────────────────────────────────────────────
+
+describe('removeMany', () => {
+  it('PLACE-SVC-056 — deletes the trip-scoped ids in one transaction and reports them', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const a = createPlace(testDb, trip.id, { name: 'A' }) as any;
+    const b = createPlace(testDb, trip.id, { name: 'B' }) as any;
+    const foreign = createPlace(testDb, other.id, { name: 'Foreign' }) as any;
+
+    const deleted = svc.removeMany(String(trip.id), [a.id, b.id, foreign.id, 99999]);
+
+    expect(deleted.sort()).toEqual([a.id, b.id].sort());
+    expect(svc.get(String(other.id), String(foreign.id))).not.toBeNull();
+  });
+
+  it('PLACE-SVC-057 — returns [] for an empty id list', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    expect(svc.removeMany(String(trip.id), [])).toEqual([]);
+  });
+});
+
+// ── importGpx ─────────────────────────────────────────────────────────────────
+
+describe('importGpx', () => {
+  it('PLACE-SVC-020 — returns null when buffer has no <gpx> root', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const result = svc.importGpx(String(trip.id), Buffer.from('<not-gpx/>'));
+    expect(result).toBeNull();
+  });
+
+  it('PLACE-SVC-021 — imports <wpt> waypoints as places', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const gpx = Buffer.from(`<?xml version="1.0"?><gpx version="1.1">
+      <wpt lat="48.8566" lon="2.3522"><name>Paris</name></wpt>
+      <wpt lat="51.5074" lon="-0.1278"><name>London</name></wpt>
+    </gpx>`);
+    const result = svc.importGpx(String(trip.id), gpx) as any;
+    expect(result.places).toHaveLength(2);
+    expect(result.places[0].name).toBe('Paris');
+    expect(result.places[1].name).toBe('London');
+  });
+
+  it('PLACE-SVC-022 — imports <rte> as a single polyline-place with routeGeometry', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const gpx = Buffer.from(`<?xml version="1.0"?><gpx version="1.1">
+      <rte>
+        <name>My Route</name>
+        <rtept lat="48.8566" lon="2.3522"><name>Start</name></rtept>
+        <rtept lat="51.5074" lon="-0.1278"><name>End</name></rtept>
+      </rte>
+    </gpx>`);
+    const result = svc.importGpx(String(trip.id), gpx) as any;
+    expect(result.places).toHaveLength(1);
+    expect(result.places[0].name).toBe('My Route');
+    expect(result.places[0].lat).toBe(48.8566);
+    expect(result.places[0].lng).toBe(2.3522);
+    expect(result.places[0].route_geometry).toBeTruthy();
+    const coords = JSON.parse(result.places[0].route_geometry);
+    expect(coords).toHaveLength(2);
+  });
+
+  it('PLACE-SVC-023 — imports <trk> track as a single place with routeGeometry', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const gpx = Buffer.from(`<?xml version="1.0"?><gpx version="1.1">
+      <trk>
+        <name>My Track</name>
+        <trkseg>
+          <trkpt lat="48.8566" lon="2.3522"><ele>100</ele></trkpt>
+          <trkpt lat="48.8570" lon="2.3530"><ele>102</ele></trkpt>
+        </trkseg>
+      </trk>
+    </gpx>`);
+    const result = svc.importGpx(String(trip.id), gpx) as any;
+    expect(result.places).toHaveLength(1);
+    expect(result.places[0].name).toBe('My Track');
+    const geometry = JSON.parse(result.places[0].route_geometry);
+    expect(Array.isArray(geometry)).toBe(true);
+    expect(geometry).toHaveLength(2);
+  });
+
+  it('PLACE-SVC-024 — <wpt> and <trk> together: waypoints plus track appended', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const gpx = Buffer.from(`<?xml version="1.0"?><gpx version="1.1">
+      <wpt lat="48.8566" lon="2.3522"><name>POI</name></wpt>
+      <trk>
+        <name>Track</name>
+        <trkseg>
+          <trkpt lat="48.8566" lon="2.3522"></trkpt>
+          <trkpt lat="48.8570" lon="2.3530"></trkpt>
+        </trkseg>
+      </trk>
+    </gpx>`);
+    const result = svc.importGpx(String(trip.id), gpx) as any;
+    // 1 wpt + 1 trk
+    expect(result.places).toHaveLength(2);
+    const trackPlace = result.places.find((p: any) => p.name === 'Track') as any;
+    expect(trackPlace).toBeDefined();
+    const geometry = JSON.parse(trackPlace.route_geometry);
+    expect(geometry).toHaveLength(2);
+  });
+
+  it('PLACE-SVC-025 — returns null when GPX has no usable elements', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const gpx = Buffer.from(`<?xml version="1.0"?><gpx version="1.1"></gpx>`);
+    const result = svc.importGpx(String(trip.id), gpx);
+    expect(result).toBeNull();
+  });
+
+  it('PLACE-SVC-037 — multiple unnamed tracks in one file get distinct names instead of collapsing to one', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const gpx = Buffer.from(`<?xml version="1.0"?><gpx version="1.1">
+      <trk><trkseg>
+        <trkpt lat="48.8566" lon="2.3522"></trkpt>
+        <trkpt lat="48.8570" lon="2.3530"></trkpt>
+      </trkseg></trk>
+      <trk><trkseg>
+        <trkpt lat="40.0000" lon="-3.0000"></trkpt>
+        <trkpt lat="40.1000" lon="-3.1000"></trkpt>
+      </trkseg></trk>
+    </gpx>`);
+    const result = svc.importGpx(String(trip.id), gpx) as any;
+    expect(result.places).toHaveLength(2);
+    const names = result.places.map((p: any) => p.name);
+    expect(new Set(names).size).toBe(2);
+  });
+
+  it('PLACE-SVC-038 — unnamed tracks fall back to the source filename', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const gpx = Buffer.from(`<?xml version="1.0"?><gpx version="1.1">
+      <trk><trkseg>
+        <trkpt lat="48.8566" lon="2.3522"></trkpt>
+        <trkpt lat="48.8570" lon="2.3530"></trkpt>
+      </trkseg></trk>
+    </gpx>`);
+    const result = svc.importGpx(String(trip.id), gpx, { defaultName: 'morning-hike.gpx' }) as any;
+    expect(result.places).toHaveLength(1);
+    expect(result.places[0].name).toBe('morning-hike');
+  });
+});
+
+// ── importGoogleList ──────────────────────────────────────────────────────────
+
+describe('importGoogleList', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('PLACE-SVC-026 — returns error when list ID cannot be extracted from URL', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const result = await svc.importGoogleList(String(trip.id), 'https://example.com/no-id-here') as any;
+    expect(result.error).toMatch(/Could not extract list ID/);
+    expect(result.status).toBe(400);
+  });
+
+  it('PLACE-SVC-026b — a single-place link gives a guiding error instead of the generic one (#1304)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const url = 'https://www.google.com/maps/place/Eiffel+Tower/@48.8584,2.2945,17z/data=!3m1';
+    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    expect(result.status).toBe(400);
+    expect(result.error).toMatch(/single place/i);
+  });
+
+  it('PLACE-SVC-027 — returns error when Google Maps API responds with non-ok status', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, text: async () => '', status: 502 }));
+    const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
+    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    expect(result.error).toMatch(/Failed to fetch list/);
+    expect(result.status).toBe(502);
+  });
+
+  it('PLACE-SVC-028 — imports places from a valid Google Maps list response', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const listPayload = [
+      [null, null, null, null, 'My Test List', null, null, null, [
+        [null, [null, null, null, null, null, [null, null, 48.8566, 2.3522]], 'Paris', null],
+        [null, [null, null, null, null, null, [null, null, 51.5074, -0.1278]], 'London', 'Great city'],
+      ]],
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'prefix\n' + JSON.stringify(listPayload),
+    }));
+
+    const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
+    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    expect(result.listName).toBe('My Test List');
+    expect(result.places).toHaveLength(2);
+    expect(result.places[0].name).toBe('Paris');
+    expect(result.places[1].name).toBe('London');
+  });
+
+  it('PLACE-SVC-028b — stores a Google Maps ftid separately from google_place_id', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const listPayload = [
+      [null, null, null, null, 'My Test List', null, null, null, [
+        [null, [null, null, null, null, '878 Weber St N', [null, null, 43.5118527, -80.5542617], ['-8634542354666695567', '-8822026229683971437']], "St. Jacobs Farmers' Market"],
+      ]],
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'prefix\n' + JSON.stringify(listPayload),
+    }));
+
+    const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
+    const result = await svc.importGoogleList(String(trip.id), url) as any;
+
+    expect(result.places).toHaveLength(1);
+    expect(result.places[0].google_place_id).toBeNull();
+    expect(result.places[0].google_ftid).toBe('0x882bf179e806d471:0x8591dde29c821a93');
+  });
+
+  it('PLACE-SVC-028c — backfills google_ftid when re-import skips a duplicate', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const existing = createPlace(testDb, trip.id, {
+      name: "St. Jacobs Farmers' Market",
+      lat: 43.5118527,
+      lng: -80.5542617,
+    }) as any;
+
+    const listPayload = [
+      [null, null, null, null, 'My Test List', null, null, null, [
+        [null, [null, null, null, null, '878 Weber St N', [null, null, 43.5118527, -80.5542617], ['-8634542354666695567', '-8822026229683971437']], "St. Jacobs Farmers' Market"],
+      ]],
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'prefix\n' + JSON.stringify(listPayload),
+    }));
+
+    const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
+    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    const row = testDb.prepare('SELECT google_place_id, google_ftid FROM places WHERE id = ?').get(existing.id) as any;
+
+    expect(result.places).toHaveLength(0);
+    expect(result.skipped).toBe(1);
+    expect(row.google_place_id).toBeNull();
+    expect(row.google_ftid).toBe('0x882bf179e806d471:0x8591dde29c821a93');
+  });
+
+  it('PLACE-SVC-029 — returns error when list items array is empty', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const listPayload = [[null, null, null, null, 'Empty List', null, null, null, []]];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'prefix\n' + JSON.stringify(listPayload),
+    }));
+
+    const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
+    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    expect(result.error).toBeDefined();
+    expect(result.status).toBe(400);
+  });
+});
+
+// ── searchImage ───────────────────────────────────────────────────────────────
+
+describe('searchImage', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('PLACE-SVC-030 — returns 404 when place does not exist', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const result = await svc.searchImage(String(trip.id), '99999', user.id) as any;
+    expect(result.error).toBeDefined();
+    expect(result.status).toBe(404);
+  });
+
+  it('PLACE-SVC-031 — searches Unsplash without a stored API key', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Eiffel Tower' }) as any;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          { id: 'photo1', urls: { regular: 'https://img.example.com/1', thumb: 'https://img.example.com/t1' }, description: 'Tower', user: { name: 'Photographer' }, links: { html: 'https://unsplash.com/1' } },
+        ],
+      }),
+      status: 200,
+    }));
+
+    const result = await svc.searchImage(String(trip.id), String(place.id), user.id) as any;
+    expect(result.photos).toHaveLength(1);
+    const [url] = (fetch as any).mock.calls[0];
+    expect(url).toContain('https://unsplash.com/napi/search/photos?');
+    expect(url).not.toContain('client_id=');
+  });
+
+  it('PLACE-SVC-032 — returns photos when Unsplash API responds successfully', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Eiffel Tower' }) as any;
+
+    const mockPhotos = [
+      { id: 'photo1', urls: { regular: 'https://img.example.com/1', thumb: 'https://img.example.com/t1' }, description: 'Tower', user: { name: 'Photographer' }, links: { html: 'https://unsplash.com/1' } },
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ results: mockPhotos }),
+      status: 200,
+    }));
+
+    const result = await svc.searchImage(String(trip.id), String(place.id), user.id) as any;
+    expect(result.photos).toHaveLength(1);
+    expect(result.photos[0].id).toBe('photo1');
+    expect(result.photos[0].url).toBe('https://img.example.com/1');
+    expect(result.photos[0].photographer).toBe('Photographer');
+  });
+});
+
+// ── Import deduplication ──────────────────────────────────────────────────────
+
+describe('importGpx deduplication', () => {
+  it('PLACE-SVC-033 — skips waypoints already in trip by name', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const buf = fs.readFileSync(GPX_FIXTURE);
+
+    // First import
+    const first = svc.importGpx(String(trip.id), buf) as any;
+    expect(first.count).toBeGreaterThan(0);
+
+    // Second import — all names already present, nothing new created
+    const second = svc.importGpx(String(trip.id), buf) as any;
+    expect(second.count).toBe(0);
+    expect(second.skipped).toBe(first.count);
+
+    // Total places in DB should equal first import count
+    const total = (svc.list(String(trip.id), {}) as any[]).length;
+    expect(total).toBe(first.count);
+  });
+
+  it('PLACE-SVC-034 — imports new places while skipping existing ones', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const buf = fs.readFileSync(GPX_FIXTURE);
+
+    const first = svc.importGpx(String(trip.id), buf) as any;
+    // Manually add a brand-new place so total > first.count
+    createPlace(testDb, trip.id, { name: 'Unique Extra Place', lat: 99, lng: 99 });
+
+    // Re-import: the fixture places are skipped, the extra place remains untouched
+    const second = svc.importGpx(String(trip.id), buf) as any;
+    expect(second.count).toBe(0);
+
+    const total = (svc.list(String(trip.id), {}) as any[]).length;
+    expect(total).toBe(first.count + 1);
+  });
+});
+
+describe('importKmlPlaces deduplication', () => {
+  it('PLACE-SVC-035 — skips placemarks already in trip by name', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const buf = fs.readFileSync(KML_FIXTURE);
+
+    const first = svc.importKmlPlaces(String(trip.id), buf);
+    expect(first.count).toBeGreaterThan(0);
+
+    const second = svc.importKmlPlaces(String(trip.id), buf);
+    expect(second.count).toBe(0);
+    expect(second.summary.skippedCount).toBeGreaterThanOrEqual(first.count);
+    expect(second.summary.warnings.some((w: string) => w.includes('skipped'))).toBe(true);
+  });
+
+  it('PLACE-SVC-036 — deduplicates within the same file (intra-batch)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    // Craft a KML with two placemarks sharing the same name
+    const kml = Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+  <Placemark><name>Dupe Place</name><Point><coordinates>2.0,48.0,0</coordinates></Point></Placemark>
+  <Placemark><name>Dupe Place</name><Point><coordinates>2.1,48.1,0</coordinates></Point></Placemark>
+</Document></kml>`);
+
+    const result = svc.importKmlPlaces(String(trip.id), kml);
+    expect(result.count).toBe(1);
+    expect(result.summary.skippedCount).toBe(1);
+  });
+});
+
+// ── Custom place image reclaim (#1136) ──────────────────────────────────────────
+
+describe('custom place image reclaim', () => {
+  function writePlaceImage(name: string): string {
+    fs.mkdirSync(PLACE_IMAGES_DIR, { recursive: true });
+    const filePath = path.join(PLACE_IMAGES_DIR, name);
+    fs.writeFileSync(filePath, 'jpeg-bytes');
+    return filePath;
+  }
+
+  it('PLACE-SVC-046 — replacing image_url unlinks the previous upload once unreferenced', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
+    const fileA = writePlaceImage('svc-replace-a.jpg');
+    testDb.prepare('UPDATE places SET image_url = ? WHERE id = ?').run('/uploads/places/svc-replace-a.jpg', place.id);
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    svc.update(String(trip.id), String(place.id), { image_url: '/uploads/places/svc-replace-b.jpg' });
+    expect(fs.existsSync(fileA)).toBe(false);
+  });
+
+  it('PLACE-SVC-047 — clearing image_url to null unlinks the previous upload', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
+    const fileA = writePlaceImage('svc-clear.jpg');
+    testDb.prepare('UPDATE places SET image_url = ? WHERE id = ?').run('/uploads/places/svc-clear.jpg', place.id);
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    svc.update(String(trip.id), String(place.id), { image_url: null } as any);
+    expect(fs.existsSync(fileA)).toBe(false);
+  });
+
+  it('PLACE-SVC-048 — remove unlinks the uploaded image', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
+    const fileA = writePlaceImage('svc-delete.jpg');
+    testDb.prepare('UPDATE places SET image_url = ? WHERE id = ?').run('/uploads/places/svc-delete.jpg', place.id);
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    svc.remove(String(trip.id), String(place.id));
+    expect(fs.existsSync(fileA)).toBe(false);
+  });
+
+  it('PLACE-SVC-049 — a collection_places reference keeps the file when the trip place is deleted', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Shared Photo' }) as any;
+    const fileA = writePlaceImage('svc-shared.jpg');
+    testDb.prepare('UPDATE places SET image_url = ? WHERE id = ?').run('/uploads/places/svc-shared.jpg', place.id);
+    // A saved-place in a collection holds the same uploaded file — the ref-count guard must protect it.
+    const col = testDb.prepare('INSERT INTO collections (owner_id, name) VALUES (?, ?)').run(user.id, 'Saved');
+    testDb.prepare('INSERT INTO collection_places (collection_id, owner_id, name, image_url) VALUES (?, ?, ?, ?)')
+      .run(col.lastInsertRowid, user.id, 'Shared Photo', '/uploads/places/svc-shared.jpg');
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    svc.remove(String(trip.id), String(place.id));
+    expect(fs.existsSync(fileA)).toBe(true);
+
+    // resetTestDb does not clear collections; drop what this test inserted and its file.
+    testDb.exec('DELETE FROM collection_places; DELETE FROM collections;');
+    fs.unlinkSync(fileA);
+  });
+
+  // ── Collaborative ratings (#1435) ──────────────────────────────────────────
+  it('PLACE-SVC-050 — rate stores one vote per user, replaces on re-vote, clears with null', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Rated' }) as { id: number };
+
+    svc.rate(String(trip.id), String(place.id), user.id, 5);
+    let rows = testDb.prepare('SELECT rating FROM place_ratings WHERE place_id = ? AND user_id = ?').all(place.id, user.id) as { rating: number }[];
+    expect(rows).toEqual([{ rating: 5 }]);
+
+    svc.rate(String(trip.id), String(place.id), user.id, 2); // re-vote replaces via the UNIQUE upsert
+    rows = testDb.prepare('SELECT rating FROM place_ratings WHERE place_id = ? AND user_id = ?').all(place.id, user.id) as { rating: number }[];
+    expect(rows).toEqual([{ rating: 2 }]);
+
+    svc.rate(String(trip.id), String(place.id), user.id, null); // clear
+    const count = testDb.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ?').get(place.id) as { n: number };
+    expect(count.n).toBe(0);
+  });
+
+  it('PLACE-SVC-051 — rate returns null and writes nothing when the place is not in the trip', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, otherTrip.id, { name: 'Elsewhere' }) as { id: number };
+
+    expect(svc.rate(String(trip.id), String(place.id), user.id, 4)).toBeNull();
+    const count = testDb.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ?').get(place.id) as { n: number };
+    expect(count.n).toBe(0);
+  });
+});
+
+// ── Automatic track colours (#776) ────────────────────────────────────────────
+
+// Three tracks plus a plain waypoint — the shared fixture only has waypoints,
+// and the whole point here is what happens to geometry.
+const GPX_WITH_TRACKS = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TREK Tests" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="48.8566" lon="2.3522"><name>Trailhead</name></wpt>
+  <trk><name>Morning walk</name><trkseg>
+    <trkpt lat="48.10" lon="2.10"/><trkpt lat="48.11" lon="2.11"/>
+  </trkseg></trk>
+  <trk><name>Afternoon walk</name><trkseg>
+    <trkpt lat="48.20" lon="2.20"/><trkpt lat="48.21" lon="2.21"/>
+  </trkseg></trk>
+  <trk><name>Evening walk</name><trkseg>
+    <trkpt lat="48.30" lon="2.30"/><trkpt lat="48.31" lon="2.31"/>
+  </trkseg></trk>
+</gpx>`;
+
+function importFixture(tripId: number) {
+  return svc.importGpx(String(tripId), Buffer.from(GPX_WITH_TRACKS), {
+    importWaypoints: true, importRoutes: true, importTracks: true,
+  });
+}
+
+function tracksOf(tripId: number) {
+  return testDb.prepare('SELECT id, route_color FROM places WHERE trip_id = ? AND route_geometry IS NOT NULL ORDER BY id')
+    .all(tripId) as { id: number; route_color: string | null }[];
+}
+
+describe('PlacesService — automatic track colours (#776)', () => {
+  it('PLACES-SVC-001 — every imported track gets a colour from the shared palette', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    importFixture(trip.id);
+
+    const tracks = tracksOf(trip.id);
+    expect(tracks.length).toBeGreaterThan(0);
+    for (const track of tracks) {
+      expect(TRACK_COLORS).toContain(track.route_color);
+    }
+  });
+
+  it('PLACES-SVC-002 — the returned places carry the colour, not just the DB rows', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const result = importFixture(trip.id) as { places: any[] } | null;
+
+    const returnedTracks = (result?.places ?? []).filter(p => p.route_geometry);
+    expect(returnedTracks.length).toBeGreaterThan(0);
+    for (const track of returnedTracks) {
+      expect(TRACK_COLORS).toContain(track.route_color);
+    }
+  });
+
+  it('PLACES-SVC-003 — plain waypoints keep no colour at all', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    importFixture(trip.id);
+
+    const waypoints = testDb.prepare(
+      'SELECT route_color FROM places WHERE trip_id = ? AND route_geometry IS NULL',
+    ).all(trip.id) as { route_color: string | null }[];
+    for (const wp of waypoints) {
+      expect(wp.route_color).toBeNull();
+    }
+  });
+
+  it('PLACES-SVC-004 — a second import continues the palette instead of repeating it', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    importFixture(trip.id);
+    const first = tracksOf(trip.id).map(t => t.route_color);
+
+    // Same fixture again: dedup skips the identical rows, so seed a distinct
+    // track directly and let the service colour the next import round.
+    testDb.prepare(
+      "INSERT INTO places (trip_id, name, lat, lng, route_geometry) VALUES (?, 'Second walk', 1, 1, '[[1,1],[2,2]]')",
+    ).run(trip.id);
+    const seeded = testDb.prepare('SELECT id FROM places WHERE name = ?').get('Second walk') as { id: number };
+    (svc as any).colorizeImportedTracks(String(trip.id), {
+      places: [{ id: seeded.id, route_geometry: '[[1,1],[2,2]]', route_color: null }],
+    });
+
+    const seededColor = (testDb.prepare('SELECT route_color FROM places WHERE id = ?').get(seeded.id) as any).route_color;
+    expect(TRACK_COLORS).toContain(seededColor);
+    expect(first).not.toContain(seededColor);
+  });
+
+  it('PLACES-SVC-006 — a colour already in use by hand is not handed out again', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    // Someone recoloured an existing track to the palette's second entry. A
+    // plain row count would hand exactly that colour to the next import.
+    testDb.prepare(
+      "INSERT INTO places (trip_id, name, lat, lng, route_geometry, route_color) VALUES (?, 'Old walk', 1, 1, '[[1,1],[2,2]]', ?)",
+    ).run(trip.id, TRACK_COLORS[1]);
+
+    importFixture(trip.id);
+
+    const colors = tracksOf(trip.id).map(t => t.route_color);
+    expect(new Set(colors).size).toBe(colors.length);
+  });
+
+  it('PLACES-SVC-007 — gaps left by deleted tracks are reused, not skipped past', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    importFixture(trip.id);
+    // Drop the first track; its colour becomes free again.
+    const first = tracksOf(trip.id)[0];
+    testDb.prepare('DELETE FROM places WHERE id = ?').run(first.id);
+
+    const seeded = testDb.prepare(
+      "INSERT INTO places (trip_id, name, lat, lng, route_geometry) VALUES (?, 'Later walk', 9, 9, '[[9,9],[8,8]]') RETURNING id",
+    ).get(trip.id) as { id: number };
+    (svc as any).colorizeImportedTracks(String(trip.id), {
+      places: [{ id: seeded.id, route_geometry: '[[9,9],[8,8]]', route_color: null }],
+    });
+
+    const colors = tracksOf(trip.id).map(t => t.route_color);
+    expect(new Set(colors).size).toBe(colors.length);
+  });
+
+  it('PLACES-SVC-005 — an import that yields nothing is passed straight through', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    expect((svc as any).colorizeImportedTracks(String(trip.id), null)).toBeNull();
+    expect((svc as any).colorizeImportedTracks(String(trip.id), { places: [] })).toEqual({ places: [] });
+  });
+});
+
+// ── Import enrichment (#886) ──────────────────────────────────────────────────
+
+describe('enrichImportedPlaces', () => {
+  function enrichSvc(maps: Partial<MapsService>) {
+    return new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), maps as MapsService, new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()), photoCacheStub);
+  }
+
+  it('PLACE-SVC-058 — no-ops when no Google Maps key is configured', async () => {
+    const searchPlaces = vi.fn();
+    const svcNoKey = enrichSvc({ getMapsKey: vi.fn(() => null), searchPlaces });
+    await svcNoKey.enrichImportedPlaces('1', 1, [{ id: 1, name: 'A', lat: 1, lng: 2 }]);
+    expect(searchPlaces).not.toHaveBeenCalled();
+  });
+
+  it('PLACE-SVC-059 — no-ops for an empty batch without touching the provider', async () => {
+    const getMapsKey = vi.fn(() => 'key');
+    await enrichSvc({ getMapsKey }).enrichImportedPlaces('1', 1, []);
+    expect(getMapsKey).not.toHaveBeenCalled();
+  });
+
+  it('PLACE-SVC-060 — fills only the empty columns and persists the resolved ids', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Bar', lat: 48.85, lng: 2.35 }) as any;
+    // An address the import already captured must survive the COALESCE.
+    testDb.prepare('UPDATE places SET address = ? WHERE id = ?').run('Imported address', place.id);
+
+    const svcWithMaps = enrichSvc({
+      getMapsKey: vi.fn(() => 'key'),
+      searchPlaces: vi.fn(async () => ({
+        source: 'google',
+        places: [{ google_place_id: 'ChIJ1', google_ftid: '0x1:0x2', address: 'Google address', website: 'https://x', phone: '+33', lat: 48.85, lng: 2.35 }],
+      })),
+      getPlacePhoto: vi.fn(async () => ({ photoUrl: '/api/maps/place-photo/ChIJ1/bytes', attribution: null })),
+    } as never);
+
+    await svcWithMaps.enrichImportedPlaces(String(trip.id), user.id, [{ id: place.id, name: 'Bar', lat: 48.85, lng: 2.35 }]);
+
+    const row = testDb.prepare('SELECT google_place_id, google_ftid, address, website, phone, image_url FROM places WHERE id = ?').get(place.id) as any;
+    expect(row.google_place_id).toBe('ChIJ1');
+    expect(row.google_ftid).toBe('0x1:0x2');
+    expect(row.address).toBe('Imported address'); // NOT clobbered
+    expect(row.website).toBe('https://x');
+    expect(row.phone).toBe('+33');
+    expect(row.image_url).toBe('/api/maps/place-photo/ChIJ1/bytes');
+  });
+
+  it('PLACE-SVC-061 — leaves the place alone when no candidate is close enough', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Bar', lat: 48.85, lng: 2.35 }) as any;
+
+    const svcWithMaps = enrichSvc({
+      getMapsKey: vi.fn(() => 'key'),
+      // ~1.2 km away — beyond MATCH_RADIUS_METERS.
+      searchPlaces: vi.fn(async () => ({ source: 'google', places: [{ google_place_id: 'ChIJfar', lat: 48.86, lng: 2.36 }] })),
+    } as never);
+
+    await svcWithMaps.enrichImportedPlaces(String(trip.id), user.id, [{ id: place.id, name: 'Bar', lat: 48.85, lng: 2.35 }]);
+
+    const row = testDb.prepare('SELECT google_place_id FROM places WHERE id = ?').get(place.id) as any;
+    expect(row.google_place_id).toBeNull();
+  });
+
+  it('PLACE-SVC-062 — a failed photo fetch never undoes the rest of the enrichment', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Bar', lat: 48.85, lng: 2.35 }) as any;
+
+    const svcWithMaps = enrichSvc({
+      getMapsKey: vi.fn(() => 'key'),
+      searchPlaces: vi.fn(async () => ({ source: 'google', places: [{ google_place_id: 'ChIJ1', lat: 48.85, lng: 2.35 }] })),
+      getPlacePhoto: vi.fn(async () => { throw new Error('provider down'); }),
+    } as never);
+
+    await svcWithMaps.enrichImportedPlaces(String(trip.id), user.id, [{ id: place.id, name: 'Bar', lat: 48.85, lng: 2.35 }]);
+
+    const row = testDb.prepare('SELECT google_place_id, image_url FROM places WHERE id = ?').get(place.id) as any;
+    expect(row.google_place_id).toBe('ChIJ1');
+    expect(row.image_url).toBeNull();
+  });
+
+  it('PLACE-SVC-063 — a per-place failure is swallowed so the batch never throws', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const svcWithMaps = enrichSvc({
+      getMapsKey: vi.fn(() => 'key'),
+      searchPlaces: vi.fn(async () => { throw new Error('lookup exploded'); }),
+    } as never);
+
+    await expect(
+      svcWithMaps.enrichImportedPlaces(String(trip.id), user.id, [{ id: 1, name: 'A', lat: 1, lng: 2 }]),
+    ).resolves.toBeUndefined();
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+  });
+
+  it('PLACE-SVC-064 — skips a place that is already linked or has no coordinates', async () => {
+    const searchPlaces = vi.fn();
+    const svcWithMaps = enrichSvc({ getMapsKey: vi.fn(() => 'key'), searchPlaces } as never);
+    await svcWithMaps.enrichImportedPlaces('1', 1, [
+      { id: 1, name: 'Linked', lat: 1, lng: 2, google_place_id: 'ChIJalready' },
+      { id: 2, name: 'Coordless', lat: null as never, lng: null as never },
+    ]);
+    expect(searchPlaces).not.toHaveBeenCalled();
+  });
+});
+
+// ── Falsy-coercion fixes (#1745) ──────────────────────────────────────────────
+//
+// The legacy service ran every optional field through `x || fallback`, which
+// cannot tell "absent" from a legitimate zero. Coordinates on the equator or
+// the prime meridian were silently dropped and a zero duration/price was
+// replaced by the default.
+
+describe('zero-valued numeric fields', () => {
+  it('PLACE-SVC-065 — create keeps lat/lng of exactly 0 instead of nulling them', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = svc.create(String(trip.id), { name: 'Null Island', lat: 0, lng: 0 }) as any;
+    expect(place.lat).toBe(0);
+    expect(place.lng).toBe(0);
+    // A genuinely absent coordinate still lands as NULL.
+    const noCoords = svc.create(String(trip.id), { name: 'Unlocated' }) as any;
+    expect(noCoords.lat).toBeNull();
+    expect(noCoords.lng).toBeNull();
+  });
+
+  it('PLACE-SVC-066 — create keeps duration_minutes and price of 0', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = svc.create(String(trip.id), { name: 'Drive-by', duration_minutes: 0, price: 0 }) as any;
+    expect(place.duration_minutes).toBe(0);
+    expect(place.price).toBe(0);
+    // The 60-minute default still applies when the field is absent.
+    expect((svc.create(String(trip.id), { name: 'Default' }) as any).duration_minutes).toBe(60);
+  });
+
+  it('PLACE-SVC-067 — update can set duration_minutes to 0', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Stop' }) as any;
+    testDb.prepare('UPDATE places SET duration_minutes = 90 WHERE id = ?').run(place.id);
+
+    const zeroed = svc.update(String(trip.id), String(place.id), { duration_minutes: 0 }) as any;
+    expect(zeroed.duration_minutes).toBe(0);
+
+    // An omitted duration still leaves the stored value alone (COALESCE).
+    const untouched = svc.update(String(trip.id), String(place.id), { name: 'Stop 2' }) as any;
+    expect(untouched.duration_minutes).toBe(0);
+  });
+});
+
+// ── LIKE metacharacter escaping (#1745) ───────────────────────────────────────
+
+describe('list search escaping', () => {
+  it('PLACE-SVC-068 — a % or _ in the search term matches literally, not as a wildcard', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: '50% off shop' });
+    createPlace(testDb, trip.id, { name: 'Bar' });
+    createPlace(testDb, trip.id, { name: 'a_b cafe' });
+    createPlace(testDb, trip.id, { name: 'axb cafe' });
+
+    // '%' used to match every row.
+    expect((svc.list(String(trip.id), { search: '%' }) as any[]).map(p => p.name)).toEqual(['50% off shop']);
+    // '_' used to match any single character.
+    expect((svc.list(String(trip.id), { search: 'a_b' }) as any[]).map(p => p.name)).toEqual(['a_b cafe']);
+  });
+
+  it('PLACE-SVC-069 — ordinary search terms are unaffected', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
+    createPlace(testDb, trip.id, { name: 'Louvre' });
+    expect((svc.list(String(trip.id), { search: 'eiff' }) as any[]).map(p => p.name)).toEqual(['Eiffel Tower']);
+  });
+});
+
+// ── Trip-scoped id filter for the journey delete hook (#1745) ─────────────────
+
+describe('scopedIds', () => {
+  it('PLACE-SVC-070 — returns only the ids that belong to the trip, preserving input order', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const a = createPlace(testDb, trip.id, { name: 'A' }) as any;
+    const b = createPlace(testDb, trip.id, { name: 'B' }) as any;
+    const foreign = createPlace(testDb, other.id, { name: 'Foreign' }) as any;
+
+    expect(svc.scopedIds(String(trip.id), [b.id, foreign.id, a.id, 99999])).toEqual([b.id, a.id]);
+    expect(svc.scopedIds(String(trip.id), [])).toEqual([]);
+  });
+});
+
+// ── Provider-payload hardening for the Google list import (#1745) ─────────────
+
+describe('importGoogleList provider payload', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('PLACE-SVC-071 — a malformed provider body is the documented 400, not a thrown SyntaxError', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => 'prefix\nnot-json-at-all' }));
+    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    expect(result).toEqual({ error: 'Invalid list data received from Google Maps', status: 400 });
+  });
+
+  it('PLACE-SVC-072 — a non-array provider payload is rejected the same way', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => 'prefix\n{"unexpected":true}' }));
+    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    expect(result).toEqual({ error: 'Invalid list data received from Google Maps', status: 400 });
+  });
+
+  it('PLACE-SVC-073b — an over-large chunked response (no content-length) is refused after the read', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => null }, // chunked: the declared check cannot help
+      text: async () => 'x'.repeat(9 * 1024 * 1024),
+    }));
+    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    expect(result).toEqual({ error: 'Failed to fetch list from Google Maps', status: 502 });
+  });
+
+  it('PLACE-SVC-073 — an over-large declared response is refused before it is read', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const text = vi.fn();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (h: string) => (h.toLowerCase() === 'content-length' ? String(20 * 1024 * 1024) : null) },
+      text,
+    }));
+    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    expect(result).toEqual({ error: 'Failed to fetch list from Google Maps', status: 502 });
+    expect(text).not.toHaveBeenCalled();
+  });
+});
+
+// ── Provider-payload hardening for the Naver list import (#1745) ──────────────
+
+describe('importNaverList provider payload', () => {
+  const FOLDER_URL = 'https://map.naver.com/v5/favorite/myPlace/folder/abc123';
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('PLACE-SVC-074 — an over-large declared page is refused before it is read', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const text = vi.fn();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (h: string) => (h.toLowerCase() === 'content-length' ? String(20 * 1024 * 1024) : null) },
+      text,
+    }));
+    const result = await svc.importNaverList(String(trip.id), FOLDER_URL) as any;
+    expect(result).toEqual({ error: 'Failed to fetch list from Naver Maps', status: 502 });
+    expect(text).not.toHaveBeenCalled();
+  });
+
+  it('PLACE-SVC-075 — an over-large chunked page (no content-length) is refused after the read', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => null }, // chunked: the declared check cannot help
+      text: async () => 'x'.repeat(9 * 1024 * 1024),
+    }));
+    const result = await svc.importNaverList(String(trip.id), FOLDER_URL) as any;
+    expect(result).toEqual({ error: 'Failed to fetch list from Naver Maps', status: 502 });
+  });
+
+  it('PLACE-SVC-076 — a malformed page body is still the documented 400', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => 'not-json-at-all' }));
+    const result = await svc.importNaverList(String(trip.id), FOLDER_URL) as any;
+    expect(result).toEqual({ error: 'Invalid list data received from Naver Maps', status: 400 });
+  });
+
+  it('PLACE-SVC-077 — an ordinary page still imports', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({
+        folder: { name: 'Seoul', bookmarkCount: 1 },
+        bookmarkList: [{ name: 'Gyeongbokgung', px: 126.977, py: 37.5796, memo: null, address: 'Sejongno' }],
+      }),
+    }));
+    const result = await svc.importNaverList(String(trip.id), FOLDER_URL) as any;
+    expect(result.listName).toBe('Seoul');
+    expect(result.places).toHaveLength(1);
+    expect(result.places[0].name).toBe('Gyeongbokgung');
+  });
+});

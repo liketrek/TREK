@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'Με αστέρι',
+  'files.link': 'Σύνδεση',
+  'files.linkTitle': 'Σύνδεση αρχείου',
+  'files.linkEmpty': 'Δεν υπάρχουν ακόμη μέρη ή κρατήσεις για σύνδεση',
+  'files.menu': 'Περισσότερες επιλογές',
+  'files.uploadErrorSize': 'Το αρχείο είναι πολύ μεγάλο (μέγ. 50 MB)',
   'files.title': 'Αρχεία',
   'files.pageTitle': 'Αρχεία & Έγγραφα',
   'files.subtitle': '{count} αρχεία για {trip}',

@@ -28,6 +28,10 @@ const ca: NotificationLocale = {
       title: 'Invitació a Vacay Fusion',
       body: `${p.actor} et va convidar a fusionar plans de vacances. Obre TREK per acceptar o rebutjar.`,
     }),
+    vacay_share: (p) => ({
+      title: 'Calendari de Vacay compartit',
+      body: `${p.actor} va compartir el seu calendari de vacances amb tu. Obre TREK per veure'l.`,
+    }),
     photos_shared: (p) => ({
       title: `${p.count} fotos compartides`,
       body: `${p.actor} va compartir ${p.count} foto(s) a "${p.trip}".`,

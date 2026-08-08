@@ -10,6 +10,7 @@ import { setAuthed } from '../sync/authGate'
 import { unregisterSyncTriggers } from '../sync/syncTriggers'
 import { useSystemNoticeStore } from './systemNoticeStore.js'
 import { clearAppearanceSnapshot } from '../theme/applyAppearance'
+import { clearAllPluginSessions } from './pluginStore'
 
 interface AuthResponse {
   user: User
@@ -195,6 +196,9 @@ export const useAuthStore = create<AuthState>()(
     // Drop the per-device appearance snapshot so the next user on a shared
     // browser doesn't get a pre-paint flash of this user's theme.
     clearAppearanceSnapshot()
+    // Same reason for the brokered plugin session state: it is keyed by user id,
+    // but sessionStorage outlives a logout within the tab.
+    clearAllPluginSessions()
     // 4. Tell server to clear the httpOnly cookie (best-effort).
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {})
     // 5. Clear service worker caches containing sensitive data.

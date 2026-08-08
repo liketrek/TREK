@@ -20,6 +20,11 @@ const journey: TranslationStrings = {
   'journey.editor.addAnother': 'إضافة آخر',
   'journey.editor.makeFirst': 'جعله الأول',
   'journey.editor.searching': 'جارٍ البحث...',
+  'journey.editor.useCurrentLocation': 'استخدام موقعي الحالي',
+  'journey.editor.locationPermissionDenied': 'تم رفض الوصول إلى الموقع. اسمح به في إعدادات المتصفح وحاول مرة أخرى.',
+  'journey.editor.locationTimeout': 'انتهت مهلة تحديد موقعك. حاول مرة أخرى.',
+  'journey.editor.locationUnavailable': 'تعذر تحديد موقعك.',
+  'journey.editor.locationInsecureContext': 'يتطلب تحديد الموقع اتصالاً آمناً (HTTPS).',
   'journey.share.copy': 'نسخ',
   'journey.share.copied': 'تم النسخ!',
   'journey.invite.role': 'الدور',
@@ -99,6 +104,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': "Turn your trips into stories you'll never forget", // en-fallback
   'journey.frontpage.createJourney': 'Create Journey', // en-fallback
   'journey.frontpage.activeJourney': 'Active Journey', // en-fallback
+  'journey.frontpage.latestJourney': 'أحدث رحلة',
   'journey.frontpage.allJourneys': 'All Journeys', // en-fallback
   'journey.frontpage.journeys': 'journeys', // en-fallback
   'journey.frontpage.createNew': 'Create a new Journey', // en-fallback
@@ -227,5 +233,13 @@ const journey: TranslationStrings = {
   'journey.pdf.theEnd': 'The End', // en-fallback
   'journey.pdf.saveAsPdf': 'Save as PDF', // en-fallback
   'journey.pdf.pages': 'pages', // en-fallback
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

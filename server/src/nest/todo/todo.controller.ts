@@ -12,17 +12,20 @@ import {
 } from '@nestjs/common';
 import type { User } from '../../types';
 import { TodoService } from './todo.service';
+import { TodoCreateItemDto, TodoUpdateItemDto, TodoReorderDto, TodoCategoryAssigneesDto } from './todo.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 /**
  * /api/trips/:tripId/todo — trip-scoped task list.
  *
- * Byte-identical to the legacy Express route (server/src/routes/todo.ts): every
- * handler verifies trip access (404); mutations check the 'packing_edit'
- * permission (403); create is 201, the rest 200; the bespoke 400/404 bodies are
- * reproduced; mutations broadcast over WebSocket with the forwarded X-Socket-Id.
- * /reorder is declared before /:id so it wins over the param.
+ * Every handler verifies trip access (404); mutations check the 'packing_edit'
+ * permission (403); create is 201, the rest 200; mutations broadcast over
+ * WebSocket with the forwarded X-Socket-Id. /reorder is declared before /:id so
+ * it wins over the param. Bodies validate against the @trek/shared todo schemas
+ * via the DTO classes in todo.dto.ts + the global ZodValidationPipe (400 with
+ * the standard `{ error }` envelope on mismatch — this replaced the legacy
+ * bespoke 'Item name is required' check).
  */
 @Controller('api/trips/:tripId/todo')
 @UseGuards(JwtAuthGuard)
@@ -53,14 +56,11 @@ export class TodoController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { name?: string; category?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number },
+    @Body() body: TodoCreateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!body.name) {
-      throw new HttpException({ error: 'Item name is required' }, 400);
-    }
     const { name, category, due_date, description, assigned_user_id, priority } = body;
     const item = this.todo.createItem(tripId, { name, category, due_date, description, assigned_user_id, priority });
     this.todo.broadcast(tripId, 'todo:created', { item }, socketId);
@@ -71,11 +71,11 @@ export class TodoController {
   reorder(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body('orderedIds') orderedIds: number[],
+    @Body() body: TodoReorderDto,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    this.todo.reorderItems(tripId, orderedIds);
+    this.todo.reorderItems(tripId, body.orderedIds);
     return { success: true };
   }
 
@@ -84,13 +84,21 @@ export class TodoController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: TodoUpdateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const { name, checked, category, due_date, description, assigned_user_id, priority } = body as Record<string, never>;
-    const updated = this.todo.updateItem(tripId, id, { name, checked, category, due_date, description, assigned_user_id, priority }, Object.keys(body));
+    const { name, checked, category, due_date, description, assigned_user_id, priority } = body;
+    // bodyKeys carries which keys the request actually provided (the null-clear
+    // protocol); the parsed body only ever holds known schema keys.
+    const updated = this.todo.updateItem(
+      tripId,
+      id,
+      // checked arrives as boolean or legacy 0/1 — normalize to the 0/1 the SQL binds.
+      { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, due_date, description, assigned_user_id, priority },
+      Object.keys(body),
+    );
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
@@ -125,13 +133,13 @@ export class TodoController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('categoryName') categoryName: string,
-    @Body('user_ids') userIds: number[],
+    @Body() body: TodoCategoryAssigneesDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
     const category = decodeURIComponent(categoryName);
-    const rows = this.todo.updateCategoryAssignees(tripId, category, userIds);
+    const rows = this.todo.updateCategoryAssignees(tripId, category, body.user_ids);
     this.todo.broadcast(tripId, 'todo:assignees', { category, assignees: rows }, socketId);
     return { assignees: rows };
   }

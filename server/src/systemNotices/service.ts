@@ -1,12 +1,13 @@
 import { createRequire } from 'module';
 import semver from 'semver';
+import { readEnv } from '../app-config';
 import { db } from '../db/database.js';
 import { SYSTEM_NOTICES } from './registry.js';
 import { evaluate } from './conditions.js';
 import type { SystemNotice, SystemNoticeDTO } from './types.js';
 
 function getCurrentAppVersion(): string {
-  const fromEnv = semver.valid(process.env.APP_VERSION ?? '');
+  const fromEnv = semver.valid(readEnv().app.appVersion ?? '');
   if (fromEnv) return fromEnv;
   try {
     const pkg = require('../../package.json') as { version?: string };

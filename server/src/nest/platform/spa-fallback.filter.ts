@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, NotFoundException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import path from 'node:path';
+import { readEnv } from '../../app-config';
 import { PUBLIC_DIR } from './platform.routes';
 
 /**
@@ -24,7 +25,8 @@ export class SpaFallbackFilter implements ExceptionFilter {
     const req = ctx.getRequest<Request>();
     const res = ctx.getResponse<Response>();
 
-    if (process.env.NODE_ENV === 'production' && req.method === 'GET') {
+    // Case-sensitive on purpose (legacy parity).
+    if (readEnv().app.nodeEnv === 'production' && req.method === 'GET') {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
       return;

@@ -1,13 +1,16 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 import type { User } from '../../types';
 import { HealthService } from './health.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { ZodValidationPipe } from '../common/zod-validation.pipe';
 
-// Local demo schema (real domains import their schema from @trek/shared).
+// Local demo schema (real domains import their schema from @trek/shared and
+// wrap it in a colocated <domain>.dto.ts). The DTO class is what the global
+// ZodValidationPipe (APP_PIPE) discovers by metatype.
 const echoSchema = z.object({ name: z.string().min(1) });
+class EchoDto extends createZodDto(echoSchema) {}
 
 /**
  * Foundation smoke endpoints for the co-hosted NestJS app.
@@ -32,10 +35,10 @@ export class HealthController {
     return user;
   }
 
-  /** Validated: proves the Zod pipe (400 + { error } on failure) and body parsing. */
+  /** Validated: proves the global Zod pipe (400 + { error } on failure) and body parsing. */
   @Post('echo')
   @UseGuards(JwtAuthGuard)
-  echo(@Body(new ZodValidationPipe(echoSchema)) body: z.infer<typeof echoSchema>) {
+  echo(@Body() body: EchoDto) {
     return { youSent: body };
   }
 }

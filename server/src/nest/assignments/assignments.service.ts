@@ -1,47 +1,47 @@
 import { Injectable } from '@nestjs/common';
-import { broadcast } from '../../websocket';
-import { canAccessTrip } from '../../db/database';
-import { checkPermission } from '../../services/permissions';
-import type { User } from '../../types';
-import * as svc from '../../services/assignmentService';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { RealtimeService } from '../realtime/realtime.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
+import { formatAssignmentWithPlace } from '../common/rowShape';
+import type { AssignmentRow, DayAssignment, User } from '../../types';
 import { reconcileTripSkeletons } from '../../services/journeyService';
 
-type Trip = { user_id: number };
+type Trip = TripAccess;
 
 /**
- * Thin Nest wrapper around the existing assignment service. Trip access mirrors
- * the requireTripAccess middleware (canAccessTrip); mutations use 'day_edit'.
- * The SQL, the move/reorder logic and the journey skeleton reconcile reuse the
- * legacy code unchanged.
+ * Assignments domain service — owns the day-assignment SQL (relocated from the
+ * legacy services/assignmentService.ts, then hardened: every multi-statement
+ * write runs in a transaction, moveAssignment derives the source day from the
+ * row instead of trusting the caller, empty-string times clear like null, and
+ * single-assignment reads embed the same compact tag projection the list path
+ * uses). Trip access rides DatabaseService.canAccessTrip; mutations use
+ * 'day_edit'. The batch tag/participant loaders are injected as
+ * QueryHelpersService (shared with the day, share and place services).
+ * Non-Nest consumers (the legacy places/reservations MCP registrars) go
+ * through assignments.bridge.ts; the plugin RPC host and the assignments MCP
+ * tools inject this class.
  */
 @Injectable()
 export class AssignmentsService {
-  verifyTripAccess(tripId: string, userId: number) {
-    return canAccessTrip(Number(tripId), userId) as Trip | null | undefined;
+  constructor(
+    private readonly dbs: DatabaseService,
+    private readonly permissions: PermissionsService,
+    private readonly realtime: RealtimeService,
+    private readonly queryHelpers: QueryHelpersService,
+  ) {}
+
+  verifyTripAccess(tripId: string | number, userId: number) {
+    return this.dbs.canAccessTrip(Number(tripId), userId);
   }
 
   canEdit(trip: Trip, user: User): boolean {
-    return checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
+    return this.permissions.checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast(tripId: string, event: string, payload: Record<string, unknown>, socketId: string | undefined): void {
-    broadcast(tripId, event, payload, socketId);
-  }
-
-  dayExists(dayId: string, tripId: string) {
-    return svc.dayExists(dayId, tripId);
-  }
-
-  placeExists(placeId: unknown, tripId: string) {
-    return svc.placeExists(placeId as never, tripId);
-  }
-
-  listDayAssignments(dayId: string) {
-    return svc.listDayAssignments(dayId);
-  }
-
-  createAssignment(dayId: string, placeId: unknown, notes?: string | null) {
-    return svc.createAssignment(dayId, placeId as never, notes as never);
+  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+    this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
   /**
@@ -49,39 +49,242 @@ export class AssignmentsService {
    * suggestions. Called after any assignment mutation (create/delete/move/time) so
    * the journey stays in sync. Non-fatal, like the route's try/catch.
    */
-  reconcile(tripId: string, socketId?: string): void {
+  reconcile(tripId: string | number, socketId?: string): void {
     try { reconcileTripSkeletons(Number(tripId), socketId); } catch { /* non-fatal */ }
   }
 
-  assignmentExistsInDay(id: string, dayId: string, tripId: string) {
-    return svc.assignmentExistsInDay(id, dayId, tripId);
+  private getAssignmentWithPlace(assignmentId: number | bigint) {
+    const a = this.dbs.get<AssignmentRow>(`
+      SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
+        p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
+        COALESCE(da.assignment_time, p.place_time) as place_time,
+        COALESCE(da.assignment_end_time, p.end_time) as end_time,
+        p.duration_minutes, p.notes as place_notes,
+        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+        c.name as category_name, c.color as category_color, c.icon as category_icon
+      FROM day_assignments da
+      JOIN places p ON da.place_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE da.id = ?
+    `, assignmentId);
+
+    if (!a) return null;
+
+    // Same compact tag projection as listDayAssignments, so an assignment has
+    // one wire shape regardless of which read path produced it.
+    const tags = this.queryHelpers.loadTagsByPlaceIds([a.place_id], { compact: true })[a.place_id] || [];
+
+    const participants = this.dbs.all(`
+      SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
+      FROM assignment_participants ap
+      JOIN users u ON ap.user_id = u.id
+      WHERE ap.assignment_id = ?
+    `, a.id);
+
+    return {
+      id: a.id,
+      day_id: a.day_id,
+      place_id: a.place_id,
+      order_index: a.order_index,
+      notes: a.notes,
+      assignment_time: a.assignment_time ?? null,
+      assignment_end_time: a.assignment_end_time ?? null,
+      leg_transport_mode: a.leg_transport_mode ?? null,
+      participants,
+      created_at: a.created_at,
+      place: {
+        id: a.place_id,
+        name: a.place_name,
+        description: a.place_description,
+        lat: a.lat,
+        lng: a.lng,
+        address: a.address,
+        category_id: a.category_id,
+        price: a.price,
+        currency: a.place_currency,
+        place_time: a.place_time,
+        end_time: a.end_time,
+        duration_minutes: a.duration_minutes,
+        notes: a.place_notes,
+        image_url: a.image_url,
+        transport_mode: a.transport_mode,
+        google_place_id: a.google_place_id,
+        google_ftid: a.google_ftid,
+        osm_id: a.osm_id,
+        website: a.website,
+        phone: a.phone,
+        category: a.category_id ? {
+          id: a.category_id,
+          name: a.category_name,
+          color: a.category_color,
+          icon: a.category_icon,
+        } : null,
+        tags,
+      }
+    };
   }
 
-  deleteAssignment(id: string): void {
-    svc.deleteAssignment(id);
+  listDayAssignments(dayId: string | number) {
+    const assignments = this.dbs.all<AssignmentRow>(`
+      SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
+        p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
+        COALESCE(da.assignment_time, p.place_time) as place_time,
+        COALESCE(da.assignment_end_time, p.end_time) as end_time,
+        p.duration_minutes, p.notes as place_notes,
+        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+        c.name as category_name, c.color as category_color, c.icon as category_icon
+      FROM day_assignments da
+      JOIN places p ON da.place_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE da.day_id = ?
+      ORDER BY da.order_index ASC, da.created_at ASC
+    `, dayId);
+
+    const placeIds = [...new Set(assignments.map(a => a.place_id))];
+    const tagsByPlaceId = this.queryHelpers.loadTagsByPlaceIds(placeIds, { compact: true });
+
+    const assignmentIds = assignments.map(a => a.id);
+    const participantsByAssignment = this.queryHelpers.loadParticipantsByAssignmentIds(assignmentIds);
+
+    return assignments.map(a => {
+      return formatAssignmentWithPlace(a, tagsByPlaceId[a.place_id] || [], participantsByAssignment[a.id] || []);
+    });
   }
 
-  reorderAssignments(dayId: string, orderedIds: number[]): void {
-    svc.reorderAssignments(dayId, orderedIds as never);
+  dayExists(dayId: string | number, tripId: string | number) {
+    return !!this.dbs.get('SELECT id FROM days WHERE id = ? AND trip_id = ?', dayId, tripId);
   }
 
-  getAssignmentForTrip(id: string, tripId: string) {
-    return svc.getAssignmentForTrip(id, tripId);
+  placeExists(placeId: unknown, tripId: string | number) {
+    return !!this.dbs.get('SELECT id FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
   }
 
-  moveAssignment(id: string, newDayId: unknown, orderIndex: number | undefined, oldDayId: unknown) {
-    return svc.moveAssignment(id, newDayId as never, orderIndex as never, oldDayId as never);
+  createAssignment(dayId: string | number, placeId: unknown, notes?: string | null) {
+    const result = this.dbs.transaction(() => {
+      const maxOrder = this.dbs.get<{ max: number | null }>('SELECT MAX(order_index) as max FROM day_assignments WHERE day_id = ?', dayId)!;
+      const orderIndex = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
+
+      return this.dbs.run(
+        'INSERT INTO day_assignments (day_id, place_id, order_index, notes) VALUES (?, ?, ?, ?)',
+        dayId, placeId, orderIndex, notes || null
+      );
+    });
+
+    return this.getAssignmentWithPlace(result.lastInsertRowid);
   }
 
-  getParticipants(id: string) {
-    return svc.getParticipants(id);
+  assignmentExistsInDay(id: string | number, dayId: string | number, tripId: string | number) {
+    return !!this.dbs.get(
+      'SELECT da.id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ? AND da.day_id = ? AND d.trip_id = ?',
+      id, dayId, tripId
+    );
   }
 
-  updateTime(id: string, placeTime: unknown, endTime: unknown) {
-    return svc.updateTime(id, placeTime as never, endTime as never);
+  deleteAssignment(id: string | number): void {
+    this.dbs.run('DELETE FROM day_assignments WHERE id = ?', id);
   }
 
-  setParticipants(id: string, userIds: number[]) {
-    return svc.setParticipants(id, userIds);
+  reorderAssignments(dayId: string | number, orderedIds: number[]): void {
+    const update = this.dbs.prepare('UPDATE day_assignments SET order_index = ? WHERE id = ? AND day_id = ?');
+    this.dbs.transaction(() => {
+      orderedIds.forEach((id: number, index: number) => {
+        update.run(index, id, dayId);
+      });
+    });
+  }
+
+  getAssignmentForTrip(id: string | number, tripId: string | number) {
+    return this.dbs.get<DayAssignment>(`
+      SELECT da.* FROM day_assignments da
+      JOIN days d ON da.day_id = d.id
+      WHERE da.id = ? AND d.trip_id = ?
+    `, id, tripId);
+  }
+
+  moveAssignment(id: string | number, newDayId: unknown, orderIndex: number | null | undefined) {
+    // The source day comes from the row, not the caller — callers can't lie
+    // about (or race on) where the assignment was.
+    const oldDayId = this.dbs.transaction(() => {
+      const row = this.dbs.get<{ day_id: number }>('SELECT day_id FROM day_assignments WHERE id = ?', id);
+      this.dbs.run('UPDATE day_assignments SET day_id = ?, order_index = ? WHERE id = ?', newDayId, orderIndex ?? 0, id);
+      return row?.day_id;
+    });
+    const updated = this.getAssignmentWithPlace(Number(id));
+    return { assignment: updated, oldDayId };
+  }
+
+  getParticipants(assignmentId: string | number) {
+    return this.dbs.all(`
+      SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
+      FROM assignment_participants ap
+      JOIN users u ON ap.user_id = u.id
+      WHERE ap.assignment_id = ?
+    `, assignmentId);
+  }
+
+  updateTime(id: string | number, placeTime: unknown, endTime: unknown) {
+    this.dbs.transaction(() => {
+      // Falsy times (null, undefined, '') all clear the override — an empty
+      // string is a clear, not a stored value.
+      this.dbs.run('UPDATE day_assignments SET assignment_time = ?, assignment_end_time = ? WHERE id = ?',
+        placeTime || null, endTime || null, id);
+
+      // Auto-sort: reorder timed assignments chronologically within the day
+      if (placeTime) {
+        const assignment = this.dbs.get<{ day_id: number }>('SELECT day_id FROM day_assignments WHERE id = ?', id);
+        if (assignment) {
+          const dayAssignments = this.dbs.all<{ id: number; effective_time: string | null }>(`
+            SELECT da.id, COALESCE(da.assignment_time, p.place_time) as effective_time
+            FROM day_assignments da
+            JOIN places p ON da.place_id = p.id
+            WHERE da.day_id = ?
+            ORDER BY da.order_index ASC
+          `, assignment.day_id);
+
+          // Separate timed and untimed, sort timed by time
+          const timed = dayAssignments.filter(a => a.effective_time).sort((a, b) => {
+            const ta = a.effective_time!.includes(':') ? a.effective_time! : '99:99';
+            const tb = b.effective_time!.includes(':') ? b.effective_time! : '99:99';
+            return ta.localeCompare(tb);
+          });
+          const untimed = dayAssignments.filter(a => !a.effective_time);
+
+          // Interleave: timed in chronological order, untimed keep relative position
+          const reordered = [...timed, ...untimed];
+          const update = this.dbs.prepare('UPDATE day_assignments SET order_index = ? WHERE id = ?');
+          reordered.forEach((a, i) => update.run(i, a.id));
+        }
+      }
+    });
+
+    return this.getAssignmentWithPlace(Number(id));
+  }
+
+  /**
+   * Set the travel mode of the leg leaving this stop (#1281). null clears the
+   * override so the leg falls back to the day's default_transport_mode. This is
+   * sticky by design: changing the whole-day default never touches a leg that
+   * carries its own explicit mode.
+   */
+  setLegTransportMode(id: string | number, mode: string | null) {
+    this.dbs.run('UPDATE day_assignments SET leg_transport_mode = ? WHERE id = ?', mode ?? null, id);
+    return this.getAssignmentWithPlace(Number(id));
+  }
+
+  setParticipants(assignmentId: string | number, userIds: number[]) {
+    this.dbs.transaction(() => {
+      this.dbs.run('DELETE FROM assignment_participants WHERE assignment_id = ?', assignmentId);
+      if (userIds.length > 0) {
+        const insert = this.dbs.prepare('INSERT OR IGNORE INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)');
+        for (const userId of userIds) insert.run(assignmentId, userId);
+      }
+    });
+
+    return this.dbs.all(`
+      SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
+      FROM assignment_participants ap
+      JOIN users u ON ap.user_id = u.id
+      WHERE ap.assignment_id = ?
+    `, assignmentId);
   }
 }

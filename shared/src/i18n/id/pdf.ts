@@ -6,5 +6,6 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Biaya',
   'pdf.preview': 'Pratinjau PDF',
   'pdf.saveAsPdf': 'Simpan sebagai PDF',
+  'pdf.pageBreakPerDay': 'Pemisah halaman per hari',
 };
 export default pdf;

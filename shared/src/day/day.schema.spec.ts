@@ -21,6 +21,10 @@ describe('dayNoteCreateRequestSchema', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('accepts null time/icon (moveDayNote re-sends the nullable entity fields)', () => {
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', time: null, icon: null }).success).toBe(true);
+  });
 });
 
 describe('dayNoteUpdateRequestSchema', () => {
@@ -28,5 +32,9 @@ describe('dayNoteUpdateRequestSchema', () => {
     expect(dayNoteUpdateRequestSchema.safeParse({}).success).toBe(true);
     expect(dayNoteUpdateRequestSchema.safeParse({ icon: '🍽️' }).success).toBe(true);
     expect(dayNoteUpdateRequestSchema.safeParse({ text: 'x'.repeat(501) }).success).toBe(false);
+  });
+
+  it('accepts an explicit null time (clears the label)', () => {
+    expect(dayNoteUpdateRequestSchema.safeParse({ time: null }).success).toBe(true);
   });
 });

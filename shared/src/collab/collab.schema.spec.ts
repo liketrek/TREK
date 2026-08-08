@@ -1,5 +1,6 @@
 import {
   collabNoteCreateRequestSchema,
+  collabNoteUpdateRequestSchema,
   collabPollCreateRequestSchema,
   collabPollVoteRequestSchema,
   collabMessageCreateRequestSchema,
@@ -13,6 +14,35 @@ describe('collabNoteCreateRequestSchema', () => {
     expect(collabNoteCreateRequestSchema.safeParse({ title: 'Idea' }).success).toBe(true);
     expect(collabNoteCreateRequestSchema.safeParse({ title: '' }).success).toBe(false);
     expect(collabNoteCreateRequestSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('accepts explicit null for the optional fields (desktop null-clearing)', () => {
+    expect(
+      collabNoteCreateRequestSchema.safeParse({
+        title: 'Idea',
+        content: 'Body',
+        category: null,
+        color: '#6366f1',
+        website: null,
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe('collabNoteUpdateRequestSchema', () => {
+  it('accepts explicit null for the optional fields (desktop null-clearing)', () => {
+    expect(
+      collabNoteUpdateRequestSchema.safeParse({
+        title: 'Idea',
+        content: null,
+        category: null,
+        color: null,
+        website: null,
+        pinned: 1,
+      }).success,
+    ).toBe(true);
+    expect(collabNoteUpdateRequestSchema.safeParse({ pinned: true }).success).toBe(true);
+    expect(collabNoteUpdateRequestSchema.safeParse({ title: null }).success).toBe(false);
   });
 });
 

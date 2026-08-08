@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { TwemojiImg } from './CollabChatTwemojiImg'
 import type { ChatReaction } from './CollabChat.types'
 
@@ -36,7 +36,7 @@ export function ReactionBadge({ reaction, currentUserId, onReact }: ReactionBadg
         <TwemojiImg emoji={reaction.emoji} size={16} />
         {reaction.count > 1 && <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-muted)', minWidth: 8 }}>{reaction.count}</span>}
       </button>
-      {hover && names && ReactDOM.createPortal(
+      {hover && names && createPortal(
         <div style={{
           position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
           pointerEvents: 'none', zIndex: 10000, whiteSpace: 'nowrap',

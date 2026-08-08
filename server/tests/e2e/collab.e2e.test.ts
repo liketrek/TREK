@@ -1,14 +1,17 @@
 /**
  * Collab module e2e — exercises the migrated /api/trips/:tripId/collab endpoints
- * through the real JwtAuthGuard against a temp SQLite db. The collab service,
- * permission check, WebSocket broadcast and the chat/note notification are
- * mocked; this focuses on auth, trip-access 404, permission 403, the create-201
- * status codes and the vote/react 200 overrides.
+ * through the real JwtAuthGuard against a temp SQLite db, running CollabService's
+ * real SQL (DI-injected, no service mock). canAccessTrip, the permission check,
+ * the WebSocket broadcast and the chat/note notification are mocked; this focuses
+ * on auth, trip-access 404, permission 403, the create-201 status codes, the
+ * vote/react 200 overrides and the persisted rows.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { Test } from '@nestjs/testing';
 import { seedUser, sessionCookie } from './harness';
 
@@ -17,31 +20,51 @@ const { db } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const tmp = new Database(':memory:');
   tmp.exec('PRAGMA journal_mode = WAL');
+  // The note/message/poll formatters join users for username + avatar.
   tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0);`);
+    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
+    avatar TEXT);`);
   // The note/message notifications read the trip title fire-and-forget; the table
   // must exist so that query doesn't throw after the test has torn down.
   tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT);');
   tmp.prepare("INSERT INTO trips (id, title) VALUES (5, 'Trip')").run();
+  // CollabService's real SQL (DI-injected, no mock) — the collab tables as the
+  // real schema + migrations shape them (website on notes, deleted on messages,
+  // note_id on trip_files).
+  tmp.exec(`CREATE TABLE collab_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL, category TEXT DEFAULT 'General', title TEXT NOT NULL, content TEXT,
+    color TEXT DEFAULT '#6366f1', pinned INTEGER DEFAULT 0, website TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE collab_polls (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL, question TEXT NOT NULL, options TEXT NOT NULL, multiple INTEGER DEFAULT 0,
+    closed INTEGER DEFAULT 0, deadline TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE collab_poll_votes (id INTEGER PRIMARY KEY AUTOINCREMENT, poll_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL, option_index INTEGER NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(poll_id, user_id, option_index));`);
+  tmp.exec(`CREATE TABLE collab_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL, text TEXT NOT NULL, reply_to INTEGER, deleted INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE collab_message_reactions (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id INTEGER NOT NULL, user_id INTEGER NOT NULL, emoji TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    note_id INTEGER, filename TEXT NOT NULL, original_name TEXT NOT NULL, file_size INTEGER,
+    mime_type TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   return { db: tmp };
 });
 
-vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
-vi.mock('../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
-
-const { checkPermission } = vi.hoisted(() => ({ checkPermission: vi.fn() }));
-vi.mock('../../src/services/permissions', () => ({ checkPermission }));
-
-const { svc } = vi.hoisted(() => ({
-  svc: {
-    verifyTripAccess: vi.fn(), listNotes: vi.fn(), createNote: vi.fn(), updateNote: vi.fn(), deleteNote: vi.fn(),
-    addNoteFile: vi.fn(), getFormattedNoteById: vi.fn(), deleteNoteFile: vi.fn(),
-    listPolls: vi.fn(), createPoll: vi.fn(), votePoll: vi.fn(), closePoll: vi.fn(), deletePoll: vi.fn(),
-    listMessages: vi.fn(), createMessage: vi.fn(), deleteMessage: vi.fn(), addOrRemoveReaction: vi.fn(), fetchLinkPreview: vi.fn(),
-  },
+const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
+vi.mock('../../src/db/database', () => ({
+  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
 }));
-vi.mock('../../src/services/collabService', () => svc);
+vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
+vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
+
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+
+// Since the permissions DI migration, the check is a spy on the container's
+// PermissionsService singleton (created in beforeAll, after build()).
+let checkPermission: MockInstance;
 
 import { CollabModule } from '../../src/nest/collab/collab.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
@@ -51,7 +74,7 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [CollabModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, CollabModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -62,19 +85,19 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
   beforeAll(async () => {
     seedUser(db as never, { id: 1 });
     app = await build();
+    checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
     server = app.getHttpServer();
-    svc.listNotes.mockReturnValue([{ id: 1, title: 'N' }]);
-    svc.createNote.mockReturnValue({ id: 9, title: 'N' });
-    svc.createPoll.mockReturnValue({ id: 7 });
-    svc.votePoll.mockReturnValue({ poll: { id: 7 } });
-    svc.createMessage.mockReturnValue({ message: { id: 3, text: 'hi' } });
-    svc.addOrRemoveReaction.mockReturnValue({ found: true, reactions: [{ emoji: '👍', count: 1 }] });
-    svc.fetchLinkPreview.mockResolvedValue({ title: 'T', description: null, image: null, url: 'http://x' });
   });
 
   beforeEach(() => {
-    svc.verifyTripAccess.mockReturnValue({ id: 5, user_id: 1 });
+    canAccessTrip.mockReturnValue({ id: 5, user_id: 1 });
     checkPermission.mockReturnValue(true);
+    db.prepare('DELETE FROM collab_message_reactions').run();
+    db.prepare('DELETE FROM collab_poll_votes').run();
+    db.prepare('DELETE FROM collab_messages').run();
+    db.prepare('DELETE FROM collab_polls').run();
+    db.prepare('DELETE FROM trip_files').run();
+    db.prepare('DELETE FROM collab_notes').run();
   });
 
   afterAll(async () => {
@@ -86,22 +109,26 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 list notes for an accessible trip', async () => {
+    db.prepare("INSERT INTO collab_notes (id, trip_id, user_id, title) VALUES (1, 5, 1, 'N')").run();
     const res = await request(server).get('/api/trips/5/collab/notes').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ notes: [{ id: 1, title: 'N' }] });
+    expect(res.body.notes).toHaveLength(1);
+    expect(res.body.notes[0]).toMatchObject({ id: 1, title: 'N', category: 'General', attachments: [] });
   });
 
   it('404 when the trip is not accessible', async () => {
-    svc.verifyTripAccess.mockReturnValue(undefined);
+    canAccessTrip.mockReturnValue(undefined);
     const res = await request(server).get('/api/trips/5/collab/notes').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
   });
 
-  it('201 on note create with permission', async () => {
+  it('201 on note create with permission, row persisted', async () => {
     const res = await request(server).post('/api/trips/5/collab/notes').set('Cookie', sessionCookie(1)).send({ title: 'N' });
     expect(res.status).toBe(201);
-    expect(res.body).toEqual({ note: { id: 9, title: 'N' } });
+    expect(res.body.note).toMatchObject({ title: 'N', category: 'General', color: '#6366f1', pinned: 0 });
+    const row = db.prepare('SELECT * FROM collab_notes WHERE trip_id = 5').get() as { title: string };
+    expect(row.title).toBe('N');
   });
 
   it('403 on note create without permission', async () => {
@@ -111,22 +138,32 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
     expect(res.body).toEqual({ error: 'No permission' });
   });
 
-  it('200 on poll vote (not 201)', async () => {
+  it('200 on poll vote (not 201), vote persisted', async () => {
+    db.prepare('INSERT INTO collab_polls (id, trip_id, user_id, question, options) VALUES (7, 5, 1, ?, ?)')
+      .run('Q?', JSON.stringify(['A', 'B']));
     const res = await request(server).post('/api/trips/5/collab/polls/7/vote').set('Cookie', sessionCookie(1)).send({ option_index: 0 });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ poll: { id: 7 } });
+    expect(res.body.poll).toMatchObject({ id: 7, is_closed: false });
+    expect(res.body.poll.options[0].voters).toHaveLength(1);
+    const vote = db.prepare('SELECT * FROM collab_poll_votes WHERE poll_id = 7').get() as { option_index: number };
+    expect(vote.option_index).toBe(0);
   });
 
-  it('201 on message create', async () => {
+  it('201 on message create, row persisted', async () => {
     const res = await request(server).post('/api/trips/5/collab/messages').set('Cookie', sessionCookie(1)).send({ text: 'hi' });
     expect(res.status).toBe(201);
-    expect(res.body).toEqual({ message: { id: 3, text: 'hi' } });
+    expect(res.body.message).toMatchObject({ text: 'hi', trip_id: 5, user_id: 1 });
+    const row = db.prepare('SELECT * FROM collab_messages WHERE trip_id = 5').get() as { text: string };
+    expect(row.text).toBe('hi');
   });
 
-  it('200 on react (not 201)', async () => {
+  it('200 on react (not 201), reaction persisted and toggled', async () => {
+    db.prepare("INSERT INTO collab_messages (id, trip_id, user_id, text) VALUES (3, 5, 1, 'react me')").run();
     const res = await request(server).post('/api/trips/5/collab/messages/3/react').set('Cookie', sessionCookie(1)).send({ emoji: '👍' });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ reactions: [{ emoji: '👍', count: 1 }] });
+    expect(res.body.reactions).toHaveLength(1);
+    expect(res.body.reactions[0]).toMatchObject({ emoji: '👍', count: 1 });
+    expect(db.prepare('SELECT COUNT(*) as c FROM collab_message_reactions WHERE message_id = 3').get()).toEqual({ c: 1 });
   });
 
   it('400 on link-preview without a url', async () => {

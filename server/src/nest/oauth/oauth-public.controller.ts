@@ -1,8 +1,10 @@
 import { Controller, Get, Headers, HttpCode, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { OauthService } from './oauth.service';
-import { RateLimitService } from '../auth/rate-limit.service';
-import { writeAudit, getClientIp, logWarn } from '../../services/auditLog';
+import { RateLimitService } from '../common/rate-limit.service';
+import { getClientIp } from '../audit/client-ip';
+import { logWarn } from '../audit/audit-log.logger';
+import { AuditService } from '../audit/audit.service';
 
 const MIN = 60_000;
 
@@ -16,7 +18,7 @@ const MIN = 60_000;
  */
 @Controller('oauth')
 export class OauthPublicController {
-  constructor(private readonly oauth: OauthService, private readonly rl: RateLimitService) {}
+  constructor(private readonly oauth: OauthService, private readonly rl: RateLimitService, private readonly audit: AuditService) {}
 
   @Post('token')
   @HttpCode(200) // token success uses res.json without an explicit status; Express defaults to 200 (Nest POST would default to 201).
@@ -47,7 +49,7 @@ export class OauthPublicController {
       }
       const pending = this.oauth.consumeAuthCode(code);
       const invalidGrant = (reason: string, userId: number | null) => {
-        writeAudit({ userId, action: 'oauth.token.grant_failed', details: { client_id, reason }, ip });
+        this.audit.writeAudit({ userId, action: 'oauth.token.grant_failed', details: { client_id, reason }, ip });
         res.status(400).json({ error: 'invalid_grant', error_description: 'Authorization grant is invalid.' });
       };
       if (!pending) return invalidGrant('code_invalid_or_expired', null);
@@ -56,13 +58,13 @@ export class OauthPublicController {
       if (pending.resource && resource && pending.resource !== resource.replace(/\/+$/, '')) return invalidGrant('resource_mismatch', pending.userId);
       if (!this.oauth.authenticateClient(client_id, client_secret)) {
         logWarn(`[OAuth] Invalid client credentials for client_id=${client_id} ip=${ip ?? '-'}`);
-        writeAudit({ userId: pending.userId, action: 'oauth.token.client_auth_failed', details: { client_id }, ip });
+        this.audit.writeAudit({ userId: pending.userId, action: 'oauth.token.client_auth_failed', details: { client_id }, ip });
         res.status(401).json({ error: 'invalid_client', error_description: 'Invalid client credentials' });
         return;
       }
       if (!this.oauth.verifyPKCE(code_verifier, pending.codeChallenge)) return invalidGrant('pkce_failed', pending.userId);
       const tokens = this.oauth.issueTokens(client_id, pending.userId, pending.scopes, null, pending.resource ?? null);
-      writeAudit({ userId: pending.userId, action: 'oauth.token.issue', details: { client_id, scopes: pending.scopes, audience: pending.resource ?? null }, ip });
+      this.audit.writeAudit({ userId: pending.userId, action: 'oauth.token.issue', details: { client_id, scopes: pending.scopes, audience: pending.resource ?? null }, ip });
       res.json(tokens);
       return;
     }
@@ -90,12 +92,12 @@ export class OauthPublicController {
       const client = this.oauth.authenticateClient(client_id, client_secret);
       if (!client) {
         logWarn(`[OAuth] Invalid client credentials for client_id=${client_id} ip=${ip ?? '-'}`);
-        writeAudit({ userId: null, action: 'oauth.token.client_auth_failed', details: { client_id }, ip });
+        this.audit.writeAudit({ userId: null, action: 'oauth.token.client_auth_failed', details: { client_id }, ip });
         res.status(401).json({ error: 'invalid_client', error_description: 'Invalid client credentials' });
         return;
       }
       if (client.is_public || !client.allows_client_credentials || client.user_id == null) {
-        writeAudit({ userId: client.user_id ?? null, action: 'oauth.token.grant_failed', details: { client_id, reason: 'unauthorized_client' }, ip });
+        this.audit.writeAudit({ userId: client.user_id ?? null, action: 'oauth.token.grant_failed', details: { client_id, reason: 'unauthorized_client' }, ip });
         res.status(400).json({ error: 'unauthorized_client', error_description: 'This client is not authorized for the client_credentials grant' });
         return;
       }
@@ -114,7 +116,7 @@ export class OauthPublicController {
       }
       const audience = resource ? resource.replace(/\/+$/, '') : `${this.oauth.mcpSafeUrl().replace(/\/+$/, '')}/mcp`;
       const tokens = this.oauth.issueClientCredentialsToken(client_id, client.user_id, grantedScopes, audience);
-      writeAudit({ userId: client.user_id, action: 'oauth.token.issue', details: { client_id, scopes: grantedScopes, audience, grant: 'client_credentials' }, ip });
+      this.audit.writeAudit({ userId: client.user_id, action: 'oauth.token.issue', details: { client_id, scopes: grantedScopes, audience, grant: 'client_credentials' }, ip });
       res.json(tokens);
       return;
     }
@@ -155,7 +157,7 @@ export class OauthPublicController {
     }
     if (!this.oauth.authenticateClient(client_id, client_secret)) {
       logWarn(`[OAuth] Invalid client credentials on revoke for client_id=${client_id} ip=${ip ?? '-'}`);
-      writeAudit({ userId: null, action: 'oauth.token.client_auth_failed', details: { client_id, endpoint: 'revoke' }, ip });
+      this.audit.writeAudit({ userId: null, action: 'oauth.token.client_auth_failed', details: { client_id, endpoint: 'revoke' }, ip });
       res.status(401).json({ error: 'invalid_client', error_description: 'Invalid client credentials' });
       return;
     }

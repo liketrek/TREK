@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Развлечения',
   'map.showAllConnections': 'Показать все маршруты бронирований',
   'map.hideAllConnections': 'Скрыть все маршруты бронирований',
+  'map.baseLayer.default': 'Карта',
+  'map.baseLayer.satellite': 'Спутник',
+  'map.baseLayer.switchToSatellite': 'Переключить на спутниковый вид',
+  'map.baseLayer.switchToDefault': 'Переключить на вид карты',
 };
 export default map;

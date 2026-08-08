@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import ReactDOM from 'react-dom'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { Link, useNavigate, useLocation } from 'react-router'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
@@ -156,6 +156,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
             const isActive = location.pathname === tab.path
             return (
               <Link key={tab.id} to={tab.path}
+                title={tab.label} aria-label={tab.label}
                 className="flex items-center gap-1.5 transition-colors"
                 style={{
                   padding: '5px 16px', borderRadius: 9, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500,
@@ -166,7 +167,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-primary)' }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-muted)' }}>
                 <tab.Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
+                <span className="hidden lg:inline">{tab.label}</span>
               </Link>
             )
           })}
@@ -248,7 +249,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
             <ChevronDown className="w-4 h-4 text-content-faint" />
           </button>
 
-          {userMenuOpen && ReactDOM.createPortal(
+          {userMenuOpen && createPortal(
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setUserMenuOpen(false)} />
               <div className="trek-menu-enter w-52 rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge" style={{ position: 'fixed', top: 'var(--nav-h)', right: 8, zIndex: 9999 }}>

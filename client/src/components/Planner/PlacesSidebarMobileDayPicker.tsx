@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { CalendarDays, Pencil, Trash2, ChevronDown, Check, Eye } from 'lucide-react'
 import type { SidebarState } from './usePlacesSidebar'
 
@@ -7,7 +7,7 @@ export function MobileDayPickerSheet(S: SidebarState) {
     dayPickerPlace, setDayPickerPlace, setMobileShowDays, onPlaceClick, canEditPlaces, onEditPlace,
     t, days, mobileShowDays, onAssignToDay, assignments, onDeletePlace,
   } = S
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       onClick={() => { setDayPickerPlace(null); setMobileShowDays(false) }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}

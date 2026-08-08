@@ -21,10 +21,13 @@ export const testSmtpRequestSchema = z.object({ email: z.string().optional() });
 export const testWebhookRequestSchema = z.object({
   url: z.string().optional(),
 });
+// server/token are nullable: the client deliberately sends null to mean
+// "fall back to the saved value" (a stored token is only masked in the
+// placeholder — sending null keeps the saved one).
 export const testNtfyRequestSchema = z.object({
   topic: z.string().optional(),
-  server: z.string().optional(),
-  token: z.string().optional(),
+  server: z.string().nullable().optional(),
+  token: z.string().nullable().optional(),
 });
 
 /** Result of a channel test ping. */

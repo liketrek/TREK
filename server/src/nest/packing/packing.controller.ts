@@ -11,11 +11,25 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import type { User } from '../../types';
 import { PackingService } from './packing.service';
-import { isUpdateConflict } from '../../services/conflictResult';
+import { isUpdateConflict } from '../common/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import {
+  PackingApplyTemplateDto,
+  PackingBagMembersDto,
+  PackingCategoryAssigneesDto,
+  PackingCreateBagDto,
+  PackingCreateItemDto,
+  PackingImportDto,
+  PackingReorderDto,
+  PackingSaveTemplateDto,
+  PackingSetSharingDto,
+  PackingUpdateBagDto,
+  PackingUpdateItemDto,
+} from './packing.dto';
 
 /** A packing item row carrying the privacy fields (#858) used to scope broadcasts. */
 type PackingItemRow = { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[]; [key: string]: unknown };
@@ -30,6 +44,12 @@ type PackingItemRow = { is_private?: number; owner_id?: number | null; recipient
  * creates, 200 elsewhere — note POST /apply-template stays 200); and the bespoke
  * 400/404 bodies are reproduced. Mutations broadcast over WebSocket with the
  * forwarded X-Socket-Id. /reorder is declared before /:id so it wins over the param.
+ *
+ * Bodies validate via the @trek/shared Zod contracts (packing.dto.ts + the
+ * global ZodValidationPipe). The pipe's 400 envelope replaced the legacy
+ * bespoke name checks that the schemas now enforce (missing item name, invalid
+ * visibility); checks the schemas cannot express (whitespace-only names, empty
+ * import arrays, the admin template gate) keep their exact legacy strings.
  */
 @Controller('api/trips/:tripId/packing')
 @UseGuards(JwtAuthGuard)
@@ -62,15 +82,16 @@ export class PackingController {
   importItems(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body('items') items: unknown,
+    @Body() body: PackingImportDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!Array.isArray(items) || items.length === 0) {
+    // The schema guarantees an array; the empty-array rejection stays a bespoke 400.
+    if (body.items.length === 0) {
       throw new HttpException({ error: 'items must be a non-empty array' }, 400);
     }
-    const created = this.packing.bulkImport(tripId, items, user.id);
+    const created = this.packing.bulkImport(tripId, body.items, user.id);
     for (const item of created) {
       this.packing.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
     }
@@ -81,22 +102,20 @@ export class PackingController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { name?: string; category?: string; checked?: boolean; is_private?: boolean; visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] },
+    @Body() body: PackingCreateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!body.name) {
-      throw new HttpException({ error: 'Item name is required' }, 400);
-    }
-    const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, user.id);
+    // checked arrives as boolean or legacy 0/1 — the service coerces by truthiness.
+    const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked === undefined ? undefined : !!body.checked, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, user.id);
     this.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
     return { item };
   }
 
   /** Deliver an item event to exactly the people who can see it (#858): the whole
    *  room for a Common item, or owner + recipients for a restricted one. */
-  private emitToViewers(tripId: string, event: string, payload: Record<string, unknown>, item: PackingItemRow, socketId: string | undefined): void {
+  private emitToViewers<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, item: PackingItemRow, socketId: string | undefined): void {
     const viewers = this.packing.viewersOf(item);
     if (viewers === null) {
       this.packing.broadcast(tripId, event, payload, socketId);
@@ -109,12 +128,12 @@ export class PackingController {
   reorder(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body('orderedIds') orderedIds: number[],
+    @Body() body: PackingReorderDto,
     @Headers('x-socket-id') _socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    this.packing.reorderItems(tripId, orderedIds);
+    this.packing.reorderItems(tripId, body.orderedIds);
     return { success: true };
   }
 
@@ -123,7 +142,7 @@ export class PackingController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: PackingUpdateItemDto,
     @Headers('x-socket-id') socketId?: string,
     @Headers('x-base-updated-at') ifMatch?: string,
   ) {
@@ -132,8 +151,11 @@ export class PackingController {
     // Privacy state before the change, so a public↔private toggle (#858) can route
     // the broadcast correctly instead of leaking a freshly-privatized item.
     const before = this.packing.getItemPrivacy(tripId, id);
-    const { name, checked, category, weight_grams, bag_id, quantity, is_private } = body as Record<string, never>;
-    const updated = this.packing.updateItem(tripId, id, { name, checked, category, weight_grams, bag_id, quantity, is_private }, Object.keys(body), ifMatch, user.id);
+    const { name, checked, category, weight_grams, bag_id, quantity, is_private } = body;
+    // bodyKeys carries which keys the request actually provided (the presence-
+    // sentinel protocol); the parsed body only ever holds known schema keys.
+    // checked arrives as boolean or legacy 0/1 — normalize to the 0/1 the SQL binds.
+    const updated = this.packing.updateItem(tripId, id, { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, weight_grams, bag_id, quantity, is_private }, Object.keys(body), ifMatch, user.id);
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
@@ -199,14 +221,11 @@ export class PackingController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
-    @Body() body: { visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] },
+    @Body() body: PackingSetSharingDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (body.visibility !== 'common' && body.visibility !== 'personal' && body.visibility !== 'shared') {
-      throw new HttpException({ error: 'Invalid visibility' }, 400);
-    }
     const updated = this.packing.setItemSharing(tripId, id, user.id, body.visibility, Array.isArray(body.recipient_ids) ? body.recipient_ids : []);
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
@@ -288,12 +307,13 @@ export class PackingController {
   createBag(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { name?: string; color?: string },
+    @Body() body: PackingCreateBagDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!body.name?.trim()) {
+    // The schema requires a non-empty name; whitespace-only still 400s here.
+    if (!body.name.trim()) {
       throw new HttpException({ error: 'Name is required' }, 400);
     }
     const bag = this.packing.createBag(tripId, { name: body.name, color: body.color });
@@ -306,12 +326,14 @@ export class PackingController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('bagId') bagId: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: PackingUpdateBagDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const { name, color, weight_limit_grams, user_id } = body as Record<string, never>;
+    const { name, color, weight_limit_grams, user_id } = body;
+    // bodyKeys carries which keys the request actually provided (the presence-
+    // sentinel protocol); the parsed body only ever holds known schema keys.
     const updated = this.packing.updateBag(tripId, bagId, { name, color, weight_limit_grams, user_id }, Object.keys(body));
     if (!updated) {
       throw new HttpException({ error: 'Bag not found' }, 404);
@@ -348,7 +370,7 @@ export class PackingController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('templateId') templateId: string,
-    @Body() body: { visibility?: 'common' | 'personal' },
+    @Body() body: PackingApplyTemplateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
@@ -367,12 +389,12 @@ export class PackingController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('bagId') bagId: string,
-    @Body('user_ids') userIds: unknown,
+    @Body() body: PackingBagMembersDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const members = this.packing.setBagMembers(tripId, bagId, Array.isArray(userIds) ? userIds : []);
+    const members = this.packing.setBagMembers(tripId, bagId, body.user_ids);
     if (!members) {
       throw new HttpException({ error: 'Bag not found' }, 404);
     }
@@ -384,16 +406,17 @@ export class PackingController {
   saveAsTemplate(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body('name') name?: string,
+    @Body() body: PackingSaveTemplateDto,
   ) {
     this.requireTrip(tripId, user);
     if (user.role !== 'admin') {
       throw new HttpException({ error: 'Admin access required' }, 403);
     }
-    if (!name?.trim()) {
+    // The schema requires a non-empty name; whitespace-only still 400s here.
+    if (!body.name.trim()) {
       throw new HttpException({ error: 'Template name is required' }, 400);
     }
-    const template = this.packing.saveAsTemplate(tripId, user.id, name.trim());
+    const template = this.packing.saveAsTemplate(tripId, user.id, body.name.trim());
     if (!template) {
       throw new HttpException({ error: 'No items to save' }, 400);
     }
@@ -411,15 +434,15 @@ export class PackingController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('categoryName') categoryName: string,
-    @Body('user_ids') userIds: number[],
+    @Body() body: PackingCategoryAssigneesDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
     const category = decodeURIComponent(categoryName);
-    const rows = this.packing.updateCategoryAssignees(tripId, category, userIds);
+    const rows = this.packing.updateCategoryAssignees(tripId, category, body.user_ids);
     this.packing.broadcast(tripId, 'packing:assignees', { category, assignees: rows }, socketId);
-    this.packing.notifyTagged(tripId, user, category, userIds);
+    this.packing.notifyTagged(tripId, user, category, body.user_ids);
     return { assignees: rows };
   }
 }

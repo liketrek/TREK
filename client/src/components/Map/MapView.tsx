@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback, createElement, memo } from 'react'
 import DOM from 'react-dom'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { renderIconMarkup } from '../../utils/iconMarkup'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
@@ -10,17 +10,23 @@ import { mapsApi } from '../../api/client'
 import { getCategoryIcon, CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import ReservationOverlay from './ReservationOverlay'
 import { PluginMapMarkers } from './MapPluginMarkers'
+import { PluginMapLayers } from './MapPluginLayers'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
-import type { Reservation } from '../../types'
+import { safeHexColor } from '../../utils/safeColor'
+import { escapeHtml } from '@trek/shared'
+import type { Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
+import { resolveTrackColor, hasManualTrackColor } from './trackColors'
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
+import { useSettingsStore } from '../../store/settingsStore'
+import { MapLayerSwitcher } from './MapLayerSwitcher'
 import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
   try {
-    return renderToStaticMarkup(createElement(IconComponent, { size, color: 'white', strokeWidth: 2.5 }))
+    return renderIconMarkup(createElement(IconComponent, { size, color: 'white', strokeWidth: 2.5 }))
   } catch { return '' }
 }
 import type { Place } from '../../types'
@@ -34,28 +40,51 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
+const iconCache = new Map<string, L.DivIcon>()
+
+// Tone dot for a plugin route's via points (charging stops, rest areas) — smaller
+// than the plugin markers so the day route's own stops stay visually dominant.
+const VIA_TONE_COLORS: Record<string, string> = {
+  default: '#4F46E5', success: '#10b981', warn: '#f59e0b', danger: '#ef4444',
+}
+const viaIconCache = new Map<string, L.DivIcon>()
+function routeViaIcon(tone: string): L.DivIcon {
+  const cached = viaIconCache.get(tone)
+  if (cached) return cached
+  const color = VIA_TONE_COLORS[tone] ?? VIA_TONE_COLORS.default
+  const icon = L.divIcon({
+    className: 'route-via-marker',
+    html: `<span style="display:block;width:13px;height:13px;border-radius:50%;background:#fff;border:3.5px solid ${color};box-shadow:0 1px 4px rgba(0,0,0,0.35);box-sizing:border-box"></span>`,
+    iconSize: [13, 13],
+    iconAnchor: [6.5, 6.5],
+  })
+  viaIconCache.set(tone, icon)
+  return icon
+}
+
+function formatViaDwell(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.round((seconds % 3600) / 60)
+  return h > 0 ? `${h} h ${m} min` : `${m} min`
+}
+
 /**
  * Create a round photo-circle marker.
  * Shows image_url if available, otherwise category icon in colored circle.
  */
-function escAttr(s) {
-  if (!s) return ''
-  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
-
-const iconCache = new Map<string, L.DivIcon>()
-
 function createPlaceIcon(place, orderNumbers, isSelected) {
   const cacheKey = `${place.id}:${isSelected}:${place.image_url || ''}:${place.category_color || ''}:${place.category_icon || ''}:${orderNumbers?.join(',') || ''}`
   const cached = iconCache.get(cacheKey)
   if (cached) return cached
   const size = isSelected ? 44 : 36
-  const borderColor = isSelected ? '#111827' : (place.category_color || 'white')
+  // Allow-listed, not escaped: the value lands in style="…" of a divIcon, where
+  // escaping stops the attribute breakout but still permits a CSS url().
+  const borderColor = isSelected ? '#111827' : safeHexColor(place.category_color, 'white')
   const borderWidth = isSelected ? 3 : 2.5
   const shadow = isSelected
     ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
     : '0 2px 8px rgba(0,0,0,0.22)'
-  const bgColor = place.category_color || '#6b7280'
+  const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // Number badges (bottom-right)
   let badgeHtml = ''
@@ -75,9 +104,9 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
     ">${label}</span>`
   }
 
-  // Prefer base64 data URLs (no zoom lag); also accept same-origin proxy URLs as a fallback
-  // while the thumb is still being generated in the background
-  if (place.image_url && (place.image_url.startsWith('data:') || place.image_url.startsWith('/api/maps/place-photo/'))) {
+  // Prefer base64 data URLs (no zoom lag); also accept same-origin proxy + uploaded
+  // custom images (#1136) as a fallback while the thumb is still being generated
+  if (place.image_url && (place.image_url.startsWith('data:') || place.image_url.startsWith('/api/maps/place-photo/') || place.image_url.startsWith('/uploads/'))) {
     const imgIcon = L.divIcon({
       className: '',
       html: `<div style="
@@ -90,7 +119,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
           box-shadow:${shadow};
           overflow:hidden;background:${bgColor};
         ">
-          <img src="${place.image_url}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
+          <img src="${escapeHtml(place.image_url)}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
         </div>
         ${badgeHtml}
       </div>`,
@@ -132,7 +161,7 @@ function createPoiIcon(category: string) {
   if (cached) return cached
   const cat = POI_CATEGORY_BY_KEY[category]
   const color = cat?.color || '#6b7280'
-  const svg = cat ? renderToStaticMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
+  const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
   const icon = L.divIcon({
     className: '',
     html: `<div style="width:26px;height:26px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;">${svg}</div>`,
@@ -301,13 +330,25 @@ interface MapClickHandlerProps {
   onClick: ((e: L.LeafletMouseEvent) => void) | null
 }
 
-function ZoomTracker({ onZoomStart, onZoomEnd }: { onZoomStart: () => void; onZoomEnd: () => void }) {
+const TRACK_CASING_PANE = 'trek-track-casing'
+
+/**
+ * Pane that holds the white casing under GPX tracks (#776). Leaflet stacks paths
+ * in insertion order, so without a pane of its own a casing mounted later — a
+ * newly imported track, or one that just got a colour — would paint over an
+ * earlier track's line. Pane support is an optimization: a renderer without the
+ * pane API still draws everything, just in insertion order.
+ */
+function TrackCasingPane({ onReady }: { onReady: (ready: boolean) => void }) {
   const map = useMap()
   useEffect(() => {
-    map.on('zoomstart', onZoomStart)
-    map.on('zoomend', onZoomEnd)
-    return () => { map.off('zoomstart', onZoomStart); map.off('zoomend', onZoomEnd) }
-  }, [map, onZoomStart, onZoomEnd])
+    if (typeof map.getPane !== 'function' || typeof map.createPane !== 'function') return
+    if (!map.getPane(TRACK_CASING_PANE)) {
+      const pane = map.createPane(TRACK_CASING_PANE)
+      if (pane) pane.style.zIndex = '398' // under overlayPane (400) and the plugin pane (399)
+    }
+    onReady(true)
+  }, [map, onReady])
   return null
 }
 
@@ -335,6 +376,7 @@ function MapContextMenuHandler({ onContextMenu }: { onContextMenu: ((e: L.Leafle
 
 // Module-level photo cache shared with PlaceAvatar
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
+import { isCustomPlaceImage, photoCacheKey } from './placePhoto'
 import { useAuthStore } from '../../store/authStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import LocationButton from './LocationButton'
@@ -467,6 +509,7 @@ export const MapView = memo(function MapView({
   onPoiClick,
   onViewportChange,
   tripId,
+  routeVias = [],
 }: any) {
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
@@ -545,6 +588,8 @@ export const MapView = memo(function MapView({
     return () => window.removeEventListener('scroll', clear, true)
   }, [hoveredPlace])
 
+  const [hasCasingPane, setHasCasingPane] = useState(false)
+
   const handleMarkerClick = useCallback((id: number) => {
     // Clear the hover card right away: the recenter that follows moves the
     // marker out from under the cursor, so no mouseout will ever fire (#1404).
@@ -589,7 +634,11 @@ export const MapView = memo(function MapView({
     }
 
     for (const place of places) {
-      const cacheKey = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
+      // A custom uploaded image is shown directly — never auto-fetch a provider
+      // photo for it (the request would 404 for OSM-only places and the fetched
+      // thumb would shadow the user's own image). (#1136)
+      if (isCustomPlaceImage(place.image_url)) continue
+      const cacheKey = photoCacheKey(place)
       if (!cacheKey) continue
 
       const cached = getCached(cacheKey)
@@ -635,8 +684,9 @@ export const MapView = memo(function MapView({
 
   const markers = useMemo(() => places.map((place) => {
     const isSelected = place.id === selectedPlaceId
-    const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
-    const photoUrl = (pck && photoUrls[pck]) || place.image_url || null
+    const pck = photoCacheKey(place)
+    // A custom uploaded image wins over the auto-fetched thumb; otherwise fall back.
+    const photoUrl = isCustomPlaceImage(place.image_url) ? place.image_url! : ((pck && photoUrls[pck]) || place.image_url || null)
     const orderNumbers = dayOrderMap[place.id] ?? null
     return (
       <MemoMarker
@@ -652,22 +702,66 @@ export const MapView = memo(function MapView({
     )
   }), [places, selectedPlaceId, dayOrderMap, photoUrls, handleMarkerClick, handleMarkerHover, handleMarkerHoverOut])
 
-  const gpxPolylines = useMemo(() => places.flatMap(place => {
+  // Parsing track geometry is the expensive part (tracks run to tens of thousands
+  // of points), so it hangs off `places` alone — a selection change must not
+  // re-parse every track.
+  const gpxTracks = useMemo(() => places.flatMap(place => {
     if (!place.route_geometry) return []
     try {
       const coords = JSON.parse(place.route_geometry) as [number, number][]
       if (!coords || coords.length < 2) return []
-      return [(
+      return [{ place, coords, cased: hasManualTrackColor(place), color: resolveTrackColor(place) }]
+    } catch { return [] }
+  }), [places])
+
+  // Keeps the click handler out of the polyline memo below: `handleMarkerClick`
+  // changes on every selection, and depending on it would redraw all tracks.
+  const markerClickRef = useRef(handleMarkerClick)
+  markerClickRef.current = handleMarkerClick
+
+  const gpxPolylines = useMemo(() => (
+    <>
+      {/* Casings live in their own pane below the lines. Leaflet stacks paths by
+          insertion order, so drawing them inline would put the casing of a track
+          added later — or of one just given a colour — on top of an earlier
+          track's line. Always rendered, hidden via opacity when there is no
+          colour, so toggling one never remounts the path. */}
+      {gpxTracks.map(({ place, coords, cased }) => (
+        <Polyline
+          key={`gpx-${place.id}-casing`}
+          positions={coords}
+          pane={hasCasingPane ? TRACK_CASING_PANE : undefined}
+          pathOptions={{ color: '#ffffff', weight: 6.5, opacity: cased ? 0.7 : 0, lineCap: 'round', lineJoin: 'round' }}
+          interactive={false}
+        />
+      ))}
+      {/* pathOptions, not bare color/weight props: react-leaflet only calls
+          setStyle when the pathOptions reference changes, so bare props would
+          stick at their mount-time colour and a repaint would never arrive. */}
+      {gpxTracks.map(({ place, coords, cased, color }) => (
         <Polyline
           key={`gpx-${place.id}`}
           positions={coords}
-          color={place.category_color || '#3b82f6'}
-          weight={3.5}
-          opacity={0.75}
+          pathOptions={{ color, weight: 3.5, opacity: cased ? 0.9 : 0.75 }}
+          interactive={false}
         />
-      )]
-    } catch { return [] }
-  }), [places])
+      ))}
+      {/* Invisible fat line on top so the track can actually be hit — 3.5px is
+          not a target, least of all on touch, and the start markers cluster below
+          zoom 11. bubblingMouseEvents is essential: paths bubble to the map by
+          default (markers do not), and the map's own click handler clears the
+          selection this one just made. */}
+      {gpxTracks.map(({ place, coords }) => (
+        <Polyline
+          key={`gpx-${place.id}-hit`}
+          positions={coords}
+          pathOptions={{ color: '#000', weight: 14, opacity: 0, lineCap: 'round', lineJoin: 'round' }}
+          bubblingMouseEvents={false}
+          eventHandlers={{ click: () => markerClickRef.current(place.id) }}
+        />
+      ))}
+    </>
+  ), [gpxTracks, hasCasingPane])
 
   const TooltipOverlay = !hoverDisabled && hoveredPlace && tooltipPos && !isTouchDevice
   const CatIcon = TooltipOverlay ? getCategoryIcon(hoveredPlace.category_icon) : null
@@ -683,6 +777,17 @@ export const MapView = memo(function MapView({
     ? 'calc(var(--bottom-nav-h, 84px) + 20px + var(--day-panel-h, 0px) + 12px)'
     : 'calc(var(--bottom-nav-h, 84px) + 12px)'
 
+  const baseLayer = useSettingsStore(s => s.settings.map_base_layer) || 'default'
+  const updateSetting = useSettingsStore(s => s.updateSetting)
+  const isSatellite = baseLayer === 'satellite'
+  const toggleBaseLayer = useCallback(() => {
+    // Store flips state synchronously (instant, works offline); a failed save is logged there.
+    updateSetting('map_base_layer', isSatellite ? 'default' : 'satellite').catch(() => {})
+  }, [isSatellite, updateSetting])
+  const switcherBottom = hasDayDetail
+    ? 'calc(var(--bottom-nav-h, 0px) + 20px + var(--day-panel-h, 0px) + 12px)'
+    : 'calc(var(--bottom-nav-h, 0px) + 12px)'
+
   return (
     <>
     <div className="w-full h-full relative">
@@ -693,10 +798,12 @@ export const MapView = memo(function MapView({
       zoomControl={false}
       className="w-full h-full bg-[#e5e7eb]"
     >
+      {/* key remounts the layer on switch, else attribution/maxZoom stick at mount-time values. */}
       <TileLayer
-        url={tileUrl}
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        maxZoom={19}
+        key={isSatellite ? 'satellite' : 'default'}
+        url={isSatellite ? SATELLITE_TILE_URL : tileUrl}
+        attribution={isSatellite ? SATELLITE_TILE_ATTRIBUTION : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}
+        maxZoom={isSatellite ? SATELLITE_TILE_MAXZOOM : 19}
         keepBuffer={8}
         updateWhenZooming={false}
         updateWhenIdle={true}
@@ -742,6 +849,7 @@ export const MapView = memo(function MapView({
       ] : [])}
 
       {/* GPX imported route geometries */}
+      <TrackCasingPane onReady={setHasCasingPane} />
       {gpxPolylines}
 
       <ReservationOverlay
@@ -753,7 +861,21 @@ export const MapView = memo(function MapView({
       />
 
       {poiMarkers}
+      {/* Charging stops / rest areas a plugin route places on the drawn day route.
+          Host-vetted data (server-normalized), rendered as plain tone dots. */}
+      {(routeVias as RouteVia[]).map((v, i) => (
+        <Marker key={`route-via-${i}`} position={[v.lat, v.lng]} icon={routeViaIcon(v.tone)} zIndexOffset={800}>
+          {(v.label || v.dwellSeconds != null) && (
+            <Tooltip direction="top" offset={[0, -8]}>
+              {v.label}
+              {v.label && v.dwellSeconds != null ? ' · ' : ''}
+              {v.dwellSeconds != null ? formatViaDwell(v.dwellSeconds) : ''}
+            </Tooltip>
+          )}
+        </Marker>
+      ))}
       <PluginMapMarkers tripId={tripId} />
+      <PluginMapLayers tripId={tripId} />
     </MapContainer>
     {isMobile && <LocationButton
       mode={trackingMode}
@@ -761,6 +883,9 @@ export const MapView = memo(function MapView({
       onClick={cycleTrackingMode}
       bottomOffset={locationButtonBottom as unknown as number}
     />}
+    <div style={{ position: 'absolute', left: leftWidth + 12, bottom: switcherBottom, zIndex: 1000, pointerEvents: 'none' }}>
+      <MapLayerSwitcher active={baseLayer} onToggle={toggleBaseLayer} />
+    </div>
     </div>
 
     {TooltipOverlay && (

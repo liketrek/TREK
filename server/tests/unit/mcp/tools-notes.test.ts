@@ -1,6 +1,9 @@
 /**
- * Unit tests for MCP note tools: create_day_note, update_day_note, delete_day_note,
- * create_collab_note, update_collab_note, delete_collab_note.
+ * Unit tests for MCP note tools: create_day_note, update_day_note, delete_day_note
+ * (DayNotesMcp, DI-discovered — attached via the nest-mcp registry inside
+ * registerTools, so every harness here keeps withTools on) and
+ * create_collab_note, update_collab_note, delete_collab_note (CollabMcp,
+ * DI-discovered via the same registry).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -44,7 +47,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createDay, createDayNote, createCollabNote } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
   createTables(testDb);
@@ -259,6 +262,84 @@ describe('Tool: delete_day_note', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Scope gating (trips write, registration-time — the legacy registerDayTools
+// whole-registrar `canWrite(scopes, 'trips')` early return, now the
+// declarative access marker on every DayNotesMcp tool)
+// ---------------------------------------------------------------------------
+
+describe('Day-note tools — scope gating', () => {
+  const WRITE_TOOLS = ['create_day_note', 'update_day_note', 'delete_day_note'];
+
+  async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
+    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    try {
+      return (await h.client.listTools()).tools.map((t) => t.name);
+    } finally {
+      await h.cleanup();
+    }
+  }
+
+  it('registers all three tools with null scopes (full access)', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, null);
+    for (const tool of WRITE_TOOLS) expect(names).toContain(tool);
+  });
+
+  it('registers no day-note tools with trips:read only (all three are writes)', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['trips:read']);
+    for (const tool of WRITE_TOOLS) expect(names).not.toContain(tool);
+  });
+
+  it('registers no day-note tools for an unrelated scope', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['budget:read']);
+    for (const tool of WRITE_TOOLS) expect(names).not.toContain(tool);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// trek://trips/{tripId}/days/{dayId}/notes resource (moved from the legacy
+// registerResources to DayNotesMcp)
+// ---------------------------------------------------------------------------
+
+describe('Resource: trek://trips/{tripId}/days/{dayId}/notes', () => {
+  it('returns the day notes ordered by sort_order', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    createDayNote(testDb, day.id, trip.id, { text: 'Second', sort_order: 5 });
+    createDayNote(testDb, day.id, trip.id, { text: 'First', sort_order: 1 });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/days/${day.id}/notes` });
+      const notes = parseResourceResult(result) as { text: string }[];
+      expect(notes).toHaveLength(2);
+      expect(notes[0].text).toBe('First');
+      expect(notes[1].text).toBe('Second');
+    });
+  });
+
+  it('returns the access-denied payload for a non-member', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/days/${day.id}/notes` });
+      expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
+    });
+  });
+
+  it('returns the access-denied payload for a malformed id', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: 'trek://trips/1/days/not-a-number/notes' });
+      expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // create_collab_note
 // ---------------------------------------------------------------------------
 
@@ -426,6 +507,38 @@ describe('Tool: delete_collab_note', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_collab_note', arguments: { tripId: trip.id, noteId: note.id } });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// Moved from resources.test.ts with the collab migration: the resource now
+// registers via the nest-mcp registry inside registerTools (CollabMcp
+// @ResourceTemplate), which resources.test.ts's withTools: false harness
+// never attaches.
+describe('Resource: trek://trips/{tripId}/collab-notes', () => {
+  it('returns collab notes with username', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createCollabNote(testDb, trip.id, user.id, { title: 'Ideas' });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/collab-notes` });
+      const notes = parseResourceResult(result) as any[];
+      expect(notes).toHaveLength(1);
+      expect(notes[0].title).toBe('Ideas');
+      expect(notes[0].username).toBeTruthy();
+    });
+  });
+
+  it('returns access denied for unauthorized trip', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/collab-notes` });
+      const data = parseResourceResult(result) as any;
+      expect(data.error).toBeTruthy();
     });
   });
 });

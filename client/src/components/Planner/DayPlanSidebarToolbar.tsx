@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react'
 import { ChevronsDownUp, ChevronsUpDown, FileDown, Undo2, ArrowUpDown, CalendarPlus, Route as RouteIcon } from 'lucide-react'
-import { downloadTripPDF } from '../PDF/TripPDF'
 import { DayReorderPopup } from './DayReorderPopup'
 import Tooltip from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
@@ -22,8 +21,6 @@ interface DayPlanSidebarToolbarProps {
   t: (key: string, params?: Record<string, any>) => string
   locale: string
   toast: ReturnType<typeof useToast>
-  pdfHover: boolean
-  setPdfHover: (v: boolean) => void
   icsHover: boolean
   setIcsHover: (v: boolean) => void
   expandedDays: Set<number>
@@ -41,7 +38,7 @@ interface DayPlanSidebarToolbarProps {
 export function DayPlanSidebarToolbar({
   tripId, trip, days, places, categories, assignments, reservations, dayNotes,
   allConnectionsShown = false, onToggleAllConnections,
-  t, locale, toast, pdfHover, setPdfHover, setIcsHover,
+  t, locale, toast, setIcsHover,
   expandedDays, setExpandedDays, onUndo, canUndo, undoHover, setUndoHover, lastActionLabel,
   canEditDays, onReorderDays, onAddDay,
 }: DayPlanSidebarToolbarProps) {
@@ -74,20 +71,24 @@ export function DayPlanSidebarToolbar({
     <div className="border-b border-edge-faint" style={{ padding: '12px 16px', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
         <div style={{ position: 'relative', flexShrink: 0 }}>
+          <Tooltip label={t('dayplan.pdfTooltip')} placement="bottom">
           <button
             onClick={async () => {
               const flatNotes = Object.entries(dayNotes).flatMap(([dayId, notes]) =>
                 notes.map(n => ({ ...n, day_id: Number(dayId) }))
               )
               try {
+                // Loaded on click: the PDF builder is ~226 kB and hangs off the
+                // days sidebar, so every trip used to pay for it whether or not
+                // anyone exported. A missing chunk lands in the catch below and
+                // shows the same error the export already had.
+                const { downloadTripPDF } = await import('../PDF/TripPDF')
                 await downloadTripPDF({ trip, days, places, assignments, categories, dayNotes: flatNotes, reservations, t, locale })
               } catch (e) {
                 console.error('PDF error:', e)
                 toast.error(t('dayplan.pdfError') + ': ' + (e?.message || String(e)))
               }
             }}
-            onMouseEnter={() => setPdfHover(true)}
-            onMouseLeave={() => setPdfHover(false)}
             className="bg-accent text-accent-text"
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
@@ -99,18 +100,7 @@ export function DayPlanSidebarToolbar({
             <FileDown size={13} strokeWidth={2} />
             {t('dayplan.pdf')}
           </button>
-          {pdfHover && (
-            <div style={{
-              position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-              whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
-              background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px',
-              borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              border: '1px solid var(--border-faint, #e5e7eb)',
-            }}>
-              {t('dayplan.pdfTooltip')}
-            </div>
-          )}
+          </Tooltip>
         </div>
         <div
           style={{ position: 'relative', flexShrink: 0 }}

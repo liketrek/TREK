@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': '予約を編集',
   'inspector.participants': '参加者',
   'inspector.trackStats': '統計を記録',
+  'inspector.trackColor': 'トラックの色',
+  'inspector.trackColorAuto': '自動の色',
+  'inspector.trackColorCustom': 'カスタムカラーを選択',
 };
 export default inspector;

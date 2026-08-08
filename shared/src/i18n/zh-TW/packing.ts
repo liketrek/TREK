@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': '操作',
+  'packing.editDone': '完成',
+  'packing.personalEmptyHint': '你的個人清單為空——複製共用物品或新增自己的物品。',
+  'packing.assignMembers': '分配成員',
+  'packing.categoryOptions': '清單選項',
+  'packing.editItem': '編輯物品',
+  'packing.itemName': '名稱',
+  'packing.itemQuantity': '數量',
+  'packing.itemWeight': '重量（克）',
   'packing.title': '行李清單',
   'packing.empty': '行李清單為空',
   'packing.import': '匯入',
@@ -196,5 +205,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': '我也可以帶',
   'packing.alsoBringingStop': '我不帶了',
   'packing.cloneToMine': '複製到我的清單',
+  'packing.bagLimit': '重量限制',
+  'packing.setBagLimit': '設定限制',
 };
 export default packing;

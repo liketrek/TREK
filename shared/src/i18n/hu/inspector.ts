@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Foglalás szerkesztése',
   'inspector.participants': 'Résztvevők',
   'inspector.trackStats': 'Útvonal adatok',
+  'inspector.trackColor': 'Útvonal színe',
+  'inspector.trackColorAuto': 'Automatikus szín',
+  'inspector.trackColorCustom': 'Egyéni szín kiválasztása',
 };
 export default inspector;

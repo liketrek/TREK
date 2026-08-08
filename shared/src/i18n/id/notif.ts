@@ -15,6 +15,8 @@ const notif: TranslationStrings = {
   'notif.todo_due.text': '{todo} di {trip} jatuh tempo pada {due}',
   'notif.vacay_invite.title': 'Undangan Vacay Fusion',
   'notif.vacay_invite.text': '{actor} mengundangmu untuk menggabungkan rencana liburan',
+  'notif.vacay_share.title': 'Kalender Vacay Dibagikan',
+  'notif.vacay_share.text': '{actor} membagikan kalender cutinya denganmu',
   'notif.collection_invite.title': 'Undangan koleksi',
   'notif.collection_invite.text': '{actor} mengundang Anda ke koleksi',
   'notif.photos_shared.title': 'Foto Dibagikan',

@@ -71,8 +71,9 @@ export default function AirportSelect({ value, onChange, placeholder, style }: P
         const data = await airportsApi.search(trimmed, controller.signal)
         setResults(Array.isArray(data) ? data : [])
         setHighlight(-1)
-      } catch (err: any) {
-        if (err?.name !== 'AbortError' && err?.name !== 'CanceledError') {
+      } catch (err) {
+        const name = (err as { name?: string } | null)?.name
+        if (name !== 'AbortError' && name !== 'CanceledError') {
           setResults([])
         }
       } finally {

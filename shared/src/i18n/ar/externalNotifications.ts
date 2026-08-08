@@ -28,6 +28,10 @@ const ar: NotificationLocale = {
       title: 'دعوة دمج الإجازة',
       body: `${p.actor} يدعوك لدمج خطط الإجازة. افتح TREK للقبول أو الرفض.`,
     }),
+    vacay_share: (p) => ({
+      title: 'تمت مشاركة تقويم Vacay',
+      body: `${p.actor} شارك تقويم إجازاته معك. افتح TREK لعرضه.`,
+    }),
     collection_invite: (p) => ({
       title: 'دعوة إلى مجموعة',
       body: `${p.actor} يدعوك لمشاركة مجموعة. افتح TREK للقبول أو الرفض.`,

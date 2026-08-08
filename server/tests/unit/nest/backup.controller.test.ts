@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
-vi.mock('../../../src/services/auditLog', () => ({ writeAudit: vi.fn(), getClientIp: vi.fn(() => '1.2.3.4') }));
+vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
+vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
 // The controller imports the tmp-dir + size cap at module load. The thin
 // BackupService wrapper forwards every call straight into this module, so the
 // mock also stubs the delegated functions for the wrapper tests below.
@@ -26,12 +27,18 @@ import { BackupController } from '../../../src/nest/backup/backup.controller';
 import { BackupService as RealBackupService } from '../../../src/nest/backup/backup.service';
 import { AdminGuard } from '../../../src/nest/auth/admin.guard';
 import type { BackupService } from '../../../src/nest/backup/backup.service';
-import { writeAudit } from '../../../src/services/auditLog';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
 import * as backupSvc from '../../../src/services/backupService';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, role: 'admin', email: 'a@example.test' } as User;
 const req = { ip: '1.2.3.4', headers: {} } as Request;
+
+// AuditService is constructor-injected since the auditLog DI migration; the
+// wrapper keeps the historical construction sites positional.
+const writeAudit = vi.fn();
+const audit = { writeAudit } as unknown as AuditService;
+const bc = (s: BackupService) => new BackupController(s, audit);
 
 function svc(o: Partial<BackupService> = {}): BackupService {
   return {
@@ -82,74 +89,74 @@ describe('AdminGuard (used by BackupController)', () => {
 
 describe('BackupController', () => {
   it('GET /list returns backups, 500 on error', () => {
-    expect(new BackupController(svc({ listBackups: vi.fn().mockReturnValue([{ filename: 'a.zip' }]) } as Partial<BackupService>)).list()).toEqual({ backups: [{ filename: 'a.zip' }] });
-    expect(thrown(() => new BackupController(svc({ listBackups: vi.fn(() => { throw new Error('io'); }) } as Partial<BackupService>)).list())).toEqual({ status: 500, body: { error: 'Error loading backups' } });
+    expect(bc(svc({ listBackups: vi.fn().mockReturnValue([{ filename: 'a.zip' }]) } as Partial<BackupService>)).list()).toEqual({ backups: [{ filename: 'a.zip' }] });
+    expect(thrown(() => bc(svc({ listBackups: vi.fn(() => { throw new Error('io'); }) } as Partial<BackupService>)).list())).toEqual({ status: 500, body: { error: 'Error loading backups' } });
   });
 
   it('POST /create 429 when rate-limited, else creates + audits', async () => {
-    expect(await thrownAsync(() => new BackupController(svc({ checkRateLimit: vi.fn().mockReturnValue(false) })).create(user, req))).toEqual({ status: 429, body: { error: 'Too many backup requests. Please try again later.' } });
+    expect(await thrownAsync(() => bc(svc({ checkRateLimit: vi.fn().mockReturnValue(false) })).create(user, req))).toEqual({ status: 429, body: { error: 'Too many backup requests. Please try again later.' } });
     const createBackup = vi.fn().mockResolvedValue({ filename: 'b.zip', size: 10 });
-    const res = await new BackupController(svc({ createBackup } as Partial<BackupService>)).create(user, req);
+    const res = await bc(svc({ createBackup } as Partial<BackupService>)).create(user, req);
     expect(res).toEqual({ success: true, backup: { filename: 'b.zip', size: 10 } });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'backup.create', resource: 'b.zip' }));
   });
 
   it('GET /download 400 invalid / 404 missing, else res.download', () => {
     const res = { download: vi.fn() } as unknown as Response;
-    expect(thrown(() => new BackupController(svc({ isValidBackupFilename: vi.fn().mockReturnValue(false) })).download('x', res))).toEqual({ status: 400, body: { error: 'Invalid filename' } });
-    expect(thrown(() => new BackupController(svc({ backupFileExists: vi.fn().mockReturnValue(false) })).download('x.zip', res))).toEqual({ status: 404, body: { error: 'Backup not found' } });
-    new BackupController(svc()).download('x.zip', res);
+    expect(thrown(() => bc(svc({ isValidBackupFilename: vi.fn().mockReturnValue(false) })).download('x', res))).toEqual({ status: 400, body: { error: 'Invalid filename' } });
+    expect(thrown(() => bc(svc({ backupFileExists: vi.fn().mockReturnValue(false) })).download('x.zip', res))).toEqual({ status: 404, body: { error: 'Backup not found' } });
+    bc(svc()).download('x.zip', res);
     expect(res.download).toHaveBeenCalledWith('/b/x.zip', 'x.zip');
   });
 
   it('POST /restore maps the service status, else audits', async () => {
-    expect(await thrownAsync(() => new BackupController(svc({ isValidBackupFilename: vi.fn().mockReturnValue(false) })).restore(user, 'x', req))).toEqual({ status: 400, body: { error: 'Invalid filename' } });
-    expect(await thrownAsync(() => new BackupController(svc({ backupFileExists: vi.fn().mockReturnValue(false) })).restore(user, 'x.zip', req))).toEqual({ status: 404, body: { error: 'Backup not found' } });
-    expect(await thrownAsync(() => new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: false, status: 422, error: 'bad zip' }) } as Partial<BackupService>)).restore(user, 'x.zip', req))).toEqual({ status: 422, body: { error: 'bad zip' } });
-    const res = await new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: true }) } as Partial<BackupService>)).restore(user, 'x.zip', req);
+    expect(await thrownAsync(() => bc(svc({ isValidBackupFilename: vi.fn().mockReturnValue(false) })).restore(user, 'x', req))).toEqual({ status: 400, body: { error: 'Invalid filename' } });
+    expect(await thrownAsync(() => bc(svc({ backupFileExists: vi.fn().mockReturnValue(false) })).restore(user, 'x.zip', req))).toEqual({ status: 404, body: { error: 'Backup not found' } });
+    expect(await thrownAsync(() => bc(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: false, status: 422, error: 'bad zip' }) } as Partial<BackupService>)).restore(user, 'x.zip', req))).toEqual({ status: 422, body: { error: 'bad zip' } });
+    const res = await bc(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: true }) } as Partial<BackupService>)).restore(user, 'x.zip', req);
     expect(res).toEqual({ success: true });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'backup.restore', resource: 'x.zip' }));
   });
 
   it('POST /restore falls back to status 400 when the service omits one', async () => {
-    expect(await thrownAsync(() => new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: false, error: 'nope' }) } as Partial<BackupService>)).restore(user, 'x.zip', req))).toEqual({ status: 400, body: { error: 'nope' } });
+    expect(await thrownAsync(() => bc(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: false, error: 'nope' }) } as Partial<BackupService>)).restore(user, 'x.zip', req))).toEqual({ status: 400, body: { error: 'nope' } });
   });
 
   it('POST /upload-restore 400 without a file, cleans up the tmp file', async () => {
-    expect(await thrownAsync(() => new BackupController(svc()).uploadRestore(user, undefined, req))).toEqual({ status: 400, body: { error: 'No file uploaded' } });
+    expect(await thrownAsync(() => bc(svc()).uploadRestore(user, undefined, req))).toEqual({ status: 400, body: { error: 'No file uploaded' } });
   });
 
   it('POST /upload-restore success audits + reports', async () => {
     const file = { path: '/tmp/does-not-exist-xyz.zip', originalname: 'up.zip' } as Express.Multer.File;
-    const res = await new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: true }) } as Partial<BackupService>)).uploadRestore(user, file, req);
+    const res = await bc(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: true }) } as Partial<BackupService>)).uploadRestore(user, file, req);
     expect(res).toEqual({ success: true });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'backup.upload_restore', resource: 'up.zip' }));
   });
 
   it('POST /upload-restore maps a failed restore status', async () => {
     const file = { path: '/tmp/does-not-exist-xyz.zip', originalname: 'up.zip' } as Express.Multer.File;
-    expect(await thrownAsync(() => new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: false, status: 422, error: 'bad' }) } as Partial<BackupService>)).uploadRestore(user, file, req))).toEqual({ status: 422, body: { error: 'bad' } });
+    expect(await thrownAsync(() => bc(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: false, status: 422, error: 'bad' }) } as Partial<BackupService>)).uploadRestore(user, file, req))).toEqual({ status: 422, body: { error: 'bad' } });
   });
 
   it('POST /upload-restore falls back to a default name and maps unexpected errors to 500', async () => {
     const file = { path: '/tmp/does-not-exist-xyz.zip', originalname: '' } as Express.Multer.File;
-    expect(await thrownAsync(() => new BackupController(svc({ restoreFromZip: vi.fn().mockRejectedValue(new Error('boom')) } as Partial<BackupService>)).uploadRestore(user, file, req))).toEqual({ status: 500, body: { error: 'Error restoring backup' } });
+    expect(await thrownAsync(() => bc(svc({ restoreFromZip: vi.fn().mockRejectedValue(new Error('boom')) } as Partial<BackupService>)).uploadRestore(user, file, req))).toEqual({ status: 500, body: { error: 'Error restoring backup' } });
     const ok = { path: '/tmp/does-not-exist-xyz.zip', originalname: '' } as Express.Multer.File;
-    await new BackupController(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: true }) } as Partial<BackupService>)).uploadRestore(user, ok, req);
+    await bc(svc({ restoreFromZip: vi.fn().mockResolvedValue({ success: true }) } as Partial<BackupService>)).uploadRestore(user, ok, req);
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'backup.upload_restore', resource: 'upload.zip' }));
   });
 
   it('maps unexpected service errors to 500 (create, restore, auto-settings)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(await thrownAsync(() => new BackupController(svc({ createBackup: vi.fn().mockRejectedValue(new Error('disk')) } as Partial<BackupService>)).create(user, req))).toEqual({ status: 500, body: { error: 'Error creating backup' } });
-    expect(await thrownAsync(() => new BackupController(svc({ restoreFromZip: vi.fn().mockRejectedValue(new Error('boom')) } as Partial<BackupService>)).restore(user, 'x.zip', req))).toEqual({ status: 500, body: { error: 'Error restoring backup' } });
-    expect(thrown(() => new BackupController(svc({ getAutoSettings: vi.fn(() => { throw new Error('io'); }) } as Partial<BackupService>)).autoSettings())).toEqual({ status: 500, body: { error: 'Could not load backup settings' } });
+    expect(await thrownAsync(() => bc(svc({ createBackup: vi.fn().mockRejectedValue(new Error('disk')) } as Partial<BackupService>)).create(user, req))).toEqual({ status: 500, body: { error: 'Error creating backup' } });
+    expect(await thrownAsync(() => bc(svc({ restoreFromZip: vi.fn().mockRejectedValue(new Error('boom')) } as Partial<BackupService>)).restore(user, 'x.zip', req))).toEqual({ status: 500, body: { error: 'Error restoring backup' } });
+    expect(thrown(() => bc(svc({ getAutoSettings: vi.fn(() => { throw new Error('io'); }) } as Partial<BackupService>)).autoSettings())).toEqual({ status: 500, body: { error: 'Could not load backup settings' } });
   });
 
   it('PUT /auto-settings maps errors to 500 (with a dev-only detail)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     process.env.NODE_ENV = 'development';
-    const r = thrown(() => new BackupController(svc({ updateAutoSettings: vi.fn(() => { throw new Error('parse fail'); }) } as Partial<BackupService>)).updateAutoSettings(user, {}, req));
+    const r = thrown(() => bc(svc({ updateAutoSettings: vi.fn(() => { throw new Error('parse fail'); }) } as Partial<BackupService>)).updateAutoSettings(user, {}, req));
     expect(r.status).toBe(500);
     expect(r.body).toEqual({ error: 'Could not save auto-backup settings', detail: 'parse fail' });
   });
@@ -157,29 +164,29 @@ describe('BackupController', () => {
   it('PUT /auto-settings hides the detail in production and stringifies non-Error throws', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     process.env.NODE_ENV = 'production';
-    const r = thrown(() => new BackupController(svc({ updateAutoSettings: vi.fn(() => { throw 'plain string'; }) } as Partial<BackupService>)).updateAutoSettings(user, {}, req));
+    const r = thrown(() => bc(svc({ updateAutoSettings: vi.fn(() => { throw 'plain string'; }) } as Partial<BackupService>)).updateAutoSettings(user, {}, req));
     expect(r.status).toBe(500);
     expect(r.body).toEqual({ error: 'Could not save auto-backup settings', detail: undefined });
   });
 
   it('PUT /auto-settings tolerates a missing body', () => {
     const updateAutoSettings = vi.fn().mockReturnValue({ enabled: false, interval: 'weekly', keep_days: 30 });
-    new BackupController(svc({ updateAutoSettings } as Partial<BackupService>)).updateAutoSettings(user, undefined as unknown as Record<string, unknown>, req);
+    bc(svc({ updateAutoSettings } as Partial<BackupService>)).updateAutoSettings(user, undefined as unknown as Record<string, unknown>, req);
     expect(updateAutoSettings).toHaveBeenCalledWith({});
   });
 
   it('GET/PUT /auto-settings', () => {
-    expect(new BackupController(svc({ getAutoSettings: vi.fn().mockReturnValue({ settings: { enabled: true }, timezone: 'UTC' }) } as Partial<BackupService>)).autoSettings()).toEqual({ settings: { enabled: true }, timezone: 'UTC' });
-    const res = new BackupController(svc({ updateAutoSettings: vi.fn().mockReturnValue({ enabled: true, interval: 'daily', keep_days: 7 }) } as Partial<BackupService>)).updateAutoSettings(user, { enabled: true }, req);
+    expect(bc(svc({ getAutoSettings: vi.fn().mockReturnValue({ settings: { enabled: true }, timezone: 'UTC' }) } as Partial<BackupService>)).autoSettings()).toEqual({ settings: { enabled: true }, timezone: 'UTC' });
+    const res = bc(svc({ updateAutoSettings: vi.fn().mockReturnValue({ enabled: true, interval: 'daily', keep_days: 7 }) } as Partial<BackupService>)).updateAutoSettings(user, { enabled: true }, req);
     expect(res).toEqual({ settings: { enabled: true, interval: 'daily', keep_days: 7 } });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'backup.auto_settings' }));
   });
 
   it('DELETE /:filename 400/404, else deletes + audits', () => {
-    expect(thrown(() => new BackupController(svc({ isValidBackupFilename: vi.fn().mockReturnValue(false) })).remove(user, 'x', req))).toEqual({ status: 400, body: { error: 'Invalid filename' } });
-    expect(thrown(() => new BackupController(svc({ backupFileExists: vi.fn().mockReturnValue(false) })).remove(user, 'x.zip', req))).toEqual({ status: 404, body: { error: 'Backup not found' } });
+    expect(thrown(() => bc(svc({ isValidBackupFilename: vi.fn().mockReturnValue(false) })).remove(user, 'x', req))).toEqual({ status: 400, body: { error: 'Invalid filename' } });
+    expect(thrown(() => bc(svc({ backupFileExists: vi.fn().mockReturnValue(false) })).remove(user, 'x.zip', req))).toEqual({ status: 404, body: { error: 'Backup not found' } });
     const deleteBackup = vi.fn();
-    expect(new BackupController(svc({ deleteBackup } as Partial<BackupService>)).remove(user, 'x.zip', req)).toEqual({ success: true });
+    expect(bc(svc({ deleteBackup } as Partial<BackupService>)).remove(user, 'x.zip', req)).toEqual({ success: true });
     expect(deleteBackup).toHaveBeenCalledWith('x.zip');
   });
 });

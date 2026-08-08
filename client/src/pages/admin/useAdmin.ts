@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import apiClient, { adminApi, authApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -319,6 +319,7 @@ export function useAdmin() {
   }
 
   const handleSaveUser = async () => {
+    if (!editingUser) return
     try {
       const payload: { username?: string; email?: string; role: string; password?: string } = {
         username: editForm.username.trim() || undefined,

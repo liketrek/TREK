@@ -37,7 +37,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createDay, createPlace, createReservation, createDayAssignment } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
   createTables(testDb);
@@ -76,6 +76,20 @@ describe('Tool: create_reservation', () => {
       expect(data.reservation.title).toBe('Eiffel Tower Tour');
       expect(data.reservation.type).toBe('tour');
       expect(data.reservation.status).toBe('pending');
+    });
+  });
+
+  it('creates a parking reservation (#1444)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: { tripId: trip.id, title: 'Airport Parking P1', type: 'parking' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.reservation.title).toBe('Airport Parking P1');
+      expect(data.reservation.type).toBe('parking');
     });
   });
 
@@ -433,6 +447,38 @@ describe('Tool: link_hotel_accommodation', () => {
         arguments: { tripId: trip.id, reservationId: reservation.id, place_id: place.id, start_day_id: day1.id, end_day_id: day2.id },
       });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// trek://trips/{tripId}/reservations resource (moved from the legacy
+// registerResources into the DI-discovered ReservationsMcp)
+// ---------------------------------------------------------------------------
+
+describe('Resource: trek://trips/{tripId}/reservations', () => {
+  it('returns reservations for a trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createReservation(testDb, trip.id, { title: 'Flight to Paris', type: 'flight' });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/reservations` });
+      const items = parseResourceResult(result) as { title: string }[];
+      expect(items).toHaveLength(1);
+      expect(items[0].title).toBe('Flight to Paris');
+    });
+  });
+
+  it('returns access denied for unauthorized trip', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/reservations` });
+      const data = parseResourceResult(result) as { error?: string };
+      expect(data.error).toBeTruthy();
     });
   });
 });

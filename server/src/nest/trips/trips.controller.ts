@@ -17,6 +17,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { Request, Response } from 'express';
 import { diskStorage } from 'multer';
 import path from 'path';
@@ -26,10 +28,12 @@ import type { User } from '../../types';
 import { TripsService } from './trips.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { writeAudit, getClientIp, logInfo } from '../../services/auditLog';
-import { isDemoEmail } from '../../services/demo';
-import { NotFoundError, ValidationError } from '../../services/tripService';
-import { saveUnsplashCover, isUnsplashCoverUrl } from '../../services/unsplashService';
+import { getClientIp } from '../audit/client-ip';
+import { logInfo } from '../audit/audit-log.logger';
+import { AuditService } from '../audit/audit.service';
+import { NotFoundError, ValidationError } from './trips.service';
+import { TripCreateDto, TripUpdateDto, TripCopyDto, TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRenameGuestDto } from './trips.dto';
+import { UnsplashService } from '../unsplash/unsplash.service';
 
 const MAX_COVER_SIZE = 20 * 1024 * 1024;
 const coversDir = path.join(__dirname, '../../../uploads/covers');
@@ -65,7 +69,7 @@ const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.get
 @Controller('api/trips')
 @UseGuards(JwtAuthGuard)
 export class TripsController {
-  constructor(private readonly trips: TripsService) {}
+  constructor(private readonly trips: TripsService, private readonly audit: AuditService, private readonly env: RuntimeEnvService, private readonly unsplash: UnsplashService) {}
 
   @Get()
   list(@CurrentUser() user: User, @Query('archived') archived?: string) {
@@ -89,16 +93,14 @@ export class TripsController {
 
   @Post()
   @HttpCode(201)
-  create(@CurrentUser() user: User, @Body() body: Record<string, unknown>, @Req() req: Request) {
+  create(@CurrentUser() user: User, @Body() body: TripCreateDto, @Req() req: Request) {
     if (!this.trips.can('trip_create', user.role, null, user.id, false)) {
       throw new HttpException({ error: 'No permission to create trips' }, 403);
     }
-    const { title, description, currency, reminder_days, day_count } = body as Record<string, never>;
-    if (!title) {
-      throw new HttpException({ error: 'Title is required' }, 400);
-    }
-    let start_date: string | null = (body.start_date as string) || null;
-    let end_date: string | null = (body.end_date as string) || null;
+    // Presence/shape validation happens in the ZodValidationPipe (tripCreateRequestSchema).
+    const { title, description, currency, reminder_days, day_count } = body;
+    let start_date: string | null = body.start_date || null;
+    let end_date: string | null = body.end_date || null;
     if (start_date && !end_date) end_date = toDateStr(addDays(new Date(start_date), 6));
     else if (!start_date && end_date) start_date = toDateStr(addDays(new Date(end_date), -6));
     if (start_date && end_date && new Date(end_date) < new Date(start_date)) {
@@ -106,7 +108,7 @@ export class TripsController {
     }
     const parsedDayCount = day_count ? Math.min(Math.max(Number(day_count) || 7, 1), 365) : undefined;
     const { trip, tripId, reminderDays } = this.trips.create(user.id, { title, description, start_date, end_date, currency, reminder_days, day_count: parsedDayCount });
-    writeAudit({ userId: user.id, action: 'trip.create', ip: getClientIp(req), details: { tripId, title, reminder_days: reminderDays === 0 ? 'none' : `${reminderDays} days` } });
+    this.audit.writeAudit({ userId: user.id, action: 'trip.create', ip: getClientIp(req), details: { tripId, title, reminder_days: reminderDays === 0 ? 'none' : `${reminderDays} days` } });
     if (reminderDays > 0) logInfo(`${user.email} set ${reminderDays}-day reminder for trip "${title}"`);
     return { trip };
   }
@@ -121,7 +123,7 @@ export class TripsController {
   }
 
   @Put(':id')
-  async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: Record<string, unknown>, @Req() req: Request, @Headers('x-socket-id') socketId?: string) {
+  async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripUpdateDto, @Req() req: Request, @Headers('x-socket-id') socketId?: string) {
     const access = this.trips.canAccessTrip(id, user.id);
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
@@ -140,9 +142,9 @@ export class TripsController {
     }
     // A chosen Unsplash cover arrives as an images.unsplash.com hot-link; download
     // it into uploads/covers so the cover survives offline + CDN link-rot (#1277).
-    if (isUnsplashCoverUrl(body.cover_image)) {
+    if (this.unsplash.isUnsplashCoverUrl(body.cover_image)) {
       try {
-        const filename = await saveUnsplashCover(body.cover_image, coversDir);
+        const filename = await this.unsplash.saveUnsplashCover(body.cover_image, coversDir);
         body.cover_image = `/uploads/covers/${filename}`;
       } catch (e) {
         console.error('Unsplash cover download failed:', e);
@@ -158,7 +160,7 @@ export class TripsController {
         this.trips.deleteOldCover(oldCover);
       }
       if (Object.keys(result.changes).length > 0) {
-        writeAudit({ userId: user.id, action: 'trip.update', ip: getClientIp(req), details: { tripId: Number(id), trip: result.newTitle, ...(result.ownerEmail ? { owner: result.ownerEmail } : {}), ...result.changes } });
+        this.audit.writeAudit({ userId: user.id, action: 'trip.update', ip: getClientIp(req), details: { tripId: Number(id), trip: result.newTitle, ...(result.ownerEmail ? { owner: result.ownerEmail } : {}), ...result.changes } });
         if (result.isAdminEdit && result.ownerEmail) logInfo(`Admin ${user.email} edited trip "${result.newTitle}" owned by ${result.ownerEmail}`);
       }
       if (result.newReminder !== result.oldReminder) {
@@ -177,8 +179,8 @@ export class TripsController {
   @Post(':id/cover')
   @UseInterceptors(FileInterceptor('cover', COVER_UPLOAD))
   cover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
-    if (process.env.DEMO_MODE?.toLowerCase() === 'true' && isDemoEmail(user.email)) {
-      throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+    if (isDemoWriteBlocked(this.env, user.email)) {
+      throw new HttpException(DEMO_WRITE_ERROR, 403);
     }
     const access = this.trips.canAccessTrip(id, user.id);
     if (!access?.user_id) {
@@ -202,16 +204,17 @@ export class TripsController {
 
   @Post(':id/copy')
   @HttpCode(201)
-  copy(@CurrentUser() user: User, @Param('id') id: string, @Body('title') title: string | undefined, @Req() req: Request) {
+  copy(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripCopyDto, @Req() req: Request) {
     if (!this.trips.can('trip_create', user.role, null, user.id, false)) {
       throw new HttpException({ error: 'No permission to create trips' }, 403);
     }
     if (!this.trips.canAccessTrip(id, user.id)) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
+    const { title } = body;
     try {
       const newTripId = this.trips.copy(id, user.id, title);
-      writeAudit({ userId: user.id, action: 'trip.copy', ip: getClientIp(req), details: { sourceTripId: Number(id), newTripId, title } });
+      this.audit.writeAudit({ userId: user.id, action: 'trip.copy', ip: getClientIp(req), details: { sourceTripId: Number(id), newTripId, title } });
       return { trip: this.trips.getCopiedTrip(newTripId, user.id) };
     } catch {
       throw new HttpException({ error: 'Failed to copy trip' }, 500);
@@ -228,7 +231,7 @@ export class TripsController {
       throw new HttpException({ error: 'No permission to delete this trip' }, 403);
     }
     const info = this.trips.remove(id, user.id, user.role);
-    writeAudit({ userId: user.id, action: 'trip.delete', ip: getClientIp(req), details: { tripId: info.tripId, trip: info.title, ...(info.ownerEmail ? { owner: info.ownerEmail } : {}) } });
+    this.audit.writeAudit({ userId: user.id, action: 'trip.delete', ip: getClientIp(req), details: { tripId: info.tripId, trip: info.title, ...(info.ownerEmail ? { owner: info.ownerEmail } : {}) } });
     if (info.isAdminDelete && info.ownerEmail) logInfo(`Admin ${user.email} deleted trip "${info.title}" owned by ${info.ownerEmail}`);
     this.trips.broadcast(String(info.tripId), 'trip:deleted', { id: info.tripId }, socketId);
     return { success: true };
@@ -246,7 +249,8 @@ export class TripsController {
 
   @Post(':id/members')
   @HttpCode(201)
-  addMember(@CurrentUser() user: User, @Param('id') id: string, @Body('identifier') identifier: string) {
+  addMember(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripAddMemberDto) {
+    const { identifier } = body;
     const access = this.trips.canAccessTrip(id, user.id);
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
@@ -283,10 +287,11 @@ export class TripsController {
   transferOwnership(
     @CurrentUser() user: User,
     @Param('id') id: string,
-    @Body('newOwnerId') newOwnerId: unknown,
+    @Body() body: TripTransferOwnershipDto,
     @Req() req: Request,
     @Headers('x-socket-id') socketId?: string,
   ) {
+    const { newOwnerId } = body;
     const access = this.trips.canAccessTrip(id, user.id);
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
@@ -296,12 +301,9 @@ export class TripsController {
     if (access.user_id !== user.id) {
       throw new HttpException({ error: 'Only the owner can transfer ownership' }, 403);
     }
-    if (typeof newOwnerId !== 'number') {
-      throw new HttpException({ error: 'newOwnerId is required' }, 400);
-    }
     try {
       const result = this.trips.transferOwnership(id, newOwnerId, user.id);
-      writeAudit({ userId: user.id, action: 'trip.transfer_ownership', ip: getClientIp(req), details: { tripId: Number(id), trip: result.tripTitle, from: result.fromEmail, to: result.toEmail } });
+      this.audit.writeAudit({ userId: user.id, action: 'trip.transfer_ownership', ip: getClientIp(req), details: { tripId: Number(id), trip: result.tripTitle, from: result.fromEmail, to: result.toEmail } });
       // Nudge everyone viewing the trip to re-read it so the new ownership and the
       // recomputed permissions take effect live.
       const updatedTrip = this.trips.get(id, user.id);
@@ -327,14 +329,13 @@ export class TripsController {
 
   @Post(':id/guests')
   @HttpCode(201)
-  createGuest(@CurrentUser() user: User, @Param('id') id: string, @Body('name') name: unknown) {
+  createGuest(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripCreateGuestDto) {
     this.requireOwner(id, user);
-    if (typeof name !== 'string' || !name.trim()) {
-      throw new HttpException({ error: 'Guest name is required' }, 400);
-    }
+    // Whitespace-only names still 400 with the legacy body — the service throws
+    // ValidationError('Guest name is required') after trimming.
     try {
       // No notifyInvite: a guest has no inbox.
-      return this.trips.createGuest(id, name, user.id);
+      return this.trips.createGuest(id, body.name, user.id);
     } catch (e: unknown) {
       if (e instanceof ValidationError) throw new HttpException({ error: e.message }, 400);
       throw e;
@@ -342,13 +343,10 @@ export class TripsController {
   }
 
   @Put(':id/guests/:userId')
-  renameGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body('name') name: unknown) {
+  renameGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: TripRenameGuestDto) {
     this.requireOwner(id, user);
-    if (typeof name !== 'string' || !name.trim()) {
-      throw new HttpException({ error: 'Guest name is required' }, 400);
-    }
     try {
-      if (!this.trips.renameGuest(id, parseInt(userId), name)) {
+      if (!this.trips.renameGuest(id, parseInt(userId), body.name)) {
         throw new HttpException({ error: 'Guest not found' }, 404);
       }
       return { success: true };
@@ -374,7 +372,7 @@ export class TripsController {
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
-    return this.trips.bundle(id, trip);
+    return this.trips.bundle(id, trip, user.id);
   }
 
   @Get(':id/export.ics')

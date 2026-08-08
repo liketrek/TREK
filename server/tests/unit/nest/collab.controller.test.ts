@@ -46,9 +46,8 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
       expect(new CollabController(s).listNotes(user, '5')).toEqual({ notes: [{ id: 1 }] });
     });
 
-    it('POST 403 without collab_edit, 400 without title, else creates + broadcasts + notifies', () => {
+    it('POST 403 without collab_edit, else creates + broadcasts + notifies (empty title now 400s in the Zod pipe)', () => {
       expect(thrown(() => new CollabController(svc({ canEdit: vi.fn().mockReturnValue(false) })).createNote(user, '5', { title: 'T' }))).toEqual({ status: 403, body: { error: 'No permission' } });
-      expect(thrown(() => new CollabController(svc()).createNote(user, '5', {}))).toEqual({ status: 400, body: { error: 'Title is required' } });
       const createNote = vi.fn().mockReturnValue({ id: 9 });
       const broadcast = vi.fn();
       const notifyCollab = vi.fn();
@@ -96,20 +95,18 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
   });
 
   describe('polls', () => {
-    it('POST 400 without question / <2 options, else creates', () => {
-      expect(thrown(() => new CollabController(svc()).createPoll(user, '5', {}))).toEqual({ status: 400, body: { error: 'Question is required' } });
-      expect(thrown(() => new CollabController(svc()).createPoll(user, '5', { question: 'q', options: ['only'] }))).toEqual({ status: 400, body: { error: 'At least 2 options are required' } });
+    it('POST creates (missing question / <2 options now 400 in the Zod pipe)', () => {
       const s = svc({ createPoll: vi.fn().mockReturnValue({ id: 7 }), broadcast: vi.fn() } as Partial<CollabService>);
       expect(new CollabController(s).createPoll(user, '5', { question: 'q', options: ['a', 'b'] })).toEqual({ poll: { id: 7 } });
     });
 
     it('vote maps not_found/closed/invalid_index, else broadcasts the poll', () => {
-      expect(thrown(() => new CollabController(svc({ votePoll: vi.fn().mockReturnValue({ error: 'not_found' }) } as Partial<CollabService>)).votePoll(user, '5', '7', 0))).toEqual({ status: 404, body: { error: 'Poll not found' } });
-      expect(thrown(() => new CollabController(svc({ votePoll: vi.fn().mockReturnValue({ error: 'closed' }) } as Partial<CollabService>)).votePoll(user, '5', '7', 0))).toEqual({ status: 400, body: { error: 'Poll is closed' } });
-      expect(thrown(() => new CollabController(svc({ votePoll: vi.fn().mockReturnValue({ error: 'invalid_index' }) } as Partial<CollabService>)).votePoll(user, '5', '7', 9))).toEqual({ status: 400, body: { error: 'Invalid option index' } });
+      expect(thrown(() => new CollabController(svc({ votePoll: vi.fn().mockReturnValue({ error: 'not_found' }) } as Partial<CollabService>)).votePoll(user, '5', '7', { option_index: 0 }))).toEqual({ status: 404, body: { error: 'Poll not found' } });
+      expect(thrown(() => new CollabController(svc({ votePoll: vi.fn().mockReturnValue({ error: 'closed' }) } as Partial<CollabService>)).votePoll(user, '5', '7', { option_index: 0 }))).toEqual({ status: 400, body: { error: 'Poll is closed' } });
+      expect(thrown(() => new CollabController(svc({ votePoll: vi.fn().mockReturnValue({ error: 'invalid_index' }) } as Partial<CollabService>)).votePoll(user, '5', '7', { option_index: 9 }))).toEqual({ status: 400, body: { error: 'Invalid option index' } });
       const broadcast = vi.fn();
       const s = svc({ votePoll: vi.fn().mockReturnValue({ poll: { id: 7 } }), broadcast } as Partial<CollabService>);
-      expect(new CollabController(s).votePoll(user, '5', '7', 0, 'sock')).toEqual({ poll: { id: 7 } });
+      expect(new CollabController(s).votePoll(user, '5', '7', { option_index: 0 }, 'sock')).toEqual({ poll: { id: 7 } });
       expect(broadcast).toHaveBeenCalledWith('5', 'collab:poll:voted', { poll: { id: 7 } }, 'sock');
     });
 
@@ -127,8 +124,7 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
   });
 
   describe('messages', () => {
-    it('POST 400 over 5000 chars (before access), 400 empty, 400 reply_not_found, else creates + notifies', () => {
-      expect(thrown(() => new CollabController(svc()).createMessage(user, '5', { text: 'x'.repeat(5001) }))).toEqual({ status: 400, body: { error: 'text must be 5000 characters or less' } });
+    it('POST 400 whitespace-only, 400 reply_not_found, else creates + notifies (length checks now in the Zod pipe)', () => {
       expect(thrown(() => new CollabController(svc()).createMessage(user, '5', { text: '   ' }))).toEqual({ status: 400, body: { error: 'Message text is required' } });
       expect(thrown(() => new CollabController(svc({ createMessage: vi.fn().mockReturnValue({ error: 'reply_not_found' }) } as Partial<CollabService>)).createMessage(user, '5', { text: 'hi', reply_to: 99 }))).toEqual({ status: 400, body: { error: 'Reply target message not found' } });
       const broadcast = vi.fn();
@@ -139,12 +135,11 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
       expect(notifyCollab).toHaveBeenCalledWith('5', user, 'hello');
     });
 
-    it('react 400 without emoji, 404 unknown, else broadcasts reactions', () => {
-      expect(thrown(() => new CollabController(svc()).react(user, '5', '3', ''))).toEqual({ status: 400, body: { error: 'Emoji is required' } });
-      expect(thrown(() => new CollabController(svc({ reactMessage: vi.fn().mockReturnValue({ found: false, reactions: [] }) } as Partial<CollabService>)).react(user, '5', '3', '👍'))).toEqual({ status: 404, body: { error: 'Message not found' } });
+    it('react 404 unknown, else broadcasts reactions (empty emoji now 400s in the Zod pipe)', () => {
+      expect(thrown(() => new CollabController(svc({ reactMessage: vi.fn().mockReturnValue({ found: false, reactions: [] }) } as Partial<CollabService>)).react(user, '5', '3', { emoji: '👍' }))).toEqual({ status: 404, body: { error: 'Message not found' } });
       const broadcast = vi.fn();
       const s = svc({ reactMessage: vi.fn().mockReturnValue({ found: true, reactions: [{ emoji: '👍', count: 1 }] }), broadcast } as Partial<CollabService>);
-      expect(new CollabController(s).react(user, '5', '3', '👍', 'sock')).toEqual({ reactions: [{ emoji: '👍', count: 1 }] });
+      expect(new CollabController(s).react(user, '5', '3', { emoji: '👍' }, 'sock')).toEqual({ reactions: [{ emoji: '👍', count: 1 }] });
       expect(broadcast).toHaveBeenCalledWith('5', 'collab:message:reacted', { messageId: 3, reactions: [{ emoji: '👍', count: 1 }] }, 'sock');
     });
 
@@ -159,7 +154,8 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
   });
 
   describe('link preview', () => {
-    it('400 without url, maps an error result to 400, else returns the preview', async () => {
+    it('404 without trip access, 400 without url, maps an error result to 400, else returns the preview', async () => {
+      expect(await thrownAsync(() => new CollabController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).linkPreview(user, '5', 'http://x'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
       expect(await thrownAsync(() => new CollabController(svc()).linkPreview(user, '5', undefined))).toEqual({ status: 400, body: { error: 'URL is required' } });
       expect(await thrownAsync(() => new CollabController(svc({ linkPreview: vi.fn().mockResolvedValue({ error: 'bad url' }) } as Partial<CollabService>)).linkPreview(user, '5', 'http://x'))).toEqual({ status: 400, body: { error: 'bad url' } });
       const s = svc({ linkPreview: vi.fn().mockResolvedValue({ title: 'T', description: null, image: null, url: 'http://x' }) } as Partial<CollabService>);

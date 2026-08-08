@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': '旅を、忘れられない物語に',
   'journey.frontpage.createJourney': '日記を作成',
   'journey.frontpage.activeJourney': '進行中の日記',
+  'journey.frontpage.latestJourney': '最新の日記',
   'journey.frontpage.allJourneys': 'すべての日記',
   'journey.frontpage.journeys': '日記',
   'journey.frontpage.createNew': '新しい日記を作成',
@@ -122,6 +123,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1番目',
   'journey.editor.makeFirst': '1番目にする',
   'journey.editor.searching': '検索中…',
+  'journey.editor.useCurrentLocation': '現在地を使用',
+  'journey.editor.locationPermissionDenied':
+    '位置情報へのアクセスが拒否されました。ブラウザの設定で許可して再試行してください。',
+  'journey.editor.locationTimeout': '位置情報の取得がタイムアウトしました。もう一度お試しください。',
+  'journey.editor.locationUnavailable': '現在地を特定できませんでした。',
+  'journey.editor.locationInsecureContext': '位置情報には安全な接続（HTTPS）が必要です。',
   'journey.mood.amazing': '最高',
   'journey.mood.good': '良い',
   'journey.mood.neutral': '普通',
@@ -228,5 +235,13 @@ const journey: TranslationStrings = {
   'journey.editor.uploadPartialFailed':
     '{total}枚中{failed}枚の写真がアップロードに失敗しました — もう一度保存して再試行してください',
   'journey.photosUploadFailed': '一部の写真をアップロードできませんでした',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

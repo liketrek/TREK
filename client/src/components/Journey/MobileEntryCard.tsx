@@ -1,6 +1,6 @@
 import { MapPin, Camera, Smile, Laugh, Meh, Frown, Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake } from 'lucide-react'
 import { formatLocationName } from '../../utils/formatters'
-import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
+import type { JourneyEntry } from '../../store/journeyStore'
 
 const MOOD_ICONS: Record<string, typeof Smile> = {
   amazing: Laugh,
@@ -25,8 +25,14 @@ const WEATHER_ICONS: Record<string, typeof Sun> = {
   cold: Snowflake,
 }
 
-function photoUrl(p: JourneyPhoto): string {
-  return `/api/photos/${p.photo_id}/thumbnail`
+// Shared journeys hand us photos that only carry `id`, the journey's own
+// photos carry `photo_id` — accept either.
+function photoId(p: { photo_id?: number; id?: number }): number | undefined {
+  return p.photo_id ?? p.id
+}
+
+function photoUrl(id: number): string {
+  return `/api/photos/${id}/thumbnail`
 }
 
 function stripMarkdown(text: string): string {
@@ -53,11 +59,12 @@ export default function MobileEntryCard({ entry, dayLabel, dayColor, isActive, o
   const moodColor = entry.mood ? MOOD_COLORS[entry.mood] : ''
   const WeatherIcon = entry.weather ? WEATHER_ICONS[entry.weather] : null
 
-  const thumbSrc = firstPhoto
-    ? publicPhotoUrl
-      ? publicPhotoUrl((firstPhoto as any).photo_id ?? (firstPhoto as any).id)
-      : photoUrl(firstPhoto as JourneyPhoto)
-    : null
+  const firstPhotoId = firstPhoto ? photoId(firstPhoto) : undefined
+  const thumbSrc = firstPhotoId == null
+    ? null
+    : publicPhotoUrl
+      ? publicPhotoUrl(firstPhotoId)
+      : photoUrl(firstPhotoId)
 
   const date = new Date(entry.entry_date + 'T00:00:00')
   const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })

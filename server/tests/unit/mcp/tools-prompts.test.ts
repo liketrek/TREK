@@ -42,7 +42,7 @@ const { isAddonEnabledMock } = vi.hoisted(() => {
   const isAddonEnabledMock = vi.fn().mockReturnValue(true);
   return { isAddonEnabledMock };
 });
-vi.mock('../../../src/services/adminService', () => ({
+vi.mock('../../../src/nest/addons/addons.bridge', () => ({
   isAddonEnabled: isAddonEnabledMock,
   getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
 }));
@@ -50,15 +50,58 @@ vi.mock('../../../src/services/adminService', () => ({
 const { mockGetTripSummary } = vi.hoisted(() => ({
   mockGetTripSummary: vi.fn(),
 }));
-vi.mock('../../../src/services/tripService', () => ({
+// prompts.ts consumes getTripSummary via the trips bridge since the trip fold.
+vi.mock('../../../src/nest/trips/trips.bridge', () => ({
   getTripSummary: mockGetTripSummary,
+  getTripOwner: vi.fn(),
+  listMembers: vi.fn(() => ({ members: [] })),
 }));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, addTripMember, createPackingItem, createBudgetItem } from '../../helpers/factories';
-import { registerMcpPrompts } from '../../../src/mcp/tools/prompts';
+import { createTestRegistry } from '@trek/nest-mcp';
+import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nest-mcp-policy';
+import { TripsMcp } from '../../../src/nest/trips/trips.mcp';
+import { PackingMcp } from '../../../src/nest/packing/packing.mcp';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import { BudgetMcp } from '../../../src/nest/budget/budget.mcp';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { AuthMcp } from '../../../src/nest/auth/auth.mcp';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import type { AuthService } from '../../../src/nest/auth/auth.service';
+import type { TripsService } from '../../../src/nest/trips/trips.service';
+import type { TodoService } from '../../../src/nest/todo/todo.service';
+import type { CollabService } from '../../../src/nest/collab/collab.service';
+
+// The trip-summary prompt moved to the DI-discovered TripsMcp — its cases below
+// exercise it through a hand-built registry over a stub TripsService whose
+// getTripSummary is the same controllable mock the legacy path used.
+const tripsStub = {
+  canAccessTrip: (tripId: number, userId: number) => dbMock.canAccessTrip(tripId, userId),
+  getTripSummary: (tripId: number, viewerUserId?: number) => mockGetTripSummary(tripId, viewerUserId),
+} as unknown as TripsService;
+const tripsMcp = new TripsMcp(tripsStub, { listItems: () => [] } as unknown as TodoService, { listPolls: () => [], countMessages: () => 0 } as unknown as CollabService);
+
+// The three remaining prompts moved to their domains' @McpController classes:
+// packing-list, budget-overview and the static-token notice. Built over the same
+// in-memory DB so the cases below keep asserting real rows.
+const promptDbs = () => new DatabaseService(testDb);
+const authStub = { isDemoUser: () => false } as unknown as AuthService;
+const packingMcp = new PackingMcp(
+  new PackingService(promptDbs(), new PermissionsService(promptDbs()), new RealtimeService()),
+  authStub,
+);
+const budgetMcp = new BudgetMcp(
+  new BudgetService(promptDbs(), new PermissionsService(promptDbs()), new ExchangeRatesService(), new RealtimeService()),
+  new ExchangeRatesService(),
+  promptDbs(),
+);
+const authMcp = new AuthMcp();
 
 beforeAll(() => {
   createTables(testDb);
@@ -109,7 +152,10 @@ afterAll(() => {
 /** Build a fresh McpServer with prompts registered for the given userId. */
 function buildServer(userId: number, opts: { isStaticToken?: boolean } = {}): McpServer {
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
-  registerMcpPrompts(server, userId, opts.isStaticToken ?? false);
+  // Every prompt is DI-discovered now; attach them the way registerTools does in
+  // production, including the isStaticToken flag the notice's `when` gate reads.
+  createTestRegistry([tripsMcp, packingMcp, budgetMcp, authMcp], { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess })
+    .attach(server, { userId, scopes: null, isStaticToken: opts.isStaticToken ?? false });
   return server;
 }
 

@@ -1,5 +1,5 @@
 import { db, canAccessTrip } from '../db/database';
-import { avatarUrl } from './avatarUrl';
+import { avatarUrl } from '../nest/common/avatarUrl';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../types';
 import { broadcastToUser } from '../websocket';
 import {

@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': '액티비티',
   'map.showAllConnections': '모든 예약 경로 표시',
   'map.hideAllConnections': '모든 예약 경로 숨기기',
+  'map.baseLayer.default': '지도',
+  'map.baseLayer.satellite': '위성',
+  'map.baseLayer.switchToSatellite': '위성 보기로 전환',
+  'map.baseLayer.switchToDefault': '지도 보기로 전환',
 };
 export default map;

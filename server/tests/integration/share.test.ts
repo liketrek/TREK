@@ -49,7 +49,14 @@ import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser, createTrip, addTripMember, createDay, createPlace, createDayAssignment, createDayNote } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import * as placePhotoCache from '../../src/services/placePhotoCache';
+import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
+import { DatabaseService } from '../../src/nest/database/database.service';
+import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
+import { db as sharedDb } from '../../src/db/database';
+
+// A real instance over the same connection the app uses — these cases write a
+// cache entry and then read it back through the HTTP route.
+const placePhotoCache = new PlacePhotoCacheService(new DatabaseService(sharedDb), new RuntimeEnvService());
 import fs from 'node:fs';
 
 let nestApp: INestApplication;

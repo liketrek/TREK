@@ -8,11 +8,11 @@ import {
   WikiNotFound,
   type WikiPage,
   type WikiNavSection,
-} from '../../services/wikiService';
+} from './wiki';
 
 /**
  * /api/help — embedded TREK wiki, served from the `wiki/` directory that ships
- * with the app (see wikiService for the GitHub fallback). Content is public docs,
+ * with the app (see wiki.ts for the GitHub fallback). Content is public docs,
  * so these endpoints are unauthenticated; that also lets <img> tags load the
  * proxied assets without sending credentials.
  */

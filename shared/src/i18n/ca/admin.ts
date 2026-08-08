@@ -160,6 +160,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Error en carregar les plantilles',
   'admin.packingTemplates.createError': 'Error en crear la plantilla',
   'admin.packingTemplates.deleteError': 'Error en eliminar la plantilla',
+  'admin.packingTemplates.deleteCategoryError': 'No es pot eliminar la categoria',
+  'admin.packingTemplates.deleteItemError': 'No es pot eliminar aquest element',
   'admin.packingTemplates.saveError': 'Error en desar',
   'admin.tabs.addons': 'Complements',
   'admin.addons.title': 'Complements',
@@ -454,6 +456,15 @@ const admin: TranslationStrings = {
   'admin.plugins.homepage': 'Lloc web',
   'admin.plugins.requiresTrek': 'Requereix TREK {version}+',
   'admin.plugins.reviewedOn': 'Verificat el {date}',
+  'admin.plugins.perm.hook:map-layer-provider': 'Dibuixar rutes, corredors i zones al mapa del viatge',
+  'admin.plugins.perm.hook:route-provider':
+    'Oferir perfils de ruta amb què el planificador pot calcular els dies (p. ex. rutes per a cotxe elèctric amb parades de recàrrega)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Afegir entrades horàries al pla del dia (parades de recàrrega, marges de seguretat)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Acolorir els dies del pla del dia (per exemple, a quin tram del viatge pertany un dia)',
+  'admin.plugins.perm.geolocation:read':
+    "Consultar la teva ubicació en temps real mentre una de les seves vistes és oberta (el teu navegador també t'ho demanarà)",
   'admin.plugins.updateConsentTitle': 'Aquesta actualització necessita permisos nous',
   'admin.plugins.updateConsentBody':
     "{name} v{version} demana permisos que encara no has concedit. La versió nova està instal·lada, però roman desactivada fins que l'aprovis.",
@@ -554,6 +565,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Proporciona esdeveniments de calendari',
   'admin.plugins.cap.placeDetails': 'Enriqueix els llocs',
   'admin.plugins.cap.warnings': 'Marca problemes',
+  'admin.plugins.cap.mapLayers': 'Dibuixa al mapa',
+  'admin.plugins.cap.routing': 'Calcula rutes',
+  'admin.plugins.cap.daySchedule': 'Afegeix horaris al pla',
+  'admin.plugins.cap.dayTint': 'Acoloreix els dies',
+  'admin.plugins.cap.geolocation': 'Llegeix la teva ubicació',
   'admin.plugins.cap.events': "Reacciona a l'activitat",
   'admin.plugins.cap.requiresAddon': 'Requereix {addon}',
   'admin.plugins.cap.dependsOn': 'Necessita {id} {version}',

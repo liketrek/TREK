@@ -8,7 +8,7 @@ import type { MemoriesService } from '../../../src/nest/memories/memories.servic
 import type { User } from '../../../src/types';
 
 const { getClientIp } = vi.hoisted(() => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
-vi.mock('../../../src/services/auditLog', () => ({ getClientIp }));
+vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp }));
 
 const user = { id: 7, role: 'user', email: 'u@example.test' } as User;
 

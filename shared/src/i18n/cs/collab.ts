@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': 'Přístup pouze pro čtení k tomuto chatu',
+  'collab.chat.messageOptions': 'Možnosti zprávy',
+  'collab.polls.confirmDeleteTitle': 'Smazat anketu?',
+  'collab.polls.confirmDeleteBody': 'Tato anketa bude trvale smazána.',
+  'collab.polls.countdownDaysHours': 'Zbývá {d} d {h} h',
+  'collab.polls.countdownHoursMinutes': 'Zbývá {h} h {m} min',
+  'collab.polls.countdownMinutes': 'Zbývá {m} min',
+  'collab.polls.clearDeadline': 'Zrušit termín',
   'collab.tabs.chat': 'Chat',
   'collab.tabs.notes': 'Poznámky',
   'collab.tabs.polls': 'Hlasování',
@@ -47,6 +55,8 @@ const collab: TranslationStrings = {
   'collab.notes.attachFiles': 'Přiložit soubory',
   'collab.notes.noCategoriesYet': 'Zatím žádné kategorie',
   'collab.notes.emptyDesc': 'Vytvořte poznámku a začněte',
+  'collab.notes.content': 'Obsah',
+  'collab.notes.removeFile': 'Odebrat {name}',
   'collab.notes.contentPlaceholder': 'Napište něco...',
   'collab.notes.categoryPlaceholder': 'Kategorie',
   'collab.notes.newCategory': 'Nová kategorie...',

@@ -295,7 +295,7 @@ If `ALLOWED_ORIGINS` is not set, TREK allows all origins (development default). 
 
 ## Place photos not loading / place thumbnail shows default map pin (Google Maps API key configured)
 
-**Cause:** When a Google Maps API key is set, TREK fetches photo references and image bytes from the Google Places API on the server side. If the server-side call is rejected or returns no photos, the `/place-photo/:id` endpoint returns 404 and the place falls back to the default map-pin thumbnail. The most common causes are:
+**Cause:** When a Google Maps API key is set, TREK fetches photo references and image bytes from the Google Places API on the server side. If the server-side call is rejected or returns no photos, the `/place-photo/:id` endpoint answers `200 { "photoUrl": null }` and the place falls back to the default map-pin thumbnail. The image proxy behind it, `/place-photo/:id/bytes`, answers `204 No Content` when it has nothing cached — neither endpoint returns 404, so a trip full of photo-less places cannot trip a 404 rate limit in a reverse proxy or IPS. The most common causes are:
 
 1. **HTTP referrer restriction on the API key.** Google Cloud Console lets you restrict a key to specific HTTP referrers. Because TREK calls Google from the server (not the browser), it sends a `Referer` header derived from `APP_URL`. If `APP_URL` is not set, the fallback is `http://localhost:<PORT>`, which will not match any domain whitelist in GCP.
 

@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "baseUrl": ".",
+    "strict": true,
+    "noEmit": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "6.0",
+    // The MCP SDK's package.json uses a wildcard exports pattern with extension-less targets
+    // (e.g. "./*": "./dist/esm/*") which TypeScript cannot resolve — it only strips .js suffixes.
+    // These paths manually redirect to the CJS dist until the SDK fixes its exports map
+    // (same workaround as server/tsconfig.json; node_modules are hoisted to the repo root).
+    "paths": {
+      "@modelcontextprotocol/sdk/server/mcp": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.d.ts"],
+      "@modelcontextprotocol/sdk/client/index": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.d.ts"],
+      "@modelcontextprotocol/sdk/inMemory": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/inMemory.d.ts"],
+      "@modelcontextprotocol/sdk/types": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/types.d.ts"]
+    }
+  },
+  "include": ["src", "tests"],
+  "exclude": ["node_modules", "dist"]
+}

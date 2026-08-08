@@ -1,9 +1,8 @@
-import { useState } from 'react'
 import {
   X, Pencil, Trash2, MapPin, Clock, Camera,
   Laugh, Smile, Meh, Frown,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake,
-  ThumbsUp, ThumbsDown, ChevronDown,
+  ThumbsUp, ThumbsDown,
 } from 'lucide-react'
 import JournalBody from './JournalBody'
 import { formatLocationName } from '../../utils/formatters'

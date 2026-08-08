@@ -1,17 +1,18 @@
 import { Body, Controller, Get, HttpCode, HttpException, Post, Put, UseGuards } from '@nestjs/common';
+import { MASKED_SETTING_VALUE } from '@trek/shared';
 import type { User } from '../../types';
 import { SettingsService } from './settings.service';
+import { SettingUpsertDto, SettingsBulkDto } from './settings.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
-const MASKED_VALUE = '••••••••';
-
 /**
- * /api/settings — per-user key/value preferences.
- *
- * Byte-identical to the legacy Express route (server/src/routes/settings.ts):
- * get-all, single upsert (400 without a key, no-op on the masked sentinel), and
- * bulk upsert (400 without an object, 500 on a write error). All answer 200.
+ * /api/settings — per-user key/value preferences: get-all, single upsert
+ * (no-op on the masked sentinel), and bulk upsert (500 on a write error). All
+ * answer 200. Bodies validate against the @trek/shared settings schemas via
+ * the DTO classes in settings.dto.ts + the global ZodValidationPipe (400 with
+ * the standard `{ error }` envelope on mismatch — this replaced the legacy
+ * bespoke 'Key is required' / 'Settings object is required' checks).
  */
 @Controller('api/settings')
 @UseGuards(JwtAuthGuard)
@@ -24,12 +25,9 @@ export class SettingsController {
   }
 
   @Put()
-  upsert(@CurrentUser() user: User, @Body() body: { key?: string; value?: unknown }) {
-    if (!body.key) {
-      throw new HttpException({ error: 'Key is required' }, 400);
-    }
+  upsert(@CurrentUser() user: User, @Body() body: SettingUpsertDto) {
     // The client echoes a redacted secret back unchanged — treat as a no-op.
-    if (body.value === MASKED_VALUE) {
+    if (body.value === MASKED_SETTING_VALUE) {
       return { success: true, key: body.key, unchanged: true };
     }
     this.settings.upsertSetting(user.id, body.key, body.value);
@@ -38,12 +36,9 @@ export class SettingsController {
 
   @Post('bulk')
   @HttpCode(200) // Express answers bulk with res.json (200), not the POST-default 201.
-  bulk(@CurrentUser() user: User, @Body() body: { settings?: unknown }) {
-    if (!body.settings || typeof body.settings !== 'object') {
-      throw new HttpException({ error: 'Settings object is required' }, 400);
-    }
+  bulk(@CurrentUser() user: User, @Body() body: SettingsBulkDto) {
     try {
-      const updated = this.settings.bulkUpsertSettings(user.id, body.settings as Record<string, unknown>);
+      const updated = this.settings.bulkUpsertSettings(user.id, body.settings);
       return { success: true, updated };
     } catch (err) {
       console.error('Error saving settings:', err);

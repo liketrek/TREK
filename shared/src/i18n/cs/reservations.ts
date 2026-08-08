@@ -58,6 +58,7 @@ const reservations: TranslationStrings = {
   'reservations.type.cruise': 'Plavba',
   'reservations.type.event': 'Událost',
   'reservations.type.tour': 'Prohlídka',
+  'reservations.type.parking': 'Parkování',
   'reservations.type.other': 'Jiné',
   'reservations.type.bus': 'Autobus',
   'reservations.type.ferry': 'Trajekt',
@@ -149,6 +150,8 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.syncedHint': 'Synchronizováno z AirTrail – úpravy zůstávají synchronní v obou směrech.',
   'reservations.airtrail.notSynced': 'Nesynchronizováno',
   'reservations.airtrail.notSyncedHint': 'Tento let byl v AirTrail odstraněn a již se nesynchronizuje.',
+  'reservations.airtrail.layoverHint':
+    'Importováno z AirTrail. Let s více úseky a mezipřistáním nemá jediný let AirTrail, se kterým by se synchronizoval, takže zůstává jednorázovým importem.',
   'reservations.airtrail.loadError': 'Vaše lety z AirTrail se nepodařilo načíst.',
   'reservations.airtrail.imported': 'Importováno letů: {count}',
   'reservations.airtrail.skippedDuplicate': 'Již v tomto výletu: {count}, přeskočeno',
@@ -168,5 +171,8 @@ const reservations: TranslationStrings = {
   'reservations.removeExpense': 'Remove expense',
   'reservations.urlLabel': 'Odkaz',
   'reservations.urlPlaceholder': 'https://...',
+  'reservations.travelers.label': 'Cestující',
+  'reservations.travelers.assign': 'Přiřadit cestující',
+  'reservations.travelers.none': 'Zatím žádní účastníci výletu.',
 };
 export default reservations;

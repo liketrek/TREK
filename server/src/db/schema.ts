@@ -155,6 +155,15 @@ function createTables(db: Database.Database): void {
       PRIMARY KEY (place_id, tag_id)
     );
 
+    CREATE TABLE IF NOT EXISTS place_ratings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(place_id, user_id)
+    );
+
     CREATE TABLE IF NOT EXISTS day_assignments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       day_id INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
@@ -305,6 +314,7 @@ function createTables(db: Database.Database): void {
       block_weekends INTEGER DEFAULT 1,
       holidays_enabled INTEGER DEFAULT 0,
       holidays_region TEXT DEFAULT '',
+      school_holidays_enabled INTEGER DEFAULT 0,
       company_holidays_enabled INTEGER DEFAULT 1,
       carry_over_enabled INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -365,6 +375,7 @@ function createTables(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS vacay_holiday_calendars (
       id        INTEGER PRIMARY KEY AUTOINCREMENT,
       plan_id   INTEGER NOT NULL REFERENCES vacay_plans(id) ON DELETE CASCADE,
+      type      TEXT NOT NULL DEFAULT 'public_holiday',
       region    TEXT NOT NULL,
       label     TEXT,
       color     TEXT NOT NULL DEFAULT '#fecaca',
@@ -423,6 +434,15 @@ function createTables(db: Database.Database): void {
       sort_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS collection_place_ratings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      collection_place_id INTEGER NOT NULL REFERENCES collection_places(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(collection_place_id, user_id)
     );
 
     CREATE TABLE IF NOT EXISTS collection_place_tags (

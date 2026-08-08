@@ -159,6 +159,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Fout bij laden van sjablonen',
   'admin.packingTemplates.createError': 'Fout bij aanmaken van sjabloon',
   'admin.packingTemplates.deleteError': 'Fout bij verwijderen van sjabloon',
+  'admin.packingTemplates.deleteCategoryError': 'Categorie verwijderen mislukt',
+  'admin.packingTemplates.deleteItemError': 'Item verwijderen mislukt',
   'admin.packingTemplates.saveError': 'Fout bij opslaan',
   'admin.tabs.addons': 'Add-ons',
   'admin.tabs.plugins': 'Plugins',
@@ -318,6 +320,14 @@ const admin: TranslationStrings = {
     'Kolommen en acties toevoegen aan reisweergaven (boekingen, plaatsen, dagen)',
   'admin.plugins.perm.hook:map-marker-provider':
     "Markeringen aan de reiskaart toevoegen (bijv. boekingen of POI's tonen)",
+  'admin.plugins.perm.hook:map-layer-provider': 'Routes, corridors en zones op de reiskaart tekenen',
+  'admin.plugins.perm.hook:route-provider':
+    'Routeprofielen aanbieden waarmee de planner dagroutes berekent (bijv. EV-routering met laadstops)',
+  'admin.plugins.perm.hook:day-schedule-provider': 'Tijdsitems aan het dagplan koppelen (laadstops, buffertijden)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Dagen in het dagplan een kleur geven (bijvoorbeeld bij welk deel van de reis een dag hoort)',
+  'admin.plugins.perm.geolocation:read':
+    'Je live locatie opvragen zolang een van zijn weergaven open is (je browser vraagt zelf ook nog om toestemming)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Tekstsecties toevoegen aan de PDF-export van de reis',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Landen markeren op de Atlas-wereldkaart (bijv. wensenlijsten of reisadviezen)',
@@ -436,6 +446,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Levert kalenderevenementen',
   'admin.plugins.cap.placeDetails': 'Verrijkt plekken',
   'admin.plugins.cap.warnings': 'Signaleert problemen',
+  'admin.plugins.cap.mapLayers': 'Tekent op de kaart',
+  'admin.plugins.cap.routing': 'Biedt routering aan',
+  'admin.plugins.cap.daySchedule': 'Voegt plantijden toe',
+  'admin.plugins.cap.dayTint': 'Kleurt dagen',
+  'admin.plugins.cap.geolocation': 'Leest je locatie',
   'admin.plugins.cap.events': 'Reageert op activiteit',
   'admin.plugins.cap.requiresAddon': 'Vereist {addon}',
   'admin.plugins.cap.dependsOn': 'Vereist {id} {version}',

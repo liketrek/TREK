@@ -1,6 +1,14 @@
 import type { TranslationStrings } from '../types';
 
 const collab: TranslationStrings = {
+  'collab.chat.readOnly': 'Chỉ có quyền xem trò chuyện này',
+  'collab.chat.messageOptions': 'Tùy chọn tin nhắn',
+  'collab.polls.confirmDeleteTitle': 'Xóa khảo sát?',
+  'collab.polls.confirmDeleteBody': 'Khảo sát này sẽ bị xóa vĩnh viễn.',
+  'collab.polls.countdownDaysHours': 'Còn {d} ngày {h} giờ',
+  'collab.polls.countdownHoursMinutes': 'Còn {h} giờ {m} phút',
+  'collab.polls.countdownMinutes': 'Còn {m} phút',
+  'collab.polls.clearDeadline': 'Xóa hạn chót',
   'collab.tabs.chat': 'Trò chuyện',
   'collab.tabs.notes': 'Ghi chú',
   'collab.tabs.polls': 'Thăm dò ý kiến',
@@ -29,6 +37,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Bắt đầu nắm bắt ý tưởng và kế hoạch',
   'collab.notes.all': 'Tất cả',
   'collab.notes.titlePlaceholder': 'tiêu đề ghi chú',
+  'collab.notes.content': 'Nội dung',
+  'collab.notes.removeFile': 'Xóa {name}',
   'collab.notes.contentPlaceholder': 'Viết một cái gì đó...',
   'collab.notes.categoryPlaceholder': 'Loại',
   'collab.notes.newCategory': 'Thể loại mới...',

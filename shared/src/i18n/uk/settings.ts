@@ -24,7 +24,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Шаблон карти',
   'settings.mapTemplatePlaceholder.select': 'Виберіть шаблон...',
   'settings.mapDefaultHint': 'Залиште порожнім для OpenStreetMap (за замовчуванням)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-шаблон для тайлів карти',
   'settings.mapProvider': 'Провайдер карти',
   'settings.mapProviderHint': 'Застосовується до Trip Planner та Journey. Atlas завжди використовує Leaflet.',
@@ -79,6 +78,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Нагадування про поїздку',
   'settings.notifyTodoDue': 'Завдання до терміну',
   'settings.notifyVacayInvite': "Запрошення об'єднання Vacay",
+  'settings.notifyVacayShare': 'Спільний доступ до календарів Vacay',
   'settings.notifyPhotosShared': 'Спільні фото (Immich)',
   'settings.notifyCollabMessage': 'Повідомлення чату (Collab)',
   'settings.notifyPackingTagged': 'Список речей: призначення',
@@ -255,6 +255,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Фото профілю оновлено',
   'settings.avatarRemoved': 'Фото профілю видалено',
   'settings.avatarError': 'Помилка завантаження',
+  'settings.avatarRemoveError': 'Помилка видалення',
   'settings.bookingLabels': 'Підписи маршрутів бронювань',
   'settings.bookingLabelsHint': 'Показує назви станцій / аеропортів на карті. Якщо вимкнено, показується лише значок.',
   'settings.notifyVersionAvailable': 'Доступна нова версія',
@@ -298,8 +299,9 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.machineClientUsage':
     'Отримати токен: POST /oauth/token з grant_type=client_credentials, client_id і client_secret. Без браузера, без токена оновлення.',
   'settings.oauth.badge.machine': 'машина',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Валюта відображення',
+  'settings.currencyHint':
+    'Суми в розділі «Витрати» відображаються в цій валюті лише для перегляду — початкові суми не змінюються.',
   'settings.currencyTrip': 'Валюта подорожі',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
@@ -428,6 +430,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Нижня панель навігації',
+  'settings.appearance.mobileNav.hint':
+    'Виберіть, які елементи показувати на панелі, а які — під «Ще». «Головна» завжди залишається першою.',
+  'settings.appearance.mobileNav.inBar': 'На панелі',
+  'settings.appearance.mobileNav.underMore': 'Під «Ще»',
+  'settings.appearance.mobileNav.moreEmpty': 'Поки що порожньо — усе вміщається на панелі.',
+  'settings.appearance.mobileNav.pinned': 'Закріплено',
+  'settings.appearance.mobileNav.toMore': 'Перемістити під «Ще»',
+  'settings.appearance.mobileNav.toBar': 'Перемістити на панель',
+  'settings.appearance.dashOrder': 'Порядок панелі',
+  'settings.appearance.dashOrder.hint':
+    'Змініть порядок, у якому список подорожей і віджети розташовуються на панелі телефона. Виділена подорож завжди залишається вгорі.',
+  'settings.appearance.dashOrder.trips': 'Подорожі',
+  'settings.appearance.dashOrder.hidden': 'Приховано',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -494,7 +510,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Коли',
   'settings.pluginActivity.columns.status': 'Результат',
   'settings.alwaysShowRoutes': 'Завжди показувати маршрути бронювань',
-  'settings.alwaysShowRoutesHint': 'Автоматично показує на карті маршрут для кожного рейсу, поїзда та іншого бронювання — без потреби вмикати це окремо для кожного елемента.',
+  'settings.alwaysShowRoutesHint':
+    'Автоматично показує на карті маршрут для кожного рейсу, поїзда та іншого бронювання — без потреби вмикати це окремо для кожного елемента.',
 };
 
 export default settings;

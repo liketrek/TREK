@@ -55,8 +55,8 @@ import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser, createTrip } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import { setupWebSocket } from '../../src/websocket';
-import { createEphemeralToken } from '../../src/services/ephemeralTokens';
-import { createWsToken } from '../../src/services/authService';
+import { createEphemeralToken } from '../../src/nest/auth/ephemeral-tokens';
+import { createWsToken } from '../../src/nest/auth/auth.bridge';
 
 let server: http.Server;
 let wsUrl: string;

@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState, useRef, useEffect } from 'react'
 import { Upload } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -215,7 +215,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
 
   if (!isOpen) return null
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       onClick={handleClose}
       className="bg-[rgba(0,0,0,0.4)]"

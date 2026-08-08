@@ -1,5 +1,16 @@
 import type { JourneyEntry } from '../../store/journeyStore'
 import { GRADIENTS } from './JourneyDetailPage.constants'
+import { GeoOnceError } from '../../hooks/useGeolocation'
+
+// Shared by the desktop entry editor and the mobile entry sheet so a failed
+// one-shot position fix surfaces the same translated message everywhere.
+export function geoOnceErrorKey(err: unknown): string {
+  const code = err instanceof GeoOnceError ? err.code : 'unavailable'
+  return code === 'permission-denied' ? 'journey.editor.locationPermissionDenied'
+    : code === 'timeout' ? 'journey.editor.locationTimeout'
+    : code === 'insecure-context' ? 'journey.editor.locationInsecureContext'
+    : 'journey.editor.locationUnavailable'
+}
 
 export function pickGradient(id: number): string {
   return GRADIENTS[id % GRADIENTS.length]
@@ -13,6 +24,24 @@ export function groupByDate(entries: JourneyEntry[]): Map<string, JourneyEntry[]
     groups.get(d)!.push(e)
   }
   return groups
+}
+
+export function createDraftJourneyEntry(journeyId: number, now = new Date()): JourneyEntry {
+  const entryDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const entryTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  return {
+    id: 0,
+    journey_id: journeyId,
+    author_id: 0,
+    type: 'entry',
+    entry_date: entryDate,
+    entry_time: entryTime,
+    visibility: 'private',
+    sort_order: 0,
+    photos: [],
+    created_at: 0,
+    updated_at: 0,
+  }
 }
 
 export function formatDate(d: string, locale?: string): { weekday: string; month: string; day: number } {
@@ -44,4 +73,58 @@ export function groupPhotosByDate(photos: any[]): { date: string; label: string;
       : new Date(date + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
     assets,
   }))
+}
+
+export interface ProviderPhotoAsset {
+  id: string
+  takenAt?: string | null
+  lat?: number | null
+  lng?: number | null
+  [key: string]: unknown
+}
+
+export interface GeoPoint {
+  lat: number
+  lng: number
+}
+
+export function isValidGeoPoint(point: Partial<GeoPoint> | null | undefined): point is GeoPoint {
+  return !!point && Number.isFinite(point.lat) && Number.isFinite(point.lng)
+    && point.lat >= -90 && point.lat <= 90 && point.lng >= -180 && point.lng <= 180
+}
+
+/** Return the great-circle distance in metres between two coordinates. */
+export function distanceBetweenGeoPoints(a: GeoPoint, b: GeoPoint): number {
+  const earthRadius = 6371000
+  const toRadians = (value: number) => value * Math.PI / 180
+  const dLat = toRadians(b.lat - a.lat)
+  const dLng = toRadians(b.lng - a.lng)
+  const latA = toRadians(a.lat)
+  const latB = toRadians(b.lat)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(latA) * Math.cos(latB) * Math.sin(dLng / 2) ** 2
+  return 2 * earthRadius * Math.asin(Math.sqrt(Math.min(1, h)))
+}
+
+/**
+ * Keep every asset, but put assets with usable GPS nearest to the selected
+ * Journey location. The original provider order is the stable fallback.
+ */
+export function sortProviderPhotos<T extends ProviderPhotoAsset>(photos: T[], location?: GeoPoint | null): T[] {
+  if (!isValidGeoPoint(location)) return photos
+
+  return photos
+    .map((photo, index) => ({
+      photo,
+      index,
+      distance: isValidGeoPoint({ lat: photo.lat ?? NaN, lng: photo.lng ?? NaN })
+        ? distanceBetweenGeoPoints(location, { lat: photo.lat!, lng: photo.lng! })
+        : null,
+    }))
+    .sort((a, b) => {
+      if (a.distance === null && b.distance === null) return a.index - b.index
+      if (a.distance === null) return 1
+      if (b.distance === null) return -1
+      return a.distance - b.distance || a.index - b.index
+    })
+    .map(item => item.photo)
 }

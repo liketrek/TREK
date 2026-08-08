@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Modifica prenotazione',
   'inspector.participants': 'Partecipanti',
   'inspector.trackStats': 'Dati del percorso',
+  'inspector.trackColor': 'Colore del percorso',
+  'inspector.trackColorAuto': 'Colore automatico',
+  'inspector.trackColorCustom': 'Scegli colore personalizzato',
 };
 export default inspector;

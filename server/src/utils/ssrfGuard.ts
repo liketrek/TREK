@@ -1,8 +1,10 @@
 import dns from 'node:dns/promises';
 import { Agent } from 'undici';
+import { readEnv } from '../app-config';
 import { embeddedTransitionIpv4 } from './ipv6';
 
-const ALLOW_INTERNAL_NETWORK = process.env.ALLOW_INTERNAL_NETWORK?.toLowerCase() === 'true';
+// Frozen at import on purpose (legacy timing; tests reload the module to change it).
+const ALLOW_INTERNAL_NETWORK = readEnv().net.allowInternalNetwork;
 
 export interface SsrfResult {
   allowed: boolean;

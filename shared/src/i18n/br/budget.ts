@@ -1,6 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const budget: TranslationStrings = {
+  'costs.confirm.deleteTitle': 'Excluir despesa?',
+  'costs.confirm.deleteBody': '"{name}" será excluído permanentemente.',
   'budget.title': 'Orçamento',
   'budget.exportCsv': 'Exportar CSV',
   'budget.emptyTitle': 'Nenhum orçamento criado ainda',

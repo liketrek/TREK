@@ -66,7 +66,7 @@ describe('API-DOCS (#1412) — flag-gated OpenAPI surface', () => {
     testDb.close();
   });
 
-  it('DOCS-001 — the kill switch parses the env strictly', () => {
+  it('DOCS-001 — the kill switch parses the boolean-like env family', () => {
     const prev = process.env.TREK_API_DOCS_ENABLED;
     try {
       process.env.TREK_API_DOCS_ENABLED = 'true';
@@ -75,8 +75,9 @@ describe('API-DOCS (#1412) — flag-gated OpenAPI surface', () => {
       expect(apiDocsEnabled()).toBe(true);
       process.env.TREK_API_DOCS_ENABLED = 'false';
       expect(apiDocsEnabled()).toBe(false);
+      // '1' counts as truthy since the unified boolean coercion (app-config).
       process.env.TREK_API_DOCS_ENABLED = '1';
-      expect(apiDocsEnabled()).toBe(false);
+      expect(apiDocsEnabled()).toBe(true);
       delete process.env.TREK_API_DOCS_ENABLED;
       expect(apiDocsEnabled()).toBe(false);
     } finally {
@@ -104,11 +105,14 @@ describe('API-DOCS (#1412) — flag-gated OpenAPI surface', () => {
 
   it('DOCS-004 — Zod request bodies are lifted into the spec (no double annotation)', async () => {
     const res = await request(instance).get('/api/docs-json');
-    // collections create validates with collectionCreateRequestSchema via
-    // ZodValidationPipe — the enricher must surface its object schema.
+    // collections create validates with CollectionCreateDto (createZodDto over
+    // collectionCreateRequestSchema) via the global ZodValidationPipe — the DTO
+    // metatype must surface as a $ref to a component object schema.
     const create = res.body.paths['/api/addons/collections']?.post;
     expect(create).toBeDefined();
-    const schema = create.requestBody?.content?.['application/json']?.schema;
+    const ref = create.requestBody?.content?.['application/json']?.schema?.$ref as string | undefined;
+    expect(ref).toMatch(/^#\/components\/schemas\//);
+    const schema = res.body.components.schemas[ref!.split('/').pop()!];
     expect(schema?.type).toBe('object');
     expect(schema?.properties?.name).toBeDefined();
   });

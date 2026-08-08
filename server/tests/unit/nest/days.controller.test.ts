@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import { DaysController } from '../../../src/nest/days/days.controller';
 import { DayNotesController } from '../../../src/nest/days/day-notes.controller';
-import { DayReorderError } from '../../../src/services/dayService';
+import { DayNoteCreateDto, DayNoteUpdateDto } from '../../../src/nest/days/day-notes.dto';
+import { DayReorderError } from '../../../src/nest/days/days.service';
 import type { DaysService } from '../../../src/nest/days/days.service';
 import type { DayNotesService } from '../../../src/nest/days/day-notes.service';
 import type { User } from '../../../src/types';
@@ -117,19 +118,16 @@ describe('DaysController (parity with the legacy /api/trips/:tripId/days route)'
 });
 
 describe('DayNotesController (parity with the legacy /api/.../days/:dayId/notes route)', () => {
-  it('400 on an over-long text BEFORE the trip-access check (middleware order)', () => {
-    const verifyTripAccess = vi.fn().mockReturnValue(undefined); // would 404 if reached
-    const svc = notesSvc({ verifyTripAccess });
-    expect(thrown(() => new DayNotesController(svc).create(user, '5', '3', { text: 'x'.repeat(501) }))).toEqual({
-      status: 400, body: { error: 'text must be 500 characters or less' },
-    });
-    expect(verifyTripAccess).not.toHaveBeenCalled();
-  });
-
-  it('400 on an over-long time', () => {
-    expect(thrown(() => new DayNotesController(notesSvc()).create(user, '5', '3', { text: 'ok', time: 'y'.repeat(251) }))).toEqual({
-      status: 400, body: { error: 'time must be 250 characters or less' },
-    });
+  // The legacy in-controller length guard moved to the global ZodValidationPipe
+  // (day-notes.dto.ts over the @trek/shared schemas) — like the old guard it
+  // rejects before the trip-access check. The pipe path is exercised end-to-end
+  // in tests/e2e/days.e2e.test.ts; here we pin the caps on the DTO schemas.
+  it('DTO schemas carry the legacy length caps and moveDayNote nulls', () => {
+    expect(DayNoteCreateDto.schema.safeParse({ text: 'x'.repeat(501) }).success).toBe(false);
+    expect(DayNoteCreateDto.schema.safeParse({ text: 'ok', time: 'y'.repeat(251) }).success).toBe(false);
+    expect(DayNoteCreateDto.schema.safeParse({ text: 'ok', time: null, icon: null }).success).toBe(true);
+    expect(DayNoteUpdateDto.schema.safeParse({ time: 'y'.repeat(251) }).success).toBe(false);
+    expect(DayNoteUpdateDto.schema.safeParse({ time: null }).success).toBe(true);
   });
 
   it('404 trip, 403 permission, 404 day, 400 empty text, then creates', () => {

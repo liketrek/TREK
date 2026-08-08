@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Bookmark, ArrowRight, MapPin } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { useTranslation } from '../../i18n'
 import { collectionsApi } from '../../api/collections'
 import { entityGradient } from '../../utils/gradients'

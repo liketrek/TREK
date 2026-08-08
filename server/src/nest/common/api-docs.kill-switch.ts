@@ -6,6 +6,8 @@
  * Off by default — the generated spec enumerates every route including the
  * admin surface, so exposing it is an explicit self-hoster decision.
  */
+import { readEnv } from '../../app-config';
+
 export function apiDocsEnabled(): boolean {
-  return (process.env.TREK_API_DOCS_ENABLED || '').trim().toLowerCase() === 'true';
+  return readEnv().http.apiDocsEnabled;
 }

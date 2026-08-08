@@ -48,11 +48,10 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
       });
     });
 
-    it('400 when name missing', () => {
-      expect(thrown(() => new TodoController(makeService()).create(user, '5', {}))).toEqual({
-        status: 400, body: { error: 'Item name is required' },
-      });
-    });
+    // The missing-name 400 moved from a bespoke controller check into the
+    // ZodValidationPipe (todoCreateItemRequestSchema) — direct method calls
+    // bypass parameter pipes, so that path is covered by the e2e suite and
+    // the schema spec in @trek/shared.
 
     it('creates and broadcasts', () => {
       const createItem = vi.fn().mockReturnValue({ id: 9, name: 'Pack' });
@@ -71,13 +70,20 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
       });
     });
 
-    it('updates, forwards changed keys, broadcasts', () => {
+    it('updates, forwards changed keys, normalizes checked to 0/1, broadcasts', () => {
       const updateItem = vi.fn().mockReturnValue({ id: 9 });
       const broadcast = vi.fn();
       const svc = makeService({ updateItem, broadcast } as Partial<TodoService>);
       new TodoController(svc).update(user, '5', '9', { checked: true }, 'sock');
-      expect(updateItem).toHaveBeenCalledWith('5', '9', expect.objectContaining({ checked: true }), ['checked']);
+      expect(updateItem).toHaveBeenCalledWith('5', '9', expect.objectContaining({ checked: 1 }), ['checked']);
       expect(broadcast).toHaveBeenCalledWith('5', 'todo:updated', { item: { id: 9 } }, 'sock');
+    });
+
+    it('normalizes checked false to 0', () => {
+      const updateItem = vi.fn().mockReturnValue({ id: 9 });
+      const svc = makeService({ updateItem, broadcast: vi.fn() } as Partial<TodoService>);
+      new TodoController(svc).update(user, '5', '9', { checked: false });
+      expect(updateItem).toHaveBeenCalledWith('5', '9', expect.objectContaining({ checked: 0 }), ['checked']);
     });
   });
 
@@ -101,7 +107,7 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
   it('PUT /reorder succeeds with permission', () => {
     const reorderItems = vi.fn();
     const svc = makeService({ reorderItems } as Partial<TodoService>);
-    expect(new TodoController(svc).reorder(user, '5', [3, 1, 2])).toEqual({ success: true });
+    expect(new TodoController(svc).reorder(user, '5', { orderedIds: [3, 1, 2] })).toEqual({ success: true });
     expect(reorderItems).toHaveBeenCalledWith('5', [3, 1, 2]);
   });
 
@@ -115,7 +121,7 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
       const updateCategoryAssignees = vi.fn().mockReturnValue([{ user_id: 2 }]);
       const broadcast = vi.fn();
       const svc = makeService({ updateCategoryAssignees, broadcast } as Partial<TodoService>);
-      new TodoController(svc).updateCategoryAssignees(user, '5', 'To%20Buy', [2], 'sock');
+      new TodoController(svc).updateCategoryAssignees(user, '5', 'To%20Buy', { user_ids: [2] }, 'sock');
       expect(updateCategoryAssignees).toHaveBeenCalledWith('5', 'To Buy', [2]);
       expect(broadcast).toHaveBeenCalledWith('5', 'todo:assignees', { category: 'To Buy', assignees: [{ user_id: 2 }] }, 'sock');
     });

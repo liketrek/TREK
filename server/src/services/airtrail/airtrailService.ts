@@ -1,8 +1,8 @@
 import type { AirtrailFlight } from '@trek/shared';
 import { db } from '../../db/database';
-import { maybe_encrypt_api_key, decrypt_api_key } from '../apiKeyCrypto';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 import { checkSsrf } from '../../utils/ssrfGuard';
-import { writeAudit } from '../auditLog';
+import { writeAudit } from '../../nest/audit/audit.bridge';
 import { AirtrailAuthError, AirtrailCreds, AirtrailRequestError, listFlights } from './airtrailClient';
 import { normalizeFlight } from './airtrailMapper';
 

@@ -1,7 +1,12 @@
 /**
- * Unit tests for MCP todo tools:
+ * Unit tests for the todo MCP surface (TodoMcp, DI-discovered):
  * create_todo, update_todo, toggle_todo, delete_todo, reorder_todos,
- * list_todos, get_todo_category_assignees, set_todo_category_assignees.
+ * list_todos, get_todo_category_assignees, set_todo_category_assignees,
+ * plus the trek://trips/{tripId}/todos resource.
+ *
+ * All of it attaches via the nest-mcp registry inside registerTools, so every
+ * harness here keeps withTools on (the resource is NOT registered by the
+ * legacy registerResources fan-out anymore).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -38,7 +43,8 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createTodoItem } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { ADDON_IDS } from '../../../src/addons';
 
 beforeAll(() => {
   createTables(testDb);
@@ -433,6 +439,104 @@ describe('Tool: set_todo_category_assignees', () => {
         arguments: { tripId: trip.id, categoryName: 'Test', userIds: [] },
       });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scope gating (todos read/write, registration-time)
+// ---------------------------------------------------------------------------
+
+describe('Todo tools — scope gating', () => {
+  const READ_TOOLS = ['list_todos', 'get_todo_category_assignees'];
+  const WRITE_TOOLS = ['create_todo', 'update_todo', 'toggle_todo', 'delete_todo', 'reorder_todos', 'set_todo_category_assignees'];
+
+  async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
+    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    try {
+      return (await h.client.listTools()).tools.map((t) => t.name);
+    } finally {
+      await h.cleanup();
+    }
+  }
+
+  it('registers all eight tools with null scopes (full access)', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, null);
+    for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);
+  });
+
+  it('registers only the read tools with todos:read', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['todos:read']);
+    for (const tool of READ_TOOLS) expect(names).toContain(tool);
+    for (const tool of WRITE_TOOLS) expect(names).not.toContain(tool);
+  });
+
+  it('registers no todo tools for an unrelated scope', async () => {
+    const { user } = createUser(testDb);
+    const names = await listToolNames(user.id, ['budget:read']);
+    for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).not.toContain(tool);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Addon gating (packing addon, the legacy whole-registrar early return —
+// now the `when` predicate on every TodoMcp entry)
+// ---------------------------------------------------------------------------
+
+describe('Todo tools — packing addon gating', () => {
+  it('registers nothing (tools or resource) when the packing addon is disabled', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare('UPDATE addons SET enabled = 0 WHERE id = ?').run(ADDON_IDS.PACKING);
+    try {
+      await withHarness(user.id, async (h) => {
+        const names = (await h.client.listTools()).tools.map((t) => t.name);
+        expect(names).not.toContain('list_todos');
+        expect(names).not.toContain('create_todo');
+        await expect(h.client.readResource({ uri: `trek://trips/${trip.id}/todos` })).rejects.toThrow();
+      });
+    } finally {
+      testDb.prepare('UPDATE addons SET enabled = 1 WHERE id = ?').run(ADDON_IDS.PACKING);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// trek://trips/{tripId}/todos resource (moved from the legacy registerResources)
+// ---------------------------------------------------------------------------
+
+describe('Resource: trek://trips/{tripId}/todos', () => {
+  it('returns the trip todos ordered by position', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createTodoItem(testDb, trip.id, { name: 'First' });
+    createTodoItem(testDb, trip.id, { name: 'Second' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/todos` });
+      const items = parseResourceResult(result) as any[];
+      expect(items).toHaveLength(2);
+      expect(items[0].name).toBe('First');
+      expect(items[1].name).toBe('Second');
+    });
+  });
+
+  it('returns the access-denied payload for a non-member', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/todos` });
+      expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
+    });
+  });
+
+  it('returns the access-denied payload for a malformed trip id', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.readResource({ uri: 'trek://trips/not-a-number/todos' });
+      expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
     });
   });
 });

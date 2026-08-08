@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useMemo } from 'react'
 import { mapsApi } from '../../api/client'
+import { useTranslation } from '../../i18n'
 import type { Poi } from './poiCategories'
 
 export interface Bbox { south: number; west: number; north: number; east: number }
@@ -17,6 +18,7 @@ function isAbortError(err: unknown): boolean {
  * Overpass load (and visual churn) down.
  */
 export function usePoiExplore() {
+  const { locale } = useTranslation()
   const [active, setActive] = useState<Set<string>>(() => new Set())
   const [byCat, setByCat] = useState<Record<string, Poi[]>>({})
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(() => new Set())
@@ -54,7 +56,7 @@ export function usePoiExplore() {
     setLoading(key, true)
     setError(key, false)
     try {
-      const res = await mapsApi.pois(key, bbox, ctrl.signal)
+      const res = await mapsApi.pois(key, bbox, locale, ctrl.signal)
       // Drop the result if the user toggled this category off while the (slow)
       // Overpass request was in flight — otherwise stale results re-appear.
       setByCat(prev => (activeRef.current.has(key) ? { ...prev, [key]: res.pois } : prev))
@@ -72,9 +74,14 @@ export function usePoiExplore() {
       if (abortRef.current[key] === ctrl) {
         setLoading(key, false)
         delete abortRef.current[key]
+      } else if (!abortRef.current[key]) {
+        // Cancelled with nothing taking over (toggle switched the category, or
+        // turned it off) — no later request will clear this key, so do it here
+        // instead of leaving the pill spinning forever.
+        setLoading(key, false)
       }
     }
-  }, [setLoading, setError])
+  }, [setLoading, setError, locale])
 
   const onViewportChange = useCallback((bbox: Bbox) => {
     bboxRef.current = bbox

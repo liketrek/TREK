@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'すべて選択',
   'common.deselectAll': 'すべて解除',
   'common.error': 'エラー',
+  'common.success': '成功',
   'common.unknownError': '不明なエラー',
   'common.tooManyAttempts': '試行回数が多すぎます。時間をおいて再度お試しください。',
   'common.back': '戻る',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': '問題が発生しました',
+  'common.errorBody': 'アプリのこの部分が動作しなくなりました。データは安全です。',
+  'common.errorPanelTitle': 'このセクションを表示できませんでした',
+  'common.errorPanelBody': 'ページの他の部分は引き続き使用できます。',
+  'common.errorRetry': '再試行',
+  'common.errorReload': 'ページを再読み込み',
+  'common.errorUpdateTitle': '新しいバージョンがあります',
+  'common.errorUpdateBody': 'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
+  'common.errorPluginTitle': 'このプラグインを表示できませんでした',
 };
 export default common;

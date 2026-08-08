@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Выбрать всё',
   'common.deselectAll': 'Снять выделение со всех',
   'common.error': 'Ошибка',
+  'common.success': 'Успешно',
   'common.unknownError': 'Неизвестная ошибка',
   'common.tooManyAttempts': 'Слишком много попыток. Попробуйте позже.',
   'common.back': 'Назад',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'Что-то пошло не так',
+  'common.errorBody': 'Эта часть приложения перестала работать. Ваши данные в безопасности.',
+  'common.errorPanelTitle': 'Не удалось показать этот раздел',
+  'common.errorPanelBody': 'Остальная часть страницы работает.',
+  'common.errorRetry': 'Повторить',
+  'common.errorReload': 'Обновить страницу',
+  'common.errorUpdateTitle': 'Доступна новая версия',
+  'common.errorUpdateBody': 'TREK обновился, пока эта вкладка была открыта. Обновите страницу, чтобы получить новую версию.',
+  'common.errorPluginTitle': 'Не удалось показать этот плагин',
 };
 export default common;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router'
 import { helpApi, type HelpNavSection, type HelpPageData } from '../../api/client'
 
 /** State + data loading for the in-app help wiki (see PATTERN.md). */

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router'
 import { useTripStore } from '../../store/tripStore'
 import { tripRepo } from '../../repo/tripRepo'
 import { placeRepo } from '../../repo/placeRepo'

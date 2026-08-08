@@ -45,9 +45,8 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       expect(thrown(() => new ReservationsController(svc).create(user, '5', { title: 'Hotel' }))).toEqual({ status: 403, body: { error: 'No permission' } });
     });
 
-    it('400 without a title', () => {
-      expect(thrown(() => new ReservationsController(makeService()).create(user, '5', {}))).toEqual({ status: 400, body: { error: 'Title is required' } });
-    });
+    // The bespoke 'Title is required' 400 moved to the global ZodValidationPipe
+    // (ReservationCreateDto) — covered by the e2e suite.
 
     it('creates, runs budget sync, broadcasts accommodation + reservation, notifies', () => {
       const create = vi.fn().mockReturnValue({ reservation: { id: 9 }, accommodationCreated: true });
@@ -58,14 +57,13 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       expect(broadcast).toHaveBeenCalledWith('5', 'accommodation:created', {}, 'sock');
       expect(syncBudgetOnCreate).toHaveBeenCalledWith('5', 9, 'Hotel', 'lodging', { total_price: 200 }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'reservation:created', { reservation: { id: 9 } }, 'sock');
-      expect(notifyBookingChange).toHaveBeenCalledWith('5', user, 'Hotel', 'lodging');
+      expect(notifyBookingChange).toHaveBeenCalledWith('5', user.id, 'Hotel', 'lodging');
     });
   });
 
   describe('PUT /positions', () => {
-    it('400 when positions is not an array', () => {
-      expect(thrown(() => new ReservationsController(makeService()).updatePositions(user, '5', { positions: 'no' }))).toEqual({ status: 400, body: { error: 'positions must be an array' } });
-    });
+    // The 'positions must be an array' 400 moved to the global
+    // ZodValidationPipe (ReservationPositionsDto).
 
     it('updates positions and broadcasts', () => {
       const updatePositions = vi.fn(); const broadcast = vi.fn();
@@ -91,7 +89,28 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       new ReservationsController(svc).update(user, '5', '9', { create_budget_entry: { total_price: 50 } }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'accommodation:updated', {}, 'sock');
       expect(syncBudgetOnUpdate).toHaveBeenCalledWith('5', '9', '', undefined, 'Old', 'lodging', { total_price: 50 }, 'sock');
-      expect(notifyBookingChange).toHaveBeenCalledWith('5', user, 'Old', 'lodging');
+      expect(notifyBookingChange).toHaveBeenCalledWith('5', user.id, 'Old', 'lodging');
+    });
+  });
+
+  describe('PUT /:id/travelers', () => {
+    // The 'user_ids must be an array' 400 moved to the global
+    // ZodValidationPipe (ReservationTravelersDto).
+
+    it('404 when the reservation is off-trip / missing', () => {
+      const svc = makeService({ setTravelers: vi.fn().mockReturnValue(null) } as Partial<ReservationsService>);
+      expect(thrown(() => new ReservationsController(svc).updateTravelers(user, '5', '9', { user_ids: [1] }))).toEqual({ status: 404, body: { error: 'Reservation not found' } });
+    });
+
+    it('assigns travelers, broadcasts, and returns { travelers, reservation }', () => {
+      const travelers = [{ user_id: 2, username: 'Sam', avatar: null, is_guest: 0 }];
+      const reservation = { id: 9, travelers };
+      const setTravelers = vi.fn().mockReturnValue({ travelers, reservation });
+      const broadcast = vi.fn();
+      const svc = makeService({ setTravelers, broadcast } as Partial<ReservationsService>);
+      expect(new ReservationsController(svc).updateTravelers(user, '5', '9', { user_ids: [2] }, 'sock')).toEqual({ travelers, reservation });
+      expect(setTravelers).toHaveBeenCalledWith('9', '5', [2]);
+      expect(broadcast).toHaveBeenCalledWith('5', 'reservation:travelers-updated', { reservationId: 9, travelers }, 'sock');
     });
   });
 

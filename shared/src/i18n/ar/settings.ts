@@ -77,6 +77,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'تذكيرات الرحلات',
   'settings.notifyTodoDue': 'مهمة مستحقة',
   'settings.notifyVacayInvite': 'دعوات دمج الإجازات',
+  'settings.notifyVacayShare': 'مشاركات تقويم Vacay',
   'settings.notifyPhotosShared': 'صور مشتركة (Immich)',
   'settings.notifyCollabMessage': 'رسائل الدردشة (Collab)',
   'settings.notifyPackingTagged': 'قائمة الأمتعة: التعيينات',
@@ -238,6 +239,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'تم تحديث صورة الملف الشخصي',
   'settings.avatarRemoved': 'تمت إزالة صورة الملف الشخصي',
   'settings.avatarError': 'فشل الرفع',
+  'settings.avatarRemoveError': 'فشل الحذف',
   'settings.mfa.title': 'المصادقة الثنائية (2FA)',
   'settings.mfa.description':
     'تضيف خطوة ثانية عند تسجيل الدخول. استخدم تطبيق مصادقة (Google Authenticator، Authy، إلخ).',
@@ -264,7 +266,6 @@ const settings: TranslationStrings = {
   'settings.mfa.toastDisabled': 'تم تعطيل المصادقة الثنائية',
   'settings.mfa.demoBlocked': 'غير متاح في الوضع التجريبي',
   'settings.tabs.offline': 'Offline', // en-fallback
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', // en-fallback
   'settings.notificationPreferences.email': 'Email', // en-fallback
   'settings.notificationPreferences.webhook': 'Webhook', // en-fallback
   'settings.notificationPreferences.inapp': 'In-App', // en-fallback
@@ -286,8 +287,9 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer', // en-fallback
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller', // en-fallback
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate', // en-fallback
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'عملة العرض',
+  'settings.currencyHint':
+    'تُعرض المبالغ في التكاليف محوّلة إلى هذه العملة للعرض فقط — تبقى المبالغ الأصلية دون تغيير.',
   'settings.currencyTrip': 'عملة الرحلة',
   'settings.passkey.title': 'مفاتيح المرور',
   'settings.passkey.description':
@@ -413,6 +415,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'شريط التنقّل السفلي',
+  'settings.appearance.mobileNav.hint':
+    'اختَر العناصر التي تظهر في الشريط وتلك التي توضَع ضمن «المزيد». تبقى لوحة التحكّم دائماً في المقدّمة.',
+  'settings.appearance.mobileNav.inBar': 'في الشريط',
+  'settings.appearance.mobileNav.underMore': 'ضمن «المزيد»',
+  'settings.appearance.mobileNav.moreEmpty': 'لا شيء هنا بعد — كل العناصر تتّسع في الشريط.',
+  'settings.appearance.mobileNav.pinned': 'مثبَّت',
+  'settings.appearance.mobileNav.toMore': 'نقل إلى «المزيد»',
+  'settings.appearance.mobileNav.toBar': 'نقل إلى الشريط',
+  'settings.appearance.dashOrder': 'ترتيب لوحة التحكم',
+  'settings.appearance.dashOrder.hint':
+    'أعد ترتيب تسلسل قائمة الرحلات والأدوات على لوحة تحكم هاتفك. تبقى الرحلة المميّزة دائمًا في الأعلى.',
+  'settings.appearance.dashOrder.trips': 'الرحلات',
+  'settings.appearance.dashOrder.hidden': 'مخفي',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -478,7 +494,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'الوقت',
   'settings.pluginActivity.columns.status': 'النتيجة',
   'settings.alwaysShowRoutes': 'إظهار مسارات الحجوزات دائمًا',
-  'settings.alwaysShowRoutesHint': 'يعرض تلقائيًا مسار كل رحلة طيران وقطار وحجز آخر على الخريطة، دون الحاجة إلى تفعيله لكل عنصر على حدة.',
+  'settings.alwaysShowRoutesHint':
+    'يعرض تلقائيًا مسار كل رحلة طيران وقطار وحجز آخر على الخريطة، دون الحاجة إلى تفعيله لكل عنصر على حدة.',
 };
 
 export default settings;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router'
 import { shareApi } from '../../api/client'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 

@@ -1,15 +1,19 @@
 import { db, canAccessTrip } from '../../db/database';
-import { send } from '../notificationService';
+import { send } from '../../nest/notifications/notifications.bridge';
 import { broadcast } from '../../websocket';
 import {
   ServiceResult,
+  SyncAlbumResult,
   fail,
   success,
   mapDbError,
   Selection,
+  updateSyncTimeForAlbumLink,
 } from './helpersService';
 import { getOrCreateTrekPhoto, deleteTrekPhotoIfOrphan } from './photoResolverService';
-import { encrypt_api_key } from '../apiKeyCrypto';
+import { collectAlbumSelection } from './immichService';
+import { collectSynologyAlbumSelection } from './synologyService';
+import { encrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 
 
 function _providers(): Array<{id: string; enabled: boolean}> {
@@ -312,4 +316,46 @@ async function _notifySharedTripPhotos(
   } catch {
     return fail('Failed to send notifications', 500);
   }
+}
+
+// ── Album sync (orchestration) ────────────────────────────────────────────
+//
+// The provider services collect the asset ids; adding them to the trip and
+// stamping the link is this module's job, because addTripPhotos lives here.
+// Keeping the write on this side is what lets immich/synology stop importing
+// this module — the cycle immich -> unified -> photoResolver -> immich is gone.
+// Both functions return exactly what the combined provider-side ones returned.
+
+export async function syncImmichAlbum(
+  tripId: string,
+  linkId: string,
+  userId: number,
+  sid: string,
+): Promise<{ success?: boolean; added?: number; total?: number; error?: string; status?: number }> {
+  const collected = await collectAlbumSelection(tripId, linkId, userId);
+  if ('error' in collected) return { error: collected.error, status: collected.status };
+
+  const result = await addTripPhotos(tripId, userId, true, [collected.selection], sid, linkId);
+  if ('error' in result) return { error: result.error.message, status: result.error.status };
+
+  updateSyncTimeForAlbumLink(linkId);
+
+  return { success: true, added: result.data.added, total: collected.total };
+}
+
+export async function syncSynologyAlbum(
+  userId: number,
+  tripId: string,
+  linkId: string,
+  sid: string,
+): Promise<ServiceResult<SyncAlbumResult>> {
+  const collected = await collectSynologyAlbumSelection(userId, tripId, linkId);
+  if (!collected.success) return collected as ServiceResult<SyncAlbumResult>;
+
+  const result = await addTripPhotos(tripId, userId, true, [collected.data.selection], sid, linkId);
+  if (!result.success) return result as ServiceResult<SyncAlbumResult>;
+
+  updateSyncTimeForAlbumLink(linkId);
+
+  return success({ added: result.data.added, total: collected.data.total });
 }

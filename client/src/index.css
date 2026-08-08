@@ -529,6 +529,31 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --accent-hover: #1f2937;          /* hover state of an accent fill */
   --accent-subtle: #f1f5f9;         /* faint accent-tinted surface (chips, selected) */
 
+  /* Strength of a dayTintProvider plugin's colour in each region of a day card.
+     Per-theme because the tones are fixed hexes: the default tone #4F46E5 is itself a
+     dark colour, so a light theme's alpha makes it vanish against the dark sidebar,
+     while warn #f59e0b at the dark alpha would outshine the selected day. Per-region
+     because area and text density differ — the badge is a small bold pill, the
+     activity list is a large surface behind dense rows. Tuned so every region reads
+     above the hover step and below the selected one. */
+  --day-tint-badge: 16%;
+  --day-tint-header: 8%;
+  --day-tint-header-hover: 14%;
+  --day-tint-activity: 6%;
+
+  /* The OKLCH lightness band a plugin's OWN colour is clamped into before it is mixed,
+     so "any hex" cannot mean "a day nobody can read". The band brackets the four tones
+     above (L 0.51–0.77) rather than tightening around them: an ordinary choice passes
+     through untouched, and a hex equal to a tone renders exactly like that tone. Only
+     the extremes move — here, a near-white that would otherwise wash out against the
+     sidebar's own near-white surfaces.
+
+     This bounds a colour, it does not boost one: hue and chroma are never touched, so a
+     near-white GREY still lands as a faint tint. That is the intended trade — the
+     failure this must prevent is an unreadable card, not an understated one. */
+  --day-tint-l-min: 0.40;
+  --day-tint-l-max: 0.78;
+
   --fs-scale-title: 1;
   --fs-scale-subtitle: 1;
   --fs-scale-body: 1;
@@ -562,6 +587,24 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --mood-neutral: #94928C;
   --mood-tired: #6B9BD2;
   --mood-rough: #9B8EC4;
+
+  /* ── Vacay "liquid glass" facelift tokens (desktop) ──────────────
+     Prefixed --vg-*; only the Vacay surface consumes them. Values are
+     the light palette; .dark overrides below. Kept global (not scoped)
+     so the tablet sidebar drawer — which portals to <body> — still
+     resolves them in dark mode. */
+  --vg-ink:   oklch(0.22 0.012 65);
+  --vg-ink2:  oklch(0.42 0.012 65);
+  --vg-ink3:  oklch(0.62 0.01 65);
+  --vg-bg:    #f8fafc;
+  --vg-surf:  #ffffff;
+  --vg-surf2: oklch(0.968 0.003 247);
+  --vg-line:  oklch(0.92 0.008 70);
+  --vg-line2: oklch(0.88 0.01 70);
+  --vg-glass-bg: linear-gradient(135deg, oklch(1 0 0 / .72) 0%, oklch(0.99 0.006 75 / .5) 100%);
+  --vg-glass-br: oklch(0.88 0.008 70 / .7);
+  --vg-glass-sh: 0 1px 2px oklch(0.4 0.02 60 / .05), 0 12px 32px -14px oklch(0.3 0.02 60 / .2);
+  --vg-hi: inset 0 1px 0 oklch(1 0 0 / .8);
 }
 
 @media (max-width: 767px) {
@@ -602,6 +645,17 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --accent-hover: #d4d4d8;
   --accent-subtle: rgba(255, 255, 255, 0.08);
 
+  --day-tint-badge: 24%;
+  --day-tint-header: 13%;
+  --day-tint-header-hover: 20%;
+  --day-tint-activity: 10%;
+
+  /* Shifted up, and the reason the band is per theme at all: here the failure is a
+     near-BLACK tint disappearing into the dark sidebar, while a pale one reads fine.
+     Inherited by the mobile chips too — mobile.css sets only their alpha. */
+  --day-tint-l-min: 0.48;
+  --day-tint-l-max: 0.88;
+
   --success: #22c55e;  --success-soft: rgba(34, 197, 94, 0.15);
   --danger:  #ef4444;  --danger-soft:  rgba(239, 68, 68, 0.15);
   --warning: #f59e0b;  --warning-soft: rgba(245, 158, 11, 0.15);
@@ -630,6 +684,29 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --mood-neutral: #9a9a94;
   --mood-tired: #6db3f0;
   --mood-rough: #a9a3f0;
+
+  /* Vacay "liquid glass" facelift tokens (dark) */
+  --vg-ink:   oklch(0.96 0 0);
+  --vg-ink2:  oklch(0.78 0 0);
+  --vg-ink3:  oklch(0.6 0 0);
+  --vg-bg:    oklch(0.17 0 0);
+  --vg-surf:  oklch(0.225 0 0);
+  --vg-surf2: oklch(0.255 0 0);
+  --vg-line:  oklch(0.32 0 0);
+  --vg-line2: oklch(0.38 0 0);
+  --vg-glass-bg: linear-gradient(135deg, oklch(0.31 0 0 / .58) 0%, oklch(0.25 0 0 / .42) 100%);
+  --vg-glass-br: oklch(1 0 0 / .1);
+  --vg-glass-sh: 0 1px 2px oklch(0 0 0 / .3), 0 12px 32px -14px oklch(0 0 0 / .55);
+  --vg-hi: inset 0 1px 0 oklch(1 0 0 / .09);
+}
+
+/* Vacay glass card + button helpers (consume --vg-* above). */
+.vg-card {
+  background: var(--vg-glass-bg);
+  border: 1px solid var(--vg-glass-br);
+  box-shadow: var(--vg-glass-sh), var(--vg-hi);
+  -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  backdrop-filter: blur(22px) saturate(1.7);
 }
 
 /* ── Color schemes (data-scheme) ──────────────────────────────────
@@ -1122,6 +1199,18 @@ img[alt="TREK"] {
   .dp-day-actions { opacity: 0; transition: opacity 0.12s ease; }
   .dp-day-header:hover .dp-day-actions,
   .dp-day-header[data-selected="true"] .dp-day-actions { opacity: 1; }
+}
+
+/* Planner rows a finger can pick up (#1616). A long press is what arms the drag,
+   and that is the same gesture the browser answers with a text selection and a
+   callout — "the action is interpreted as a text selection" in the report. Only
+   on coarse pointers, and only inside the two panes that opt into the bridge. */
+@media (pointer: coarse) {
+  [data-touch-drag] [draggable='true'] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 /* ── TREK range slider — thin filled track + soft round thumb ─────────────── */

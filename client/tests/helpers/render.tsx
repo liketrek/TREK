@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, type RenderOptions } from '@testing-library/react';
-import { MemoryRouter, type MemoryRouterProps } from 'react-router-dom';
+import { MemoryRouter, type MemoryRouterProps } from 'react-router';
 import { TranslationProvider } from '../../src/i18n/TranslationContext';
 
 interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {

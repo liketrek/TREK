@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores } from '../../helpers/store';
-import { buildDayNote } from '../../helpers/factories';
+import { buildDay, buildDayNote } from '../../helpers/factories';
 
 beforeEach(() => {
   resetAllStores();
@@ -48,6 +48,52 @@ describe('remoteEventHandler > dayNotes', () => {
     useTripStore.getState().handleRemoteEvent({ type: 'dayNote:deleted', dayId: 10, noteId: 1 });
     const { dayNotes } = useTripStore.getState();
     expect(dayNotes['10']).toHaveLength(0);
+  });
+
+  it('FE-WSEVT-DAYNOTE-006: dayNote:updated only replaces the addressed note', () => {
+    useTripStore.setState({
+      days: [buildDay({ id: 10 })],
+      dayNotes: { '10': [buildDayNote({ id: 1, day_id: 10, text: 'keep' }), buildDayNote({ id: 2, day_id: 10, text: 'old' })] },
+    });
+    useTripStore.getState().handleRemoteEvent({
+      type: 'dayNote:updated',
+      dayId: 10,
+      note: buildDayNote({ id: 2, day_id: 10, text: 'new' }),
+    });
+    expect(useTripStore.getState().dayNotes['10'].map(n => n.text)).toEqual(['keep', 'new']);
+  });
+
+  // A collaborator can add the first note to a day this client never populated.
+  describe('days with no dayNotes entry yet', () => {
+    const seedBareDay = () => {
+      useTripStore.setState({ days: [buildDay({ id: 30 })], dayNotes: {} });
+    };
+
+    it('FE-WSEVT-DAYNOTE-007: dayNote:created seeds a fresh day key', () => {
+      seedBareDay();
+      useTripStore.getState().handleRemoteEvent({
+        type: 'dayNote:created',
+        dayId: 30,
+        note: buildDayNote({ id: 9, day_id: 30 }),
+      });
+      expect(useTripStore.getState().dayNotes['30'].map(n => n.id)).toEqual([9]);
+    });
+
+    it('FE-WSEVT-DAYNOTE-008: dayNote:updated on an unseen day yields an empty list', () => {
+      seedBareDay();
+      useTripStore.getState().handleRemoteEvent({
+        type: 'dayNote:updated',
+        dayId: 30,
+        note: buildDayNote({ id: 9, day_id: 30 }),
+      });
+      expect(useTripStore.getState().dayNotes['30']).toEqual([]);
+    });
+
+    it('FE-WSEVT-DAYNOTE-009: dayNote:deleted on an unseen day yields an empty list', () => {
+      seedBareDay();
+      useTripStore.getState().handleRemoteEvent({ type: 'dayNote:deleted', dayId: 30, noteId: 9 });
+      expect(useTripStore.getState().dayNotes['30']).toEqual([]);
+    });
   });
 
   it('FE-WSEVT-DAYNOTE-005: operations on day 10 do not affect day 20', () => {

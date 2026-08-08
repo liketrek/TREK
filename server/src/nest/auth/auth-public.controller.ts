@@ -1,10 +1,12 @@
 import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { RateLimitService } from './rate-limit.service';
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, MfaVerifyLoginDto } from './auth.dto';
+import { RateLimitService } from '../common/rate-limit.service';
 import { OptionalJwtGuard } from './optional-jwt.guard';
-import { writeAudit, getClientIp } from '../../services/auditLog';
-import { willDropSecureCookie } from '../../services/cookie';
+import { getClientIp } from '../audit/client-ip';
+import { AuditService } from '../audit/audit.service';
+import { willDropSecureCookie } from '../common/cookie';
 import type { User } from '../../types';
 
 const WINDOW = 15 * 60 * 1000;
@@ -23,7 +25,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 @Controller('api/auth')
 export class AuthPublicController {
-  constructor(private readonly auth: AuthService, private readonly rl: RateLimitService) {}
+  constructor(private readonly auth: AuthService, private readonly rl: RateLimitService, private readonly audit: AuditService) {}
 
   private limit(bucket: string, req: Request, max: number): void {
     if (!this.rl.check(bucket, req.ip || 'unknown', max, WINDOW, Date.now())) {
@@ -60,25 +62,25 @@ export class AuthPublicController {
 
   @Post('register')
   @HttpCode(201)
-  register(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  register(@Body() body: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 10);
     const result = this.auth.registerUser(body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
-    writeAudit({ userId: result.auditUserId!, action: 'user.register', ip: getClientIp(req), details: result.auditDetails });
+    this.audit.writeAudit({ userId: result.auditUserId!, action: 'user.register', ip: getClientIp(req), details: result.auditDetails });
     this.auth.setAuthCookie(res, result.token!, req);
     return { token: result.token, user: result.user };
   }
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() body: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 10);
     const started = Date.now();
     const result = this.auth.loginUser(body);
     if (result.auditAction) {
-      writeAudit({ userId: result.auditUserId ?? null, action: result.auditAction, ip: getClientIp(req), details: result.auditDetails });
+      this.audit.writeAudit({ userId: result.auditUserId ?? null, action: result.auditAction, ip: getClientIp(req), details: result.auditDetails });
     }
     const elapsed = Date.now() - started;
     if (elapsed < LOGIN_MIN_LATENCY_MS) await delay(LOGIN_MIN_LATENCY_MS - elapsed);
@@ -100,7 +102,7 @@ export class AuthPublicController {
 
   @Post('forgot-password')
   @HttpCode(200)
-  async forgotPassword(@Body() body: { email?: unknown }, @Req() req: Request) {
+  async forgotPassword(@Body() body: ForgotPasswordDto, @Req() req: Request) {
     this.limit('forgot', req, 3);
     const started = Date.now();
     const rawEmail = typeof body?.email === 'string' ? body.email : '';
@@ -110,15 +112,15 @@ export class AuthPublicController {
     if (outcome.reason === 'issued' && outcome.tokenForDelivery && outcome.userEmail) {
       const origin = this.auth.getAppUrl();
       const url = `${origin.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(outcome.tokenForDelivery)}`;
-      writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { delivered: 'pending' } });
+      this.audit.writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { delivered: 'pending' } });
       try {
         const delivery = await this.auth.sendPasswordResetEmail(outcome.userEmail, url, outcome.userId);
-        writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { delivered: delivery.delivered } });
+        this.audit.writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { delivered: delivery.delivered } });
       } catch {
-        writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { delivered: 'failed' } });
+        this.audit.writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { delivered: 'failed' } });
       }
     } else {
-      writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { reason: outcome.reason } });
+      this.audit.writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { reason: outcome.reason } });
     }
     const elapsed = Date.now() - started;
     if (elapsed < FORGOT_MIN_LATENCY_MS) await delay(FORGOT_MIN_LATENCY_MS - elapsed);
@@ -127,32 +129,32 @@ export class AuthPublicController {
 
   @Post('reset-password')
   @HttpCode(200)
-  resetPassword(@Body() body: unknown, @Req() req: Request) {
+  resetPassword(@Body() body: ResetPasswordDto, @Req() req: Request) {
     // Per-IP brute-force guard, parity with the legacy resetLimiter (5 / 15 min on
     // a dedicated bucket) — without it reset tokens could be guessed unthrottled.
     this.limit('reset', req, 5);
     const ip = getClientIp(req);
     const result = this.auth.resetPassword(body);
     if (result.error) {
-      writeAudit({ userId: null, action: 'user.password_reset_fail', ip, details: { reason: result.error } });
+      this.audit.writeAudit({ userId: null, action: 'user.password_reset_fail', ip, details: { reason: result.error } });
       throw new HttpException({ error: result.error }, result.status!);
     }
     if (result.mfa_required) {
       return { mfa_required: true };
     }
-    writeAudit({ userId: result.userId ?? null, action: 'user.password_reset_success', ip });
+    this.audit.writeAudit({ userId: result.userId ?? null, action: 'user.password_reset_success', ip });
     return { success: true };
   }
 
   @Post('mfa/verify-login')
   @HttpCode(200)
-  verifyMfaLogin(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  verifyMfaLogin(@Body() body: MfaVerifyLoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('mfa', req, 5);
     const result = this.auth.verifyMfaLogin(body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
-    writeAudit({ userId: result.auditUserId!, action: 'user.login', ip: getClientIp(req), details: { mfa: true } });
+    this.audit.writeAudit({ userId: result.auditUserId!, action: 'user.login', ip: getClientIp(req), details: { mfa: true } });
     this.auth.setAuthCookie(res, result.token!, req, result.remember);
     return { token: result.token, user: result.user };
   }

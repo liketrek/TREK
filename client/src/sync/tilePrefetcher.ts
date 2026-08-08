@@ -6,7 +6,13 @@
  *   1. Compute bbox from trip's place coordinates + padding.
  *   2. For zooms 10–16, enumerate tile XYZ coordinates within bbox.
  *   3. Stop when cumulative tile estimate exceeds MAX_TILES (~50 MB).
- *   4. Fetch each tile URL so the Service Worker CacheFirst handler caches it.
+ *   4. Fetch each tile URL so the Service Worker CacheFirst handler caches it,
+ *      at most TILE_CONCURRENCY at a time.
+ *
+ * The throttle is the important part: a wide trip enumerates thousands of
+ * tiles, and dispatching them all at once buries every request the app itself
+ * makes behind them in the Service Worker's fetch queue — the UI then sits on
+ * a blank screen until the burst drains.
  *
  * Tile URL template format: Leaflet-compatible {z}/{x}/{y} with optional
  * {s} (subdomain) and {r} (retina suffix).
@@ -14,6 +20,8 @@
 
 import type { Place } from '../types'
 import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
+import { isAuthed } from './authGate'
+import { normalizeTileUrl } from '../utils/tileUrl'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -30,13 +38,39 @@ const AVG_TILE_KB = 15
  */
 export const MAX_TILES = Math.floor((180 * 1024) / AVG_TILE_KB) // = 12288
 
+/**
+ * Tile requests in flight at once.
+ *
+ * Low on purpose: these are background downloads competing with the live app
+ * for the Service Worker's fetch handler, the connection pool and the origin's
+ * IndexedDB queue (Workbox writes an expiration record per cached tile).
+ */
+export const TILE_CONCURRENCY = 6
+
+/** Name of the Workbox runtime cache holding map tiles (see vite.config.js). */
+const TILE_CACHE = 'map-tiles'
+
 const DEFAULT_TILE_URL =
   'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 
-const SUBDOMAINS = ['a', 'b', 'c', 'd']
-let _subIdx = 0
-function nextSubdomain(): string {
-  return SUBDOMAINS[_subIdx++ % SUBDOMAINS.length]
+/**
+ * Must stay identical to Leaflet's `subdomains` default ('abc'), because the
+ * index is taken modulo the list length: a fourth entry here shifts the host
+ * for most tiles away from the one the TileLayer will ask for, so the prefetch
+ * fills the cache under URLs the map never requests. It also produced the dead
+ * d.tile.openstreetmap.org lookups in #1733.
+ */
+const SUBDOMAINS = ['a', 'b', 'c']
+
+/**
+ * Pick the subdomain from the tile coordinates, the way Leaflet does.
+ *
+ * It has to be a pure function of x/y: a rotating counter hands the same tile a
+ * different host on every run, which both defeats the cache lookup below and
+ * stores the tile once per host.
+ */
+function subdomainFor(x: number, y: number): string {
+  return SUBDOMAINS[Math.abs(x + y) % SUBDOMAINS.length]
 }
 
 // ── Tile math ──────────────────────────────────────────────────────────────────
@@ -119,15 +153,56 @@ export function countTiles(bbox: TileBbox, minZoom: number, maxZoom: number): nu
 
 /**
  * Build the concrete tile URL for given z/x/y from a Leaflet template.
- * Rotates through subdomains (a–d).
+ * Rotates through subdomains (a–c).
+ *
+ * The template is normalized first: this function is also reached with a raw
+ * admin default rather than the value from the settings store, so the OSM
+ * sharding rewrite has to happen here too.
  */
 export function buildTileUrl(template: string, z: number, x: number, y: number): string {
-  return template
+  return normalizeTileUrl(template)
     .replace('{z}', String(z))
     .replace('{x}', String(x))
     .replace('{y}', String(y))
-    .replace('{s}', nextSubdomain())
+    .replace('{s}', subdomainFor(x, y))
     .replace('{r}', '')
+}
+
+/**
+ * Enumerate the tile coordinates to prefetch, lowest zoom first, stopping at
+ * the zoom level whose tiles would push the total past MAX_TILES.
+ */
+function enumerateTiles(
+  bbox: TileBbox,
+  minZoom: number,
+  maxZoom: number,
+): Array<[z: number, x: number, y: number]> {
+  const coords: Array<[number, number, number]> = []
+
+  for (let z = minZoom; z <= maxZoom; z++) {
+    const minX = lngToTileX(bbox.minLng, z)
+    const maxX = lngToTileX(bbox.maxLng, z)
+    const minY = latToTileY(bbox.maxLat, z)
+    const maxY = latToTileY(bbox.minLat, z)
+
+    if (coords.length + (maxX - minX + 1) * (maxY - minY + 1) > MAX_TILES) break
+
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) coords.push([z, x, y])
+    }
+  }
+
+  return coords
+}
+
+/** Open the tile cache, or null where Cache Storage isn't available. */
+async function openTileCache(): Promise<Cache | null> {
+  try {
+    if (typeof caches === 'undefined') return null
+    return await caches.open(TILE_CACHE)
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -137,45 +212,54 @@ export function buildTileUrl(template: string, z: number, x: number, y: number):
  *   - offline
  *   - no active Service Worker (tiles won't be cached anyway)
  *   - total tile count exceeds MAX_TILES before even starting zoom 10
+ *
+ * Resolves once every tile has been dealt with, so callers that need the tiles
+ * on disk ("prepare for offline") can simply await it. Callers that don't
+ * (background sync) leave the promise floating.
+ *
+ * Returns the number of tiles actually fetched — tiles already in the cache are
+ * skipped without touching the network.
  */
 export async function prefetchTiles(
   bbox: TileBbox,
   tileUrlTemplate: string,
   minZoom = 10,
   maxZoom = 16,
-  awaitAll = false,
 ): Promise<number> {
   if (!navigator.onLine) return 0
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return 0
 
+  const coords = enumerateTiles(bbox, minZoom, maxZoom)
+  if (coords.length === 0) return 0
+
+  // Checking Cache Storage from here is far cheaper than letting the request
+  // reach the SW's CacheFirst handler, so a resumed or repeated prefetch over a
+  // warm cache costs almost nothing.
+  const cache = await openTileCache()
+
+  let cursor = 0
   let fetched = 0
-  // When awaitAll is set (the "prepare for offline" path), we wait for every tile
-  // request to settle so the caller's progress bar only completes once the tiles
-  // are actually downloaded into the SW cache — not merely dispatched.
-  const inflight: Promise<unknown>[] = []
 
-  for (let z = minZoom; z <= maxZoom; z++) {
-    const minX = lngToTileX(bbox.minLng, z)
-    const maxX = lngToTileX(bbox.maxLng, z)
-    const minY = latToTileY(bbox.maxLat, z)
-    const maxY = latToTileY(bbox.minLat, z)
-    const count = (maxX - minX + 1) * (maxY - minY + 1)
+  async function worker(): Promise<void> {
+    while (cursor < coords.length) {
+      // Going offline or logging out mid-run abandons the rest of the queue.
+      if (!navigator.onLine || !isAuthed()) return
 
-    if (fetched + count > MAX_TILES) break
+      const [z, x, y] = coords[cursor++]
+      const url = buildTileUrl(tileUrlTemplate, z, x, y)
 
-    for (let x = minX; x <= maxX; x++) {
-      for (let y = minY; y <= maxY; y++) {
-        const url = buildTileUrl(tileUrlTemplate, z, x, y)
-        // SW CacheFirst handler stores the response. Fire-and-forget unless the
-        // caller asked to await completion.
-        const p = fetch(url, { mode: 'no-cors' }).catch(() => {})
-        if (awaitAll) inflight.push(p)
-        fetched++
-      }
+      if (cache && (await cache.match(url))) continue
+
+      // The SW CacheFirst handler stores the response.
+      await fetch(url, { mode: 'no-cors' }).catch(() => {})
+      fetched++
     }
   }
 
-  if (awaitAll && inflight.length) await Promise.allSettled(inflight)
+  await Promise.all(
+    Array.from({ length: Math.min(TILE_CONCURRENCY, coords.length) }, worker),
+  )
+
   return fetched
 }
 
@@ -186,25 +270,58 @@ export async function prefetchTiles(
  */
 export async function clearTileCache(): Promise<void> {
   try {
-    if (typeof caches !== 'undefined') await caches.delete('map-tiles')
+    if (typeof caches !== 'undefined') await caches.delete(TILE_CACHE)
   } catch {
     /* Cache Storage unavailable (no SW / private mode) — nothing to clear */
   }
+
+  // Drop the recorded bboxes too, otherwise prefetchTilesForTrip would consider
+  // these trips done and never refill the cache we just emptied.
+  try {
+    const metas = await offlineDb.syncMeta.toArray()
+    await Promise.all(
+      metas
+        .filter(m => m.tilesBbox !== null)
+        .map(m => upsertSyncMeta({ ...m, tilesBbox: null })),
+    )
+  } catch (err) {
+    console.error('[tilePrefetch] failed to reset tile bboxes:', err)
+  }
+}
+
+/** Same bbox to within ~1 m — i.e. the trip's places haven't moved. */
+function sameBbox(a: [number, number, number, number], b: TileBbox): boolean {
+  return (
+    Math.abs(a[0] - b.minLng) < 1e-5 &&
+    Math.abs(a[1] - b.minLat) < 1e-5 &&
+    Math.abs(a[2] - b.maxLng) < 1e-5 &&
+    Math.abs(a[3] - b.maxLat) < 1e-5
+  )
 }
 
 /**
  * Full pipeline: compute bbox → guard → prefetch → update syncMeta.
  * Designed to be called fire-and-forget from tripSyncManager.
+ *
+ * Set `force` to prefetch even when this bbox was already covered by an earlier
+ * run — the "prepare for offline" path does, so the user gets a guarantee
+ * rather than a promise based on our own bookkeeping.
  */
 export async function prefetchTilesForTrip(
   tripId: number,
   places: Place[],
   tileUrlTemplate?: string,
-  awaitAll = false,
+  force = false,
 ): Promise<void> {
   const template = tileUrlTemplate || DEFAULT_TILE_URL
   const bbox = computeBbox(places)
   if (!bbox) return
+
+  // Unchanged bbox → the tiles are already there. Skipping outright keeps a
+  // routine login from re-walking thousands of tile URLs just to find them all
+  // cached.
+  const existing = await offlineDb.syncMeta.get(tripId)
+  if (!force && existing?.tilesBbox && sameBbox(existing.tilesBbox, bbox)) return
 
   // Zoom-clamp rather than skip: prefetchTiles fills zooms low→high and stops
   // once MAX_TILES is reached, so large (region / road-trip) bboxes still get
@@ -216,7 +333,7 @@ export async function prefetchTilesForTrip(
   // tile providers that don't send CORS headers. To stop the browser evicting
   // these tiles under the inflated quota, we request persistent storage at app
   // init instead (sync/persistentStorage.ts).
-  const fetched = await prefetchTiles(bbox, template, 10, 16, awaitAll)
+  const fetched = await prefetchTiles(bbox, template, 10, 16)
 
   // Update syncMeta with bbox and tile count
   const meta = await offlineDb.syncMeta.get(tripId)
@@ -228,6 +345,6 @@ export async function prefetchTilesForTrip(
   }
 
   if (fetched > 0) {
-    console.info(`[tilePrefetch] trip ${tripId}: queued ${fetched} tiles for caching`)
+    console.info(`[tilePrefetch] trip ${tripId}: cached ${fetched} tiles`)
   }
 }

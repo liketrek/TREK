@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': "Turn your trips into stories you'll never forget",
   'journey.frontpage.createJourney': 'Journey Oluştur',
   'journey.frontpage.activeJourney': 'Aktif Journey',
+  'journey.frontpage.latestJourney': 'Son Journey',
   'journey.frontpage.allJourneys': "Tüm Journey'ler",
   'journey.frontpage.journeys': 'journey',
   'journey.frontpage.createNew': 'Yeni Journey oluştur',
@@ -122,6 +123,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1.',
   'journey.editor.makeFirst': '1. yap',
   'journey.editor.searching': 'Aranıyor...',
+  'journey.editor.useCurrentLocation': 'Mevcut konumumu kullan',
+  'journey.editor.locationPermissionDenied':
+    'Konum erişimi reddedildi. Tarayıcı ayarlarından izin verip tekrar deneyin.',
+  'journey.editor.locationTimeout': 'Konum alınırken zaman aşımı oluştu. Tekrar deneyin.',
+  'journey.editor.locationUnavailable': 'Konumunuz belirlenemedi.',
+  'journey.editor.locationInsecureContext': 'Konum için güvenli (HTTPS) bir bağlantı gerekir.',
   'journey.mood.amazing': 'Muhteşem',
   'journey.mood.good': 'İyi',
   'journey.mood.neutral': 'Nötr',
@@ -227,5 +234,13 @@ const journey: TranslationStrings = {
   'journey.editor.uploadFailed': 'Fotoğraf yüklenemedi',
   'journey.editor.uploadPartialFailed': '{total} fotoğraftan {failed} tanesi başarısız — tekrar denemek için kaydedin',
   'journey.photosUploadFailed': 'Bazı fotoğraflar yüklenemedi',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

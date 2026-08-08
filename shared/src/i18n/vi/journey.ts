@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Biến chuyến đi của bạn thành những câu chuyện bạn sẽ không bao giờ quên',
   'journey.frontpage.createJourney': 'Tạo hành trình',
   'journey.frontpage.activeJourney': 'Hành trình đang hoạt động',
+  'journey.frontpage.latestJourney': 'Hành trình mới nhất',
   'journey.frontpage.allJourneys': 'Tất cả hành trình',
   'journey.frontpage.journeys': 'cuộc hành trình',
   'journey.frontpage.createNew': 'Tạo một hành trình mới',
@@ -125,6 +126,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': 'thứ nhất',
   'journey.editor.makeFirst': 'làm số 1',
   'journey.editor.searching': 'Đang tìm kiếm...',
+  'journey.editor.useCurrentLocation': 'Dùng vị trí hiện tại của tôi',
+  'journey.editor.locationPermissionDenied':
+    'Quyền truy cập vị trí bị từ chối. Hãy cho phép trong cài đặt trình duyệt rồi thử lại.',
+  'journey.editor.locationTimeout': 'Hết thời gian lấy vị trí. Hãy thử lại.',
+  'journey.editor.locationUnavailable': 'Không thể xác định vị trí của bạn.',
+  'journey.editor.locationInsecureContext': 'Vị trí yêu cầu kết nối an toàn (HTTPS).',
   'journey.mood.amazing': 'Tuyệt vời',
   'journey.mood.good': 'Tốt',
   'journey.mood.neutral': 'Trung lập',
@@ -227,5 +234,13 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Không tìm thấy album nào',
   'journey.picker.selectDate': 'Chọn ngày',
   'journey.picker.search': 'Tìm kiếm',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

@@ -1,9 +1,8 @@
 
 import { Response } from 'express';
 import { db } from '../../db/database';
-import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../apiKeyCrypto';
+import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 import { safeFetch, SsrfBlockedError, checkSsrf } from '../../utils/ssrfGuard';
-import { addTripPhotos } from './unifiedService';
 import {
     getAlbumLinkForSync,
     updateSyncTimeForAlbumLink,
@@ -19,7 +18,7 @@ import {
     SyncAlbumResult,
     AssetInfo
 } from './helpersService';
-import { send as sendNotification } from '../notificationService';
+import { send as sendNotification } from '../../nest/notifications/notifications.bridge';
 
 const SYNOLOGY_PROVIDER = 'synologyphotos';
 // Users provide the full base URL including the Photos app path (e.g. https://nas:5001/photo).
@@ -278,8 +277,8 @@ function _normalizeSynologyPhotoInfo(item: SynologyPhotoItem): AssetInfo {
         aperture: exif.aperture || null,
         shutter: exif.exposure_time || null,
         iso: exif.iso || null,
-        lat: gps.latitude || null,
-        lng: gps.longitude || null,
+        lat: typeof gps.latitude === 'number' ? gps.latitude : null,
+        lng: typeof gps.longitude === 'number' ? gps.longitude : null,
         orientation: item.additional?.orientation || null,
         description: item.additional?.description || null,
         width: item.additional?.resolution?.width || null,
@@ -374,13 +373,15 @@ export async function updateSynologySettings(userId: number, synologyUrl: string
     const sessionCleared = urlChanged || userChanged;
     if (sessionCleared) {
         _clearSynologySession(userId);
+        // Fire-and-forget like unifiedService's photos_shared send — without the
+        // .catch an in-app insert failure became an unhandled rejection.
         sendNotification({
             event: 'synology_session_cleared',
             actorId: null,
             params: {},
             scope: 'user',
             targetId: userId,
-        });
+        }).catch(() => {});
     }
 
     try {
@@ -508,9 +509,13 @@ export async function getSynologyAlbumPhotos(userId: number, albumId: string, pa
     return success({ assets, total: assets.length, hasMore: false });
 }
 
-export async function syncSynologyAlbumLink(userId: number, tripId: string, linkId: string, sid: string): Promise<ServiceResult<SyncAlbumResult>> {
+/**
+ * The Synology half of an album sync — see collectAlbumSelection in
+ * immichService for why the trip-side write lives in the unified service now.
+ */
+export async function collectSynologyAlbumSelection(userId: number, tripId: string, linkId: string): Promise<ServiceResult<{ selection: Selection; total: number }>> {
     const response = getAlbumLinkForSync(tripId, linkId, userId);
-    if (!response.success) return response as ServiceResult<SyncAlbumResult>;
+    if (!response.success) return response as ServiceResult<{ selection: Selection; total: number }>;
 
     const { albumId, passphrase } = response.data;
 
@@ -525,7 +530,7 @@ export async function syncSynologyAlbumLink(userId: number, tripId: string, link
 
         const result = await _requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, itemParams);
 
-        if (!result.success) return result as ServiceResult<SyncAlbumResult>;
+        if (!result.success) return result as ServiceResult<{ selection: Selection; total: number }>;
 
         const items = result.data.list || [];
         allItems.push(...items);
@@ -539,12 +544,7 @@ export async function syncSynologyAlbumLink(userId: number, tripId: string, link
         passphrase,
     };
 
-    const result = await addTripPhotos(tripId, userId, true, [selection], sid, linkId);
-    if (!result.success) return result as ServiceResult<SyncAlbumResult>;
-
-    updateSyncTimeForAlbumLink(linkId);
-
-    return success({ added: result.data.added, total: allItems.length });
+    return success({ selection, total: allItems.length });
 }
 
 export async function searchSynologyPhotos(userId: number, from?: string, to?: string, offset = 0, limit = 300): Promise<ServiceResult<AssetsList>> {
@@ -555,7 +555,7 @@ export async function searchSynologyPhotos(userId: number, from?: string, to?: s
         offset,
         limit,
         keyword: '.',
-        additional: ['thumbnail', 'address'],
+        additional: ['thumbnail', 'address', 'gps'],
     };
 
     if (from || to) {
@@ -703,4 +703,3 @@ export async function streamSynologyAsset(
     const url = _buildSynologyEndpoint(synology_credentials.data.synology_url, params.toString());
     await pipeAsset(url, response, undefined, undefined, 'public, max-age=86400', { rejectUnauthorized: !synology_credentials.data.synology_skip_ssl })
 }
-

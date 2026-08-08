@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Afegeix un lloc / activitat',
   'places.importFile': 'Importa un fitxer',
+  'places.trackIndicator': 'Track / ruta',
   'places.sidebarDrop': 'Deixa anar per importar',
   'places.importFileHint':
     "Importa fitxers .gpx, .kml o .kmz d'eines com Google My Maps, Google Earth o un rastrejador GPS.",
@@ -40,7 +41,11 @@ const places: TranslationStrings = {
   'places.assignToDay': "A quin dia l'afegeixo?",
   'places.all': 'Tot',
   'places.unplanned': 'Sense planificar',
+  'places.planned': 'Planificats',
   'places.filterTracks': 'Rutes',
+  'places.sortByRating': 'Ordena per valoració',
+  'places.yourRating': 'La teva valoració',
+  'places.notRated': 'Encara sense valoració',
   'places.search': 'Cerca llocs...',
   'places.allCategories': 'Totes les categories',
   'places.categoriesSelected': 'categories',
@@ -60,6 +65,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Longitud (p. ex. 2.3522)',
   'places.formCategory': 'Categoria',
   'places.noCategory': 'Sense categoria',
+  'places.newCategory': 'Categoria nova',
   'places.categoryNamePlaceholder': 'Nom de la categoria',
   'places.formTime': 'Hora',
   'places.startTime': 'Inici',
@@ -89,5 +95,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Enriquir llocs mitjançant Google',
   'places.enrichOnImportHint':
     "Obté automàticament adreces, puntuacions i horaris d'obertura des de Google en importar.",
+  'places.uploadImage': 'Puja una imatge',
+  'places.changeImage': 'Canvia la imatge',
+  'places.removeImage': 'Elimina la imatge',
+  'places.imageUploadError': "No s'ha pogut pujar la imatge",
+  'places.imageRemoveError': "No s'ha pogut eliminar la imatge",
 };
 export default places;

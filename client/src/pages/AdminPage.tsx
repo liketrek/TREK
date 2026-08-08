@@ -23,6 +23,12 @@ import AdminNotificationsTab from './admin/AdminNotificationsTab'
 import AdminUserModals from './admin/AdminUserModals'
 
 export default function AdminPage(): React.ReactElement {
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <AdminPageDesktop />
+}
+
+function AdminPageDesktop(): React.ReactElement {
   const { t, locale } = useTranslation()
   // Page = wiring container: all admin data slices + handlers live in the hook,
   // each tab/section renders from a dedicated sub-component.

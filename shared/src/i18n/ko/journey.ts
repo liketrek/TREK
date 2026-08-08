@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': '여행을 영원히 잊지 못할 이야기로 만드세요',
   'journey.frontpage.createJourney': 'Journey 만들기',
   'journey.frontpage.activeJourney': '활성 Journey',
+  'journey.frontpage.latestJourney': '최근 Journey',
   'journey.frontpage.allJourneys': '모든 Journey',
   'journey.frontpage.journeys': '개 Journey',
   'journey.frontpage.createNew': '새 Journey 만들기',
@@ -122,6 +123,11 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1번째',
   'journey.editor.makeFirst': '1번째로 설정',
   'journey.editor.searching': '검색 중...',
+  'journey.editor.useCurrentLocation': '현재 위치 사용',
+  'journey.editor.locationPermissionDenied': '위치 접근이 거부되었습니다. 브라우저 설정에서 허용한 후 다시 시도하세요.',
+  'journey.editor.locationTimeout': '위치를 가져오는 데 시간이 초과되었습니다. 다시 시도하세요.',
+  'journey.editor.locationUnavailable': '위치를 확인할 수 없습니다.',
+  'journey.editor.locationInsecureContext': '위치 기능에는 보안 연결(HTTPS)이 필요합니다.',
   'journey.mood.amazing': '최고!',
   'journey.mood.good': '좋음',
   'journey.mood.neutral': '보통',
@@ -228,5 +234,13 @@ const journey: TranslationStrings = {
   'journey.editor.uploadPartialFailed':
     '{total}개 중 {failed}개의 사진을 업로드하지 못했습니다 — 다시 저장하여 재시도하세요',
   'journey.photosUploadFailed': '일부 사진을 업로드하지 못했습니다',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Шаблон карты',
   'settings.mapTemplatePlaceholder.select': 'Выберите шаблон...',
   'settings.mapDefaultHint': 'Оставьте пустым для OpenStreetMap (по умолчанию)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-шаблон для тайлов карты',
   'settings.mapProvider': 'Провайдер карты',
   'settings.mapProviderHint': 'Применяется к Trip Planner и Journey. Atlas всегда использует Leaflet.',
@@ -77,6 +76,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Напоминания о поездке',
   'settings.notifyTodoDue': 'Задача к сроку',
   'settings.notifyVacayInvite': 'Приглашения слияния Vacay',
+  'settings.notifyVacayShare': 'Общий доступ к календарю Vacay',
   'settings.notifyPhotosShared': 'Общие фото (Immich)',
   'settings.notifyCollabMessage': 'Сообщения чата (Collab)',
   'settings.notifyPackingTagged': 'Список вещей: назначения',
@@ -259,6 +259,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Фото профиля обновлено',
   'settings.avatarRemoved': 'Фото профиля удалено',
   'settings.avatarError': 'Ошибка загрузки',
+  'settings.avatarRemoveError': 'Ошибка удаления',
   'settings.bookingLabels': 'Подписи маршрутов бронирований',
   'settings.bookingLabelsHint':
     'Отображает названия станций / аэропортов на карте. Если выключено, показывается только значок.',
@@ -298,8 +299,9 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.currency': 'Валюта',
-  'settings.currencyHint': 'Все расходы будут конвертированы и показаны в этой валюте.',
+  'settings.currency': 'Валюта отображения',
+  'settings.currencyHint':
+    'Суммы в разделе «Расходы» отображаются в этой валюте только для просмотра — исходные суммы не изменяются.',
   'settings.currencyTrip': 'Валюта поездки',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
@@ -429,6 +431,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Названия мест, описания',
   'settings.appearance.example.small': 'Адреса, подписи',
   'settings.appearance.experimental': 'Экспериментальные настройки',
+  'settings.appearance.mobileNav': 'Нижняя панель навигации',
+  'settings.appearance.mobileNav.hint':
+    'Выберите, какие элементы отображаются на панели, а какие — в меню «Ещё». Дашборд всегда остаётся первым.',
+  'settings.appearance.mobileNav.inBar': 'На панели',
+  'settings.appearance.mobileNav.underMore': 'В меню «Ещё»',
+  'settings.appearance.mobileNav.moreEmpty': 'Здесь пока пусто — всё умещается на панели.',
+  'settings.appearance.mobileNav.pinned': 'Закреплено',
+  'settings.appearance.mobileNav.toMore': 'Переместить в меню «Ещё»',
+  'settings.appearance.mobileNav.toBar': 'Переместить на панель',
+  'settings.appearance.dashOrder': 'Порядок панели',
+  'settings.appearance.dashOrder.hint':
+    'Измените порядок, в котором список поездок и виджеты располагаются на панели телефона. Избранная поездка всегда остаётся сверху.',
+  'settings.appearance.dashOrder.trips': 'Поездки',
+  'settings.appearance.dashOrder.hidden': 'Скрыто',
   'settings.general.languageRegion': 'Язык и регион',
   'settings.general.travelMap': 'Карта и путешествия',
 
@@ -495,7 +511,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Когда',
   'settings.pluginActivity.columns.status': 'Результат',
   'settings.alwaysShowRoutes': 'Всегда показывать маршруты бронирований',
-  'settings.alwaysShowRoutesHint': 'Автоматически показывает на карте маршрут для каждого рейса, поезда и другого бронирования — без необходимости включать это отдельно для каждого элемента.',
+  'settings.alwaysShowRoutesHint':
+    'Автоматически показывает на карте маршрут для каждого рейса, поезда и другого бронирования — без необходимости включать это отдельно для каждого элемента.',
 };
 
 export default settings;

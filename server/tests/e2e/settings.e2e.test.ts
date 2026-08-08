@@ -1,12 +1,15 @@
 /**
  * Settings e2e — exercises the migrated /api/settings endpoints through the real
- * JwtAuthGuard against a temp SQLite db. The settings service is mocked; this
- * focuses on auth, the 400 guards, the masked-sentinel no-op and status codes.
+ * JwtAuthGuard against a temp SQLite db. DI-native: SettingsService runs its
+ * real SQL over the temp db (no service mock); this covers auth, the DTO 400s
+ * (ZodValidationPipe), the masked-sentinel no-op, status codes and the actual
+ * persisted rows.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
+import { DatabaseModule } from '../../src/nest/database/database.module';
 import { Test } from '@nestjs/testing';
 import { seedUser, sessionCookie } from './harness';
 
@@ -17,28 +20,28 @@ const { db } = vi.hoisted(() => {
   tmp.exec('PRAGMA journal_mode = WAL');
   tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0);`);
+  tmp.exec(`CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+    key TEXT NOT NULL, value TEXT, UNIQUE(user_id, key));`);
+  tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
   return { db: tmp };
 });
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
-const { settingsSvc } = vi.hoisted(() => ({
-  settingsSvc: { getUserSettings: vi.fn(), upsertSetting: vi.fn(), bulkUpsertSettings: vi.fn() },
-}));
-vi.mock('../../src/services/settingsService', () => settingsSvc);
-
 import { SettingsModule } from '../../src/nest/settings/settings.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 describe('Settings e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [SettingsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, SettingsModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
+    nest.useGlobalPipes(new ZodValidationPipe());
     await nest.init();
     return nest;
   }
@@ -47,11 +50,12 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     seedUser(db as never, { id: 1 });
     app = await build();
     server = app.getHttpServer();
-    settingsSvc.getUserSettings.mockReturnValue({ theme: 'dark' });
-    settingsSvc.bulkUpsertSettings.mockReturnValue(2);
   });
 
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    db.exec('DELETE FROM settings');
+    db.exec('DELETE FROM app_settings');
+  });
 
   afterAll(async () => {
     await app.close();
@@ -62,29 +66,57 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 list with a session', async () => {
-    settingsSvc.getUserSettings.mockReturnValue({ theme: 'dark' });
+    db.prepare("INSERT INTO settings (user_id, key, value) VALUES (1, 'theme', 'dark')").run();
     const res = await request(server).get('/api/settings').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ settings: { theme: 'dark' } });
   });
 
-  it('PUT 400 without a key', async () => {
+  it('PUT 400 without a key (pipe envelope via SettingUpsertDto)', async () => {
     const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1)).send({ value: 'x' });
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Key is required' });
+    expect(res.body.error).toMatch(/^key: /);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM settings').get()).toEqual({ n: 0 });
+  });
+
+  it('POST /bulk 400 without a settings object (pipe envelope via SettingsBulkDto)', async () => {
+    const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1)).send({ settings: null });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/^settings: /);
+  });
+
+  it('PUT persists the setting', async () => {
+    const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1)).send({ key: 'language', value: 'fr' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, key: 'language', value: 'fr' });
+    const row = db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'language'").get() as { value: string };
+    expect(row.value).toBe('fr');
   });
 
   it('PUT no-ops on the masked sentinel', async () => {
     const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1)).send({ key: 'secret', value: '••••••••' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, key: 'secret', unchanged: true });
-    expect(settingsSvc.upsertSetting).not.toHaveBeenCalled();
+    expect(db.prepare("SELECT COUNT(*) AS n FROM settings WHERE user_id = 1 AND key = 'secret'").get()).toEqual({ n: 0 });
   });
 
   it('POST /bulk 200', async () => {
-    settingsSvc.bulkUpsertSettings.mockReturnValue(2);
     const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1)).send({ settings: { a: 1, b: 2 } });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, updated: 2 });
+    const rows = db.prepare('SELECT key, value FROM settings WHERE user_id = 1 ORDER BY key').all();
+    expect(rows).toEqual([
+      { key: 'a', value: '1' },
+      { key: 'b', value: '2' },
+    ]);
+  });
+
+  it('POST /bulk skips masked-sentinel values (a stored secret survives)', async () => {
+    db.prepare("INSERT INTO settings (user_id, key, value) VALUES (1, 'ntfy_token', 'tok-real')").run();
+    const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1))
+      .send({ settings: { ntfy_topic: 'trek', ntfy_token: '••••••••' } });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, updated: 1 });
+    expect(db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'ntfy_token'").get()).toEqual({ value: 'tok-real' });
   });
 });

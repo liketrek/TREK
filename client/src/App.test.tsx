@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter } from 'react-router'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../tests/helpers/msw/server'
@@ -169,6 +169,8 @@ describe('ProtectedRoute — admin role check', () => {
 // ── Public routes ──────────────────────────────────────────────────────────────
 
 describe('Public routes', () => {
+  // Synchronous on purpose: LoginPage is the one page still statically imported,
+  // so this also holds the line against someone making it lazy later.
   it('FE-COMP-APP-012: /login is accessible without authentication', async () => {
     seedAuth({ isAuthenticated: false })
     renderApp('/login')
@@ -178,7 +180,7 @@ describe('Public routes', () => {
   it('FE-COMP-APP-013: /shared/:token is accessible without authentication', async () => {
     seedAuth({ isAuthenticated: false })
     renderApp('/shared/sometoken')
-    expect(screen.getByText('SharedTrip')).toBeInTheDocument()
+    expect(await screen.findByText('SharedTrip')).toBeInTheDocument()
   })
 
   it('FE-COMP-APP-014: unknown routes redirect to / which then redirects to /login', async () => {

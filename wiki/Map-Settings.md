@@ -30,7 +30,7 @@ When Leaflet is selected, pick a preset or enter a custom tile URL.
 
 | Name | URL |
 |------|-----|
-| OpenStreetMap | `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png` |
+| OpenStreetMap | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` |
 | OpenStreetMap DE | `https://tile.openstreetmap.de/{z}/{x}/{y}.png` |
 | CartoDB Light | `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png` |
 | CartoDB Dark | `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png` |

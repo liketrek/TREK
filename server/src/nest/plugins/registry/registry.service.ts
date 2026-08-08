@@ -1,4 +1,5 @@
-import { db } from '../../../db/database';
+import { readEnv } from '../../../app-config';
+import { DatabaseService } from '../../database/database.service';
 import { discoverPlugins } from '../install/discovery';
 import { hostSatisfies, hostVersion, normalizedHost } from '../install/host-compat';
 import type { PluginDependency } from '../install/manifest';
@@ -24,9 +25,8 @@ import semver from 'semver';
  * (registers INACTIVE). Nothing executes on install; activation is separate.
  */
 
-const REGISTRY_URL =
-  process.env.TREK_PLUGIN_REGISTRY_URL ||
-  'https://raw.githubusercontent.com/liketrek/TREK-Plugins/main/dist/index.json';
+// Frozen at import on purpose (legacy timing) — the registry URL is boot-stable.
+const REGISTRY_URL = readEnv().plugins.registryUrl;
 const CACHE_TTL = 30 * 60 * 1000;
 const MANIFEST_MAX_BYTES = 256 * 1024;
 // Sideload upload ceiling — matches the SDK `pack` limit (50 MB) plus zip overhead.
@@ -118,6 +118,11 @@ export interface ManifestPreview {
   icon: string | null;
   requiredAddons: string[];
   pluginDependencies: PluginDependency[];
+  /**
+   * The UI-facing slice of `capabilities`. A plugin that replaces planner tabs hides core
+   * UI, so the reviewer has to see it BEFORE installing, not only on the installed row.
+   */
+  capabilities: { widget?: { slot?: string }; tripPage?: { replaces?: string[] } };
 }
 
 let _cache: { data: Registry; expiresAt: number } | null = null;
@@ -147,6 +152,12 @@ export class RegistryError extends Error {
 
 @Injectable()
 export class PluginRegistryService {
+  constructor(private readonly dbs: DatabaseService) {}
+
+  private get db() {
+    return this.dbs.connection;
+  }
+
   /**
    * Fetch the aggregated registry (cached, soft-fail, stale-serve). Pass
    * force=true (the admin "rescan" button) to bypass the 30-min cache and also
@@ -435,8 +446,8 @@ export class PluginRegistryService {
       fs.renameSync(pluginRoot, dest);
 
       // 7. register INACTIVE (record provenance)
-      discoverPlugins(db);
-      db.prepare('UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ? WHERE id = ?').run(
+      discoverPlugins(this.db);
+      this.db.prepare('UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ? WHERE id = ?').run(
         entry.repo,
         ver.commitSha,
         ver.sha256,
@@ -448,7 +459,7 @@ export class PluginRegistryService {
       // to a key the artifact just verified under; NEVER cleared to NULL, because a
       // NULL pin re-opens the "was never signed" path that accepts an unsigned update.
       if (entry.authorPublicKey) {
-        db.prepare('UPDATE plugins SET author_pubkey = ? WHERE id = ?').run(entry.authorPublicKey, id);
+        this.db.prepare('UPDATE plugins SET author_pubkey = ? WHERE id = ?').run(entry.authorPublicKey, id);
       }
       // The plugin is now on new code that passed every check — whatever refusal was
       // recorded before no longer describes reality.
@@ -471,7 +482,7 @@ export class PluginRegistryService {
     constraint?: string,
   ): Promise<{ installed: string[]; requiredAddons: string[] }> {
     const installedNow = new Set(
-      (db.prepare('SELECT id FROM plugins').all() as Array<{ id: string }>).map((r) => r.id),
+      (this.db.prepare('SELECT id FROM plugins').all() as Array<{ id: string }>).map((r) => r.id),
     );
     const done = new Set<string>();
     const installed: string[] = [];
@@ -536,7 +547,7 @@ export class PluginRegistryService {
       fs.mkdirSync(pluginsCodeRoot(), { recursive: true });
       fs.rmSync(dest, { recursive: true, force: true });
       fs.renameSync(staged.root, dest);
-      discoverPlugins(db);
+      discoverPlugins(this.db);
       // Provenance for a sideload, plus a hard INACTIVE floor: discoverPlugins keeps
       // an existing row's status, so replacing a plugin that was active must not
       // leave the new code marked active — the admin re-activates (and re-consents
@@ -546,7 +557,7 @@ export class PluginRegistryService {
       // plugin has just left the registry trust model entirely — the code is now whatever
       // the admin uploaded. Leaving the block would have the row insist an update was
       // blocked over a signing key that no longer applies to the code that is running.
-      db.prepare(
+      this.db.prepare(
         `UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ?, author_pubkey = NULL,
                             update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL,
                             status = 'inactive', enabled = 0
@@ -585,7 +596,7 @@ export class PluginRegistryService {
     retrustKey?: string,
   ): void {
     const pinned =
-      (db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string } | undefined)
+      (this.db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string } | undefined)
         ?.author_pubkey ?? null;
 
     if (!entry.authorPublicKey && !ver.signature) {
@@ -637,7 +648,7 @@ export class PluginRegistryService {
    * rendered, the admin would be blessing a key they never saw.
    */
   async assertRetrustable(id: string, publicKey: string): Promise<RegistryEntry> {
-    const row = db.prepare('SELECT source_repo, author_pubkey FROM plugins WHERE id = ?').get(id) as
+    const row = this.db.prepare('SELECT source_repo, author_pubkey FROM plugins WHERE id = ?').get(id) as
       | { source_repo?: string | null; author_pubkey?: string | null }
       | undefined;
     if (!row) throw new RegistryError(`plugin ${id} not found`, 'NOT_FOUND');
@@ -743,6 +754,20 @@ function previewManifest(raw: unknown): ManifestPreview {
         }))
         .filter((d) => d.id && d.version)
     : [];
+  const rawCaps = (m.capabilities && typeof m.capabilities === 'object' ? m.capabilities : {}) as Record<
+    string,
+    unknown
+  >;
+  const widget = (rawCaps.widget && typeof rawCaps.widget === 'object' ? rawCaps.widget : null) as {
+    slot?: unknown;
+  } | null;
+  const tripPage = (rawCaps.tripPage && typeof rawCaps.tripPage === 'object' ? rawCaps.tripPage : null) as {
+    replaces?: unknown;
+  } | null;
+  const capabilities: ManifestPreview['capabilities'] = {};
+  if (widget) capabilities.widget = typeof widget.slot === 'string' ? { slot: widget.slot } : {};
+  if (tripPage) capabilities.tripPage = { replaces: strings(tripPage.replaces) };
+
   return {
     permissions: strings(m.permissions),
     egress: strings(m.egress),
@@ -752,6 +777,7 @@ function previewManifest(raw: unknown): ManifestPreview {
     icon: typeof m.icon === 'string' ? m.icon : null,
     requiredAddons: strings(m.requiredAddons),
     pluginDependencies,
+    capabilities,
   };
 }
 

@@ -1,9 +1,13 @@
 /**
- * Unit tests for MCP notification tools:
+ * Unit tests for the notifications MCP surface (NotificationsMcp,
+ * DI-discovered since the notifications fold):
  * list_notifications, get_unread_notification_count, mark_notification_read,
- * mark_notification_unread, mark_all_notifications_read, delete_notification,
- * delete_all_notifications.
+ * mark_notification_unread, mark_all_notifications_read.
  * Also covers the resource trek://notifications/in-app.
+ *
+ * All of it attaches via the nest-mcp registry inside registerTools, so every
+ * harness here keeps withTools on (the resource is NOT registered by the
+ * legacy registerResources fan-out anymore).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -80,7 +84,9 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withTools: false, withResources: true });
+  // The in-app resource attaches via the nest-mcp registry (withTools), not
+  // the legacy registerResources fan-out.
+  const h = await createMcpHarness({ userId, withTools: true, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

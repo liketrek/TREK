@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
 import { Map, Save, Layers, Box, ChevronDown, Check, Globe2 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
-import GlMapPreview from './MapboxPreview'
+// The preview loads on demand, and paired with a single engine — a Leaflet-only
+// install pays for neither, and a GL install pays for one instead of both.
+import ErrorBoundary from '../shared/ErrorBoundary'
+import { GlMapPreviewMapbox, GlMapPreviewMaplibre } from '../Map/glLazy'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
 import type { Place } from '../../types'
@@ -24,7 +27,7 @@ interface MapPreset {
 }
 
 const MAP_PRESETS: MapPreset[] = [
-  { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
+  { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
   { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
   { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
@@ -162,6 +165,8 @@ export default function MapSettingsTab(): React.ReactElement {
   const [mapboxStyle, setMapboxStyle] = useState<string>(styleForProvider(initialProvider, slotStyle(initialProvider, settings)))
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
+  // One chunk per engine — see components/Map/glLazy.tsx.
+  const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox
 
   useEffect(() => {
     const nextProvider = normalizeProvider(settings.map_provider)
@@ -196,7 +201,6 @@ export default function MapSettingsTab(): React.ReactElement {
     setSaving(true)
     try {
       const glStyle = provider === 'leaflet' ? mapboxStyle : normalizeStyleForProvider(provider, mapboxStyle)
-      setMapboxStyle(glStyle)
       // Save into the active provider's own slot so the other provider's style survives.
       const stylePatch = provider === 'maplibre-gl' ? { maplibre_style: glStyle } : { mapbox_style: glStyle }
       await updateSettings({
@@ -207,6 +211,8 @@ export default function MapSettingsTab(): React.ReactElement {
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
       })
+      // Only mirror the normalized style into the form once it is actually persisted.
+      setMapboxStyle(glStyle)
       toast.success(t('settings.toast.mapSaved'))
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.error'))
@@ -306,7 +312,7 @@ export default function MapSettingsTab(): React.ReactElement {
             type="text"
             value={mapTileUrl}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapTileUrl(e.target.value)}
-            placeholder="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
           />
           <p className="text-xs text-slate-400 mt-1">{t('settings.mapDefaultHint')}</p>
@@ -398,18 +404,25 @@ export default function MapSettingsTab(): React.ReactElement {
       <div>
         <div style={{ position: 'relative', inset: 0, height: '200px', width: '100%' }}>
           {provider !== 'leaflet' ? (
-            <GlMapPreview
-              provider={provider}
-              token={mapboxToken}
-              style={mapboxStyle}
-              lat={PREVIEW_CENTER[0]}
-              lng={PREVIEW_CENTER[1]}
-              // Zoom in close so the style's character (3D buildings,
-              // satellite texture, label density) is immediately visible.
-              zoom={PREVIEW_ZOOM}
-              enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
-              quality={provider === 'mapbox-gl' && mapboxQuality}
-            />
+            /* A net of its own: the preview is the one place a user flips providers
+               live, so it is the likeliest chunk to fail — and a broken preview must
+               not take the rest of the settings tab with it. */
+            <ErrorBoundary boundaryId="settings:map-preview" resetKeys={[provider]} fallback={<div className="h-full w-full bg-surface-secondary" />}>
+            <Suspense fallback={<div className="h-full w-full bg-surface-secondary animate-pulse" />}>
+              <GlMapPreview
+                provider={provider}
+                token={mapboxToken}
+                style={mapboxStyle}
+                lat={PREVIEW_CENTER[0]}
+                lng={PREVIEW_CENTER[1]}
+                // Zoom in close so the style's character (3D buildings,
+                // satellite texture, label density) is immediately visible.
+                zoom={PREVIEW_ZOOM}
+                enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
+                quality={provider === 'mapbox-gl' && mapboxQuality}
+              />
+            </Suspense>
+            </ErrorBoundary>
           ) : (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             React.createElement(MapView as any, {

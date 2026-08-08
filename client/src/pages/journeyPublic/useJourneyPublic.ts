@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router'
 import { journeyApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { JourneyMapHandle } from '../../components/Journey/JourneyMap'

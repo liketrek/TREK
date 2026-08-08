@@ -21,6 +21,27 @@ export function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, 
     setEditingName(false)
   }
 
+  // Limits are entered in kg — that is how airlines state them — and stored in grams.
+  const limitToInput = (grams?: number | null) => (grams ? String(grams / 1000) : '')
+  const [editingLimit, setEditingLimit] = useState(false)
+  const [limitVal, setLimitVal] = useState(limitToInput(bag.weight_limit_grams))
+  useEffect(() => setLimitVal(limitToInput(bag.weight_limit_grams)), [bag.weight_limit_grams])
+
+  const saveLimit = () => {
+    setEditingLimit(false)
+    const raw = limitVal.trim().replace(',', '.')
+    if (raw === '') {
+      // Clearing the field removes the limit and puts the bar back on relative scaling.
+      if (bag.weight_limit_grams != null) onUpdate(bag.id, { weight_limit_grams: null })
+      return
+    }
+    const kg = Number(raw)
+    // Anything unparseable or negative leaves the stored limit alone rather than wiping it.
+    if (!Number.isFinite(kg) || kg <= 0) { setLimitVal(limitToInput(bag.weight_limit_grams)); return }
+    const grams = Math.round(kg * 1000)
+    if (grams !== bag.weight_limit_grams) onUpdate(bag.id, { weight_limit_grams: grams })
+  }
+
   const memberIds = (bag.members || []).map(m => m.user_id)
   const toggleMember = (userId: number) => {
     const next = memberIds.includes(userId) ? memberIds.filter(id => id !== userId) : [...memberIds, userId]
@@ -40,8 +61,29 @@ export function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, 
         ) : (
           <span onClick={() => canEdit && setEditingName(true)} style={{ flex: 1, fontSize: sz.name, fontWeight: 600, color: compact ? 'var(--text-secondary)' : 'var(--text-primary)', cursor: canEdit ? 'text' : 'default' }}>{bag.name}</span>
         )}
-        <span style={{ fontSize: sz.weight, color: 'var(--text-faint)', fontWeight: 500 }}>
+        <span style={{ fontSize: sz.weight, color: 'var(--text-faint)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
           {totalWeight >= 1000 ? `${(totalWeight / 1000).toFixed(1)} kg` : `${totalWeight} g`}
+          {editingLimit && canEdit ? (
+            <>
+              <span>/</span>
+              <input autoFocus value={limitVal} onChange={e => setLimitVal(e.target.value)}
+                onBlur={saveLimit}
+                onKeyDown={e => { if (e.key === 'Enter') saveLimit(); if (e.key === 'Escape') { setLimitVal(limitToInput(bag.weight_limit_grams)); setEditingLimit(false) } }}
+                inputMode="decimal" aria-label={t('packing.bagLimit')} placeholder={t('packing.bagLimit')}
+                style={{ width: 42, fontSize: sz.weight, padding: '1px 3px', borderRadius: 4, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit', color: 'var(--text-primary)', background: 'transparent' }} />
+              <span>kg</span>
+            </>
+          ) : bag.weight_limit_grams ? (
+            <span onClick={() => canEdit && setEditingLimit(true)} title={t('packing.bagLimit')}
+              style={{ cursor: canEdit ? 'text' : 'default' }}>
+              / {(bag.weight_limit_grams / 1000).toFixed(1)} kg
+            </span>
+          ) : canEdit ? (
+            <button onClick={() => setEditingLimit(true)} title={t('packing.bagLimit')}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-faint)', fontSize: sz.count, fontFamily: 'inherit', textDecoration: 'underline dotted' }}>
+              {t('packing.setBagLimit')}
+            </button>
+          ) : null}
         </span>
         {canEdit && <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)', display: 'flex' }}><X size={sz.icon} /></button>}
       </div>

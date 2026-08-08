@@ -609,6 +609,34 @@ describe('BACKUP-036 createBackup', () => {
       expect.anything(),
     );
   });
+
+  it('BACKUP-036i — the auto-backup prefix names both the zip and its scratch snapshots', async () => {
+    // The scheduler passes 'auto-backup' so retention and the admin panel can
+    // still tell scheduled archives apart by filename.
+    fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('travel.db'));
+    fsMock.mkdirSync.mockReturnValue(undefined);
+
+    const writableEvents: Record<string, Function> = {};
+    fsMock.createWriteStream.mockReturnValue({
+      on: vi.fn((event: string, cb: Function) => { writableEvents[event] = cb; }),
+    } as never);
+    archiverInstanceMock.on.mockImplementation((_e: string, _cb: Function) => {});
+    archiverInstanceMock.pipe.mockReturnValue(undefined);
+    archiverInstanceMock.finalize.mockImplementation(() => {
+      if (writableEvents['close']) writableEvents['close']();
+    });
+    archiverMock.mockReturnValue(archiverInstanceMock);
+
+    fsMock.statSync.mockReturnValue({ size: 1024, birthtime: new Date('2026-04-06T12:00:00Z') });
+
+    const result = await createBackup('auto-backup');
+
+    expect(result.filename).toMatch(/^auto-backup-.*\.zip$/);
+    expect(archiverInstanceMock.file).toHaveBeenCalledWith(
+      expect.stringContaining('.travel-snap-auto-backup-'),
+      { name: 'travel.db' },
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

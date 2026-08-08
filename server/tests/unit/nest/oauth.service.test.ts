@@ -1,158 +1,1168 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+/**
+ * Unit tests for the OAuth 2.1 domain service.
+ *
+ * Moved 1:1 from tests/unit/services/oauthService.test.ts with the fold — the
+ * cases and their names are unchanged; the free-function imports became
+ * methods bound to a hand-constructed OauthService (the repo's DB-backed
+ * service-test shape). The delegation cases of the old thin wrapper died with
+ * it; mcpEnabled/mcpSafeUrl, the module metadata and the bridge seam are
+ * pinned at the bottom.
+ */
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import crypto from 'crypto';
 
-// The Nest service is a thin wrapper that forwards to the legacy oauthService
-// plus the addon/notification helpers. Mock those and assert the delegation.
-const { oauth } = vi.hoisted(() => ({
-  oauth: {
-    consumeAuthCode: vi.fn(),
-    authenticateClient: vi.fn(),
-    verifyPKCE: vi.fn(),
-    issueTokens: vi.fn(),
-    issueClientCredentialsToken: vi.fn(),
-    refreshTokens: vi.fn(),
-    revokeToken: vi.fn(),
-    getUserByAccessToken: vi.fn(),
-    validateAuthorizeRequest: vi.fn(),
-    saveConsent: vi.fn(),
-    createAuthCode: vi.fn(),
-    listOAuthClients: vi.fn(),
-    createOAuthClient: vi.fn(),
-    rotateOAuthClientSecret: vi.fn(),
-    deleteOAuthClient: vi.fn(),
-    listOAuthSessions: vi.fn(),
-    revokeSession: vi.fn(),
-  },
+const { testDb, dbMock } = vi.hoisted(() => {
+  const Database = require('better-sqlite3');
+  const db = new Database(':memory:');
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
+  db.exec('PRAGMA busy_timeout = 5000');
+  const mock = {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: (tripId: any, userId: number) =>
+      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+    isOwner: (tripId: any, userId: number) =>
+      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
+  };
+  return { testDb: db, dbMock: mock };
+});
+
+vi.mock('../../../src/db/database', () => dbMock);
+vi.mock('../../../src/config', () => ({
+  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
+  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
+  updateJwtSecret: () => {},
 }));
-vi.mock('../../../src/services/oauthService', () => oauth);
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
+  encrypt_api_key: (v: string) => v,
+  decrypt_api_key: (v: string) => v,
+  maybe_encrypt_api_key: (v: string) => v,
+}));
+vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn(), sessions: new Map() }));
+import { revokeUserSessionsForClient } from '../../../src/mcp/sessionManager';
+vi.mock('../../../src/demo/demo-reset', () => ({ saveBaseline: vi.fn() }));
 
-const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn() }));
-vi.mock('../../../src/services/adminService', () => ({ isAddonEnabled }));
+const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn().mockReturnValue(true) }));
 
-const { getMcpSafeUrl } = vi.hoisted(() => ({ getMcpSafeUrl: vi.fn() }));
-vi.mock('../../../src/services/notifications', () => ({ getMcpSafeUrl }));
+import { createTables } from '../../../src/db/schema';
+import { runMigrations } from '../../../src/db/migrations';
+import { resetTestDb } from '../../helpers/test-db';
+import { createUser } from '../../helpers/factories';
+// PKCE helper — generates a valid code_verifier + code_challenge pair (RFC 7636)
+function makePkce() {
+  const verifier = crypto.randomBytes(32).toString('base64url');   // 43 chars
+  const challenge = crypto.createHash('sha256').update(verifier).digest('base64url'); // 43 chars
+  return { verifier, challenge };
+}
 
 import { OauthService } from '../../../src/nest/oauth/oauth.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { getMcpSafeUrl } from '../../../src/app-config';
 import { ADDON_IDS } from '../../../src/addons';
+import * as bridge from '../../../src/nest/oauth/oauth.bridge';
+import { MAX_PENDING_CODES, sweepPendingCodes } from '../../../src/nest/oauth/oauth.pending-codes';
 
-function svc() { return new OauthService(); }
+const dbs = new DatabaseService(testDb);
+// Stubbed rather than real: every case drives the MCP gate through this one
+// flag, exactly as the addons.bridge mock did before the fold.
+const addonsStub = { isAddonEnabled } as unknown as AddonsService;
+const svc = new OauthService(dbs, addonsStub, new AuditService(dbs));
 
-beforeEach(() => vi.clearAllMocks());
+// Legacy free-function names bound to the service, so the moved cases below read
+// exactly as they did before the fold.
+const createOAuthClient = svc.createOAuthClient.bind(svc);
+const listOAuthClients = svc.listOAuthClients.bind(svc);
+const deleteOAuthClient = svc.deleteOAuthClient.bind(svc);
+const rotateOAuthClientSecret = svc.rotateOAuthClientSecret.bind(svc);
+const createAuthCode = svc.createAuthCode.bind(svc);
+const consumeAuthCode = svc.consumeAuthCode.bind(svc);
+const issueTokens = svc.issueTokens.bind(svc);
+const getUserByAccessToken = svc.getUserByAccessToken.bind(svc);
+const refreshTokens = svc.refreshTokens.bind(svc);
+const revokeToken = svc.revokeToken.bind(svc);
+const listOAuthSessions = svc.listOAuthSessions.bind(svc);
+const revokeSession = svc.revokeSession.bind(svc);
+const validateAuthorizeRequest = svc.validateAuthorizeRequest.bind(svc);
+const verifyPKCE = svc.verifyPKCE.bind(svc);
+const authenticateClient = svc.authenticateClient.bind(svc);
+const saveConsent = svc.saveConsent.bind(svc);
+const getConsent = svc.getConsent.bind(svc);
+const isConsentSufficient = svc.isConsentSufficient.bind(svc);
 
-describe('OauthService', () => {
+beforeAll(() => {
+  createTables(testDb);
+  runMigrations(testDb);
+});
+
+beforeEach(() => {
+  resetTestDb(testDb);
+  // Clear oauth tables manually since they're not in the standard reset list
+  testDb.exec('DELETE FROM oauth_tokens');
+  testDb.exec('DELETE FROM oauth_consents');
+  testDb.exec('DELETE FROM oauth_clients');
+  isAddonEnabled.mockReturnValue(true);
+});
+
+afterAll(() => {
+  testDb.close();
+});
+
+// ---------------------------------------------------------------------------
+// Helper
+// ---------------------------------------------------------------------------
+
+function makeClient(
+  userId: number,
+  overrides: Partial<{ name: string; redirectUris: string[]; scopes: string[] }> = {}
+) {
+  return createOAuthClient(
+    userId,
+    overrides.name ?? 'Test Client',
+    overrides.redirectUris ?? ['https://example.com/callback'],
+    overrides.scopes ?? ['trips:read'],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// createOAuthClient
+// ---------------------------------------------------------------------------
+
+describe('createOAuthClient', () => {
+  it('creates a client successfully and returns client_secret only on creation', () => {
+    const { user } = createUser(testDb);
+    const result = makeClient(user.id);
+    expect(result.error).toBeUndefined();
+    expect(result.client).toBeDefined();
+    expect(typeof result.client!.client_secret).toBe('string');
+    expect((result.client!.client_secret as string).startsWith('trekcs_')).toBe(true);
+  });
+
+  it('client_id is a UUID', () => {
+    const { user } = createUser(testDb);
+    const result = makeClient(user.id);
+    expect(result.client!.client_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    );
+  });
+
+  it('returns 400 error if name is empty', () => {
+    const { user } = createUser(testDb);
+    const result = createOAuthClient(user.id, '', ['https://example.com/cb'], ['trips:read']);
+    expect(result.status).toBe(400);
+    expect(result.error).toContain('Name');
+  });
+
+  it('returns 400 error if name exceeds 100 characters', () => {
+    const { user } = createUser(testDb);
+    const longName = 'A'.repeat(101);
+    const result = createOAuthClient(user.id, longName, ['https://example.com/cb'], ['trips:read']);
+    expect(result.status).toBe(400);
+    expect(result.error).toContain('100');
+  });
+
+  it('returns 400 error if no redirect URIs provided', () => {
+    const { user } = createUser(testDb);
+    const result = createOAuthClient(user.id, 'Test', [], ['trips:read']);
+    expect(result.status).toBe(400);
+    expect(result.error).toContain('redirect URI');
+  });
+
+  it('returns 400 error if more than 10 redirect URIs provided', () => {
+    const { user } = createUser(testDb);
+    const uris = Array.from({ length: 11 }, (_, i) => `https://example${i}.com/cb`);
+    const result = createOAuthClient(user.id, 'Test', uris, ['trips:read']);
+    expect(result.status).toBe(400);
+    expect(result.error).toContain('10');
+  });
+
+  it('returns 400 error for invalid URI format', () => {
+    const { user } = createUser(testDb);
+    const result = createOAuthClient(user.id, 'Test', ['not-a-url'], ['trips:read']);
+    expect(result.status).toBe(400);
+    expect(result.error).toContain('Invalid redirect URI');
+  });
+
+  it('returns 400 error for non-https URI (not localhost)', () => {
+    const { user } = createUser(testDb);
+    const result = createOAuthClient(user.id, 'Test', ['http://example.com/cb'], ['trips:read']);
+    expect(result.status).toBe(400);
+    expect(result.error).toContain('HTTPS');
+  });
+
+  it('allows http://localhost redirect URI', () => {
+    const { user } = createUser(testDb);
+    const result = createOAuthClient(user.id, 'Test', ['http://localhost:3000/callback'], ['trips:read']);
+    expect(result.error).toBeUndefined();
+    expect(result.client).toBeDefined();
+  });
+
+  it('allows http://127.0.0.1 redirect URI', () => {
+    const { user } = createUser(testDb);
+    const result = createOAuthClient(user.id, 'Test', ['http://127.0.0.1:5000/callback'], ['trips:read']);
+    expect(result.error).toBeUndefined();
+    expect(result.client).toBeDefined();
+  });
+
+  it('returns 400 error if no scopes provided', () => {
+    const { user } = createUser(testDb);
+    const result = createOAuthClient(user.id, 'Test', ['https://example.com/cb'], []);
+    expect(result.status).toBe(400);
+    expect(result.error).toContain('scope');
+  });
+
+  it('returns 400 error for invalid scopes', () => {
+    const { user } = createUser(testDb);
+    const result = createOAuthClient(user.id, 'Test', ['https://example.com/cb'], ['invalid:scope']);
+    expect(result.status).toBe(400);
+    expect(result.error).toContain('Invalid scopes');
+  });
+
+  it('enforces max 10 clients per user', () => {
+    const { user } = createUser(testDb);
+    for (let i = 0; i < 10; i++) {
+      const r = makeClient(user.id, { name: `Client ${i}` });
+      expect(r.error).toBeUndefined();
+    }
+    const eleventh = makeClient(user.id, { name: 'Eleventh' });
+    expect(eleventh.status).toBe(400);
+    expect(eleventh.error).toContain('10');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listOAuthClients
+// ---------------------------------------------------------------------------
+
+describe('listOAuthClients', () => {
+  it('returns empty array for user with no clients', () => {
+    const { user } = createUser(testDb);
+    expect(listOAuthClients(user.id)).toEqual([]);
+  });
+
+  it('returns created clients with redirect_uris and allowed_scopes as arrays', () => {
+    const { user } = createUser(testDb);
+    makeClient(user.id, { name: 'Client A', redirectUris: ['https://a.com/cb'], scopes: ['trips:read', 'budget:read'] });
+    const clients = listOAuthClients(user.id);
+    expect(clients).toHaveLength(1);
+    expect(clients[0].name).toBe('Client A');
+    expect(Array.isArray(clients[0].redirect_uris)).toBe(true);
+    expect(Array.isArray(clients[0].allowed_scopes)).toBe(true);
+    expect(clients[0].allowed_scopes).toContain('trips:read');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteOAuthClient
+// ---------------------------------------------------------------------------
+
+describe('deleteOAuthClient', () => {
+  it('deletes own client successfully', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientRowId = created.client!.id as string;
+    const result = deleteOAuthClient(user.id, clientRowId);
+    expect(result.success).toBe(true);
+    expect(listOAuthClients(user.id)).toHaveLength(0);
+  });
+
+  it('returns 404 for non-existent client', () => {
+    const { user } = createUser(testDb);
+    const result = deleteOAuthClient(user.id, 'non-existent-id');
+    expect(result.status).toBe(404);
+  });
+
+  it("returns 404 for another user's client", () => {
+    const { user: owner } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const created = makeClient(owner.id);
+    const result = deleteOAuthClient(other.id, created.client!.id as string);
+    expect(result.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rotateOAuthClientSecret
+// ---------------------------------------------------------------------------
+
+describe('rotateOAuthClientSecret', () => {
+  it('rotates secret and returns new client_secret starting with trekcs_', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const oldSecret = created.client!.client_secret as string;
+    const result = rotateOAuthClientSecret(user.id, created.client!.id as string);
+    expect(result.error).toBeUndefined();
+    expect(result.client_secret).toBeDefined();
+    expect((result.client_secret as string).startsWith('trekcs_')).toBe(true);
+    expect(result.client_secret).not.toBe(oldSecret);
+  });
+
+  it('returns 404 for non-existent client', () => {
+    const { user } = createUser(testDb);
+    const result = rotateOAuthClientSecret(user.id, 'non-existent-id');
+    expect(result.status).toBe(404);
+  });
+
+  it('revokes old tokens after rotation', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const { access_token } = issueTokens(clientId, user.id, ['trips:read']);
+    expect(getUserByAccessToken(access_token)).not.toBeNull();
+
+    rotateOAuthClientSecret(user.id, created.client!.id as string);
+
+    expect(getUserByAccessToken(access_token)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createAuthCode + consumeAuthCode
+// ---------------------------------------------------------------------------
+
+describe('createAuthCode + consumeAuthCode', () => {
+  it('create code and consume it once returns the pending entry', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const code = createAuthCode({
+      clientId,
+      userId: user.id,
+      redirectUri: 'https://example.com/callback',
+      scopes: ['trips:read'],
+      codeChallenge: 'abc123',
+      codeChallengeMethod: 'S256',
+    });
+
+    const entry = consumeAuthCode(code);
+    expect(entry).not.toBeNull();
+    expect(entry!.userId).toBe(user.id);
+    expect(entry!.clientId).toBe(clientId);
+  });
+
+  it('returns null for non-existent code', () => {
+    expect(consumeAuthCode('does-not-exist')).toBeNull();
+  });
+
+  it('consuming same code twice returns null (one-time use)', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const code = createAuthCode({
+      clientId,
+      userId: user.id,
+      redirectUri: 'https://example.com/callback',
+      scopes: ['trips:read'],
+      codeChallenge: 'abc123',
+      codeChallengeMethod: 'S256',
+    });
+
+    consumeAuthCode(code);
+    expect(consumeAuthCode(code)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// issueTokens + getUserByAccessToken
+// ---------------------------------------------------------------------------
+
+describe('issueTokens + getUserByAccessToken', () => {
+  it('issues tokens with correct prefixes', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const tokens = issueTokens(clientId, user.id, ['trips:read']);
+    expect(tokens.access_token.startsWith('trekoa_')).toBe(true);
+    expect(tokens.refresh_token.startsWith('trekrf_')).toBe(true);
+    expect(tokens.token_type).toBe('Bearer');
+    expect(typeof tokens.expires_in).toBe('number');
+  });
+
+  it('getUserByAccessToken returns user and scopes for a valid token', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const { access_token } = issueTokens(clientId, user.id, ['trips:read', 'budget:write']);
+    const info = getUserByAccessToken(access_token);
+    expect(info).not.toBeNull();
+    expect(info!.user.email).toBe(user.email);
+    expect(info!.scopes).toContain('trips:read');
+    expect(info!.scopes).toContain('budget:write');
+  });
+
+  it('getUserByAccessToken returns null for unknown token', () => {
+    expect(getUserByAccessToken('trekoa_unknown')).toBeNull();
+  });
+
+  it('getUserByAccessToken returns null for revoked token', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const { access_token } = issueTokens(clientId, user.id, ['trips:read']);
+    revokeToken(access_token, clientId);
+    expect(getUserByAccessToken(access_token)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// refreshTokens
+// ---------------------------------------------------------------------------
+
+describe('refreshTokens', () => {
+  it('exchanges a refresh token for a new token pair', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    const { refresh_token } = issueTokens(clientId, user.id, ['trips:read']);
+    const result = refreshTokens(refresh_token, clientId, rawSecret);
+    expect(result.error).toBeUndefined();
+    expect(result.tokens).toBeDefined();
+    expect(result.tokens!.access_token.startsWith('trekoa_')).toBe(true);
+  });
+
+  it('old tokens are revoked after refresh (rotation)', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    const { access_token, refresh_token } = issueTokens(clientId, user.id, ['trips:read']);
+    refreshTokens(refresh_token, clientId, rawSecret);
+    expect(getUserByAccessToken(access_token)).toBeNull();
+  });
+
+  it('does not revoke the active MCP session on a normal (non-replayed) refresh (#1475)', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    const { refresh_token } = issueTokens(clientId, user.id, ['trips:read']);
+    const callsBefore = vi.mocked(revokeUserSessionsForClient).mock.calls.length;
+    const result = refreshTokens(refresh_token, clientId, rawSecret);
+    expect(result.error).toBeUndefined();
+    expect(vi.mocked(revokeUserSessionsForClient).mock.calls.length).toBe(callsBefore);
+  });
+
+  it('returns invalid_grant for unknown refresh token', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    const result = refreshTokens('trekrf_unknown', clientId, rawSecret);
+    expect(result.error).toBe('invalid_grant');
+    expect(result.status).toBe(400);
+  });
+
+  it('returns invalid_grant for revoked token', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    const { access_token, refresh_token } = issueTokens(clientId, user.id, ['trips:read']);
+    revokeToken(access_token, clientId);
+    const result = refreshTokens(refresh_token, clientId, rawSecret);
+    expect(result.error).toBe('invalid_grant');
+  });
+
+  it('returns invalid_client for wrong client_secret', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const { refresh_token } = issueTokens(clientId, user.id, ['trips:read']);
+    const result = refreshTokens(refresh_token, clientId, 'wrong-secret');
+    expect(result.error).toBe('invalid_client');
+    expect(result.status).toBe(401);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// revokeToken
+// ---------------------------------------------------------------------------
+
+describe('revokeToken', () => {
+  it('after revoking access token, getUserByAccessToken returns null', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const { access_token } = issueTokens(clientId, user.id, ['trips:read']);
+    expect(getUserByAccessToken(access_token)).not.toBeNull();
+
+    revokeToken(access_token, clientId);
+    expect(getUserByAccessToken(access_token)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listOAuthSessions + revokeSession
+// ---------------------------------------------------------------------------
+
+describe('listOAuthSessions + revokeSession', () => {
+  it('lists active sessions', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    issueTokens(clientId, user.id, ['trips:read']);
+    const sessions = listOAuthSessions(user.id);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].client_id).toBe(clientId);
+  });
+
+  it('revoked session is not listed', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const { access_token } = issueTokens(clientId, user.id, ['trips:read']);
+    revokeToken(access_token, clientId);
+    const sessions = listOAuthSessions(user.id);
+    expect(sessions).toHaveLength(0);
+  });
+
+  it('revokeSession returns 404 for unknown session', () => {
+    const { user } = createUser(testDb);
+    const result = revokeSession(user.id, 99999);
+    expect(result.status).toBe(404);
+  });
+
+  it('revokeSession by session id removes session from list', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    issueTokens(clientId, user.id, ['trips:read']);
+    const sessions = listOAuthSessions(user.id);
+    const sessionId = sessions[0].id as number;
+
+    const result = revokeSession(user.id, sessionId);
+    expect(result.success).toBe(true);
+    expect(listOAuthSessions(user.id)).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateAuthorizeRequest
+// ---------------------------------------------------------------------------
+
+describe('validateAuthorizeRequest', () => {
+  // Use a proper 43-char S256 code_challenge to pass H1 format validation
+  const { challenge: VALID_CHALLENGE } = makePkce();
+
+  function makeParams(overrides: Partial<{
+    response_type: string;
+    client_id: string;
+    redirect_uri: string;
+    scope: string;
+    code_challenge: string;
+    code_challenge_method: string;
+  }> = {}) {
+    return {
+      response_type: 'code',
+      client_id: '',
+      redirect_uri: 'https://example.com/callback',
+      scope: 'trips:read',
+      code_challenge: VALID_CHALLENGE,
+      code_challenge_method: 'S256',
+      ...overrides,
+    };
+  }
+
+  it('returns mcp_disabled when isAddonEnabled returns false', () => {
+    vi.mocked(isAddonEnabled).mockReturnValue(false);
+    const result = validateAuthorizeRequest(makeParams({ client_id: 'x' }), null);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('mcp_disabled');
+  });
+
+  it('requires response_type=code', () => {
+    const { user } = createUser(testDb);
+    const result = validateAuthorizeRequest(makeParams({ response_type: 'token', client_id: 'x' }), user.id);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('unsupported_response_type');
+  });
+
+  it('requires PKCE with S256', () => {
+    const { user } = createUser(testDb);
+    const result = validateAuthorizeRequest(makeParams({ client_id: 'x', code_challenge_method: 'plain' }), user.id);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('invalid_request');
+  });
+
+  it('requires valid client_id', () => {
+    const { user } = createUser(testDb);
+    const result = validateAuthorizeRequest(makeParams({ client_id: 'nonexistent' }), user.id);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('invalid_client');
+  });
+
+  it('validates redirect_uri against registered URIs', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id, { redirectUris: ['https://example.com/callback'] });
+    const clientId = created.client!.client_id as string;
+
+    const result = validateAuthorizeRequest(
+      makeParams({ client_id: clientId, redirect_uri: 'https://evil.com/callback' }),
+      user.id
+    );
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('invalid_redirect_uri');
+  });
+
+  it('validates scope against client allowed_scopes', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id, { scopes: ['trips:read'] });
+    const clientId = created.client!.client_id as string;
+
+    const result = validateAuthorizeRequest(
+      makeParams({ client_id: clientId, scope: 'budget:write' }),
+      user.id
+    );
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('invalid_scope');
+  });
+
+  it('returns loginRequired when userId is null', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const result = validateAuthorizeRequest(makeParams({ client_id: clientId }), null);
+    expect(result.valid).toBe(true);
+    expect(result.loginRequired).toBe(true);
+  });
+
+  it('returns consentRequired=true when consent not yet saved', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const result = validateAuthorizeRequest(makeParams({ client_id: clientId }), user.id);
+    expect(result.valid).toBe(true);
+    expect(result.consentRequired).toBe(true);
+  });
+
+  it('returns consentRequired=false when consent already saved and sufficient', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    saveConsent(clientId, user.id, ['trips:read']);
+    const result = validateAuthorizeRequest(makeParams({ client_id: clientId }), user.id);
+    expect(result.valid).toBe(true);
+    expect(result.consentRequired).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// verifyPKCE
+// ---------------------------------------------------------------------------
+
+describe('verifyPKCE', () => {
+  it('returns true for valid code_verifier / code_challenge pair (SHA256 base64url)', () => {
+    const verifier = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
+    const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+    expect(verifyPKCE(verifier, challenge)).toBe(true);
+  });
+
+  it('returns false for wrong verifier', () => {
+    const verifier = 'correct-verifier';
+    const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+    expect(verifyPKCE('wrong-verifier', challenge)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// authenticateClient
+// ---------------------------------------------------------------------------
+
+describe('authenticateClient', () => {
+  it('returns client row for correct credentials', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    const client = authenticateClient(clientId, rawSecret);
+    expect(client).not.toBeNull();
+    expect(client!.client_id).toBe(clientId);
+  });
+
+  it('returns null for wrong secret', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    expect(authenticateClient(clientId, 'wrong-secret')).toBeNull();
+  });
+
+  it('returns null for unknown client_id', () => {
+    expect(authenticateClient('unknown-client-id', 'any-secret')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// saveConsent + getConsent + isConsentSufficient
+// ---------------------------------------------------------------------------
+
+describe('saveConsent + getConsent + isConsentSufficient', () => {
+  it('saves and retrieves consent', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    saveConsent(clientId, user.id, ['trips:read', 'budget:write']);
+    const consent = getConsent(clientId, user.id);
+    expect(consent).not.toBeNull();
+    expect(consent).toContain('trips:read');
+    expect(consent).toContain('budget:write');
+  });
+
+  it('isConsentSufficient returns true when all requested scopes are in existing', () => {
+    expect(isConsentSufficient(['trips:read', 'budget:write'], ['trips:read'])).toBe(true);
+    expect(isConsentSufficient(['trips:read', 'budget:write'], ['trips:read', 'budget:write'])).toBe(true);
+  });
+
+  it('isConsentSufficient returns false when some scopes are missing', () => {
+    expect(isConsentSufficient(['trips:read'], ['trips:read', 'budget:write'])).toBe(false);
+    expect(isConsentSufficient([], ['trips:read'])).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M5 — saveConsent unions instead of replacing
+// ---------------------------------------------------------------------------
+
+describe('saveConsent — scope union (M5)', () => {
+  it('unioning scopes: approving B after A leaves both in consent', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id, { scopes: ['trips:read', 'budget:write'] });
+    const clientId = created.client!.client_id as string;
+
+    saveConsent(clientId, user.id, ['trips:read']);
+    saveConsent(clientId, user.id, ['budget:write']);
+
+    const consent = getConsent(clientId, user.id);
+    expect(consent).toContain('trips:read');
+    expect(consent).toContain('budget:write');
+  });
+
+  it('re-approving a superset scope still preserves previously-consented scopes', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id, { scopes: ['trips:read', 'trips:write'] });
+    const clientId = created.client!.client_id as string;
+
+    saveConsent(clientId, user.id, ['trips:read', 'trips:write']);
+    // approve only trips:read on a later request
+    saveConsent(clientId, user.id, ['trips:read']);
+
+    const consent = getConsent(clientId, user.id);
+    // trips:write should NOT be removed (union semantics)
+    expect(consent).toContain('trips:read');
+    expect(consent).toContain('trips:write');
+  });
+
+  it('consent is sufficient after sequential approvals — no re-prompt needed', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id, { scopes: ['trips:read', 'budget:write'] });
+    const clientId = created.client!.client_id as string;
+
+    saveConsent(clientId, user.id, ['trips:read']);
+    saveConsent(clientId, user.id, ['budget:write']);
+
+    // Should not require consent again for either scope
+    expect(isConsentSufficient(getConsent(clientId, user.id)!, ['trips:read'])).toBe(true);
+    expect(isConsentSufficient(getConsent(clientId, user.id)!, ['budget:write'])).toBe(true);
+    expect(isConsentSufficient(getConsent(clientId, user.id)!, ['trips:read', 'budget:write'])).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C2 — getUserByAccessToken returns clientId
+// ---------------------------------------------------------------------------
+
+describe('getUserByAccessToken — includes clientId (C2)', () => {
+  it('returns clientId matching the issuing OAuth client', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const { access_token } = issueTokens(clientId, user.id, ['trips:read']);
+    const info = getUserByAccessToken(access_token);
+    expect(info).not.toBeNull();
+    expect(info!.clientId).toBe(clientId);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C3 — Refresh token replay detection and chain revocation
+// ---------------------------------------------------------------------------
+
+describe('refreshTokens — replay detection (C3)', () => {
+  it('replaying a revoked refresh token returns invalid_grant', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    // Issue tokens, then rotate once (old token becomes revoked)
+    const { refresh_token: firstRefresh } = issueTokens(clientId, user.id, ['trips:read']);
+    const rotateResult = refreshTokens(firstRefresh, clientId, rawSecret);
+    expect(rotateResult.error).toBeUndefined();
+    const { refresh_token: secondRefresh } = rotateResult.tokens!;
+
+    // Replay the FIRST (now revoked) refresh token
+    const callsBefore = vi.mocked(revokeUserSessionsForClient).mock.calls.length;
+    const replayResult = refreshTokens(firstRefresh, clientId, rawSecret);
+    expect(replayResult.error).toBe('invalid_grant');
+    expect(replayResult.status).toBe(400);
+    // Replay IS a security event — sessions must still be torn down here.
+    expect(vi.mocked(revokeUserSessionsForClient).mock.calls.length).toBe(callsBefore + 1);
+    expect(vi.mocked(revokeUserSessionsForClient)).toHaveBeenLastCalledWith(user.id, clientId);
+  });
+
+  it('replaying a revoked token also revokes the entire rotation chain', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    // Issue → rotate once
+    const { refresh_token: first } = issueTokens(clientId, user.id, ['trips:read']);
+    const r1 = refreshTokens(first, clientId, rawSecret);
+    const { access_token: access2, refresh_token: second } = r1.tokens!;
+
+    // Replay first (revoked) refresh token → chain revoke
+    refreshTokens(first, clientId, rawSecret);
+
+    // The rotated access token should also be dead now
+    expect(getUserByAccessToken(access2)).toBeNull();
+
+    // The second refresh token should also be revoked
+    const r2 = refreshTokens(second, clientId, rawSecret);
+    expect(r2.error).toBe('invalid_grant');
+  });
+
+  it('new rotation chain after replay is independent', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const rawSecret = created.client!.client_secret as string;
+
+    const { refresh_token: first } = issueTokens(clientId, user.id, ['trips:read']);
+    // Rotate once
+    const r1 = refreshTokens(first, clientId, rawSecret);
+    const { refresh_token: second } = r1.tokens!;
+    // Rotate again on the second token
+    const r2 = refreshTokens(second, clientId, rawSecret);
+    expect(r2.error).toBeUndefined();
+    const { refresh_token: third } = r2.tokens!;
+
+    // Replay the first revoked token → revokes chain containing first+second+third
+    refreshTokens(first, clientId, rawSecret);
+
+    // third should now be revoked too (it's in the same chain)
+    const r3 = refreshTokens(third, clientId, rawSecret);
+    expect(r3.error).toBe('invalid_grant');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// H1 — PKCE code_challenge / code_verifier format validation
+// ---------------------------------------------------------------------------
+
+describe('verifyPKCE — format validation (H1)', () => {
+  it('returns false for a code_verifier that is too short (< 43 chars)', () => {
+    const { challenge } = makePkce();
+    expect(verifyPKCE('short', challenge)).toBe(false);
+  });
+
+  it('returns false for a code_verifier that is too long (> 128 chars)', () => {
+    const { challenge } = makePkce();
+    const longVerifier = 'a'.repeat(129);
+    expect(verifyPKCE(longVerifier, challenge)).toBe(false);
+  });
+
+  it('returns false for a code_verifier with invalid characters', () => {
+    const { challenge } = makePkce();
+    const badVerifier = 'A'.repeat(42) + ' '; // space is not allowed
+    expect(verifyPKCE(badVerifier, challenge)).toBe(false);
+  });
+
+  it('returns true for a valid 43-char verifier matching its challenge', () => {
+    const { verifier, challenge } = makePkce();
+    expect(verifyPKCE(verifier, challenge)).toBe(true);
+  });
+});
+
+describe('validateAuthorizeRequest — PKCE format (H1)', () => {
+  it('returns invalid_request when code_challenge is shorter than 43 chars', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    const result = validateAuthorizeRequest({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: 'https://example.com/callback',
+      scope: 'trips:read',
+      code_challenge: 'tooshort',
+      code_challenge_method: 'S256',
+    }, user.id);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('invalid_request');
+  });
+
+  it('returns invalid_request when code_challenge contains invalid characters', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    // 43 chars but includes '=' which is not base64url
+    const badChallenge = '='.repeat(43);
+    const result = validateAuthorizeRequest({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: 'https://example.com/callback',
+      scope: 'trips:read',
+      code_challenge: badChallenge,
+      code_challenge_method: 'S256',
+    }, user.id);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('invalid_request');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// H3 — validateAuthorizeRequest: loginRequired response strips client info
+// ---------------------------------------------------------------------------
+
+describe('validateAuthorizeRequest — unauthenticated strips client info (H3)', () => {
+  it('loginRequired response does not include client.name or allowed_scopes', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const { challenge } = makePkce();
+
+    const result = validateAuthorizeRequest({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: 'https://example.com/callback',
+      scope: 'trips:read',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+    }, null /* unauthenticated */);
+
+    expect(result.valid).toBe(true);
+    expect(result.loginRequired).toBe(true);
+    // Must NOT expose client metadata to unauthenticated callers
+    expect(result.client).toBeUndefined();
+    expect(result.scopes).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Wrapper surface that survived the fold, plus the branches the legacy suite
+// never reached (they were free functions nobody could drive in isolation).
+// ---------------------------------------------------------------------------
+
+describe('addon gate and MCP endpoint', () => {
   it('mcpEnabled checks the MCP addon flag', () => {
     isAddonEnabled.mockReturnValue(true);
-    expect(svc().mcpEnabled()).toBe(true);
+    expect(svc.mcpEnabled()).toBe(true);
     expect(isAddonEnabled).toHaveBeenCalledWith(ADDON_IDS.MCP);
     isAddonEnabled.mockReturnValue(false);
-    expect(svc().mcpEnabled()).toBe(false);
+    expect(svc.mcpEnabled()).toBe(false);
   });
 
-  it('mcpSafeUrl forwards to the notifications helper', () => {
-    getMcpSafeUrl.mockReturnValue('https://safe');
-    expect(svc().mcpSafeUrl()).toBe('https://safe');
-    expect(getMcpSafeUrl).toHaveBeenCalled();
+  it('mcpSafeUrl forwards to the app-config helper', () => {
+    expect(svc.mcpSafeUrl()).toBe(getMcpSafeUrl());
+  });
+});
+
+describe('pending-code store', () => {
+  const codeParams = {
+    clientId: 'c',
+    userId: 42,
+    redirectUri: 'https://example.com/callback',
+    scopes: ['trips:read'],
+    resource: null,
+    codeChallenge: 'x',
+    codeChallengeMethod: 'S256' as const,
+  };
+
+  it('refuses a new code at capacity and the sweep frees it again', () => {
+    for (let i = 0; i < MAX_PENDING_CODES; i++) createAuthCode(codeParams);
+
+    expect(createAuthCode(codeParams)).toBeNull();
+
+    // Everything in the store is past its 2-minute TTL by then.
+    sweepPendingCodes(Date.now() + 3 * 60 * 1000);
+
+    const afterSweep = createAuthCode(codeParams);
+    expect(afterSweep).not.toBeNull();
+    sweepPendingCodes(Date.now() + 3 * 60 * 1000);
   });
 
-  it('consumeAuthCode delegates', () => {
-    oauth.consumeAuthCode.mockReturnValue({ clientId: 'c' });
-    expect(svc().consumeAuthCode('code')).toEqual({ clientId: 'c' });
-    expect(oauth.consumeAuthCode).toHaveBeenCalledWith('code');
+  it('a code past its TTL is consumed as invalid', () => {
+    const code = createAuthCode(codeParams)!;
+    const realNow = Date.now;
+    Date.now = () => realNow() + 3 * 60 * 1000;
+    try {
+      expect(consumeAuthCode(code)).toBeNull();
+    } finally {
+      Date.now = realNow;
+    }
+  });
+});
+
+describe('branches the legacy suite could not reach', () => {
+  it('rejects an expired access token', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = (created.client as { client_id: string }).client_id;
+    const tokens = issueTokens(clientId, user.id, ['trips:read']);
+    testDb.prepare("UPDATE oauth_tokens SET access_token_expires_at = '2000-01-01T00:00:00.000Z'").run();
+
+    expect(getUserByAccessToken(tokens.access_token)).toBeNull();
   });
 
-  it('authenticateClient delegates with both args', () => {
-    oauth.authenticateClient.mockReturnValue({ id: 'c' });
-    expect(svc().authenticateClient('c', 'secret')).toEqual({ id: 'c' });
-    expect(oauth.authenticateClient).toHaveBeenCalledWith('c', 'secret');
+  it('refreshTokens rejects an unknown client before touching the token', () => {
+    expect(refreshTokens('trekrf_whatever', 'no-such-client', 'secret')).toEqual({ error: 'invalid_client', status: 401 });
   });
 
-  it('verifyPKCE delegates', () => {
-    oauth.verifyPKCE.mockReturnValue(true);
-    expect(svc().verifyPKCE('v', 'ch')).toBe(true);
-    expect(oauth.verifyPKCE).toHaveBeenCalledWith('v', 'ch');
+  it('refreshTokens skips the secret check for a public client', () => {
+    const { user } = createUser(testDb);
+    const created = createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, { isPublic: true });
+    const clientId = (created.client as { client_id: string }).client_id;
+    const tokens = issueTokens(clientId, user.id, ['trips:read']);
+
+    const result = refreshTokens(tokens.refresh_token, clientId, undefined);
+
+    expect(result.error).toBeUndefined();
+    expect(result.tokens?.access_token).toMatch(/^trekoa_/);
   });
 
-  it('issueTokens forwards the full argument list', () => {
-    oauth.issueTokens.mockReturnValue({ access_token: 'at' });
-    expect(svc().issueTokens('c', 1, ['s'], null, 'aud')).toEqual({ access_token: 'at' });
-    expect(oauth.issueTokens).toHaveBeenCalledWith('c', 1, ['s'], null, 'aud');
+  it('authenticateClient identifies a public client by id alone and rejects a missing secret otherwise', () => {
+    const { user } = createUser(testDb);
+    const pub = createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, { isPublic: true });
+    const pubId = (pub.client as { client_id: string }).client_id;
+    const conf = makeClient(user.id, { name: 'Confidential' });
+    const confId = (conf.client as { client_id: string }).client_id;
+
+    expect(authenticateClient(pubId, undefined)?.client_id).toBe(pubId);
+    expect(authenticateClient(confId, undefined)).toBeNull();
   });
 
-  it('issueClientCredentialsToken forwards the full argument list', () => {
-    oauth.issueClientCredentialsToken.mockReturnValue({ access_token: 'cc' });
-    expect(svc().issueClientCredentialsToken('c', 1, ['s'], 'aud')).toEqual({ access_token: 'cc' });
-    expect(oauth.issueClientCredentialsToken).toHaveBeenCalledWith('c', 1, ['s'], 'aud');
+  it('validateAuthorizeRequest rejects a resource that is not the MCP endpoint', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = (created.client as { client_id: string }).client_id;
+    const { challenge } = makePkce();
+
+    const result = validateAuthorizeRequest({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: 'https://example.com/callback',
+      scope: 'trips:read',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      resource: 'https://evil.example.org/mcp',
+    }, user.id);
+
+    expect(result).toEqual({ valid: false, error: 'invalid_target', error_description: 'Requested resource must be the TREK MCP endpoint' });
   });
 
-  it('refreshTokens forwards the full argument list', () => {
-    oauth.refreshTokens.mockReturnValue({ tokens: { access_token: 'new' } });
-    expect(svc().refreshTokens('rt', 'c', 's', '1.2.3.4')).toEqual({ tokens: { access_token: 'new' } });
-    expect(oauth.refreshTokens).toHaveBeenCalledWith('rt', 'c', 's', '1.2.3.4');
+  it('validateAuthorizeRequest accepts the MCP endpoint passed explicitly, trailing slash and all', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = (created.client as { client_id: string }).client_id;
+    const { challenge } = makePkce();
+    const mcpResource = getMcpSafeUrl().replace(/\/+$/, '') + '/mcp';
+
+    const result = validateAuthorizeRequest({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: 'https://example.com/callback',
+      scope: 'trips:read',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      resource: mcpResource + '/',
+    }, user.id);
+
+    expect(result.valid).toBe(true);
+    expect(result.resource).toBe(mcpResource);
+  });
+});
+
+describe('oauth.bridge delegation', () => {
+  // The bridge is what the SDK-mounted /oauth/authorize path and the MCP
+  // transport reach, both outside the container.
+  it('issues and verifies a token through the bridge instance', () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = (created.client as { client_id: string }).client_id;
+
+    const tokens = bridge.issueTokens(clientId, user.id, ['trips:read']);
+
+    expect(bridge.getUserByAccessToken(tokens.access_token)?.user.id).toBe(user.id);
   });
 
-  it('revokeToken forwards the full argument list', () => {
-    svc().revokeToken('t', 'c', undefined, '1.2.3.4');
-    expect(oauth.revokeToken).toHaveBeenCalledWith('t', 'c', undefined, '1.2.3.4');
+  it('shares the pending-code map with the container instance', () => {
+    // The load-bearing invariant: the consent controller writes the code through
+    // the DI singleton, the SDK provider reads it back through the bridge. Two
+    // maps here would kill the authorization-code flow silently.
+    const code = createAuthCode({
+      clientId: 'c',
+      userId: 42,
+      redirectUri: 'https://example.com/callback',
+      scopes: ['trips:read'],
+      resource: null,
+      codeChallenge: 'x',
+      codeChallengeMethod: 'S256',
+    })!;
+
+    expect(bridge.consumeAuthCode(code)?.userId).toBe(42);
   });
 
-  it('getUserByAccessToken delegates', () => {
-    oauth.getUserByAccessToken.mockReturnValue({ user: { id: 1 } });
-    expect(svc().getUserByAccessToken('tok')).toEqual({ user: { id: 1 } });
-    expect(oauth.getUserByAccessToken).toHaveBeenCalledWith('tok');
+  it('verifyPKCE and revokeToken reach the same rows', () => {
+    const { verifier, challenge } = makePkce();
+    expect(bridge.verifyPKCE(verifier, challenge)).toBe(true);
+
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    const clientId = (created.client as { client_id: string }).client_id;
+    const tokens = issueTokens(clientId, user.id, ['trips:read']);
+
+    bridge.revokeToken(tokens.access_token, clientId, user.id);
+
+    expect(getUserByAccessToken(tokens.access_token)).toBeNull();
   });
 
-  it('validateAuthorizeRequest delegates with the user id', () => {
-    oauth.validateAuthorizeRequest.mockReturnValue({ valid: true });
-    const params = { response_type: 'code' } as never;
-    expect(svc().validateAuthorizeRequest(params, 5)).toEqual({ valid: true });
-    expect(oauth.validateAuthorizeRequest).toHaveBeenCalledWith(params, 5);
-  });
+  it('registers a client and refreshes a token pair through the bridge', () => {
+    const { user } = createUser(testDb);
+    const created = bridge.createOAuthClient(user.id, 'Via bridge', ['https://example.com/callback'], ['trips:read']);
+    const client = created.client as { client_id: string; client_secret: string };
+    const tokens = issueTokens(client.client_id, user.id, ['trips:read']);
 
-  it('saveConsent forwards the full argument list', () => {
-    svc().saveConsent('c', 1, ['s'], '1.2.3.4');
-    expect(oauth.saveConsent).toHaveBeenCalledWith('c', 1, ['s'], '1.2.3.4');
-  });
+    const refreshed = bridge.refreshTokens(tokens.refresh_token, client.client_id, client.client_secret);
 
-  it('createAuthCode forwards the params object', () => {
-    oauth.createAuthCode.mockReturnValue('the_code');
-    const p = { clientId: 'c', userId: 1, redirectUri: 'u', scopes: ['s'], resource: null, codeChallenge: 'cc', codeChallengeMethod: 'S256' } as const;
-    expect(svc().createAuthCode(p)).toBe('the_code');
-    expect(oauth.createAuthCode).toHaveBeenCalledWith(p);
-  });
-
-  it('listOAuthClients delegates', () => {
-    oauth.listOAuthClients.mockReturnValue([{ id: 'c1' }]);
-    expect(svc().listOAuthClients(1)).toEqual([{ id: 'c1' }]);
-    expect(oauth.listOAuthClients).toHaveBeenCalledWith(1);
-  });
-
-  it('createOAuthClient forwards the full argument list', () => {
-    oauth.createOAuthClient.mockReturnValue({ client_id: 'c1' });
-    expect(svc().createOAuthClient(1, 'CLI', ['https://cb'], ['a'], '1.2.3.4', { allowsClientCredentials: true })).toEqual({ client_id: 'c1' });
-    expect(oauth.createOAuthClient).toHaveBeenCalledWith(1, 'CLI', ['https://cb'], ['a'], '1.2.3.4', { allowsClientCredentials: true });
-  });
-
-  it('rotateOAuthClientSecret delegates', () => {
-    oauth.rotateOAuthClientSecret.mockReturnValue({ client_secret: 'new' });
-    expect(svc().rotateOAuthClientSecret(1, 'c1', '1.2.3.4')).toEqual({ client_secret: 'new' });
-    expect(oauth.rotateOAuthClientSecret).toHaveBeenCalledWith(1, 'c1', '1.2.3.4');
-  });
-
-  it('deleteOAuthClient delegates', () => {
-    oauth.deleteOAuthClient.mockReturnValue({});
-    expect(svc().deleteOAuthClient(1, 'c1', '1.2.3.4')).toEqual({});
-    expect(oauth.deleteOAuthClient).toHaveBeenCalledWith(1, 'c1', '1.2.3.4');
-  });
-
-  it('listOAuthSessions delegates', () => {
-    oauth.listOAuthSessions.mockReturnValue([{ id: 1 }]);
-    expect(svc().listOAuthSessions(1)).toEqual([{ id: 1 }]);
-    expect(oauth.listOAuthSessions).toHaveBeenCalledWith(1);
-  });
-
-  it('revokeSession delegates', () => {
-    oauth.revokeSession.mockReturnValue({});
-    expect(svc().revokeSession(1, 7, '1.2.3.4')).toEqual({});
-    expect(oauth.revokeSession).toHaveBeenCalledWith(1, 7, '1.2.3.4');
+    expect(refreshed.tokens?.refresh_token).toMatch(/^trekrf_/);
   });
 });
 
@@ -162,11 +1172,12 @@ describe('OauthModule', () => {
     const { OauthPublicController } = await import('../../../src/nest/oauth/oauth-public.controller');
     const { OauthApiController } = await import('../../../src/nest/oauth/oauth-api.controller');
     const { OauthService: Svc } = await import('../../../src/nest/oauth/oauth.service');
-    const { RateLimitService } = await import('../../../src/nest/auth/rate-limit.service');
 
     const controllers = Reflect.getMetadata('controllers', OauthModule);
     const providers = Reflect.getMetadata('providers', OauthModule);
     expect(controllers).toEqual([OauthPublicController, OauthApiController]);
-    expect(providers).toEqual([Svc, RateLimitService]);
+    // RateLimitService is deliberately absent: it comes from the global
+    // RateLimitModule so all consumers share one set of counters.
+    expect(providers).toEqual([Svc]);
   });
 });

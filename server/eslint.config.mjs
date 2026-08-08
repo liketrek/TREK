@@ -44,4 +44,42 @@ export default tseslint.config(
       'prefer-const': 'warn',
     },
   },
+  {
+    // Config-access guard: every env read in src/ goes through src/app-config
+    // (readEnv() / derive functions / registerAs tokens). Direct process.env
+    // access is banned outside the documented exemptions below — see
+    // src/app-config/README.md for the rationale behind each.
+    files: ['src/**/*.ts'],
+    ignores: [
+      // The config layer itself.
+      'src/app-config/**',
+      'src/nest/app-config/**',
+      // Key-material resolution (file persistence + runtime rotation), not env config.
+      'src/config.ts',
+      // Scrubbed plugin child process — must not import app-config.
+      'src/nest/plugins/runtime/plugin-host-entry.ts',
+      // Child-env whitelist block: the env there is an IPC channel to the sandbox.
+      'src/nest/plugins/supervisor/plugin-supervisor.ts',
+      // Dynamic-key caps (process.env[name] with a computed name).
+      'src/nest/plugins/host/daily-budget.ts',
+      'src/nest/plugins/host/plugin-audit.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[object.name='process'][property.name='env']",
+          message:
+            'Read configuration via src/app-config (readEnv()/derive/tokens), not process.env. Exemptions: eslint.config.mjs + src/app-config/README.md.',
+        },
+        {
+          // Bracket-notation variant (process['env']) — property is a Literal
+          // node (.value), so the selector above can't match it.
+          selector: "MemberExpression[object.name='process'][property.value='env']",
+          message:
+            'Read configuration via src/app-config (readEnv()/derive/tokens), not process.env. Exemptions: eslint.config.mjs + src/app-config/README.md.',
+        },
+      ],
+    },
+  },
 );

@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ZodValidationPipe } from './common/zod-validation.pipe';
+import { AppConfigModule } from './app-config/app-config.module';
 import { DatabaseModule } from './database/database.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { HealthController } from './health/health.controller';
 import { HealthService } from './health/health.service';
 import { WeatherModule } from './weather/weather.module';
@@ -36,12 +39,17 @@ import { FeedsModule } from './feeds/feeds.module';
 import { SettingsModule } from './settings/settings.module';
 import { BackupModule } from './backup/backup.module';
 import { BookingImportModule } from './booking-import/booking-import.module';
+import { LlmParseModule } from './llm-parse/llm-parse.module';
 import { AuthModule } from './auth/auth.module';
 import { OidcModule } from './oidc/oidc.module';
 import { OauthModule } from './oauth/oauth.module';
 import { AdminModule } from './admin/admin.module';
 import { AddonsModule } from './addons/addons.module';
+import { AuditModule } from './audit/audit.module';
+import { PermissionsModule } from './permissions/permissions.module';
 import { PluginsModule } from './plugins/plugins.module';
+import { McpModule } from '@trek/nest-mcp';
+import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../mcp/nest-mcp-policy';
 import { TrekExceptionFilter } from './common/trek-exception.filter';
 import { SpaFallbackFilter } from './platform/spa-fallback.filter';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor';
@@ -52,7 +60,7 @@ import { IdempotencyInterceptor } from './common/idempotency.interceptor';
  * migrated.
  */
 @Module({
-  imports: [DatabaseModule, WeatherModule, HelpModule, AirportsModule, ConfigModule, SystemNoticesModule, MapsModule, CategoriesModule, TagsModule, NotificationsModule, AtlasModule, VacayModule, PackingModule, TodoModule, BudgetModule, ReservationsModule, DaysModule, AssignmentsModule, PlacesModule, TripsModule, CollabModule, FilesModule, PhotosModule, MemoriesModule, AirtrailModule, JourneyModule, CollectionsModule, ShareModule, TripInviteModule, TransitModule, FeedsModule, SettingsModule, BackupModule, AuthModule, OidcModule, OauthModule, AdminModule, AddonsModule, PluginsModule, BookingImportModule],
+  imports: [AppConfigModule, DatabaseModule, RealtimeModule, McpModule.forRoot({ accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess }), WeatherModule, HelpModule, AirportsModule, ConfigModule, SystemNoticesModule, MapsModule, CategoriesModule, TagsModule, NotificationsModule, AtlasModule, VacayModule, PackingModule, TodoModule, BudgetModule, ReservationsModule, DaysModule, AssignmentsModule, PlacesModule, TripsModule, CollabModule, FilesModule, PhotosModule, MemoriesModule, AirtrailModule, JourneyModule, CollectionsModule, ShareModule, TripInviteModule, TransitModule, FeedsModule, SettingsModule, BackupModule, AuthModule, OidcModule, OauthModule, AdminModule, AddonsModule, AuditModule, PermissionsModule, PluginsModule, BookingImportModule, LlmParseModule],
   controllers: [HealthController],
   providers: [
     HealthService,
@@ -63,9 +71,15 @@ import { IdempotencyInterceptor } from './common/idempotency.interceptor';
     // equivalent of the legacy Express app.get('*') catch-all). @Catch(NotFoundException)
     // is more specific than TrekExceptionFilter, so Nest routes 404s here.
     { provide: APP_FILTER, useClass: SpaFallbackFilter },
-    // Replays the X-Idempotency-Key the client sends on every write, matching
-    // the legacy applyIdempotency middleware so retried mutations don't double-apply.
+    // Replays the X-Idempotency-Key the client sends on every write, so retried
+    // mutations don't double-apply.
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
+    // Global Zod validation: any parameter typed with a createZodDto class
+    // (the <domain>.dto.ts wrappers over @trek/shared schemas) is validated;
+    // everything else passes through untouched. Paired with the boot gate in
+    // common/validate-body-contracts.ts so unvalidated mutation bodies refuse
+    // to boot instead of shipping silently.
+    { provide: APP_PIPE, useClass: ZodValidationPipe },
   ],
 })
 export class AppModule {}

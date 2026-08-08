@@ -49,9 +49,10 @@ describe('DayAssignmentsController (parity with the legacy day-assignments route
   });
 
   it('PUT /reorder 404 day, else reorders + broadcasts', () => {
-    expect(thrown(() => new DayAssignmentsController(svc({ dayExists: vi.fn().mockReturnValue(false) } as Partial<AssignmentsService>)).reorder(user, '5', '3', [1, 2]))).toEqual({ status: 404, body: { error: 'Day not found' } });
+    expect(thrown(() => new DayAssignmentsController(svc({ dayExists: vi.fn().mockReturnValue(false) } as Partial<AssignmentsService>)).reorder(user, '5', '3', { orderedIds: [1, 2] }))).toEqual({ status: 404, body: { error: 'Day not found' } });
     const reorderAssignments = vi.fn(); const broadcast = vi.fn();
-    expect(new DayAssignmentsController(svc({ reorderAssignments, broadcast } as Partial<AssignmentsService>)).reorder(user, '5', '3', [2, 1], 'sock')).toEqual({ success: true });
+    expect(new DayAssignmentsController(svc({ reorderAssignments, broadcast } as Partial<AssignmentsService>)).reorder(user, '5', '3', { orderedIds: [2, 1] }, 'sock')).toEqual({ success: true });
+    expect(reorderAssignments).toHaveBeenCalledWith('3', [2, 1]);
     expect(broadcast).toHaveBeenCalledWith('5', 'assignment:reordered', { dayId: 3, orderedIds: [2, 1] }, 'sock');
   });
 
@@ -68,10 +69,10 @@ describe('AssignmentOpsController (parity with the per-assignment op routes)', (
   it('PUT /:id/move 404 assignment, 404 target day, else moves', () => {
     expect(thrown(() => new AssignmentOpsController(svc({ getAssignmentForTrip: vi.fn().mockReturnValue(undefined) } as Partial<AssignmentsService>)).move(user, '5', '9', { new_day_id: 4 }))).toEqual({ status: 404, body: { error: 'Assignment not found' } });
     expect(thrown(() => new AssignmentOpsController(svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ day_id: 3 }), dayExists: vi.fn().mockReturnValue(false) } as Partial<AssignmentsService>)).move(user, '5', '9', { new_day_id: 4 }))).toEqual({ status: 404, body: { error: 'Target day not found' } });
-    const moveAssignment = vi.fn().mockReturnValue({ assignment: { id: 9 } }); const broadcast = vi.fn(); const reconcile = vi.fn();
+    const moveAssignment = vi.fn().mockReturnValue({ assignment: { id: 9 }, oldDayId: 3 }); const broadcast = vi.fn(); const reconcile = vi.fn();
     const s = svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ day_id: 3 }), moveAssignment, broadcast, reconcile } as Partial<AssignmentsService>);
     expect(new AssignmentOpsController(s).move(user, '5', '9', { new_day_id: 4, order_index: 0 }, 'sock')).toEqual({ assignment: { id: 9 } });
-    expect(moveAssignment).toHaveBeenCalledWith('9', 4, 0, 3);
+    expect(moveAssignment).toHaveBeenCalledWith('9', 4, 0);
     expect(broadcast).toHaveBeenCalledWith('5', 'assignment:moved', { assignment: { id: 9 }, oldDayId: 3, newDayId: 4 }, 'sock');
     expect(reconcile).toHaveBeenCalledWith('5', 'sock');
   });
@@ -90,10 +91,10 @@ describe('AssignmentOpsController (parity with the per-assignment op routes)', (
     expect(reconcile).toHaveBeenCalledWith('5', 'sock');
   });
 
-  it('PUT /:id/participants 400 not array, else sets + broadcasts', () => {
-    expect(thrown(() => new AssignmentOpsController(svc()).setParticipants(user, '5', '9', 'no'))).toEqual({ status: 400, body: { error: 'user_ids must be an array' } });
+  it('PUT /:id/participants sets + broadcasts (non-array bodies are the Zod pipe\'s 400, covered in e2e)', () => {
     const setParticipants = vi.fn().mockReturnValue([{ user_id: 2 }]); const broadcast = vi.fn();
-    expect(new AssignmentOpsController(svc({ setParticipants, broadcast } as Partial<AssignmentsService>)).setParticipants(user, '5', '9', [2], 'sock')).toEqual({ participants: [{ user_id: 2 }] });
+    expect(new AssignmentOpsController(svc({ setParticipants, broadcast } as Partial<AssignmentsService>)).setParticipants(user, '5', '9', { user_ids: [2] }, 'sock')).toEqual({ participants: [{ user_id: 2 }] });
+    expect(setParticipants).toHaveBeenCalledWith('9', [2]);
     expect(broadcast).toHaveBeenCalledWith('5', 'assignment:participants', { assignmentId: 9, participants: [{ user_id: 2 }] }, 'sock');
   });
 });

@@ -10,15 +10,22 @@ import { z } from 'zod';
  * source, so the response schemas keep them as open records — the contract pins
  * down the request shapes and the stable envelope fields, not the provider blobs.
  *
- * The bespoke 400 validation messages and the per-endpoint kill-switch responses
- * are reproduced in the controller, not derived from these schemas, so the bodies
- * stay byte-identical to Express.
+ * Since the maps body-contract ratchet, the request schemas below are enforced
+ * on the server via createZodDto wrappers (maps.dto.ts) and the global
+ * ZodValidationPipe — invalid bodies get the pipe's uniform
+ * { error: 'field: message; …' } envelope. The per-endpoint kill-switch
+ * responses and the non-body validation (query params, URL params) keep their
+ * bespoke bodies in the controller.
  */
 
 const latLng = z.object({ lat: z.number(), lng: z.number() });
 
 export const mapsSearchRequestSchema = z.object({
   query: z.string().min(1),
+  // Optional bias toward a coordinate (lat/lng[/radius]); improves
+  // foreign-region queries. z.number() is finite-only (zod v4), matching the
+  // legacy Number.isFinite() check; radius was never validated beyond "number".
+  locationBias: latLng.extend({ radius: z.number().optional() }).optional(),
 });
 export type MapsSearchRequest = z.infer<typeof mapsSearchRequestSchema>;
 

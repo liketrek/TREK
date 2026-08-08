@@ -15,6 +15,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': 'Počítání...',
   'dayplan.route': 'Trasa',
   'dayplan.optimize': 'Optimalizovat',
+  'dayplan.transportMode.change': 'Změnit způsob dopravy',
+  'dayplan.transportMode.useDefault': 'Použít výchozí dne',
   'dayplan.optimized': 'Trasa optimalizována',
   'dayplan.routeError': 'Nepodařilo se vypočítat trasu',
   'dayplan.toast.needTwoPlaces': 'Pro optimalizaci trasy jsou potřeba alespoň dvě místa',

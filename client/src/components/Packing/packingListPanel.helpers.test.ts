@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { katColor, itemWeight, parseCsvLine, parseImportLines } from './packingListPanel.helpers'
+import { katColor, itemWeight, bagFillPct, countsTowardsMyLoad, parseCsvLine, parseImportLines } from './packingListPanel.helpers'
 import { KAT_COLORS } from './packingListPanel.constants'
 
 describe('packingListPanel.helpers', () => {
@@ -43,6 +43,52 @@ describe('packingListPanel.helpers', () => {
     it('treats null weight/quantity as their defaults', () => {
       expect(itemWeight({ weight_grams: null, quantity: null })).toBe(0)
       expect(itemWeight({ weight_grams: 100, quantity: null })).toBe(100)
+    })
+  })
+
+  describe('countsTowardsMyLoad', () => {
+    it('counts the common pool for everyone', () => {
+      // owner_id is stamped on every item, common ones included — filtering by it alone
+      // would shrink the group total to "only what I entered myself".
+      expect(countsTowardsMyLoad({ is_private: 0, owner_id: 2 }, 1)).toBe(true)
+    })
+
+    it('counts my own private items', () => {
+      expect(countsTowardsMyLoad({ is_private: 1, owner_id: 1 }, 1)).toBe(true)
+    })
+
+    it('leaves out an item somebody else shared with me', () => {
+      expect(countsTowardsMyLoad({ is_private: 1, owner_id: 2 }, 1)).toBe(false)
+    })
+
+    it('counts unowned legacy rows', () => {
+      expect(countsTowardsMyLoad({ is_private: 1, owner_id: null }, 1)).toBe(true)
+    })
+
+    it('filters nothing when the viewer is unknown', () => {
+      expect(countsTowardsMyLoad({ is_private: 1, owner_id: 2 }, null)).toBe(true)
+      expect(countsTowardsMyLoad({ is_private: 1, owner_id: 2 }, undefined)).toBe(true)
+    })
+  })
+
+  describe('bagFillPct', () => {
+    it('measures against the bag limit when there is one', () => {
+      expect(bagFillPct(5000, 20000, 99999)).toBe(25)
+      expect(bagFillPct(20000, 20000, 1)).toBe(100)
+    })
+
+    it('never reports more than full', () => {
+      expect(bagFillPct(30000, 20000, 1)).toBe(100)
+    })
+
+    it('falls back to the heaviest bag when no limit is set', () => {
+      expect(bagFillPct(2500, null, 5000)).toBe(50)
+      expect(bagFillPct(2500, undefined, 5000)).toBe(50)
+      expect(bagFillPct(0, 0, 5000)).toBe(0)
+    })
+
+    it('does not divide by zero on an empty trip', () => {
+      expect(bagFillPct(0, null, 0)).toBe(0)
     })
   })
 

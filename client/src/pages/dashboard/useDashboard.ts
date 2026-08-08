@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router'
 import { tripsApi, authApi, reservationsApi } from '../../api/client'
 import { tripRepo } from '../../repo/tripRepo'
 import { useAuthStore } from '../../store/authStore'
@@ -93,11 +93,17 @@ export function useDashboard() {
   }
 
   const today = new Date().toISOString().split('T')[0]
-  const spotlight = trips.find(t => t.start_date && t.end_date && t.start_date <= today && t.end_date >= today)
+  // A trip the hero features on its own merit: one that is running, else the next
+  // one coming up. Only that one is taken out of the grid below, so the same trip
+  // isn't shown twice.
+  const featured = trips.find(t => t.start_date && t.end_date && t.start_date <= today && t.end_date >= today)
     || trips.find(t => t.start_date && t.start_date >= today)
-    || trips[0]
     || null
-  const rest = spotlight ? trips.filter(t => t.id !== spotlight.id) : trips
+  // With neither, the hero still shows something rather than sitting empty — but
+  // that trip is only borrowed for the header and must stay in the grid, or a user
+  // whose trips are all finished (or undated) sees "No trips yet". #1706
+  const spotlight = featured || trips[0] || null
+  const rest = featured ? trips.filter(t => t.id !== featured.id) : trips
 
   // Pull the spotlight trip's members + places so the boarding pass can show
   // real buddies and place thumbnails instead of placeholders.
@@ -179,6 +185,13 @@ export function useDashboard() {
     setCopyTrip(null)
   }
 
+  // The cover can be swapped from the archive filter too, so patch both lists.
+  const applyCoverUpdate = (tripId: number, coverUrl: string) => {
+    const patch = (list: DashboardTrip[]) => list.map(t => t.id === tripId ? { ...t, cover_image: coverUrl } : t)
+    setTrips(patch)
+    setArchivedTrips(patch)
+  }
+
   const gridTrips = tripFilter === 'archive' ? archivedTrips
     : tripFilter === 'completed' ? rest.filter(t => getTripStatus(t) === 'past')
     : rest.filter(t => getTripStatus(t) !== 'past')
@@ -192,7 +205,7 @@ export function useDashboard() {
     // ui state
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
-    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
+    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
     allSubOpen, setAllSubOpen,
     // actions
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,

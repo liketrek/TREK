@@ -70,6 +70,7 @@ const RESERVATION_TYPE_TO_COST_CATEGORY: Record<string, CostCategory> = {
   hotel: 'accommodation',
   accommodation: 'accommodation',
   lodging: 'accommodation',
+  parking: 'transport',
   restaurant: 'food',
   activity: 'activities',
 };

@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Activiteiten',
   'map.showAllConnections': 'Alle boekingsroutes tonen',
   'map.hideAllConnections': 'Alle boekingsroutes verbergen',
+  'map.baseLayer.default': 'Kaart',
+  'map.baseLayer.satellite': 'Satelliet',
+  'map.baseLayer.switchToSatellite': 'Overschakelen naar satellietweergave',
+  'map.baseLayer.switchToDefault': 'Overschakelen naar kaartweergave',
 };
 export default map;

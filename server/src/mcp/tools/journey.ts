@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
-import { isDemoUser } from '../../services/authService';
+import { isDemoUser } from '../../nest/auth/auth.bridge';
 import {
   addContributor, addTripToJourney, canAccessJourney, createEntry, createJourney,
   deleteEntry, deleteJourney, getJourneyFull, getSuggestions, listEntries,
@@ -11,7 +11,7 @@ import {
 import {
   createOrUpdateJourneyShareLink, deleteJourneyShareLink, getJourneyShareLink,
 } from '../../services/journeyShareService';
-import { isAddonEnabled } from '../../services/adminService';
+import { isAddonEnabled } from '../../nest/addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import {
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,

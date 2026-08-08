@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'Stjärnmärkta',
+  'files.link': 'Länka',
+  'files.linkTitle': 'Länka fil',
+  'files.linkEmpty': 'Inga platser eller bokningar att länka ännu',
+  'files.menu': 'Fler alternativ',
+  'files.uploadErrorSize': 'Filen är för stor (max 50 MB)',
   'files.title': 'Filer',
   'files.pageTitle': 'Filer & Dokument',
   'files.subtitle': '{count} filer för {trip}',

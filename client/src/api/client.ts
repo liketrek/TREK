@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
+import type { Place } from '../types'
 import {
   weatherResultSchema, type WeatherResult,
   inAppListResultSchema, type InAppListResult,
@@ -26,7 +27,7 @@ import {
   type BudgetCreateItemRequest, type BudgetUpdateItemRequest,
   type PackingCreateItemRequest, type PackingUpdateItemRequest, type PackingSetSharingRequest,
   type TodoCreateItemRequest, type TodoUpdateItemRequest,
-  type AssignmentCreateRequest, type AssignmentParticipantsRequest, type AssignmentTimeRequest,
+  type AssignmentCreateRequest, type AssignmentParticipantsRequest, type AssignmentTimeRequest, type AssignmentTransportRequest,
   type PlaceBulkDeleteRequest,
   type PlaceBulkUpdateRequest,
   type DayNoteCreateRequest, type DayNoteUpdateRequest,
@@ -104,6 +105,9 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
   ko:      '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
   uk:      'Занадто багато спроб. Спробуйте пізніше.',
   sv:      'För många försök. Prova igen senare.',
+  ca:      'Massa intents. Torneu-ho a provar més tard.',
+  gr:      'Πάρα πολλές προσπάθειες. Δοκιμάστε ξανά αργότερα.',
+  vi:      'Quá nhiều lần thử. Vui lòng thử lại sau.',
 }
 
 function translateRateLimit(): string {
@@ -227,9 +231,11 @@ apiClient.interceptors.response.use(
       }
       if (error.response?.status === 429) {
         const translated = translateRateLimit()
-        const data = error.response.data as { error?: string } | undefined
-        if (data && typeof data === 'object') {
-          data.error = translated
+        const data = error.response.data
+        // Only a plain object body carries an `error` field worth overwriting;
+        // an array (a validation-error list) or a string is replaced outright.
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+          (data as { error?: string }).error = translated
         } else {
           error.response.data = { error: translated }
         }
@@ -387,6 +393,8 @@ export const daysApi = {
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/days`).then(r => r.data),
   create: (tripId: number | string, data: DayCreateRequest) => apiClient.post(`/trips/${tripId}/days`, data).then(r => r.data),
   update: (tripId: number | string, dayId: number | string, data: DayUpdateRequest) => apiClient.put(`/trips/${tripId}/days/${dayId}`, data).then(r => r.data),
+  // Whole-day default route mode (#1281); per-segment leg modes override it.
+  updateTransport: (tripId: number | string, dayId: number | string, mode: string | null) => apiClient.put(`/trips/${tripId}/days/${dayId}/transport`, { transport_mode: mode }).then(r => r.data),
   delete: (tripId: number | string, dayId: number | string) => apiClient.delete(`/trips/${tripId}/days/${dayId}`).then(r => r.data),
   reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/days/reorder`, { orderedIds } satisfies DayReorderRequest).then(r => r.data),
 }
@@ -398,6 +406,15 @@ export const placesApi = {
   update: (tripId: number | string, id: number | string, data: PlaceUpdateRequest) => apiClient.put(`/trips/${tripId}/places/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number | string) => apiClient.delete(`/trips/${tripId}/places/${id}`).then(r => r.data),
   searchImage: (tripId: number | string, id: number | string) => apiClient.get(`/trips/${tripId}/places/${id}/image`).then(r => r.data),
+  uploadImage: (tripId: number | string, id: number | string, file: File) => {
+    const fd = new FormData()
+    fd.append('image', file)
+    return postMultipart<{ place: Place }>(`/trips/${tripId}/places/${id}/image`, fd)
+  },
+  rate: (tripId: number | string, id: number | string, rating: number | null): Promise<{ place: Place }> =>
+    rating === null
+      ? apiClient.delete(`/trips/${tripId}/places/${id}/rating`).then(r => r.data)
+      : apiClient.put(`/trips/${tripId}/places/${id}/rating`, { rating }).then(r => r.data),
   importGpx: (tripId: number | string, file: File, opts?: { waypoints?: boolean; routes?: boolean; tracks?: boolean }) => {
     const fd = new FormData()
     fd.append('file', file)
@@ -433,6 +450,8 @@ export const assignmentsApi = {
   getParticipants: (tripId: number | string, id: number) => apiClient.get(`/trips/${tripId}/assignments/${id}/participants`).then(r => r.data),
   setParticipants: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/assignments/${id}/participants`, { user_ids: userIds } satisfies AssignmentParticipantsRequest).then(r => r.data),
   updateTime: (tripId: number | string, id: number, times: AssignmentTimeRequest) => apiClient.put(`/trips/${tripId}/assignments/${id}/time`, times).then(r => r.data),
+  // Per-segment travel mode (#1281): mode of the leg leaving this stop (null = inherit day default).
+  updateTransport: (tripId: number | string, id: number, mode: string | null) => apiClient.put(`/trips/${tripId}/assignments/${id}/transport`, { transport_mode: mode } satisfies AssignmentTransportRequest).then(r => r.data),
 }
 
 export const packingApi = {
@@ -537,24 +556,35 @@ export const adminApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ baseUrl, model }),
     })
-    if (!res.ok || !res.body) {
+    if (!res.ok) {
       let msg = `Pull failed (${res.status})`
       try { msg = (await res.json())?.error ?? msg } catch { /* non-json */ }
       throw new Error(msg)
     }
+    // An accepted request without a stream can't be followed to completion.
+    if (!res.body) throw new Error('Pull returned no progress stream')
     const reader = res.body.getReader()
     const dec = new TextDecoder()
     let buf = ''
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buf += dec.decode(value, { stream: true })
-      const lines = buf.split('\n')
-      buf = lines.pop() ?? ''
-      for (const line of lines) {
-        if (!line.trim()) continue
-        try { onProgress(JSON.parse(line)) } catch { /* skip partial */ }
+    try {
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        // split() always yields at least one element; the last one is the
+        // trailing (possibly partial) line carried into the next chunk.
+        const lines = buf.split('\n')
+        buf = lines.pop()!
+        for (const line of lines) {
+          if (!line.trim()) continue
+          // Only the parse is swallowed — a throw from onProgress aborts the pull.
+          let frame: { status?: string; total?: number; completed?: number; error?: string }
+          try { frame = JSON.parse(line) } catch { continue }
+          onProgress(frame)
+        }
       }
+    } finally {
+      reader.cancel().catch(() => {})
     }
   },
   checkVersion: () => apiClient.get('/admin/version-check').then(r => r.data),
@@ -624,6 +654,74 @@ export interface PluginMapMarker {
   tone: 'default' | 'success' | 'warn' | 'danger'
 }
 
+/** One shape of a plugin map layer (mapLayerProvider hook). Server-normalized:
+ * coordinates range-checked, vertex budget capped, styling clamped to the tone
+ * palette + bounded numerics — never free-form CSS or markup. */
+export interface PluginMapLayerFeature {
+  type: 'polyline' | 'polygon' | 'circle';
+  points?: Array<[number, number]>;
+  center?: [number, number];
+  radiusM?: number;
+  tone: 'default' | 'success' | 'warn' | 'danger';
+  width: number;
+  dash: 'solid' | 'dash' | 'dot';
+  opacity: number;
+  fill: boolean;
+  label?: string;
+}
+
+/** A vector overlay a plugin draws on the trip map (routes, corridors, zones). */
+export interface PluginMapLayer {
+  pluginId: string; id: string; name?: string;
+  features: PluginMapLayerFeature[];
+}
+
+/** A time contribution a dayScheduleProvider plugin attaches to the day plan
+ * ("35 min charging at this stop"). Server-normalized: dayIds checked against
+ * the trip, minutes clamped to a day, labels sanitized + capped. */
+export interface PluginDayScheduleItem {
+  pluginId: string; id: string; dayId: number;
+  assignmentId?: number; reservationId?: number;
+  position?: 'start' | 'end';
+  minutes?: number; label: string;
+  tone: 'default' | 'success' | 'warn' | 'danger';
+}
+
+/** The colours a dayTintProvider plugin puts into one day card, so leg membership is
+ * visible while scrolling the itinerary. The card has three separately tintable
+ * regions; an absent one is not tinted and renders exactly as it does with no plugin.
+ * Server-normalized: dayIds checked against the trip, one contribution per day (first
+ * granted provider wins), the `tone` / `color` shorthands already resolved into the
+ * regions, labels sanitized + capped.
+ *
+ * A region carries EITHER a tone from the fixed palette or the plugin's own colour,
+ * never both — the server picked the winner. `*Color` is guaranteed `#rrggbb` (nothing
+ * else survives normalization, because it lands inside a CSS value); the client still
+ * owns how strongly it renders — alpha per theme and per region, lightness clamped
+ * into a readable band. */
+export type PluginDayTintTone = 'default' | 'success' | 'warn' | 'danger'
+export interface PluginDayTint {
+  pluginId: string; dayId: number;
+  badgeTone?: PluginDayTintTone;
+  badgeColor?: string;
+  headerTone?: PluginDayTintTone;
+  headerColor?: string;
+  activityTone?: PluginDayTintTone;
+  activityColor?: string;
+  label?: string;
+}
+
+/** A route computed by a routeProvider plugin (server-normalized: coordinates
+ * range-checked, legs forced to waypoints-1, vias capped). null = provider failed
+ * or refused — the caller falls back to straight lines like on an OSRM outage. */
+export interface PluginRouteResult {
+  pluginId: string; profile: string;
+  coordinates: Array<[number, number]>;
+  distance: number; duration: number;
+  legs: Array<{ distance: number; duration: number; note?: string }>;
+  viaPoints: Array<{ lat: number; lng: number; label?: string; tone: 'default' | 'success' | 'warn' | 'danger'; dwellSeconds?: number }>;
+}
+
 /** A text-only section a pdfSectionProvider plugin appends to the trip PDF export.
  * Server-normalized: counts + lengths are capped, cells are plain strings. */
 export interface PluginPdfSection {
@@ -667,6 +765,23 @@ export const pluginsApi = {
   // (#587). Host-normalized + range-checked; fail-safe (skips slow/failing providers).
   mapMarkers: (tripId: number | string) =>
     apiClient.get(`/map-markers/${tripId}`).then(r => r.data as { markers: PluginMapMarker[] }),
+  // Vector overlays (polylines/polygons/circles) plugins draw on the trip map via
+  // the mapLayerProvider hook. Host-normalized + vertex-budgeted; fail-safe.
+  mapLayers: (tripId: number | string) =>
+    apiClient.get(`/map-layers/${tripId}`).then(r => r.data as { layers: PluginMapLayer[] }),
+  // Route the given waypoints through ONE routeProvider plugin profile (targeted,
+  // not a fan-out — the user picked this profile in the route toggle). Slow by
+  // design (external solvers): the server allows the plugin 20 s.
+  pluginRoute: (pluginId: string, profileId: string, body: { tripId: number | string; dayId?: number | null; waypoints: Array<{ lat: number; lng: number; name?: string; placeId?: number }> }, opts: { signal?: AbortSignal } = {}) =>
+    apiClient.post(`/plugin-routes/${pluginId}/${profileId}`, body, { timeout: 25000, signal: opts.signal }).then(r => r.data as { route: PluginRouteResult | null }),
+  // Time contributions plugins attach to the day plan via the dayScheduleProvider
+  // hook (charging stops, security buffers). Host-normalized; fail-safe.
+  daySchedule: (tripId: number | string) =>
+    apiClient.get(`/day-schedule/${tripId}`).then(r => r.data as { items: PluginDayScheduleItem[] }),
+  // Per-day colours plugins put behind the day cards via the dayTintProvider hook
+  // (which leg of the trip a day belongs to). Host-normalized; fail-safe.
+  dayTints: (tripId: number | string) =>
+    apiClient.get(`/day-tints/${tripId}`).then(r => r.data as { tints: PluginDayTint[] }),
   // Text-only sections plugins append to the trip PDF export via the
   // pdfSectionProvider hook. Host-normalized (counts + lengths capped); fail-safe.
   pdfSections: (tripId: number | string) =>
@@ -814,8 +929,8 @@ export const mapsApi = {
   // OSM-only POI explore: places of a category within the current map viewport bbox.
   // Overpass can be slow on a fresh (uncached) area, so this call gets a longer
   // timeout than the global default instead of aborting at 8s and showing nothing.
-  pois: (category: string, bbox: { south: number; west: number; north: number; east: number }, signal?: AbortSignal) =>
-    apiClient.get('/maps/pois', { params: { category, ...bbox }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),
+  pois: (category: string, bbox: { south: number; west: number; north: number; east: number }, lang?: string, signal?: AbortSignal) =>
+    apiClient.get('/maps/pois', { params: { category, ...bbox, lang }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),
 }
 
 export const airportsApi = {
@@ -860,6 +975,8 @@ export const reservationsApi = {
   create: (tripId: number | string, data: ReservationCreateRequest) => apiClient.post(`/trips/${tripId}/reservations`, data).then(r => r.data),
   update: (tripId: number | string, id: number, data: ReservationUpdateRequest) => apiClient.put(`/trips/${tripId}/reservations/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/reservations/${id}`).then(r => r.data),
+  // Assign trip members / named guests to a booking (#1517).
+  setTravelers: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/reservations/${id}/travelers`, { user_ids: userIds }).then(r => r.data),
   updatePositions: (tripId: number | string, positions: { id: number; day_plan_position: number }[], dayId?: number) => apiClient.put(`/trips/${tripId}/reservations/positions`, { positions, day_id: dayId }).then(r => r.data),
   importBookingPreview: (tripId: number | string, files: File[], mode: BookingImportMode = 'no-ai'): Promise<BookingImportPreviewResponse> => {
     const fd = new FormData()
@@ -890,6 +1007,7 @@ export const healthApi = {
 
 export const weatherApi = {
   get: (lat: number, lng: number, date: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, date } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.get')),
+  getCurrent: (lat: number, lng: number, lang?: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, lang } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.getCurrent')),
   getDetailed: (lat: number, lng: number, date: string, lang?: string): Promise<WeatherResult> => apiClient.get('/weather/detailed', { params: { lat, lng, date, lang } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.getDetailed')),
 }
 

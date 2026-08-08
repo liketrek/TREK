@@ -214,6 +214,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Không tải được mẫu',
   'admin.packingTemplates.createError': 'Không tạo được mẫu',
   'admin.packingTemplates.deleteError': 'Không xóa được mẫu',
+  'admin.packingTemplates.deleteCategoryError': 'Không thể xóa danh mục',
+  'admin.packingTemplates.deleteItemError': 'Không thể xóa mục',
   'admin.packingTemplates.saveError': 'Không lưu được',
   'admin.tabs.addons': 'Tiện ích bổ sung',
   'admin.tabs.plugins': 'Plugins',
@@ -315,6 +317,15 @@ const admin: TranslationStrings = {
     'Thêm cột và hành động vào các chế độ xem chuyến đi (đặt chỗ, địa điểm, ngày)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Thêm điểm đánh dấu vào bản đồ chuyến đi (vd. hiển thị đặt chỗ hoặc POI)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Vẽ tuyến đường, hành lang và khu vực trên bản đồ chuyến đi',
+  'admin.plugins.perm.hook:route-provider':
+    'Cung cấp các hồ sơ định tuyến để trình lập kế hoạch tính lộ trình cho các ngày (vd. định tuyến xe điện với điểm dừng sạc)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Gắn các mục thời gian vào kế hoạch ngày (điểm dừng sạc, thời gian đệm an ninh)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Tô màu các ngày trong kế hoạch ngày (ví dụ ngày đó thuộc chặng nào của chuyến đi)',
+  'admin.plugins.perm.geolocation:read':
+    'Hỏi vị trí trực tiếp của bạn khi một trong các chế độ xem của nó đang mở (trình duyệt của bạn vẫn sẽ hỏi trước)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Thêm các phần văn bản vào bản xuất PDF của chuyến đi',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Làm nổi bật các quốc gia trên bản đồ thế giới Atlas (vd. danh sách mong muốn hoặc cảnh báo du lịch)',
@@ -433,6 +444,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Cung cấp sự kiện lịch',
   'admin.plugins.cap.placeDetails': 'Làm phong phú địa điểm',
   'admin.plugins.cap.warnings': 'Gắn cờ vấn đề',
+  'admin.plugins.cap.mapLayers': 'Vẽ trên bản đồ',
+  'admin.plugins.cap.routing': 'Cung cấp định tuyến',
+  'admin.plugins.cap.daySchedule': 'Thêm giờ kế hoạch',
+  'admin.plugins.cap.dayTint': 'Tô màu ngày',
+  'admin.plugins.cap.geolocation': 'Đọc vị trí của bạn',
   'admin.plugins.cap.events': 'Phản hồi hoạt động',
   'admin.plugins.cap.requiresAddon': 'Cần {addon}',
   'admin.plugins.cap.dependsOn': 'Cần {id} {version}',

@@ -1,10 +1,11 @@
-import ReactDOM from 'react-dom'
-import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { addListener, removeListener } from '../../api/websocket'
-import { reservationsApi } from '../../api/client'
+import { reservationsApi, healthApi } from '../../api/client'
+import { saveImportFiles } from '../../db/offlineDb'
 import { useBackgroundTasksStore, type BackgroundImportTask } from '../../store/backgroundTasksStore'
 
 /**
@@ -23,6 +24,34 @@ export default function BackgroundTasksWidget() {
   const setError = useBackgroundTasksStore((s) => s.setError)
   const requestReview = useBackgroundTasksStore((s) => s.requestReview)
   const dismiss = useBackgroundTasksStore((s) => s.dismiss)
+  const addTask = useBackgroundTasksStore((s) => s.addTask)
+
+  const [aiParsing, setAiParsing] = useState(false)
+  useEffect(() => {
+    healthApi.features().then((f) => setAiParsing(!!f.aiParsing)).catch(() => setAiParsing(false))
+  }, [])
+
+  // Re-runs the same files with force-ai: the LLM sees every file, kitinerary is skipped.
+  const [retrying, setRetrying] = useState<string | null>(null)
+  const retryWithAi = async (task: BackgroundImportTask) => {
+    const files = task.sourceFiles
+    if (!files || files.length === 0 || retrying === task.id) return
+    setRetrying(task.id)
+    try {
+      const { jobId } = await reservationsApi.importBookingAsync(task.tripId, files, 'force-ai')
+      // Same as the modal's first submit: the review attaches each source document to the
+      // booking it created, and only IndexedDB survives a reload mid-parse.
+      await saveImportFiles(jobId, files)
+      dismiss(task.id)
+      addTask({ id: jobId, tripId: task.tripId, label: task.label, total: files.length, files, mode: 'force-ai' })
+    } catch (err) {
+      // 409 when the addon is enabled but this user has no model configured.
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setError(task.id, task.tripId, message ?? t('reservations.import.error'))
+    } finally {
+      setRetrying(null)
+    }
+  }
 
   // On (re)load, reconcile tasks restored from localStorage with the server: a parse
   // that was still running when the page reloaded must keep its widget, so re-fetch each
@@ -95,7 +124,7 @@ export default function BackgroundTasksWidget() {
     navigate(`/trips/${task.tripId}`)
   }
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div
       style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 50000, display: 'flex', flexDirection: 'column', gap: 8, width: 380, maxWidth: 'calc(100vw - 32px)', fontFamily: 'var(--font-system)' }}
     >
@@ -136,12 +165,24 @@ export default function BackgroundTasksWidget() {
                   {t('common.import')}
                 </button>
               ) : (
-                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>
-                  {t('reservations.import.previewEmpty')}
-                  {(task.warnings?.length ?? 0) > 0 && (
-                    <div style={{ color: '#b45309', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 96, overflowY: 'auto' }}>
-                      {task.warnings!.join('\n')}
-                    </div>
+                <div>
+                  <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>
+                    {t('reservations.import.previewEmpty')}
+                    {(task.warnings?.length ?? 0) > 0 && (
+                      <div style={{ color: '#b45309', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 96, overflowY: 'auto' }}>
+                        {task.warnings!.join('\n')}
+                      </div>
+                    )}
+                  </div>
+                  {aiParsing && task.mode !== 'force-ai' && task.sourceFiles && task.sourceFiles.length > 0 && (
+                    <button
+                      onClick={() => retryWithAi(task)}
+                      disabled={retrying === task.id}
+                      className="bg-surface-tertiary text-content"
+                      style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: retrying === task.id ? 'default' : 'pointer', opacity: retrying === task.id ? 0.6 : 1, fontFamily: 'inherit' }}
+                    >
+                      {t('reservations.import.tryAi')}
+                    </button>
                   )}
                 </div>
               )

@@ -1,10 +1,8 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MapView } from './MapView'
-
-// MapLibre/Mapbox pull in a ~230 KB (gzip) GL engine. Lazy-load the GL renderer so
-// Leaflet-only installs never download it — it ships only once a GL provider is picked.
-const MapViewGL = lazy(() => import('./MapViewGL').then(m => ({ default: m.MapViewGL })))
+import ErrorBoundary from '../shared/ErrorBoundary'
+import { MapViewGLMapbox, MapViewGLMaplibre } from './glLazy'
 
 // Auto-selects the map renderer based on user settings. Keeps the existing
 // Leaflet MapView untouched so the Mapbox GL variant can mature iteratively
@@ -23,13 +21,23 @@ export function MapViewAuto(props: any) {
   const glProvider = provider === 'maplibre-gl' ? 'maplibre-gl'
     : provider === 'mapbox-gl' && token ? 'mapbox-gl'
     : null
+  // One chunk per engine: picking the binding here is what keeps mapbox-gl and
+  // maplibre-gl out of each other's downloads.
+  const MapViewGL = glProvider === 'maplibre-gl' ? MapViewGLMaplibre : MapViewGLMapbox
   if (glProvider) {
     // Render the previous Leaflet map as the fallback so there's no blank flash
     // while the GL chunk loads on first use.
     return (
-      <Suspense fallback={<MapView {...props} />}>
-        <MapViewGL {...props} glProvider={glProvider} />
-      </Suspense>
+      // Outside the Suspense on purpose: Suspense handles the pending promise,
+      // a rejected one (chunk gone after a deploy) throws past it. Falling back
+      // to Leaflet keeps a usable map instead of an error card.
+      // resetKeys: with two engine chunks, a failure under one provider must not
+      // keep showing Leaflet after the user switches to the other.
+      <ErrorBoundary boundaryId="map:gl" resetKeys={[glProvider]} fallback={<MapView {...props} />}>
+        <Suspense fallback={<MapView {...props} />}>
+          <MapViewGL {...props} glProvider={glProvider} />
+        </Suspense>
+      </ErrorBoundary>
     )
   }
   return <MapView {...props} />

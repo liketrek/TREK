@@ -181,5 +181,12 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAllDesc': "Tot l'itinerari es mou amb les noves dates, incloses les reserves i els allotjaments.",
   'dashboard.dateShiftHint':
     'Consell: per moure només una part de l\'itinerari, fes servir "Afegeix un dia" al planificador.',
+  'dashboard.subscribeAllTrips': 'Subscriu-te a tots els viatges',
+  'dashboard.subscribeAllTripsDesc':
+    'Un sol canal de calendari per a tots els teus viatges actius, sincronitzat automàticament. Exclou els viatges arxivats i els que van acabar fa més de 90 dies.',
+  'dashboard.mobile.addCoverImage': 'Afegeix una imatge de portada',
+  'dashboard.mobile.spotlightDayOf': 'Dia {day} de {total}',
+  'dashboard.mobile.spotlightDayOne': '{count} dia',
+  'dashboard.mobile.spotlightDaysMany': '{count} dies',
 };
 export default dashboard;

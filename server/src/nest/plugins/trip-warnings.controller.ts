@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { canAccessTrip } from '../../db/database';
+import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
@@ -27,7 +27,10 @@ const MESSAGE_MAX = 300;
 @Controller('api/trip-warnings')
 @UseGuards(JwtAuthGuard)
 export class TripWarningsController {
-  constructor(private readonly runtime: PluginRuntimeService) {}
+  constructor(
+    private readonly runtime: PluginRuntimeService,
+    private readonly dbs: DatabaseService,
+  ) {}
 
   @Get(':tripId')
   async get(
@@ -37,7 +40,7 @@ export class TripWarningsController {
     if (!pluginsEnabled()) return { warnings: [] };
     const tripId = Number(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !canAccessTrip(tripId, userId)) return { warnings: [] };
+    if (!Number.isFinite(tripId) || userId == null || !this.dbs.canAccessTrip(tripId, userId)) return { warnings: [] };
 
     const ids = this.runtime.providersOf('warningProvider');
     const perProvider = await Promise.all(

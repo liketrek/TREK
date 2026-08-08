@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Mẫu bản đồ',
   'settings.mapTemplatePlaceholder.select': 'Chọn mẫu...',
   'settings.mapDefaultHint': 'Để trống cho OpenStreetMap (mặc định)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'Mẫu URL cho ô bản đồ',
   'settings.mapProvider': 'Nhà cung cấp bản đồ',
   'settings.mapProviderHint':
@@ -86,6 +85,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Lời nhắc chuyến đi',
   'settings.notifyTodoDue': 'Việc cần làm sắp đến hạn',
   'settings.notifyVacayInvite': 'Lời mời kết hợp Vacay',
+  'settings.notifyVacayShare': 'Chia sẻ lịch Vacay',
   'settings.notifyPhotosShared': 'Ảnh được chia sẻ (Immich)',
   'settings.notifyCollabMessage': 'Tin nhắn trò chuyện (Cộng tác)',
   'settings.notifyPackingTagged': 'Danh sách đóng gói: phân công',
@@ -277,6 +277,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Đã cập nhật ảnh hồ sơ',
   'settings.avatarRemoved': 'Đã xóa ảnh hồ sơ',
   'settings.avatarError': 'Tải lên không thành công',
+  'settings.avatarRemoveError': 'Xóa không thành công',
   'settings.mfa.title': 'Xác thực hai yếu tố (2FA)',
   'settings.mfa.description':
     'Thêm bước thứ hai khi bạn đăng nhập bằng email và mật khẩu. Sử dụng ứng dụng xác thực (Google Authenticator, Authy, v.v.).',
@@ -304,8 +305,9 @@ const settings: TranslationStrings = {
   'settings.mfa.toastEnabled': 'Đã bật xác thực hai yếu tố',
   'settings.mfa.toastDisabled': 'Xác thực hai yếu tố bị vô hiệu hóa',
   'settings.mfa.demoBlocked': 'Không có sẵn ở chế độ demo',
-  'settings.currency': 'Tiền tệ',
-  'settings.currencyHint': 'Tất cả số tiền trong Chi phí được chuyển đổi sang và hiển thị bằng loại tiền tệ này.',
+  'settings.currency': 'Tiền tệ hiển thị',
+  'settings.currencyHint':
+    'Số tiền trong Chi phí chỉ được quy đổi sang loại tiền tệ này để hiển thị — số tiền gốc không thay đổi.',
   'settings.currencyTrip': 'Tiền tệ của chuyến đi',
   'settings.passkey.title': 'Mật mã',
   'settings.passkey.description':
@@ -430,6 +432,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Tên địa điểm, mô tả',
   'settings.appearance.example.small': 'Địa chỉ, nhãn',
   'settings.appearance.experimental': 'Thử nghiệm',
+  'settings.appearance.mobileNav': 'Thanh điều hướng dưới',
+  'settings.appearance.mobileNav.hint':
+    'Chọn mục nào hiển thị trên thanh và mục nào nằm trong “Thêm”. Bảng điều khiển luôn đứng đầu.',
+  'settings.appearance.mobileNav.inBar': 'Trên thanh',
+  'settings.appearance.mobileNav.underMore': 'Trong “Thêm”',
+  'settings.appearance.mobileNav.moreEmpty': 'Chưa có gì ở đây — mọi mục đều vừa trên thanh.',
+  'settings.appearance.mobileNav.pinned': 'Đã ghim',
+  'settings.appearance.mobileNav.toMore': 'Chuyển vào “Thêm”',
+  'settings.appearance.mobileNav.toBar': 'Chuyển lên thanh',
+  'settings.appearance.dashOrder': 'Thứ tự bảng điều khiển',
+  'settings.appearance.dashOrder.hint':
+    'Sắp xếp lại cách danh sách chuyến đi và các tiện ích xếp chồng trên bảng điều khiển điện thoại. Chuyến đi nổi bật luôn ở trên cùng.',
+  'settings.appearance.dashOrder.trips': 'Chuyến đi',
+  'settings.appearance.dashOrder.hidden': 'Đã ẩn',
   'settings.general.languageRegion': 'Ngôn ngữ & khu vực',
   'settings.general.travelMap': 'Du lịch & bản đồ',
 
@@ -496,7 +512,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Thời điểm',
   'settings.pluginActivity.columns.status': 'Kết quả',
   'settings.alwaysShowRoutes': 'Luôn hiển thị tuyến đường đặt chỗ',
-  'settings.alwaysShowRoutesHint': 'Tự động hiển thị trên bản đồ tuyến đường của mỗi chuyến bay, tàu hỏa và đặt chỗ khác, không cần bật riêng từng mục.',
+  'settings.alwaysShowRoutesHint':
+    'Tự động hiển thị trên bản đồ tuyến đường của mỗi chuyến bay, tàu hỏa và đặt chỗ khác, không cần bật riêng từng mục.',
 };
 
 export default settings;

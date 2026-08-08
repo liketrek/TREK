@@ -54,6 +54,7 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
     setShowTrash(v => !v)
   }, [showTrash, loadTrash])
 
+  // onUpdate doubles as the "files changed" signal towards the parent; the arguments carry no payload.
   const refreshFiles = useCallback(async () => {
     if (onUpdate) onUpdate(0, {} as any)
   }, [onUpdate])

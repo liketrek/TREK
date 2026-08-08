@@ -1,27 +1,29 @@
 /**
  * Reservations + accommodations module e2e — exercises both migrated mounts
- * through the real JwtAuthGuard against a temp SQLite db. The reservation/day/
- * budget services, the permission check, canAccessTrip and the WebSocket
- * broadcast are mocked.
+ * through the real JwtAuthGuard against a temp SQLite db. Reservation SQL runs
+ * for real (ReservationsService is DI-native, no mock — the temp db carries the
+ * full schema via createTables + runMigrations), and so does the accommodation
+ * SQL (the injected DaysService is DI-native too); the budget service, the
+ * permission check and the WebSocket broadcast stay mocked.
  */
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { ReservationsModule } from '../../src/nest/reservations/reservations.module';
-import { seedUser, sessionCookie } from './harness';
+import { sessionCookie } from './harness';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { Test } from '@nestjs/testing';
 
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
 import request from 'supertest';
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Database = require('better-sqlite3');
   const tmp = new Database(':memory:');
   tmp.exec('PRAGMA journal_mode = WAL');
-  tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0);`);
-  tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT);');
   return { db: tmp };
 });
 
@@ -35,71 +37,54 @@ vi.mock('../../src/db/database', () => ({
   reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
-vi.mock('../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
+const { notificationSend } = vi.hoisted(() => ({ notificationSend: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: notificationSend }));
 
-const { checkPermission } = vi.hoisted(() => ({ checkPermission: vi.fn() }));
-vi.mock('../../src/services/permissions', () => ({ checkPermission }));
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
-const { resv, budget, day } = vi.hoisted(() => ({
-  resv: {
-    verifyTripAccess: vi.fn(),
-    listReservations: vi.fn(),
-    createReservation: vi.fn(),
-    updatePositions: vi.fn(),
-    getReservation: vi.fn(),
-    updateReservation: vi.fn(),
-    deleteReservation: vi.fn(),
-    getUpcomingReservations: vi.fn(),
-    notifyBookingChange: vi.fn(),
-  },
-  budget: {
-    createBudgetItem: vi.fn(),
-    updateBudgetItem: vi.fn(),
-    deleteBudgetItem: vi.fn(),
-    linkBudgetItemToReservation: vi.fn(),
-  },
-  day: {
-    listAccommodations: vi.fn(),
-    validateAccommodationRefs: vi.fn(),
-    createAccommodation: vi.fn(),
-    getAccommodation: vi.fn(),
-    updateAccommodation: vi.fn(),
-    deleteAccommodation: vi.fn(),
-  },
-}));
-vi.mock('../../src/services/reservationService', () => resv);
-vi.mock('../../src/services/budgetService', () => budget);
-vi.mock('../../src/services/dayService', () => day);
+// Since the permissions DI migration, the check is a spy on the container's
+// PermissionsService singleton (created in beforeAll, after build()).
+let checkPermission: MockInstance;
 
-describe('Reservations + accommodations e2e (real auth guard + temp SQLite)', () => {
+// The budget-sync seam runs the real injected BudgetService (BudgetModule is
+// imported by ReservationsModule since the budget fold) over the same temp db.
+
+import { createTables } from '../../src/db/schema';
+import { runMigrations } from '../../src/db/migrations';
+
+describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real reservation SQL)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
+  let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [ReservationsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, ReservationsModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
+    nest.useGlobalPipes(new ZodValidationPipe());
     await nest.init();
     return nest;
   }
 
   beforeAll(async () => {
-    seedUser(db as never, { id: 1 });
+    createTables(db);
+    runMigrations(db);
+    // The temp db carries the real schema (password_hash NOT NULL), so seed the
+    // auth user directly instead of via the trimmed-DDL seedUser helper.
+    db.prepare(
+      "INSERT INTO users (id, username, email, password_hash, role, password_version) VALUES (1, 'e2e-user', 'e2e@example.test', 'x', 'user', 0)",
+    ).run();
+    tripId = Number(db.prepare("INSERT INTO trips (user_id, title) VALUES (1, 'E2E Trip')").run().lastInsertRowid);
     app = await build();
+    checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
     server = app.getHttpServer();
-    resv.listReservations.mockReturnValue([{ id: 1, title: 'Hotel' }]);
-    resv.createReservation.mockReturnValue({ reservation: { id: 9, title: 'Hotel' }, accommodationCreated: false });
-    day.listAccommodations.mockReturnValue([{ id: 1 }]);
-    day.validateAccommodationRefs.mockReturnValue([]);
-    day.createAccommodation.mockReturnValue({ id: 9 });
-    resv.getUpcomingReservations.mockReturnValue([{ id: 1, trip_id: 5, title: 'Flight' }]);
   });
 
   beforeEach(() => {
-    resv.verifyTripAccess.mockReturnValue({ id: 5, user_id: 1 });
-    canAccessTrip.mockReturnValue({ id: 5, user_id: 1 });
+    canAccessTrip.mockImplementation((id: unknown) => db.prepare('SELECT * FROM trips WHERE id = ?').get(id));
     checkPermission.mockReturnValue(true);
+    notificationSend.mockClear();
   });
 
   afterAll(async () => {
@@ -107,13 +92,15 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite)', ()
   });
 
   it('401 without a cookie (reservations)', async () => {
-    expect((await request(server).get('/api/trips/5/reservations')).status).toBe(401);
+    expect((await request(server).get(`/api/trips/${tripId}/reservations`)).status).toBe(401);
   });
 
-  it('200 list reservations', async () => {
-    const res = await request(server).get('/api/trips/5/reservations').set('Cookie', sessionCookie(1));
+  it('200 list reservations (real SQL, joins attached)', async () => {
+    const rid = db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Hotel', 'hotel')").run(tripId).lastInsertRowid;
+    const res = await request(server).get(`/api/trips/${tripId}/reservations`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ reservations: [{ id: 1, title: 'Hotel' }] });
+    const row = res.body.reservations.find((r: { id: number }) => r.id === Number(rid));
+    expect(row).toMatchObject({ title: 'Hotel', type: 'hotel', endpoints: [], travelers: [] });
   });
 
   it('401 without a cookie (upcoming feed)', async () => {
@@ -121,53 +108,70 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite)', ()
   });
 
   it('200 cross-trip upcoming reservations feed', async () => {
+    db.prepare("INSERT INTO reservations (trip_id, title, type, reservation_time) VALUES (?, 'Flight', 'flight', '2999-01-01T10:00:00')").run(tripId);
     const res = await request(server).get('/api/reservations/upcoming').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ reservations: [{ id: 1, trip_id: 5, title: 'Flight' }] });
+    expect(res.body.reservations.map((r: { title: string }) => r.title)).toContain('Flight');
   });
 
   it('404 when trip not accessible (reservations)', async () => {
-    resv.verifyTripAccess.mockReturnValue(undefined);
-    const res = await request(server).get('/api/trips/5/reservations').set('Cookie', sessionCookie(1));
+    canAccessTrip.mockReturnValue(undefined);
+    const res = await request(server).get(`/api/trips/${tripId}/reservations`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
   });
 
-  it('201 create reservation, 400 without title', async () => {
+  it('201 create reservation (real insert + booking notification), 400 without title', async () => {
     const ok = await request(server)
-      .post('/api/trips/5/reservations')
+      .post(`/api/trips/${tripId}/reservations`)
       .set('Cookie', sessionCookie(1))
       .send({ title: 'Hotel' });
     expect(ok.status).toBe(201);
-    expect(ok.body).toEqual({ reservation: { id: 9, title: 'Hotel' } });
-    expect(resv.notifyBookingChange).toHaveBeenCalledWith('5', 1, 'Hotel', '');
-    const bad = await request(server).post('/api/trips/5/reservations').set('Cookie', sessionCookie(1)).send({});
+    expect(ok.body.reservation).toMatchObject({ title: 'Hotel', type: 'other', status: 'pending' });
+    expect(db.prepare('SELECT title FROM reservations WHERE id = ?').get(ok.body.reservation.id)).toEqual({ title: 'Hotel' });
+    // The fire-and-forget booking notification reaches the (mocked) notification service.
+    await vi.waitFor(() => expect(notificationSend).toHaveBeenCalled());
+    expect(notificationSend).toHaveBeenCalledWith(expect.objectContaining({ event: 'booking_change', actorId: 1 }));
+
+    const bad = await request(server).post(`/api/trips/${tripId}/reservations`).set('Cookie', sessionCookie(1)).send({});
     expect(bad.status).toBe(400);
-    expect(bad.body).toEqual({ error: 'Title is required' });
+    expect(bad.body.error).toContain('title');
   });
 
-  it('200 list accommodations + 201 create', async () => {
-    const list = await request(server).get('/api/trips/5/accommodations').set('Cookie', sessionCookie(1));
-    expect(list.status).toBe(200);
-    expect(list.body).toEqual({ accommodations: [{ id: 1 }] });
+  it('200 list accommodations + 201 create (real insert + auto hotel reservation), 404 on bad refs', async () => {
+    const placeId = Number(db.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(tripId, 'Grand Hotel').lastInsertRowid);
+    const dayId = Number(db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, 1, ?)').run(tripId, '2026-03-01').lastInsertRowid);
     const create = await request(server)
-      .post('/api/trips/5/accommodations')
+      .post(`/api/trips/${tripId}/accommodations`)
       .set('Cookie', sessionCookie(1))
-      .send({ place_id: 2, start_day_id: 10, end_day_id: 11 });
+      .send({ place_id: placeId, start_day_id: dayId, end_day_id: dayId, check_in: '15:00' });
     expect(create.status).toBe(201);
-    expect(create.body).toEqual({ accommodation: { id: 9 } });
+    expect(create.body.accommodation).toMatchObject({ place_id: placeId, start_day_id: dayId, end_day_id: dayId, place_name: 'Grand Hotel' });
+    // The partner hotel reservation is auto-created by the real DaysService SQL.
+    const linked = db.prepare('SELECT * FROM reservations WHERE accommodation_id = ?').get(create.body.accommodation.id) as { type: string; status: string };
+    expect(linked).toMatchObject({ type: 'hotel', status: 'confirmed' });
+    const list = await request(server).get(`/api/trips/${tripId}/accommodations`).set('Cookie', sessionCookie(1));
+    expect(list.status).toBe(200);
+    expect(list.body.accommodations).toHaveLength(1);
+    expect(list.body.accommodations[0]).toMatchObject({ id: create.body.accommodation.id, place_name: 'Grand Hotel' });
+    const badRefs = await request(server)
+      .post(`/api/trips/${tripId}/accommodations`)
+      .set('Cookie', sessionCookie(1))
+      .send({ place_id: 99999, start_day_id: dayId, end_day_id: dayId });
+    expect(badRefs.status).toBe(404);
+    expect(badRefs.body).toEqual({ error: 'Place not found' });
   });
 
   it('404 when trip not accessible (accommodations)', async () => {
     canAccessTrip.mockReturnValue(undefined);
-    const res = await request(server).get('/api/trips/5/accommodations').set('Cookie', sessionCookie(1));
+    const res = await request(server).get(`/api/trips/${tripId}/accommodations`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
   });
 
   it('400 accommodation create without refs', async () => {
     const res = await request(server)
-      .post('/api/trips/5/accommodations')
+      .post(`/api/trips/${tripId}/accommodations`)
       .set('Cookie', sessionCookie(1))
       .send({ place_id: 2 });
     expect(res.status).toBe(400);

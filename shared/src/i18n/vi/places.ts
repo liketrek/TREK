@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Thêm địa điểm/Hoạt động',
   'places.importFile': 'Nhập tập tin',
+  'places.trackIndicator': 'Đường đi / tuyến đường',
   'places.sidebarDrop': 'Thả để nhập',
   'places.importFileHint':
     'Nhập tệp.gpx,.kml hoặc.kmz từ các công cụ như Google My Maps, Google Earth hoặc trình theo dõi GPS.',
@@ -42,7 +43,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Thêm vào ngày nào?',
   'places.all': 'Tất cả',
   'places.unplanned': 'Không có kế hoạch',
+  'places.planned': 'Có kế hoạch',
   'places.filterTracks': 'Bài hát',
+  'places.sortByRating': 'Sắp xếp theo đánh giá',
+  'places.yourRating': 'Đánh giá của bạn',
+  'places.notRated': 'Chưa có đánh giá',
   'places.search': 'Tìm kiếm địa điểm...',
   'places.allCategories': 'Tất cả danh mục',
   'places.categoriesSelected': 'Thể loại',
@@ -62,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Kinh độ (ví dụ: 2,3522)',
   'places.formCategory': 'Loại',
   'places.noCategory': 'Không có danh mục',
+  'places.newCategory': 'Danh mục mới',
   'places.categoryNamePlaceholder': 'Tên danh mục',
   'places.formTime': 'Thời gian',
   'places.startTime': 'Bắt đầu',
@@ -88,5 +94,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Làm phong phú các địa điểm thông qua Google',
   'places.enrichOnImportHint':
     'Tra cứu từng địa điểm đã nhập để điền ảnh, địa chỉ và thông tin liên hệ. Sử dụng khóa Google Maps của bạn.',
+  'places.uploadImage': 'Tải ảnh lên',
+  'places.changeImage': 'Đổi ảnh',
+  'places.removeImage': 'Xóa ảnh',
+  'places.imageUploadError': 'Không thể tải ảnh lên',
+  'places.imageRemoveError': 'Không thể xóa ảnh',
 };
 export default places;

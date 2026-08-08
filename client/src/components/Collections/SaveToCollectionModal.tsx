@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { Bookmark, BookmarkCheck, Check, Loader2, Plus } from 'lucide-react'
 import Modal from '../shared/Modal'
 import { useToast } from '../shared/Toast'
@@ -169,7 +169,7 @@ export default function SaveToCollectionModal(): React.ReactElement | null {
                   key={list.id}
                   type="button"
                   onClick={() => handleToggle(list)}
-                  disabled={busy}
+                  disabled={busyId != null}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors disabled:opacity-60 ${saved ? 'border-accent bg-accent-subtle' : 'border-edge bg-surface-card hover:bg-surface-hover'}`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: list.color || 'var(--accent)' }} />

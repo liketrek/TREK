@@ -1,10 +1,11 @@
 import bcrypt from 'bcryptjs';
 import Database from 'better-sqlite3';
+import { readEnv } from '../app-config';
 
 function seedDemoData(db: Database.Database): { adminId: number; demoId: number } {
-  const ADMIN_USER = process.env.DEMO_ADMIN_USER || 'admin';
-  const ADMIN_EMAIL = process.env.DEMO_ADMIN_EMAIL || 'admin@trek.app';
-  const ADMIN_PASS = process.env.DEMO_ADMIN_PASS || 'admin12345';
+  const ADMIN_USER = readEnv().demo.adminUser;
+  const ADMIN_EMAIL = readEnv().demo.adminEmailRaw || 'admin@trek.app';
+  const ADMIN_PASS = readEnv().demo.adminPass;
   const DEMO_EMAIL = 'demo@trek.app';
   const DEMO_PASS = 'demo12345';
 

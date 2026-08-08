@@ -45,13 +45,18 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-vi.mock('../../src/services/notifications', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/services/notifications')>();
-  return {
-    ...actual,
-    testSmtp: vi.fn().mockResolvedValue({ success: true }),
-    testWebhook: vi.fn().mockResolvedValue({ success: true }),
-  };
+// The two test-send endpoints must not reach a real SMTP server or URL. Since
+// the fold they are provider methods, so they are stubbed on the prototype
+// rather than by module path — everything else in the domain stays real.
+vi.mock('../../src/nest/notifications/mailer/mailer.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/nest/notifications/mailer/mailer.service')>();
+  actual.MailerService.prototype.testSmtp = vi.fn().mockResolvedValue({ success: true });
+  return actual;
+});
+vi.mock('../../src/nest/notifications/transports/webhook.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/nest/notifications/transports/webhook.service')>();
+  actual.WebhookService.prototype.testWebhook = vi.fn().mockResolvedValue({ success: true });
+  return actual;
 });
 
 import { buildApp } from '../../src/bootstrap';
@@ -95,10 +100,13 @@ describe('Notification preferences', () => {
   it('NOTIF-001 — PUT /api/notifications/preferences updates settings', async () => {
     const { user } = createUser(testDb);
 
+    // The DTO ratchet enforces the matrix shape the client actually sends
+    // ({ event: { channel: enabled } }); the pre-matrix flat notify_* body
+    // this case used to send is rejected by the pipe now.
     const res = await request(app)
       .put('/api/notifications/preferences')
       .set('Cookie', authCookie(user.id))
-      .send({ notify_trip_invite: true, notify_booking_change: false });
+      .send({ trip_invite: { email: true }, booking_change: { email: false } });
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('preferences');
   });
@@ -310,9 +318,13 @@ describe('Notification test endpoints', () => {
   it('NOTIF-005 — POST /api/notifications/test-smtp requires admin', async () => {
     const { user } = createUser(testDb);
 
+    // Send the empty JSON body the client sends ({ email: undefined } →
+    // {}): a completely body-less POST has no content-type, so the DTO pipe
+    // rejects it before the admin gate since the ratchet.
     const res = await request(app)
       .post('/api/notifications/test-smtp')
-      .set('Cookie', authCookie(user.id));
+      .set('Cookie', authCookie(user.id))
+      .send({});
     // Non-admin gets 403
     expect(res.status).toBe(403);
   });

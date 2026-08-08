@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { useTranslation } from '../../i18n'
+import ErrorBoundary from '../shared/ErrorBoundary'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTripStore } from '../../store/tripStore'
+import { usePluginStore } from '../../store/pluginStore'
 import { useToast } from '../shared/Toast'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { pluginsApi } from '../../api/client'
@@ -105,6 +107,8 @@ interface PluginFrameProps {
   path?: string
 }
 
+type PluginSessionStorageScope = 'plugin' | 'trip'
+
 type Inbound =
   | { type: 'trek:ready' }
   | { type: 'trek:context:request' }
@@ -112,8 +116,29 @@ type Inbound =
   | { type: 'trek:notify'; level?: 'info' | 'success' | 'warning' | 'error'; message?: string; duration?: number }
   | { type: 'trek:resize'; height?: number }
   | { type: 'trek:invoke'; requestId: string; sub: string; method?: string; body?: unknown }
+  | { type: 'trek:session:get'; requestId: string; key: string; scope?: PluginSessionStorageScope }
+  | { type: 'trek:session:set'; requestId: string; key: string; value: unknown; scope?: PluginSessionStorageScope }
+  | { type: 'trek:session:remove'; requestId: string; key: string; scope?: PluginSessionStorageScope }
+  | { type: 'trek:session:clear'; requestId: string; scope?: PluginSessionStorageScope }
   | { type: 'trek:confirm'; requestId: string; title?: string; message?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean }
   | { type: 'trek:openExternal'; url?: string }
+  | { type: 'trek:geolocation'; requestId: string; action?: 'get' | 'watch' | 'clear' }
+
+/** The wire shape of a position sent to the frame — plain data, no prototype. */
+function geoPosition(p: GeolocationPosition) {
+  return {
+    lat: p.coords.latitude,
+    lng: p.coords.longitude,
+    accuracy: p.coords.accuracy,
+    heading: p.coords.heading,
+    speed: p.coords.speed,
+    timestamp: p.timestamp,
+  }
+}
+
+function geoErrorCode(e: GeolocationPositionError): 'denied' | 'unavailable' | 'timeout' {
+  return e.code === e.PERMISSION_DENIED ? 'denied' : e.code === e.TIMEOUT ? 'timeout' : 'unavailable'
+}
 
 interface ConfirmRequest {
   requestId: string
@@ -122,6 +147,65 @@ interface ConfirmRequest {
   confirmLabel?: string
   cancelLabel?: string
   danger: boolean
+}
+
+const PLUGIN_SESSION_NAMESPACE = 'trek:plugin-session:'
+const PLUGIN_SESSION_MAX_KEY_LENGTH = 64
+const PLUGIN_SESSION_MAX_KEYS = 32
+const PLUGIN_SESSION_MAX_VALUE_BYTES = 1024
+
+/**
+ * Returns all host-owned storage keys in one plugin scope (plugin-wide or a
+ * specific trip), excluding TREK state and every other plugin/scope.
+ */
+function getScopedSessionKeys(scopeKeyPrefix: string) {
+  const keys: string[] = []
+  for (let i = 0; i < sessionStorage.length; i += 1) {
+    const key = sessionStorage.key(i)
+    if (key?.startsWith(scopeKeyPrefix)) keys.push(key)
+  }
+  return keys
+}
+
+/**
+ * Creates the prefix and full key for host-owned plugin session storage.
+ *
+ *   Storage Keys:
+ *   trek:plugin-session:{userId}:{pluginId}:plugin:{key}
+ *   trek:plugin-session:{userId}:{pluginId}:trip:{tripId}:{key}
+ *
+ *   Scope Prefix:
+ *   trek:plugin-session:{userId}:{pluginId}:plugin
+ *   trek:plugin-session:{userId}:{pluginId}:trip:{tripId}
+ *
+ *   Plugin Prefix:
+ *   trek:plugin-session:{userId}:{pluginId}
+ *
+ *
+ * Each dynamic segment is URI-encoded, so plugin-controlled values cannot alter
+ * the key format. For clear, omit logicalKey; the returned full key is then
+ * the same as the scoped prefix.
+ */
+function createPluginSessionStorageKeys(
+  userId: string | number | null,
+  pluginId: string,
+  scope: PluginSessionStorageScope,
+  tripId: string | null,
+  logicalKey?: string,
+) {
+  const pluginKeyPrefix = `${PLUGIN_SESSION_NAMESPACE}${encodeURIComponent(String(userId))}:${encodeURIComponent(pluginId)}:`
+
+  // Scope is either :plugin: or :trip:${tripId}:
+  const scopeSegment = scope === 'trip' ? `trip:${encodeURIComponent(tripId!)}` : 'plugin'
+  const scopeKeyPrefix = `${pluginKeyPrefix}${scopeSegment}:`
+
+  const encodedLogicalKey = logicalKey === undefined ? undefined : encodeURIComponent(logicalKey)
+  const storageKey = encodedLogicalKey === undefined ? scopeKeyPrefix : `${scopeKeyPrefix}${encodedLogicalKey}`
+  return {
+    pluginKeyPrefix,
+    scopeKeyPrefix,
+    storageKey,
+  }
 }
 
 export default function PluginFrame({ pluginId, tripId = null, placeId = null, dayId = null, reservationId = null, fill = false, className, title, path = 'index.html' }: PluginFrameProps) {
@@ -160,6 +244,13 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   // side effects inside a setState updater (StrictMode runs updaters twice).
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null)
   const confirmReqRef = useRef<ConfirmRequest | null>(null)
+  // geolocation:read gate — the feed only flags plugins whose grant is recorded.
+  // Read via ref (like toastRef) so the bridge effect doesn't re-run on store churn.
+  const geoAllowed = usePluginStore((s) => s.getById(pluginId)?.geolocation === true)
+  const geoAllowedRef = useRef(geoAllowed)
+  geoAllowedRef.current = geoAllowed
+  // The single live watchPosition of this frame (id from navigator.geolocation).
+  const geoWatchRef = useRef<number | null>(null)
 
   // opaque frame -> targetOrigin must be '*'. Hoisted so the iframe's onLoad can
   // deliver the context too: the trek:ready handshake alone is racy — if the frame
@@ -193,6 +284,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       distanceUnit: settings.distance_unit,
       temperatureUnit: settings.temperature_unit,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      blurBookingCodes: Boolean(settings.blur_booking_codes),
     },
     tokens: readThemeTokens(),
   }), [tripId, placeId, dayId, reservationId, userId, locale, userName, userAvatar, isAdmin, settings])
@@ -280,6 +372,124 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
           }
           break
         }
+        case 'trek:geolocation': {
+          // The sandbox blocks navigator.geolocation inside the frame (deliberately —
+          // no blanket permissions-policy delegation). The HOST reads the position and
+          // posts plain data, gated on the plugin's geolocation:read grant, and the
+          // browser's own site permission prompt still applies on top. Nothing here
+          // reaches the server — the position only travels parent → this frame.
+          if (typeof msg.requestId !== 'string' || !msg.requestId) break
+          const requestId = msg.requestId
+          const fail = (error: string) => post({ type: 'trek:geolocation:result', requestId, error })
+          if (!geoAllowedRef.current) { fail('forbidden'); break }
+          if (!('geolocation' in navigator)) { fail('unsupported'); break }
+          const action = msg.action ?? 'get'
+          if (action === 'clear') {
+            if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
+            post({ type: 'trek:geolocation:result', requestId, cleared: true })
+            break
+          }
+          const geoOpts = { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+          if (action === 'watch') {
+            // One watch per frame — a new request replaces the old one. Confirmed
+            // immediately; positions stream as trek:geolocation:update messages.
+            if (geoWatchRef.current != null) navigator.geolocation.clearWatch(geoWatchRef.current)
+            post({ type: 'trek:geolocation:result', requestId, watching: true })
+            // Re-check the grant on every fix, not just at start: if an admin revokes
+            // geolocation:read while the frame stays open, the stream stops at once.
+            const stillAllowed = () => {
+              if (geoAllowedRef.current) return true
+              if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
+              return false
+            }
+            geoWatchRef.current = navigator.geolocation.watchPosition(
+              (p) => { if (loadsRef.current <= 1 && stillAllowed()) post({ type: 'trek:geolocation:update', position: geoPosition(p) }) },
+              (e) => { if (loadsRef.current <= 1 && stillAllowed()) post({ type: 'trek:geolocation:update', error: geoErrorCode(e) }) },
+              geoOpts,
+            )
+            break
+          }
+          navigator.geolocation.getCurrentPosition(
+            (p) => { if (loadsRef.current <= 1) post({ type: 'trek:geolocation:result', requestId, position: geoPosition(p) }) },
+            (e) => { if (loadsRef.current <= 1) fail(geoErrorCode(e)) },
+            geoOpts,
+          )
+          break
+        }
+        case 'trek:session:clear': {
+          // Same guard the other request/response handlers apply: without an id
+          // the frame could never match our answer to its call.
+          if (typeof msg.requestId !== 'string' || !msg.requestId) break
+          const scope = msg.scope === 'trip' ? 'trip' : 'plugin'
+
+          // tripId required if we are on a trip-scoped key.
+          if (scope === 'trip' && tripId == null) {
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'NO_TRIP_CONTEXT', message: 'trip session storage requires a trip context' })
+            break
+          }
+
+          const { scopeKeyPrefix } = createPluginSessionStorageKeys(userId, pluginId, scope, tripId)
+          try {
+            getScopedSessionKeys(scopeKeyPrefix).forEach((storageKey) => sessionStorage.removeItem(storageKey))
+            post({ type: 'trek:response', requestId: msg.requestId, data: undefined })
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'session storage failed'
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_STORAGE_ERROR', message })
+          }
+          break
+        }
+        case 'trek:session:get':
+        case 'trek:session:set':
+        case 'trek:session:remove': {
+          if (typeof msg.requestId !== 'string' || !msg.requestId) break
+          const scope = msg.scope === 'trip' ? 'trip' : 'plugin'
+          if (scope === 'trip' && tripId == null) {
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'NO_TRIP_CONTEXT', message: 'trip session storage requires a trip context' })
+            break
+          }
+          if (typeof msg.key !== 'string' || msg.key.length === 0 || msg.key.length > PLUGIN_SESSION_MAX_KEY_LENGTH) {
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_INVALID_KEY', message: `session key must be 1-${PLUGIN_SESSION_MAX_KEY_LENGTH} characters` })
+            break
+          }
+          const { scopeKeyPrefix, storageKey } = createPluginSessionStorageKeys(userId, pluginId, scope, tripId, msg.key)
+          try {
+            if (msg.type === 'trek:session:get') {
+              const storedValue = sessionStorage.getItem(storageKey)
+              post({ type: 'trek:response', requestId: msg.requestId, data: storedValue === null ? undefined : JSON.parse(storedValue) })
+              break
+            }
+
+            if (msg.type === 'trek:session:set') {
+              const serializedValue = JSON.stringify(msg.value)
+              if (serializedValue === undefined) {
+                post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_INVALID_VALUE', message: 'session value must be JSON-serialisable' })
+                break
+              }
+
+              // Validate length based on unicode byte sizes
+              const valueBytes = new TextEncoder().encode(serializedValue).byteLength
+              if (valueBytes > PLUGIN_SESSION_MAX_VALUE_BYTES) {
+                post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_VALUE_TOO_LARGE', message: `session value exceeds ${PLUGIN_SESSION_MAX_VALUE_BYTES} bytes` })
+                break
+              }
+              const keys = getScopedSessionKeys(scopeKeyPrefix)
+              if (!keys.includes(storageKey) && keys.length >= PLUGIN_SESSION_MAX_KEYS) {
+                post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_KEY_LIMIT', message: `plugin session storage allows at most ${PLUGIN_SESSION_MAX_KEYS} keys` })
+                break
+              }
+              sessionStorage.setItem(storageKey, serializedValue)
+              post({ type: 'trek:response', requestId: msg.requestId, data: undefined })
+              break
+            }
+
+            sessionStorage.removeItem(storageKey)
+            post({ type: 'trek:response', requestId: msg.requestId, data: undefined })
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'session storage failed'
+            post({ type: 'trek:error', requestId: msg.requestId, code: 'SESSION_STORAGE_ERROR', message })
+          }
+          break
+        }
       }
     }
 
@@ -344,8 +554,10 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       window.removeEventListener('message', onMessage)
       themeObserver.disconnect()
       if (wsForward) removeListener(wsForward)
+      // The frame is going away (or re-bridging) — never leave a live GPS watch behind.
+      if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
     }
-  }, [pluginId, tripId, fill, navigate, postFrame, buildContext])
+  }, [pluginId, tripId, fill, navigate, postFrame, buildContext, userId])
 
   // Hosts swap pluginId in place (tab bar, /plugins/:id route) — the iframe below
   // is keyed so the document is a fresh first load, and the per-plugin bridge
@@ -371,32 +583,35 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   const confirmTitle = confirmReq?.title ? `${pluginLabel} — ${confirmReq.title}` : pluginLabel
 
   return (
-    <>
-      <iframe
-        key={pluginId}
-        ref={frameRef}
-        src={`/plugin-frame/${pluginId}/${path}`}
-        // Deliver the context as soon as the document is parsed (the plugin sets up its
-        // message listener during parse), closing the trek:ready race so the theme is
-        // right on first paint. A 2nd load is a self-navigation — don't bridge to it.
-        onLoad={() => { loadsRef.current += 1; if (loadsRef.current === 1) postFrame(buildContext()) }}
-        sandbox="allow-scripts allow-forms"
-        referrerPolicy="no-referrer"
-        loading="lazy"
-        title={title || pluginId}
-        className={className}
-        style={{ width: '100%', height: fill ? '100%' : height ?? '100%', border: 0 }}
-      />
-      <ConfirmDialog
-        isOpen={confirmReq != null}
-        onClose={() => answerConfirm(false)}
-        onConfirm={() => answerConfirm(true)}
-        title={confirmTitle}
-        message={confirmReq?.message}
-        confirmLabel={confirmReq?.confirmLabel}
-        cancelLabel={confirmReq?.cancelLabel}
-        danger={confirmReq?.danger}
-      />
-    </>
+    // Third-party code: a throw in here must cost the plugin, not the page.
+    <ErrorBoundary boundaryId="plugin-frame" label={pluginLabel} resetKeys={[pluginId]}>
+      <>
+        <iframe
+          key={pluginId}
+          ref={frameRef}
+          src={`/plugin-frame/${pluginId}/${path}`}
+          // Deliver the context as soon as the document is parsed (the plugin sets up its
+          // message listener during parse), closing the trek:ready race so the theme is
+          // right on first paint. A 2nd load is a self-navigation — don't bridge to it.
+          onLoad={() => { loadsRef.current += 1; if (loadsRef.current === 1) postFrame(buildContext()) }}
+          sandbox="allow-scripts allow-forms"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          title={title || pluginId}
+          className={className}
+          style={{ width: '100%', height: fill ? '100%' : height ?? '100%', border: 0 }}
+        />
+        <ConfirmDialog
+          isOpen={confirmReq != null}
+          onClose={() => answerConfirm(false)}
+          onConfirm={() => answerConfirm(true)}
+          title={confirmTitle}
+          message={confirmReq?.message}
+          confirmLabel={confirmReq?.confirmLabel}
+          cancelLabel={confirmReq?.cancelLabel}
+          danger={confirmReq?.danger}
+        />
+      </>
+    </ErrorBoundary>
   )
 }

@@ -1,4 +1,5 @@
 import { test as setup, expect } from '@playwright/test'
+import { dismissSystemNotices } from './helpers'
 
 // Relative to the config dir (client/), matching `storageState` in
 // playwright.config.ts. Playwright runs from the client workspace root.
@@ -27,16 +28,12 @@ setup('authenticate the seeded admin (incl. forced password change)', async ({ p
 
   await page.waitForURL('**/dashboard', { timeout: 30_000 })
 
-  // Dismiss the first-run "Welcome to TREK" system-notice modal(s). It renders
-  // asynchronously (after the notices fetch), so wait for it before clicking.
-  // Dismissal is recorded server-side against this user, so clearing it here
-  // keeps it cleared for every authenticated flow in the run (shared test DB).
-  const ok = page.getByRole('button', { name: 'OK', exact: true })
-  await ok.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {})
-  for (let i = 0; i < 8 && (await ok.isVisible().catch(() => false)); i++) {
-    await ok.click()
-    await page.waitForTimeout(400)
-  }
+  // Dismiss the first-run system-notice modal(s) — currently the thank-you /
+  // support modal, which has NO "OK" button (only CTAs + the X). The shared
+  // helper handles both notice shapes; dismissal is recorded server-side
+  // against this user, so clearing it here keeps it cleared for every
+  // authenticated flow in the run (shared test DB).
+  await dismissSystemNotices(page, 10_000)
 
   await page.context().storageState({ path: stateFile })
 })

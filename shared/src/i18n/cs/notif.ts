@@ -15,6 +15,8 @@ const notif: TranslationStrings = {
   'notif.todo_due.text': '{todo} ve výletě {trip} má termín {due}',
   'notif.vacay_invite.title': 'Pozvánka Vacay Fusion',
   'notif.vacay_invite.text': '{actor} vás pozval ke spojení dovolenkových plánů',
+  'notif.vacay_share.title': 'Kalendář Vacay sdílen',
+  'notif.vacay_share.text': '{actor} s vámi sdílel svůj kalendář dovolených',
   'notif.collection_invite.title': 'Pozvánka do sbírky',
   'notif.collection_invite.text': '{actor} vás pozval do sbírky',
   'notif.photos_shared.title': 'Fotky sdíleny',

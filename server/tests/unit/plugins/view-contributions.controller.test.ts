@@ -16,6 +16,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { ViewContributionsController } from '../../../src/nest/plugins/view-contributions.controller';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -24,7 +25,7 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     providersOf: vi.fn(() => providers),
     invokeHook: vi.fn(async (id: string) => invoke(id)),
   } as unknown as PluginRuntimeService;
-  return { c: new ViewContributionsController(runtime), runtime };
+  return { c: new ViewContributionsController(runtime, { canAccessTrip } as unknown as DatabaseService), runtime };
 }
 const col = (over: Record<string, unknown> = {}) => ({ kind: 'column', entityId: 1, id: 'c1', label: 'X', ...over });
 const act = (over: Record<string, unknown> = {}) => ({ kind: 'action', entityId: 1, id: 'a1', label: 'Go', target: { kind: 'frame', sub: '/ui' }, ...over });

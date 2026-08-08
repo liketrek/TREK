@@ -10,6 +10,9 @@ const dashboard: TranslationStrings = {
   'dashboard.subtitle.archivedSuffix': ' · {count} gearchiveerd',
   'dashboard.newTrip': 'Nieuwe reis',
   'dashboard.newTripSub': 'Plan een nieuwe reis vanaf nul',
+  'dashboard.subscribeAllTrips': 'Abonneren op alle reizen',
+  'dashboard.subscribeAllTripsDesc':
+    'Eén agenda-feed voor al je actieve reizen, automatisch synchroon gehouden. Gearchiveerde reizen en reizen die meer dan 90 dagen geleden zijn geëindigd, worden uitgesloten.',
   'dashboard.gridView': 'Rasterweergave',
   'dashboard.listView': 'Lijstweergave',
   'dashboard.currency': 'Valuta',
@@ -85,12 +88,16 @@ const dashboard: TranslationStrings = {
   'dashboard.titleRequired': 'Titel is verplicht',
   'dashboard.endDateError': 'Einddatum moet na de startdatum liggen',
   'dashboard.dateShiftTitle': 'Nieuwe startdatum',
-  'dashboard.dateShiftIntro': 'Je hebt gewijzigd wanneer deze reis begint. Hoe moeten je plannen de nieuwe datums volgen?',
+  'dashboard.dateShiftIntro':
+    'Je hebt gewijzigd wanneer deze reis begint. Hoe moeten je plannen de nieuwe datums volgen?',
   'dashboard.dateShiftKeepBookings': 'Boekingen op hun datums houden',
-  'dashboard.dateShiftKeepBookingsDesc': 'Dagplannen verschuiven mee met de nieuwe datums, terwijl reserveringen en accommodaties op hun oorspronkelijke datums blijven zolang die nog binnen de reis vallen.',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'Dagplannen verschuiven mee met de nieuwe datums, terwijl reserveringen en accommodaties op hun oorspronkelijke datums blijven zolang die nog binnen de reis vallen.',
   'dashboard.dateShiftAll': 'Alles verschuiven',
-  'dashboard.dateShiftAllDesc': 'De volledige reisplanning verschuift mee met de nieuwe datums, inclusief reserveringen en accommodaties.',
-  'dashboard.dateShiftHint': 'Tip: om slechts een deel van je reisplanning te verschuiven, gebruik je "Dag toevoegen" in de planner.',
+  'dashboard.dateShiftAllDesc':
+    'De volledige reisplanning verschuift mee met de nieuwe datums, inclusief reserveringen en accommodaties.',
+  'dashboard.dateShiftHint':
+    'Tip: om slechts een deel van je reisplanning te verschuiven, gebruik je "Dag toevoegen" in de planner.',
   'dashboard.greeting.morning': 'Goedemorgen,',
   'dashboard.greeting.afternoon': 'Goedemiddag,',
   'dashboard.greeting.evening': 'Goedenavond,',
@@ -100,6 +107,7 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.places': 'Plaatsen',
   'dashboard.mobile.buddies': 'Reisgenoten',
   'dashboard.mobile.newTrip': 'Nieuwe reis',
+  'dashboard.mobile.addCoverImage': 'Omslagafbeelding toevoegen',
   'dashboard.mobile.currency': 'Valuta',
   'dashboard.mobile.timezone': 'Tijdzone',
   'dashboard.mobile.upcomingTrips': 'Aankomende reizen',
@@ -114,6 +122,9 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.tomorrow': 'Morgen',
   'dashboard.mobile.inDays': 'Over {count} dagen',
   'dashboard.mobile.inMonths': 'Over {count} maanden',
+  'dashboard.mobile.spotlightDayOf': 'Dag {day} van {total}',
+  'dashboard.mobile.spotlightDayOne': '{count} dag',
+  'dashboard.mobile.spotlightDaysMany': '{count} dagen',
   'dashboard.mobile.completed': 'Voltooid',
   'dashboard.mobile.currencyConverter': 'Valutaomzetter',
   'dashboard.filter.planned': 'Gepland',

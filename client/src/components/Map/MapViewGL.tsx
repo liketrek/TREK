@@ -1,31 +1,33 @@
 import { useEffect, useRef, useMemo, useState, createElement } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
-import mapboxgl from 'mapbox-gl'
-import maplibregl from 'maplibre-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import 'maplibre-gl/dist/maplibre-gl.css'
+import { renderIconMarkup } from '../../utils/iconMarkup'
+import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
+import { isCustomPlaceImage, photoCacheKey } from './placePhoto'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
+import { safeHexColor } from '../../utils/safeColor'
+import { escapeHtml } from '@trek/shared'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
-import type { Place, Reservation } from '../../types'
+import type { Place, Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import { buildPoiPopupHtml } from './placePopup'
+import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
   try {
-    return renderToStaticMarkup(createElement(IconComponent, { size, color: 'white', strokeWidth: 2.5 }))
+    return renderIconMarkup(createElement(IconComponent, { size, color: 'white', strokeWidth: 2.5 }))
   } catch { return '' }
 }
 
@@ -39,6 +41,7 @@ const PLACE_CLUSTER_SOURCE_ID = 'trip-place-clusters'
 const PLACE_CLUSTER_CIRCLE_LAYER_ID = 'trip-place-clusters-circle'
 const PLACE_CLUSTER_COUNT_LAYER_ID = 'trip-place-clusters-count'
 const PLACE_UNCLUSTERED_LAYER_ID = 'trip-place-unclustered-hit'
+const GPX_HIT_LAYER_ID = 'trip-gpx-hit'
 
 type PlaceWithCoords = Place & { lat: number; lng: number }
 
@@ -69,9 +72,29 @@ interface RouteSegment {
   drivingText?: string
 }
 
+// Stable identities for the omitted collection props. An inline `= []` / `= {}`
+// default allocates a fresh object on every render, and these props sit in the
+// dependency arrays of the imperative reconcile effects below — so every render,
+// including one caused only by the hover tooltip's state, would tear down and
+// rebuild every marker. That is the "marker recreated under the cursor,
+// mouseleave never fires" case (#1404).
+const NO_PLACES: Place[] = []
+const NO_ROUTE_VIAS: RouteVia[] = []
+const NO_ROUTE_SEGMENTS: RouteSegment[] = []
+const NO_DAY_ORDER: Record<number, number[] | null> = {}
+const NO_RESERVATIONS: Reservation[] = []
+const NO_CONNECTION_IDS: number[] = []
+const NO_POIS: Poi[] = []
+
 interface Props {
   places: Place[]
   dayPlaces?: Place[]
+  // Enables the plugin map contributions (markers + layers). Absent on surfaces
+  // without a trip (CollectionMap), which naturally excludes them — same rule as
+  // the Leaflet MapPluginMarkers.
+  tripId?: number | string
+  // Charging stops / rest areas a plugin route places on the drawn day route.
+  routeVias?: RouteVia[]
   route?: [number, number][][] | null
   routeSegments?: RouteSegment[]
   selectedPlaceId?: number | null
@@ -96,18 +119,26 @@ interface Props {
   onPoiClick?: (poi: Poi) => void
   onViewportChange?: (bbox: { south: number; west: number; north: number; east: number }) => void
   glProvider?: GlMapProvider
+  /**
+   * The GL engine, injected instead of imported. Both SDKs used to be pulled in
+   * statically here, so a single 2.8 MB chunk carried mapbox-gl and maplibre-gl
+   * together and every map user downloaded both while only one ever ran.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gl: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onMapReady?: (map: any | null) => void
 }
 
 function createMarkerElement(place: Place & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
   const size = selected ? 44 : 36
-  const borderColor = selected ? '#111827' : (place.category_color || 'white')
+  // See MapView: allow-listed rather than escaped, because this is a CSS context.
+  const borderColor = selected ? '#111827' : safeHexColor(place.category_color, 'white')
   const borderWidth = selected ? 3 : 2.5
   const shadow = selected
     ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
     : '0 2px 8px rgba(0,0,0,0.22)'
-  const bgColor = place.category_color || '#6b7280'
+  const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // The visual circle is `size` + 2*border on each side. To make the
   // mapbox `anchor: 'center'` land on the real visual middle of the marker
@@ -143,7 +174,7 @@ function createMarkerElement(place: Place & { category_color?: string; category_
   // to its stacked slot, not to the map viewport.
   wrap.style.cssText = `width:${outer}px;height:${outer}px;cursor:pointer;`
 
-  const hasPhoto = photoUrl && (photoUrl.startsWith('data:') || photoUrl.startsWith('/api/maps/place-photo/'))
+  const hasPhoto = photoUrl && (photoUrl.startsWith('data:') || photoUrl.startsWith('/api/maps/place-photo/') || photoUrl.startsWith('/uploads/'))
   if (hasPhoto) {
     wrap.innerHTML = `
       <div style="
@@ -154,7 +185,7 @@ function createMarkerElement(place: Place & { category_color?: string; category_
         overflow:hidden;background:${bgColor};
         box-sizing:content-box;
       ">
-        <img src="${photoUrl}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
+        <img src="${escapeHtml(photoUrl)}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
       </div>
       ${badgeHtml}
     `
@@ -177,11 +208,127 @@ function createMarkerElement(place: Place & { category_color?: string; category_
   return wrap
 }
 
+// Plugin map contributions (mapMarkerProvider / mapLayerProvider hooks) — the GL
+// twins of MapPluginMarkers/MapPluginLayers. Same contract: host-vetted declarative
+// data only, tone palette, plugin JS never touches the canvas. Layer features live
+// in one geojson source with data-driven paint; the dash style can't be data-driven
+// in GL, so the stroke is split across three filtered line layers.
+const PLUGIN_LAYER_SOURCE_ID = 'trek-plugin-layers'
+const PLUGIN_LINE_LAYER_IDS: Record<'solid' | 'dash' | 'dot', string> = {
+  solid: 'trek-plugin-layers-line-solid',
+  dash: 'trek-plugin-layers-line-dash',
+  dot: 'trek-plugin-layers-line-dot',
+}
+const PLUGIN_FILL_LAYER_ID = 'trek-plugin-layers-fill'
+const PLUGIN_TONE_COLORS: Record<string, string> = {
+  default: '#4F46E5',
+  success: '#10b981',
+  warn: '#f59e0b',
+  danger: '#ef4444',
+}
+
+// GL circle layers size in screen pixels, so a metric circle has to become a
+// polygon. Equirectangular approximation — plenty for a display-only overlay.
+function circleToRing(center: [number, number], radiusM: number): [number, number][] {
+  const [lat, lng] = center
+  const dLat = radiusM / 111_320
+  const cos = Math.cos((lat * Math.PI) / 180)
+  const dLng = radiusM / (111_320 * Math.max(0.01, Math.abs(cos)))
+  const ring: [number, number][] = []
+  for (let i = 0; i <= 64; i++) {
+    const a = (i / 64) * 2 * Math.PI
+    ring.push([lng + Math.cos(a) * dLng, lat + Math.sin(a) * dLat])
+  }
+  return ring
+}
+
+interface PluginLayerGeoFeature {
+  type: 'Feature'
+  properties: { id: string; color: string; width: number; opacity: number; dash: string; fillOpacity: number; label: string }
+  geometry: { type: 'LineString'; coordinates: number[][] } | { type: 'Polygon'; coordinates: number[][][] }
+}
+
+function buildPluginLayerData(layers: PluginMapLayer[]) {
+  const features = layers.flatMap(layer => layer.features.flatMap((f, i): PluginLayerGeoFeature[] => {
+    const color = PLUGIN_TONE_COLORS[f.tone] ?? PLUGIN_TONE_COLORS.default
+    const properties = {
+      id: `${layer.pluginId}:${layer.id}:${i}`,
+      color,
+      width: f.width,
+      opacity: f.opacity,
+      dash: f.dash,
+      fillOpacity: f.fill ? Math.min(0.25, f.opacity) : 0,
+      label: f.label || '',
+    }
+    if (f.type === 'polyline' && f.points) {
+      return [{
+        type: 'Feature' as const,
+        properties,
+        geometry: { type: 'LineString' as const, coordinates: f.points.map(([lat, lng]) => [lng, lat]) },
+      }]
+    }
+    if (f.type === 'polygon' && f.points) {
+      const ring = f.points.map(([lat, lng]) => [lng, lat])
+      if (ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) ring.push(ring[0])
+      return [{ type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [ring] } }]
+    }
+    if (f.type === 'circle' && f.center && f.radiusM) {
+      return [{ type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [circleToRing(f.center, f.radiusM)] } }]
+    }
+    return []
+  }))
+  return { type: 'FeatureCollection' as const, features }
+}
+
+function formatViaDwellGl(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.round((seconds % 3600) / 60)
+  return h > 0 ? `${h} h ${m} min` : `${m} min`
+}
+
+// Tone dot for a plugin marker — visual twin of MapPluginMarkers' divIcon.
+function createPluginMarkerElement(tone: PluginMapMarker['tone']): HTMLDivElement {
+  const color = PLUGIN_TONE_COLORS[tone] ?? PLUGIN_TONE_COLORS.default
+  const el = document.createElement('div')
+  el.style.cssText = 'width:16px;height:16px;cursor:pointer;'
+  el.innerHTML = `<span style="display:block;width:16px;height:16px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4);box-sizing:border-box;"></span>`
+  return el
+}
+
+// Popup body for a plugin marker, built with textContent — the values are already
+// host-sanitized, but nothing plugin-supplied is ever handed to innerHTML anyway.
+function buildPluginMarkerPopup(mk: PluginMapMarker): HTMLDivElement {
+  const box = document.createElement('div')
+  box.style.cssText = 'min-width:120px;font-size:13px;'
+  if (mk.label) {
+    const t = document.createElement('div')
+    t.style.cssText = `font-weight:600;${mk.popupText ? 'margin-bottom:4px;' : ''}`
+    t.textContent = mk.label
+    box.appendChild(t)
+  }
+  if (mk.popupText) {
+    const p = document.createElement('div')
+    p.style.color = '#4b5563'
+    p.textContent = mk.popupText
+    box.appendChild(p)
+  }
+  if (mk.url) {
+    const a = document.createElement('a')
+    a.href = mk.url // http/https/mailto only — enforced server-side
+    a.target = '_blank'
+    a.rel = 'noreferrer noopener'
+    a.style.cssText = `display:inline-block;margin-top:6px;color:${PLUGIN_TONE_COLORS.default};`
+    a.textContent = mk.url
+    box.appendChild(a)
+  }
+  return box
+}
+
 // Small coloured pin for an OSM "explore" POI (matches the pill category colour).
 function createPoiMarkerElement(category: string): HTMLDivElement {
   const cat = POI_CATEGORY_BY_KEY[category]
   const color = cat?.color || '#6b7280'
-  const svg = cat ? renderToStaticMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
+  const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
   const el = document.createElement('div')
   el.style.cssText = 'width:26px;height:26px;cursor:pointer;'
   el.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;">${svg}</div>`
@@ -189,10 +336,12 @@ function createPoiMarkerElement(category: string): HTMLDivElement {
 }
 
 export function MapViewGL({
-  places = [],
-  dayPlaces = [],
+  places = NO_PLACES,
+  dayPlaces = NO_PLACES,
+  tripId,
+  routeVias = NO_ROUTE_VIAS,
   route = null,
-  routeSegments = [],
+  routeSegments = NO_ROUTE_SEGMENTS,
   selectedPlaceId = null,
   hoverDisabled = false,
   onMarkerClick,
@@ -201,20 +350,21 @@ export function MapViewGL({
   center = DEFAULT_MAP_CENTER,
   zoom = DEFAULT_MAP_ZOOM,
   fitKey = 0,
-  dayOrderMap = {},
+  dayOrderMap = NO_DAY_ORDER,
   leftWidth = 0,
   rightWidth = 0,
   hasInspector = false,
   hasDayDetail = false,
-  reservations = [],
-  visibleConnectionIds = [],
+  reservations = NO_RESERVATIONS,
+  visibleConnectionIds = NO_CONNECTION_IDS,
   showTransitRoutes = true,
   showReservationStats = false,
   onReservationClick,
-  pois = [],
+  pois = NO_POIS,
   onPoiClick,
   onViewportChange,
   glProvider = 'mapbox-gl',
+  gl,
   onMapReady,
 }: Props) {
   const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
@@ -225,7 +375,6 @@ export function MapViewGL({
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
   const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
-  const gl = (isMapLibre ? maplibregl : mapboxgl) as any
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
   const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
@@ -265,6 +414,14 @@ export function MapViewGL({
   onReservationClickRef.current = onReservationClick
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const poiMarkersRef = useRef<any[]>([])
+  // Plugin map contributions — data fetched per trip, elements owned imperatively
+  // like the POI markers so they survive the React render cycle.
+  const [pluginMarkers, setPluginMarkers] = useState<PluginMapMarker[]>([])
+  const [pluginLayers, setPluginLayers] = useState<PluginMapLayer[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pluginMarkersRef = useRef<any[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const routeViaMarkersRef = useRef<any[]>([])
   // Single reusable hover popup for POI markers. Planned places use the
   // cursor-following React tooltip below so they match the Leaflet map.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -294,7 +451,7 @@ export function MapViewGL({
   // Build/rebuild the map on provider/style/token/3d change
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !mapboxToken)) return
-    if (!isMapLibre) mapboxgl.accessToken = mapboxToken
+    if (!isMapLibre) gl.accessToken = mapboxToken
 
     // Open framed on the places rather than on the caller's default: a trip in Japan should
     // show Japan straight away, not the world view followed by a flight across the planet.
@@ -383,6 +540,17 @@ export function MapViewGL({
       // gpx geometries source (place.route_geometry)
       if (!map.getSource('trip-gpx')) {
         map.addSource('trip-gpx', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        // Casing under the tracks that carry a picked colour (#776) — keeps them
+        // legible on satellite and dark styles. Untouched tracks are filtered
+        // out, so they look exactly as they did before.
+        map.addLayer({
+          id: 'trip-gpx-casing',
+          type: 'line',
+          source: 'trip-gpx',
+          filter: ['==', ['get', 'cased'], true],
+          paint: { 'line-color': '#ffffff', 'line-width': 6.5, 'line-opacity': 0.7 },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
         map.addLayer({
           id: 'trip-gpx-line',
           type: 'line',
@@ -390,10 +558,45 @@ export function MapViewGL({
           paint: {
             'line-color': ['coalesce', ['get', 'color'], '#3b82f6'],
             'line-width': 3.5,
-            'line-opacity': 0.75,
+            'line-opacity': ['case', ['==', ['get', 'cased'], true], 0.9, 0.75],
           },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
         })
+        // Invisible fat line that catches the click — 3.5px is not a target,
+        // and the start markers cluster below zoom 11, so without this a track
+        // is unreachable at the very zoom where you compare walks side by side.
+        map.addLayer({
+          id: GPX_HIT_LAYER_ID,
+          type: 'line',
+          source: 'trip-gpx',
+          paint: { 'line-color': '#000', 'line-width': 14, 'line-opacity': 0 },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+        const selectTrack = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          // A click on a cluster bubble sitting over a track belongs to the
+          // cluster (zoom-to-expand), not to the line underneath it.
+          if (
+            typeof map.getLayer === 'function'
+            && map.getLayer(PLACE_CLUSTER_CIRCLE_LAYER_ID)
+            && typeof map.queryRenderedFeatures === 'function'
+            && map.queryRenderedFeatures(e.point, { layers: [PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID] }).length > 0
+          ) return
+          const target = e.originalEvent?.target as HTMLElement | undefined
+          if (target?.closest?.('.mapboxgl-marker, .maplibregl-marker')) return
+          const placeId = e.features?.[0]?.properties?.place_id
+          if (typeof placeId === 'number') onClickRefs.current.marker?.(placeId)
+        }
+        const setTrackCursor = () => {
+          const canvas = typeof map.getCanvas === 'function' ? map.getCanvas() : null
+          if (canvas) canvas.style.cursor = 'pointer'
+        }
+        const clearTrackCursor = () => {
+          const canvas = typeof map.getCanvas === 'function' ? map.getCanvas() : null
+          if (canvas) canvas.style.cursor = ''
+        }
+        map.on('click', GPX_HIT_LAYER_ID, selectTrack)
+        map.on('mouseenter', GPX_HIT_LAYER_ID, setTrackCursor)
+        map.on('mouseleave', GPX_HIT_LAYER_ID, clearTrackCursor)
       }
       if (!map.getSource(PLACE_CLUSTER_SOURCE_ID)) {
         map.addSource(PLACE_CLUSTER_SOURCE_ID, {
@@ -478,6 +681,45 @@ export function MapViewGL({
         map.on('mouseenter', PLACE_CLUSTER_CIRCLE_LAYER_ID, setClusterCursor)
         map.on('mouseleave', PLACE_CLUSTER_CIRCLE_LAYER_ID, clearClusterCursor)
       }
+      // Plugin layer overlays (mapLayerProvider hook). Inserted BENEATH the day
+      // route so core geometry always wins — the GL twin of the Leaflet pane 399.
+      // Dash can't be data-driven, hence one filtered line layer per dash style.
+      if (!map.getSource(PLUGIN_LAYER_SOURCE_ID)) {
+        map.addSource(PLUGIN_LAYER_SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: PLUGIN_FILL_LAYER_ID,
+          type: 'fill',
+          source: PLUGIN_LAYER_SOURCE_ID,
+          paint: { 'fill-color': ['get', 'color'], 'fill-opacity': ['get', 'fillOpacity'] },
+        }, 'trip-route-casing')
+        const dashArrays: Record<string, number[] | undefined> = { solid: undefined, dash: [2, 2], dot: [0, 2] }
+        for (const dash of ['solid', 'dash', 'dot'] as const) {
+          map.addLayer({
+            id: PLUGIN_LINE_LAYER_IDS[dash],
+            type: 'line',
+            source: PLUGIN_LAYER_SOURCE_ID,
+            filter: ['==', ['get', 'dash'], dash],
+            paint: {
+              'line-color': ['get', 'color'],
+              'line-width': ['get', 'width'],
+              'line-opacity': ['get', 'opacity'],
+              ...(dashArrays[dash] ? { 'line-dasharray': dashArrays[dash] } : {}),
+            },
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+          }, 'trip-route-casing')
+        }
+        // A labelled feature answers a click with a plain-text popup (setText —
+        // never HTML). Unlabelled features stay inert, like the Leaflet twin.
+        const showLabel = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          const label = e.features?.[0]?.properties?.label
+          if (typeof label === 'string' && label && popupRef.current) {
+            popupRef.current.setLngLat(e.lngLat).setText(label).addTo(map)
+          }
+        }
+        for (const id of [PLUGIN_FILL_LAYER_ID, ...Object.values(PLUGIN_LINE_LAYER_IDS)]) {
+          map.on('click', id, showLabel)
+        }
+      }
       // Signal that sources/layers are attached so overlay effects can
       // safely add their own sources. Style rebuilds reset this via the
       // cleanup below.
@@ -500,6 +742,14 @@ export function MapViewGL({
         && map.getLayer(PLACE_CLUSTER_CIRCLE_LAYER_ID)
         && typeof map.queryRenderedFeatures === 'function'
         && map.queryRenderedFeatures(e.point, { layers: [PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID] }).length > 0
+      ) return
+      // Same for a click that landed on a track — it selects the track, it does
+      // not drop a new place on top of the line.
+      if (
+        typeof map.getLayer === 'function'
+        && map.getLayer(GPX_HIT_LAYER_ID)
+        && typeof map.queryRenderedFeatures === 'function'
+        && map.queryRenderedFeatures(e.point, { layers: [GPX_HIT_LAYER_ID] }).length > 0
       ) return
       onClickRefs.current.map?.({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng } })
     })
@@ -587,12 +837,12 @@ export function MapViewGL({
       if (ev.touches.length !== 1) { cancelLongPress(); return }
       if ((ev.target as HTMLElement).closest('.mapboxgl-marker, .maplibregl-marker')) return
       const t = ev.touches[0]
-      lpStart = { x: t.clientX, y: t.clientY }
+      const start = { x: t.clientX, y: t.clientY }
+      lpStart = start
       lpTimer = window.setTimeout(() => {
         lpTimer = null
-        if (!lpStart) return
         const rect = canvas.getBoundingClientRect()
-        const lngLat = map.unproject([lpStart.x - rect.left, lpStart.y - rect.top])
+        const lngLat = map.unproject([start.x - rect.left, start.y - rect.top])
         lpStart = null
         // Only suppress the tap when OUR fire opened the form — if the native
         // contextmenu beat us to it (dedupe), no click needs swallowing.
@@ -712,7 +962,11 @@ export function MapViewGL({
     }
 
     for (const place of places) {
-      const cacheKey = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
+      // A custom uploaded image is shown directly — never auto-fetch a provider
+      // photo for it (that request would 404 for OSM-only places and, worse, the
+      // fetched thumb would shadow the user's own image). (#1136)
+      if (isCustomPlaceImage(place.image_url)) continue
+      const cacheKey = photoCacheKey(place)
       if (!cacheKey) continue
       const cached = getCached(cacheKey)
       if (cached?.thumbDataUrl) {
@@ -769,8 +1023,9 @@ export function MapViewGL({
 
       visiblePlaces.forEach(place => {
         const orderNumbers = dayOrderMap[place.id] ?? null
-        const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
-        const photoUrl = (pck && photoUrls[pck]) || place.image_url || null
+        const pck = photoCacheKey(place)
+        // A custom image wins over the auto-fetched thumb; otherwise fall back to it.
+        const photoUrl = isCustomPlaceImage(place.image_url) ? place.image_url! : ((pck && photoUrls[pck]) || place.image_url || null)
         const selected = place.id === selectedPlaceId
         const el = createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
         el.addEventListener('click', (ev) => {
@@ -882,6 +1137,72 @@ export function MapViewGL({
     }
   }, [pois, mapReady, glProvider])
 
+  // Fetch plugin map contributions (markers + layers) per trip. Fail-safe: an
+  // error or missing tripId just means no plugin overlays, the core map is fine.
+  useEffect(() => {
+    if (tripId == null) { setPluginMarkers([]); setPluginLayers([]); return }
+    let alive = true
+    pluginsApi.mapMarkers(tripId)
+      .then(r => { if (alive) setPluginMarkers(r.markers || []) })
+      .catch(() => { if (alive) setPluginMarkers([]) })
+    pluginsApi.mapLayers(tripId)
+      .then(r => { if (alive) setPluginLayers(r.layers || []) })
+      .catch(() => { if (alive) setPluginLayers([]) })
+    return () => { alive = false }
+  }, [tripId])
+
+  // Update plugin layer geojson
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    const src = map.getSource(PLUGIN_LAYER_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined
+    if (!src) return
+    src.setData(buildPluginLayerData(pluginLayers))
+  }, [pluginLayers, mapReady, glProvider])
+
+  // Reconcile the via-point markers of a plugin route (charging stops) — small
+  // tone-ringed dots, popup with label + planned stop time on tap.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    routeViaMarkersRef.current.forEach(m => m.remove())
+    routeViaMarkersRef.current = []
+    for (const v of routeVias) {
+      const el = document.createElement('div')
+      el.style.cssText = 'width:13px;height:13px;cursor:pointer;'
+      const color = PLUGIN_TONE_COLORS[v.tone] ?? PLUGIN_TONE_COLORS.default
+      el.innerHTML = `<span style="display:block;width:13px;height:13px;border-radius:50%;background:#fff;border:3.5px solid ${color};box-shadow:0 1px 4px rgba(0,0,0,0.35);box-sizing:border-box"></span>`
+      if (v.label || v.dwellSeconds != null) {
+        const text = [v.label, v.dwellSeconds != null ? formatViaDwellGl(v.dwellSeconds) : null].filter(Boolean).join(' · ')
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+          popupRef.current?.setLngLat([v.lng, v.lat]).setText(text).addTo(map)
+        })
+      }
+      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([v.lng, v.lat]).addTo(map)
+      routeViaMarkersRef.current.push(m)
+    }
+  }, [routeVias, mapReady, glProvider])
+
+  // Reconcile plugin markers (imperative, same lifecycle as the POI markers).
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    pluginMarkersRef.current.forEach(m => m.remove())
+    pluginMarkersRef.current = []
+    for (const mk of pluginMarkers) {
+      const el = createPluginMarkerElement(mk.tone)
+      if (mk.label || mk.popupText || mk.url) {
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+          popupRef.current?.setLngLat([mk.lng, mk.lat]).setDOMContent(buildPluginMarkerPopup(mk)).addTo(map)
+        })
+      }
+      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([mk.lng, mk.lat]).addTo(map)
+      pluginMarkersRef.current.push(m)
+    }
+  }, [pluginMarkers, mapReady, glProvider])
+
   // Update route geojson
   useEffect(() => {
     const map = mapRef.current
@@ -911,7 +1232,11 @@ export function MapViewGL({
         if (!coords || coords.length < 2) return []
         return [{
           type: 'Feature' as const,
-          properties: { color: (place as Place & { category_color?: string }).category_color || '#3b82f6' },
+          properties: {
+            color: resolveTrackColor(place),
+            cased: hasManualTrackColor(place),
+            place_id: place.id,
+          },
           geometry: { type: 'LineString' as const, coordinates: coords.map(([lat, lng]) => [lng, lat]) },
         }]
       } catch { return [] }

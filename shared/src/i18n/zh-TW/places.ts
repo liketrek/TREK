@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': '新增地點/活動',
   'places.importFile': '匯入檔案',
+  'places.trackIndicator': '軌跡 / 路線',
   'places.sidebarDrop': '拖放以匯入',
   'places.importFileHint': '從 Google My Maps、Google Earth 或 GPS 追蹤器等工具匯入 .gpx、.kml 或 .kmz 檔案。',
   'places.importFileDropHere': '點選以選取檔案或拖放至此處',
@@ -41,7 +42,11 @@ const places: TranslationStrings = {
   'places.assignToDay': '新增到哪一天？',
   'places.all': '全部',
   'places.unplanned': '未規劃',
+  'places.planned': '已規劃',
   'places.filterTracks': '路線',
+  'places.sortByRating': '依評分排序',
+  'places.yourRating': '你的評分',
+  'places.notRated': '尚未評分',
   'places.search': '搜尋地點...',
   'places.allCategories': '所有分類',
   'places.categoriesSelected': '個分類',
@@ -61,6 +66,7 @@ const places: TranslationStrings = {
   'places.formLng': '經度（如 2.3522）',
   'places.formCategory': '分類',
   'places.noCategory': '無分類',
+  'places.newCategory': '新增分類',
   'places.categoryNamePlaceholder': '分類名稱',
   'places.formTime': '時間',
   'places.startTime': '開始',
@@ -84,5 +90,10 @@ const places: TranslationStrings = {
   'places.addAnyway': '仍要新增',
   'places.enrichOnImport': '透過 Google 豐富地點資訊',
   'places.enrichOnImportHint': '查詢每個匯入的地點以補上照片、地址與聯絡資訊。需要 Google Maps 金鑰。',
+  'places.uploadImage': '上傳圖片',
+  'places.changeImage': '變更圖片',
+  'places.removeImage': '移除圖片',
+  'places.imageUploadError': '無法上傳圖片',
+  'places.imageRemoveError': '無法刪除圖片',
 };
 export default places;

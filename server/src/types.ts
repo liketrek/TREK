@@ -48,6 +48,7 @@ export interface Day {
   date?: string | null;
   notes?: string | null;
   title?: string | null;
+  default_transport_mode?: string | null;
 }
 
 export interface Place {
@@ -72,6 +73,8 @@ export interface Place {
   google_place_id?: string | null;
   google_ftid?: string | null;
   osm_id?: string | null;
+  route_geometry?: string | null;
+  route_color?: string | null;
   website?: string | null;
   phone?: string | null;
   transport_mode?: string;
@@ -107,6 +110,7 @@ export interface DayAssignment {
   reservation_datetime?: string | null;
   assignment_time?: string | null;
   assignment_end_time?: string | null;
+  leg_transport_mode?: string | null;
   created_at?: string;
 }
 
@@ -303,15 +307,6 @@ export interface Setting {
   value?: string | null;
 }
 
-export interface AuthRequest extends Request {
-  user: User;
-  trip?: { id: number; user_id: number };
-}
-
-export interface OptionalAuthRequest extends Request {
-  user: User | null;
-}
-
 export interface AssignmentRow extends DayAssignment {
   place_name: string;
   place_description: string | null;
@@ -329,6 +324,7 @@ export interface AssignmentRow extends DayAssignment {
   transport_mode: string;
   google_place_id: string | null;
   google_ftid: string | null;
+  osm_id: string | null;
   website: string | null;
   phone: string | null;
   category_name: string | null;

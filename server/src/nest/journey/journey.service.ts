@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { db } from '../../db/database';
+import { DatabaseService } from '../database/database.service';
 import * as svc from '../../services/journeyService';
 import * as share from '../../services/journeyShareService';
 import { uploadToImmich, streamImmichAsset } from '../../services/memories/immichService';
 import { streamPhoto } from '../../services/memories/photoResolverService';
-import { isAddonEnabled } from '../../services/adminService';
+import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
 import type { Response } from 'express';
 
@@ -16,8 +16,17 @@ import type { Response } from 'express';
  */
 @Injectable()
 export class JourneyService {
+  constructor(
+    private readonly dbs: DatabaseService,
+    private readonly addons: AddonsService,
+  ) {}
+
+  private get db() {
+    return this.dbs.connection;
+  }
+
   journeyAddonEnabled(): boolean {
-    return isAddonEnabled(ADDON_IDS.JOURNEY);
+    return this.addons.isAddonEnabled(ADDON_IDS.JOURNEY);
   }
 
   // Journeys
@@ -73,7 +82,7 @@ export class JourneyService {
 
   // Immich mirror (only when the user opted in via integration settings)
   immichAutoUploadEnabled(userId: number): boolean {
-    const prefs = db.prepare('SELECT immich_auto_upload FROM users WHERE id = ?').get(userId) as { immich_auto_upload?: number } | undefined;
+    const prefs = this.db.prepare('SELECT immich_auto_upload FROM users WHERE id = ?').get(userId) as { immich_auto_upload?: number } | undefined;
     return !!prefs?.immich_auto_upload;
   }
   uploadToImmich(userId: number, relativePath: string, originalName: string) { return uploadToImmich(userId, relativePath, originalName); }

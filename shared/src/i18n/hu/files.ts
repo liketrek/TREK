@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const files: TranslationStrings = {
+  'files.filterStarred': 'Csillagozott',
+  'files.link': 'Összekapcsolás',
+  'files.linkTitle': 'Fájl összekapcsolása',
+  'files.linkEmpty': 'Még nincs összekapcsolható hely vagy foglalás',
+  'files.menu': 'További lehetőségek',
+  'files.uploadErrorSize': 'A fájl túl nagy (max. 50 MB)',
   'files.title': 'Fájlok',
   'files.pageTitle': 'Fájlok és dokumentumok',
   'files.subtitle': '{count} fájl a következőhöz: {trip}',

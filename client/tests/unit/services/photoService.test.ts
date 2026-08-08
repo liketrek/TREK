@@ -239,6 +239,20 @@ describe('onPhotoLoaded', () => {
     expect(fn).toHaveBeenCalledWith(expect.objectContaining({ photoUrl: 'https://example.com/photo.jpg' }));
   });
 
+  it('FE-COMP-PHOTO-023: several listeners on the same key all fire', async () => {
+    mockPlacePhoto.mockResolvedValue({ photoUrl: 'https://example.com/photo.jpg' });
+
+    const first = vi.fn();
+    const second = vi.fn();
+    svc.onPhotoLoaded('k', first);
+    svc.onPhotoLoaded('k', second);
+    svc.fetchPhoto('k', 'pid');
+    await flush();
+
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
   it('FE-COMP-PHOTO-011: unsubscribe prevents callback from being called', async () => {
     mockPlacePhoto.mockResolvedValue({ photoUrl: 'https://example.com/photo.jpg' });
 
@@ -272,6 +286,40 @@ describe('onThumbReady', () => {
 
     expect(fn).toHaveBeenCalledWith('data:image/webp;base64,thumb');
     expect(svc.getCached('k')?.thumbDataUrl).toBe('data:image/webp;base64,thumb');
+  });
+
+  it('FE-COMP-PHOTO-024: several thumb listeners on the same key all fire', async () => {
+    mockPlacePhoto.mockResolvedValue({ photoUrl: 'https://example.com/img.jpg' });
+    setupImageAutoLoad(true);
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/webp;base64,thumb');
+
+    const first = vi.fn();
+    const second = vi.fn();
+    svc.onThumbReady('k', first);
+    svc.onThumbReady('k', second);
+    svc.fetchPhoto('k', 'pid');
+
+    await flush();
+    await flush();
+
+    expect(first).toHaveBeenCalledWith('data:image/webp;base64,thumb');
+    expect(second).toHaveBeenCalledWith('data:image/webp;base64,thumb');
+  });
+
+  it('FE-COMP-PHOTO-025: no thumb notification when the conversion fails', async () => {
+    mockPlacePhoto.mockResolvedValue({ photoUrl: 'https://example.com/img.jpg' });
+    setupImageAutoLoad(false); // img.onerror → urlToBase64 resolves null
+
+    const fn = vi.fn();
+    svc.onThumbReady('k', fn);
+    svc.fetchPhoto('k', 'pid');
+
+    await flush();
+    await flush();
+
+    expect(fn).not.toHaveBeenCalled();
+    expect(svc.getCached('k')?.photoUrl).toBe('https://example.com/img.jpg');
+    expect(svc.getCached('k')?.thumbDataUrl).toBeNull();
   });
 
   it('FE-COMP-PHOTO-013: unsubscribe prevents thumb callback', async () => {
@@ -312,6 +360,99 @@ describe('urlToBase64', () => {
   it('FE-COMP-PHOTO-016: canvas clip/draw path does not throw', async () => {
     setupImageAutoLoad(true);
     await expect(svc.urlToBase64('https://example.com/img.jpg')).resolves.not.toThrow();
+  });
+
+  it('FE-COMP-PHOTO-022: returns null when the 2d context is unavailable', async () => {
+    setupImageAutoLoad(true);
+    // jsdom-style environment without canvas support: getContext yields null and
+    // the first drawing call throws — the conversion must degrade to null.
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+
+    await expect(svc.urlToBase64('https://example.com/img.jpg')).resolves.toBeNull();
+  });
+});
+
+// ==============================================================================
+// fetchPhoto — stable proxy URL shortcut
+// ==============================================================================
+
+describe('fetchPhoto — stable proxy URL', () => {
+  it('FE-COMP-PHOTO-018: uses the proxy URL directly and skips the API round-trip', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/webp;base64,proxy');
+
+    const cb = vi.fn();
+    const thumbFn = vi.fn();
+    svc.onThumbReady('k', thumbFn);
+    svc.fetchPhoto('k', '/api/maps/place-photo/abc123', undefined, undefined, undefined, cb);
+
+    // Synchronous — no request slot, no API call.
+    expect(mockPlacePhoto).not.toHaveBeenCalled();
+    expect(cb).toHaveBeenCalledWith({ photoUrl: '/api/maps/place-photo/abc123', thumbDataUrl: null });
+
+    await flush();
+    await flush();
+
+    expect(thumbFn).toHaveBeenCalledWith('data:image/webp;base64,proxy');
+    expect(svc.getCached('k')?.thumbDataUrl).toBe('data:image/webp;base64,proxy');
+  });
+
+  it('FE-COMP-PHOTO-019: a failing thumb conversion leaves the proxy entry without a thumb', async () => {
+    setupImageAutoLoad(false); // img.onerror → urlToBase64 resolves null
+
+    const thumbFn = vi.fn();
+    svc.onThumbReady('k', thumbFn);
+    svc.fetchPhoto('k', '/api/maps/place-photo/abc123');
+
+    await flush();
+    await flush();
+
+    expect(thumbFn).not.toHaveBeenCalled();
+    expect(svc.getCached('k')).toEqual({ photoUrl: '/api/maps/place-photo/abc123', thumbDataUrl: null });
+  });
+
+  it('FE-COMP-PHOTO-020: a listener registered while a fetch is in flight still receives the entry', async () => {
+    let resolve!: (v: { photoUrl: string }) => void;
+    mockPlacePhoto.mockReturnValue(new Promise<{ photoUrl: string }>(r => { resolve = r; }));
+
+    svc.fetchPhoto('k', 'pid');
+    await flush();
+    expect(svc.isLoading('k')).toBe(true);
+
+    // Further calls while in flight are deduplicated, with or without a callback.
+    svc.fetchPhoto('k', 'pid');
+    const late = vi.fn();
+    svc.fetchPhoto('k', 'pid', undefined, undefined, undefined, late);
+    expect(mockPlacePhoto).toHaveBeenCalledTimes(1);
+
+    resolve({ photoUrl: 'https://example.com/photo.jpg' });
+    await flush();
+
+    expect(late).toHaveBeenCalledWith(expect.objectContaining({ photoUrl: 'https://example.com/photo.jpg' }));
+  });
+});
+
+// ==============================================================================
+// fetchPhoto — concurrency limiter
+// ==============================================================================
+
+describe('fetchPhoto — concurrency limiter', () => {
+  it('FE-COMP-PHOTO-021: at most 5 requests run at once; the 6th starts when one finishes', async () => {
+    const resolvers: Array<(v: { photoUrl: string }) => void> = [];
+    mockPlacePhoto.mockImplementation(() =>
+      new Promise<{ photoUrl: string }>(r => { resolvers.push(r); }));
+
+    for (let i = 0; i < 6; i += 1) {
+      svc.fetchPhoto(`k${i}`, `pid${i}`);
+    }
+    await flush();
+
+    expect(mockPlacePhoto).toHaveBeenCalledTimes(5);
+
+    // Freeing one slot lets the queued request through.
+    resolvers[0]({ photoUrl: 'https://example.com/0.jpg' });
+    await flush();
+
+    expect(mockPlacePhoto).toHaveBeenCalledTimes(6);
   });
 });
 

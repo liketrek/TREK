@@ -26,12 +26,15 @@ TREK uses Workbox service-worker caching plus an IndexedDB database (Dexie) for 
 
 | Content | Cache name | Strategy | Duration | Max entries |
 |---------|------------|----------|----------|-------------|
-| CartoDB / OpenStreetMap map tiles | `map-tiles` | CacheFirst | 30 days | 1 000 |
-| API responses (trips, places, bookings, etc.) | `api-data` | NetworkFirst (5 s timeout) | 24 hours | 200 |
+| CartoDB / OpenStreetMap map tiles | `map-tiles` | CacheFirst | 30 days | 12 288 |
+| Mapbox GL style, glyphs, sprites and vector tiles | `mapbox-tiles` | StaleWhileRevalidate | 30 days | 3 000 |
+| OpenFreeMap MapLibre style and tiles | `openfreemap-tiles` | StaleWhileRevalidate | 30 days | 3 000 |
 | Cover images and avatars (`/uploads/covers`, `/uploads/avatars`) | `user-uploads` | CacheFirst | 7 days | 300 |
-| App shell (HTML / JS / CSS) | precache | Precached | Until next deploy | — |
+| App shell and every page of the app (HTML / JS / CSS) | precache | Precached | Until next deploy | — |
 
-> **Note:** The API cache excludes sensitive endpoints — `/api/auth`, `/api/admin`, `/api/backup`, and `/api/settings` are always fetched from the network.
+> **Note:** API responses are **never** stored in the service-worker cache. Workbox keys its entries by URL and cannot vary them on the session cookie, so on a shared device one account's cached data could be served to the next. Offline reads come from the per-user IndexedDB cache described below instead.
+
+> **Note:** The precache covers every page, not just the one you happen to open first. A page you have never visited still works after you lose connectivity — at the cost of a larger initial install.
 
 **IndexedDB (Dexie) — structured trip data**
 

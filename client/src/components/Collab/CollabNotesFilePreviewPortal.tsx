@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useState, useEffect } from 'react'
 import { X, ExternalLink, Loader2 } from 'lucide-react'
 import { getAuthUrl } from '../../api/authUrl'
@@ -27,7 +27,7 @@ export function FilePreviewPortal({ file, onClose }: FilePreviewPortalProps) {
 
   const openInNewTab = () => openFile(rawUrl).catch(() => {})
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
       {isImage ? (
         /* Image lightbox — floating controls */

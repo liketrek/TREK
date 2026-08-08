@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Plaats/activiteit toevoegen',
   'places.importFile': 'Bestand importeren',
+  'places.trackIndicator': 'Track / route',
   'places.sidebarDrop': 'Loslaten om te importeren',
   'places.importFileHint':
     'Importeer .gpx-, .kml- of .kmz-bestanden uit tools zoals Google My Maps, Google Earth of een GPS-tracker.',
@@ -42,7 +43,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Aan welke dag toevoegen?',
   'places.all': 'Alle',
   'places.unplanned': 'Ongepland',
+  'places.planned': 'Gepland',
   'places.filterTracks': 'Tracks',
+  'places.sortByRating': 'Sorteren op beoordeling',
+  'places.yourRating': 'Jouw beoordeling',
+  'places.notRated': 'Nog niet beoordeeld',
   'places.search': 'Plaatsen zoeken...',
   'places.allCategories': 'Alle categorieën',
   'places.categoriesSelected': 'categorieën',
@@ -62,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Lengtegraad (bijv. 2.3522)',
   'places.formCategory': 'Categorie',
   'places.noCategory': 'Geen categorie',
+  'places.newCategory': 'Nieuwe categorie',
   'places.categoryNamePlaceholder': 'Categorienaam',
   'places.formTime': 'Tijd',
   'places.startTime': 'Starttijd',
@@ -88,5 +94,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Plaatsen verrijken via Google',
   'places.enrichOnImportHint':
     'Zoekt elke geïmporteerde plaats op om fotos, adres en contactgegevens toe te voegen. Gebruikt je Google Maps-sleutel.',
+  'places.uploadImage': 'Afbeelding uploaden',
+  'places.changeImage': 'Afbeelding wijzigen',
+  'places.removeImage': 'Afbeelding verwijderen',
+  'places.imageUploadError': 'Afbeelding uploaden mislukt',
+  'places.imageRemoveError': 'Afbeelding verwijderen mislukt',
 };
 export default places;

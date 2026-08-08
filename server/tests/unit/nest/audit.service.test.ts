@@ -1,0 +1,200 @@
+/**
+ * Unit tests for the DI-native audit domain — AUDIT-SVC-001 through
+ * AUDIT-SVC-017 (001–007 are the getClientIp cases moved 1:1 from the legacy
+ * tests/unit/services/auditLog.test.ts, which had no case IDs — the IDs are
+ * introduced with the move; 008–014 cover writeAudit over a real in-memory
+ * SQLite DB, which the legacy suite never exercised; 015–017 pin the
+ * audit.bridge delegation). The logger module is mocked (it replaces the old
+ * suite's fs mock: the import-time mkdir lives there now, and mocking it lets
+ * the exact log-line formats be asserted).
+ */
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+// ── DB setup ──────────────────────────────────────────────────────────────────
+
+const { testDb, dbMock } = vi.hoisted(() => {
+  const Database = require('better-sqlite3');
+  const db = new Database(':memory:');
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
+  db.exec('PRAGMA busy_timeout = 5000');
+  const mock = {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+  };
+  return { testDb: db, dbMock: mock };
+});
+
+vi.mock('../../../src/db/database', () => dbMock);
+vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
+
+import type { Request } from 'express';
+import { createTables } from '../../../src/db/schema';
+import { runMigrations } from '../../../src/db/migrations';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { getClientIp } from '../../../src/nest/audit/client-ip';
+import { logInfo, logDebug, logError } from '../../../src/nest/audit/audit-log.logger';
+import { writeAudit as bridgeWriteAudit, getClientIp as bridgeGetClientIp, logInfo as bridgeLogInfo } from '../../../src/nest/audit/audit.bridge';
+
+const svc = new AuditService(new DatabaseService(testDb));
+
+beforeAll(() => {
+  createTables(testDb);
+  runMigrations(testDb);
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  testDb.prepare('DELETE FROM audit_log').run();
+  testDb.prepare('DELETE FROM users').run();
+});
+
+afterAll(() => {
+  testDb.close();
+});
+
+function makeReq(options: {
+  xff?: string | string[];
+  remoteAddress?: string;
+} = {}): Request {
+  return {
+    headers: {
+      ...(options.xff !== undefined ? { 'x-forwarded-for': options.xff } : {}),
+    },
+    socket: { remoteAddress: options.remoteAddress ?? undefined },
+  } as unknown as Request;
+}
+
+// ── getClientIp (pure, moved 1:1) ─────────────────────────────────────────────
+
+describe('getClientIp', () => {
+  it('AUDIT-SVC-001: returns first IP from comma-separated X-Forwarded-For string', () => {
+    expect(getClientIp(makeReq({ xff: '1.2.3.4, 5.6.7.8, 9.10.11.12' }))).toBe('1.2.3.4');
+  });
+
+  it('AUDIT-SVC-002: returns single IP when X-Forwarded-For has no comma', () => {
+    expect(getClientIp(makeReq({ xff: '10.0.0.1' }))).toBe('10.0.0.1');
+  });
+
+  it('AUDIT-SVC-003: returns first element when X-Forwarded-For is an array', () => {
+    expect(getClientIp(makeReq({ xff: ['203.0.113.1', '10.0.0.1'] }))).toBe('203.0.113.1');
+  });
+
+  it('AUDIT-SVC-004: trims whitespace from extracted IP', () => {
+    expect(getClientIp(makeReq({ xff: '  192.168.1.1  , 10.0.0.1' }))).toBe('192.168.1.1');
+  });
+
+  it('AUDIT-SVC-005: falls back to req.socket.remoteAddress when no X-Forwarded-For', () => {
+    expect(getClientIp(makeReq({ remoteAddress: '172.16.0.1' }))).toBe('172.16.0.1');
+  });
+
+  it('AUDIT-SVC-006: returns null when no forwarded header and no socket address', () => {
+    expect(getClientIp(makeReq({}))).toBeNull();
+  });
+
+  it('AUDIT-SVC-007: returns null for empty string X-Forwarded-For', () => {
+    const req = {
+      headers: { 'x-forwarded-for': '' },
+      socket: { remoteAddress: undefined },
+    } as unknown as Request;
+    expect(getClientIp(req)).toBeNull();
+  });
+});
+
+// ── writeAudit (real DB) ──────────────────────────────────────────────────────
+
+function seedUser(id: number, email: string): void {
+  testDb.prepare(
+    "INSERT INTO users (id, username, email, password_hash, role) VALUES (?, ?, ?, 'x', 'user')"
+  ).run(id, `u${id}`, email);
+}
+
+describe('writeAudit', () => {
+  it('AUDIT-SVC-008: inserts the row and logs the labeled summary line', () => {
+    seedUser(1, 'a@b.c');
+    svc.writeAudit({ userId: 1, action: 'trip.create', resource: 'trip', details: { title: 'Rome' }, ip: '1.2.3.4' });
+    const row = testDb.prepare('SELECT user_id, action, resource, details, ip FROM audit_log').get();
+    expect(row).toEqual({ user_id: 1, action: 'trip.create', resource: 'trip', details: '{"title":"Rome"}', ip: '1.2.3.4' });
+    expect(logInfo).toHaveBeenCalledWith('a@b.c created trip "Rome" ip=1.2.3.4');
+  });
+
+  it('AUDIT-SVC-009: empty details object stores NULL details and skips the debug fallback', () => {
+    seedUser(1, 'a@b.c');
+    svc.writeAudit({ userId: 1, action: 'user.login', details: {}, ip: '1.2.3.4' });
+    const row = testDb.prepare('SELECT details FROM audit_log').get() as { details: string | null };
+    expect(row.details).toBeNull();
+    expect(logDebug).not.toHaveBeenCalled();
+  });
+
+  it('AUDIT-SVC-010: unknown action keeps the raw key; empty-email/zero/null userIds resolve', () => {
+    seedUser(1, 'a@b.c');
+    svc.writeAudit({ userId: 1, action: 'custom.thing', ip: '9.9.9.9' });
+    expect(logInfo).toHaveBeenLastCalledWith('a@b.c custom.thing ip=9.9.9.9');
+    seedUser(42, ''); // falsy email → the `row?.email || uid:N` fallback
+    svc.writeAudit({ userId: 42, action: 'user.login', ip: '9.9.9.9' });
+    expect(logInfo).toHaveBeenLastCalledWith('uid:42 logged in ip=9.9.9.9');
+    seedUser(0, 'zero@b.c'); // since the quirk fix, a real id 0 resolves via the DB
+    svc.writeAudit({ userId: 0, action: 'user.login', ip: '9.9.9.9' });
+    expect(logInfo).toHaveBeenLastCalledWith('zero@b.c logged in ip=9.9.9.9');
+    svc.writeAudit({ userId: null, action: 'user.login', ip: '9.9.9.9' });
+    expect(logInfo).toHaveBeenLastCalledWith('anonymous logged in ip=9.9.9.9');
+  });
+
+  it('AUDIT-SVC-011: omitted resource/ip store NULL and the log line ends ip=-', () => {
+    seedUser(1, 'a@b.c');
+    svc.writeAudit({ userId: 1, action: 'user.login' });
+    const row = testDb.prepare('SELECT resource, ip FROM audit_log').get();
+    expect(row).toEqual({ resource: null, ip: null });
+    expect(logInfo).toHaveBeenCalledWith('a@b.c logged in ip=-');
+  });
+
+  it('AUDIT-SVC-012: debugDetails wins the debug line; detailsJson is the fallback', () => {
+    seedUser(1, 'a@b.c');
+    svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { require_mfa: true }, debugDetails: { raw: 1 } });
+    expect(logDebug).toHaveBeenLastCalledWith('AUDIT settings.app_update userId=1 {"raw":1}');
+    svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { require_mfa: true } });
+    expect(logDebug).toHaveBeenLastCalledWith('AUDIT settings.app_update userId=1 {"require_mfa":true}');
+  });
+
+  it('AUDIT-SVC-013: never throws — a failed insert reduces to a logError line', () => {
+    testDb.prepare('ALTER TABLE audit_log RENAME TO audit_log_gone').run();
+    expect(() => svc.writeAudit({ userId: 1, action: 'user.login' })).not.toThrow();
+    expect(logError).toHaveBeenCalledWith(expect.stringMatching(/^Audit write failed: /));
+    testDb.prepare('ALTER TABLE audit_log_gone RENAME TO audit_log').run();
+  });
+
+  it('AUDIT-SVC-014: buildInfoSummary variants (settings parts, login empty brief)', () => {
+    seedUser(1, 'a@b.c');
+    svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { notification_channel: 'smtp', require_mfa: false }, ip: '1.1.1.1' });
+    expect(logInfo).toHaveBeenLastCalledWith('a@b.c updated settings (channel=smtp, mfa=false) ip=1.1.1.1');
+    svc.writeAudit({ userId: 1, action: 'user.login', details: { anything: true }, ip: '1.1.1.1' });
+    expect(logInfo).toHaveBeenLastCalledWith('a@b.c logged in ip=1.1.1.1');
+  });
+});
+
+// ── audit.bridge delegation ───────────────────────────────────────────────────
+
+describe('audit.bridge delegation', () => {
+  it('AUDIT-SVC-015: writeAudit writes a real row through the module-level instance', () => {
+    seedUser(1, 'a@b.c');
+    bridgeWriteAudit({ userId: 1, action: 'user.login', ip: '5.5.5.5' });
+    const row = testDb.prepare('SELECT user_id, action, ip FROM audit_log').get();
+    expect(row).toEqual({ user_id: 1, action: 'user.login', ip: '5.5.5.5' });
+  });
+
+  it('AUDIT-SVC-016: getClientIp is the same pure helper', () => {
+    expect(bridgeGetClientIp).toBe(getClientIp);
+  });
+
+  it('AUDIT-SVC-017: the log helpers re-export the logger module', () => {
+    expect(bridgeLogInfo).toBe(logInfo);
+  });
+});

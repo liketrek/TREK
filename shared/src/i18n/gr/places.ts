@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Προσθήκη Μέρους/Δραστηριότητας',
   'places.importFile': 'Εισαγωγή αρχείου',
+  'places.trackIndicator': 'Ίχνος / διαδρομή',
   'places.sidebarDrop': 'Αφήστε για εισαγωγή',
   'places.importFileHint':
     'Εισαγωγή αρχείων .gpx, .kml ή .kmz από εργαλεία όπως Google My Maps, Google Earth ή GPS tracker.',
@@ -42,7 +43,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Σε ποια ημέρα να προστεθεί;',
   'places.all': 'Όλα',
   'places.unplanned': 'Μη προγραμματισμένα',
+  'places.planned': 'Προγραμματισμένα',
   'places.filterTracks': 'Ίχνη',
+  'places.sortByRating': 'Ταξινόμηση κατά βαθμολογία',
+  'places.yourRating': 'Η βαθμολογία σου',
+  'places.notRated': 'Χωρίς βαθμολογία ακόμη',
   'places.search': 'Αναζήτηση μερών...',
   'places.allCategories': 'Όλες οι Κατηγορίες',
   'places.categoriesSelected': 'κατηγορίες',
@@ -62,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Γεωγραφικό Μήκος (π.χ. 2.3522)',
   'places.formCategory': 'Κατηγορία',
   'places.noCategory': 'Χωρίς Κατηγορία',
+  'places.newCategory': 'Νέα κατηγορία',
   'places.categoryNamePlaceholder': 'Όνομα κατηγορίας',
   'places.formTime': 'Ώρα',
   'places.startTime': 'Έναρξη',
@@ -88,5 +94,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Εμπλουτισμός τόπων μέσω Google',
   'places.enrichOnImportHint':
     'Αναζητά κάθε εισαγόμενο μέρος για να προσθέσει φωτογραφίες, διεύθυνση και στοιχεία επικοινωνίας. Απαιτεί κλειδί Google Maps.',
+  'places.uploadImage': 'Μεταφόρτωση εικόνας',
+  'places.changeImage': 'Αλλαγή εικόνας',
+  'places.removeImage': 'Αφαίρεση εικόνας',
+  'places.imageUploadError': 'Δεν ήταν δυνατή η μεταφόρτωση της εικόνας',
+  'places.imageRemoveError': 'Δεν ήταν δυνατή η αφαίρεση της εικόνας',
 };
 export default places;

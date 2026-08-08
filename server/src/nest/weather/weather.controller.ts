@@ -2,7 +2,7 @@ import { Controller, Get, HttpException, Query, UseGuards } from '@nestjs/common
 import type { WeatherResult } from '@trek/shared';
 import { WeatherService } from './weather.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ApiError } from '../../services/weatherService';
+import { ApiError } from './weather.impl';
 
 /**
  * /api/weather — first migrated leaf module (the pilot).

@@ -95,15 +95,13 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
   });
 
   describe('region', () => {
-    it('400 when name or country_code is missing', () => {
-      const markRegion = vi.fn();
-      return thrown(() => makeController({ markRegion }).markRegion(user, 'by', undefined, 'DE')).then((r) =>
-        expect(r).toEqual({ status: 400, body: { error: 'name and country_code are required' } }));
-    });
+    // The legacy 'name and country_code are required' 400 is now produced by
+    // the global ZodValidationPipe (atlas.dto.ts / markRegionRequestSchema)
+    // before the handler runs — covered by the e2e suite.
 
     it('marks a region, upper-casing both codes', () => {
       const markRegion = vi.fn();
-      expect(makeController({ markRegion }).markRegion(user, 'by', 'Bavaria', 'de')).toEqual({ success: true });
+      expect(makeController({ markRegion }).markRegion(user, 'by', { name: 'Bavaria', country_code: 'de' })).toEqual({ success: true });
       expect(markRegion).toHaveBeenCalledWith(8, 'BY', 'Bavaria', 'DE');
     });
   });

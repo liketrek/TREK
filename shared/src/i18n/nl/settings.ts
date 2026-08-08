@@ -24,7 +24,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Kaartsjabloon',
   'settings.mapTemplatePlaceholder.select': 'Selecteer sjabloon...',
   'settings.mapDefaultHint': 'Laat leeg voor OpenStreetMap (standaard)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL-sjabloon voor kaarttegels',
   'settings.mapProvider': 'Kaartprovider',
   'settings.mapProviderHint': 'Geldt voor Trip Planner en Journey kaarten. Atlas gebruikt altijd Leaflet.',
@@ -79,6 +78,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Reisherinneringen',
   'settings.notifyTodoDue': 'Taak verloopt',
   'settings.notifyVacayInvite': 'Vacay-fusieuitnodigingen',
+  'settings.notifyVacayShare': 'Gedeelde Vacay-kalenders',
   'settings.notifyPhotosShared': "Gedeelde foto's (Immich)",
   'settings.notifyCollabMessage': 'Chatberichten (Collab)',
   'settings.notifyPackingTagged': 'Inpaklijst: toewijzingen',
@@ -261,6 +261,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profielfoto bijgewerkt',
   'settings.avatarRemoved': 'Profielfoto verwijderd',
   'settings.avatarError': 'Uploaden mislukt',
+  'settings.avatarRemoveError': 'Verwijderen mislukt',
   'settings.bookingLabels': 'Routelabels voor boekingen',
   'settings.bookingLabelsHint': 'Toon station- / luchthavennamen op de kaart. Indien uit, alleen het icoon.',
   'settings.notifyVersionAvailable': 'Nieuwe versie beschikbaar',
@@ -300,8 +301,9 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.currency': 'Valuta',
-  'settings.currencyHint': 'Alle bedragen onder Onkosten worden omgerekend naar en weergegeven in deze valuta.',
+  'settings.currency': 'Weergavevaluta',
+  'settings.currencyHint':
+    'Bedragen onder Onkosten worden alleen ter weergave naar deze valuta omgerekend — de oorspronkelijke bedragen blijven ongewijzigd.',
   'settings.currencyTrip': 'Valuta van de reis',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
@@ -429,6 +431,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Onderste navigatiebalk',
+  'settings.appearance.mobileNav.hint':
+    'Kies welke items in de balk verschijnen en welke onder “Meer” staan. Dashboard staat altijd vooraan.',
+  'settings.appearance.mobileNav.inBar': 'In de balk',
+  'settings.appearance.mobileNav.underMore': 'Onder “Meer”',
+  'settings.appearance.mobileNav.moreEmpty': 'Nog niets hier — alles past in de balk.',
+  'settings.appearance.mobileNav.pinned': 'Vastgezet',
+  'settings.appearance.mobileNav.toMore': 'Naar “Meer” verplaatsen',
+  'settings.appearance.mobileNav.toBar': 'Naar de balk verplaatsen',
+  'settings.appearance.dashOrder': 'Dashboardvolgorde',
+  'settings.appearance.dashOrder.hint':
+    'Wijzig de volgorde waarin de reislijst en widgets op je mobiele dashboard worden gestapeld. De uitgelichte reis blijft altijd bovenaan.',
+  'settings.appearance.dashOrder.trips': 'Reizen',
+  'settings.appearance.dashOrder.hidden': 'Verborgen',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -495,7 +511,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Wanneer',
   'settings.pluginActivity.columns.status': 'Resultaat',
   'settings.alwaysShowRoutes': 'Boekingsroutes altijd tonen',
-  'settings.alwaysShowRoutesHint': 'Toont automatisch de route van elke vlucht, trein en andere boeking op de kaart, zonder dat u dit per boeking hoeft in te schakelen.',
+  'settings.alwaysShowRoutesHint':
+    'Toont automatisch de route van elke vlucht, trein en andere boeking op de kaart, zonder dat u dit per boeking hoeft in te schakelen.',
 };
 
 export default settings;

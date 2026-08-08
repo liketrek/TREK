@@ -31,8 +31,6 @@ export interface PlacesSidebarProps {
   onBulkChangeCategory?: (ids: number[], categoryId: number | null) => void
   days: Day[]
   isMobile: boolean
-  /** Primary pointer is coarse — HTML5 drag would swallow the scroll gesture (#1432). */
-  isTouch?: boolean
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
@@ -58,7 +56,6 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
   // Places-API enrichment (#886) needs a Google Maps key; gate the toggle on it.
   const canEnrichImport = useAuthStore((s) => s.hasMapsKey)
-  const isNaverListImportEnabled = true
 
   const [fileImportOpen, setFileImportOpen] = useState(false)
   const [sidebarDropFile, setSidebarDropFile] = useState<File | null>(null)
@@ -106,19 +103,13 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const [listImportLoading, setListImportLoading] = useState(false)
   const [listImportProvider, setListImportProvider] = useState<'google' | 'naver'>('google')
   const [listImportEnrich, setListImportEnrich] = useState(false)
-  const availableListImportProviders: Array<'google' | 'naver'> = isNaverListImportEnabled ? ['google', 'naver'] : ['google']
+  const availableListImportProviders: Array<'google' | 'naver'> = ['google', 'naver']
   const hasMultipleListImportProviders = availableListImportProviders.length > 1
-
-  useEffect(() => {
-    if (!isNaverListImportEnabled && listImportProvider === 'naver') {
-      setListImportProvider('google')
-    }
-  }, [isNaverListImportEnabled, listImportProvider])
 
   const handleListImport = async () => {
     if (!listImportUrl.trim()) return
     setListImportLoading(true)
-    const provider = listImportProvider === 'naver' && isNaverListImportEnabled ? 'naver' : 'google'
+    const provider = listImportProvider
     try {
       const enrich = listImportEnrich && canEnrichImport
       const result = provider === 'google'
@@ -155,6 +146,8 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const categoryFilters = useTripStore((s) => s.placesCategoryFilter)
   const setCategoryFilters = useTripStore((s) => s.setPlacesCategoryFilter)
   const [selectMode, setSelectMode] = useState(false)
+  // Star sort (#1435): list-only toggle, so it stays local (the map keeps its order).
+  const [ratingSort, setRatingSort] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[] | null>(null)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
@@ -184,7 +177,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     if (next.has(catId)) next.delete(catId); else next.add(catId)
     setCategoryFilters(next)
   }
-  const [dayPickerPlace, setDayPickerPlace] = useState(null)
+  const [dayPickerPlace, setDayPickerPlace] = useState<Place | null>(null)
   const [catDropOpen, setCatDropOpen] = useState(false)
   const [mobileShowDays, setMobileShowDays] = useState(false)
 
@@ -196,18 +189,27 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     Object.values(assignments).flatMap(da => da.map(a => a.place?.id).filter(Boolean))
   ), [assignments])
 
-  const filtered = useMemo(() => places.filter(p => {
-    if (filter === 'unplanned' && plannedIds.has(p.id)) return false
-    if (filter === 'tracks' && !p.route_geometry) return false
-    if (categoryFilters.size > 0) {
-      if (p.category_id == null) {
-        if (!categoryFilters.has('uncategorized')) return false
-      } else if (!categoryFilters.has(String(p.category_id))) return false
+  const filtered = useMemo(() => {
+    const list = places.filter(p => {
+      if (filter === 'unplanned' && plannedIds.has(p.id)) return false
+      if (filter === 'planned' && !plannedIds.has(p.id)) return false
+      if (filter === 'tracks' && !p.route_geometry) return false
+      if (categoryFilters.size > 0) {
+        if (p.category_id == null) {
+          if (!categoryFilters.has('uncategorized')) return false
+        } else if (!categoryFilters.has(String(p.category_id))) return false
+      }
+      if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
+          !(p.address || '').toLowerCase().includes(search.toLowerCase())) return false
+      return true
+    })
+    // Star sort (#1435): highest average first, unrated places at the end;
+    // ties keep the list's original order (stable sort).
+    if (ratingSort) {
+      return [...list].sort((a, b) => (b.rating_avg ?? -1) - (a.rating_avg ?? -1))
     }
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
-        !(p.address || '').toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  }), [places, filter, categoryFilters, search, plannedIds])
+    return list
+  }, [places, filter, categoryFilters, search, plannedIds, ratingSort])
 
   const registerPlaceRow = useCallback((placeId: number, element: HTMLDivElement | null) => {
     if (element) {
@@ -267,6 +269,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     listImportEnrich, setListImportEnrich, canEnrichImport,
     availableListImportProviders, hasMultipleListImportProviders, handleListImport,
     search, setSearch, filter, setFilter, categoryFilters, setCategoryFilters,
+    ratingSort, setRatingSort,
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
     categoryPickerOpen, setCategoryPickerOpen,
     saveToListOpen, setSaveToListOpen, collectionsEnabled, tripId,

@@ -6,5 +6,6 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Cost EUR',
   'pdf.preview': 'Vista prèvia del PDF',
   'pdf.saveAsPdf': 'Desa com a PDF',
+  'pdf.pageBreakPerDay': 'Salt de pàgina per dia',
 };
 export default pdf;

@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { canAccessTrip } from '../../db/database';
+import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
@@ -102,7 +102,10 @@ function normalize(pluginId: string, raw: unknown): Contribution[] {
 @Controller('api/view-contributions')
 @UseGuards(JwtAuthGuard)
 export class ViewContributionsController {
-  constructor(private readonly runtime: PluginRuntimeService) {}
+  constructor(
+    private readonly runtime: PluginRuntimeService,
+    private readonly dbs: DatabaseService,
+  ) {}
 
   @Get(':view/:tripId')
   async get(
@@ -113,7 +116,7 @@ export class ViewContributionsController {
     if (!pluginsEnabled() || !VIEWS.has(view)) return { contributions: [] };
     const tripId = Number(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !canAccessTrip(tripId, userId)) return { contributions: [] };
+    if (!Number.isFinite(tripId) || userId == null || !this.dbs.canAccessTrip(tripId, userId)) return { contributions: [] };
 
     const ids = this.runtime.providersOf('tableContributor');
     const perProvider = await Promise.all(

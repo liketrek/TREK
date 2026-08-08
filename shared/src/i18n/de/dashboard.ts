@@ -10,6 +10,9 @@ const dashboard: TranslationStrings = {
   'dashboard.subtitle.archivedSuffix': ' · {count} archiviert',
   'dashboard.newTrip': 'Neue Reise',
   'dashboard.newTripSub': 'Eine neue Reise von Grund auf planen',
+  'dashboard.subscribeAllTrips': 'Alle Reisen abonnieren',
+  'dashboard.subscribeAllTripsDesc':
+    'Ein Kalender-Feed für alle deine aktiven Reisen, automatisch synchron gehalten. Archivierte Reisen und Reisen, die vor mehr als 90 Tagen endeten, sind ausgeschlossen.',
   'dashboard.gridView': 'Kachelansicht',
   'dashboard.listView': 'Listenansicht',
   'dashboard.currency': 'Währung',
@@ -94,7 +97,8 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAll': 'Alles verschieben',
   'dashboard.dateShiftAllDesc':
     'Der gesamte Reiseplan wandert mit den neuen Daten, einschließlich Reservierungen und Unterkünften.',
-  'dashboard.dateShiftHint': 'Tipp: Um nur einen Teil deines Reiseplans zu verschieben, nutze stattdessen "Tag hinzufügen" im Planer.',
+  'dashboard.dateShiftHint':
+    'Tipp: Um nur einen Teil deines Reiseplans zu verschieben, nutze stattdessen "Tag hinzufügen" im Planer.',
   'dashboard.greeting.morning': 'Guten Morgen,',
   'dashboard.greeting.afternoon': 'Guten Tag,',
   'dashboard.greeting.evening': 'Guten Abend,',
@@ -104,6 +108,7 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.places': 'Orte',
   'dashboard.mobile.buddies': 'Freunde',
   'dashboard.mobile.newTrip': 'Neuer Trip',
+  'dashboard.mobile.addCoverImage': 'Titelbild hinzufügen',
   'dashboard.mobile.currency': 'Währung',
   'dashboard.mobile.timezone': 'Zeitzone',
   'dashboard.mobile.upcomingTrips': 'Anstehende Trips',
@@ -117,6 +122,9 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.startsToday': 'Beginnt heute',
   'dashboard.mobile.tomorrow': 'Morgen',
   'dashboard.mobile.inDays': 'In {count} Tagen',
+  'dashboard.mobile.spotlightDayOf': 'Tag {day} von {total}',
+  'dashboard.mobile.spotlightDayOne': '{count} Tag',
+  'dashboard.mobile.spotlightDaysMany': '{count} Tage',
   'dashboard.mobile.inMonths': 'In {count} Monaten',
   'dashboard.mobile.completed': 'Abgeschlossen',
   'dashboard.mobile.currencyConverter': 'Währungsrechner',

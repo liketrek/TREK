@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': '将旅行变成永远不会忘记的故事',
   'journey.frontpage.createJourney': '创建旅程',
   'journey.frontpage.activeJourney': '进行中的旅程',
+  'journey.frontpage.latestJourney': '最新的旅程',
   'journey.frontpage.allJourneys': '所有旅程',
   'journey.frontpage.journeys': '个旅程',
   'journey.frontpage.createNew': '创建新旅程',
@@ -124,6 +125,11 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '第1张',
   'journey.editor.makeFirst': '设为第1张',
   'journey.editor.searching': '搜索中...',
+  'journey.editor.useCurrentLocation': '使用我的当前位置',
+  'journey.editor.locationPermissionDenied': '位置访问被拒绝。请在浏览器设置中允许后重试。',
+  'journey.editor.locationTimeout': '获取位置超时，请重试。',
+  'journey.editor.locationUnavailable': '无法确定您的位置。',
+  'journey.editor.locationInsecureContext': '定位需要安全连接（HTTPS）。',
   'journey.mood.amazing': '太棒了',
   'journey.mood.good': '不错',
   'journey.mood.neutral': '一般',
@@ -226,5 +232,13 @@ const journey: TranslationStrings = {
   'journey.contributors.removeConfirm': '要将 {username} 从此旅程中移除吗？',
   'journey.contributors.removed': '已移除贡献者',
   'journey.contributors.removeFailed': '移除贡献者失败',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

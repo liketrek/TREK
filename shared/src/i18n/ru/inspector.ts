@@ -21,5 +21,8 @@ const inspector: TranslationStrings = {
   'inspector.editRes': 'Редактировать бронирование',
   'inspector.participants': 'Участники',
   'inspector.trackStats': 'Данные маршрута',
+  'inspector.trackColor': 'Цвет маршрута',
+  'inspector.trackColorAuto': 'Автоматический цвет',
+  'inspector.trackColorCustom': 'Выбрать свой цвет',
 };
 export default inspector;

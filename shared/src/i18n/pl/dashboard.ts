@@ -10,6 +10,9 @@ const dashboard: TranslationStrings = {
   'dashboard.subtitle.archivedSuffix': ' · {count} zarchiwizowanych',
   'dashboard.newTrip': 'Nowa podróż',
   'dashboard.newTripSub': 'Zaplanuj nową podróż od zera',
+  'dashboard.subscribeAllTrips': 'Subskrybuj wszystkie podróże',
+  'dashboard.subscribeAllTripsDesc':
+    'Jeden kanał kalendarza dla wszystkich Twoich aktywnych podróży, automatycznie synchronizowany. Nie obejmuje zarchiwizowanych podróży ani podróży zakończonych ponad 90 dni temu.',
   'dashboard.gridView': 'Widok siatki',
   'dashboard.listView': 'Widok listy',
   'dashboard.currency': 'Waluta',
@@ -87,10 +90,8 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftKeepBookingsDesc':
     'Plany dnia przesuną się wraz z nowymi datami, a rezerwacje i noclegi pozostaną w swoich pierwotnych terminach, o ile nadal mieszczą się one w ramach podróży.',
   'dashboard.dateShiftAll': 'Przesuń wszystko',
-  'dashboard.dateShiftAllDesc':
-    'Cały plan podróży przesunie się wraz z nowymi datami, w tym rezerwacje i noclegi.',
-  'dashboard.dateShiftHint':
-    'Wskazówka: aby przesunąć tylko część planu podróży, użyj opcji "Dodaj dzień" w planerze.',
+  'dashboard.dateShiftAllDesc': 'Cały plan podróży przesunie się wraz z nowymi datami, w tym rezerwacje i noclegi.',
+  'dashboard.dateShiftHint': 'Wskazówka: aby przesunąć tylko część planu podróży, użyj opcji "Dodaj dzień" w planerze.',
   'dashboard.members': 'Współpodróżnicy',
   'dashboard.copyTrip': 'Kopiuj',
   'dashboard.copySuffix': 'kopia',
@@ -105,6 +106,7 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.places': 'Miejsca',
   'dashboard.mobile.buddies': 'Współpodróżnicy',
   'dashboard.mobile.newTrip': 'Nowa podróż',
+  'dashboard.mobile.addCoverImage': 'Dodaj okładkę',
   'dashboard.mobile.currency': 'Waluta',
   'dashboard.mobile.timezone': 'Strefa czasowa',
   'dashboard.mobile.upcomingTrips': 'Nadchodzące podróże',
@@ -119,6 +121,9 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.tomorrow': 'Jutro',
   'dashboard.mobile.inDays': 'Za {count} dni',
   'dashboard.mobile.inMonths': 'Za {count} miesięcy',
+  'dashboard.mobile.spotlightDayOf': 'Dzień {day} z {total}',
+  'dashboard.mobile.spotlightDayOne': '{count} dzień',
+  'dashboard.mobile.spotlightDaysMany': '{count} dni',
   'dashboard.mobile.completed': 'Zakończone',
   'dashboard.mobile.currencyConverter': 'Przelicznik walut',
   'dashboard.filter.planned': 'Zaplanowane',

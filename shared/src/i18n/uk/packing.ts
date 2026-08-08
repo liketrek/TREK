@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Дії',
+  'packing.editDone': 'Готово',
+  'packing.personalEmptyHint': 'Ваш особистий список порожній — скопіюйте спільні речі або додайте власні.',
+  'packing.assignMembers': 'Призначити учасників',
+  'packing.categoryOptions': 'Параметри списку',
+  'packing.editItem': 'Редагувати елемент',
+  'packing.itemName': 'Назва',
+  'packing.itemQuantity': 'Кількість',
+  'packing.itemWeight': 'Вага (г)',
   'packing.title': 'Список речей',
   'packing.empty': 'Список речей порожній',
   'packing.import': 'Імпорт',
@@ -197,5 +206,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Я теж можу принести',
   'packing.alsoBringingStop': 'Я не принесу',
   'packing.cloneToMine': 'Копіювати до мого списку',
+  'packing.bagLimit': 'Обмеження ваги',
+  'packing.setBagLimit': 'Задати ліміт',
 };
 export default packing;

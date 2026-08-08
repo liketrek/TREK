@@ -57,5 +57,11 @@ const files: TranslationStrings = {
   'files.confirm.emptyTrash': 'Vols eliminar tots els fitxers de la paperera? No es pot desfer.',
 
   'files.uploadErrorType': 'Aquest tipus de fitxer no és compatible',
+  'files.filterStarred': 'Destacats',
+  'files.link': 'Enllaça',
+  'files.linkTitle': 'Enllaça un fitxer',
+  'files.linkEmpty': 'Encara no hi ha llocs ni reserves per enllaçar',
+  'files.menu': 'Més opcions',
+  'files.uploadErrorSize': 'El fitxer és massa gran (màx. 50 MB)',
 };
 export default files;

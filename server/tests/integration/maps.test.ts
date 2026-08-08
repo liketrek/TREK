@@ -46,37 +46,46 @@ vi.mock('../../src/config', () => ({
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
-// Default mock: resolveGoogleMapsUrl rejects with 400 (SSRF-like behaviour for
-// URLs that look internal); individual tests override with mockResolvedValueOnce.
-vi.mock('../../src/services/mapsService', () => ({
-  searchPlaces: vi.fn(),
-  autocompletePlaces: vi.fn(),
-  getPlaceDetails: vi.fn(),
-  getPlacePhoto: vi.fn(),
-  reverseGeocode: vi.fn(),
-  resolveGoogleMapsUrl: vi.fn().mockRejectedValue(
-    Object.assign(new Error('SSRF or invalid URL'), { status: 400 })
-  ),
-  // Imported at module load by transitService (pulled in via app.module).
-  buildUserAgent: () => 'TREK-Test-UA',
-}));
-
 import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import * as mapsService from '../../src/services/mapsService';
+import { MapsService } from '../../src/nest/maps/maps.service';
 
 let nestApp: INestApplication;
 let app: Application;
+// Instance spies on the container's MapsService (permissions-migration
+// precedent) — the DI fold made the provider methods the outbound seam.
+// Defaults mirror the old module mock: bare resolves, except
+// resolveGoogleMapsUrl which rejects with 400 (SSRF-like behaviour for URLs
+// that look internal); individual tests override with mockResolvedValueOnce.
+let mapsService: {
+  searchPlaces: ReturnType<typeof vi.spyOn>;
+  autocompletePlaces: ReturnType<typeof vi.spyOn>;
+  getPlaceDetails: ReturnType<typeof vi.spyOn>;
+  getPlacePhoto: ReturnType<typeof vi.spyOn>;
+  reverseGeocode: ReturnType<typeof vi.spyOn>;
+  resolveGoogleMapsUrl: ReturnType<typeof vi.spyOn>;
+};
 
 beforeAll(async () => {
   createTables(testDb);
   runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  const maps = nestApp.get(MapsService);
+  mapsService = {
+    searchPlaces: vi.spyOn(maps, 'searchPlaces').mockResolvedValue(undefined as never),
+    autocompletePlaces: vi.spyOn(maps, 'autocompletePlaces').mockResolvedValue(undefined as never),
+    getPlaceDetails: vi.spyOn(maps, 'getPlaceDetails').mockResolvedValue(undefined as never),
+    getPlacePhoto: vi.spyOn(maps, 'getPlacePhoto').mockResolvedValue(undefined as never),
+    reverseGeocode: vi.spyOn(maps, 'reverseGeocode').mockResolvedValue(undefined as never),
+    resolveGoogleMapsUrl: vi.spyOn(maps, 'resolveGoogleMapsUrl').mockRejectedValue(
+      Object.assign(new Error('SSRF or invalid URL'), { status: 400 }),
+    ),
+  };
 });
 
 beforeEach(() => {
@@ -161,7 +170,7 @@ describe('Maps SSRF protection', () => {
 describe('Maps happy paths (mocked service)', () => {
   it('MAPS-002 — POST /maps/search returns results from service', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.searchPlaces).mockResolvedValueOnce({
+    mapsService.searchPlaces.mockResolvedValueOnce({
       results: [{ address: 'Paris, France', source: 'nominatim' }],
     } as any);
 
@@ -177,7 +186,7 @@ describe('Maps happy paths (mocked service)', () => {
 
   it('MAPS-003 — GET /maps/details/:placeId returns place details', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.getPlaceDetails).mockResolvedValueOnce({
+    mapsService.getPlaceDetails.mockResolvedValueOnce({
       name: 'Eiffel Tower',
       address: 'Champ de Mars, Paris',
     } as any);
@@ -192,7 +201,7 @@ describe('Maps happy paths (mocked service)', () => {
 
   it('MAPS-004 — GET /maps/place-photo/:placeId returns photo url', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.getPlacePhoto).mockResolvedValueOnce({
+    mapsService.getPlacePhoto.mockResolvedValueOnce({
       url: 'https://example.com/photo.jpg',
       source: 'wikimedia',
     } as any);
@@ -207,7 +216,7 @@ describe('Maps happy paths (mocked service)', () => {
 
   it('MAPS-005 — GET /maps/reverse returns geocoded location', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.reverseGeocode).mockResolvedValueOnce({
+    mapsService.reverseGeocode.mockResolvedValueOnce({
       name: 'Eiffel Tower',
       address: 'Champ de Mars, Paris',
     } as any);
@@ -222,7 +231,7 @@ describe('Maps happy paths (mocked service)', () => {
 
   it('MAPS-008 — POST /maps/resolve-url returns extracted coordinates', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.resolveGoogleMapsUrl).mockResolvedValueOnce({
+    mapsService.resolveGoogleMapsUrl.mockResolvedValueOnce({
       lat: 48.8584,
       lng: 2.2945,
     } as any);
@@ -240,7 +249,7 @@ describe('Maps happy paths (mocked service)', () => {
   it('MAPS-002 — search service error propagates correct status', async () => {
     const { user } = createUser(testDb);
     const err = Object.assign(new Error('No API key'), { status: 503 });
-    vi.mocked(mapsService.searchPlaces).mockRejectedValueOnce(err);
+    mapsService.searchPlaces.mockRejectedValueOnce(err);
 
     const res = await request(app)
       .post('/api/maps/search')
@@ -252,7 +261,7 @@ describe('Maps happy paths (mocked service)', () => {
 
   it('MAPS-003 — getPlaceDetails error returns 500', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.getPlaceDetails).mockRejectedValueOnce(new Error('External API failure'));
+    mapsService.getPlaceDetails.mockRejectedValueOnce(new Error('External API failure'));
 
     const res = await request(app)
       .get('/api/maps/details/some-place-id')
@@ -264,21 +273,49 @@ describe('Maps happy paths (mocked service)', () => {
 
   it('MAPS-004 — getPlacePhoto error with status returns that status', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.getPlacePhoto).mockRejectedValueOnce(
-      Object.assign(new Error('Photo not found'), { status: 404 })
+    mapsService.getPlacePhoto.mockRejectedValueOnce(
+      Object.assign(new Error('Photo provider unavailable'), { status: 503 })
     );
 
     const res = await request(app)
       .get('/api/maps/place-photo/some-place-id?lat=48.8&lng=2.3')
       .set('Cookie', authCookie(user.id));
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(503);
     expect(res.body).toHaveProperty('error');
+  });
+
+  // A photo-less place must answer 200 { photoUrl: null }: one 404 per place turns
+  // a normal itinerary render into a 404 storm that fail2ban/CrowdSec bans (#1727).
+  it('MAPS-004b — a place with no photo answers 200 with photoUrl null', async () => {
+    const { user } = createUser(testDb);
+    mapsService.getPlacePhoto.mockResolvedValueOnce({ photoUrl: null, attribution: null });
+
+    const res = await request(app)
+      .get('/api/maps/place-photo/node%3A5255005321?lat=36.76&lng=-3.84&name=Nerja')
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ photoUrl: null, attribution: null });
+  });
+
+  // Places keep the bytes URL in image_url, so an evicted cache entry means one
+  // request per place on the next trip render — the second half of the same ban
+  // vector. Nothing to serve is an empty 204, not a 404.
+  it('MAPS-004c — the bytes proxy answers 204 for a photo that is not cached', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .get('/api/maps/place-photo/ChIJnot-cached/bytes')
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(204);
+    expect(res.text).toBeFalsy();
   });
 
   it('MAPS-005 — reverseGeocode error returns null values', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.reverseGeocode).mockRejectedValueOnce(new Error('Geocode failed'));
+    mapsService.reverseGeocode.mockRejectedValueOnce(new Error('Geocode failed'));
 
     const res = await request(app)
       .get('/api/maps/reverse?lat=48.8584&lng=2.2945')
@@ -330,7 +367,7 @@ describe('Maps autocomplete', () => {
 
   it('MAPS-013 — POST /maps/autocomplete returns suggestions from service', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.autocompletePlaces).mockResolvedValueOnce({
+    mapsService.autocompletePlaces.mockResolvedValueOnce({
       suggestions: [
         { placeId: 'ChIJ1234', mainText: 'Paris', secondaryText: 'France' },
       ],
@@ -350,7 +387,7 @@ describe('Maps autocomplete', () => {
 
   it('MAPS-014 — POST /maps/autocomplete passes lang and locationBias to service', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.autocompletePlaces).mockResolvedValueOnce({
+    mapsService.autocompletePlaces.mockResolvedValueOnce({
       suggestions: [],
       source: 'google',
     });
@@ -371,7 +408,7 @@ describe('Maps autocomplete', () => {
   it('MAPS-015 — autocomplete service error propagates correct status', async () => {
     const { user } = createUser(testDb);
     const err = Object.assign(new Error('Rate limited'), { status: 429 });
-    vi.mocked(mapsService.autocompletePlaces).mockRejectedValueOnce(err);
+    mapsService.autocompletePlaces.mockRejectedValueOnce(err);
 
     const res = await request(app)
       .post('/api/maps/autocomplete')
@@ -384,7 +421,7 @@ describe('Maps autocomplete', () => {
 
   it('MAPS-016 — autocomplete service error without status returns 500', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(mapsService.autocompletePlaces).mockRejectedValueOnce(new Error('Unknown'));
+    mapsService.autocompletePlaces.mockRejectedValueOnce(new Error('Unknown'));
 
     const res = await request(app)
       .post('/api/maps/autocomplete')
@@ -403,6 +440,7 @@ describe('Maps autocomplete', () => {
       .send({ input: 'a'.repeat(201) });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/too long/i);
+    // Wording pinned in maps.controller.test.ts (see the e2e suite's note).
+    expect(res.body).toHaveProperty('error');
   });
 });

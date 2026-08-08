@@ -15,6 +15,8 @@ const notif: TranslationStrings = {
   'notif.todo_due.text': '{todo} in {trip} ist am {due} fällig',
   'notif.vacay_invite.title': 'Vacay Fusion-Einladung',
   'notif.vacay_invite.text': '{actor} hat dich zum Fusionieren von Urlaubsplänen eingeladen',
+  'notif.vacay_share.title': 'Vacay Kalender geteilt',
+  'notif.vacay_share.text': '{actor} hat den eigenen Urlaubskalender mit dir geteilt',
   'notif.collection_invite.title': 'Sammlungs-Einladung',
   'notif.collection_invite.text': '{actor} hat dich zu einer Sammlung eingeladen',
   'notif.photos_shared.title': 'Fotos geteilt',

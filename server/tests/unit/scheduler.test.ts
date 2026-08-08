@@ -33,7 +33,7 @@ vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ all: vi.fn(() => []), get: vi.fn(), run: vi.fn() }) },
 }));
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-vi.mock('../../src/services/auditLog', () => ({
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
   logInfo: vi.fn(),
   logError: vi.fn(),
 }));

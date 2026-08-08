@@ -139,8 +139,8 @@ permissions still requires explicit re-consent).
 
 - **integration** — background logic (jobs, routes) with no UI of its own. Most
   provider hooks are **live** (placeDetailProvider, warningProvider,
-  tableContributor, mapMarkerProvider, pdfSectionProvider, atlasLayerProvider,
-  journalEntryProvider); only `photoProvider` / `calendarSource` are declared in the
+  tableContributor, mapMarkerProvider, mapLayerProvider, pdfSectionProvider,
+  atlasLayerProvider, journalEntryProvider); only `photoProvider` / `calendarSource` are declared in the
   SDK but **not yet wired into the host** — see [Provider hooks](#provider-hooks).
 - **page** — adds a nav entry that opens a full-page sandboxed iframe.
 - **widget** — adds a card to the dashboard (`sidebar` slot), a hero-bar overlay
@@ -456,12 +456,15 @@ works. Add `data-trek-native` to a field to keep the browser default; `multiple`
 | `trek.onContext(cb)` | run `cb(context)` now (if already received) and on every update; returns an unsubscribe fn |
 | `trek.context` | the last context (or `null`) |
 | `trek.invoke(sub, { method, body })` | call your own route; returns a `Promise` (rejects with an `Error`, `.code` = HTTP status) |
+| `trek.session.get(key, options?)`, `.set(key, value, options?)`, `.remove(key, options?)`, `.clear(options?)` | Host-managed JSON session state for this browser tab. `scope: 'plugin'` is the default; `scope: 'trip'` additionally partitions it by the trip in view and rejects with `NO_TRIP_CONTEXT` outside a trip. Missing `get()` values are `undefined`. Each plugin or individual trip scope is limited to 32 keys, 64 characters/key, and 1 KiB/value. Do not use it to store secrets. |
 | `trek.notify(level, message, duration?)` | toast (`info`/`success`/`warning`/`error`); optional duration in ms (clamped 1.5–15s) |
 | `trek.confirm({ title?, message, confirmLabel?, cancelLabel?, danger? })` | host-rendered native confirm dialog; resolves `true`/`false` (one at a time — a second concurrent request resolves `false`) |
 | `trek.navigate(to)` | in-app navigation (relative paths only) |
 | `trek.openExternal(url)` | open an `http(s)` URL in a new tab (the sandbox itself can't) |
 | `trek.onEvent(cb)` | `cb(event, tripId)` for core events on the trip in view — names only, no payloads; refetch via `invoke()`; returns an unsubscribe fn |
 | `trek.resize(px)` | override the auto height (ignored on full pages — see `trek:resize` below) |
+| `trek.geolocation.get()` | one browser position as `{ lat, lng, accuracy, heading, speed, timestamp }` — **needs the `geolocation:read` permission**; rejects with `.code` `forbidden`/`denied`/`timeout`/`unavailable`/`unsupported`. The HOST reads the position (the sandbox never gains the API) and the browser's own site prompt still applies |
+| `trek.geolocation.watch(cb)` | stream positions — `cb(position, error)`; returns an unsubscribe fn. The host keeps ONE GPS watch per frame and force-stops it when the frame closes |
 | `trek.ready()` / `trek.requestContext()` | re-handshake / re-request the context |
 
 **Preview it:** `npx trek-plugin-sdk dev`, then open **`/preview`** — it renders your UI
@@ -497,16 +500,30 @@ window.parent.postMessage({ type: 'trek:invoke', requestId: '1', sub: '/status',
 | `trek:invoke` | `{ requestId, sub, method, body }` | call your own route; resolves as `trek:response` or `trek:error` |
 | `trek:confirm` | `{ requestId, title?, message?, confirmLabel?, cancelLabel?, danger? }` | host-rendered ConfirmDialog; answered as `trek:confirm:result` |
 | `trek:openExternal` | `{ url }` | open an `http(s)` URL in a new `noopener` tab; anything else is dropped |
+| `trek:geolocation` | `{ requestId, action?: 'get'\|'watch'\|'clear' }` | host-brokered browser position (needs `geolocation:read`); answered as `trek:geolocation:result`, watch updates stream as `trek:geolocation:update` |
+| `trek:session:get` | `{ requestId, key, scope?: 'plugin'\|'trip' }` | read tab-scoped state; answered as `trek:response` with `data` (`undefined` when unset) |
+| `trek:session:set` | `{ requestId, key, value, scope? }` | store a JSON-serialisable value; answered as `trek:response` |
+| `trek:session:remove` | `{ requestId, key, scope? }` | drop one key; answered as `trek:response` |
+| `trek:session:clear` | `{ requestId, scope? }` | drop every key in that scope; answered as `trek:response` |
+
+The session messages are rejected as `trek:error` with `code` set to `NO_TRIP_CONTEXT`
+(trip scope outside a trip), `SESSION_INVALID_KEY` (empty or over 64 characters),
+`SESSION_INVALID_VALUE` (not JSON-serialisable), `SESSION_VALUE_TOO_LARGE` (over 1 KiB
+serialised), `SESSION_KEY_LIMIT` (over 32 keys in that scope) or `SESSION_STORAGE_ERROR`
+(the browser refused the write). The storage key itself is host-owned and includes the
+signed-in user and your plugin id, so scopes never collide.
 
 **Messages TREK sends you:**
 
 | Message | Payload |
 |---|---|
 | `trek:context` | `{ tripId, placeId, dayId, reservationId, userId, theme, locale, dir, hostOrigin, user, formats, tokens, appearance }` (see below) — re-sent whenever the theme, appearance, **locale or formats** change |
-| `trek:response` | `{ requestId, data }` — a successful `trek:invoke` |
-| `trek:error` | `{ requestId, code, message }` — a failed `trek:invoke` (`code` is the HTTP status or `"error"`) |
+| `trek:response` | `{ requestId, data }` — a successful `trek:invoke` or `trek:session:*` |
+| `trek:error` | `{ requestId, code, message }` — a failed request; for `trek:invoke` `code` is the HTTP status or `"error"`, for `trek:session:*` one of the `SESSION_*` / `NO_TRIP_CONTEXT` codes above |
 | `trek:confirm:result` | `{ requestId, confirmed }` — the user's answer to your `trek:confirm` |
 | `trek:event` | `{ event, tripId }` — a core event fired on the trip in view; **names only, never payloads** — refetch what you need via `trek:invoke` |
+| `trek:geolocation:result` | `{ requestId, position? \| watching? \| cleared? \| error? }` — the answer to a `trek:geolocation` request (`error` ∈ `forbidden`/`denied`/`timeout`/`unavailable`/`unsupported`) |
+| `trek:geolocation:update` | `{ position? , error? }` — a streamed watch fix (`position` = `{ lat, lng, accuracy, heading, speed, timestamp }`) |
 
 The frame's CSP is locked down per plugin: `default-src 'none'`, own inline
 scripts/styles + the plugin's **own** `/plugin-frame/<id>/` files only (no other
@@ -528,7 +545,7 @@ declared), no popups.
 | `locale` | e.g. `'en'` |
 | `hostOrigin` | the app origin |
 | `user` | `{ name, avatar, isAdmin } \| null` — **never** an email; role only as a boolean |
-| `formats` | `{ locale, currency, timeFormat, distanceUnit, temperatureUnit, timezone }` |
+| `formats` | `{ locale, currency, timeFormat, distanceUnit, temperatureUnit, timezone, blurBookingCodes }` — `blurBookingCodes` mirrors the user's "blur booking codes" preference so your UI can hide confirmation numbers until they're revealed. It is a **display hint, not redaction**: the codes still reach your plugin in full over `trek:invoke`. |
 | `tokens` | TREK's resolved CSS design tokens for the current theme (see below) |
 | `appearance` | `{ scheme, density: 'comfortable'\|'compact', reducedMotion, noTransparency }` |
 
@@ -648,6 +665,10 @@ module.exports = definePlugin({
 | `warningProvider.getWarnings(tripId, ctx)` → `{ level, message, dayId?, placeId? }[]` | `hook:trip-warning-provider` | **live** — validation warnings shown as a non-blocking banner in the trip planner; also `GET /api/trip-warnings/:tripId` |
 | `tableContributor.getContributions(view, tripId, ctx)` → `TableContribution[]` | `hook:table-contributor` | **live** — host-rendered **columns/actions** keyed by `entityId` in the reservations, transports, places, day, costs, packing, files and todos views. A `column` is `{kind:'column', entityId, id, label, value?, url?, icon?, tone?}` (url is http/https/mailto only); an `action` is `{kind:'action', entityId, id, label, icon?, target}` where `target` opens your sandboxed frame (`{kind:'frame', sub}`) or calls a route (`{kind:'route', method, sub}`). All fields are bounded + normalized host-side; also `GET /api/view-contributions/:view/:tripId` |
 | `mapMarkerProvider.getMarkers(tripId, ctx)` → `MapMarkerContribution[]` | `hook:map-marker-provider` | **live** — bounded markers overlaid on the trip map (#587). Each is `{id, lat, lng, label?, popupText?, url?, icon?, tone?}`; coordinates are range-checked (−90..90 / −180..180), text length-capped, url http/https/mailto-only, count capped (≤200/plugin). Declarative only — plugin JS never runs on the map canvas. Also `GET /api/map-markers/:tripId` |
+| `mapLayerProvider.getLayers(tripId, ctx)` → `MapLayerContribution[]` | `hook:map-layer-provider` | **live** — bounded vector overlays on the trip map: a computed route, a reachable-range corridor, a zone. Each layer is `{id, name?, features}` with features `{type: 'polyline'\|'polygon'\|'circle', points?/center?+radiusM?, tone?, width?, dash?, opacity?, fill?, label?}`. Styling stays in the tone palette; width (1–8), opacity (0.05–1) and radius (≤2000 km) are clamped, `dash` is an enum. Budgets per plugin: ≤4 layers, ≤150 features, ≤8000 vertices, ≤2000 vertices/shape — an oversized or partly-invalid shape is dropped whole, never truncated. Declarative only; drawn beneath TREK's own day route on both the Leaflet and GL renderers. Also `GET /api/map-layers/:tripId` |
+| `routeProvider.getRoute(request, ctx)` → `RouteProviderResult` | `hook:route-provider` | **live** — routes a day's stops under one of the plugin's declared `capabilities.routeProfiles` (an EV profile with charging stops, a scenic profile…). `request` is `{tripId, dayId, profile, waypoints}` (2–30 located stops in visit order); the result is `{coordinates, distance, duration, legs, viaPoints?}` and is validated **whole**: ≤10000 vertices, `legs` must be exactly `waypoints−1` entries (each `{distance, duration, note?}` — `note` ≤120 chars shows on the sidebar connector), ≤40 via points (`{lat, lng, label?, tone?, dwellSeconds?}` drawn as stops on the route line). A malformed result is discarded and the planner falls back to straight lines. **Targeted, not a fan-out**: TREK calls exactly the provider whose profile the user picked in the route toggle, with a 20 s timeout (room to call an external solver through your declared egress). `POST /api/plugin-routes/:pluginId/:profileId` |
+| `dayScheduleProvider.getSchedule(tripId, ctx)` → `DayScheduleContribution[]` | `hook:day-schedule-provider` | **live** — time contributions rendered into the day plan on desktop and mobile: "35 min charging at this stop", "45 min security before this flight". Each is `{id, dayId, assignmentId?/reservationId?/position?, minutes?, label, tone?}` — anchored under a place/booking row or at a day's start/end (default end). `dayId` must belong to the trip (checked server-side), `minutes` (1–1440) is shown on the row **and folded into the day's route-footer total**, `label` ≤120 chars, ≤60 items/plugin. Also `GET /api/day-schedule/:tripId` |
+| `dayTintProvider.getDayTints(tripId, ctx)` → `DayTintContribution[]` | `hook:day-tint-provider` | **live** — colours painted into a day card in the Plan sidebar (and into that day's mobile chip), so a trip split into legs shows its leg membership while you scroll. Each is `{dayId, tone?, color?, badgeTone?, badgeColor?, headerTone?, headerColor?, activityTone?, activityColor?, label?}`. The card has **three separately tintable regions** — the day-number badge (also the mobile chip), the header row, and the expanded activity list — so a plugin can mark the leg boldly on the badge while leaving the dense activity list plain; `tone` / `color` are the shorthands that fill every region you do not name, and an unnamed region renders exactly as it does with no plugin. Paint a region with a palette tone or with your own `#rrggbb` (nothing else is accepted — the value lands inside a CSS colour); a colour beats a tone within a region, and anything a region names beats the shorthand. You choose the hue, the host chooses the weight: it sets the alpha per theme **and** per region and clamps a colour's lightness into a band that reads in both themes, so the tint stays subtle in light and dark, no contribution can make a day unreadable, and a tinted header hovers to a deeper mix of its own colour. `dayId` must belong to the trip (checked server-side), `label` ≤ 60 chars becomes the day's tooltip, raw array sliced at 2000. **A day takes at most one contribution, resolved whole**: within your own list the first entry for a day wins, and across plugins the first granted provider wins — so a day never flickers between colours, and a losing plugin cannot fill in the winner's untinted regions. Bounded by the trip's day count rather than a fixed item cap, which is why this is not `dayScheduleProvider` (≤60 items would tint only the first 60 days of a long trip). Also `GET /api/day-tints/:tripId` |
 | `pdfSectionProvider.getSections(tripId, ctx)` → `PdfSection[]` | `hook:pdf-section-provider` | **live** — text-only sections appended to the trip PDF export. Each is `{title, paragraphs?, table?}`; the host escapes and lays everything out itself (no markup ever reaches the document), caps counts (≤5 sections/plugin, ≤20 paragraphs, ≤8 headers, ≤50 rows) + lengths (title 120, paragraph 2000, header 60, cell 200) and clips rows to the header width. Also `GET /api/pdf-sections/:tripId` |
 | `atlasLayerProvider.getLayers(ctx)` → `AtlasLayer[]` | `hook:atlas-layer-provider` | **live** — country tint layers drawn over the Atlas world map (wishlists, advisories, …). **User-scoped**: the host binds the acting user, the hook takes no target parameter. Each layer is `{id, name?, countries: [{code, tone?, label?}]}`; codes must be ISO-3166 alpha-2 (uppercase-coerced), tone is enum-whitelisted, counts capped (≤3 layers/plugin, ≤300 countries/layer). Declarative only — plugin JS never runs on the map canvas. Also `GET /api/atlas-layers` |
 | `journalEntryProvider.getRows(entryId, ctx)` → `{ label, value?, url? }[]` | `hook:journal-entry-provider` | **live** — extra rows rendered under a journal entry card (needs the Journey addon; the entry's journey is access-checked like the journal detail routes). Same hardening as place details plus server-side normalization: ≤12 rows/plugin, label ≤60, value ≤200, url http/https/mailto-only. Also `GET /api/journal-entry-rows/:entryId` |
@@ -1099,6 +1120,7 @@ what your manifest declares.
 | `actions` | array | Buttons on the plugin's own settings page — `{ key, label, hint?, danger? }` (max 8). Implement each as `actions[key](ctx)` on the definition. **User-initiated**, so `ctx.settings.get()` returns the clicking user's value. See [Settings-page actions](#settings-page-actions). |
 | `operatorEgress` | boolean | The plugin talks to a **self-hosted** service whose hostname only the operator knows. The admin adds the real hosts after install (Admin → Plugins → Allowed hosts) and the runtime unions them into the egress allow-list. Requires an `http:outbound` permission, and is the only way to declare one with an empty `egress[]`. See [Operator-supplied egress hosts](#operator-supplied-egress-hosts-operatoregress). |
 | `capabilities.notificationChannel` | object | `{ title?, events? }` for a plugin implementing the `notificationChannel` hook — `title` names the column in the notification preferences matrix (default: the plugin's `name`), `events` **narrows** which events the channel carries (default: every non-admin event; admin-scoped events are never deliverable). Requires the `hook:notification-channel` permission. See [Notification channels](#notification-channels). |
+| `capabilities.routeProfiles` | array | up to 3 `{ id, label, icon? }` entries for a plugin implementing the `routeProvider` hook — each becomes a selectable mode in the planner's route toggle (next to Driving/Walking). `id` is lowercase `[a-z][a-z0-9-]` (max 24 chars) and is what `getRoute` receives as `request.profile`; `label` (≤40 chars) is shown to the user. Requires the `hook:route-provider` permission. |
 | `capabilities.provides` | string[] | function names this plugin exposes to its dependents via `ctx.plugins.call` (see [Talking to other plugins](#talking-to-other-plugins)). |
 | `capabilities.emits` | string[] | event names this plugin publishes to its dependents via `ctx.events.emit`. |
 | `requiredAddons` | string[] | addon ids that must be **enabled** for the plugin to activate (see [Dependencies](#dependencies)). |
@@ -1161,6 +1183,10 @@ guard optional `ctx.*` namespaces.
 | `hook:trip-warning-provider` | `hooks.warningProvider` — validation warnings in the planner (see [Provider hooks](#provider-hooks)) |
 | `hook:table-contributor` | `hooks.tableContributor` — host-rendered columns/actions in the reservations, transports, places, day, costs, packing, files and todos views (see [Provider hooks](#provider-hooks)) |
 | `hook:map-marker-provider` | `hooks.mapMarkerProvider` — bounded markers on the trip map |
+| `hook:map-layer-provider` | `hooks.mapLayerProvider` — bounded vector overlays (routes, corridors, zones) on the trip map |
+| `hook:route-provider` | `hooks.routeProvider` — routing profiles for the planner's route toggle (declared in `capabilities.routeProfiles`) |
+| `hook:day-schedule-provider` | `hooks.dayScheduleProvider` — time contributions in the day plan (charging, buffers), totalled in the route footer |
+| `hook:day-tint-provider` | `hooks.dayTintProvider` — colours for a day card's badge / header / activity list in the Plan sidebar (e.g. which leg of the trip a day belongs to). One contribution per day: first granted provider wins |
 | `hook:pdf-section-provider` | `hooks.pdfSectionProvider` — sections appended to the trip PDF export |
 | `hook:atlas-layer-provider` | `hooks.atlasLayerProvider` — per-user country tint layers on the Atlas map |
 | `hook:journal-entry-provider` | `hooks.journalEntryProvider` — extra rows on a journal entry card |

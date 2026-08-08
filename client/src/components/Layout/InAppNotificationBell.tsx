@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import ReactDOM from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router'
 import { Bell, Trash2, CheckCheck } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useInAppNotificationStore } from '../../store/inAppNotificationStore.ts'
@@ -67,7 +67,7 @@ export default function InAppNotificationBell(): React.ReactElement {
         )}
       </button>
 
-      {open && ReactDOM.createPortal(
+      {open && createPortal(
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setOpen(false)} />
           <div

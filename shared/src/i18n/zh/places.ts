@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': '添加地点/活动',
   'places.importFile': '导入文件',
+  'places.trackIndicator': '轨迹 / 路线',
   'places.sidebarDrop': '拖放以导入',
   'places.importFileHint': '从 Google My Maps、Google Earth 或 GPS 追踪器等工具导入 .gpx、.kml 或 .kmz 文件。',
   'places.importFileDropHere': '点击选择文件或拖放到此处',
@@ -41,7 +42,11 @@ const places: TranslationStrings = {
   'places.assignToDay': '添加到哪一天？',
   'places.all': '全部',
   'places.unplanned': '未规划',
+  'places.planned': '已规划',
   'places.filterTracks': '路线',
+  'places.sortByRating': '按评分排序',
+  'places.yourRating': '你的评分',
+  'places.notRated': '暂无评分',
   'places.search': '搜索地点...',
   'places.allCategories': '所有分类',
   'places.categoriesSelected': '个分类',
@@ -61,6 +66,7 @@ const places: TranslationStrings = {
   'places.formLng': '经度（如 2.3522）',
   'places.formCategory': '分类',
   'places.noCategory': '无分类',
+  'places.newCategory': '新建分类',
   'places.categoryNamePlaceholder': '分类名称',
   'places.formTime': '时间',
   'places.startTime': '开始',
@@ -84,5 +90,10 @@ const places: TranslationStrings = {
   'places.addAnyway': '仍然添加',
   'places.enrichOnImport': '通过 Google 丰富地点信息',
   'places.enrichOnImportHint': '查找每个导入的地点以补充照片、地址和联系方式。需要 Google Maps 密钥。',
+  'places.uploadImage': '上传图片',
+  'places.changeImage': '更换图片',
+  'places.removeImage': '移除图片',
+  'places.imageUploadError': '无法上传图片',
+  'places.imageRemoveError': '无法删除图片',
 };
 export default places;

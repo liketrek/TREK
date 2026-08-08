@@ -35,17 +35,20 @@ const { unified, immich, synology } = vi.hoisted(() => ({
   unified: {
     listTripPhotos: vi.fn(), addTripPhotos: vi.fn(), setTripPhotoSharing: vi.fn(),
     removeTripPhoto: vi.fn(), listTripAlbumLinks: vi.fn(), createTripAlbumLink: vi.fn(), removeAlbumLink: vi.fn(),
+    // The album-sync orchestration moved here from the provider modules when the
+    // immich -> unified import cycle was broken.
+    syncImmichAlbum: vi.fn(), syncSynologyAlbum: vi.fn(),
   },
   immich: {
     getConnectionSettings: vi.fn(), saveImmichSettings: vi.fn(), setImmichAutoUpload: vi.fn(),
     testConnection: vi.fn(), getConnectionStatus: vi.fn(), browseTimeline: vi.fn(), searchPhotos: vi.fn(),
-    streamImmichAsset: vi.fn(), listAlbums: vi.fn(), getAlbumPhotos: vi.fn(), syncAlbumAssets: vi.fn(),
+    streamImmichAsset: vi.fn(), listAlbums: vi.fn(), getAlbumPhotos: vi.fn(), collectAlbumSelection: vi.fn(),
     getAssetInfo: vi.fn(), isValidAssetId: vi.fn(),
   },
   synology: {
     getSynologySettings: vi.fn(), updateSynologySettings: vi.fn(), getSynologyStatus: vi.fn(),
     testSynologyConnection: vi.fn(), listSynologyAlbums: vi.fn(), getSynologyAlbumPhotos: vi.fn(),
-    syncSynologyAlbumLink: vi.fn(), searchSynologyPhotos: vi.fn(), getSynologyAssetInfo: vi.fn(),
+    collectSynologyAlbumSelection: vi.fn(), searchSynologyPhotos: vi.fn(), getSynologyAssetInfo: vi.fn(),
     streamSynologyAsset: vi.fn(),
   },
 }));
@@ -62,6 +65,7 @@ vi.mock('../../src/services/memories/helpersService', async () => {
 });
 
 import { MemoriesModule } from '../../src/nest/memories/memories.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 const BASE = '/api/integrations/memories';
@@ -74,7 +78,7 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [MemoriesModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [RealtimeModule, MemoriesModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -289,12 +293,12 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('200 album sync (POST stays 200) / 404 envelope', async () => {
-      immich.syncAlbumAssets.mockResolvedValue({ success: true, added: 3, total: 10 });
+      unified.syncImmichAlbum.mockResolvedValue({ success: true, added: 3, total: 10 });
       const ok = await request(server).post(`${IMMICH}/trips/5/album-links/7/sync`).set('Cookie', sessionCookie(1));
       expect(ok.status).toBe(200);
       expect(ok.body).toEqual({ success: true, added: 3, total: 10 });
 
-      immich.syncAlbumAssets.mockResolvedValue({ error: 'Album link not found', status: 404 });
+      unified.syncImmichAlbum.mockResolvedValue({ error: 'Album link not found', status: 404 });
       const bad = await request(server).post(`${IMMICH}/trips/5/album-links/9/sync`).set('Cookie', sessionCookie(1));
       expect(bad.status).toBe(404);
       expect(bad.body).toEqual({ error: 'Album link not found' });
@@ -368,7 +372,7 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('200 album sync (POST stays 200)', async () => {
-      synology.syncSynologyAlbumLink.mockResolvedValue({ success: true, data: { added: 2, total: 5 } });
+      unified.syncSynologyAlbum.mockResolvedValue({ success: true, data: { added: 2, total: 5 } });
       const res = await request(server).post(`${SYNO}/trips/5/album-links/7/sync`).set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ added: 2, total: 5 });

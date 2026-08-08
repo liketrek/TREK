@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Förvandla dina resor till minnen du aldrig kommer att glömma',
   'journey.frontpage.createJourney': 'Skapa Journey',
   'journey.frontpage.activeJourney': 'Aktiv Journey',
+  'journey.frontpage.latestJourney': 'Senaste Journey',
   'journey.frontpage.allJourneys': 'Alla Journeys',
   'journey.frontpage.journeys': 'journeys',
   'journey.frontpage.createNew': 'Skapa en ny Journey',
@@ -125,6 +126,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1:a',
   'journey.editor.makeFirst': 'Gör 1:a',
   'journey.editor.searching': 'Söker...',
+  'journey.editor.useCurrentLocation': 'Använd min nuvarande plats',
+  'journey.editor.locationPermissionDenied':
+    'Platsåtkomst nekades. Tillåt den i webbläsarens inställningar och försök igen.',
+  'journey.editor.locationTimeout': 'Tidsgränsen för att hämta din plats överskreds. Försök igen.',
+  'journey.editor.locationUnavailable': 'Din plats kunde inte fastställas.',
+  'journey.editor.locationInsecureContext': 'Plats kräver en säker anslutning (HTTPS).',
   'journey.mood.amazing': 'Fantastiskt',
   'journey.mood.good': 'Bra',
   'journey.mood.neutral': 'Neutral',
@@ -227,5 +234,13 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Inga album hittades',
   'journey.picker.selectDate': 'Välj datum',
   'journey.picker.search': 'Sök',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

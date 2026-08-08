@@ -15,16 +15,33 @@ import type { User } from '../../types';
 import { BudgetService } from './budget.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import {
+  BudgetCreateItemDto,
+  BudgetUpdateItemDto,
+  BudgetUpdatePayersDto,
+  BudgetUpdateMembersDto,
+  BudgetToggleMemberPaidDto,
+  BudgetReorderItemsDto,
+  BudgetReorderCategoriesDto,
+  BudgetCreateSettlementDto,
+  BudgetUpdateSettlementDto,
+} from './budget.dto';
 
 /**
  * /api/trips/:tripId/budget — trip-scoped expense planner.
  *
  * Byte-identical to the legacy Express route (server/src/routes/budget.ts):
  * every handler verifies trip access (404); mutations check 'budget_edit' (403);
- * create is 201, the rest 200; bespoke 400/404 bodies reproduced; mutations
+ * create is 201, the rest 200; bespoke 404 bodies reproduced; mutations
  * broadcast over WebSocket with the forwarded X-Socket-Id. Static sub-routes
  * (summary, settlement, reorder/*) are declared before /:id so they win over the
  * param. Updating total_price on a reservation-linked item syncs the price back.
+ *
+ * Bodies are validated against the @trek/shared budget schemas via budget.dto.ts
+ * (global ZodValidationPipe). This replaced the legacy bespoke 400s ('Name is
+ * required', 'from_user_id, to_user_id and amount are required', 'user_ids must
+ * be an array', 'payers must be an array') with the pipe's uniform
+ * { error: 'field: message; …' } envelope.
  */
 @Controller('api/trips/:tripId/budget')
 @UseGuards(JwtAuthGuard)
@@ -77,14 +94,11 @@ export class BudgetController {
   async createSettlement(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number; currency?: string | null },
+    @Body() body: BudgetCreateSettlementDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (body.from_user_id == null || body.to_user_id == null || body.amount == null) {
-      throw new HttpException({ error: 'from_user_id, to_user_id and amount are required' }, 400);
-    }
     const settlement = await this.budget.createSettlement(
       tripId,
       { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount, currency: body.currency },
@@ -99,14 +113,11 @@ export class BudgetController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('settlementId') settlementId: string,
-    @Body() body: { from_user_id?: number; to_user_id?: number; amount?: number; currency?: string | null },
+    @Body() body: BudgetUpdateSettlementDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (body.from_user_id == null || body.to_user_id == null || body.amount == null) {
-      throw new HttpException({ error: 'from_user_id, to_user_id and amount are required' }, 400);
-    }
     const settlement = await this.budget.updateSettlement(settlementId, tripId, {
       from_user_id: body.from_user_id,
       to_user_id: body.to_user_id,
@@ -140,15 +151,12 @@ export class BudgetController {
   async create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { name?: string; category?: string; total_price?: number; persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null; reservation_id?: number },
+    @Body() body: BudgetCreateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!body.name) {
-      throw new HttpException({ error: 'Name is required' }, 400);
-    }
-    const item = await this.budget.create(tripId, body as { name: string });
+    const item = await this.budget.create(tripId, body);
     this.budget.broadcast(tripId, 'budget:created', { item }, socketId);
     return { item };
   }
@@ -157,13 +165,13 @@ export class BudgetController {
   reorderItems(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body('orderedIds') orderedIds: number[],
+    @Body() body: BudgetReorderItemsDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    this.budget.reorderItems(tripId, orderedIds);
-    this.budget.broadcast(tripId, 'budget:reordered', { orderedIds }, socketId);
+    this.budget.reorderItems(tripId, body.orderedIds);
+    this.budget.broadcast(tripId, 'budget:reordered', { orderedIds: body.orderedIds }, socketId);
     return { success: true };
   }
 
@@ -171,13 +179,13 @@ export class BudgetController {
   reorderCategories(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body('orderedCategories') orderedCategories: string[],
+    @Body() body: BudgetReorderCategoriesDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    this.budget.reorderCategories(tripId, orderedCategories);
-    this.budget.broadcast(tripId, 'budget:reordered', { orderedCategories }, socketId);
+    this.budget.reorderCategories(tripId, body.orderedCategories);
+    this.budget.broadcast(tripId, 'budget:reordered', { orderedCategories: body.orderedCategories }, socketId);
     return { success: true };
   }
 
@@ -186,7 +194,7 @@ export class BudgetController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: BudgetUpdateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
@@ -207,15 +215,12 @@ export class BudgetController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
-    @Body('user_ids') userIds: unknown,
+    @Body() body: BudgetUpdateMembersDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!Array.isArray(userIds)) {
-      throw new HttpException({ error: 'user_ids must be an array' }, 400);
-    }
-    const result = this.budget.updateMembers(id, tripId, userIds);
+    const result = this.budget.updateMembers(id, tripId, body.user_ids);
     if (!result) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
@@ -228,15 +233,12 @@ export class BudgetController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
-    @Body('payers') payers: unknown,
+    @Body() body: BudgetUpdatePayersDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!Array.isArray(payers)) {
-      throw new HttpException({ error: 'payers must be an array' }, 400);
-    }
-    const item = this.budget.setPayers(id, tripId, payers as { user_id: number; amount: number }[]);
+    const item = this.budget.setPayers(id, tripId, body.payers);
     if (!item) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
@@ -250,13 +252,13 @@ export class BudgetController {
     @Param('tripId') tripId: string,
     @Param('id') id: string,
     @Param('userId') userId: string,
-    @Body('paid') paid: boolean,
+    @Body() body: BudgetToggleMemberPaidDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const member = this.budget.toggleMemberPaid(id, tripId, userId, paid);
-    this.budget.broadcast(tripId, 'budget:member-paid-updated', { itemId: Number(id), userId: Number(userId), paid: paid ? 1 : 0 }, socketId);
+    const member = this.budget.toggleMemberPaid(id, tripId, userId, body.paid);
+    this.budget.broadcast(tripId, 'budget:member-paid-updated', { itemId: Number(id), userId: Number(userId), paid: body.paid ? 1 : 0 }, socketId);
     return { member };
   }
 

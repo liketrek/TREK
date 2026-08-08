@@ -14,6 +14,31 @@ export function katColor(kat: string, allCategories?: string[]): string {
 export const itemWeight = (i: { weight_grams?: number | null; quantity?: number | null }): number =>
   (i.weight_grams || 0) * (i.quantity || 1)
 
+/**
+ * Whether an item's weight is part of what *you* carry. An item shared through the
+ * "Shared with…" tier stays visible to its recipients, but the owner is the one bringing
+ * it — counting it for everyone it was shared with inflated their bags (#1767).
+ * Common items are the group pool and always count; so does anything unowned (legacy
+ * rows) and everything, if we don't know who is looking.
+ */
+export const countsTowardsMyLoad = (
+  i: { is_private?: number | boolean | null; owner_id?: number | null },
+  currentUserId?: number | null,
+): boolean => {
+  if (currentUserId == null) return true
+  if (!i.is_private) return true
+  return i.owner_id == null || i.owner_id === currentUserId
+}
+
+/**
+ * How full a bag's bar reads. A bag with a weight limit is measured against that limit —
+ * that is the number an airline cares about. Without one there is nothing absolute to
+ * measure against, so bags are shown relative to the heaviest one and stay comparable.
+ * Lives here because three surfaces draw this bar and one of them used to forget the limit.
+ */
+export const bagFillPct = (bagWeight: number, limitGrams: number | null | undefined, heaviestBagWeight: number): number =>
+  Math.min(100, Math.round((bagWeight / (limitGrams || Math.max(heaviestBagWeight, 1))) * 100))
+
 // Parse CSV line respecting quoted values (e.g. "Shirt, blue" stays as one field)
 export const parseCsvLine = (line: string): string[] => {
   const parts: string[] = []

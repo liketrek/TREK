@@ -133,7 +133,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 - **Costs** — expense tracker with splits and settle-up (who owes whom), multi-currency
 - **Documents** — file attachments on trips, places, and reservations
 - **Collab** — chat, notes, polls, day-by-day attendance
-- **Vacay** — personal vacation planner with calendar, 100+ country holidays, carry-over tracking
+- **Vacay** — personal vacation planner with calendar, 100+ country holidays, approved school holiday overlays, carry-over tracking
 - **Atlas** — world map of visited countries, bucket list, travel stats, streak tracking, liquid-glass UI
 - **Journey** — magazine-style travel journal with entries, photos (Immich/Synology), maps, moods
 - **AirTrail** — connect a self-hosted AirTrail instance to import and sync flights into reservations
@@ -405,6 +405,13 @@ Caddy handles TLS and WebSockets automatically.
 
 ## Environment variables
 
+> [!NOTE]
+> Variables are validated at startup (fail-fast). An unset or blank variable
+> always falls back to its default, but a variable set to a malformed value
+> (e.g. `PORT=abc`, `SESSION_DURATION=bogus`, `DEMO_MODE=maybe`) aborts boot
+> with a report listing every offending variable. Boolean switches accept
+> `true`/`false`, `1`/`0`, `on`/`off` and `yes`/`no` (any casing).
+
 <details>
 <summary><b>Full reference</b></summary>
 
@@ -472,4 +479,3 @@ for full third-party attributions.
 ## License
 
 TREK is [AGPL v3](LICENSE). Self-host freely for personal or internal company use. If you modify and offer TREK as a network service to third parties, your modifications must be open-sourced under the same licence.
-

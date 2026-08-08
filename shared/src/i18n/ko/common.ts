@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': '전체 선택',
   'common.deselectAll': '전체 해제',
   'common.error': '오류',
+  'common.success': '성공',
   'common.unknownError': '알 수 없는 오류',
   'common.tooManyAttempts': '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
   'common.back': '뒤로',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': '문제가 발생했습니다',
+  'common.errorBody': '앱의 이 부분이 작동을 멈췄습니다. 데이터는 안전합니다.',
+  'common.errorPanelTitle': '이 섹션을 표시할 수 없습니다',
+  'common.errorPanelBody': '페이지의 나머지 부분은 계속 작동합니다.',
+  'common.errorRetry': '다시 시도',
+  'common.errorReload': '페이지 새로고침',
+  'common.errorUpdateTitle': '새 버전이 있습니다',
+  'common.errorUpdateBody': '이 탭이 열려 있는 동안 TREK이 업데이트되었습니다. 새로고침하여 새 버전을 받으세요.',
+  'common.errorPluginTitle': '이 플러그인을 표시할 수 없습니다',
 };
 export default common;

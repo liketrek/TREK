@@ -1,28 +1,43 @@
-import { ArgumentMetadata, HttpException, Injectable, PipeTransform } from '@nestjs/common';
-import type { ZodType } from 'zod';
+import { HttpException } from '@nestjs/common';
+import { createZodValidationPipe } from 'nestjs-zod';
 
 /**
- * Validates an incoming @Body()/@Query() against a Zod schema (from @trek/shared)
- * and returns the parsed, typed value. On failure it throws TREK's error envelope
- * `{ error: string }` with status 400 — the same shape the legacy routes produce,
- * so the client's error handling is unaffected.
+ * TREK's Zod validation pipe, built on nestjs-zod so it works in BOTH modes:
  *
- * Usage: `@Body(new ZodValidationPipe(someSchema)) dto: Dto`.
+ *  - **Global** (`APP_PIPE` in AppModule): validates every parameter whose
+ *    metatype is a `createZodDto(...)` class (the `<domain>.dto.ts` wrappers
+ *    over the @trek/shared schemas) and passes everything else through
+ *    untouched — legacy untyped bodies keep their exact behavior until their
+ *    domain migrates. The boot gate in `validate-body-contracts.ts` is what
+ *    makes forgetting a DTO fail closed.
+ *  - **Per-parameter** (`@Body(new ZodValidationPipe(schema))`): still accepts
+ *    an explicit schema/DTO for one-off cases.
+ *
+ * On failure it throws TREK's error envelope `{ error: string }` with status
+ * 400 — the same shape the legacy routes produce (`field: message; ...`,
+ * root-level issues labeled `body`), so the client's error handling and the
+ * pinned test assertions are unaffected by the nestjs-zod migration.
  */
-@Injectable()
-export class ZodValidationPipe implements PipeTransform {
-  // Public so the API-docs enricher can lift the schema into the OpenAPI
-  // document (#1412) — the pipe stays the single source of truth.
-  constructor(readonly schema: ZodType) {}
-
-  transform(value: unknown, _metadata: ArgumentMetadata): unknown {
-    const result = this.schema.safeParse(value);
-    if (!result.success) {
-      const message = result.error.issues
-        .map((i) => `${i.path.join('.') || 'body'}: ${i.message}`)
-        .join('; ');
-      throw new HttpException({ error: message }, 400);
-    }
-    return result.data;
-  }
+interface ZodIssueLike {
+  path: (string | number | symbol)[];
+  message: string;
 }
+
+function isZodErrorLike(error: unknown): error is { issues: ZodIssueLike[] } {
+  return (
+    typeof error === 'object' && error !== null &&
+    Array.isArray((error as { issues?: unknown }).issues)
+  );
+}
+
+export const ZodValidationPipe = createZodValidationPipe({
+  createValidationException: (error: unknown): Error => {
+    if (isZodErrorLike(error)) {
+      const message = error.issues
+        .map((i) => `${i.path.map(String).join('.') || 'body'}: ${i.message}`)
+        .join('; ');
+      return new HttpException({ error: message }, 400);
+    }
+    return new HttpException({ error: 'Validation failed' }, 400);
+  },
+});

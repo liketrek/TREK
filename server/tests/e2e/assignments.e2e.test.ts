@@ -1,12 +1,15 @@
 /**
  * Assignments module e2e — exercises both migrated controllers through the real
- * JwtAuthGuard against a temp SQLite db. assignmentService, journeyService,
- * the permission check, canAccessTrip and the WebSocket broadcast are mocked.
+ * JwtAuthGuard against a temp SQLite db. AssignmentsService runs its real SQL
+ * (DI-injected, no service mock); journeyService, the permission check,
+ * canAccessTrip and the WebSocket broadcast stay mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { Test } from '@nestjs/testing';
 import { seedUser, sessionCookie } from './harness';
 
@@ -15,8 +18,26 @@ const { db } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const tmp = new Database(':memory:');
   tmp.exec('PRAGMA journal_mode = WAL');
+  // Only what the un-mocked DI service actually touches: the auth guard reads
+  // users; AssignmentsService's real SQL reads/writes the itinerary tables
+  // (display_name/avatar feed the participants COALESCE projection).
   tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0);`);
+    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
+    display_name TEXT, avatar TEXT);`);
+  tmp.exec(`CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL);`);
+  tmp.exec(`CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, icon TEXT);`);
+  tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
+    description TEXT, lat REAL, lng REAL, address TEXT, category_id INTEGER, price REAL, currency TEXT,
+    place_time TEXT, end_time TEXT, duration_minutes INTEGER DEFAULT 60, notes TEXT, image_url TEXT,
+    transport_mode TEXT DEFAULT 'walking', google_place_id TEXT, google_ftid TEXT, osm_id TEXT, website TEXT, phone TEXT);`);
+  tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
+    place_id INTEGER NOT NULL, order_index INTEGER NOT NULL DEFAULT 0, notes TEXT,
+    assignment_time TEXT, assignment_end_time TEXT, leg_transport_mode TEXT,
+    created_at TEXT DEFAULT (datetime('now')));`);
+  tmp.exec(`CREATE TABLE assignment_participants (assignment_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+    UNIQUE(assignment_id, user_id));`);
+  tmp.exec(`CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, created_at TEXT);`);
+  tmp.exec(`CREATE TABLE place_tags (place_id INTEGER NOT NULL, tag_id INTEGER NOT NULL);`);
   return { db: tmp };
 });
 
@@ -29,29 +50,25 @@ vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 const { reconcileTripSkeletons } = vi.hoisted(() => ({ reconcileTripSkeletons: vi.fn() }));
 vi.mock('../../src/services/journeyService', () => ({ reconcileTripSkeletons }));
 
-const { checkPermission } = vi.hoisted(() => ({ checkPermission: vi.fn() }));
-vi.mock('../../src/services/permissions', () => ({ checkPermission }));
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
-const { asg } = vi.hoisted(() => ({
-  asg: {
-    getAssignmentWithPlace: vi.fn(), listDayAssignments: vi.fn(), dayExists: vi.fn(), placeExists: vi.fn(),
-    createAssignment: vi.fn(), assignmentExistsInDay: vi.fn(), deleteAssignment: vi.fn(), reorderAssignments: vi.fn(),
-    getAssignmentForTrip: vi.fn(), moveAssignment: vi.fn(), getParticipants: vi.fn(), updateTime: vi.fn(), setParticipants: vi.fn(),
-  },
-}));
-vi.mock('../../src/services/assignmentService', () => asg);
+// Since the permissions DI migration, the check is a spy on the container's
+// PermissionsService singleton (created in beforeAll, after build()).
+let checkPermission: MockInstance;
 
 import { AssignmentsModule } from '../../src/nest/assignments/assignments.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 describe('Assignments e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [AssignmentsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, AssignmentsModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
+    nest.useGlobalPipes(new ZodValidationPipe());
     nest.useGlobalFilters(new TrekExceptionFilter());
     await nest.init();
     return nest;
@@ -59,41 +76,51 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
 
   beforeAll(async () => {
     seedUser(db as never, { id: 1 });
+    seedUser(db as never, { id: 2, username: 'peer', email: 'peer@example.test' });
+    db.prepare('INSERT INTO days (id, trip_id) VALUES (3, 5), (4, 5)').run();
+    db.prepare('INSERT INTO places (id, trip_id, name) VALUES (2, 5, ?)').run('Louvre');
     app = await build();
+    checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
     server = app.getHttpServer();
-    asg.listDayAssignments.mockReturnValue([{ id: 1 }]);
-    asg.createAssignment.mockReturnValue({ id: 9 });
-    asg.getParticipants.mockReturnValue([{ user_id: 2 }]);
   });
 
   beforeEach(() => {
     canAccessTrip.mockReturnValue({ id: 5, user_id: 1 });
     checkPermission.mockReturnValue(true);
-    asg.dayExists.mockReturnValue(true);
-    asg.placeExists.mockReturnValue(true);
+    db.prepare('DELETE FROM day_assignments').run();
+    db.prepare('DELETE FROM assignment_participants').run();
   });
 
   afterAll(async () => {
     await app.close();
   });
 
+  const seedAssignment = (dayId = 3, placeId = 2, orderIndex = 0) =>
+    Number(db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (?, ?, ?)').run(dayId, placeId, orderIndex).lastInsertRowid);
+
   it('401 without a cookie', async () => {
     expect((await request(server).get('/api/trips/5/days/3/assignments')).status).toBe(401);
   });
 
   it('200 list day-assignments', async () => {
+    const id = seedAssignment();
     const res = await request(server).get('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ assignments: [{ id: 1 }] });
+    expect(res.body.assignments).toHaveLength(1);
+    expect(res.body.assignments[0]).toMatchObject({
+      id, day_id: 3, place_id: 2, order_index: 0, participants: [],
+      place: { id: 2, name: 'Louvre', tags: [] },
+    });
   });
 
   it('201 create, 404 place', async () => {
     reconcileTripSkeletons.mockClear();
     const ok = await request(server).post('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1)).send({ place_id: 2 });
     expect(ok.status).toBe(201);
-    expect(ok.body).toEqual({ assignment: { id: 9 } });
+    expect(ok.body.assignment).toMatchObject({ day_id: 3, place_id: 2, order_index: 0, notes: null, place: { id: 2, name: 'Louvre' } });
+    const row = db.prepare('SELECT * FROM day_assignments WHERE id = ?').get(ok.body.assignment.id);
+    expect(row).toMatchObject({ day_id: 3, place_id: 2, order_index: 0 });
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
-    asg.placeExists.mockReturnValue(false);
     const miss = await request(server).post('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1)).send({ place_id: 99 });
     expect(miss.status).toBe(404);
     expect(miss.body).toEqual({ error: 'Place not found' });
@@ -101,47 +128,67 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
 
   it('200 delete assignment reconciles journey skeletons', async () => {
     reconcileTripSkeletons.mockClear();
-    asg.assignmentExistsInDay.mockReturnValue(true);
-    const res = await request(server).delete('/api/trips/5/days/3/assignments/9').set('Cookie', sessionCookie(1));
+    const id = seedAssignment();
+    const res = await request(server).delete(`/api/trips/5/days/3/assignments/${id}`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });
-    expect(asg.deleteAssignment).toHaveBeenCalledWith('9');
+    expect(db.prepare('SELECT id FROM day_assignments WHERE id = ?').get(id)).toBeUndefined();
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
   });
 
   it('200 move assignment reconciles journey skeletons', async () => {
     reconcileTripSkeletons.mockClear();
-    asg.getAssignmentForTrip.mockReturnValue({ day_id: 3 });
-    asg.moveAssignment.mockReturnValue({ assignment: { id: 9 }, oldDayId: 3 });
+    const id = seedAssignment();
     const res = await request(server)
-      .put('/api/trips/5/assignments/9/move')
+      .put(`/api/trips/5/assignments/${id}/move`)
       .set('Cookie', sessionCookie(1))
       .send({ new_day_id: 4, order_index: 0 });
     expect(res.status).toBe(200);
+    expect(res.body.assignment).toMatchObject({ id, day_id: 4, order_index: 0 });
+    expect(db.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(id)).toEqual({ day_id: 4 });
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
   });
 
   it('200 update time reconciles journey skeletons', async () => {
     reconcileTripSkeletons.mockClear();
-    asg.getAssignmentForTrip.mockReturnValue({ id: 9 });
-    asg.updateTime.mockReturnValue({ id: 9 });
+    const id = seedAssignment();
     const res = await request(server)
-      .put('/api/trips/5/assignments/9/time')
+      .put(`/api/trips/5/assignments/${id}/time`)
       .set('Cookie', sessionCookie(1))
       .send({ place_time: '09:00', end_time: null });
     expect(res.status).toBe(200);
+    expect(res.body.assignment).toMatchObject({ id, assignment_time: '09:00', assignment_end_time: null });
+    expect(db.prepare('SELECT assignment_time FROM day_assignments WHERE id = ?').get(id)).toEqual({ assignment_time: '09:00' });
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
   });
 
   it('200 participants (access-only)', async () => {
-    const res = await request(server).get('/api/trips/5/assignments/9/participants').set('Cookie', sessionCookie(1));
+    const id = seedAssignment();
+    db.prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, 2)').run(id);
+    const res = await request(server).get(`/api/trips/5/assignments/${id}/participants`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ participants: [{ user_id: 2 }] });
+    expect(res.body).toEqual({ participants: [{ user_id: 2, username: 'peer', avatar: null }] });
   });
 
-  it('400 set participants with non-array', async () => {
+  it('400 from the Zod pipe on set participants with non-array', async () => {
     const res = await request(server).put('/api/trips/5/assignments/9/participants').set('Cookie', sessionCookie(1)).send({ user_ids: 'no' });
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'user_ids must be an array' });
+    expect(res.body.error).toContain('user_ids');
+  });
+
+  it('400 from the Zod pipe on create without a place_id', async () => {
+    const res = await request(server).post('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1)).send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('place_id');
+  });
+
+  it('move accepts the client api form order_index: null (coerces to 0)', async () => {
+    const id = seedAssignment();
+    const res = await request(server)
+      .put(`/api/trips/5/assignments/${id}/move`)
+      .set('Cookie', sessionCookie(1))
+      .send({ new_day_id: 4, order_index: null });
+    expect(res.status).toBe(200);
+    expect(res.body.assignment).toMatchObject({ id, day_id: 4, order_index: 0 });
   });
 });

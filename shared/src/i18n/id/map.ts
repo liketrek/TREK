@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Aktivitas',
   'map.showAllConnections': 'Tampilkan semua rute pemesanan',
   'map.hideAllConnections': 'Sembunyikan semua rute pemesanan',
+  'map.baseLayer.default': 'Peta',
+  'map.baseLayer.satellite': 'Satelit',
+  'map.baseLayer.switchToSatellite': 'Beralih ke tampilan satelit',
+  'map.baseLayer.switchToDefault': 'Beralih ke tampilan peta',
 };
 export default map;

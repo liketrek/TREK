@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router'
 import { authApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import { useTranslation } from '../../i18n'

@@ -1,5 +1,5 @@
 import { Children, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Search, ChevronRight, Loader2, AlertCircle, BookOpen, PanelLeft, X } from 'lucide-react'

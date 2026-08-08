@@ -1,36 +1,53 @@
 import 'reflect-metadata';
 import 'dotenv/config';
+// Fail-fast env validation — must stay directly after dotenv so a malformed
+// variable aborts before any other module runs its import-time side effects
+// (config.ts key resolution, db/database.ts initDb, ...).
+import './app-config/boot-validate';
 import path from 'node:path';
 import fs from 'node:fs';
 import http from 'node:http';
 import type { INestApplication } from '@nestjs/common';
 import { buildApp } from './bootstrap';
+import { BackupService } from './nest/backup/backup.service';
+import { PlacePhotoCacheService } from './nest/place-photos/place-photo-cache.service';
 
-// Create upload and data directories on startup
+// Create upload and data directories on startup.
+// Every uploads subdir the app writes to must be listed here (#1762): a dir
+// created lazily on first upload needs write permission on the uploads mount
+// point itself at request time, which fails with EACCES on Docker hosts whose
+// bind-mounted uploads dir isn't writable by the runtime user — while every
+// feature writing into an already-existing subdir keeps working. Creating them
+// at boot turns that into one loud startup failure instead of a stray 500.
+// Keep in sync with the `mkdir -p` list in the Dockerfile (guarded by
+// tests/unit/uploads-dirs.test.ts).
 const uploadsDir = path.join(__dirname, '../uploads');
 const photosDir = path.join(uploadsDir, 'photos');
 const filesDir = path.join(uploadsDir, 'files');
 const coversDir = path.join(uploadsDir, 'covers');
 const avatarsDir = path.join(uploadsDir, 'avatars');
+const journeyDir = path.join(uploadsDir, 'journey');
+const placesDir = path.join(uploadsDir, 'places');
 const backupsDir = path.join(__dirname, '../data/backups');
 const tmpDir = path.join(__dirname, '../data/tmp');
 
-[uploadsDir, photosDir, filesDir, coversDir, avatarsDir, backupsDir, tmpDir].forEach(dir => {
+[uploadsDir, photosDir, filesDir, coversDir, avatarsDir, journeyDir, placesDir, backupsDir, tmpDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
 import * as scheduler from './scheduler';
-import { getAppUrl, getMcpSafeUrl } from './services/notifications';
+import { getAppUrl, getMcpSafeUrl, readEnv } from './app-config';
 
-const PORT = Number(process.env.PORT) || 3001;
-const HOST = process.env.HOST;
-const APP_VERSION: string = process.env.APP_VERSION || (require('../package.json') as { version: string }).version;
+const PORT = readEnv().app.port;
+const HOST = readEnv().app.host;
+const APP_VERSION: string = readEnv().app.appVersion || (require('../package.json') as { version: string }).version;
 
 const onListen = () => {
-  const { logInfo: sLogInfo, logWarn: sLogWarn } = require('./services/auditLog');
-  const LOG_LVL = (process.env.LOG_LEVEL || 'info').toLowerCase();
-  const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  const origins = process.env.ALLOWED_ORIGINS || '(same-origin)';
+  const { logInfo: sLogInfo, logWarn: sLogWarn } = require('./nest/audit/audit-log.logger');
+  const env = readEnv();
+  const LOG_LVL = (env.app.logLevel || 'info').toLowerCase();
+  const tz = env.app.tz || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const origins = env.http.allowedOriginsRaw || '(same-origin)';
   const appUrl = getAppUrl();
   const resolvedAppUrl = getMcpSafeUrl();
   const banner = [
@@ -40,7 +57,7 @@ const onListen = () => {
     ...(HOST ? [`  Host:           ${HOST}`] : []),
     `  Container Port: ${PORT}`,
     `  App URL:        ${appUrl}`,
-    `  Environment:    ${process.env.NODE_ENV?.toLowerCase() || 'development'}`,
+    `  Environment:    ${env.app.nodeEnv?.toLowerCase() || 'development'}`,
     `  Timezone:       ${tz}`,
     `  Origins:        ${origins}`,
     `  Log level:      ${LOG_LVL}`,
@@ -51,12 +68,12 @@ const onListen = () => {
   ];
   banner.forEach(l => console.log(l));
   sLogInfo('NestJS serving all routes (Express decommissioned)');
-  if (process.env.APP_URL) {
+  if (env.app.appUrl) {
     let parsedAppUrl: URL | null = null;
-    try { parsedAppUrl = new URL(process.env.APP_URL); } catch { /* invalid */ }
+    try { parsedAppUrl = new URL(env.app.appUrl); } catch { /* invalid */ }
 
     if (!parsedAppUrl) {
-      sLogWarn(`APP_URL: "${process.env.APP_URL}" is not a valid URL — it will be ignored.`);
+      sLogWarn(`APP_URL: "${env.app.appUrl}" is not a valid URL — it will be ignored.`);
     }
 
     const mcpSafe = parsedAppUrl !== null && (
@@ -68,10 +85,19 @@ const onListen = () => {
       sLogWarn(`APP_URL: not MCP-safe (requires https:// or http://localhost) — MCP will use ${resolvedAppUrl}.`);
     }
   }
-  if (process.env.DEMO_MODE?.toLowerCase() === 'true') sLogInfo('Demo mode: ENABLED');
-  if (process.env.DEMO_MODE?.toLowerCase() === 'true' && process.env.NODE_ENV?.toLowerCase() === 'production') {
+  if (env.demo.enabled) sLogInfo('Demo mode: ENABLED');
+  if (env.demo.enabled && env.app.isProduction) {
     sLogWarn('SECURITY WARNING: DEMO_MODE is enabled in production!');
   }
+  // The scheduler runs outside the container but needs things inside it. It is
+  // handed them here, from the app buildApp() already initialised, rather than
+  // reaching for src/services at call time.
+  scheduler.setSchedulerDeps({
+    backups: nestApp.get(BackupService),
+    // The container singleton, not a fresh instance: the in-flight dedup and the
+    // known-on-disk set only work if the whole process shares one.
+    placePhotos: nestApp.get(PlacePhotoCacheService),
+  });
   scheduler.start();
   scheduler.startTripReminders();
   scheduler.startTodoReminders();
@@ -81,8 +107,6 @@ const onListen = () => {
   scheduler.startTrekPhotoCacheCleanup();
   scheduler.startPlacePhotoCacheCleanup();
   scheduler.startAirTrailSync();
-  const { startTokenCleanup } = require('./services/ephemeralTokens');
-  startTokenCleanup();
   import('./websocket').then(({ setupWebSocket }) => {
     setupWebSocket(server);
   });
@@ -110,7 +134,7 @@ bootstrap().catch((err) => {
 
 // Graceful shutdown
 function shutdown(signal: string): void {
-  const { logInfo: sLogInfo, logError: sLogError } = require('./services/auditLog');
+  const { logInfo: sLogInfo, logError: sLogError } = require('./nest/audit/audit-log.logger');
   const { closeMcpSessions } = require('./mcp');
   sLogInfo(`${signal} received — shutting down gracefully...`);
   scheduler.stop();

@@ -15,5 +15,9 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Aktiviteler',
   'map.showAllConnections': 'Tüm rezervasyon rotalarını göster',
   'map.hideAllConnections': 'Tüm rezervasyon rotalarını gizle',
+  'map.baseLayer.default': 'Harita',
+  'map.baseLayer.satellite': 'Uydu',
+  'map.baseLayer.switchToSatellite': 'Uydu görünümüne geç',
+  'map.baseLayer.switchToDefault': 'Harita görünümüne geç',
 };
 export default map;

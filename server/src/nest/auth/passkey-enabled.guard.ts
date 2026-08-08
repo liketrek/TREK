@@ -1,5 +1,5 @@
 import { CanActivate, HttpException, Injectable } from '@nestjs/common';
-import { resolveAuthToggles } from '../../services/authService';
+import { AuthService } from './auth.service';
 
 /**
  * Server-side enforcement of the instance-wide `passkey_login` toggle. Placed
@@ -13,8 +13,10 @@ import { resolveAuthToggles } from '../../services/authService';
  */
 @Injectable()
 export class PasskeyEnabledGuard implements CanActivate {
+  constructor(private readonly auth: AuthService) {}
+
   canActivate(): boolean {
-    if (!resolveAuthToggles().passkey_login) {
+    if (!this.auth.resolveAuthToggles().passkey_login) {
       throw new HttpException({ error: 'Passkey login is not enabled' }, 404);
     }
     return true;

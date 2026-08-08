@@ -2,7 +2,8 @@
  * Unit tests for MCP collab polls and chat tools (collab addon-gated):
  * list_collab_polls, create_collab_poll, vote_collab_poll, close_collab_poll,
  * delete_collab_poll, list_collab_messages, send_collab_message,
- * delete_collab_message, react_collab_message.
+ * delete_collab_message, react_collab_message (CollabMcp, DI-discovered —
+ * attached via the nest-mcp registry inside registerTools).
  * Resources: trek://trips/{tripId}/collab/polls, trek://trips/{tripId}/collab/messages.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
@@ -36,7 +37,7 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-vi.mock('../../../src/services/adminService', () => ({
+vi.mock('../../../src/nest/addons/addons.bridge', () => ({
   isAddonEnabled: vi.fn().mockReturnValue(true),
   getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
 }));
@@ -174,6 +175,24 @@ describe('Tool: vote_collab_poll', () => {
       const data = parseToolResult(result) as any;
       expect(data.poll).toBeDefined();
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:poll:voted', expect.any(Object));
+    });
+  });
+
+  it('blocks demo user (gate added with the DI migration — the legacy registrar missed it)', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const trip = createTrip(testDb, user.id);
+    const pollId = (testDb.prepare(
+      `INSERT INTO collab_polls (trip_id, user_id, question, options, created_at) VALUES (?, ?, ?, ?, datetime('now'))`
+    ).run(trip.id, user.id, 'Best city?', JSON.stringify(['Paris', 'Rome'])) as any).lastInsertRowid;
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'vote_collab_poll',
+        arguments: { tripId: trip.id, pollId: Number(pollId), optionIndex: 0 },
+      });
+      expect(result.isError).toBe(true);
+      expect(testDb.prepare('SELECT COUNT(*) as c FROM collab_poll_votes WHERE poll_id = ?').get(pollId)).toEqual({ c: 0 });
     });
   });
 

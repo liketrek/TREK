@@ -7,7 +7,8 @@ import { server } from '../../../tests/helpers/msw/server'
 import { http, HttpResponse } from 'msw'
 import { useVacayStore } from '../../store/vacayStore'
 import VacaySettings from './VacaySettings'
-import { fetchRegionOptions } from './holidayRegions'
+import { fetchRegionOptions, fetchSchoolHolidayRegionOptions } from './holidayRegions'
+import { SCHOOL_HOLIDAY_COUNTRY_CONFIG } from '../../vacay/schoolHolidayCountries'
 
 const basePlan = {
   id: 1,
@@ -138,11 +139,10 @@ describe('VacaySettings', () => {
     })
     render(<VacaySettings onClose={vi.fn()} />)
 
-    // Find and click the add button (has rounded-md class and is in the holidays section)
-    const buttons = screen.getAllByRole('button')
-    const addButton = buttons.find(b => b.className.includes('rounded-md') && b.querySelector('svg'))
+    // Find and click the add button by its accessible name
+    const addButton = screen.getByRole('button', { name: /addCalendar|add calendar/i })
     expect(addButton).toBeDefined()
-    await user.click(addButton!)
+    await user.click(addButton)
 
     // After clicking, the AddCalendarForm should be visible with a label input
     const inputs = screen.getAllByRole('textbox')
@@ -159,9 +159,8 @@ describe('VacaySettings', () => {
     render(<VacaySettings onClose={vi.fn()} />)
 
     // Click the add button to show AddCalendarForm
-    const buttons = screen.getAllByRole('button')
-    const addButton = buttons.find(b => b.className.includes('rounded-md') && b.querySelector('svg'))
-    await user.click(addButton!)
+    const addButton = screen.getByRole('button', { name: /addCalendar|add calendar/i })
+    await user.click(addButton)
 
     // Wait for countries to load (the component fetches them on mount)
     await waitFor(() => {
@@ -360,10 +359,8 @@ describe('VacaySettings', () => {
     render(<VacaySettings onClose={vi.fn()} />)
 
     // Open the form
-    const addButton = screen.getAllByRole('button').find(b =>
-      b.className.includes('rounded-md') && b.querySelector('svg')
-    )
-    await user.click(addButton!)
+    const addButton = screen.getByRole('button', { name: /addCalendar|add calendar/i })
+    await user.click(addButton)
     expect(screen.getAllByRole('textbox').length).toBeGreaterThan(0)
 
     // Click cancel (✕ button)
@@ -447,6 +444,53 @@ describe('VacaySettings', () => {
     )
 
     expect(await fetchRegionOptions('JP')).toEqual([])
+  })
+
+  it('FE-COMP-VACAYSETTINGS-021: school holiday whitelist contains only approved green/yellow countries', () => {
+    expect(Object.values(SCHOOL_HOLIDAY_COUNTRY_CONFIG).every(config => ['green', 'yellow'].includes(config.status))).toBe(true)
+    expect(SCHOOL_HOLIDAY_COUNTRY_CONFIG.SE).toBeUndefined()
+  })
+
+  it('FE-COMP-VACAYSETTINGS-022: German school holidays use subdivisions even when OpenHolidays exposes groups', async () => {
+    server.use(
+      http.get('/api/addons/vacay/school-holidays/regions/:country', () =>
+        HttpResponse.json({
+          groups: [
+            { code: 'DE-MV-ABS', name: [{ language: 'EN', text: 'General Schools' }] },
+          ],
+          subdivisions: [
+            { code: 'DE-BY', name: [{ language: 'EN', text: 'Bavaria' }] },
+            { code: 'DE-NW', name: [{ language: 'EN', text: 'North Rhine-Westphalia' }] },
+          ],
+        })
+      ),
+    )
+
+    expect(await fetchSchoolHolidayRegionOptions('DE')).toEqual([
+      { value: 'DE-BY', label: 'Bavaria' },
+      { value: 'DE-NW', label: 'North Rhine-Westphalia' },
+    ])
+  })
+
+  it('FE-COMP-VACAYSETTINGS-023: Dutch school holidays use OpenHolidays groups', async () => {
+    server.use(
+      http.get('/api/addons/vacay/school-holidays/regions/:country', () =>
+        HttpResponse.json({
+          groups: [
+            { code: 'NL-NO', name: [{ language: 'EN', text: 'North Region' }] },
+            { code: 'NL-MI', name: [{ language: 'EN', text: 'Central Region' }] },
+          ],
+          subdivisions: [
+            { code: 'NL-DR', name: [{ language: 'EN', text: 'Drenthe' }] },
+          ],
+        })
+      ),
+    )
+
+    expect(await fetchSchoolHolidayRegionOptions('NL')).toEqual([
+      { value: 'NL|group:NL-MI', label: 'Central Region' },
+      { value: 'NL|group:NL-NO', label: 'North Region' },
+    ])
   })
 
   it('FE-COMP-VACAYSETTINGS-018: adding weekend day calls updatePlan with day added', async () => {

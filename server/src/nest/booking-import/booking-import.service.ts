@@ -1,14 +1,13 @@
 import { Injectable, HttpException } from '@nestjs/common';
-import { broadcast } from '../../websocket';
-import { checkPermission } from '../../services/permissions';
-import { verifyTripAccess } from '../../services/tripAccess';
-import { createReservation } from '../../services/reservationService';
-import { createPlace } from '../../services/placeService';
-import { createBudgetItem, freezeForeignRate } from '../../services/budgetService';
-import { isAddonEnabled } from '../../services/adminService';
+import { RealtimeService } from '../realtime/realtime.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { ReservationsService } from '../reservations/reservations.service';
+import { PlacesService } from '../places/places.service';
+import { BudgetService } from '../budget/budget.service';
+import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
-import { searchNominatim } from '../../services/mapsService';
-import { db } from '../../db/database';
+import { MapsService } from '../maps/maps.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { User } from '../../types';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
@@ -17,24 +16,36 @@ import { typeToCostCategory } from '@trek/shared';
 import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode, BookingImportFileReport, Reservation } from '@trek/shared';
 import type { ParsedBookingItem, KiReservation } from './kitinerary.types';
 
-function resolveDayId(tripId: string, iso: string | null | undefined): number | null {
-  if (!iso) return null;
-  const date = iso.slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  const exact = db.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1').get(tripId, date) as { id: number } | undefined;
-  if (exact) return exact.id;
-  // Clamp to the nearest trip day so an out-of-range / unmatched check-in still
-  // resolves and the accommodation row is inserted.
-  const nearest = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC LIMIT 1').get(tripId, date) as { id: number } | undefined;
-  return nearest?.id ?? null;
-}
-
 @Injectable()
 export class BookingImportService {
   constructor(
     private readonly extractor: KitineraryExtractorService,
     private readonly llmParse: LlmParseService,
+    private readonly dbs: DatabaseService,
+    private readonly reservations: ReservationsService,
+    private readonly permissions: PermissionsService,
+    private readonly budget: BudgetService,
+    private readonly addons: AddonsService,
+    private readonly realtime: RealtimeService,
+    private readonly maps: MapsService,
+    private readonly places: PlacesService,
   ) {}
+
+  private get db() {
+    return this.dbs.connection;
+  }
+
+  private resolveDayId(tripId: string, iso: string | null | undefined): number | null {
+    if (!iso) return null;
+    const date = iso.slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    const exact = this.db.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1').get(tripId, date) as { id: number } | undefined;
+    if (exact) return exact.id;
+    // Clamp to the nearest trip day so an out-of-range / unmatched check-in still
+    // resolves and the accommodation row is inserted.
+    const nearest = this.db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC LIMIT 1').get(tripId, date) as { id: number } | undefined;
+    return nearest?.id ?? null;
+  }
 
   isAvailable(): boolean {
     return this.extractor.isAvailable();
@@ -46,11 +57,11 @@ export class BookingImportService {
   }
 
   verifyTripAccess(tripId: string, userId: number) {
-    return verifyTripAccess(tripId, userId);
+    return this.dbs.canAccessTrip(tripId, userId);
   }
 
-  canEdit(trip: NonNullable<ReturnType<typeof verifyTripAccess>>, user: User): boolean {
-    return checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
+  canEdit(trip: TripAccess, user: User): boolean {
+    return this.permissions.checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
   /**
@@ -150,7 +161,7 @@ export class BookingImportService {
               ].filter((q): q is string => !!q);
 
               for (const q of queries) {
-                const results = await searchNominatim(q);
+                const results = await this.maps.searchNominatim(q);
                 const hit = results[0];
                 if (hit?.lat != null && hit?.lng != null) {
                   lat = hit.lat;
@@ -163,7 +174,7 @@ export class BookingImportService {
             }
           }
 
-          const place = createPlace(tripId, {
+          const place = this.places.create(tripId, {
             name: _venue.name,
             lat,
             lng,
@@ -172,7 +183,7 @@ export class BookingImportService {
             phone: _venue.phone,
           });
           placeId = (place as any).id;
-          broadcast(tripId, 'place:created', { place }, socketId);
+          this.realtime.broadcast(tripId, 'place:created', { place }, socketId);
         }
 
         // Geocode transport endpoints (stations/stops/terminals/rental desks) that
@@ -182,7 +193,7 @@ export class BookingImportService {
           for (const ep of reservationData.endpoints) {
             if ((ep.lat == null || ep.lng == null) && ep.name) {
               try {
-                const hit = (await searchNominatim(ep.name))[0];
+                const hit = (await this.maps.searchNominatim(ep.name))[0];
                 if (hit?.lat != null && hit?.lng != null) {
                   ep.lat = hit.lat;
                   ep.lng = hit.lng;
@@ -202,8 +213,8 @@ export class BookingImportService {
         // the accommodation row is actually inserted (createReservation gates on them).
         let createAccommodation: { place_id?: number; start_day_id?: number; end_day_id?: number; check_in?: string; check_out?: string; confirmation?: string } | undefined;
         if (item.type === 'hotel' && _accommodation) {
-          const startDayId = resolveDayId(tripId, _accommodation.check_in);
-          const endDayId   = resolveDayId(tripId, _accommodation.check_out);
+          const startDayId = this.resolveDayId(tripId, _accommodation.check_in);
+          const endDayId   = this.resolveDayId(tripId, _accommodation.check_out);
           createAccommodation = {
             place_id: placeId,
             start_day_id: startDayId ?? undefined,
@@ -214,20 +225,20 @@ export class BookingImportService {
           };
         }
 
-        const { reservation, accommodationCreated } = createReservation(tripId, {
+        const { reservation, accommodationCreated } = this.reservations.create(tripId, {
           ...reservationData,
           place_id: placeId,
           create_accommodation: createAccommodation,
         } as any);
 
-        broadcast(tripId, 'reservation:created', { reservation }, socketId);
+        this.realtime.broadcast(tripId, 'reservation:created', { reservation }, socketId);
         if (accommodationCreated) {
-          broadcast(tripId, 'accommodation:created', {}, socketId);
+          this.realtime.broadcast(tripId, 'accommodation:created', {}, socketId);
         }
 
         // Turn an extracted price into a real linked cost (Costs addon), so the
         // booking shows up as an expense — not just a price in metadata.
-        if (isAddonEnabled(ADDON_IDS.BUDGET)) {
+        if (this.addons.isAddonEnabled(ADDON_IDS.BUDGET)) {
           const meta =
             reservationData.metadata && typeof reservationData.metadata === 'object'
               ? (reservationData.metadata as Record<string, unknown>)
@@ -244,9 +255,9 @@ export class BookingImportService {
               };
               // Freeze the live FX rate for a foreign-currency booking price so a
               // settled position isn't re-opened when live rates drift (#1445).
-              await freezeForeignRate(tripId, budgetData);
-              const budgetItem = createBudgetItem(tripId, budgetData);
-              broadcast(tripId, 'budget:created', { item: budgetItem }, socketId);
+              await this.budget.freezeForeignRate(tripId, budgetData);
+              const budgetItem = this.budget.createBudgetItem(tripId, budgetData);
+              this.realtime.broadcast(tripId, 'budget:created', { item: budgetItem }, socketId);
             } catch (err) {
               console.error(
                 `[booking-import] Failed to create cost for "${item.title}":`,

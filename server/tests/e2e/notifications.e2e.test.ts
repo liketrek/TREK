@@ -1,8 +1,10 @@
 /**
  * Notifications module e2e — exercises the migrated /api/notifications endpoints
- * through the real JwtAuthGuard against a temp SQLite db. The notification
- * services are mocked; this focuses on auth, the inline admin gate on
- * /test-smtp, routing (the /in-app/all ordering trap) and status/body shapes.
+ * through the real JwtAuthGuard against a temp SQLite db. NotificationsService
+ * runs its real (DI-native) in-app SQL — notifications DDL below; the channel
+ * transports and the preference matrix (still plain services/* modules) are
+ * mocked. Focuses on auth, the inline admin gate on /test-smtp, routing (the
+ * /in-app/all ordering trap) and status/body shapes.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
@@ -17,37 +19,76 @@ const { db } = vi.hoisted(() => {
   const tmp = new Database(':memory:');
   tmp.exec('PRAGMA journal_mode = WAL');
   tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0);`);
+    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
+    avatar TEXT);`);
+  // NotificationsService runs its real SQL (DI-native since the notifications
+  // fold) — full notifications column set for listInApp/markRead/deleteAll.
+  tmp.exec(`CREATE TABLE notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL CHECK(type IN ('simple', 'boolean', 'navigate')),
+    scope TEXT NOT NULL CHECK(scope IN ('trip', 'user', 'admin')),
+    target INTEGER NOT NULL,
+    sender_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    recipient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title_key TEXT NOT NULL,
+    title_params TEXT DEFAULT '{}',
+    text_key TEXT NOT NULL,
+    text_params TEXT DEFAULT '{}',
+    positive_text_key TEXT,
+    negative_text_key TEXT,
+    positive_callback TEXT,
+    negative_callback TEXT,
+    response TEXT CHECK(response IN ('positive', 'negative')),
+    navigate_text_key TEXT,
+    navigate_target TEXT,
+    is_read INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );`);
   return { db: tmp };
 });
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
-const { prefs, inapp, channels } = vi.hoisted(() => ({
+// The preference matrix and the channel transports are providers since the
+// fold — overridden at the container instead of mocked by module path; the
+// in-app store is real SQL.
+const { prefs, mailer, webhook, ntfy } = vi.hoisted(() => ({
   prefs: { getPreferencesMatrix: vi.fn(), setPreferences: vi.fn() },
-  inapp: {
-    getNotifications: vi.fn(), getUnreadCount: vi.fn(), markRead: vi.fn(), markUnread: vi.fn(),
-    markAllRead: vi.fn(), deleteNotification: vi.fn(), deleteAll: vi.fn(), respondToBoolean: vi.fn(),
-  },
-  channels: {
-    testSmtp: vi.fn(), testWebhook: vi.fn(), testNtfy: vi.fn(),
-    getUserWebhookUrl: vi.fn(), getAdminWebhookUrl: vi.fn(),
-    getUserNtfyConfig: vi.fn(), getAdminNtfyConfig: vi.fn(),
-  },
+  mailer: { testSmtp: vi.fn(), isSmtpConfigured: vi.fn(() => true), getUserEmail: vi.fn(), getUserLanguage: vi.fn(() => 'en') },
+  webhook: { testWebhook: vi.fn(), getUserWebhookUrl: vi.fn(), getAdminWebhookUrl: vi.fn() },
+  ntfy: { testNtfy: vi.fn(), getUserNtfyConfig: vi.fn(), getAdminNtfyConfig: vi.fn() },
 }));
-vi.mock('../../src/services/notificationPreferencesService', () => prefs);
-vi.mock('../../src/services/inAppNotifications', () => inapp);
-vi.mock('../../src/services/notifications', () => channels);
 
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
+import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
+import { NotificationPreferencesService } from '../../src/nest/notifications/notification-preferences.service';
+import { NtfyService } from '../../src/nest/notifications/transports/ntfy.service';
+import { WebhookService } from '../../src/nest/notifications/transports/webhook.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+
+function seedNotification(recipientId: number, overrides: { is_read?: number } = {}): number {
+  const r = db.prepare(
+    `INSERT INTO notifications (type, scope, target, recipient_id, title_key, text_key, is_read)
+     VALUES ('simple', 'user', ?, ?, 'notif.test.title', 'notif.test.text', ?)`
+  ).run(recipientId, recipientId, overrides.is_read ?? 0);
+  return r.lastInsertRowid as number;
+}
 
 describe('Notifications e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [NotificationsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [DatabaseModule, RealtimeModule, NotificationsModule],
+    })
+      .overrideProvider(NotificationPreferencesService).useValue(prefs)
+      .overrideProvider(MailerService).useValue(mailer)
+      .overrideProvider(WebhookService).useValue(webhook)
+      .overrideProvider(NtfyService).useValue(ntfy)
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -61,9 +102,7 @@ describe('Notifications e2e (real auth guard + temp SQLite)', () => {
     app = await build();
     server = app.getHttpServer();
     prefs.getPreferencesMatrix.mockReturnValue({ preferences: {}, available_channels: {}, event_types: [], implemented_combos: {} });
-    inapp.getUnreadCount.mockReturnValue(2);
-    inapp.deleteAll.mockReturnValue(4);
-    channels.testSmtp.mockResolvedValue({ success: true });
+    mailer.testSmtp.mockResolvedValue({ success: true });
   });
 
   afterAll(async () => {
@@ -85,7 +124,7 @@ describe('Notifications e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).post('/api/notifications/test-smtp').set('Cookie', sessionCookie(2)).send({});
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'Admin only' });
-    expect(channels.testSmtp).not.toHaveBeenCalled();
+    expect(mailer.testSmtp).not.toHaveBeenCalled();
   });
 
   it('200 test-smtp for an admin (stays 200, not 201)', async () => {
@@ -94,18 +133,27 @@ describe('Notifications e2e (real auth guard + temp SQLite)', () => {
     expect(res.body).toEqual({ success: true });
   });
 
-  it('200 unread-count', async () => {
+  it('200 unread-count from the real notifications table', async () => {
+    db.prepare('DELETE FROM notifications').run();
+    seedNotification(2);
+    seedNotification(2);
+    seedNotification(2, { is_read: 1 });
     const res = await request(server).get('/api/notifications/in-app/unread-count').set('Cookie', sessionCookie(2));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ count: 2 });
   });
 
-  it('DELETE /in-app/all hits deleteAll, not deleteNotification', async () => {
+  it('DELETE /in-app/all hits deleteAll, not the /:id handler', async () => {
+    db.prepare('DELETE FROM notifications').run();
+    for (let i = 0; i < 4; i++) seedNotification(2);
+    const other = seedNotification(1);
     const res = await request(server).delete('/api/notifications/in-app/all').set('Cookie', sessionCookie(2));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, count: 4 });
-    expect(inapp.deleteAll).toHaveBeenCalledWith(2);
-    expect(inapp.deleteNotification).not.toHaveBeenCalled();
+    // Only user 2's rows are gone — the static route deleted per-recipient, it
+    // did not fall through to the /:id param handler (which would 400 on 'all').
+    const rows = db.prepare('SELECT id FROM notifications').all() as { id: number }[];
+    expect(rows.map(r => r.id)).toEqual([other]);
   });
 
   it('400 on a non-numeric in-app id', async () => {

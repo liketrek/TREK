@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router'
 import { useJourneyStore } from '../../store/journeyStore'
 import { useTranslation } from '../../i18n'
 import { addListener, removeListener } from '../../api/websocket'
@@ -8,6 +8,7 @@ import type { JourneyMapAutoHandle as JourneyMapHandle } from '../../components/
 import { useToast } from '../../components/shared/Toast'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import type { JourneyEntry } from '../../store/journeyStore'
+import { createDraftJourneyEntry } from './JourneyDetailPage.helpers'
 
 /**
  * Journey detail page logic — owns the journey load + WebSocket live sync, the
@@ -48,8 +49,7 @@ export function useJourneyDetail() {
   // The bottom-nav "+" starts a new entry via ?create=entry.
   useEffect(() => {
     if (searchParams.get('create') === 'entry' && current && canEditEntries) {
-      const today = new Date().toISOString().slice(0, 10)
-      setEditingEntry({ id: 0, journey_id: current.id, author_id: 0, type: 'entry', entry_date: today, visibility: 'private', sort_order: 0, photos: [], created_at: 0, updated_at: 0 } as JourneyEntry)
+      setEditingEntry(createDraftJourneyEntry(current.id))
       setSearchParams(p => { p.delete('create'); return p }, { replace: true })
     }
   }, [searchParams, current, canEditEntries])
@@ -262,12 +262,15 @@ export function useJourneyDetail() {
   const tripDates = useMemo(() => {
     const dates = new Set<string>()
     if (!current?.trips) return dates
+    // The days are walked in local time, so the key has to be built from the local parts —
+    // toISOString() would shift the whole range by a day in every timezone east of UTC.
+    const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     for (const trip of current.trips) {
       if (!trip.start_date || !trip.end_date) continue
       const start = new Date(trip.start_date + 'T00:00:00')
       const end = new Date(trip.end_date + 'T00:00:00')
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        dates.add(d.toISOString().split('T')[0])
+        dates.add(dateKey(d))
       }
     }
     return dates

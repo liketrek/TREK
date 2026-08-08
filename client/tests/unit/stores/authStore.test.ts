@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';
 import { useAuthStore } from '../../../src/store/authStore';
+import { useSystemNoticeStore } from '../../../src/store/systemNoticeStore';
 import { authApi } from '../../../src/api/client';
 import { resetAllStores } from '../../helpers/store';
 import { buildUser } from '../../helpers/factories';
@@ -9,9 +10,28 @@ import { buildUser } from '../../helpers/factories';
 // The websocket module is already mocked globally in tests/setup.ts
 import { connect, disconnect } from '../../../src/api/websocket';
 
+// The user-scoped offline DB is real (fake-indexeddb); only the reopen step is
+// made failable so the "auth still succeeds when the DB won't open" path runs.
+const dbControl = vi.hoisted(() => ({ reopenFails: false }));
+vi.mock('../../../src/db/offlineDb', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/db/offlineDb')>();
+  return {
+    ...actual,
+    reopenForUser: async (userId: number | string) => {
+      if (dbControl.reopenFails) throw new Error('offline db locked');
+      return actual.reopenForUser(userId);
+    },
+  };
+});
+
 beforeEach(() => {
   resetAllStores();
   vi.clearAllMocks();
+  dbControl.reopenFails = false;
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('authStore', () => {
@@ -486,6 +506,230 @@ describe('authStore', () => {
       const snapshot = JSON.parse(localStorage.getItem('trek_auth_snapshot') ?? '{}');
       expect(snapshot?.state?.isAuthenticated).toBe(true);
       expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    });
+  });
+
+  describe('FE-STORE-AUTH-024: system notices are skipped for a forced password change', () => {
+    const stubNoticeFetch = () => {
+      const fetch = vi.fn(async () => {});
+      useSystemNoticeStore.setState({ fetch });
+      return fetch;
+    };
+
+    it('login skips the notice fetch when must_change_password is set', async () => {
+      const user = buildUser({ must_change_password: true });
+      server.use(http.post('/api/auth/login', () => HttpResponse.json({ user, token: 'tok' })));
+      const noticeFetch = stubNoticeFetch();
+
+      await useAuthStore.getState().login(user.email, 'password');
+
+      expect(useAuthStore.getState().isAuthenticated).toBe(true);
+      expect(noticeFetch).not.toHaveBeenCalled();
+    });
+
+    it('completeMfaLogin skips the notice fetch when must_change_password is set', async () => {
+      const user = buildUser({ must_change_password: true });
+      server.use(http.post('/api/auth/mfa/verify-login', () => HttpResponse.json({ user, token: 'tok' })));
+      const noticeFetch = stubNoticeFetch();
+
+      await useAuthStore.getState().completeMfaLogin('mfa-tok', '123 456');
+
+      expect(useAuthStore.getState().isAuthenticated).toBe(true);
+      expect(noticeFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('FE-STORE-AUTH-025: offline DB cannot be opened', () => {
+    it('login still authenticates and logs the failure', async () => {
+      const user = buildUser();
+      server.use(http.post('/api/auth/login', () => HttpResponse.json({ user, token: 'tok' })));
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      dbControl.reopenFails = true;
+
+      await useAuthStore.getState().login(user.email, 'password');
+
+      expect(useAuthStore.getState().isAuthenticated).toBe(true);
+      expect(consoleError).toHaveBeenCalledWith(
+        '[auth] failed to open user-scoped offline DB',
+        expect.any(Error),
+      );
+    });
+  });
+
+  describe('FE-STORE-AUTH-026: logout hardening', () => {
+    it('clears the service-worker caches and finishes even when every teardown step fails', async () => {
+      useAuthStore.setState({ user: buildUser(), isAuthenticated: true, authCheckFailed: true });
+
+      const cacheDelete = vi.fn(() => Promise.reject(new Error('cache api unavailable')));
+      Object.defineProperty(window, 'caches', {
+        value: { delete: cacheDelete },
+        configurable: true,
+        writable: true,
+      });
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+
+      await useAuthStore.getState().logout();
+
+      expect(cacheDelete).toHaveBeenCalledWith('api-data');
+      expect(cacheDelete).toHaveBeenCalledWith('user-uploads');
+      const state = useAuthStore.getState();
+      expect(state.user).toBeNull();
+      expect(state.isAuthenticated).toBe(false);
+      expect(state.authCheckFailed).toBe(false);
+
+      delete (window as unknown as { caches?: unknown }).caches;
+    });
+  });
+
+  describe('FE-STORE-AUTH-027: loadUser while genuinely offline', () => {
+    it('keeps the persisted session and does not raise authCheckFailed', async () => {
+      const onLine = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+      useAuthStore.setState({ user: buildUser(), isAuthenticated: true });
+      // A transport-level failure carries no `response`, so status stays undefined.
+      vi.spyOn(authApi, 'me').mockRejectedValueOnce(new Error('Network Error'));
+
+      await useAuthStore.getState().loadUser();
+
+      const state = useAuthStore.getState();
+      expect(state.isAuthenticated).toBe(true);
+      expect(state.isLoading).toBe(false);
+      expect(state.authCheckFailed).toBe(false);
+
+      if (onLine) Object.defineProperty(Navigator.prototype, 'onLine', onLine);
+      delete (navigator as unknown as { onLine?: boolean }).onLine;
+    });
+
+    it('flags authCheckFailed when the server is unreachable but we are online', async () => {
+      useAuthStore.setState({ user: buildUser(), isAuthenticated: true });
+      vi.spyOn(authApi, 'me').mockRejectedValueOnce(new Error('Network Error'));
+
+      await useAuthStore.getState().loadUser();
+
+      expect(useAuthStore.getState().authCheckFailed).toBe(true);
+      expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    });
+  });
+
+  describe('FE-STORE-AUTH-028: stale loadUser rejection', () => {
+    it('does not clear the session a newer login established', async () => {
+      let rejectStale!: (e: Error) => void;
+      const stale = new Promise((_, reject) => { rejectStale = reject; });
+      vi.spyOn(authApi, 'me').mockImplementationOnce(() => stale);
+
+      const staleLoad = useAuthStore.getState().loadUser();
+
+      const freshUser = buildUser({ username: 'freshlogin' });
+      server.use(http.post('/api/auth/login', () => HttpResponse.json({ user: freshUser, token: 'tok' })));
+      await useAuthStore.getState().login(freshUser.email, 'password');
+
+      rejectStale(Object.assign(new Error('Unauthorized'), { response: { status: 401 } }));
+      await staleLoad;
+
+      const state = useAuthStore.getState();
+      expect(state.user?.username).toBe('freshlogin');
+      expect(state.isAuthenticated).toBe(true);
+    });
+  });
+
+  describe('FE-STORE-AUTH-029: API-key and profile error paths', () => {
+    it('updateMapsKey surfaces the server message', async () => {
+      server.use(http.put('/api/auth/me/maps-key', () =>
+        HttpResponse.json({ error: 'Invalid key' }, { status: 400 })));
+
+      await expect(useAuthStore.getState().updateMapsKey('bad')).rejects.toThrow('Invalid key');
+    });
+
+    it('updateMapsKey without a signed-in user leaves user null', async () => {
+      server.use(http.put('/api/auth/me/maps-key', () => HttpResponse.json({ success: true })));
+      useAuthStore.setState({ user: null, hasMapsKey: false });
+
+      await useAuthStore.getState().updateMapsKey('a-key');
+
+      expect(useAuthStore.getState().user).toBeNull();
+      expect(useAuthStore.getState().hasMapsKey).toBe(true);
+    });
+
+    it('updateApiKeys mirrors a maps_api_key into hasMapsKey', async () => {
+      const updatedUser = buildUser();
+      server.use(http.put('/api/auth/me/api-keys', () => HttpResponse.json({ user: updatedUser })));
+
+      await useAuthStore.getState().updateApiKeys({ maps_api_key: 'k' });
+      expect(useAuthStore.getState().hasMapsKey).toBe(true);
+
+      await useAuthStore.getState().updateApiKeys({ maps_api_key: null });
+      expect(useAuthStore.getState().hasMapsKey).toBe(false);
+    });
+
+    it('updateApiKeys surfaces the server message', async () => {
+      server.use(http.put('/api/auth/me/api-keys', () =>
+        HttpResponse.json({ error: 'Rejected' }, { status: 400 })));
+
+      await expect(useAuthStore.getState().updateApiKeys({ some_key: 'v' })).rejects.toThrow('Rejected');
+    });
+
+    it('updateProfile surfaces the server message', async () => {
+      server.use(http.put('/api/auth/me/settings', () =>
+        HttpResponse.json({ error: 'Username taken' }, { status: 409 })));
+
+      await expect(useAuthStore.getState().updateProfile({ username: 'x' })).rejects.toThrow('Username taken');
+    });
+  });
+
+  describe('FE-STORE-AUTH-030: avatar actions without a signed-in user', () => {
+    it('uploadAvatar returns the URL but keeps user null', async () => {
+      vi.spyOn(authApi, 'uploadAvatar').mockResolvedValueOnce({ avatar_url: '/uploads/a.png' });
+      useAuthStore.setState({ user: null });
+
+      const result = await useAuthStore.getState().uploadAvatar(new File(['x'], 'a.png'));
+
+      expect(result.avatar_url).toBe('/uploads/a.png');
+      expect(useAuthStore.getState().user).toBeNull();
+    });
+
+    it('deleteAvatar keeps user null', async () => {
+      server.use(http.delete('/api/auth/avatar', () => HttpResponse.json({ success: true })));
+      useAuthStore.setState({ user: null });
+
+      await useAuthStore.getState().deleteAvatar();
+
+      expect(useAuthStore.getState().user).toBeNull();
+    });
+  });
+
+  describe('FE-STORE-AUTH-031: demoLogin failure', () => {
+    it('sets error and stays unauthenticated', async () => {
+      server.use(http.post('/api/auth/demo-login', () =>
+        HttpResponse.json({ error: 'Demo disabled' }, { status: 403 })));
+
+      await expect(useAuthStore.getState().demoLogin()).rejects.toThrow('Demo disabled');
+
+      const state = useAuthStore.getState();
+      expect(state.error).toBe('Demo disabled');
+      expect(state.isAuthenticated).toBe(false);
+      expect(state.isLoading).toBe(false);
+    });
+  });
+
+  describe('FE-STORE-AUTH-032: remaining app-config setters', () => {
+    it('updates isPrerelease, appVersion and the three places toggles', () => {
+      const {
+        setIsPrerelease, setAppVersion,
+        setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled,
+      } = useAuthStore.getState();
+
+      setIsPrerelease(true);
+      setAppVersion('3.4.0');
+      setPlacesPhotosEnabled(false);
+      setPlacesAutocompleteEnabled(false);
+      setPlacesDetailsEnabled(false);
+
+      const state = useAuthStore.getState();
+      expect(state.isPrerelease).toBe(true);
+      expect(state.appVersion).toBe('3.4.0');
+      expect(state.placesPhotosEnabled).toBe(false);
+      expect(state.placesAutocompleteEnabled).toBe(false);
+      expect(state.placesDetailsEnabled).toBe(false);
     });
   });
 });

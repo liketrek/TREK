@@ -11,11 +11,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { readEnv } from '../../app-config';
 import { FeedsService } from './feeds.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { User } from '../../types';
-import { db } from '../../db/database';
+import { DatabaseService } from '../database/database.service';
 
 // Resolve the public origin used to build feed URLs. APP_URL wins — it is the
 // canonical externally-reachable URL behind a reverse proxy. When it is unset
@@ -23,7 +24,8 @@ import { db } from '../../db/database';
 // the link is still absolute and copy-pasteable as webcal:// instead of a dead
 // relative path.
 function resolveFeedBase(req: Request): string {
-  const configured = (process.env.APP_URL || '').replace(/\/$/, '');
+  // Single trailing slash stripped on purpose (legacy parity; notifications strips all).
+  const configured = (readEnv().app.appUrl || '').replace(/\/$/, '');
   if (configured) return configured;
   const host = req.get('host');
   return host ? `${req.protocol}://${host}` : '';
@@ -75,10 +77,13 @@ export class FeedsPublicController {
 @Controller('api/trips/:tripId/feed')
 @UseGuards(JwtAuthGuard)
 export class TripFeedTokenController {
-  constructor(private readonly feeds: FeedsService) {}
+  constructor(
+    private readonly feeds: FeedsService,
+    private readonly dbs: DatabaseService,
+  ) {}
 
   private assertAccess(tripId: string, userId: number): void {
-    const row = db
+    const row = this.dbs.connection
       .prepare(
         'SELECT id FROM trips WHERE id = ? AND (user_id = ? OR id IN (SELECT trip_id FROM trip_members WHERE user_id = ?))',
       )

@@ -1,8 +1,5 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
-import mapboxgl from 'mapbox-gl'
-import maplibregl from 'maplibre-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import 'maplibre-gl/dist/maplibre-gl.css'
+import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
+import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
@@ -26,6 +23,7 @@ interface MapEntry {
 }
 
 interface Props {
+  ref?: Ref<JourneyMapGLHandle>
   checkins: unknown[]
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
@@ -36,6 +34,13 @@ interface Props {
   fullScreen?: boolean
   paddingBottom?: number
   glProvider?: GlMapProvider
+  /**
+   * The GL engine, injected instead of imported. Both SDKs used to be pulled in
+   * statically here, so a single 2.8 MB chunk carried mapbox-gl and maplibre-gl
+   * together and every map user downloaded both while only one ever ran.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gl: any
 }
 
 interface Item {
@@ -205,9 +210,8 @@ function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): H
 
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
 
-const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL(
-  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl' },
-  ref
+function JourneyMapGL(
+  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, ref }: Props,
 ) {
   const stableTrail = trail || EMPTY_TRAIL
   const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
@@ -217,7 +221,6 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
   const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
-  const gl = (isMapLibre ? maplibregl : mapboxgl) as any
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
   const containerRef = useRef<HTMLDivElement>(null)
@@ -233,6 +236,8 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   onMarkerClickRef.current = onMarkerClick
   const darkRef = useRef(dark)
   darkRef.current = dark
+  const mapLangRef = useRef(mapLang)
+  mapLangRef.current = mapLang
 
   const showPopup = useCallback((id: string) => {
     const item = itemsRef.current.find(i => i.id === id)
@@ -342,7 +347,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   // inside the same effect so they stay in sync with the active style.
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !mapboxToken)) return
-    if (!isMapLibre) mapboxgl.accessToken = mapboxToken
+    if (!isMapLibre) gl.accessToken = mapboxToken
 
     const items = buildItems(entries)
     itemsRef.current = items
@@ -382,7 +387,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       // Pin the basemap label language to the UI language so labels don't fall back to the
       // browser/OS locale and stack multiple scripts per place (#1299).
       if (!isMapLibre && isStandardFamily(glStyle)) {
-        try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLang)) } catch { /* style/SDK may not support it */ }
+        try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLangRef.current)) } catch { /* style/SDK may not support it */ }
       }
 
       // route trail — dashed line connecting entries in time order
@@ -451,6 +456,14 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
     }
   }, [entries, stableTrail, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
 
+  // Switching the UI language has to repin the basemap labels without tearing
+  // the map down. The load handler covers the initial run.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || isMapLibre || !isStandardFamily(glStyle)) return
+    try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLang)) } catch { /* style/SDK may not support it */ }
+  }, [mapLang, isMapLibre, glStyle])
+
   // external activeMarkerId → highlight + flyTo
   useEffect(() => {
     if (!activeMarkerId || !mapRef.current) return
@@ -489,6 +502,6 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
     </div>
   )
-})
+}
 
 export default JourneyMapGL

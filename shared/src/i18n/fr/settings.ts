@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modèle de carte',
   'settings.mapTemplatePlaceholder.select': 'Sélectionner un modèle…',
   'settings.mapDefaultHint': 'Laissez vide pour OpenStreetMap (par défaut)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': "Modèle d'URL pour les tuiles de carte",
   'settings.mapProvider': 'Fournisseur de carte',
   'settings.mapProviderHint': 'Affecte les cartes Trip Planner et Journey. Atlas utilise toujours Leaflet.',
@@ -81,6 +80,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Rappels de voyage',
   'settings.notifyTodoDue': 'Tâche à échéance',
   'settings.notifyVacayInvite': 'Invitations de fusion Vacay',
+  'settings.notifyVacayShare': 'Partages de calendrier Vacay',
   'settings.notifyPhotosShared': 'Photos partagées (Immich)',
   'settings.notifyCollabMessage': 'Messages de chat (Collab)',
   'settings.notifyPackingTagged': 'Liste de bagages : attributions',
@@ -264,6 +264,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Photo de profil mise à jour',
   'settings.avatarRemoved': 'Photo de profil supprimée',
   'settings.avatarError': "Échec de l'import",
+  'settings.avatarRemoveError': 'Échec de la suppression',
   'settings.bookingLabels': 'Étiquettes des itinéraires',
   'settings.bookingLabelsHint':
     "Affiche les noms des gares / aéroports sur la carte. Si désactivé, seule l'icône est affichée.",
@@ -304,8 +305,9 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': "Devise d'affichage",
+  'settings.currencyHint':
+    "Les montants dans Coûts sont convertis dans cette devise uniquement pour l'affichage — les montants d'origine restent inchangés.",
   'settings.currencyTrip': 'Devise du voyage',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
@@ -435,6 +437,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Barre de navigation',
+  'settings.appearance.mobileNav.hint':
+    'Choisissez les éléments à afficher dans la barre et ceux à placer sous « Plus ». Le tableau de bord reste toujours en premier.',
+  'settings.appearance.mobileNav.inBar': 'Dans la barre',
+  'settings.appearance.mobileNav.underMore': 'Sous « Plus »',
+  'settings.appearance.mobileNav.moreEmpty': 'Rien ici pour l’instant — tout tient dans la barre.',
+  'settings.appearance.mobileNav.pinned': 'Épinglé',
+  'settings.appearance.mobileNav.toMore': 'Déplacer sous « Plus »',
+  'settings.appearance.mobileNav.toBar': 'Déplacer dans la barre',
+  'settings.appearance.dashOrder': 'Ordre du tableau de bord',
+  'settings.appearance.dashOrder.hint':
+    'Réorganisez l’empilement de la liste des voyages et des widgets sur le tableau de bord de votre téléphone. Le voyage en vedette reste toujours en haut.',
+  'settings.appearance.dashOrder.trips': 'Voyages',
+  'settings.appearance.dashOrder.hidden': 'Masqué',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -502,7 +518,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Quand',
   'settings.pluginActivity.columns.status': 'Résultat',
   'settings.alwaysShowRoutes': 'Toujours afficher les itinéraires de réservation',
-  'settings.alwaysShowRoutesHint': 'Affiche automatiquement sur la carte l\'itinéraire de chaque vol, trajet en train et autre réservation, sans avoir à l\'activer un par un.',
+  'settings.alwaysShowRoutesHint':
+    "Affiche automatiquement sur la carte l'itinéraire de chaque vol, trajet en train et autre réservation, sans avoir à l'activer un par un.",
 };
 
 export default settings;

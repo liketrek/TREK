@@ -16,6 +16,12 @@ import { usePluginStore } from '../store/pluginStore'
 import { useSettings } from './settings/useSettings'
 
 export default function SettingsPage(): React.ReactElement {
+  // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
+  // chunk of its own instead of a dead limb in this one.
+  return <SettingsPageDesktop />
+}
+
+function SettingsPageDesktop(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: addon/version loading + active-tab state in the hook.
   const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()

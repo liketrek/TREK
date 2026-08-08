@@ -24,7 +24,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modelo de mapa',
   'settings.mapTemplatePlaceholder.select': 'Selecione o modelo...',
   'settings.mapDefaultHint': 'Deixe vazio para OpenStreetMap (padrão)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL do modelo de blocos do mapa',
   'settings.mapProvider': 'Provedor de mapa',
   'settings.mapProviderHint': 'Afeta os mapas do Planejador de Viagem e Diário. Atlas sempre usa Leaflet.',
@@ -80,6 +79,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Lembretes de viagem',
   'settings.notifyTodoDue': 'Tarefa com vencimento',
   'settings.notifyVacayInvite': 'Convites de fusão Vacay',
+  'settings.notifyVacayShare': 'Compartilhamentos de calendário Vacay',
   'settings.notifyPhotosShared': 'Fotos compartilhadas (Immich)',
   'settings.notifyCollabMessage': 'Mensagens de chat (Colab)',
   'settings.notifyPackingTagged': 'Lista de mala: atribuições',
@@ -147,6 +147,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Foto do perfil atualizada',
   'settings.avatarRemoved': 'Foto do perfil removida',
   'settings.avatarError': 'Falha no envio',
+  'settings.avatarRemoveError': 'Falha ao remover',
   'settings.mfa.title': 'Autenticação em duas etapas (2FA)',
   'settings.mfa.description':
     'Adiciona uma segunda etapa ao entrar com e-mail e senha. Use um app autenticador (Google Authenticator, Authy, etc.).',
@@ -299,8 +300,9 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Moeda de exibição',
+  'settings.currencyHint':
+    'Os valores em Custos são exibidos convertidos para esta moeda apenas para visualização — os valores originais permanecem inalterados.',
   'settings.currencyTrip': 'Moeda da viagem',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
@@ -428,6 +430,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Barra inferior',
+  'settings.appearance.mobileNav.hint':
+    'Escolha quais itens aparecem na barra e quais ficam em “Mais”. O Dashboard vem sempre primeiro.',
+  'settings.appearance.mobileNav.inBar': 'Na barra',
+  'settings.appearance.mobileNav.underMore': 'Em “Mais”',
+  'settings.appearance.mobileNav.moreEmpty': 'Nada aqui ainda — tudo cabe na barra.',
+  'settings.appearance.mobileNav.pinned': 'Fixado',
+  'settings.appearance.mobileNav.toMore': 'Mover para “Mais”',
+  'settings.appearance.mobileNav.toBar': 'Mover para a barra',
+  'settings.appearance.dashOrder': 'Ordem do painel',
+  'settings.appearance.dashOrder.hint':
+    'Reorganize como a lista de viagens e os widgets se empilham no painel do celular. A viagem em destaque fica sempre no topo.',
+  'settings.appearance.dashOrder.trips': 'Viagens',
+  'settings.appearance.dashOrder.hidden': 'Oculto',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -494,7 +510,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Quando',
   'settings.pluginActivity.columns.status': 'Resultado',
   'settings.alwaysShowRoutes': 'Sempre mostrar rotas de reserva',
-  'settings.alwaysShowRoutesHint': 'Mostra automaticamente no mapa a rota de cada voo, trem e outra reserva, sem precisar ativar item por item.',
+  'settings.alwaysShowRoutesHint':
+    'Mostra automaticamente no mapa a rota de cada voo, trem e outra reserva, sem precisar ativar item por item.',
 };
 
 export default settings;

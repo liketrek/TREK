@@ -201,6 +201,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Gagal memuat template',
   'admin.packingTemplates.createError': 'Gagal membuat template',
   'admin.packingTemplates.deleteError': 'Gagal menghapus template',
+  'admin.packingTemplates.deleteCategoryError': 'Gagal menghapus kategori',
+  'admin.packingTemplates.deleteItemError': 'Gagal menghapus item',
   'admin.packingTemplates.saveError': 'Gagal menyimpan',
   'admin.tabs.addons': 'Addon',
   'admin.tabs.plugins': 'Plugins',
@@ -366,6 +368,15 @@ const admin: TranslationStrings = {
     'Menambahkan kolom dan tindakan ke tampilan perjalanan (pemesanan, tempat, hari)',
   'admin.plugins.perm.hook:map-marker-provider':
     'Menambahkan penanda ke peta perjalanan (mis. menampilkan pemesanan atau POI)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Menggambar rute, koridor, dan zona di peta perjalanan',
+  'admin.plugins.perm.hook:route-provider':
+    'Menawarkan profil routing yang dapat digunakan perencana untuk menghitung rute hari (mis. routing mobil listrik dengan pemberhentian pengisian daya)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Melampirkan entri waktu ke rencana hari (pemberhentian pengisian daya, jeda keamanan)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Memberi warna pada hari di rencana hari (misalnya bagian perjalanan mana yang memuat suatu hari)',
+  'admin.plugins.perm.geolocation:read':
+    'Meminta lokasi terkinimu selama salah satu tampilannya terbuka (browser-mu tetap akan meminta izin terlebih dahulu)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Menambahkan bagian teks ke ekspor PDF perjalanan',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Menyorot negara di peta dunia Atlas (mis. daftar keinginan atau peringatan perjalanan)',
@@ -483,6 +494,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Menyediakan acara kalender',
   'admin.plugins.cap.placeDetails': 'Memperkaya tempat',
   'admin.plugins.cap.warnings': 'Tandai masalah',
+  'admin.plugins.cap.mapLayers': 'Menggambar di peta',
+  'admin.plugins.cap.routing': 'Menyediakan routing',
+  'admin.plugins.cap.daySchedule': 'Menambahkan waktu rencana',
+  'admin.plugins.cap.dayTint': 'Mewarnai hari',
+  'admin.plugins.cap.geolocation': 'Membaca lokasimu',
   'admin.plugins.cap.events': 'Bereaksi terhadap aktivitas',
   'admin.plugins.cap.requiresAddon': 'Membutuhkan {addon}',
   'admin.plugins.cap.dependsOn': 'Membutuhkan {id} {version}',

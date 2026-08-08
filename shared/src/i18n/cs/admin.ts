@@ -157,6 +157,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.loadError': 'Nepodařilo se načíst šablony',
   'admin.packingTemplates.createError': 'Nepodařilo se vytvořit šablonu',
   'admin.packingTemplates.deleteError': 'Nepodařilo se smazat šablonu',
+  'admin.packingTemplates.deleteCategoryError': 'Nepodařilo se smazat kategorii',
+  'admin.packingTemplates.deleteItemError': 'Nepodařilo se smazat položku',
   'admin.packingTemplates.saveError': 'Uložení se nezdařilo',
   'admin.tabs.addons': 'Doplňky',
   'admin.tabs.plugins': 'Pluginy',
@@ -311,6 +313,15 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'Vyvolávat ověřovací upozornění u cesty (zobrazená v plánovači)',
   'admin.plugins.perm.hook:table-contributor': 'Přidávat sloupce a akce do zobrazení cesty (rezervace, místa, dny)',
   'admin.plugins.perm.hook:map-marker-provider': 'Přidávat značky na mapu cesty (např. zobrazit rezervace nebo POI)',
+  'admin.plugins.perm.hook:map-layer-provider': 'Zakreslovat trasy, koridory a zóny do mapy cesty',
+  'admin.plugins.perm.hook:route-provider':
+    'Nabízet trasovací profily, podle kterých plánovač počítá trasy dnů (např. trasování pro elektromobily se zastávkami na nabíjení)',
+  'admin.plugins.perm.hook:day-schedule-provider':
+    'Připojovat časové položky k dennímu plánu (zastávky na nabíjení, časové rezervy)',
+  'admin.plugins.perm.hook:day-tint-provider':
+    'Barevně odlišovat dny v denním plánu (například ke které části cesty den patří)',
+  'admin.plugins.perm.geolocation:read':
+    'Zjišťovat vaši aktuální polohu, dokud je otevřené některé z jeho zobrazení (váš prohlížeč se navíc zeptá sám)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Připojovat textové sekce k PDF exportu cesty',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Zvýrazňovat země na mapě světa v Atlasu (např. seznamy přání nebo cestovní upozornění)',
@@ -427,6 +438,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Poskytuje události kalendáře',
   'admin.plugins.cap.placeDetails': 'Obohacuje místa',
   'admin.plugins.cap.warnings': 'Označuje problémy',
+  'admin.plugins.cap.mapLayers': 'Kreslí na mapě',
+  'admin.plugins.cap.routing': 'Nabízí trasování',
+  'admin.plugins.cap.daySchedule': 'Doplňuje časy plánu',
+  'admin.plugins.cap.dayTint': 'Barví dny',
+  'admin.plugins.cap.geolocation': 'Čte vaši polohu',
   'admin.plugins.cap.events': 'Reaguje na aktivitu',
   'admin.plugins.cap.requiresAddon': 'Vyžaduje {addon}',
   'admin.plugins.cap.dependsOn': 'Vyžaduje {id} {version}',

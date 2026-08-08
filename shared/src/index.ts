@@ -20,6 +20,7 @@ export * from './maps/maps.schema';
 export * from './category/category.schema';
 export * from './tag/tag.schema';
 export * from './notification/notification.schema';
+export * from './memories/memories.schema';
 export * from './atlas/atlas.schema';
 export * from './vacay/vacay.schema';
 export * from './packing/packing.schema';
@@ -31,8 +32,10 @@ export * from './airtrail/airtrail.schema';
 export * from './day/day.schema';
 export * from './assignment/assignment.schema';
 export * from './place/place.schema';
+export * from './place/track-colors';
 export * from './collection/collection.schema';
 export * from './trip/trip.schema';
+export * from './trip-invite/trip-invite.schema';
 export * from './collab/collab.schema';
 export * from './file/file.schema';
 export * from './journey/journey.schema';
@@ -44,6 +47,9 @@ export * from './auth/auth.schema';
 export * from './oidc/oidc.schema';
 export * from './oauth/oauth.schema';
 export * from './admin/admin.schema';
+
+// Realtime WS event contract registry (event names + payload schemas)
+export * from './realtime/events.schema';
 
 // Sanitisation helpers — used by the client today, scoped here so the server
 // has them ready if rich-text input ever ships.

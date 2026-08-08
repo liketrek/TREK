@@ -58,6 +58,10 @@ beforeAll(async () => {
   runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  // Warm the notifications bridge module: notifyTagged does a fire-and-forget
+  // dynamic import of it, and a cold load can otherwise race the worker
+  // teardown ("Cannot load ... after the environment was torn down").
+  await import('../../src/nest/notifications/notifications.bridge');
 });
 
 beforeEach(() => {

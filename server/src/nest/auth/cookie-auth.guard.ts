@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
-import { verifyJwtAndLoadUser } from '../../middleware/auth';
+import { verifyJwtAndLoadUser } from './jwt-verify';
 
 /**
  * Mirrors the legacy `requireCookieAuth` middleware: accepts ONLY the httpOnly

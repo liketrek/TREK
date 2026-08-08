@@ -4,6 +4,8 @@
  * Covers: bbox computation, tile math, URL building, size guard,
  * offline/no-SW guard, syncMeta update.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import {
@@ -14,14 +16,18 @@ import {
   countTiles,
   prefetchTiles,
   prefetchTilesForTrip,
+  clearTileCache,
   MAX_TILES,
+  TILE_CONCURRENCY,
   type TileBbox,
 } from '../../../src/sync/tilePrefetcher';
 import { offlineDb, clearAll, upsertSyncMeta } from '../../../src/db/offlineDb';
+import { setAuthed } from '../../../src/sync/authGate';
 import { buildPlace } from '../../helpers/factories';
 
 beforeEach(async () => {
   await clearAll();
+  setAuthed(true);
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
   // Stub fetch + serviceWorker so prefetch path is exercised
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
@@ -33,6 +39,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  setAuthed(false);
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -118,7 +125,45 @@ describe('buildTileUrl', () => {
   it('replaces {s} with a subdomain character', () => {
     const tmpl = 'https://{s}.tiles.example.com/{z}/{x}/{y}.png';
     const url = buildTileUrl(tmpl, 10, 0, 0);
-    expect(url).toMatch(/^https:\/\/[abcd]\.tiles\.example\.com\/10\/0\/0\.png$/);
+    expect(url).toMatch(/^https:\/\/[abc]\.tiles\.example\.com\/10\/0\/0\.png$/);
+  });
+
+  it('picks the subdomain deterministically so a tile keeps one URL', () => {
+    const tmpl = 'https://{s}.tiles.example.com/{z}/{x}/{y}.png';
+    // A rotating counter would hand out a different host on each call, which
+    // both breaks the cache lookup and stores the tile once per host.
+    const first = buildTileUrl(tmpl, 10, 479, 329);
+    buildTileUrl(tmpl, 10, 480, 330);
+    expect(buildTileUrl(tmpl, 10, 479, 329)).toBe(first);
+  });
+
+  it('spreads neighbouring tiles across subdomains', () => {
+    const tmpl = 'https://{s}.tiles.example.com/{z}/{x}/{y}.png';
+    const hosts = new Set(
+      [0, 1, 2].map(dy => buildTileUrl(tmpl, 10, 479, 329 + dy).slice(8, 9)),
+    );
+    expect(hosts.size).toBe(3);
+  });
+
+  it('uses the same subdomain rotation as Leaflet', () => {
+    // Leaflet's TileLayer defaults to subdomains 'abc' and indexes it with
+    // Math.abs(x + y) % length. A different list length here would cache each
+    // tile under a host the map never asks for.
+    const tmpl = 'https://{s}.tiles.example.com/{z}/{x}/{y}.png';
+    const leaflet = 'abc';
+    for (const [x, y] of [[479, 329], [480, 330], [12, 7], [0, 0], [5, 4]]) {
+      const expected = leaflet[Math.abs(x + y) % leaflet.length];
+      expect(buildTileUrl(tmpl, 10, x, y)).toBe(
+        `https://${expected}.tiles.example.com/10/${x}/${y}.png`,
+      );
+    }
+  });
+
+  it('collapses the retired OSM subdomain sharding onto the single host', () => {
+    // d.tile.openstreetmap.org stopped resolving after OSM dropped sharding, so
+    // a template saved before that must not reach the network as-is (#1733).
+    const url = buildTileUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 13, 4091, 2722);
+    expect(url).toBe('https://tile.openstreetmap.org/13/4091/2722.png');
   });
 
   it('removes {r} (retina placeholder)', () => {
@@ -185,6 +230,102 @@ describe('prefetchTiles — normal operation', () => {
   });
 });
 
+// ── throttling ────────────────────────────────────────────────────────────────
+
+describe('prefetchTiles — throttling', () => {
+  /** fetch stub that resolves on the next macrotask and tracks concurrency. */
+  function trackingFetch() {
+    const state = { inFlight: 0, peak: 0, calls: 0 };
+    vi.stubGlobal('fetch', vi.fn(() => {
+      state.calls++;
+      state.inFlight++;
+      state.peak = Math.max(state.peak, state.inFlight);
+      return new Promise(resolve => setTimeout(() => {
+        state.inFlight--;
+        resolve({ ok: true });
+      }, 0));
+    }));
+    return state;
+  }
+
+  it('never exceeds TILE_CONCURRENCY requests in flight', async () => {
+    const state = trackingFetch();
+    const bbox: TileBbox = { minLat: 48.0, maxLat: 49.0, minLng: 2.0, maxLng: 3.0 };
+
+    await prefetchTiles(bbox, 'https://{s}.example.com/{z}/{x}/{y}.png', 10, 12);
+
+    expect(state.calls).toBeGreaterThan(TILE_CONCURRENCY);
+    expect(state.peak).toBeLessThanOrEqual(TILE_CONCURRENCY);
+  });
+
+  it('resolves only once every tile has been dealt with', async () => {
+    const state = trackingFetch();
+    const bbox: TileBbox = { minLat: 48.8, maxLat: 48.9, minLng: 2.3, maxLng: 2.4 };
+
+    const fetched = await prefetchTiles(bbox, 'https://{s}.example.com/{z}/{x}/{y}.png', 10, 11);
+
+    expect(fetched).toBe(state.calls);
+    expect(state.inFlight).toBe(0);
+  });
+
+  it('stops fetching when the user logs out mid-run', async () => {
+    let calls = 0;
+    vi.stubGlobal('fetch', vi.fn(() => {
+      if (++calls === TILE_CONCURRENCY) setAuthed(false);
+      return Promise.resolve({ ok: true });
+    }));
+    const bbox: TileBbox = { minLat: 48.0, maxLat: 49.0, minLng: 2.0, maxLng: 3.0 };
+
+    await prefetchTiles(bbox, 'https://{s}.example.com/{z}/{x}/{y}.png', 10, 12);
+
+    // The workers finish their current tile, then bail — nowhere near the ~336
+    // tiles this bbox enumerates.
+    expect(calls).toBeLessThan(2 * TILE_CONCURRENCY);
+  });
+
+  it('goes quiet when the connection drops mid-run', async () => {
+    let calls = 0;
+    vi.stubGlobal('fetch', vi.fn(() => {
+      if (++calls === TILE_CONCURRENCY) {
+        Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+      }
+      return Promise.resolve({ ok: true });
+    }));
+    const bbox: TileBbox = { minLat: 48.0, maxLat: 49.0, minLng: 2.0, maxLng: 3.0 };
+
+    await prefetchTiles(bbox, 'https://{s}.example.com/{z}/{x}/{y}.png', 10, 12);
+
+    expect(calls).toBeLessThan(2 * TILE_CONCURRENCY);
+  });
+});
+
+// ── cache reuse ───────────────────────────────────────────────────────────────
+
+describe('prefetchTiles — cache reuse', () => {
+  it('skips tiles already in Cache Storage instead of hitting the network', async () => {
+    vi.stubGlobal('caches', {
+      open: vi.fn().mockResolvedValue({ match: vi.fn().mockResolvedValue({}) }),
+    });
+    const bbox: TileBbox = { minLat: 48.8, maxLat: 48.9, minLng: 2.3, maxLng: 2.4 };
+
+    const fetched = await prefetchTiles(bbox, 'https://{s}.example.com/{z}/{x}/{y}.png', 10, 11);
+
+    expect(fetched).toBe(0);
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it('still fetches when Cache Storage has no entry for the tile', async () => {
+    vi.stubGlobal('caches', {
+      open: vi.fn().mockResolvedValue({ match: vi.fn().mockResolvedValue(undefined) }),
+    });
+    const bbox: TileBbox = { minLat: 48.8, maxLat: 48.9, minLng: 2.3, maxLng: 2.4 };
+
+    const fetched = await prefetchTiles(bbox, 'https://{s}.example.com/{z}/{x}/{y}.png', 10, 11);
+
+    expect(fetched).toBeGreaterThan(0);
+  });
+});
+
 // ── prefetchTilesForTrip ──────────────────────────────────────────────────────
 
 describe('prefetchTilesForTrip', () => {
@@ -239,10 +380,100 @@ describe('prefetchTilesForTrip', () => {
   });
 });
 
+// ── repeat runs ───────────────────────────────────────────────────────────────
+
+describe('prefetchTilesForTrip — repeat runs', () => {
+  const places = [buildPlace({ trip_id: 1, lat: 48.8566, lng: 2.3522 })];
+  const tmpl = 'https://{s}.example.com/{z}/{x}/{y}.png';
+
+  beforeEach(async () => {
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
+  });
+
+  it('does nothing on a second run with an unchanged bbox', async () => {
+    await prefetchTilesForTrip(1, places, tmpl);
+    const first = vi.mocked(fetch).mock.calls.length;
+    expect(first).toBeGreaterThan(0);
+
+    vi.mocked(fetch).mockClear();
+    await prefetchTilesForTrip(1, places, tmpl);
+
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it('prefetches again once a place moves the bbox', async () => {
+    await prefetchTilesForTrip(1, places, tmpl);
+    vi.mocked(fetch).mockClear();
+
+    const moved = [...places, buildPlace({ trip_id: 1, lat: 45.4642, lng: 9.19 })];
+    await prefetchTilesForTrip(1, moved, tmpl);
+
+    expect(vi.mocked(fetch)).toHaveBeenCalled();
+  });
+
+  it('runs anyway when forced (prepare for offline)', async () => {
+    await prefetchTilesForTrip(1, places, tmpl);
+    vi.mocked(fetch).mockClear();
+
+    await prefetchTilesForTrip(1, places, tmpl, true);
+
+    expect(vi.mocked(fetch)).toHaveBeenCalled();
+  });
+
+  it('clearTileCache resets the bboxes so the next sync refills the cache', async () => {
+    await prefetchTilesForTrip(1, places, tmpl);
+    vi.mocked(fetch).mockClear();
+
+    vi.stubGlobal('caches', { delete: vi.fn().mockResolvedValue(true) });
+    await clearTileCache();
+    expect((await offlineDb.syncMeta.get(1))!.tilesBbox).toBeNull();
+
+    vi.unstubAllGlobals();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    await prefetchTilesForTrip(1, places, tmpl);
+
+    expect(vi.mocked(fetch)).toHaveBeenCalled();
+  });
+});
+
 // ── cap coherence ───────────────────────────────────────────────────────────────
 
 describe('MAX_TILES budget', () => {
   it('matches the Workbox map-tiles maxEntries in vite.config.js (drift guard)', () => {
     expect(MAX_TILES).toBe(12288);
+  });
+});
+
+// ── service worker rule coherence ───────────────────────────────────────────────
+
+describe('the map-tiles rule for OpenStreetMap (#1733)', () => {
+  // Vitest runs with the client package as its root, so cwd is stable here.
+  const config = readFileSync(resolve(process.cwd(), 'vite.config.js'), 'utf8');
+
+  // Pull the OSM runtimeCaching pattern back out of the config and exercise it,
+  // so this stays a statement about matching behaviour rather than about the
+  // exact characters someone typed.
+  const osmRule = /urlPattern:\s*(\/\^https[^\n]*openstreetmap[^\n]*\/i),/.exec(config);
+  if (!osmRule) throw new Error('no OpenStreetMap runtimeCaching rule found in vite.config.js');
+  const literal = osmRule[1];
+  const pattern = new RegExp(literal.slice(1, literal.lastIndexOf('/')), 'i');
+
+  it('caches the single-host URLs the prefetcher now builds', () => {
+    // Without this the prefetch writes nothing to map-tiles, cache.match() never
+    // hits, and the offline tile store stays empty.
+    const url = buildTileUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 13, 4091, 2722);
+    expect(url).toBe('https://tile.openstreetmap.org/13/4091/2722.png');
+    expect(pattern.test(url)).toBe(true);
+  });
+
+  it('still matches the sharded URLs already sitting in existing caches', () => {
+    for (const shard of ['a', 'b', 'c']) {
+      expect(pattern.test(`https://${shard}.tile.openstreetmap.org/13/4091/2722.png`)).toBe(true);
+    }
+  });
+
+  it('does not swallow a look-alike host', () => {
+    expect(pattern.test('https://tile.openstreetmap.org.example.com/13/4091/2722.png')).toBe(false);
+    expect(pattern.test('https://tile.openstreetmap.de/13/4091/2722.png')).toBe(false);
   });
 });

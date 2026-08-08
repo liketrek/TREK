@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import { createReadStream } from 'node:fs';
 import type { User } from '../../types';
 import { ShareService } from './share.service';
+import { ShareLinkDto } from './share.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -32,7 +33,7 @@ export class TripShareController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { share_map?: boolean; share_bookings?: boolean; share_packing?: boolean; share_budget?: boolean; share_collab?: boolean },
+    @Body() body: ShareLinkDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     this.requireManage(tripId, user);

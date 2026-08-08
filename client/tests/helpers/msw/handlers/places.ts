@@ -19,6 +19,11 @@ export const placesHandlers = [
     return HttpResponse.json({ place });
   }),
 
+  http.post('/api/trips/:id/places/:placeId/image', ({ params }) => {
+    const place = buildPlace({ id: Number(params.placeId), trip_id: Number(params.id), image_url: '/uploads/places/mock.jpg' });
+    return HttpResponse.json({ place });
+  }),
+
   http.delete('/api/trips/:id/places/:placeId', () => {
     return HttpResponse.json({ success: true });
   }),

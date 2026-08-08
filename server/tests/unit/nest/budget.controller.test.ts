@@ -86,18 +86,9 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       });
     });
 
-    it('POST /settlements 400 when a field is missing', async () => {
-      const svc = makeService();
-      expect(await thrownAsync(() => new BudgetController(svc).createSettlement(user, '5', { from_user_id: 1, to_user_id: 2 }))).toEqual({
-        status: 400, body: { error: 'from_user_id, to_user_id and amount are required' },
-      });
-      expect(await thrownAsync(() => new BudgetController(svc).createSettlement(user, '5', { from_user_id: 1, amount: 5 }))).toEqual({
-        status: 400, body: { error: 'from_user_id, to_user_id and amount are required' },
-      });
-      expect(await thrownAsync(() => new BudgetController(svc).createSettlement(user, '5', { to_user_id: 2, amount: 5 }))).toEqual({
-        status: 400, body: { error: 'from_user_id, to_user_id and amount are required' },
-      });
-    });
+    // The legacy 'from_user_id, to_user_id and amount are required' 400s are now
+    // produced by the global ZodValidationPipe (budget.dto.ts) before the handler
+    // runs — covered by the integration suite, not constructible here.
 
     it('POST /settlements creates and broadcasts (amount 0 is allowed), forwarding the display currency', async () => {
       const createSettlement = vi.fn().mockResolvedValue({ id: 3, amount: 0 });
@@ -130,13 +121,6 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       });
     });
 
-    it('PUT /settlements/:id 400 when a field is missing', async () => {
-      const svc = makeService();
-      expect(await thrownAsync(() => new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 1, to_user_id: 2 }))).toEqual({
-        status: 400, body: { error: 'from_user_id, to_user_id and amount are required' },
-      });
-    });
-
     it('PUT /settlements/:id 404 when missing', async () => {
       const svc = makeService({ updateSettlement: vi.fn().mockResolvedValue(null) } as Partial<BudgetService>);
       expect(await thrownAsync(() => new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 1, to_user_id: 2, amount: 10 }))).toEqual({
@@ -163,11 +147,9 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       });
     });
 
-    it('400 when name missing', async () => {
-      expect(await thrownAsync(() => new BudgetController(makeService()).create(user, '5', {}))).toEqual({
-        status: 400, body: { error: 'Name is required' },
-      });
-    });
+    // The legacy 'Name is required' 400 is now produced by the global
+    // ZodValidationPipe (budgetCreateItemRequestSchema requires name) before
+    // the handler runs — covered by the integration suite.
 
     it('creates and broadcasts', async () => {
       const create = vi.fn().mockReturnValue({ id: 9, name: 'Hotel' });
@@ -206,15 +188,12 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
   });
 
   describe('PUT /:id/members', () => {
-    it('400 when user_ids is not an array', () => {
-      expect(thrown(() => new BudgetController(makeService()).updateMembers(user, '5', '9', 'nope'))).toEqual({
-        status: 400, body: { error: 'user_ids must be an array' },
-      });
-    });
+    // The legacy 'user_ids must be an array' 400 is now produced by the global
+    // ZodValidationPipe (budgetUpdateMembersRequestSchema) before the handler runs.
 
     it('404 when the item is missing', () => {
       const svc = makeService({ updateMembers: vi.fn().mockReturnValue(null) } as Partial<BudgetService>);
-      expect(thrown(() => new BudgetController(svc).updateMembers(user, '5', '9', [2, 3]))).toEqual({
+      expect(thrown(() => new BudgetController(svc).updateMembers(user, '5', '9', { user_ids: [2, 3] }))).toEqual({
         status: 404, body: { error: 'Budget item not found' },
       });
     });
@@ -223,22 +202,20 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const updateMembers = vi.fn().mockReturnValue({ members: [{ user_id: 2 }], item: { persons: 1 } });
       const broadcast = vi.fn();
       const svc = makeService({ updateMembers, broadcast } as Partial<BudgetService>);
-      const res = new BudgetController(svc).updateMembers(user, '5', '9', [2], 'sock');
+      const res = new BudgetController(svc).updateMembers(user, '5', '9', { user_ids: [2] }, 'sock');
       expect(res).toEqual({ members: [{ user_id: 2 }], item: { persons: 1 } });
+      expect(updateMembers).toHaveBeenCalledWith('9', '5', [2]);
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:members-updated', { itemId: 9, members: [{ user_id: 2 }], persons: 1 }, 'sock');
     });
   });
 
   describe('PUT /:id/payers', () => {
-    it('400 when payers is not an array', () => {
-      expect(thrown(() => new BudgetController(makeService()).setPayers(user, '5', '9', 'nope'))).toEqual({
-        status: 400, body: { error: 'payers must be an array' },
-      });
-    });
+    // The legacy 'payers must be an array' 400 is now produced by the global
+    // ZodValidationPipe (budgetUpdatePayersRequestSchema) before the handler runs.
 
     it('404 when the item is missing', () => {
       const svc = makeService({ setPayers: vi.fn().mockReturnValue(null) } as Partial<BudgetService>);
-      expect(thrown(() => new BudgetController(svc).setPayers(user, '5', '9', [{ user_id: 2, amount: 10 }]))).toEqual({
+      expect(thrown(() => new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 10 }] }))).toEqual({
         status: 404, body: { error: 'Budget item not found' },
       });
     });
@@ -247,7 +224,7 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const setPayers = vi.fn().mockReturnValue({ id: 9, payers: [{ user_id: 2, amount: 10 }] });
       const broadcast = vi.fn();
       const svc = makeService({ setPayers, broadcast } as Partial<BudgetService>);
-      const res = new BudgetController(svc).setPayers(user, '5', '9', [{ user_id: 2, amount: 10 }], 'sock');
+      const res = new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 10 }] }, 'sock');
       expect(res).toEqual({ item: { id: 9, payers: [{ user_id: 2, amount: 10 }] } });
       expect(setPayers).toHaveBeenCalledWith('9', '5', [{ user_id: 2, amount: 10 }]);
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:updated', { item: { id: 9, payers: [{ user_id: 2, amount: 10 }] } }, 'sock');
@@ -258,7 +235,7 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     const toggleMemberPaid = vi.fn().mockReturnValue({ user_id: 2, paid: 1 });
     const broadcast = vi.fn();
     const svc = makeService({ toggleMemberPaid, broadcast } as Partial<BudgetService>);
-    expect(new BudgetController(svc).toggleMemberPaid(user, '5', '9', '2', true, 'sock')).toEqual({ member: { user_id: 2, paid: 1 } });
+    expect(new BudgetController(svc).toggleMemberPaid(user, '5', '9', '2', { paid: true }, 'sock')).toEqual({ member: { user_id: 2, paid: 1 } });
     expect(broadcast).toHaveBeenCalledWith('5', 'budget:member-paid-updated', { itemId: 9, userId: 2, paid: 1 }, 'sock');
   });
 
@@ -266,7 +243,7 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     const toggleMemberPaid = vi.fn().mockReturnValue({ user_id: 2, paid: 0 });
     const broadcast = vi.fn();
     const svc = makeService({ toggleMemberPaid, broadcast } as Partial<BudgetService>);
-    new BudgetController(svc).toggleMemberPaid(user, '5', '9', '2', false, 'sock');
+    new BudgetController(svc).toggleMemberPaid(user, '5', '9', '2', { paid: false }, 'sock');
     expect(broadcast).toHaveBeenCalledWith('5', 'budget:member-paid-updated', { itemId: 9, userId: 2, paid: 0 }, 'sock');
   });
 
@@ -282,9 +259,9 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
   it('PUT /reorder/items + /reorder/categories broadcast budget:reordered', () => {
     const reorderItems = vi.fn(); const reorderCategories = vi.fn(); const broadcast = vi.fn();
     const svc = makeService({ reorderItems, reorderCategories, broadcast } as Partial<BudgetService>);
-    expect(new BudgetController(svc).reorderItems(user, '5', [3, 1], 'sock')).toEqual({ success: true });
+    expect(new BudgetController(svc).reorderItems(user, '5', { orderedIds: [3, 1] }, 'sock')).toEqual({ success: true });
     expect(reorderItems).toHaveBeenCalledWith('5', [3, 1]);
-    expect(new BudgetController(svc).reorderCategories(user, '5', ['food', 'fun'], 'sock')).toEqual({ success: true });
+    expect(new BudgetController(svc).reorderCategories(user, '5', { orderedCategories: ['food', 'fun'] }, 'sock')).toEqual({ success: true });
     expect(reorderCategories).toHaveBeenCalledWith('5', ['food', 'fun']);
   });
 });

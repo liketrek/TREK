@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Zamień swoje podróże w historie, których nigdy nie zapomnisz',
   'journey.frontpage.createJourney': 'Utwórz dziennik podróży',
   'journey.frontpage.activeJourney': 'Aktywny dziennik podróży',
+  'journey.frontpage.latestJourney': 'Ostatni dziennik podróży',
   'journey.frontpage.allJourneys': 'Wszystkie dzienniki podróży',
   'journey.frontpage.journeys': 'dzienniki podróży',
   'journey.frontpage.createNew': 'Utwórz nowy dziennik podróży',
@@ -124,6 +125,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1.',
   'journey.editor.makeFirst': 'Ustaw jako 1.',
   'journey.editor.searching': 'Szukanie...',
+  'journey.editor.useCurrentLocation': 'Użyj mojej bieżącej lokalizacji',
+  'journey.editor.locationPermissionDenied':
+    'Dostęp do lokalizacji został odrzucony. Zezwól na niego w ustawieniach przeglądarki i spróbuj ponownie.',
+  'journey.editor.locationTimeout': 'Przekroczono limit czasu pobierania lokalizacji. Spróbuj ponownie.',
+  'journey.editor.locationUnavailable': 'Nie udało się ustalić Twojej lokalizacji.',
+  'journey.editor.locationInsecureContext': 'Lokalizacja wymaga bezpiecznego połączenia (HTTPS).',
   'journey.mood.amazing': 'Niesamowity',
   'journey.mood.good': 'Dobry',
   'journey.mood.neutral': 'Neutralny',
@@ -227,5 +234,13 @@ const journey: TranslationStrings = {
   'journey.contributors.removeConfirm': 'Remove {username} from this journey?', // en-fallback
   'journey.contributors.removed': 'Contributor removed', // en-fallback
   'journey.contributors.removeFailed': 'Failed to remove contributor', // en-fallback
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

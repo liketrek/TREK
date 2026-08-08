@@ -16,6 +16,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { diskStorage } from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -24,8 +26,9 @@ import type { User } from '../../types';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { MAX_FILE_SIZE, MAX_VIDEO_SIZE, BLOCKED_EXTENSIONS, filesDir, getAllowedExtensions, isVideoExtension } from '../../services/fileService';
-import { isDemoEmail } from '../../services/demo';
+import { MAX_FILE_SIZE, MAX_VIDEO_SIZE, BLOCKED_EXTENSIONS, filesDir, isVideoExtension } from './files.constants';
+import { getAllowedExtensions } from './files.bridge';
+import { FileUploadDto, FileUpdateDto, FileLinkDto } from './files.dto';
 
 const UPLOAD = {
   storage: diskStorage({
@@ -66,7 +69,10 @@ const UPLOAD = {
 @Controller('api/trips/:tripId/files')
 @UseGuards(JwtAuthGuard)
 export class FilesController {
-  constructor(private readonly files: FilesService) {}
+  constructor(
+    private readonly files: FilesService,
+    private readonly env: RuntimeEnvService,
+  ) {}
 
   private requireTrip(tripId: string, user: User) {
     const trip = this.files.verifyTripAccess(tripId, user.id);
@@ -79,7 +85,7 @@ export class FilesController {
   // A file may only point at reservations/assignments/places from its own trip.
   // Reject cross-trip ids before they are stored — the reservation JOIN would
   // otherwise leak the foreign reservation's title back to the caller.
-  private assertLinkTargets(tripId: string, body: { reservation_id?: string | null; assignment_id?: string | null; place_id?: string | null }) {
+  private assertLinkTargets(tripId: string, body: { reservation_id?: string | number | null; assignment_id?: string | number | null; place_id?: string | number | null }) {
     if (this.files.findForeignLinkTarget(tripId, body)) {
       throw new HttpException({ error: 'Linked item does not belong to this trip' }, 400);
     }
@@ -97,7 +103,7 @@ export class FilesController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @UploadedFile() file: Express.Multer.File | undefined,
-    @Body() body: { place_id?: string; description?: string; reservation_id?: string },
+    @Body() body: FileUploadDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
     // multer (diskStorage) has already written the upload by the time we get here,
@@ -106,8 +112,10 @@ export class FilesController {
     const cleanup = () => { if (file?.path) { try { fs.unlinkSync(file.path); } catch { /* best-effort */ } } };
     try {
       const trip = this.requireTrip(tripId, user);
-      if (process.env.DEMO_MODE?.toLowerCase() === 'true' && isDemoEmail(user.email)) {
-        throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+      // Inline rather than DemoWriteGuard: requireTrip above answers 404 for a
+      // trip the caller cannot reach, and a guard would run before it.
+      if (isDemoWriteBlocked(this.env, user.email)) {
+        throw new HttpException(DEMO_WRITE_ERROR, 403);
       }
       if (!this.files.can('file_upload', trip, user)) {
         throw new HttpException({ error: 'No permission to upload files' }, 403);
@@ -143,7 +151,7 @@ export class FilesController {
   }
 
   @Put(':id')
-  update(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: { description?: string; place_id?: string | null; reservation_id?: string | null }, @Headers('x-socket-id') socketId?: string) {
+  update(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: FileUpdateDto, @Headers('x-socket-id') socketId?: string) {
     const trip = this.requireTrip(tripId, user);
     if (!this.files.can('file_edit', trip, user)) {
       throw new HttpException({ error: 'No permission to edit files' }, 403);
@@ -231,7 +239,7 @@ export class FilesController {
 
   @Post(':id/link')
   @HttpCode(200) // Express answers link with res.json (200).
-  link(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: { reservation_id?: string | null; assignment_id?: string | null; place_id?: string | null }) {
+  link(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: FileLinkDto) {
     const trip = this.requireTrip(tripId, user);
     if (!this.files.can('file_edit', trip, user)) {
       throw new HttpException({ error: 'No permission' }, 403);

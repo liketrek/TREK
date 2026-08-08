@@ -1,0 +1,129 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+
+import { validateEnvAtBoot, readEnv } from '../../../src/app-config/env';
+
+describe('validateEnvAtBoot', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('passes with a completely empty environment (all defaults)', () => {
+    expect(() => validateEnvAtBoot({})).not.toThrow();
+  });
+
+  it('passes with a representative valid environment', () => {
+    expect(() =>
+      validateEnvAtBoot({
+        PORT: '3001',
+        NODE_ENV: 'production',
+        DEMO_MODE: 'false',
+        SESSION_DURATION: '12h',
+        SESSION_DURATION_REMEMBER: '90d',
+        DEFAULT_LANGUAGE: 'en',
+        APP_URL: 'https://trek.example.com',
+        ALLOWED_ORIGINS: 'https://trek.example.com',
+        LOG_LEVEL: 'debug',
+        TRUST_PROXY: '2',
+        OIDC_ISSUER: 'https://auth.example.com/realms/trek',
+        SMTP_PORT: '587',
+        MCP_RATE_LIMIT: '100',
+        BACKUP_UPLOAD_LIMIT_MB: '750',
+        TREK_PLUGINS_ENABLED: 'off',
+        TREK_PLUGIN_PERMISSIONS: 'on',
+      }),
+    ).not.toThrow();
+  });
+
+  it('treats blank values as unset (defaults apply, no error)', () => {
+    expect(() => validateEnvAtBoot({ DEMO_MODE: '', PORT: '  ', TZ: '' })).not.toThrow();
+  });
+
+  it('ignores unknown environment variables', () => {
+    expect(() => validateEnvAtBoot({ SOME_OTHER_TOOLS_VAR: '!!not-a-trek-var!!' })).not.toThrow();
+  });
+
+  it('does not validate NODE_ENV (non-standard values must keep booting)', () => {
+    expect(() => validateEnvAtBoot({ NODE_ENV: 'staging' })).not.toThrow();
+  });
+
+  it('throws on present-but-malformed values with an aggregated report', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() =>
+      validateEnvAtBoot({
+        PORT: 'not-a-port',
+        SESSION_DURATION: 'bogus',
+        DEMO_MODE: 'maybe',
+        APP_URL: 'not a url',
+      }),
+    ).toThrow(/Invalid environment configuration \(4 problems\)/);
+    const report = error.mock.calls.map((c) => c.join(' ')).join('\n');
+    expect(report).toContain('PORT="not-a-port"');
+    expect(report).toContain('SESSION_DURATION="bogus"');
+    expect(report).toContain('DEMO_MODE="maybe"');
+    expect(report).toContain('APP_URL="not a url"');
+  });
+
+  it.each([
+    ['PORT', '70000'],
+    ['TRUST_PROXY', '1.5'],
+    ['DEFAULT_LANGUAGE', 'klingon'],
+    ['LOG_LEVEL', 'verbose'],
+    ['SESSION_DURATION_REMEMBER', '-1d'],
+    ['OIDC_ISSUER', 'auth.example.com'],
+    ['SMTP_PORT', 'smtp'],
+    ['MCP_SSE_KEEPALIVE', '-1'],
+    ['IDEMPOTENCY_TTL_SECONDS', '0'],
+    ['BACKUP_UPLOAD_LIMIT_MB', '0'],
+    ['HSTS_INCLUDE_SUBDOMAINS', 'enabled'],
+    ['TREK_PLUGINS_ENABLED', 'maybe'],
+    ['TREK_PLUGINS_DEV_LINK', 'always'],
+    ['TREK_PLUGIN_PERMISSIONS', 'disabled'],
+    ['TREK_PLUGIN_MAX_RSS_MB', '-100'],
+  ])('rejects malformed %s=%s', (key, value) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => validateEnvAtBoot({ [key]: value })).toThrow(/Invalid environment configuration/);
+  });
+
+  it.each([
+    ['DEMO_MODE', 'TRUE'],
+    ['TREK_API_DOCS_ENABLED', ' TRUE '],
+    ['TREK_PLUGINS_ENABLED', ' OFF '],
+    ['DEFAULT_LANGUAGE', 'EN'],
+    ['DEFAULT_LANGUAGE', 'zh-TW'],
+    ['LOG_LEVEL', 'ERROR'],
+    ['SESSION_DURATION', ' 12H '],
+  ])('accepts differently-cased/padded valid %s=%s', (key, value) => {
+    expect(() => validateEnvAtBoot({ [key]: value })).not.toThrow();
+  });
+
+  // Booleans accept the whole boolean-like family (true/false, 1/0, on/off,
+  // yes/no) and derive to real booleans via parseBool — DEMO_MODE=yes enables
+  // demo mode, TREK_PLUGINS_DEV_LINK=true activates dev-link (see derive.test).
+  it.each([
+    ['DEMO_MODE', 'yes'],
+    ['HSTS_INCLUDE_SUBDOMAINS', '1'],
+    ['TREK_PLUGINS_DEV_LINK', 'true'],
+    ['TREK_PLUGIN_PERMISSIONS', 'off'],
+    ['TREK_PLUGIN_ALLOW_PRIVATE_EGRESS', 'on'],
+    ['FORCE_HTTPS', 'On'],
+  ])('accepts boolean-like %s=%s', (key, value) => {
+    expect(() => validateEnvAtBoot({ [key]: value })).not.toThrow();
+  });
+});
+
+describe('readEnv', () => {
+  it('reads process.env live — a runtime mutation is visible on the next call', () => {
+    const before = process.env.DEMO_MODE;
+    try {
+      process.env.DEMO_MODE = 'true';
+      expect(readEnv().demo.enabled).toBe(true);
+      process.env.DEMO_MODE = 'false';
+      expect(readEnv().demo.enabled).toBe(false);
+      delete process.env.DEMO_MODE;
+      expect(readEnv().demo.enabled).toBe(false);
+    } finally {
+      if (before === undefined) delete process.env.DEMO_MODE;
+      else process.env.DEMO_MODE = before;
+    }
+  });
+});

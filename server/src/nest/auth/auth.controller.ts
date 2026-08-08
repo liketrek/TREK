@@ -15,21 +15,34 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { diskStorage } from 'multer';
 import type { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuid } from 'uuid';
 import { AuthService } from './auth.service';
-import { RateLimitService } from './rate-limit.service';
+import { avatarDir } from './auth.helpers';
+import {
+  ChangePasswordDto,
+  MapsKeyUpdateDto,
+  ApiKeysUpdateDto,
+  SettingsUpdateDto,
+  AppSettingsUpdateDto,
+  MfaEnableDto,
+  MfaDisableDto,
+  McpTokenCreateDto,
+  ResourceTokenDto,
+} from './auth.dto';
+import { RateLimitService } from '../common/rate-limit.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './current-user.decorator';
-import { writeAudit, getClientIp } from '../../services/auditLog';
-import { isDemoEmail } from '../../services/demo';
+import { getClientIp } from '../audit/client-ip';
+import { AuditService } from '../audit/audit.service';
 import type { User } from '../../types';
 
 const WINDOW = 15 * 60 * 1000;
-const avatarDir = path.join(__dirname, '../../../uploads/avatars');
 const ALLOWED_AVATAR_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 const AVATAR_UPLOAD = {
   storage: diskStorage({
@@ -59,7 +72,7 @@ const AVATAR_UPLOAD = {
 @Controller('api/auth')
 @UseGuards(JwtAuthGuard)
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly rl: RateLimitService) {}
+  constructor(private readonly auth: AuthService, private readonly rl: RateLimitService, private readonly audit: AuditService, private readonly env: RuntimeEnvService) {}
 
   private limit(bucket: string, req: Request, max: number): void {
     if (!this.rl.check(bucket, req.ip || 'unknown', max, WINDOW, Date.now())) {
@@ -77,7 +90,7 @@ export class AuthController {
   }
 
   @Put('me/password')
-  changePassword(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  changePassword(@CurrentUser() user: User, @Body() body: ChangePasswordDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 5);
     const result = this.auth.changePassword(user.id, user.email, body);
     if (result.error) {
@@ -86,7 +99,7 @@ export class AuthController {
     // Refresh this device's cookie with the new password_version so the user
     // stays logged in here while all other sessions are invalidated.
     if (result.token) this.auth.setAuthCookie(res, result.token, req);
-    writeAudit({ userId: user.id, action: 'user.password_change', ip: getClientIp(req) });
+    this.audit.writeAudit({ userId: user.id, action: 'user.password_change', ip: getClientIp(req) });
     return { success: true };
   }
 
@@ -96,22 +109,22 @@ export class AuthController {
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
-    writeAudit({ userId: user.id, action: 'user.account_delete', ip: getClientIp(req) });
+    this.audit.writeAudit({ userId: user.id, action: 'user.account_delete', ip: getClientIp(req) });
     return { success: true };
   }
 
   @Put('me/maps-key')
-  mapsKey(@CurrentUser() user: User, @Body() body: { maps_api_key?: unknown }) {
+  mapsKey(@CurrentUser() user: User, @Body() body: MapsKeyUpdateDto) {
     return this.auth.updateMapsKey(user.id, body.maps_api_key);
   }
 
   @Put('me/api-keys')
-  apiKeys(@CurrentUser() user: User, @Body() body: unknown) {
+  apiKeys(@CurrentUser() user: User, @Body() body: ApiKeysUpdateDto) {
     return this.auth.updateApiKeys(user.id, body);
   }
 
   @Put('me/settings')
-  updateSettings(@CurrentUser() user: User, @Body() body: unknown) {
+  updateSettings(@CurrentUser() user: User, @Body() body: SettingsUpdateDto) {
     const result = this.auth.updateSettings(user.id, body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
@@ -132,8 +145,8 @@ export class AuthController {
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('avatar', AVATAR_UPLOAD))
   async avatar(@CurrentUser() user: User, @UploadedFile() file: Express.Multer.File | undefined) {
-    if (process.env.DEMO_MODE?.toLowerCase() === 'true' && isDemoEmail(user.email)) {
-      throw new HttpException({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' }, 403);
+    if (isDemoWriteBlocked(this.env, user.email)) {
+      throw new HttpException(DEMO_WRITE_ERROR, 403);
     }
     if (!file) {
       throw new HttpException({ error: 'No image uploaded' }, 400);
@@ -170,12 +183,12 @@ export class AuthController {
   }
 
   @Put('app-settings')
-  updateAppSettings(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
+  updateAppSettings(@CurrentUser() user: User, @Body() body: AppSettingsUpdateDto, @Req() req: Request) {
     const result = this.auth.updateAppSettings(user.id, body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
-    writeAudit({ userId: user.id, action: 'settings.app_update', ip: getClientIp(req), details: result.auditSummary, debugDetails: result.auditDebugDetails });
+    this.audit.writeAudit({ userId: user.id, action: 'settings.app_update', ip: getClientIp(req), details: result.auditSummary, debugDetails: result.auditDebugDetails });
     return { success: true };
   }
 
@@ -202,25 +215,25 @@ export class AuthController {
 
   @Post('mfa/enable')
   @HttpCode(200)
-  mfaEnable(@CurrentUser() user: User, @Body() body: { code?: unknown }, @Req() req: Request) {
+  mfaEnable(@CurrentUser() user: User, @Body() body: MfaEnableDto, @Req() req: Request) {
     this.limit('mfa', req, 5);
     const result = this.auth.enableMfa(user.id, body.code);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
-    writeAudit({ userId: user.id, action: 'user.mfa_enable', ip: getClientIp(req) });
+    this.audit.writeAudit({ userId: user.id, action: 'user.mfa_enable', ip: getClientIp(req) });
     return { success: true, mfa_enabled: result.mfa_enabled, backup_codes: result.backup_codes };
   }
 
   @Post('mfa/disable')
   @HttpCode(200)
-  mfaDisable(@CurrentUser() user: User, @Body() body: unknown, @Req() req: Request) {
+  mfaDisable(@CurrentUser() user: User, @Body() body: MfaDisableDto, @Req() req: Request) {
     this.limit('login', req, 5);
     const result = this.auth.disableMfa(user.id, user.email, body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
-    writeAudit({ userId: user.id, action: 'user.mfa_disable', ip: getClientIp(req) });
+    this.audit.writeAudit({ userId: user.id, action: 'user.mfa_disable', ip: getClientIp(req) });
     return { success: true, mfa_enabled: result.mfa_enabled };
   }
 
@@ -231,7 +244,7 @@ export class AuthController {
 
   @Post('mcp-tokens')
   @HttpCode(201)
-  createMcpToken(@CurrentUser() user: User, @Body() body: { name?: unknown }, @Req() req: Request) {
+  createMcpToken(@CurrentUser() user: User, @Body() body: McpTokenCreateDto, @Req() req: Request) {
     this.limit('login', req, 5);
     const result = this.auth.createMcpToken(user.id, body.name);
     if (result.error) {
@@ -261,7 +274,7 @@ export class AuthController {
 
   @Post('resource-token')
   @HttpCode(200)
-  resourceToken(@CurrentUser() user: User, @Body() body: { purpose?: unknown }) {
+  resourceToken(@CurrentUser() user: User, @Body() body: ResourceTokenDto) {
     const token = this.auth.createResourceToken(user.id, body.purpose);
     if (!token) {
       throw new HttpException({ error: 'Service unavailable' }, 503);

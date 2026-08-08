@@ -1,5 +1,5 @@
 import semver from 'semver';
-import { isAddonEnabled } from '../services/adminService.js';
+import { isAddonEnabled } from '../nest/addons/addons.bridge.js';
 import type { NoticeCondition, SystemNotice } from './types.js';
 
 interface ConditionContext {

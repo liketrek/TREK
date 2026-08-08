@@ -3,13 +3,16 @@ import { HttpException } from '@nestjs/common';
 
 // Mock the heavy side-effect imports so the service module loads cleanly; the
 // preview() path under test only touches the extractor + llmParse deps.
-vi.mock('../../../../src/db/database', () => ({ db: { prepare: vi.fn() }, closeDb: () => {}, reinitialize: () => {} }));
+vi.mock('../../../../src/db/database', () => ({
+  db: { prepare: vi.fn() }, closeDb: () => {}, reinitialize: () => {},
+  // Trip access reaches these through DatabaseService; preview() never calls
+  // them, but the module-level import has to resolve.
+  canAccessTrip: vi.fn(), isOwner: () => false, getPlaceWithTags: () => null,
+}));
+import { db as dbConn } from '../../../../src/db/database';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
 vi.mock('../../../../src/websocket', () => ({ broadcast: vi.fn() }));
-vi.mock('../../../../src/services/permissions', () => ({ checkPermission: vi.fn(() => true) }));
-vi.mock('../../../../src/services/tripAccess', () => ({ verifyTripAccess: vi.fn() }));
-vi.mock('../../../../src/services/reservationService', () => ({ createReservation: vi.fn() }));
-vi.mock('../../../../src/services/placeService', () => ({ createPlace: vi.fn() }));
-vi.mock('../../../../src/services/mapsService', () => ({ searchNominatim: vi.fn() }));
+const permissionsStub = { checkPermission: vi.fn(() => true) };
 
 import { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
 
@@ -19,7 +22,14 @@ const file = (name = 'a.pdf') => ({ buffer: Buffer.from('x'), originalname: name
 function make(opts: { kit?: boolean; ai?: boolean; extract?: any; parse?: any }) {
   const extractor = { isAvailable: () => opts.kit ?? false, extract: vi.fn(opts.extract ?? (async () => [])) };
   const llmParse = { isAvailable: () => opts.ai ?? false, parse: vi.fn(opts.parse ?? (async () => ({ kiItems: [], warnings: [] }))) };
-  return { svc: new BookingImportService(extractor as any, llmParse as any), extractor, llmParse };
+  const reservations = { create: vi.fn() };
+  // budget/addons/realtime/maps ride the confirm() path only — the preview()
+  // tests never reach them, so stubs beyond the positional slots aren't needed.
+  const maps = { searchNominatim: vi.fn() };
+  // Places became a constructor dep with the place DI fold (was a path mock of
+  // services/placeService); only confirm() reaches it, so a bare create stub does.
+  const places = { create: vi.fn() };
+  return { svc: new BookingImportService(extractor as any, llmParse as any, new DatabaseService(dbConn), reservations as never, permissionsStub as never, undefined as never, undefined as never, undefined as never, maps as never, places as never), extractor, llmParse, reservations, maps, places };
 }
 
 beforeEach(() => vi.clearAllMocks());

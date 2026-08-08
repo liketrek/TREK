@@ -112,6 +112,7 @@ export function buildPlace(overrides: Partial<Place> = {}): Place {
     google_place_id: null,
     osm_id: null,
     route_geometry: null,
+    route_color: null,
     place_time: null,
     end_time: null,
     duration_minutes: 60,

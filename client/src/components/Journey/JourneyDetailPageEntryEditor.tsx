@@ -1,31 +1,36 @@
-import { useState, useRef } from 'react'
-import { X, Plus, Image, Minus, Check, MapPin } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { X, Plus, Image, Minus, Check, MapPin, Locate } from 'lucide-react'
 import { normalizeImageFiles } from '../../utils/convertHeic'
 import { type ResilientResult, type UploadProgress } from '../../utils/uploadQueue'
 import { useTranslation } from '../../i18n'
-import { journeyApi, mapsApi } from '../../api/client'
+import { journeyApi, mapsApi, addonsApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
-import { useIsMobile } from '../../hooks/useIsMobile'
+import { getCurrentPositionOnce } from '../../hooks/useGeolocation'
 import { getApiErrorMessage } from '../../types'
-import type { JourneyEntry, JourneyPhoto, GalleryPhoto } from '../../store/journeyStore'
+import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
-import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
+import { photoUrl, isValidGeoPoint, geoOnceErrorKey } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import MarkdownToolbar from './MarkdownToolbar'
 import { DatePicker } from './JourneyDetailPageDatePicker'
+import { ProviderPicker, type ProviderPhotoGroup } from './JourneyDetailPageProviderPicker'
 
-export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSave, onUploadPhotos, onDone }: {
+type PendingProviderGroup = ProviderPhotoGroup & { provider: string }
+
+export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips, userId = 0, onClose, onSave, onUploadPhotos, onAddProviderPhotos, onDone }: {
   entry: JourneyEntry
   journeyId: number
   tripDates: Set<string>
   galleryPhotos: GalleryPhoto[]
+  trips: JourneyTrip[]
+  userId?: number
   onClose: () => void
-  onSave: (data: Record<string, unknown>) => Promise<number>
+  onSave: (data: Record<string, unknown>, existingEntryId?: number) => Promise<number>
   onUploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
+  onAddProviderPhotos?: (entryId: number, group: PendingProviderGroup) => Promise<void>
   onDone: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const toast = useToast()
-  const isMobile = useIsMobile()
   const [title, setTitle] = useState(entry.title || '')
   const [story, setStory] = useState(entry.story || '')
   const [entryDate, setEntryDate] = useState(entry.entry_date || new Date().toISOString().split('T')[0])
@@ -37,6 +42,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
   const [locationResults, setLocationResults] = useState<{ name: string; address?: string; lat: number; lng: number }[]>([])
   const [locationSearching, setLocationSearching] = useState(false)
   const [showLocationResults, setShowLocationResults] = useState(false)
+  const [locating, setLocating] = useState(false)
   const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mood, setMood] = useState(entry.mood || '')
   const [weather, setWeather] = useState(entry.weather || '')
@@ -48,8 +54,14 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([])
   const [showGalleryPick, setShowGalleryPick] = useState(false)
+  const [photoTab, setPhotoTab] = useState<'upload' | 'gallery' | 'external'>('upload')
+  const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([])
+  const [providersLoading, setProvidersLoading] = useState(false)
+  const [externalProvider, setExternalProvider] = useState<string | null>(null)
+  const [pendingProviderGroups, setPendingProviderGroups] = useState<PendingProviderGroup[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
   const storyRef = useRef<HTMLTextAreaElement>(null)
+  const persistedEntryIdRef = useRef<number | null>(entry.id > 0 ? entry.id : null)
 
   // Track which fields differ from the entry we started editing so we can
   // warn before discarding on close/cancel.
@@ -68,10 +80,46 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
     pros.filter(p => p.trim()).join('\n') !== originalPros ||
     cons.filter(c => c.trim()).join('\n') !== originalCons ||
     pendingFiles.length > 0 ||
-    pendingLinkIds.length > 0
+    pendingLinkIds.length > 0 ||
+    pendingProviderGroups.length > 0
   )
 
   const availableGalleryPhotos = galleryPhotos.filter(gp => !photos.some(p => p.id === gp.id))
+
+  useEffect(() => {
+    if (photoTab !== 'external' || availableProviders.length > 0 || providersLoading) return
+    setProvidersLoading(true)
+    // The discovery is not tied to the open tab, so the result is applied even if
+    // the user left the tab meanwhile — dropping it would leave providersLoading
+    // stuck and block every later run of this effect.
+    ;(async () => {
+      try {
+        const addonsData = await addonsApi.enabled()
+        const enabled = (addonsData.addons || []).filter((a: any) => a.type === 'photo_provider' && a.enabled)
+        const connected: { id: string; name: string }[] = []
+        for (const provider of enabled) {
+          try {
+            const response = await fetch(`/api/integrations/memories/${provider.id}/status`, { credentials: 'include' })
+            if (response.ok && (await response.json()).connected) connected.push({ id: provider.id, name: provider.name })
+          } catch {}
+        }
+        setAvailableProviders(connected)
+        if (connected.length > 0) setExternalProvider(current => current || connected[0].id)
+      } catch {}
+      setProvidersLoading(false)
+    })()
+  }, [photoTab, availableProviders.length])
+
+  const activeExternalProvider = externalProvider || availableProviders[0]?.id || null
+  const providerExistingAssetIds = new Set<string>()
+  if (activeExternalProvider) {
+    photos.forEach(photo => {
+      if (photo.provider === activeExternalProvider && photo.asset_id) providerExistingAssetIds.add(photo.asset_id)
+    })
+    pendingProviderGroups.forEach(group => {
+      if (group.provider === activeExternalProvider) group.assetIds.forEach(assetId => providerExistingAssetIds.add(assetId))
+    })
+  }
 
   const handleClose = () => {
     if (isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return
@@ -92,8 +140,9 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
         mood: mood || null,
         weather: weather || null,
         pros_cons: { pros: pros.filter(p => p.trim()), cons: cons.filter(c => c.trim()) },
-        type: ((entry.type === 'skeleton' && (story.trim() || pendingFiles.length > 0 || pendingLinkIds.length > 0)) ? 'entry' : undefined),
-      })
+        type: ((entry.type === 'skeleton' && (story.trim() || pendingFiles.length > 0 || pendingLinkIds.length > 0 || pendingProviderGroups.length > 0)) ? 'entry' : undefined),
+      }, persistedEntryIdRef.current ?? undefined)
+      if (entryId > 0) persistedEntryIdRef.current = entryId
       // upload queued files after entry is created
       if (pendingFiles.length > 0 && entryId) {
         const filesToUpload = pendingFiles
@@ -118,6 +167,18 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
           try { await journeyApi.linkPhoto(entryId, photoId) } catch {}
         }
       }
+      if (pendingProviderGroups.length > 0 && entryId && onAddProviderPhotos) {
+        const failed: PendingProviderGroup[] = []
+        for (const group of pendingProviderGroups) {
+          try { await onAddProviderPhotos(entryId, group) } catch { failed.push(group) }
+        }
+        if (failed.length > 0) {
+          setPendingProviderGroups(failed)
+          toast.error(t('journey.editor.externalPhotosPartialFailed', { failed: String(failed.length), total: String(pendingProviderGroups.length) }))
+          return
+        }
+        setPendingProviderGroups([])
+      }
       onDone()
     } finally {
       setSaving(false)
@@ -133,26 +194,61 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
     setPendingFiles(prev => [...prev, ...normalized])
   }
 
+  const contextLocation = isValidGeoPoint({ lat: locationLat ?? NaN, lng: locationLng ?? NaN })
+    ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
+    : null
+
+  const handleUseCurrentLocation = async () => {
+    if (locating) return
+    setLocating(true)
+    try {
+      const pos = await getCurrentPositionOnce()
+      // Fill coordinates right away; the name is refined below once the
+      // reverse geocode comes back.
+      const fallbackName = `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`
+      if (locationTimerRef.current) clearTimeout(locationTimerRef.current)
+      setLocationSearching(false)
+      setLocationLat(pos.lat)
+      setLocationLng(pos.lng)
+      setLocationName(fallbackName)
+      setLocationQuery('')
+      setLocationResults([])
+      setShowLocationResults(false)
+      try {
+        const data = await mapsApi.reverse(pos.lat, pos.lng, language)
+        const name = data.name || data.address
+        // Only replace the coordinate fallback — don't clobber a search
+        // result the user may have picked while the reverse call was in flight.
+        if (name) setLocationName(prev => (prev === fallbackName ? name : prev))
+      } catch { /* best effort — keep the coordinate fallback */ }
+    } catch (err) {
+      toast.error(t(geoOnceErrorKey(err)))
+    } finally {
+      setLocating(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[9999]" style={{ background: 'rgba(9,9,11,0.6)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
       {/* The modal itself is constrained to the feed column on desktop so it
           centers there — but the backdrop stays full-width (covering the map
           too) for a uniform dim/blur across the whole page. */}
       <div
-        className="absolute top-0 bottom-0 left-0 flex items-end sm:items-center sm:justify-center sm:p-5"
-        style={{ right: isMobile ? 0 : 'clamp(420px, 44vw, 760px)' }}
+        className="absolute inset-0 flex items-end sm:items-center sm:justify-center sm:p-5"
       >
-        <div className="bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] sm:max-w-[640px] w-full flex flex-col overflow-hidden h-full sm:h-auto sm:max-h-[90vh]" style={{ paddingBottom: 'var(--bottom-nav-h)' }}>
+        <div className="bg-white dark:bg-zinc-900 rounded-t-[24px] sm:rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.2)] sm:max-w-[1040px] w-full flex flex-col overflow-hidden h-full sm:h-auto sm:max-h-[90vh]" style={{ paddingBottom: 'var(--bottom-nav-h)' }}>
 
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}</h2>
-          <button onClick={handleClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+          <button onClick={handleClose} className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 flex flex-col gap-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-stretch">
+          <div className="flex flex-col gap-4 min-w-0">
           <input
             value={title}
             onChange={e => setTitle(e.target.value)}
@@ -164,9 +260,9 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
             <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} className="hidden" />
             <div className="flex gap-2">
               <button
-                onClick={() => fileRef.current?.click()}
+                onClick={() => { setPhotoTab('upload'); setShowGalleryPick(false); fileRef.current?.click() }}
                 disabled={saving}
-                className="flex-1 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-lg py-4 text-[12px] text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl py-4 text-[12px] text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {uploadProgress ? (
                   <><div className="w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" /> {t('journey.editor.uploadingProgress', { done: String(uploadProgress.done), total: String(uploadProgress.total) })}</>
@@ -176,8 +272,8 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
               </button>
               {galleryPhotos.length > 0 && (
                 <button
-                  onClick={() => setShowGalleryPick(!showGalleryPick)}
-                  className={`flex-1 border rounded-lg py-4 text-[12px] text-zinc-500 flex items-center justify-center gap-1.5 ${
+                  onClick={() => { setPhotoTab('gallery'); setShowGalleryPick(!showGalleryPick) }}
+                  className={`flex-1 border rounded-xl py-4 text-[12px] text-zinc-500 flex items-center justify-center gap-1.5 ${
                     showGalleryPick
                       ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
                       : 'border-dashed border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
@@ -186,6 +282,17 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                   <Image size={13} /> {t('journey.editor.fromGallery')}
                 </button>
               )}
+              <button
+                onClick={() => { setPhotoTab('external'); setShowGalleryPick(false) }}
+                disabled={saving}
+                className={`flex-1 border rounded-lg py-4 text-[12px] text-zinc-500 flex items-center justify-center gap-1.5 ${
+                  photoTab === 'external'
+                    ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
+                    : 'border-dashed border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <Image size={13} /> {t('journey.editor.externalPhotos') || 'External photos'}
+              </button>
             </div>
 
             {/* Gallery picker — directly below buttons. Safari collapses
@@ -209,7 +316,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                           setPhotos(prev => [...prev, gp])
                         }
                       }}
-                      className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-zinc-900 dark:hover:ring-white hover:ring-offset-1 dark:hover:ring-offset-zinc-900 transition-all"
+                      className="relative w-full rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-zinc-900 dark:hover:ring-white hover:ring-offset-1 dark:hover:ring-offset-zinc-900 transition-all"
                       style={{ paddingTop: '100%' }}
                     >
                       <img src={photoUrl(gp)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { const img = e.currentTarget; const orig = photoUrl(gp, 'original'); if (!img.src.includes('/original')) img.src = orig }} />
@@ -221,11 +328,90 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                 </div>
               </div>
             )}
+            {photoTab === 'external' && (
+              <div className="mt-2 flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden bg-zinc-50 dark:bg-zinc-800/50" style={{ height: 'min(56vh, 520px)' }}>
+                <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 truncate">
+                      {t('journey.editor.externalPhotosFor', { date: new Date(entryDate + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) })}
+                    </p>
+                    <p className="text-[10px] text-zinc-400 truncate">
+                      {contextLocation?.name
+                        ? `${t('journey.editor.externalPhotosNearby') || 'Nearby photos first'} · ${contextLocation.name}`
+                        : (t('journey.editor.externalPhotosNoLocation') || 'All photos from this day')}
+                    </p>
+                  </div>
+                  {pendingProviderGroups.length > 0 && (
+                    <button onClick={() => setPendingProviderGroups([])} className="text-[10px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white whitespace-nowrap">
+                      {pendingProviderGroups.reduce((sum, group) => sum + group.assetIds.length, 0)} {t('journey.editor.externalPhotosQueued') || 'queued'} · {t('common.clear') || 'Clear'}
+                    </button>
+                  )}
+                </div>
+                {providersLoading ? (
+                  <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-700 rounded-full animate-spin" /></div>
+                ) : availableProviders.length === 0 ? (
+                  <div className="text-center py-10 px-4 text-[12px] text-zinc-500">{t('journey.editor.externalPhotosUnavailable') || 'No connected photo providers are available.'}</div>
+                ) : (
+                  <div className="h-full min-h-0 flex flex-col">
+                    <div className="flex gap-1 px-3 py-2 border-b border-zinc-200 dark:border-zinc-700 overflow-x-auto">
+                      {availableProviders.map(provider => (
+                        <button
+                          key={provider.id}
+                          data-testid={`journey-external-provider-${provider.id}`}
+                          onClick={() => setExternalProvider(provider.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap ${externalProvider === provider.id ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700'}`}
+                        >
+                          {provider.name}
+                        </button>
+                      ))}
+                    </div>
+                    {activeExternalProvider && (
+                      <div className="flex-1 min-h-0">
+                        <ProviderPicker
+                          key={`${activeExternalProvider}-${entryDate}`}
+                          provider={activeExternalProvider}
+                          userId={userId}
+                          entries={[entry]}
+                          trips={trips}
+                          existingAssetIds={providerExistingAssetIds}
+                          initialDate={entryDate}
+                          contextLocation={contextLocation}
+                          initialEntryId={entry.id || null}
+                          embedded
+                          onClose={() => setExternalProvider(null)}
+                          onAdd={async groups => {
+                            setPendingProviderGroups(previous => {
+                              const next = [...previous]
+                              for (const group of groups) {
+                                const existing = next.find(item => item.provider === activeExternalProvider && item.passphrase === group.passphrase)
+                                if (existing) {
+                                  const seen = new Set(existing.assetIds)
+                                  group.assetIds.forEach((assetId, index) => {
+                                    if (seen.has(assetId)) return
+                                    seen.add(assetId)
+                                    existing.assetIds.push(assetId)
+                                    existing.mediaTypes?.push(group.mediaTypes?.[index] || 'image')
+                                  })
+                                } else {
+                                  next.push({ ...group, provider: activeExternalProvider })
+                                }
+                              }
+                              return next
+                            })
+                            setExternalProvider(null)
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             {(photos.length > 0 || pendingFiles.length > 0) && (
               <div className="mt-3">
                 <div className="flex flex-wrap gap-2">
                   {photos.map((p, idx) => (
-                    <div key={p.id} className={`w-20 h-20 rounded-lg overflow-hidden relative group ${idx === 0 && photos.length > 1 ? 'ring-2 ring-zinc-900 dark:ring-white ring-offset-1 dark:ring-offset-zinc-900' : ''}`}>
+                    <div key={p.id} className={`w-20 h-20 rounded-xl overflow-hidden relative group ${idx === 0 && photos.length > 1 ? 'ring-2 ring-zinc-900 dark:ring-white ring-offset-1 dark:ring-offset-zinc-900' : ''}`}>
                       <img src={photoUrl(p)} className="w-full h-full object-cover" alt="" onError={e => { const img = e.currentTarget; const orig = photoUrl(p, 'original'); if (!img.src.includes('/original')) img.src = orig }} />
                       {idx === 0 && photos.length > 1 && (
                         <span className="absolute bottom-0.5 left-0.5 px-1 py-px rounded text-[8px] font-bold bg-zinc-900/70 text-white">{t('journey.editor.photoFirst')}</span>
@@ -265,7 +451,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                     </div>
                   ))}
                   {pendingFiles.map((f, i) => (
-                    <div key={`pending-${i}`} className="w-20 h-20 rounded-lg overflow-hidden relative group">
+                    <div key={`pending-${i}`} className="w-20 h-20 rounded-xl overflow-hidden relative group">
                       <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" alt="" />
                       <button
                         onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
@@ -280,7 +466,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
             )}
           </div>
 
-          <div className="shrink-0 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden focus-within:border-zinc-400 dark:focus-within:border-zinc-500">
+          <div className="flex-1 flex flex-col min-h-[220px] border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden focus-within:border-zinc-400 dark:focus-within:border-zinc-500">
             <MarkdownToolbar textareaRef={storyRef} onUpdate={setStory} />
             <textarea
               ref={storyRef}
@@ -289,10 +475,13 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
               placeholder={t('journey.editor.writeStory')}
               rows={6}
               style={{ minHeight: '144px' }}
-              className="w-full px-3 py-2.5 text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none resize-none border-0 shrink-0"
+              className="w-full flex-1 px-3 py-2.5 text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none resize-none border-0"
             />
           </div>
 
+          </div>
+
+          <div className="flex flex-col gap-4 min-w-0">
           {/* Pros & Cons */}
           <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-5">
             <div className="mb-4">
@@ -369,8 +558,6 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
             </div>
           </div>
 
-          <div className="h-px bg-zinc-200 dark:bg-zinc-700" />
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.editor.date')}</label>
@@ -403,13 +590,20 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                   }}
                   onFocus={() => { if (locationResults.length > 0) setShowLocationResults(true) }}
                   placeholder={t('journey.editor.searchLocation')}
-                  className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  className="w-full pl-3 pr-9 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
                 />
-                {locationLat && (
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <MapPin size={13} className="text-zinc-500 dark:text-zinc-400" />
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={locating}
+                  title={t('journey.editor.useCurrentLocation')}
+                  aria-label={t('journey.editor.useCurrentLocation')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50"
+                >
+                  {locating
+                    ? <div className="w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
+                    : <Locate size={14} />}
+                </button>
               </div>
               {showLocationResults && locationResults.length > 0 && (
                 <>
@@ -448,13 +642,13 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
 
           <div>
             <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.editor.mood')}</label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {Object.entries(MOOD_CONFIG).map(([key, config]) => {
                 const Icon = config.icon
                 const active = mood === key
                 return (
                   <button key={key} onClick={() => setMood(active ? '' : key)}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all ${
                       active ? '' : 'border-zinc-200 dark:border-zinc-700 text-zinc-500'
                     }`}
                     style={active ? { background: config.bg, color: config.text, borderColor: config.text + '30' } : undefined}>
@@ -474,7 +668,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
                 const active = weather === key
                 return (
                   <button key={key} onClick={() => setWeather(active ? '' : key)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all ${
                       active ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white' : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-zinc-400'
                     }`}>
                     <Icon size={12} />
@@ -484,12 +678,14 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClos
               })}
             </div>
           </div>
+          </div>
+          </div>
         </div>
 
 
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
-          <button onClick={handleClose} className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">{t('common.cancel')}</button>
-          <button onClick={handleSave} disabled={saving} className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-50">
+          <button onClick={handleClose} className="px-4 h-10 flex items-center rounded-full border border-zinc-200 dark:border-zinc-600 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">{t('common.cancel')}</button>
+          <button onClick={handleSave} disabled={saving} className="px-5 h-10 flex items-center rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-50 transition-colors">
             {saving ? t('common.saving') : t('common.save')}
           </button>
         </div>

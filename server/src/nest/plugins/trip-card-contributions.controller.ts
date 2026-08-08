@@ -1,6 +1,6 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { canAccessTrip } from '../../db/database';
+import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
@@ -82,7 +82,10 @@ function normalize(pluginId: string, raw: unknown, allowed: Set<number>): TripCa
 @Controller('api/trip-card-contributions')
 @UseGuards(JwtAuthGuard)
 export class TripCardContributionsController {
-  constructor(private readonly runtime: PluginRuntimeService) {}
+  constructor(
+    private readonly runtime: PluginRuntimeService,
+    private readonly dbs: DatabaseService,
+  ) {}
 
   @Get()
   async get(
@@ -100,7 +103,7 @@ export class TripCardContributionsController {
       .map((s) => Number(s.trim()))
       .filter((n) => Number.isInteger(n) && n > 0)
       .slice(0, MAX_TRIP_IDS);
-    const accessible = [...new Set(requested)].filter((id) => canAccessTrip(id, userId));
+    const accessible = [...new Set(requested)].filter((id) => this.dbs.canAccessTrip(id, userId));
     if (accessible.length === 0) return { contributions: [] };
     const allowed = new Set(accessible);
 

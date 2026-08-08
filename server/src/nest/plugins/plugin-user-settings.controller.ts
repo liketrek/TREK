@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginsService } from './plugins.service';
 import { PluginRuntimeService } from './plugin-runtime.service';
-import { db } from '../../db/database';
+import { DatabaseService } from '../database/database.service';
 
 /**
  * GET/POST /api/plugin-settings/:id — a USER's own `scope:'user'` settings for a
@@ -23,10 +23,11 @@ export class PluginUserSettingsController {
   constructor(
     private readonly plugins: PluginsService,
     private readonly runtime: PluginRuntimeService,
+    private readonly dbs: DatabaseService,
   ) {}
 
   private activeWithUserFields(id: string): boolean {
-    const row = db.prepare("SELECT 1 FROM plugins WHERE id = ? AND status = 'active'").get(id);
+    const row = this.dbs.connection.prepare("SELECT 1 FROM plugins WHERE id = ? AND status = 'active'").get(id);
     return !!row;
   }
 

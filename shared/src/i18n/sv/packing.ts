@@ -1,6 +1,15 @@
 import type { TranslationStrings } from '../types';
 
 const packing: TranslationStrings = {
+  'packing.actions': 'Åtgärder',
+  'packing.editDone': 'Klar',
+  'packing.personalEmptyHint': 'Din personliga lista är tom — kopiera delade objekt eller lägg till egna.',
+  'packing.assignMembers': 'Tilldela medlemmar',
+  'packing.categoryOptions': 'Listalternativ',
+  'packing.editItem': 'Redigera objekt',
+  'packing.itemName': 'Namn',
+  'packing.itemQuantity': 'Antal',
+  'packing.itemWeight': 'Vikt (g)',
   'packing.title': 'Packlista',
   'packing.empty': 'Packlistan är tom',
   'packing.import': 'Importera',
@@ -197,5 +206,7 @@ const packing: TranslationStrings = {
   'packing.alsoBring': 'Jag kan ta med det också',
   'packing.alsoBringingStop': 'Jag tar inte med det',
   'packing.cloneToMine': 'Kopiera till min lista',
+  'packing.bagLimit': 'Viktgräns',
+  'packing.setBagLimit': 'Ange gräns',
 };
 export default packing;

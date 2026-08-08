@@ -32,7 +32,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Map Template',
   'settings.mapTemplatePlaceholder.select': 'Select template...',
   'settings.mapDefaultHint': 'Leave empty for OpenStreetMap (default)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL template for map tiles',
   'settings.mapProvider': 'Map Provider',
   'settings.mapProviderHint': 'Affects Trip Planner and Journey maps. Atlas always uses Leaflet.',
@@ -91,6 +90,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Trip reminders',
   'settings.notifyTodoDue': 'Todo due soon',
   'settings.notifyVacayInvite': 'Vacay fusion invitations',
+  'settings.notifyVacayShare': 'Vacay calendar shares',
   'settings.notifyPhotosShared': 'Shared photos (Immich)',
   'settings.notifyCollabMessage': 'Chat messages (Collab)',
   'settings.notifyPackingTagged': 'Packing list: assignments',
@@ -279,6 +279,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profile picture updated',
   'settings.avatarRemoved': 'Profile picture removed',
   'settings.avatarError': 'Upload failed',
+  'settings.avatarRemoveError': 'Removal failed',
   'settings.mfa.title': 'Two-factor authentication (2FA)',
   'settings.mfa.description':
     'Adds a second step when you sign in with email and password. Use an authenticator app (Google Authenticator, Authy, etc.).',
@@ -305,8 +306,9 @@ const settings: TranslationStrings = {
   'settings.mfa.toastEnabled': 'Two-factor authentication enabled',
   'settings.mfa.toastDisabled': 'Two-factor authentication disabled',
   'settings.mfa.demoBlocked': 'Not available in demo mode',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Display currency',
+  'settings.currencyHint':
+    'Amounts in Costs are shown converted to this currency for display only — the original amounts are unchanged.',
   'settings.currencyTrip': 'Trip currency',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
@@ -429,6 +431,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Bottom navbar',
+  'settings.appearance.mobileNav.hint':
+    'Choose which items appear in the bar and which sit under “More”. Dashboard always stays first.',
+  'settings.appearance.mobileNav.inBar': 'In the bar',
+  'settings.appearance.mobileNav.underMore': 'Under “More”',
+  'settings.appearance.mobileNav.moreEmpty': 'Nothing here yet — everything fits in the bar.',
+  'settings.appearance.mobileNav.pinned': 'Pinned',
+  'settings.appearance.mobileNav.toMore': 'Move under “More”',
+  'settings.appearance.mobileNav.toBar': 'Move into the bar',
+  'settings.appearance.dashOrder': 'Dashboard order',
+  'settings.appearance.dashOrder.hint':
+    'Reorder how the trip list and widgets stack on your phone dashboard. The featured trip always stays on top.',
+  'settings.appearance.dashOrder.trips': 'Trips',
+  'settings.appearance.dashOrder.hidden': 'Hidden',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -484,7 +500,8 @@ const settings: TranslationStrings = {
   'settings.offline.banner.failed': 'Failed to sync: {count}',
   'settings.offline.banner.conflicts': 'Conflicts: {count}',
   'settings.alwaysShowRoutes': 'Always show booking routes',
-  'settings.alwaysShowRoutesHint': 'Automatically draw the route for every flight, train and other booking on the map — no need to switch it on per item.',
+  'settings.alwaysShowRoutesHint':
+    'Automatically draw the route for every flight, train and other booking on the map — no need to switch it on per item.',
 };
 
 export default settings;

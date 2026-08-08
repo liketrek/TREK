@@ -2,7 +2,7 @@ import { Jimp } from 'jimp'
 import path from 'path'
 import fs from 'fs/promises'
 import crypto from 'crypto'
-import { isAddonEnabled } from '../adminService'
+import { isAddonEnabled } from '../../nest/addons/addons.bridge'
 import { ADDON_IDS } from '../../addons'
 
 const THUMB_MAX = 800

@@ -23,8 +23,8 @@ const { db } = vi.hoisted(() => {
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
 const { mockSearch, mockFindByIata } = vi.hoisted(() => ({ mockSearch: vi.fn(), mockFindByIata: vi.fn() }));
-vi.mock('../../src/services/airportService', async (importActual) => {
-  const actual = await importActual<typeof import('../../src/services/airportService')>();
+vi.mock('../../src/nest/airports/airports.data', async (importActual) => {
+  const actual = await importActual<typeof import('../../src/nest/airports/airports.data')>();
   return { ...actual, searchAirports: mockSearch, findByIata: mockFindByIata };
 });
 

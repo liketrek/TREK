@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
+import { readEnv } from '../../../app-config';
 import { resolveChildEntry, pluginCodeDir, pluginRealCodeDir, pluginPermissionArgs, ensurePluginModuleType } from '../paths';
 import type { Envelope, RpcError, RpcRequest } from '../protocol/envelope';
 import type { PluginRpcHost } from '../host/rpc-host';
@@ -89,7 +90,7 @@ const DEFAULTS: Required<SupervisorTuning> = {
   // Hard RSS ceiling — the real memory cap. --max-old-space-size only bounds the
   // V8 heap; Buffers/ArrayBuffers/native allocations sail past it, so a plugin
   // could OOM the box while staying "under" the heap limit. Overridable via env.
-  maxRssBytes: (Number(process.env.TREK_PLUGIN_MAX_RSS_MB) || 300) * 1024 * 1024,
+  maxRssBytes: readEnv().plugins.maxRssMb * 1024 * 1024,
 };
 
 // A plugin may only act as a provider for a hook it BOTH implements (reported by
@@ -103,6 +104,10 @@ const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   warningProvider: 'hook:trip-warning-provider',
   tableContributor: 'hook:table-contributor',
   mapMarkerProvider: 'hook:map-marker-provider',
+  mapLayerProvider: 'hook:map-layer-provider',
+  routeProvider: 'hook:route-provider',
+  dayScheduleProvider: 'hook:day-schedule-provider',
+  dayTintProvider: 'hook:day-tint-provider',
   pdfSectionProvider: 'hook:pdf-section-provider',
   atlasLayerProvider: 'hook:atlas-layer-provider',
   journalEntryProvider: 'hook:journal-entry-provider',
@@ -479,9 +484,10 @@ export class PluginSupervisor {
         // code and a plugin can never reach a self-hoster's LAN service (a Gotify, an
         // ntfy, an Ollama) no matter what the admin sets. Forwarded only when set, so
         // the default stays the secure block-private policy.
-        ...(process.env.TREK_PLUGIN_ALLOW_PRIVATE_EGRESS
-          ? { TREK_PLUGIN_ALLOW_PRIVATE_EGRESS: process.env.TREK_PLUGIN_ALLOW_PRIVATE_EGRESS }
-          : {}),
+        // Normalized to the literal 'on': the child and plugin-sdk keep their
+        // `=== 'on'` check (they are exempt from app-config), so the host-side
+        // boolean-family coercion must collapse to the one literal they accept.
+        ...(readEnv().plugins.allowPrivateEgress ? { TREK_PLUGIN_ALLOW_PRIVATE_EGRESS: 'on' } : {}),
       },
     });
     sup.child = child;

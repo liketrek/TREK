@@ -34,6 +34,110 @@ beforeEach(() => {
   })
 })
 
+describe('VacayStats — folding the sidebar card', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('FE-COMP-VACAYSTATS-030: starts expanded and folds the stat cards away on click', async () => {
+    const user = userEvent.setup()
+    seedStore(useVacayStore, { stats: [buildStat()] })
+
+    render(<VacayStats />)
+    expect(screen.getByText('Alice')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { expanded: true }))
+
+    expect(screen.queryByText('Alice')).not.toBeInTheDocument()
+    // The heading stays, so the card can be opened again.
+    expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument()
+  })
+
+  it('FE-COMP-VACAYSTATS-031: remembers the folded state across reloads', async () => {
+    const user = userEvent.setup()
+    seedStore(useVacayStore, { stats: [buildStat()] })
+
+    const { unmount } = render(<VacayStats />)
+    await user.click(screen.getByRole('button', { expanded: true }))
+    unmount()
+
+    render(<VacayStats />)
+    expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument()
+    expect(screen.queryByText('Alice')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-VACAYSTATS-032: reopens and persists that too', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('vacay-stats-collapsed', '1')
+    seedStore(useVacayStore, { stats: [buildStat()] })
+
+    const { unmount } = render(<VacayStats />)
+    await user.click(screen.getByRole('button', { expanded: false }))
+    expect(screen.getByText('Alice')).toBeInTheDocument()
+    unmount()
+
+    render(<VacayStats />)
+    expect(screen.getByRole('button', { expanded: true })).toBeInTheDocument()
+  })
+})
+
+describe('VacayStats — comp days (#1074) and the leave-year window (#737)', () => {
+  it('FE-COMP-VACAYSTATS-020: shows a comp/flex badge when comp days were logged', () => {
+    seedStore(useVacayStore, { stats: [buildStat({ comp_used: 2 })] })
+
+    render(<VacayStats />)
+
+    expect(screen.getByText('2 comp / flex')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-VACAYSTATS-021: renders a fractional comp total with one decimal', () => {
+    seedStore(useVacayStore, { stats: [buildStat({ comp_used: 1.5 })] })
+
+    render(<VacayStats />)
+
+    expect(screen.getByText('1.5 comp / flex')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-VACAYSTATS-022: hides the badge when no comp days were logged', () => {
+    seedStore(useVacayStore, { stats: [buildStat({ comp_used: 0 })] })
+
+    render(<VacayStats />)
+
+    expect(screen.queryByText(/comp \/ flex/)).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-VACAYSTATS-023: names the carry-over source by year on a calendar leave year', () => {
+    seedStore(useVacayStore, { stats: [buildStat({ carried_over: 3 })], selectedYear: 2025 })
+
+    render(<VacayStats />)
+
+    expect(screen.getByText('+3 from 2024')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-VACAYSTATS-024: says "previous period" instead once the leave year is shifted', () => {
+    seedStore(useVacayStore, {
+      stats: [buildStat({ carried_over: 3 })],
+      selectedYear: 2026,
+      yearSettings: { year_type: 'fiscal', year_start_month: 7, year_start_day: 1, hire_date: null },
+    })
+
+    render(<VacayStats />)
+
+    expect(screen.getByText('+3 from previous period')).toBeInTheDocument()
+    expect(screen.queryByText('+3 from 2025')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-VACAYSTATS-025: spells the active window out under the heading when it is shifted', () => {
+    seedStore(useVacayStore, {
+      stats: [buildStat()],
+      selectedYear: 2026,
+      yearSettings: { year_type: 'fiscal', year_start_month: 7, year_start_day: 1, hire_date: null },
+    })
+
+    render(<VacayStats />)
+
+    expect(screen.getByText(/Jul 2026\s*–\s*Jun 2027/)).toBeInTheDocument()
+  })
+})
+
 describe('VacayStats', () => {
   it('FE-COMP-VACAYSTATS-001: Shows empty state when no stats', () => {
     render(<VacayStats />)
@@ -59,7 +163,7 @@ describe('VacayStats', () => {
     seedStore(useAuthStore, { user: { id: 1 } })
     seedStore(useVacayStore, { stats: [buildStat({ user_id: 1 })] })
     render(<VacayStats />)
-    expect(screen.getByText(/\(you\)/)).toBeInTheDocument()
+    expect(screen.getByText(/^you$/i)).toBeInTheDocument()
   })
 
   it('FE-COMP-VACAYSTATS-005: Remaining shown in green when > 3', () => {

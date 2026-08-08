@@ -15,6 +15,8 @@ const dayplan: TranslationStrings = {
   'dayplan.calculating': '计算中...',
   'dayplan.route': '路线',
   'dayplan.optimize': '优化',
+  'dayplan.transportMode.change': '更改出行方式',
+  'dayplan.transportMode.useDefault': '使用当日默认',
   'dayplan.optimized': '路线已优化',
   'dayplan.routeError': '路线计算失败',
   'dayplan.toast.needTwoPlaces': '路线优化至少需要两个地点',

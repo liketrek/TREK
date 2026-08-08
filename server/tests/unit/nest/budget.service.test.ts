@@ -1,48 +1,47 @@
+/**
+ * Seam tests for the folded BudgetService: the permission/broadcast edges, the
+ * controller-facing composite methods (create/update/settlement wrappers that
+ * freeze the FX rate before the raw write — incl. the #1445 stored-currency
+ * thread-through) and the wrapper-only syncReservationPrice SQL. The SQL-heavy
+ * paths themselves are covered by budget.service.db.test.ts (real :memory: DB)
+ * and budget.service.calc.test.ts (settlement math over a prepare-stub mock).
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the data + side-effect dependencies the wrapper reaches into directly.
+// Mock the data + side-effect dependencies the service reaches into directly.
 const { dbMock } = vi.hoisted(() => {
   const stmt = { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() };
   return { dbMock: { prepare: vi.fn(() => stmt), _stmt: stmt } };
 });
-vi.mock('../../../src/db/database', () => ({ db: dbMock, closeDb: () => {}, reinitialize: () => {} }));
+const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
+vi.mock('../../../src/db/database', () => ({
+  db: dbMock,
+  closeDb: () => {},
+  reinitialize: () => {},
+  canAccessTrip,
+  getPlaceWithTags: () => null,
+  isOwner: () => false,
+}));
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 
 const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast }));
 
-const { checkPermission } = vi.hoisted(() => ({ checkPermission: vi.fn(() => true) }));
-vi.mock('../../../src/services/permissions', () => ({ checkPermission }));
+const checkPermission = vi.fn(() => true);
+const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
-const { getRates } = vi.hoisted(() => ({ getRates: vi.fn() }));
-vi.mock('../../../src/services/exchangeRateService', () => ({ getRates }));
-
-const { budget } = vi.hoisted(() => ({
-  budget: {
-    verifyTripAccess: vi.fn(),
-    listBudgetItems: vi.fn(),
-    getPerPersonSummary: vi.fn(),
-    calculateSettlement: vi.fn(),
-    freezeForeignRate: vi.fn(),
-    createBudgetItem: vi.fn(),
-    updateBudgetItem: vi.fn(),
-    deleteBudgetItem: vi.fn(),
-    updateMembers: vi.fn(),
-    toggleMemberPaid: vi.fn(),
-    setItemPayers: vi.fn(),
-    listSettlements: vi.fn(() => []),
-    createSettlement: vi.fn(),
-    updateSettlement: vi.fn(),
-    deleteSettlement: vi.fn(),
-    reorderBudgetItems: vi.fn(),
-    reorderBudgetCategories: vi.fn(),
-  },
-}));
-vi.mock('../../../src/services/budgetService', () => budget);
+// Constructor-injected ExchangeRatesService stub (as in the pre-fold wrapper).
+import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+const getRates = vi.fn();
+const exchangeRatesStub = { getRates } as unknown as ExchangeRatesService;
 
 import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 function svc() {
-  return new BudgetService();
+  return new BudgetService(new DatabaseService(dbConn), permissionsStub, exchangeRatesStub, new RealtimeService());
 }
 
 beforeEach(() => {
@@ -51,10 +50,10 @@ beforeEach(() => {
 });
 
 describe('BudgetService', () => {
-  it('verifyTripAccess delegates to the legacy service', () => {
-    budget.verifyTripAccess.mockReturnValue({ id: 5, user_id: 2 });
+  it('verifyTripAccess resolves through DatabaseService.canAccessTrip', () => {
+    canAccessTrip.mockReturnValue({ id: 5, user_id: 2 });
     expect(svc().verifyTripAccess('5', 2)).toEqual({ id: 5, user_id: 2 });
-    expect(budget.verifyTripAccess).toHaveBeenCalledWith('5', 2);
+    expect(canAccessTrip).toHaveBeenCalledWith('5', 2);
   });
 
   it('canEdit forwards the ownership flag when the user owns the trip', () => {
@@ -74,70 +73,94 @@ describe('BudgetService', () => {
     expect(broadcast).toHaveBeenCalledWith('5', 'budget:created', { item: { id: 1 } }, 'sock');
   });
 
-  it('list / perPersonSummary delegate', () => {
-    budget.listBudgetItems.mockReturnValue([{ id: 1 }]);
-    expect(svc().list('5')).toEqual([{ id: 1 }]);
-    budget.getPerPersonSummary.mockReturnValue([{ userId: 1 }]);
-    expect(svc().perPersonSummary('5')).toEqual([{ userId: 1 }]);
+  it('list / perPersonSummary resolve through the folded SQL methods', () => {
+    const s = svc();
+    const listSpy = vi.spyOn(s, 'listBudgetItems').mockReturnValue([{ id: 1 }] as never);
+    expect(s.list('5')).toEqual([{ id: 1 }]);
+    expect(listSpy).toHaveBeenCalledWith('5');
+    const summarySpy = vi.spyOn(s, 'getPerPersonSummary').mockReturnValue([{ userId: 1 }] as never);
+    expect(s.perPersonSummary('5')).toEqual([{ userId: 1 }]);
+    expect(summarySpy).toHaveBeenCalledWith('5');
   });
 
   describe('settlement', () => {
     it('upper-cases the explicit base and forwards the rates', async () => {
+      const s = svc();
+      const calcSpy = vi.spyOn(s, 'calculateSettlement').mockReturnValue({ transfers: [] } as never);
       getRates.mockResolvedValue({ USD: 1.1 });
-      budget.calculateSettlement.mockReturnValue({ transfers: [] });
-      await svc().settlement('5', 'usd', 'EUR');
+      await s.settlement('5', 'usd', 'EUR');
       expect(getRates).toHaveBeenCalledWith('USD');
-      expect(budget.calculateSettlement).toHaveBeenCalledWith('5', { base: 'USD', rates: { USD: 1.1 }, tripCurrency: 'EUR' });
+      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'USD', rates: { USD: 1.1 }, tripCurrency: 'EUR' });
     });
 
     it('falls back to the trip currency when no base is given', async () => {
+      const s = svc();
+      const calcSpy = vi.spyOn(s, 'calculateSettlement').mockReturnValue({ transfers: [] } as never);
       getRates.mockResolvedValue(null);
-      await svc().settlement('5', undefined, 'gbp');
+      await s.settlement('5', undefined, 'gbp');
       expect(getRates).toHaveBeenCalledWith('GBP');
-      expect(budget.calculateSettlement).toHaveBeenCalledWith('5', { base: 'GBP', rates: null, tripCurrency: 'gbp' });
+      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'GBP', rates: null, tripCurrency: 'gbp' });
     });
 
     it('falls back to EUR when neither base nor trip currency is present', async () => {
+      const s = svc();
+      const calcSpy = vi.spyOn(s, 'calculateSettlement').mockReturnValue({ transfers: [] } as never);
       getRates.mockResolvedValue(null);
-      await svc().settlement('5', undefined, '');
+      await s.settlement('5', undefined, '');
       expect(getRates).toHaveBeenCalledWith('EUR');
-      expect(budget.calculateSettlement).toHaveBeenCalledWith('5', { base: 'EUR', rates: null, tripCurrency: '' });
+      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'EUR', rates: null, tripCurrency: '' });
     });
   });
 
-  it('create / update / remove / members / paid / payers delegate', async () => {
-    await svc().create('5', { name: 'Hotel' } as never);
-    expect(budget.createBudgetItem).toHaveBeenCalledWith('5', { name: 'Hotel' });
-    await svc().update('9', '5', { name: 'X' });
-    expect(budget.updateBudgetItem).toHaveBeenCalledWith('9', '5', { name: 'X' });
-    svc().remove('9', '5');
-    expect(budget.deleteBudgetItem).toHaveBeenCalledWith('9', '5');
-    svc().updateMembers('9', '5', [2, 3]);
-    expect(budget.updateMembers).toHaveBeenCalledWith('9', '5', [2, 3]);
-    svc().toggleMemberPaid('9', '5', '2', true);
-    expect(budget.toggleMemberPaid).toHaveBeenCalledWith('9', '5', '2', true);
-    svc().setPayers('9', '5', [{ user_id: 2, amount: 10 }]);
-    expect(budget.setItemPayers).toHaveBeenCalledWith('9', '5', [{ user_id: 2, amount: 10 }]);
+  it('create / update freeze the FX rate before the raw write', async () => {
+    const s = svc();
+    const freezeSpy = vi.spyOn(s, 'freezeForeignRate').mockResolvedValue();
+    const createSpy = vi.spyOn(s, 'createBudgetItem').mockReturnValue({ id: 1 } as never);
+    await s.create('5', { name: 'Hotel' });
+    expect(freezeSpy).toHaveBeenCalledWith('5', { name: 'Hotel' });
+    expect(createSpy).toHaveBeenCalledWith('5', { name: 'Hotel' });
+
+    const updateSpy = vi.spyOn(s, 'updateBudgetItem').mockReturnValue({ id: 9 } as never);
+    await s.update('9', '5', { name: 'X' });
+    // the item id is threaded through so an unchanged-currency edit keeps the frozen rate
+    expect(freezeSpy).toHaveBeenCalledWith('5', { name: 'X' }, '9');
+    expect(updateSpy).toHaveBeenCalledWith('9', '5', { name: 'X' });
   });
 
-  it('settlement ledger + reorder delegate', async () => {
-    svc().listSettlements('5');
-    expect(budget.listSettlements).toHaveBeenCalledWith('5');
-    // createSettlement freezes the FX rate (await) before delegating.
-    await svc().createSettlement('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
-    expect(budget.freezeForeignRate).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 10 });
-    expect(budget.createSettlement).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
-    budget.listSettlements.mockReturnValue([{ id: 7, currency: 'USD' }] as never);
-    await svc().updateSettlement('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
-    // the settlement's stored currency is threaded through so an unchanged-currency edit keeps the frozen rate (#1445)
-    expect(budget.freezeForeignRate).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' }, undefined, 'USD');
-    expect(budget.updateSettlement).toHaveBeenCalledWith('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
-    svc().deleteSettlement('7', '5');
-    expect(budget.deleteSettlement).toHaveBeenCalledWith('7', '5');
-    svc().reorderItems('5', [3, 1]);
-    expect(budget.reorderBudgetItems).toHaveBeenCalledWith('5', [3, 1]);
-    svc().reorderCategories('5', ['food', 'fun']);
-    expect(budget.reorderBudgetCategories).toHaveBeenCalledWith('5', ['food', 'fun']);
+  it('remove / setPayers resolve through the folded SQL methods', () => {
+    const s = svc();
+    const deleteSpy = vi.spyOn(s, 'deleteBudgetItem').mockReturnValue(true);
+    expect(s.remove('9', '5')).toBe(true);
+    expect(deleteSpy).toHaveBeenCalledWith('9', '5');
+
+    const payersSpy = vi.spyOn(s, 'setItemPayers').mockReturnValue({ id: 9 } as never);
+    s.setPayers('9', '5', [{ user_id: 2, amount: 10 }]);
+    expect(payersSpy).toHaveBeenCalledWith('9', '5', [{ user_id: 2, amount: 10 }]);
+  });
+
+  describe('settlement ledger wrappers (#1445 freeze-then-write)', () => {
+    it('createSettlement freezes the FX rate (await) before the raw insert', async () => {
+      const s = svc();
+      const freezeSpy = vi.spyOn(s, 'freezeForeignRate').mockResolvedValue();
+      const insertSpy = vi.spyOn(s, 'insertSettlement').mockReturnValue({ id: 7 } as never);
+      await s.createSettlement('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
+      expect(freezeSpy).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 10 });
+      expect(insertSpy).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
+    });
+
+    it('updateSettlement threads the stored currency through the freeze', async () => {
+      const s = svc();
+      const freezeSpy = vi.spyOn(s, 'freezeForeignRate').mockResolvedValue();
+      // Quirk fix: the stored-currency lookup is a targeted getSettlement, not
+      // a full listSettlements scan.
+      const getSpy = vi.spyOn(s, 'getSettlement').mockReturnValue({ id: 7, currency: 'USD' } as never);
+      const applySpy = vi.spyOn(s, 'applySettlementUpdate').mockReturnValue({ id: 7 } as never);
+      await s.updateSettlement('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
+      // the settlement's stored currency is threaded through so an unchanged-currency edit keeps the frozen rate (#1445)
+      expect(getSpy).toHaveBeenCalledWith('7', '5');
+      expect(freezeSpy).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' }, undefined, 'USD');
+      expect(applySpy).toHaveBeenCalledWith('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
+    });
   });
 
   describe('syncReservationPrice', () => {

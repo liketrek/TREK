@@ -29,6 +29,8 @@ const collab: TranslationStrings = {
   'collab.notes.emptyHint': 'Comença a capturar idees i plans',
   'collab.notes.all': 'Totes',
   'collab.notes.titlePlaceholder': 'Títol de la nota',
+  'collab.notes.content': 'Contingut',
+  'collab.notes.removeFile': 'Elimina {name}',
   'collab.notes.contentPlaceholder': 'Escriu alguna cosa...',
   'collab.notes.categoryPlaceholder': 'Categoria',
   'collab.notes.newCategory': 'Categoria nova...',
@@ -71,5 +73,13 @@ const collab: TranslationStrings = {
   'collab.polls.options': 'Opcions',
   'collab.polls.delete': 'Elimina',
   'collab.polls.closedSection': 'Tancades',
+  'collab.chat.readOnly': 'Accés només de lectura a aquest xat',
+  'collab.chat.messageOptions': 'Opcions del missatge',
+  'collab.polls.confirmDeleteTitle': "Vols eliminar l'enquesta?",
+  'collab.polls.confirmDeleteBody': 'Aquesta enquesta quedarà eliminada permanentment.',
+  'collab.polls.countdownDaysHours': '{d}d {h}h restants',
+  'collab.polls.countdownHoursMinutes': '{h}h {m}m restants',
+  'collab.polls.countdownMinutes': '{m}m restants',
+  'collab.polls.clearDeadline': 'Esborra la data límit',
 };
 export default collab;

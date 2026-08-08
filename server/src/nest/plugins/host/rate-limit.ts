@@ -11,6 +11,7 @@
  *
  * Pure + dependency-free (a clock is injected) so it unit-tests without timers.
  */
+import { readEnv } from '../../../app-config';
 
 /** A refilling token bucket: `capacity` tokens, refilled at `refillPerSec`. */
 export class TokenBucket {
@@ -51,10 +52,12 @@ export interface RpcLimitConfig {
 
 // Generous defaults: a legitimate plugin handling a request makes a handful of ctx
 // calls; these only bite a runaway loop. Overridable via env for tuning.
+// Frozen at import on purpose (legacy timing) — the limits are boot-stable.
+const pluginTuning = readEnv().plugins;
 export const DEFAULT_RPC_LIMIT: RpcLimitConfig = {
-  burst: Number(process.env.TREK_PLUGIN_RPC_BURST) || 60,
-  perSec: Number(process.env.TREK_PLUGIN_RPC_PER_SEC) || 20,
-  maxInFlight: Number(process.env.TREK_PLUGIN_RPC_INFLIGHT) || 16,
+  burst: pluginTuning.rpcBurst,
+  perSec: pluginTuning.rpcPerSec,
+  maxInFlight: pluginTuning.rpcInflight,
 };
 
 // Plugin log volume (ctx.log.*, stdout/stderr, unknown evt topics) reaches the
@@ -63,8 +66,8 @@ export const DEFAULT_RPC_LIMIT: RpcLimitConfig = {
 // `while (true) ctx.log.error(...)` loop can't pin the host thread; a legitimate
 // plugin logs far below this and never notices. Excess lines are dropped.
 export const DEFAULT_LOG_LIMIT = {
-  burst: Number(process.env.TREK_PLUGIN_LOG_BURST) || 50,
-  perSec: Number(process.env.TREK_PLUGIN_LOG_PER_SEC) || 10,
+  burst: pluginTuning.logBurst,
+  perSec: pluginTuning.logPerSec,
 };
 
 /** Per-plugin limiter: a token bucket + an in-flight gauge. */

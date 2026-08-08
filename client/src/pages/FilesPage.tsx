@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import PageShell from '../components/Layout/PageShell'
 import { PageSpinner } from '../components/shared/Spinner'
 import FileManager from '../components/Files/FileManager'

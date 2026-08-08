@@ -85,7 +85,10 @@ export function DayReorderPopup({ isOpen, days, t, locale, onReorder, onAddDay, 
         {t('dayplan.reorderHint')}
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {/* The popup is a modal, so it portals out of the planner and has to opt
+          into the long-press drag itself (#1616). Without this a finger only
+          selects the row text. */}
+      <div data-touch-drag style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {ordered.map((day, index) => (
           <div
             key={day.id}

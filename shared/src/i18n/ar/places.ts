@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'إضافة مكان/نشاط',
   'places.importFile': 'استيراد ملف',
+  'places.trackIndicator': 'مسار / طريق',
   'places.sidebarDrop': 'أفلت للاستيراد',
   'places.importFileHint':
     'استورد ملفات .gpx أو .kml أو .kmz من أدوات مثل Google My Maps وGoogle Earth أو جهاز تتبع GPS.',
@@ -42,7 +43,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'إلى أي يوم تريد الإضافة؟',
   'places.all': 'الكل',
   'places.unplanned': 'غير مخطط',
+  'places.planned': 'مخطط لها',
   'places.filterTracks': 'المسارات',
+  'places.sortByRating': 'الترتيب حسب التقييم',
+  'places.yourRating': 'تقييمك',
+  'places.notRated': 'لم يُقيَّم بعد',
   'places.search': 'ابحث عن أماكن...',
   'places.allCategories': 'كل الفئات',
   'places.categoriesSelected': 'فئات',
@@ -62,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'خط الطول (مثال: 2.3522)',
   'places.formCategory': 'الفئة',
   'places.noCategory': 'بلا فئة',
+  'places.newCategory': 'فئة جديدة',
   'places.categoryNamePlaceholder': 'اسم الفئة',
   'places.formTime': 'الوقت',
   'places.startTime': 'البداية',
@@ -88,5 +94,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'إثراء الأماكن عبر Google',
   'places.enrichOnImportHint':
     'يبحث عن كل مكان مستورد لإضافة الصور والعنوان وبيانات الاتصال. يتطلب مفتاح خرائط Google.',
+  'places.uploadImage': 'رفع صورة',
+  'places.changeImage': 'تغيير الصورة',
+  'places.removeImage': 'إزالة الصورة',
+  'places.imageUploadError': 'تعذّر رفع الصورة',
+  'places.imageRemoveError': 'تعذّر إزالة الصورة',
 };
 export default places;

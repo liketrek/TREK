@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Hely/Tevékenység hozzáadása',
   'places.importFile': 'Fájl importálása',
+  'places.trackIndicator': 'Nyomvonal / útvonal',
   'places.sidebarDrop': 'Ejtse el az importáláshoz',
   'places.importFileHint':
     '.gpx, .kml vagy .kmz fájlok importálása olyan eszközökből, mint a Google My Maps, Google Earth vagy egy GPS tracker.',
@@ -42,7 +43,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Melyik naphoz adod?',
   'places.all': 'Összes',
   'places.unplanned': 'Nem tervezett',
+  'places.planned': 'Tervezett',
   'places.filterTracks': 'Nyomvonalak',
+  'places.sortByRating': 'Rendezés értékelés szerint',
+  'places.yourRating': 'Az értékelésed',
+  'places.notRated': 'Még nincs értékelve',
   'places.search': 'Helyek keresése...',
   'places.allCategories': 'Összes kategória',
   'places.categoriesSelected': 'kategória',
@@ -62,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Hosszúsági fok (pl. 2.3522)',
   'places.formCategory': 'Kategória',
   'places.noCategory': 'Nincs kategória',
+  'places.newCategory': 'Új kategória',
   'places.categoryNamePlaceholder': 'Kategória neve',
   'places.formTime': 'Időpont',
   'places.startTime': 'Kezdés',
@@ -88,5 +94,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Helyek gazdagítása a Google-lel',
   'places.enrichOnImportHint':
     'Minden importált helyet megkeres, hogy fotókat, címet és elérhetőséget adjon hozzá. Google Maps-kulcs szükséges.',
+  'places.uploadImage': 'Kép feltöltése',
+  'places.changeImage': 'Kép módosítása',
+  'places.removeImage': 'Kép eltávolítása',
+  'places.imageUploadError': 'Nem sikerült feltölteni a képet',
+  'places.imageRemoveError': 'Nem sikerült eltávolítani a képet',
 };
 export default places;

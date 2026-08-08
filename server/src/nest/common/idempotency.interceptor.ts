@@ -4,9 +4,8 @@ import { Observable, of } from 'rxjs';
 import { DatabaseService } from '../database/database.service';
 
 /**
- * Nest counterpart of the legacy `applyIdempotency` middleware
- * (server/src/middleware/idempotency.ts), which the Express `authenticate`
- * middleware runs on every authenticated request.
+ * Replaces the `applyIdempotency` middleware the Express `authenticate` ran on
+ * every authenticated request. Both are gone; this is the only implementation.
  *
  * The TREK client attaches an `X-Idempotency-Key` to ALL write operations (see
  * client/src/api/client.ts) and the offline sync queue replays mutations with

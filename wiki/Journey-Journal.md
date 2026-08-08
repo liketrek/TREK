@@ -41,6 +41,12 @@ Each entry corresponds to a day in your journey. The entry editor provides:
 - **Location** — pin the entry to a map location.
 - **Time** — optionally record a time of day for the entry.
 
+### External photos
+
+The entry editor includes an **External photos** tab for connected Immich and Synology Photos libraries. It searches the selected calendar day automatically. When the entry has a pinned location, photos with GPS metadata are shown nearest to that location first. Photos without GPS, and photos taken farther away on the same day, remain available below the nearby results; no distance cutoff is applied.
+
+External selections are queued with the other editor changes and saved only when you click **Save**. If a provider is unavailable or its metadata has no GPS coordinates, Journey falls back to the normal date-based photo list.
+
 ## Mobile timeline
 
 On mobile, entries are displayed in a horizontal scrolling timeline of card thumbnails. Tap a card to open the full entry view in a modal sheet. Each card shows the entry's first photo (or a placeholder pin), date, day number, mood icon, and weather icon.

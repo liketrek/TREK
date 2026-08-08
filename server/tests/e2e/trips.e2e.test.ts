@@ -1,13 +1,15 @@
 /**
  * Trips module e2e — exercises the migrated /api/trips aggregate-root endpoints
- * through the real JwtAuthGuard against a temp SQLite db. tripService, the bundle
- * list-services, auditLog, demo, the permission check, canAccessTrip and the
- * WebSocket broadcast are mocked.
+ * through the real JwtAuthGuard against a temp SQLite db. TripsService runs its
+ * real (DI-native) SQL — trips/trip_members/days DDL below; auditLog, demo, the
+ * permission check, canAccessTrip and the WebSocket broadcast are mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { Test } from '@nestjs/testing';
 import { seedUser, sessionCookie } from './harness';
 
@@ -17,8 +19,83 @@ const { db } = vi.hoisted(() => {
   const tmp = new Database(':memory:');
   tmp.exec('PRAGMA journal_mode = WAL');
   tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0);`);
-  tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT);');
+    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
+    avatar TEXT, display_name TEXT, is_guest INTEGER NOT NULL DEFAULT 0);`);
+  // TripsService runs its real SQL (DI-native since the trip fold) — full trip
+  // column set for TRIP_SELECT + create/update/delete, plus the membership and
+  // day-content tables generateDays/listMembers/deleteTrip touch.
+  tmp.exec(`CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, title TEXT NOT NULL,
+    description TEXT, start_date TEXT, end_date TEXT, currency TEXT DEFAULT 'EUR', is_archived INTEGER DEFAULT 0,
+    cover_image TEXT, reminder_days INTEGER DEFAULT 3, feed_token TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE trip_members (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL, invited_by INTEGER, added_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
+    place_id INTEGER NOT NULL, order_index INTEGER DEFAULT 0, notes TEXT, reservation_status TEXT,
+    reservation_notes TEXT, reservation_datetime TEXT, assignment_time TEXT, assignment_end_time TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE day_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
+    trip_id INTEGER NOT NULL, text TEXT, time TEXT, icon TEXT, sort_order INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  // deleteTrip cleans up synced journey entries before dropping the trip row.
+  tmp.exec(`CREATE TABLE journey_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, journey_id INTEGER,
+    source_trip_id INTEGER, source_place_id INTEGER, type TEXT NOT NULL);`);
+  // bundle()'s todoItems now runs TodoService's real SQL (DI-injected, no mock).
+  tmp.exec(`CREATE TABLE todo_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    name TEXT NOT NULL, checked INTEGER NOT NULL DEFAULT 0, category TEXT, sort_order INTEGER NOT NULL DEFAULT 0,
+    due_date TEXT, description TEXT, assigned_user_id INTEGER, priority INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  // bundle()'s packingItems now runs PackingService's real SQL (DI-injected, no
+  // mock) — viewer-scoped (#858), so the recipients table must exist too.
+  tmp.exec(`CREATE TABLE packing_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    name TEXT NOT NULL, checked INTEGER DEFAULT 0, category TEXT, sort_order INTEGER DEFAULT 0,
+    weight_grams INTEGER, bag_id INTEGER, quantity INTEGER NOT NULL DEFAULT 1,
+    is_private INTEGER NOT NULL DEFAULT 0, owner_id INTEGER, updated_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE packing_item_recipients (item_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+    PRIMARY KEY (item_id, user_id));`);
+  // bundle()'s files now runs FilesService's real SQL (DI-injected, no mock) —
+  // empty tables satisfy the FILE_SELECT joins and the file_links batch.
+  tmp.exec(`CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    place_id INTEGER, reservation_id INTEGER, filename TEXT NOT NULL, original_name TEXT NOT NULL,
+    file_size INTEGER, mime_type TEXT, description TEXT, uploaded_by INTEGER, starred INTEGER DEFAULT 0,
+    deleted_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE file_links (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL,
+    reservation_id INTEGER, assignment_id INTEGER, place_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  // bundle()'s reservations now runs ReservationsService's real SQL
+  // (DI-injected, no mock) — the joined list query needs the full reservation
+  // table set (trimmed from src/db/schema.ts; accommodation_id is TEXT there).
+  tmp.exec(`CREATE TABLE reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, title TEXT,
+    day_id INTEGER, end_day_id INTEGER, place_id INTEGER, assignment_id INTEGER, type TEXT,
+    status TEXT DEFAULT 'pending', reservation_time TEXT, reservation_end_time TEXT, location TEXT,
+    confirmation_number TEXT, notes TEXT, url TEXT, accommodation_id TEXT, metadata TEXT,
+    needs_review INTEGER DEFAULT 0, day_plan_position REAL, external_source TEXT, sync_enabled INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT);');
+  tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
+    image_url TEXT, address TEXT, lat REAL, lng REAL, category_id INTEGER, description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  // PlacesService.list joins categories and batch-loads tags/ratings.
+  tmp.exec('CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, icon TEXT);');
+  tmp.exec('CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, created_at DATETIME);');
+  tmp.exec('CREATE TABLE place_tags (place_id INTEGER NOT NULL, tag_id INTEGER NOT NULL, PRIMARY KEY (place_id, tag_id));');
+  tmp.exec('CREATE TABLE place_ratings (place_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER, created_at DATETIME, UNIQUE(place_id, user_id));');
+  tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,
+    check_out TEXT, confirmation TEXT, notes TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE reservation_day_positions (reservation_id INTEGER NOT NULL, day_id INTEGER NOT NULL,
+    position REAL, PRIMARY KEY (reservation_id, day_id));`);
+  tmp.exec(`CREATE TABLE reservation_endpoints (id INTEGER PRIMARY KEY AUTOINCREMENT, reservation_id INTEGER NOT NULL,
+    role TEXT, sequence INTEGER, name TEXT, code TEXT, lat REAL NOT NULL, lng REAL NOT NULL,
+    timezone TEXT, local_time TEXT, local_date TEXT);`);
+  tmp.exec(`CREATE TABLE reservation_travelers (reservation_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+    PRIMARY KEY (reservation_id, user_id));`);
+  // AuditService now runs its real INSERT (DI-injected, no mock) — slim
+  // audit_log mirror (no FKs), same shape as plugin-runtime.test.ts.
+  tmp.exec(`CREATE TABLE audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER, action TEXT NOT NULL, resource TEXT, details TEXT, ip TEXT);`);
   return { db: tmp };
 });
 
@@ -27,30 +104,28 @@ vi.mock('../../src/db/database', () => ({
   db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
-vi.mock('../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
-vi.mock('../../src/services/auditLog', () => ({ writeAudit: vi.fn(), getClientIp: vi.fn(() => '1.2.3.4'), logInfo: vi.fn() }));
-vi.mock('../../src/services/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
+vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
+// The audit domain is DI-native now: writeAudit runs for real against the temp
+// db's audit_log table; only the file logger is silenced.
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
 
-const { checkPermission } = vi.hoisted(() => ({ checkPermission: vi.fn() }));
-vi.mock('../../src/services/permissions', () => ({ checkPermission }));
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
-const { tripSvc } = vi.hoisted(() => ({
-  tripSvc: {
-    listTrips: vi.fn(), createTrip: vi.fn(), getTrip: vi.fn(), updateTrip: vi.fn(), deleteTrip: vi.fn(),
-    getTripRaw: vi.fn(), getTripOwner: vi.fn(), deleteOldCover: vi.fn(), updateCoverImage: vi.fn(),
-    listMembers: vi.fn(), addMember: vi.fn(), removeMember: vi.fn(), exportICS: vi.fn(), copyTripById: vi.fn(),
-    verifyTripAccess: vi.fn(), NotFoundError: class NotFoundError extends Error {}, ValidationError: class ValidationError extends Error {}, TRIP_SELECT: 'SELECT',
-  },
-}));
-vi.mock('../../src/services/tripService', () => tripSvc);
-vi.mock('../../src/services/dayService', () => ({ listDays: () => ({ days: [] }), listAccommodations: () => [] }));
-vi.mock('../../src/services/placeService', () => ({ listPlaces: () => [] }));
-vi.mock('../../src/services/packingService', () => ({ listItems: () => [] }));
-vi.mock('../../src/services/todoService', () => ({ listItems: () => [] }));
-vi.mock('../../src/services/budgetService', () => ({ listBudgetItems: () => [] }));
-vi.mock('../../src/services/reservationService', () => ({ listReservations: () => [] }));
-vi.mock('../../src/services/fileService', () => ({ listFiles: () => [] }));
+// Since the permissions DI migration, the check is a spy on the container's
+// PermissionsService singleton (created in beforeAll, after build()).
+let checkPermission: MockInstance;
 
+// TripsService itself is real since the trip fold — no tripService mock; the
+// trips/trip_members/days DDL above serves its SQL.
+// bundle()'s days + accommodations now run DaysService's real SQL (DI-injected,
+// no mock) — the days/places/day_accommodations/reservations DDL above serves them.
+// bundle()'s places now run PlacesService's real SQL (DI-injected since the
+// place fold, no mock) — the places/categories/tags DDL above serves them.
+// bundle()'s budget items come from the DI-injected BudgetService since the
+// budget fold — stubbed via a container spy in beforeAll (no budget DDL here).
+
+import { BudgetService } from '../../src/nest/budget/budget.service';
 import { TripsModule } from '../../src/nest/trips/trips.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
@@ -59,7 +134,7 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [TripsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, TripsModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -70,14 +145,17 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   beforeAll(async () => {
     seedUser(db as never, { id: 1 });
     app = await build();
+    checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
+    vi.spyOn(app.get(BudgetService), 'listBudgetItems').mockReturnValue([]);
+    vi.spyOn(app.get(BudgetService), 'rebaseTripCurrency').mockResolvedValue();
     server = app.getHttpServer();
-    tripSvc.listTrips.mockReturnValue([{ id: 1, title: 'T' }]);
-    tripSvc.createTrip.mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 });
-    tripSvc.getTrip.mockImplementation((id: string) => (id === '9' ? { id: 9, user_id: 1 } : undefined));
-    tripSvc.listMembers.mockReturnValue({ owner: { id: 1 }, members: [] });
   });
 
   beforeEach(() => {
+    db.prepare('DELETE FROM trips').run();
+    db.prepare('DELETE FROM trip_members').run();
+    db.prepare('DELETE FROM days').run();
+    db.prepare('DELETE FROM audit_log').run();
     canAccessTrip.mockReturnValue({ user_id: 1 });
     checkPermission.mockReturnValue(true);
   });
@@ -86,20 +164,31 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     await app.close();
   });
 
+  const seedTrip = (title = 'T', userId = 1) =>
+    Number(db.prepare('INSERT INTO trips (user_id, title) VALUES (?, ?)').run(userId, title).lastInsertRowid);
+
   it('401 without a cookie', async () => {
     expect((await request(server).get('/api/trips')).status).toBe(401);
   });
 
-  it('200 list', async () => {
+  it('200 list (real TRIP_SELECT: is_owner + counts)', async () => {
+    const tripId = seedTrip('T');
     const res = await request(server).get('/api/trips').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ trips: [{ id: 1, title: 'T' }] });
+    expect(res.body.trips).toHaveLength(1);
+    expect(res.body.trips[0]).toMatchObject({ id: tripId, title: 'T', is_owner: 1, day_count: 0, place_count: 0, shared_count: 0 });
   });
 
-  it('201 create, 403 without permission', async () => {
+  it('201 create (real insert + day generation), 403 without permission', async () => {
     const ok = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'T' });
     expect(ok.status).toBe(201);
-    expect(ok.body).toEqual({ trip: { id: 9 } });
+    // The dateless create seeds the default 7 placeholder days.
+    expect(ok.body.trip).toMatchObject({ title: 'T', currency: 'EUR', day_count: 7, is_owner: 1 });
+    const dayRows = db.prepare('SELECT COUNT(*) AS n FROM days WHERE trip_id = ?').get(ok.body.trip.id) as { n: number };
+    expect(dayRows.n).toBe(7);
+    // The DI-native AuditService wrote the real row (audit_log DDL above).
+    const audit = db.prepare("SELECT user_id FROM audit_log WHERE action = 'trip.create'").get() as { user_id: number };
+    expect(audit).toEqual({ user_id: 1 });
     checkPermission.mockReturnValue(false);
     const forbidden = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'T' });
     expect(forbidden.status).toBe(403);
@@ -111,9 +200,22 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(res.body).toEqual({ error: 'Trip not found' });
   });
 
-  it('200 bundle for an accessible trip', async () => {
-    const res = await request(server).get('/api/trips/9/bundle').set('Cookie', sessionCookie(1));
+  it('200 bundle for an accessible trip (real member list)', async () => {
+    const tripId = seedTrip('B');
+    const res = await request(server).get(`/api/trips/${tripId}/bundle`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ trip: { id: 9 }, days: [], members: [{ id: 1 }] });
+    expect(res.body).toMatchObject({ trip: { id: tripId }, days: [], members: [{ id: 1, role: 'owner' }] });
+  });
+
+  it('200 delete cleans up synced journey entries (real SQL)', async () => {
+    const tripId = seedTrip('D');
+    db.prepare("INSERT INTO journey_entries (journey_id, source_trip_id, type) VALUES (1, ?, 'skeleton')").run(tripId);
+    const filledId = Number(db.prepare("INSERT INTO journey_entries (journey_id, source_trip_id, type) VALUES (1, ?, 'story')").run(tripId).lastInsertRowid);
+    const res = await request(server).delete(`/api/trips/${tripId}`).set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true });
+    expect(db.prepare('SELECT id FROM trips WHERE id = ?').get(tripId)).toBeUndefined();
+    expect(db.prepare("SELECT id FROM journey_entries WHERE type = 'skeleton'").get()).toBeUndefined();
+    expect((db.prepare('SELECT source_trip_id FROM journey_entries WHERE id = ?').get(filledId) as { source_trip_id: number | null }).source_trip_id).toBeNull();
   });
 });

@@ -1,14 +1,14 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { OauthService } from './oauth.service';
-import { RateLimitService } from '../auth/rate-limit.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CookieAuthGuard } from '../auth/cookie-auth.guard';
 import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { getClientIp } from '../../services/auditLog';
+import { getClientIp } from '../audit/client-ip';
 import type { User } from '../../types';
-import type { AuthorizeParams } from '../../services/oauthService';
+import type { AuthorizeParams } from './oauth.service';
 
 const MIN = 60_000;
 

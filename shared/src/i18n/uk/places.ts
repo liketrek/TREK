@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const places: TranslationStrings = {
   'places.addPlace': 'Додати місце/активність',
   'places.importFile': 'Імпортувати файл',
+  'places.trackIndicator': 'Трек / маршрут',
   'places.sidebarDrop': 'Відпустіть для імпорту',
   'places.importFileHint':
     'Імпортуйте файли .gpx, .kml або .kmz із інструментів, таких як Google My Maps, Google Earth або GPS-трекер.',
@@ -42,7 +43,11 @@ const places: TranslationStrings = {
   'places.assignToDay': 'Додати на який день?',
   'places.all': 'Усі',
   'places.unplanned': 'Незаплановані',
+  'places.planned': 'Заплановані',
   'places.filterTracks': 'Треки',
+  'places.sortByRating': 'Сортувати за рейтингом',
+  'places.yourRating': 'Твоя оцінка',
+  'places.notRated': 'Ще не оцінено',
   'places.search': 'Пошук місць...',
   'places.allCategories': 'Всі категорії',
   'places.categoriesSelected': 'категорій',
@@ -62,6 +67,7 @@ const places: TranslationStrings = {
   'places.formLng': 'Довгота (наприклад, 2.3522)',
   'places.formCategory': 'Категорія',
   'places.noCategory': 'Без категорії',
+  'places.newCategory': 'Нова категорія',
   'places.categoryNamePlaceholder': 'Назва категорії',
   'places.formTime': 'Час',
   'places.startTime': 'Початок',
@@ -88,5 +94,10 @@ const places: TranslationStrings = {
   'places.enrichOnImport': 'Збагатити місця через Google',
   'places.enrichOnImportHint':
     'Знаходить кожне імпортоване місце й додає фото, адресу та контакти. Потрібен ключ Google Maps.',
+  'places.uploadImage': 'Завантажити зображення',
+  'places.changeImage': 'Змінити зображення',
+  'places.removeImage': 'Видалити зображення',
+  'places.imageUploadError': 'Не вдалося завантажити зображення',
+  'places.imageRemoveError': 'Не вдалося видалити зображення',
 };
 export default places;

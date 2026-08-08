@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { User, Save, Lock, KeyRound, AlertTriangle, Shield, Camera, Trash2, Copy, Download, Printer } from 'lucide-react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from '../../i18n'
 import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../shared/Toast'
+import { escapeHtml } from '@trek/shared'
 import { authApi, adminApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import type { UserWithOidc } from '../../types'
@@ -106,7 +107,7 @@ export default function AccountTab(): React.ReactElement {
     if (!backupCodesText) return
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>TREK MFA Backup Codes</title>
       <style>body{font-family:Arial,sans-serif;padding:32px}h1{font-size:20px}pre{font-size:16px;line-height:1.6}</style>
-      </head><body><h1>TREK MFA Backup Codes</h1><p>${new Date().toLocaleString()}</p><pre>${backupCodesText}</pre></body></html>`
+      </head><body><h1>TREK MFA Backup Codes</h1><p>${escapeHtml(new Date().toLocaleString())}</p><pre>${escapeHtml(backupCodesText)}</pre></body></html>`
     const w = window.open('', '_blank', 'width=900,height=700')
     if (!w) return
     w.document.open()

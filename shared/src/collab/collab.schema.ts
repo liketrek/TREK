@@ -13,20 +13,24 @@ import { z } from 'zod';
 
 export const collabNoteCreateRequestSchema = z.object({
   title: z.string().min(1),
-  content: z.string().optional(),
-  category: z.string().optional(),
-  color: z.string().optional(),
-  website: z.string().optional(),
+  // The desktop notes form clears optional fields by sending explicit null
+  // (the service coerces falsy to its defaults), so they are all nullable.
+  content: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
 });
 export type CollabNoteCreateRequest = z.infer<typeof collabNoteCreateRequestSchema>;
 
 export const collabNoteUpdateRequestSchema = z.object({
   title: z.string().optional(),
-  content: z.string().optional(),
-  category: z.string().optional(),
-  color: z.string().optional(),
+  // Same null-clearing protocol as create (the desktop form resends the whole
+  // note object, with cleared fields as explicit null).
+  content: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
   pinned: z.union([z.boolean(), z.number()]).optional(),
-  website: z.string().optional(),
+  website: z.string().nullable().optional(),
 });
 export type CollabNoteUpdateRequest = z.infer<typeof collabNoteUpdateRequestSchema>;
 

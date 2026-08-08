@@ -54,6 +54,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.subtitle': 'Μετατρέψτε τα ταξίδια σας σε ιστορίες που δεν θα ξεχάσετε ποτέ',
   'journey.frontpage.createJourney': 'Δημιουργία Ταξιδιού',
   'journey.frontpage.activeJourney': 'Ενεργό Ταξίδι',
+  'journey.frontpage.latestJourney': 'Πρόσφατο Ταξίδι',
   'journey.frontpage.allJourneys': 'Όλα τα Ταξίδια',
   'journey.frontpage.journeys': 'ταξίδια',
   'journey.frontpage.createNew': 'Δημιουργία νέου Ταξιδιού',
@@ -127,6 +128,12 @@ const journey: TranslationStrings = {
   'journey.editor.photoFirst': '1η',
   'journey.editor.makeFirst': 'Ορισμός ως 1η',
   'journey.editor.searching': 'Αναζήτηση...',
+  'journey.editor.useCurrentLocation': 'Χρήση της τρέχουσας τοποθεσίας μου',
+  'journey.editor.locationPermissionDenied':
+    'Η πρόσβαση στην τοποθεσία απορρίφθηκε. Επιτρέψτε την στις ρυθμίσεις του προγράμματος περιήγησης και δοκιμάστε ξανά.',
+  'journey.editor.locationTimeout': 'Λήξη χρονικού ορίου κατά τον εντοπισμό της τοποθεσίας σας. Δοκιμάστε ξανά.',
+  'journey.editor.locationUnavailable': 'Δεν ήταν δυνατός ο εντοπισμός της τοποθεσίας σας.',
+  'journey.editor.locationInsecureContext': 'Η τοποθεσία απαιτεί ασφαλή σύνδεση (HTTPS).',
   'journey.mood.amazing': 'Καταπληκτική',
   'journey.mood.good': 'Καλή',
   'journey.mood.neutral': 'Ουδέτερη',
@@ -229,5 +236,13 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Δεν βρέθηκαν άλμπουμ',
   'journey.picker.selectDate': 'Επιλογή ημερομηνίας',
   'journey.picker.search': 'Αναζήτηση',
+  'journey.editor.externalPhotos': 'External photos', // en-fallback
+  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
+  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
+  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
+  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
+  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
+  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
+  'journey.picker.day': 'This day', // en-fallback
 };
 export default journey;

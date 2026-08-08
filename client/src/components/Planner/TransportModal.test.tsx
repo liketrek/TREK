@@ -1,5 +1,5 @@
-// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-021
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
+// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-053
+import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -17,9 +17,12 @@ import {
   buildTripFile,
 } from '../../../tests/helpers/factories';
 import { TransportModal } from './TransportModal';
+import type { Day, Reservation } from '../../types';
+import type { BookingReviewDraft } from './parsedItemToDraft';
+import type { TripMember } from '../Budget/BudgetPanelMemberChips';
 
-vi.mock('react-router-dom', async (importActual) => {
-  const actual = await importActual<typeof import('react-router-dom')>();
+vi.mock('react-router', async (importActual) => {
+  const actual = await importActual<typeof import('react-router')>();
   return { ...actual, useParams: () => ({ id: '1' }) };
 });
 
@@ -404,8 +407,8 @@ describe('TransportModal', () => {
 
   it('FE-PLANNER-TRANSMODAL-022: creating shows the Manual/Automated switch; Automated opens the transit search', async () => {
     render(<TransportModal {...defaultProps} places={[]} accommodations={[]} />);
-    expect(screen.getByRole('button', { name: 'Manual transport' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Automated transport' }));
+    expect(screen.getByRole('button', { name: 'Manual' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Automated' }));
     // No day selected in defaultProps (days: []) — the pick-day hint shows.
     expect(screen.getByText(/Pick a day/)).toBeInTheDocument();
     // The manual form is gone in automated mode.
@@ -414,8 +417,8 @@ describe('TransportModal', () => {
 
   it('FE-PLANNER-TRANSMODAL-022b: a trip without start/end dates only offers the manual form', () => {
     render(<TransportModal {...defaultProps} tripHasDates={false} places={[]} accommodations={[]} />);
-    expect(screen.queryByRole('button', { name: 'Automated transport' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Manual transport' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Automated' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Manual' })).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText(/e\.g\. Lufthansa/i)).toBeInTheDocument();
   });
 
@@ -447,7 +450,7 @@ describe('TransportModal', () => {
   it('FE-PLANNER-TRANSMODAL-024: editing shows no Manual/Automated switch', () => {
     const res = buildReservation({ title: 'My Train', type: 'train' });
     render(<TransportModal {...defaultProps} reservation={res} />);
-    expect(screen.queryByRole('button', { name: 'Automated transport' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Automated' })).not.toBeInTheDocument();
   });
 
   // ── Multi-leg trains (#1150) ───────────────────────────────────────────────
@@ -512,5 +515,618 @@ describe('TransportModal', () => {
     expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
     expect(payload.metadata.legs).toBeUndefined();
     expect(payload.metadata.train_number).toBe('RE 9');
+  });
+
+  // ── Per-endpoint day resolution (#1684) ────────────────────────────────────
+
+  const spanDays = [
+    { id: 10, trip_id: 1, day_number: 1, date: '2026-08-01', title: 'Day 1' },
+    { id: 11, trip_id: 1, day_number: 2, date: '2026-08-02', title: 'Day 2' },
+    { id: 12, trip_id: 1, day_number: 3, date: '2026-08-03', title: 'Day 3' },
+  ] as any;
+
+  const flightEndpoints = (fromDate: string, toDate: string) => ([
+    { id: 1, reservation_id: 1, role: 'from', sequence: 0, name: 'Frankfurt (FRA)', code: 'FRA', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin', local_date: fromDate, local_time: '10:00' },
+    { id: 2, reservation_id: 1, role: 'to', sequence: 1, name: 'New York (JFK)', code: 'JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York', local_date: toDate, local_time: '13:00' },
+  ]);
+
+  it('FE-PLANNER-TRANSMODAL-030: an import prefill resolves each waypoint day from its endpoint local_date (#1684)', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    // A parsed import carries local_date per endpoint but no day_id at all.
+    const prefill = { title: 'LH 400', type: 'flight', status: 'pending', endpoints: flightEndpoints('2026-08-02', '2026-08-03') } as any;
+    render(<TransportModal {...defaultProps} days={spanDays} prefill={prefill} onSave={onSave} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.day_id).toBe(11);
+    expect(payload.end_day_id).toBe(12);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-031: editing keeps the saved days when the endpoint local_date is stale', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    // Dragging a booking to another day rewrites day_id/end_day_id but leaves the
+    // endpoints untouched, so local_date lags behind. Re-saving must not move the
+    // booking back to the day that stale date points at.
+    const reservation = buildReservation({
+      id: 1, title: 'LH 400', type: 'flight', day_id: 10, end_day_id: 11,
+      reservation_time: '2026-08-01T10:00', reservation_end_time: '2026-08-02T13:00',
+      endpoints: flightEndpoints('2026-08-03', '2026-08-03'),
+    } as any) as any;
+    render(<TransportModal {...defaultProps} days={spanDays} reservation={reservation} onSave={onSave} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.day_id).toBe(10);
+    expect(payload.end_day_id).toBe(11);
+  });
+
+  // ── Multi-leg flights (#872) ───────────────────────────────────────────────
+
+  const routeDays = [
+    { id: 10, trip_id: 1, day_number: 1, date: '2026-08-01', title: 'Depart Day' },
+    { id: 11, trip_id: 1, day_number: 2, date: '2026-08-02', title: 'Stop Day' },
+    { id: 12, trip_id: 1, day_number: 3, date: '2026-08-03', title: 'Arrive Day' },
+  ] as unknown as Day[];
+
+  /** The route cards have no test ids — each day picker is found via its own label. */
+  async function pickDay(labelText: string, index: number, dayTitle: string) {
+    const label = screen.getAllByText(labelText)[index];
+    const trigger = (label.parentElement as HTMLElement).querySelector('button') as HTMLButtonElement;
+    await userEvent.click(trigger);
+    await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${dayTitle}`) }));
+  }
+
+  it('FE-PLANNER-TRANSMODAL-032: a flight with an added stop saves per-leg metadata and from/stop/to endpoints', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'BRU → HEL → JFK');
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+
+    const airports = screen.getAllByTestId('airport-select');
+    expect(airports).toHaveLength(3);
+    fireEvent.change(airports[0], { target: { value: 'BRU' } });
+    fireEvent.change(airports[1], { target: { value: 'HEL' } });
+    fireEvent.change(airports[2], { target: { value: 'JFK' } });
+
+    // Times run: wp0 departure, wp1 arrival, wp1 departure, wp2 arrival.
+    const times = screen.getAllByTestId('time-picker');
+    fireEvent.change(times[0], { target: { value: '08:00' } });
+    fireEvent.change(times[1], { target: { value: '12:30' } });
+    fireEvent.change(times[2], { target: { value: '14:00' } });
+    fireEvent.change(times[3], { target: { value: '15:00' } });
+
+    const airlines = screen.getAllByPlaceholderText('Lufthansa');
+    fireEvent.change(airlines[0], { target: { value: 'Brussels Airlines' } });
+    fireEvent.change(airlines[1], { target: { value: 'Finnair' } });
+    const numbers = screen.getAllByPlaceholderText('LH 123');
+    fireEvent.change(numbers[0], { target: { value: 'SN 1234' } });
+    fireEvent.change(numbers[1], { target: { value: 'AY 15' } });
+    const seats = screen.getAllByPlaceholderText('12A');
+    fireEvent.change(seats[0], { target: { value: '4F' } });
+
+    // The last leg lands a day later than it departs.
+    await pickDay('Arrival', 1, 'Arrive Day');
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+
+    expect(payload.endpoints.map((e: { role: string; code: string }) => `${e.role}:${e.code}`)).toEqual(['from:BRU', 'stop:HEL', 'to:JFK']);
+    expect(payload.metadata.legs).toHaveLength(2);
+    expect(payload.metadata.legs[0]).toMatchObject({
+      from: 'BRU', to: 'HEL', airline: 'Brussels Airlines', flight_number: 'SN 1234', seat: '4F',
+      dep_day_id: 10, dep_time: '08:00', arr_day_id: 10, arr_time: '12:30',
+    });
+    expect(payload.metadata.legs[1]).toMatchObject({ from: 'HEL', to: 'JFK', airline: 'Finnair', flight_number: 'AY 15', arr_day_id: 12, arr_time: '15:00' });
+    // Flat mirrors of the first leg for legacy readers.
+    expect(payload.metadata).toMatchObject({ airline: 'Brussels Airlines', flight_number: 'SN 1234', seat: '4F', departure_airport: 'BRU', arrival_airport: 'JFK' });
+    expect(payload.day_id).toBe(10);
+    expect(payload.end_day_id).toBe(12);
+    expect(payload.reservation_time).toBe('2026-08-01T08:00');
+    expect(payload.reservation_end_time).toBe('2026-08-03T15:00');
+  });
+
+  it('FE-PLANNER-TRANSMODAL-033: removing a flight stop collapses the route back to two waypoints', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'BRU → JFK');
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    expect(screen.getAllByTestId('airport-select')).toHaveLength(3);
+
+    // Only the intermediate stop carries a delete button.
+    await userEvent.click(screen.getByRole('button', { name: /^Delete$/i }));
+    expect(screen.getAllByTestId('airport-select')).toHaveLength(2);
+
+    const airports = screen.getAllByTestId('airport-select');
+    fireEvent.change(airports[0], { target: { value: 'BRU' } });
+    fireEvent.change(airports[1], { target: { value: 'JFK' } });
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
+    expect(payload.metadata.legs).toBeUndefined();
+  });
+
+  it('FE-PLANNER-TRANSMODAL-034: the departure-date picker moves the whole flight to another day', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH 400');
+    fireEvent.change(screen.getAllByTestId('airport-select')[0], { target: { value: 'FRA' } });
+    fireEvent.change(screen.getAllByTestId('airport-select')[1], { target: { value: 'JFK' } });
+    await pickDay('Departure', 0, 'Stop Day');
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].day_id).toBe(11);
+  });
+
+  // ── Multi-leg trains (#1150) — edit round-trip ─────────────────────────────
+
+  function multiLegTrain(): Reservation {
+    const res = buildReservation({ id: 30, title: 'Berlin → München', type: 'train' });
+    return Object.assign(res, {
+      day_id: 10,
+      end_day_id: 12,
+      reservation_time: '2026-08-01T08:00',
+      reservation_end_time: '2026-08-03T18:00',
+      metadata: {
+        train_number: 'ICE 100', platform: '5', seat: '11A',
+        legs: [
+          { from: 'Berlin Hbf', to: 'Frankfurt Hbf', train_number: 'ICE 100', platform: '5', seat: '11A', dep_day_id: 10, dep_time: '08:00', arr_day_id: 11, arr_time: '12:00', day_positions: { '10': 2 } },
+          { from: 'Frankfurt Hbf', to: 'München Hbf', train_number: 'ICE 200', platform: '7', seat: '12B', dep_day_id: 11, dep_time: '13:00', arr_day_id: 12, arr_time: '18:00' },
+        ],
+      },
+      endpoints: [
+        { id: 1, reservation_id: 30, role: 'from', sequence: 0, name: 'Berlin Hbf', code: null, lat: 52.52, lng: 13.37, timezone: null, local_date: '2026-08-01', local_time: '08:00' },
+        { id: 2, reservation_id: 30, role: 'stop', sequence: 1, name: 'Frankfurt Hbf', code: null, lat: 50.107, lng: 8.663, timezone: null, local_date: '2026-08-02', local_time: '13:00' },
+        { id: 3, reservation_id: 30, role: 'to', sequence: 2, name: 'München Hbf', code: null, lat: 48.14, lng: 11.558, timezone: null, local_date: '2026-08-03', local_time: '18:00' },
+      ],
+    }) as unknown as Reservation;
+  }
+
+  it('FE-PLANNER-TRANSMODAL-035: editing a multi-leg train seeds every station from metadata.legs', () => {
+    render(<TransportModal {...defaultProps} days={routeDays} reservation={multiLegTrain()} />);
+
+    expect(screen.getAllByTestId('location-select')).toHaveLength(3);
+    const numbers = screen.getAllByPlaceholderText('ICE 123') as HTMLInputElement[];
+    expect(numbers.map(i => i.value)).toEqual(['ICE 100', 'ICE 200']);
+    const platforms = screen.getAllByPlaceholderText('12') as HTMLInputElement[];
+    expect(platforms.map(i => i.value)).toEqual(['5', '7']);
+    const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
+    // wp0 dep, wp1 arr, wp1 dep, wp2 arr
+    expect(times.map(i => i.value)).toEqual(['08:00', '12:00', '13:00', '18:00']);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-036: re-saving a multi-leg train keeps its legs and day-plan positions', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} reservation={multiLegTrain()} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.endpoints.map((e: { role: string; name: string }) => `${e.role}:${e.name}`)).toEqual([
+      'from:Berlin Hbf', 'stop:Frankfurt Hbf', 'to:München Hbf',
+    ]);
+    expect(payload.metadata.legs).toHaveLength(2);
+    // The planner owns the per-leg positions — an edit must not drop them.
+    expect(payload.metadata.legs[0].day_positions).toEqual({ '10': 2 });
+    expect(payload.metadata).toMatchObject({ train_number: 'ICE 100', platform: '5', seat: '11A' });
+    expect(payload.day_id).toBe(10);
+    expect(payload.end_day_id).toBe(12);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-037: a train with no arrival day dates its arrival from the departure day', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Train$/i }));
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'RE 9');
+    const stations = screen.getAllByTestId('location-select');
+    fireEvent.change(stations[0], { target: { value: 'Köln Hbf' } });
+    fireEvent.change(stations[1], { target: { value: 'Aachen Hbf' } });
+    fireEvent.change(screen.getAllByTestId('time-picker')[0], { target: { value: '09:00' } });
+    fireEvent.change(screen.getAllByTestId('time-picker')[1], { target: { value: '10:05' } });
+    fireEvent.change(screen.getAllByPlaceholderText('12')[0], { target: { value: '3' } });
+    fireEvent.change(screen.getAllByPlaceholderText('42A')[0], { target: { value: '21C' } });
+    // Blank out the arrival day so only the departure day is known.
+    await pickDay('Arrival', 0, '—');
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.reservation_end_time).toBe('2026-08-01T10:05');
+    expect(payload.endpoints[1].local_date).toBe('2026-08-01');
+    expect(payload.metadata).toMatchObject({ platform: '3', seat: '21C' });
+  });
+
+  it('FE-PLANNER-TRANSMODAL-038: a single-leg flight mirrors the seat into the flat metadata', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH 400');
+    fireEvent.change(screen.getAllByTestId('airport-select')[0], { target: { value: 'FRA' } });
+    fireEvent.change(screen.getAllByTestId('airport-select')[1], { target: { value: 'JFK' } });
+    fireEvent.change(screen.getAllByPlaceholderText('12A')[0], { target: { value: '7A' } });
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.metadata.seat).toBe('7A');
+    expect(payload.metadata.legs).toBeUndefined();
+  });
+
+  // ── Non-flight form fields ─────────────────────────────────────────────────
+
+  it('FE-PLANNER-TRANSMODAL-039: a car rental keeps its pick-up/return days, times and booking code', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Car$/i }));
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Sixt compact');
+    // The labels switch to rental wording for cars.
+    expect(screen.getByText('Pickup')).toBeInTheDocument();
+    expect(screen.getByText('Return time')).toBeInTheDocument();
+
+    const locations = screen.getAllByTestId('location-select');
+    fireEvent.change(locations[0], { target: { value: 'Berlin Airport' } });
+    fireEvent.change(locations[1], { target: { value: 'Munich Airport' } });
+    await pickDay('Pickup', 0, 'Depart Day');
+    await pickDay('Return', 0, 'Arrive Day');
+    fireEvent.change(screen.getAllByTestId('time-picker')[0], { target: { value: '09:30' } });
+    fireEvent.change(screen.getAllByTestId('time-picker')[1], { target: { value: '17:45' } });
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. ABC12345/i), 'SIXT-42');
+    await userEvent.type(screen.getByPlaceholderText(/Additional notes/i), 'Full-to-full tank');
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      type: 'car', day_id: 10, end_day_id: 12,
+      reservation_time: '2026-08-01T09:30', reservation_end_time: '2026-08-03T17:45',
+      confirmation_number: 'SIXT-42', notes: 'Full-to-full tank',
+    });
+    expect(payload.endpoints.map((e: { name: string }) => e.name)).toEqual(['Berlin Airport', 'Munich Airport']);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-040: the status picker switches the booking to confirmed', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} onSave={onSave} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH 400');
+    await userEvent.click(screen.getByText('Pending'));
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmed' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].status).toBe('confirmed');
+  });
+
+  // ── Submit guards + failures ───────────────────────────────────────────────
+
+  it('FE-PLANNER-TRANSMODAL-041: submitting the form with an empty title is a no-op', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} onSave={onSave} />);
+    fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+    await waitFor(() => expect(onSave).not.toHaveBeenCalled());
+  });
+
+  it('FE-PLANNER-TRANSMODAL-042: a rejected save surfaces the error message and re-enables the button', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const onSave = vi.fn().mockRejectedValue(new Error('Server exploded'));
+    render(<TransportModal {...defaultProps} onSave={onSave} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH 400');
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Server exploded', 'error', undefined));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Add$/i })).toBeEnabled());
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-TRANSMODAL-043: a closed modal does not seed the form from the reservation', () => {
+    const res = buildReservation({ title: 'Hidden Flight', type: 'flight' });
+    render(<TransportModal {...defaultProps} isOpen={false} reservation={res} />);
+    expect(screen.queryByDisplayValue('Hidden Flight')).not.toBeInTheDocument();
+  });
+
+  // ── Travelers (#1517) ──────────────────────────────────────────────────────
+
+  const tripMembers: TripMember[] = [
+    { id: 1, username: 'alice', avatar_url: null },
+    { id: 2, username: 'bob', avatar_url: null },
+  ];
+
+  it('FE-PLANNER-TRANSMODAL-044: assigned travelers are written back after the save resolves', async () => {
+    const onSave = vi.fn().mockResolvedValue({ id: 60 });
+    let body: { user_ids: number[] } | null = null;
+    server.use(
+      http.put('/api/trips/1/reservations/60/travelers', async ({ request }) => {
+        body = (await request.json()) as { user_ids: number[] };
+        return HttpResponse.json({ travelers: [] });
+      }),
+    );
+
+    render(<TransportModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH 400');
+    await userEvent.click(screen.getByText('bob'));
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body!.user_ids).toEqual([2]);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-045: a failing traveler write surfaces an error toast', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const onSave = vi.fn().mockResolvedValue({ id: 61 });
+    server.use(
+      http.put('/api/trips/1/reservations/61/travelers', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+
+    render(<TransportModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH 400');
+    await userEvent.click(screen.getByText('alice'));
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined));
+    delete window.__addToast;
+  });
+
+  // ── Linked cost actions ─────────────────────────────────────────────────────
+
+  function seedLinkedCost() {
+    seedStore(useAddonStore, {
+      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
+      loaded: true,
+    });
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      budgetItems: [
+        { id: 3, trip_id: 1, name: 'Flight ticket', total_price: 320, currency: 'EUR', category: 'transport', reservation_id: 50, members: [], payers: [], persons: 1, expense_date: null, paid_by_user_id: null },
+      ],
+    });
+  }
+
+  it('FE-PLANNER-TRANSMODAL-046: editing the linked cost saves the booking, then opens that item', async () => {
+    seedLinkedCost();
+    const onSave = vi.fn().mockResolvedValue({ id: 50 });
+    const onOpenExpense = vi.fn();
+    render(
+      <TransportModal
+        {...defaultProps}
+        onSave={onSave}
+        onOpenExpense={onOpenExpense}
+        reservation={buildReservation({ id: 50, type: 'flight', title: 'LH 400' })}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /^Edit$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onOpenExpense).toHaveBeenCalledWith({ editItem: expect.objectContaining({ id: 3 }) });
+  });
+
+  it('FE-PLANNER-TRANSMODAL-047: a failing cost removal reports the error', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    seedLinkedCost();
+    server.use(http.delete('/api/trips/1/budget/3', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+
+    render(<TransportModal {...defaultProps} reservation={buildReservation({ id: 50, type: 'flight', title: 'LH 400' })} />);
+    await userEvent.click(screen.getByRole('button', { name: /Remove expense/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined));
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-TRANSMODAL-048: an imported transport with a price creates the linked cost on save', async () => {
+    seedStore(useAddonStore, {
+      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
+      loaded: true,
+    });
+    const onSave = vi.fn().mockResolvedValue({ id: 62 });
+    const prefill = {
+      title: 'LH 400', type: 'flight', status: 'pending',
+      reservation_time: '2026-08-01T08:00', reservation_end_time: '2026-08-01T11:00',
+      metadata: { airline: 'Lufthansa', flight_number: 'LH 400', price: 189.5, priceCurrency: 'EUR' },
+      endpoints: [],
+    } as unknown as BookingReviewDraft;
+
+    render(<TransportModal {...defaultProps} days={routeDays} prefill={prefill} onSave={onSave} />);
+    // The parsed price is previewed before the booking exists.
+    expect(screen.getByText('Linked expense')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 189.5, category: 'flights' });
+  });
+
+  // ── File edge cases ─────────────────────────────────────────────────────────
+
+  it('FE-PLANNER-TRANSMODAL-049: a cancelled file dialog changes nothing', () => {
+    render(<TransportModal {...defaultProps} reservation={null} />);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [] } });
+    expect(screen.getByRole('button', { name: /Attach file/i })).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-TRANSMODAL-050: a failing upload to an existing booking shows the upload error', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const onFileUpload = vi.fn().mockRejectedValue(new Error('disk full'));
+    const res = buildReservation({ id: 20, type: 'train', title: 'Eurostar' });
+
+    render(<TransportModal {...defaultProps} reservation={res} onFileUpload={onFileUpload} />);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [new File(['x'], 'fail.pdf', { type: 'application/pdf' })] } });
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to upload', 'error', undefined));
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-TRANSMODAL-051: a failing unlink reports the update error', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    server.use(
+      http.put('/api/trips/1/files/70', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.get('/api/trips/1/files/70/links', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+    const res = buildReservation({ id: 21, type: 'flight', title: 'LH 400' });
+    const attached = buildTripFile({ id: 70, original_name: 'boarding.pdf' });
+    (attached as unknown as { reservation_id: number }).reservation_id = 21;
+
+    render(<TransportModal {...defaultProps} reservation={res} files={[attached]} />);
+    const row = screen.getByText('boarding.pdf').closest('div') as HTMLElement;
+    await userEvent.click(within(row).getByRole('button'));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to update', 'error', undefined));
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-TRANSMODAL-052: a failing link keeps the picker open and reports the error', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    server.use(http.post('/api/trips/1/files/71/link', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+
+    const res = buildReservation({ id: 22, type: 'flight', title: 'LH 400' });
+    const loose = buildTripFile({ id: 71, original_name: 'invoice.pdf' });
+
+    render(<TransportModal {...defaultProps} reservation={res} files={[loose]} />);
+    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
+    const pickerItem = screen.getByText('invoice.pdf').closest('button') as HTMLButtonElement;
+    fireEvent.mouseEnter(pickerItem);
+    fireEvent.mouseLeave(pickerItem);
+    await userEvent.click(pickerItem);
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to update', 'error', undefined));
+    expect(screen.getByRole('button', { name: /Link existing file/i })).toBeInTheDocument();
+    delete window.__addToast;
+  });
+
+  // ── Transit itinerary preservation, continued ──────────────────────────────
+
+  it('FE-PLANNER-TRANSMODAL-053: kept transfer stops are re-sequenced in order', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const res = buildReservation({ title: 'A → C', type: 'bus' });
+    Object.assign(res, {
+      metadata: { transit: { provider: 'transitous', legs: [{ mode: 'BUS' }] } },
+      // Stops arrive out of order — the form must restore their sequence.
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: null, lat: 0, lng: 0, timezone: null, local_date: null, local_time: null },
+        { role: 'stop', sequence: 2, name: 'Second stop', code: null, lat: 1, lng: 1, timezone: null, local_date: null, local_time: null },
+        { role: 'stop', sequence: 1, name: 'First stop', code: null, lat: 2, lng: 2, timezone: null, local_date: null, local_time: null },
+        { role: 'to', sequence: 3, name: 'C', code: null, lat: 3, lng: 3, timezone: null, local_date: null, local_time: null },
+      ],
+    });
+
+    render(<TransportModal {...defaultProps} reservation={res as unknown as Reservation} onSave={onSave} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.endpoints.map((e: { name: string }) => e.name)).toEqual(['A', 'First stop', 'Second stop', 'C']);
+    expect(payload.endpoints.map((e: { sequence: number }) => e.sequence)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-055: an existing traveler list is toggled off and written back empty', async () => {
+    const onSave = vi.fn().mockResolvedValue({ id: 63 });
+    let body: { user_ids: number[] } | null = null;
+    server.use(
+      http.put('/api/trips/1/reservations/63/travelers', async ({ request }) => {
+        body = (await request.json()) as { user_ids: number[] };
+        return HttpResponse.json({ travelers: [] });
+      }),
+    );
+    const res = buildReservation({ id: 63, type: 'flight', title: 'LH 400' });
+    (res as unknown as { travelers: { user_id: number; username: string }[] }).travelers = [
+      { user_id: 1, username: 'alice' },
+    ];
+
+    render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} tripMembers={tripMembers} />);
+    // Seeded from the reservation, so alice starts selected.
+    expect(screen.getByText('alice').closest('button')).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(screen.getByText('alice'));
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body!.user_ids).toEqual([]);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-056: a train stop can be added and removed again', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Train$/i }));
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Köln → Aachen');
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    expect(screen.getAllByTestId('location-select')).toHaveLength(3);
+    await userEvent.click(screen.getByRole('button', { name: /^Delete$/i }));
+    expect(screen.getAllByTestId('location-select')).toHaveLength(2);
+
+    // Move the departure to another day through its own picker.
+    await pickDay('Departure', 0, 'Stop Day');
+    const stations = screen.getAllByTestId('location-select');
+    fireEvent.change(stations[0], { target: { value: 'Köln Hbf' } });
+    fireEvent.change(stations[1], { target: { value: 'Aachen Hbf' } });
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.day_id).toBe(11);
+    expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-057: the open-file link on an attached document does not throw', async () => {
+    const res = buildReservation({ id: 23, type: 'flight', title: 'LH 400' });
+    const attached = buildTripFile({ id: 72, original_name: 'boarding.pdf' });
+    (attached as unknown as { reservation_id: number }).reservation_id = 23;
+
+    render(<TransportModal {...defaultProps} reservation={res} files={[attached]} />);
+    const row = screen.getByText('boarding.pdf').closest('div') as HTMLElement;
+    await userEvent.click(within(row).getByRole('link'));
+    expect(screen.getByText('boarding.pdf')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-TRANSMODAL-054: switching the transit day rescopes the quick picks', async () => {
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01', title: 'Day one' }),
+      buildDay({ id: 11, date: '2025-06-02', title: 'Day two' }),
+    ];
+    const louvre = buildPlace({ id: 1, name: 'Louvre' });
+    const eiffel = buildPlace({ id: 2, name: 'Eiffel Tower' });
+    const orsay = buildPlace({ id: 3, name: 'Musée d\'Orsay' });
+    const assignments = {
+      '10': [buildAssignment({ day_id: 10, place_id: louvre.id, place: louvre })],
+      // Two entries so the quick picks follow the day's own order.
+      '11': [
+        buildAssignment({ day_id: 11, order_index: 1, place_id: orsay.id, place: orsay }),
+        buildAssignment({ day_id: 11, order_index: 0, place_id: eiffel.id, place: eiffel }),
+      ],
+    };
+
+    render(
+      <TransportModal
+        {...defaultProps}
+        days={days}
+        selectedDayId={10}
+        initialAutomated
+        places={[louvre, eiffel, orsay]}
+        assignments={assignments}
+        accommodations={[]}
+      />,
+    );
+
+    await userEvent.click(screen.getByText('Day one'));
+    await userEvent.click(screen.getByRole('button', { name: /^Day two/ }));
+
+    const [fromInput] = screen.getAllByPlaceholderText('Search stop or station…');
+    await userEvent.click(fromInput);
+    expect(screen.getByText('Eiffel Tower')).toBeInTheDocument();
+    expect(screen.getByText(/Orsay/)).toBeInTheDocument();
+    expect(screen.queryByText('Louvre')).not.toBeInTheDocument();
   });
 });

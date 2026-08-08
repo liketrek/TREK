@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Seleziona tutto',
   'common.deselectAll': 'Deseleziona tutto',
   'common.error': 'Errore',
+  'common.success': 'Successo',
   'common.unknownError': 'Errore sconosciuto',
   'common.tooManyAttempts': 'Troppi tentativi. Riprova più tardi.',
   'common.back': 'Indietro',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Inserisci una data',
   'common.datepicker.dialog': 'Selettore di date',
   'common.datepicker.clearDate': 'Cancella data',
+  'common.errorTitle': 'Qualcosa è andato storto',
+  'common.errorBody': 'Questa parte dell\'app ha smesso di funzionare. I tuoi dati sono al sicuro.',
+  'common.errorPanelTitle': 'Impossibile mostrare questa sezione',
+  'common.errorPanelBody': 'Il resto della pagina funziona ancora.',
+  'common.errorRetry': 'Riprova',
+  'common.errorReload': 'Ricarica la pagina',
+  'common.errorUpdateTitle': 'È disponibile una nuova versione',
+  'common.errorUpdateBody': 'TREK è stato aggiornato mentre questa scheda era aperta. Ricarica per ottenere la nuova versione.',
+  'common.errorPluginTitle': 'Impossibile mostrare questo plugin',
 };
 export default common;

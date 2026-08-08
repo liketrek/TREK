@@ -1,15 +1,44 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { visualizer } from 'rollup-plugin-visualizer';
 
-export default defineConfig({
+// `npm run build:analyze` writes dist/stats.html — a treemap of what actually ended
+// up in each chunk. The plain build only reports chunk sizes, which tells you a chunk
+// is too big but not which dependency made it so.
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
+    mode === 'analyze' &&
+      visualizer({ filename: 'dist/stats.html', gzipSize: true, brotliSize: true }),
     VitePWA({
       registerType: 'autoUpdate',
+      // Serve the generated manifest (+ dev SW) in development too, so the installed
+      // PWA can be tested against the dev server. Without this, dev ships no
+      // <link rel="manifest">, so iOS falls back to legacy standalone
+      // (apple-mobile-web-app-capable only) and pops the Safari chrome on every
+      // in-app navigation away from the start URL. Prod already serves the manifest.
+      devOptions: {
+        enabled: true,
+        type: 'module',
+        suppressWarnings: true,
+      },
       workbox: {
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        // Anything above this is dropped from the precache manifest. The build does
+        // not fail over it, it only prints "won't be precached", so the ceiling has
+        // to sit close to the real bundle or an accidental heavyweight goes
+        // offline-broken unnoticed. Largest precached entry is the heic-to chunk at
+        // 3.0 MB, which leaves about 670 kB of headroom; the entry chunk is 258 kB.
+        maximumFileSizeToCacheInBytes: 3.5 * 1024 * 1024,
+        // Every route chunk is precached alongside the shell, deliberately: for an
+        // offline-first travel planner a route the user never opened before losing
+        // signal still has to work. The trade is that splitting buys first paint and
+        // not install size — 107 entries / 17,795 KiB before any of it, 220 /
+        // 17,855 KiB now.
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
+        // build:analyze drops a treemap next to the app; it must never end up in a
+        // precache manifest if someone ships that build by accident.
+        globIgnores: ['**/stats.html'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [
           /^\/api/,
@@ -36,7 +65,10 @@ export default defineConfig({
             // OpenStreetMap tiles (fallback / alternative)
             // Shares the 'map-tiles' cache; keep maxEntries equal to the Carto
             // rule above and MAX_TILES in src/sync/tilePrefetcher.ts (12288).
-            urlPattern: /^https:\/\/[a-c]\.tile\.openstreetmap\.org\/.*/i,
+            // Both spellings have to stay in the pattern: templates are rewritten
+            // onto the apex host (src/utils/tileUrl.ts), but caches filled before
+            // that still hold a/b/c URLs and must keep serving offline.
+            urlPattern: /^https:\/\/(?:[a-c]\.)?tile\.openstreetmap\.org\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles',
@@ -114,10 +146,55 @@ export default defineConfig({
         ],
       },
     }),
-  ],
+  ].filter(Boolean),
   build: {
+    // Pin the output level instead of inheriting whatever the current Vite default
+    // is, so a toolchain bump can't silently change which browsers still work.
+    target: 'es2022',
     sourcemap: false,
     modulePreload: { polyfill: true },
+    // Vite 8 bundles with rolldown, not rollup. `rollupOptions` is only an alias
+    // onto `rolldownOptions`, and both `manualChunks` and `advancedChunks` are
+    // deprecated in favour of `codeSplitting.groups` — a config mixing them still
+    // builds green and simply has no effect.
+    //
+    // `tags: ['$initial']` is not optional here. Without it a group also collects
+    // modules that today hang behind React.lazy, which turns the group chunk into
+    // a static import of the entry: measured, that put the 2.8 MB GL chunk into
+    // the index.html modulepreload and took eager JS from 1.48 MB to 4.61 MB.
+    //
+    // Deliberately no groups for mapbox-gl/maplibre-gl, leaflet or react-markdown.
+    // Those already sit in async chunks of their own with hashes that survive a
+    // release; a group would only rename them, and at worst make them eager.
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor-react',
+              priority: 40,
+              tags: ['$initial'],
+              // react-dom/server is pulled dynamically by TripPDF and lives in an
+              // async chunk. Excluding it keeps a later static import from lifting
+              // ~170 kB of Fizz into the eager vendor chunk.
+              test: (id) =>
+                /[\\/]node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/.test(id) &&
+                !/react-dom[\\/](server|static)|react-dom-server/.test(id),
+            },
+            {
+              name: 'vendor-core',
+              priority: 30,
+              // zod and dompurify arrive through @trek/shared but live in
+              // node_modules themselves, so they are caught here. @trek/shared is
+              // not: it resolves to shared/dist without a node_modules segment,
+              // and its contract code changes with every release anyway.
+              tags: ['$initial'],
+              test: /[\\/]node_modules[\\/](zustand|dexie|axios|zod|dompurify|isomorphic-dompurify)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
   },
   server: {
     port: 5173,
@@ -167,4 +244,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

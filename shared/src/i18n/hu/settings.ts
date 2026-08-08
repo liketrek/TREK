@@ -23,7 +23,6 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Térkép sablon',
   'settings.mapTemplatePlaceholder.select': 'Sablon kiválasztása...',
   'settings.mapDefaultHint': 'Hagyd üresen az OpenStreetMap használatához (alapértelmezett)',
-  'settings.mapTemplatePlaceholder': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   'settings.mapHint': 'URL sablon a térképcsempékhez',
   'settings.mapProvider': 'Térkép szolgáltató',
   'settings.mapProviderHint': 'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',
@@ -79,6 +78,7 @@ const settings: TranslationStrings = {
   'settings.notifyTripReminder': 'Utazási emlékeztetők',
   'settings.notifyTodoDue': 'Teendő esedékes',
   'settings.notifyVacayInvite': 'Vacay összevonási meghívók',
+  'settings.notifyVacayShare': 'Vacay naptármegosztások',
   'settings.notifyPhotosShared': 'Megosztott fotók (Immich)',
   'settings.notifyCollabMessage': 'Csevegés üzenetek (Collab)',
   'settings.notifyPackingTagged': 'Csomagolási lista: hozzárendelések',
@@ -232,6 +232,7 @@ const settings: TranslationStrings = {
   'settings.avatarUploaded': 'Profilkép frissítve',
   'settings.avatarRemoved': 'Profilkép eltávolítva',
   'settings.avatarError': 'Feltöltés sikertelen',
+  'settings.avatarRemoveError': 'Eltávolítás sikertelen',
   'settings.mfa.title': 'Kétfaktoros hitelesítés (2FA)',
   'settings.mfa.description':
     'Egy második lépést ad a bejelentkezéshez e-mail és jelszó használatakor. Használj hitelesítő alkalmazást (Google Authenticator, Authy stb.).',
@@ -300,8 +301,9 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.currency': 'Currency',
-  'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currency': 'Megjelenítési pénznem',
+  'settings.currencyHint':
+    'A Költségek részben az összegek csak a megjelenítéshez lesznek erre a pénznemre átszámítva – az eredeti összegek nem változnak.',
   'settings.currencyTrip': 'Az utazás pénzneme',
   'settings.passkey.title': 'Passkey-k',
   'settings.passkey.description':
@@ -428,6 +430,20 @@ const settings: TranslationStrings = {
   'settings.appearance.example.normal': 'Place names, descriptions',
   'settings.appearance.example.small': 'Addresses, labels',
   'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.mobileNav': 'Alsó navigációs sáv',
+  'settings.appearance.mobileNav.hint':
+    'Válaszd ki, mely elemek jelenjenek meg a sávban, és melyek kerüljenek a „Továbbiak” alá. Az Irányítópult mindig elöl marad.',
+  'settings.appearance.mobileNav.inBar': 'A sávban',
+  'settings.appearance.mobileNav.underMore': 'A „Továbbiak” alatt',
+  'settings.appearance.mobileNav.moreEmpty': 'Itt még nincs semmi — minden elfér a sávban.',
+  'settings.appearance.mobileNav.pinned': 'Rögzítve',
+  'settings.appearance.mobileNav.toMore': 'Áthelyezés a „Továbbiak” alá',
+  'settings.appearance.mobileNav.toBar': 'Áthelyezés a sávba',
+  'settings.appearance.dashOrder': 'Irányítópult sorrendje',
+  'settings.appearance.dashOrder.hint':
+    'Rendezd át, hogyan legyenek egymás alatt az utazáslista és a widgetek a telefon irányítópultján. A kiemelt utazás mindig felül marad.',
+  'settings.appearance.dashOrder.trips': 'Utazások',
+  'settings.appearance.dashOrder.hidden': 'Rejtett',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
 
@@ -495,7 +511,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Mikor',
   'settings.pluginActivity.columns.status': 'Eredmény',
   'settings.alwaysShowRoutes': 'Mindig jelenjenek meg a foglalási útvonalak',
-  'settings.alwaysShowRoutesHint': 'Automatikusan megjeleníti minden repülőjárat, vonat és egyéb foglalás útvonalát a térképen, nincs szükség egyenkénti bekapcsolásra.',
+  'settings.alwaysShowRoutesHint':
+    'Automatikusan megjeleníti minden repülőjárat, vonat és egyéb foglalás útvonalát a térképen, nincs szükség egyenkénti bekapcsolásra.',
 };
 
 export default settings;

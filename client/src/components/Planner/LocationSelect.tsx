@@ -128,7 +128,7 @@ export default function LocationSelect({ value, onChange, placeholder, style }: 
               <MapPin size={12} className="text-content-faint" style={{ marginTop: 2, flexShrink: 0 }} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name || r.address}</div>
-                {r.address && r.name !== r.address && (
+                {r.address && r.name && r.name !== r.address && (
                   <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.address}</div>
                 )}
               </span>

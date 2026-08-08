@@ -1,4 +1,4 @@
-import { Search, Plus, X, Upload, ChevronDown, Check, MapPin } from 'lucide-react'
+import { Search, Plus, X, Upload, ChevronDown, Check, MapPin, Star } from 'lucide-react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import Tooltip from '../shared/Tooltip'
 import type { SidebarState } from './usePlacesSidebar'
@@ -25,6 +25,7 @@ export function PlacesHeader(S: SidebarState) {
     places, categories, categoryFilters, search, setSearch, plannedIds, hasTracks,
     filter, setFilter, setSelectedIds, selectMode, setSelectMode,
     catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFilters,
+    ratingSort, setRatingSort,
   } = S
   return (
     <div className="border-b border-edge-faint" style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
@@ -85,13 +86,15 @@ export function PlacesHeader(S: SidebarState) {
         const counts = {
           all: baseFiltered.length,
           unplanned: baseFiltered.filter(p => !plannedIds.has(p.id)).length,
+          planned: baseFiltered.filter(p => plannedIds.has(p.id)).length,
           tracks: baseFiltered.filter(p => p.route_geometry).length,
         }
         const tabs = ([
           { id: 'all', label: t('places.all') },
           { id: 'unplanned', label: t('places.unplanned') },
+          { id: 'planned', label: t('places.planned') },
           hasTracks ? { id: 'tracks', label: t('places.filterTracks') } : null,
-        ] as const).filter(Boolean) as Array<{ id: 'all' | 'unplanned' | 'tracks'; label: string }>
+        ] as const).filter(Boolean) as Array<{ id: 'all' | 'unplanned' | 'planned' | 'tracks'; label: string }>
         return (
           <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
             {tabs.map(f => {
@@ -165,6 +168,25 @@ export function PlacesHeader(S: SidebarState) {
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
               <ChevronDown size={12} className="text-content-faint" style={{ flexShrink: 0, transform: catDropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
             </button>
+            {/* Star sort (#1435): order the list by average rating, best first. */}
+            <Tooltip label={t('places.sortByRating')} placement="bottom">
+              <button
+                onClick={() => setRatingSort(v => !v)}
+                aria-label={t('places.sortByRating')}
+                aria-pressed={ratingSort}
+                className={ratingSort ? 'text-accent' : 'text-content-faint'}
+                style={{
+                  width: 30, flexShrink: 0, borderRadius: 8,
+                  border: `1px solid ${ratingSort ? 'var(--accent)' : 'var(--border-primary)'}`,
+                  background: ratingSort ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-card)',
+                  cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 0.18s, color 0.18s, border-color 0.18s',
+                }}
+              >
+                <Star size={13} strokeWidth={2.2} fill={ratingSort ? 'currentColor' : 'none'} />
+              </button>
+            </Tooltip>
             {canEditPlaces && (
               <Tooltip label={t('common.select')} placement="bottom">
               <button

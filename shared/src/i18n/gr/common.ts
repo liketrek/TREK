@@ -16,6 +16,7 @@ const common: TranslationStrings = {
   'common.selectAll': 'Επιλογή όλων',
   'common.deselectAll': 'Απο-επιλογή όλων',
   'common.error': 'Σφάλμα',
+  'common.success': 'Επιτυχία',
   'common.unknownError': 'Άγνωστο σφάλμα',
   'common.tooManyAttempts': 'Πολλαπλές προσπάθειες. Παρακαλώ δοκιμάστε αργότερα.',
   'common.back': 'Πίσω',
@@ -63,5 +64,14 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.errorTitle': 'Κάτι πήγε στραβά',
+  'common.errorBody': 'Αυτό το τμήμα της εφαρμογής σταμάτησε να λειτουργεί. Τα δεδομένα σας είναι ασφαλή.',
+  'common.errorPanelTitle': 'Δεν ήταν δυνατή η εμφάνιση αυτής της ενότητας',
+  'common.errorPanelBody': 'Η υπόλοιπη σελίδα λειτουργεί κανονικά.',
+  'common.errorRetry': 'Δοκιμάστε ξανά',
+  'common.errorReload': 'Επαναφόρτωση σελίδας',
+  'common.errorUpdateTitle': 'Διατίθεται νέα έκδοση',
+  'common.errorUpdateBody': 'Το TREK ενημερώθηκε ενώ αυτή η καρτέλα ήταν ανοιχτή. Κάντε επαναφόρτωση για τη νέα έκδοση.',
+  'common.errorPluginTitle': 'Δεν ήταν δυνατή η εμφάνιση αυτού του πρόσθετου',
 };
 export default common;
