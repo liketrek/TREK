@@ -87,10 +87,8 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftKeepBookingsDesc':
     'Plany dnia przesuną się wraz z nowymi datami, a rezerwacje i noclegi pozostaną w swoich pierwotnych terminach, o ile nadal mieszczą się one w ramach podróży.',
   'dashboard.dateShiftAll': 'Przesuń wszystko',
-  'dashboard.dateShiftAllDesc':
-    'Cały plan podróży przesunie się wraz z nowymi datami, w tym rezerwacje i noclegi.',
-  'dashboard.dateShiftHint':
-    'Wskazówka: aby przesunąć tylko część planu podróży, użyj opcji "Dodaj dzień" w planerze.',
+  'dashboard.dateShiftAllDesc': 'Cały plan podróży przesunie się wraz z nowymi datami, w tym rezerwacje i noclegi.',
+  'dashboard.dateShiftHint': 'Wskazówka: aby przesunąć tylko część planu podróży, użyj opcji "Dodaj dzień" w planerze.',
   'dashboard.members': 'Współpodróżnicy',
   'dashboard.copyTrip': 'Kopiuj',
   'dashboard.copySuffix': 'kopia',
@@ -181,5 +179,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Dodaj strefę czasową',
   'dashboard.aria.removeTimezone': 'Usuń {city}',
   'dashboard.dayCountRequired': 'Liczba dni jest wymagana',
+  'dashboard.fx.staleSnapshot': 'Nieaktualna migawka',
 };
 export default dashboard;

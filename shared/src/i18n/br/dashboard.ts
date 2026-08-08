@@ -177,5 +177,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Adicionar fuso horário',
   'dashboard.aria.removeTimezone': 'Remover {city}',
   'dashboard.dayCountRequired': 'O número de dias é obrigatório',
+  'dashboard.fx.staleSnapshot': 'Dados desatualizados',
 };
 export default dashboard;

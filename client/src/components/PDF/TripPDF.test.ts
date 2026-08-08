@@ -52,7 +52,7 @@ beforeEach(() => {
       HttpResponse.json({ sections: [] })
     ),
     // Mixed-currency exports fetch FX rates; keep the suite hermetic.
-    http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([])),
+    http.get('/api/exchange-rates', () => HttpResponse.json({ rates: { EUR: 1 }, effective_date: '2026-06-16', stale: false })),
   )
   // The FX cache is module-level and would leak rates between tests in this file.
   clearExchangeRateCache()
@@ -335,9 +335,9 @@ describe('downloadTripPDF', () => {
   })
 
   it('FE-COMP-TRIPPDF-016d: converts foreign-currency prices into the trip currency for day and cover totals (#1561)', async () => {
-    server.use(http.get('https://api.frankfurter.dev/v2/rates', ({ request }) => {
+    server.use(http.get('/api/exchange-rates', ({ request }) => {
       expect(new URL(request.url).searchParams.get('base')).toBe('NOK')
-      return HttpResponse.json([{ quote: 'USD', rate: 0.1 }]) // 1 NOK = 0.1 USD
+      return HttpResponse.json({ rates: { NOK: 1, USD: 0.1 }, effective_date: '2026-06-16', stale: false }) // 1 NOK = 0.1 USD
     }))
     const mixedArgs = {
       ...richArgs,
@@ -357,7 +357,7 @@ describe('downloadTripPDF', () => {
   })
 
   it('FE-COMP-TRIPPDF-016e: falls back to per-currency breakdowns when the FX fetch fails (#1561)', async () => {
-    server.use(http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.error()))
+    server.use(http.get('/api/exchange-rates', () => HttpResponse.error()))
     const mixedArgs = {
       ...richArgs,
       trip: { ...richArgs.trip, currency: 'NOK' },
@@ -379,9 +379,9 @@ describe('downloadTripPDF', () => {
 
   it('FE-COMP-TRIPPDF-016f: an all-same-currency trip makes no FX request', async () => {
     let fxCalled = false
-    server.use(http.get('https://api.frankfurter.dev/v2/rates', () => {
+    server.use(http.get('/api/exchange-rates', () => {
       fxCalled = true
-      return HttpResponse.json([])
+      return HttpResponse.json({ rates: { EUR: 1 }, effective_date: '2026-06-16', stale: false })
     }))
     await downloadTripPDF({ ...richArgs, trip: { ...richArgs.trip, currency: 'EUR' } })
     expect(fxCalled).toBe(false)

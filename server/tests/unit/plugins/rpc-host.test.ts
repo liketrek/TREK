@@ -56,6 +56,20 @@ function makeDeps(): HostDeps {
     createCost: vi.fn((tripId: number, input: unknown) => ({ id: 9, trip_id: tripId, ...(input as object) })),
     updateCost: vi.fn((tripId: number, itemId: number, input: unknown) => ({ id: itemId, trip_id: tripId, ...(input as object) })),
     deleteCost: vi.fn(() => ({ deleted: true })),
+    listCostRates: vi.fn(() => [{ trip_id: 1, currency: 'USD', exchange_rate: 1.2 }]),
+    resolveCostRate: vi.fn(async () => ({ exchange_rate: 1.2, source: 'trip' })),
+    setCostRate: vi.fn((tripId: number, currency: string, exchangeRate: number, userId: number, note?: string | null) => ({
+      trip_id: tripId, currency, exchange_rate: exchangeRate, set_by_user_id: userId, note,
+    })),
+    deleteCostRate: vi.fn(() => ({ deleted: true })),
+    listCostSettlements: vi.fn(() => [{ id: 11, trip_id: 1, amount: 20, currency: 'USD' }]),
+    createCostSettlement: vi.fn(async (tripId: number, input: unknown, userId: number) => ({
+      id: 12, trip_id: tripId, set_by_user_id: userId, ...(input as object),
+    })),
+    updateCostSettlement: vi.fn(async (tripId: number, settlementId: number, input: unknown, userId: number) => ({
+      id: settlementId, trip_id: tripId, set_by_user_id: userId, ...(input as object),
+    })),
+    deleteCostSettlement: vi.fn(() => ({ deleted: true })),
     // Planner writes — user 42 may edit trip 1 only (mirrors canAccessTrip).
     canEditPlaces: vi.fn((tripId: number, userId: number) => tripId === 1 && userId === 42),
     createPlace: vi.fn((tripId: number, input: unknown) => ({ id: 10, trip_id: tripId, ...(input as object) })),
@@ -929,6 +943,67 @@ describe('PluginRpcHost — capability enforcement', () => {
     const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
     const res = await host.dispatch(req('costs.delete', { tripId: 1, itemId: 5 }), 42);
     expect((res as RpcError).error.code).toBe('PERMISSION_DENIED');
+  });
+
+  it('cost rate reads are grant-, addon-, and membership-gated', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const rates = await host.dispatch(req('costs.listRates', { tripId: 1 }), 42);
+    const quote = await host.dispatch(req('costs.resolveRate', { tripId: 1, currency: 'USD' }), 42);
+    expect(ok(rates)).toBe(true);
+    expect(ok(quote)).toBe(true);
+    expect(deps.resolveCostRate).toHaveBeenCalledWith(1, 'USD');
+
+    expect(((await host.dispatch(req('costs.listRates', { tripId: 2 }), 42)) as RpcError).error.code)
+      .toBe('RESOURCE_FORBIDDEN');
+    (deps.budgetAddonEnabled as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    expect(((await host.dispatch(req('costs.listRates', { tripId: 1 }), 42)) as RpcError).error.code)
+      .toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('cost rate writes and settlement CRUD preserve the host-bound user and strip provenance', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:costs', 'db:write:costs']), deps);
+    expect(ok(await host.dispatch(req('costs.setRate', {
+      tripId: 1, currency: 'USD', exchangeRate: 1.2, note: 'bank',
+    }), 42))).toBe(true);
+    expect(deps.setCostRate).toHaveBeenCalledWith(1, 'USD', 1.2, 42, 'bank');
+
+    const input = {
+      from_user_id: 42,
+      to_user_id: 7,
+      amount: 25,
+      currency: 'USD',
+      exchange_rate: 1.2,
+      exchange_rate_source: 'trip',
+    };
+    expect(ok(await host.dispatch(req('costs.createSettlement', { tripId: 1, input }), 42))).toBe(true);
+    expect(deps.createCostSettlement).toHaveBeenCalledWith(1, expect.objectContaining({ exchange_rate: 1.2 }), 42);
+    expect(deps.createCostSettlement.mock.calls[0][1]).not.toHaveProperty('exchange_rate_source');
+    expect(ok(await host.dispatch(req('costs.updateSettlement', {
+      tripId: 1,
+      settlementId: 12,
+      input: {
+        from_user_id: 42, to_user_id: 7, amount: 25, currency: 'USD',
+        exchange_rate: 1.15, exchange_rate_source_version: 'forged',
+      },
+    }), 42))).toBe(true);
+    expect(deps.updateCostSettlement).toHaveBeenCalledWith(1, 12, expect.objectContaining({ exchange_rate: 1.15 }), 42);
+    expect(deps.updateCostSettlement.mock.calls[0][2]).not.toHaveProperty('exchange_rate_source_version');
+    expect(ok(await host.dispatch(req('costs.listSettlements', { tripId: 1 }), 42))).toBe(true);
+    expect(ok(await host.dispatch(req('costs.deleteSettlement', { tripId: 1, settlementId: 12 }), 42))).toBe(true);
+  });
+
+  it('cost rate and settlement writes require budget_edit and the write grant', async () => {
+    (deps.canEditCosts as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    const host = new PluginRpcHost('p', new Set(['db:write:costs']), deps);
+    const denied = await host.dispatch(req('costs.setRate', {
+      tripId: 1, currency: 'USD', exchangeRate: 1.2,
+    }), 42);
+    expect((denied as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(deps.setCostRate).not.toHaveBeenCalled();
+
+    const ungranted = new PluginRpcHost('p', new Set(['db:read:costs']), deps);
+    const noGrant = await ungranted.dispatch(req('costs.createSettlement', { tripId: 1, input: {} }), 42);
+    expect((noGrant as RpcError).error.code).toBe('PERMISSION_DENIED');
   });
 
   // --- Planner writes (#1429) ---

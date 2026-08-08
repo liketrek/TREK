@@ -29,9 +29,9 @@ The currency converter lets you quickly convert an amount between two currencies
 
 You can also click the swap arrow to reverse source and target.
 
-**Exchange rates** are fetched from [Frankfurter](https://frankfurter.dev) using the `https://api.frankfurter.dev/v2/rates?base={from}` endpoint. Rates are refreshed each time you change a currency or click the refresh icon.
+**Exchange rates** use TREK's server-side Frankfurter snapshot. The server checks for an update every six hours and keeps the last successful snapshot across restarts; the widget shows the provider date and warns when that snapshot is stale.
 
-**Supported currencies:** 162 currencies are available in the selector, including all major fiat currencies (USD, EUR, GBP, JPY, etc.) and many minor ones.
+**Supported currencies:** 165 currencies are available in the selector, including all major fiat currencies (USD, EUR, GBP, JPY, etc.) and many minor ones.
 
 ---
 

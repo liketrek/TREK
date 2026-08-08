@@ -21,7 +21,7 @@ Your **display currency** — the currency you want to *read* amounts in on the 
 | **Trip currency** (default) | Each trip is shown in **its own** currency — a Tokyo trip in yen, a Moscow trip in roubles. |
 | A specific currency (e.g. `USD`) | **Every** trip is converted into that currency for you, whatever its own currency is. |
 
-165 currencies are available. Conversion uses live rates, so a converted total can shift slightly from day to day while the trip's actual balances stay fixed.
+165 currencies are available. Final display conversion uses the current server snapshot, so a converted total can shift after a snapshot update while the trip's actual balances and frozen item values stay fixed.
 
 > This is **not** the trip's currency, which is set on the trip itself and is the base its balances are calculated in. The distinction matters — see [Currencies](Currencies).
 

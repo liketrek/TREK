@@ -1,14 +1,15 @@
 # Currencies
 
-TREK has **three** currency settings, and they answer three different questions. Most confusion about the Costs tab comes from mixing them up, so this page is the one place they are defined together.
+TREK distinguishes the trip, expense, payment, and display currencies. Exchange rates are global defaults, trip defaults, or frozen per expense/payment.
 
 | Setting | Where | Question it answers | Affects |
 |---|---|---|---|
 | **Trip currency** | Trip → Edit trip | *What is this trip's money?* | Stored data — the base every balance is calculated in |
 | **Expense currency** | Costs → expense modal | *What currency did I actually pay in?* | Stored data — that one expense |
+| **Payment currency** | Costs → payment modal | *What currency was the settlement paid in?* | Stored data — that one settlement payment |
 | **Display currency** | Settings → General | *What currency do I want to read?* | Presentation only — never the stored data |
 
-The short version: **the trip currency is the accounting base, the expense currency is the receipt, and the display currency is your reading glasses.**
+The short version: **the trip currency is the accounting base, expense/payment currencies preserve the original amounts, and the display currency is your reading glasses.**
 
 ## Trip currency
 
@@ -36,11 +37,13 @@ The numbers you typed are never rewritten. Each expense keeps its original amoun
 
 Each expense in the Costs tab carries **its own currency**, chosen in the expense modal. Enter what the receipt says: a $100 dinner on a rouble trip is entered as **100 USD**, not as its rouble equivalent.
 
-When an expense's currency differs from the trip currency, TREK looks up the live rate **once, at the moment you save it**, and freezes it on the expense. That frozen rate is what converts the expense into the trip currency forever after.
+When an expense's currency differs from the trip currency, TREK prefills a read-only suggestion from the trip default or global snapshot and lets you edit it. Saving from the UI submits the chosen value, so it is frozen with `explicit` provenance whether or not the suggestion was edited. API, MCP, and plugin callers that omit the rate let the server resolve and freeze `trip` or `global` provenance directly.
 
 > **Why freeze it?** Because a debt settled today shouldn't reopen tomorrow. If balances were recomputed at live rates, a settled-up trip would drift back into a few cents of debt every time the FX market moved. The rate you booked at is the rate you owe at.
 
-Rates come from [Frankfurter](https://frankfurter.dev) (European Central Bank data, no API key needed). **165 currencies** are supported. If the rate lookup fails (the instance is offline, or the upstream is down), the expense is stored without a frozen rate and falls back to live conversion when it is next read — TREK never invents a rate.
+Rates come from [Frankfurter](https://frankfurter.dev) (European Central Bank data, no API key needed). **165 currencies** are supported. TREK checks on the server every six hours and persists the last successful snapshot. A stale snapshot remains usable with its effective date and a warning; if no snapshot or trip default has ever existed, you must enter a manual rate before saving.
+
+The priority for a new item is: **explicit value → trip exchange rate → global exchange-rate snapshot**. Changing a default never silently rewrites existing frozen rates. Costs settings can preview and selectively apply a trip rate to existing items; global/trip items are selected automatically, legacy items are opt-in, and explicit items are not automatically selected.
 
 ### Settle-up payments
 

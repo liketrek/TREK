@@ -494,7 +494,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Quando',
   'settings.pluginActivity.columns.status': 'Esito',
   'settings.alwaysShowRoutes': 'Mostra sempre i percorsi delle prenotazioni',
-  'settings.alwaysShowRoutesHint': 'Mostra automaticamente sulla mappa il percorso di ogni volo, treno e altra prenotazione, senza doverlo attivare singolarmente.',
+  'settings.alwaysShowRoutesHint':
+    'Mostra automaticamente sulla mappa il percorso di ogni volo, treno e altra prenotazione, senza doverlo attivare singolarmente.',
 };
 
 export default settings;

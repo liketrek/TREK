@@ -515,7 +515,7 @@ describe('SharedTripPage', () => {
       server.use(
         // No FX needed when the expense is already in the base; stub frankfurter so
         // the live-rate fetch never hits the network in tests.
-        http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([])),
+        http.get('/api/exchange-rates', () => HttpResponse.json({ rates: { CAD: 1 }, effective_date: '2026-06-16', stale: false })),
         http.get('/api/shared/:token', ({ params }) => {
           if (params.token !== 'cad-token') return;
           return HttpResponse.json({
@@ -548,7 +548,7 @@ describe('SharedTripPage', () => {
       server.use(
         // rates[X] = units of X per 1 base(NZD); 0.8 EUR per NZD → 100 EUR = 125.00 NZD
         // (a clean 2-decimal result, distinct from the unconverted 100).
-        http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([{ quote: 'EUR', rate: 0.8 }])),
+        http.get('/api/exchange-rates', () => HttpResponse.json({ rates: { NZD: 1, EUR: 0.8 }, effective_date: '2026-06-16', stale: false })),
         http.get('/api/shared/:token', ({ params }) => {
           if (params.token !== 'mixed-token') return;
           return HttpResponse.json({

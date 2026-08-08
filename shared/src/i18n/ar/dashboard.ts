@@ -87,7 +87,8 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftTitle': 'تاريخ بداية جديد',
   'dashboard.dateShiftIntro': 'لقد غيّرت موعد بداية هذه الرحلة. كيف تريد أن تتبع خططك التواريخ الجديدة؟',
   'dashboard.dateShiftKeepBookings': 'إبقاء الحجوزات في تواريخها',
-  'dashboard.dateShiftKeepBookingsDesc': 'تنتقل خطط الأيام مع التواريخ الجديدة، بينما تبقى الحجوزات وأماكن الإقامة في تواريخها الأصلية ما دامت تلك التواريخ لا تزال ضمن الرحلة.',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'تنتقل خطط الأيام مع التواريخ الجديدة، بينما تبقى الحجوزات وأماكن الإقامة في تواريخها الأصلية ما دامت تلك التواريخ لا تزال ضمن الرحلة.',
   'dashboard.dateShiftAll': 'نقل كل شيء',
   'dashboard.dateShiftAllDesc': 'ينتقل خط سير الرحلة بالكامل مع التواريخ الجديدة، بما في ذلك الحجوزات وأماكن الإقامة.',
   'dashboard.dateShiftHint': 'نصيحة: لنقل جزء من خط سير الرحلة فقط، استخدم "إضافة يوم" في مخطط الرحلة بدلاً من ذلك.',
@@ -176,5 +177,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'إضافة منطقة زمنية',
   'dashboard.aria.removeTimezone': 'إزالة {city}',
   'dashboard.dayCountRequired': 'عدد الأيام مطلوب',
+  'dashboard.fx.staleSnapshot': 'لقطة أسعار قديمة',
 };
 export default dashboard;

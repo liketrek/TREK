@@ -25,6 +25,8 @@ export * from './vacay/vacay.schema';
 export * from './packing/packing.schema';
 export * from './todo/todo.schema';
 export * from './budget/budget.schema';
+export * from './exchange-rate/exchange-rate.schema';
+export * from './exchange-rate/frankfurter-currencies';
 export * from './reservation/reservation.schema';
 export * from './reservation/ki-reservation.schema';
 export * from './airtrail/airtrail.schema';

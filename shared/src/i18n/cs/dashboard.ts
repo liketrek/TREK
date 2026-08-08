@@ -87,10 +87,12 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftTitle': 'Nové datum začátku',
   'dashboard.dateShiftIntro': 'Změnili jste začátek této cesty. Jak se mají vaše plány přizpůsobit novým termínům?',
   'dashboard.dateShiftKeepBookings': 'Ponechat rezervace v původních termínech',
-  'dashboard.dateShiftKeepBookingsDesc': 'Denní plány se posunou podle nových termínů, zatímco rezervace a ubytování zůstanou v původních termínech, pokud jsou stále součástí cesty.',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'Denní plány se posunou podle nových termínů, zatímco rezervace a ubytování zůstanou v původních termínech, pokud jsou stále součástí cesty.',
   'dashboard.dateShiftAll': 'Posunout vše',
   'dashboard.dateShiftAllDesc': 'Celý itinerář se posune podle nových termínů, včetně rezervací a ubytování.',
-  'dashboard.dateShiftHint': 'Tip: pokud chcete posunout jen část itineráře, použijte místo toho „Přidat den” v plánovači.',
+  'dashboard.dateShiftHint':
+    'Tip: pokud chcete posunout jen část itineráře, použijte místo toho „Přidat den” v plánovači.',
   'dashboard.greeting.morning': 'Dobré ráno,',
   'dashboard.greeting.afternoon': 'Dobré odpoledne,',
   'dashboard.greeting.evening': 'Dobrý večer,',
@@ -176,5 +178,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Přidat časové pásmo',
   'dashboard.aria.removeTimezone': 'Odebrat {city}',
   'dashboard.dayCountRequired': 'Počet dní je povinný',
+  'dashboard.fx.staleSnapshot': 'Zastaralý snímek',
 };
 export default dashboard;

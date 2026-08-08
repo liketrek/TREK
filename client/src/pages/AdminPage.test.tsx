@@ -380,6 +380,7 @@ describe('AdminPage', () => {
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
       render(<AdminPage />);
 
+      await screen.findByText('alice');
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
 
       fireEvent.click(screen.getByRole('button', { name: /create link/i }));

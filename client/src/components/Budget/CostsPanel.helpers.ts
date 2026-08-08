@@ -51,3 +51,12 @@ export function rebalancePayers(
   free.forEach((id, i) => { next[id] = shares[i] ? shares[i].toFixed(2) : '' })
   return next
 }
+
+/** Stored rates are item-currency units per trip-currency unit; the UI shows the inverse. */
+export function storedRateToDisplay(storedRate: number): number | null {
+  return Number.isFinite(storedRate) && storedRate > 0 ? 1 / storedRate : null
+}
+
+export function displayRateToStored(displayedRate: number): number | null {
+  return Number.isFinite(displayedRate) && displayedRate > 0 ? 1 / displayedRate : null
+}

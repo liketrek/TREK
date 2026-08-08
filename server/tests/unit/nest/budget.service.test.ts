@@ -125,12 +125,24 @@ describe('BudgetService', () => {
     expect(budget.listSettlements).toHaveBeenCalledWith('5');
     // createSettlement freezes the FX rate (await) before delegating.
     await svc().createSettlement('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
-    expect(budget.freezeForeignRate).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 10 });
+    expect(budget.freezeForeignRate).toHaveBeenCalledWith(
+      '5',
+      { from_user_id: 1, to_user_id: 2, amount: 10 },
+      undefined,
+      undefined,
+      3,
+    );
     expect(budget.createSettlement).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
     budget.listSettlements.mockReturnValue([{ id: 7, currency: 'USD' }] as never);
     await svc().updateSettlement('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
     // the settlement's stored currency is threaded through so an unchanged-currency edit keeps the frozen rate (#1445)
-    expect(budget.freezeForeignRate).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' }, undefined, 'USD');
+    expect(budget.freezeForeignRate).toHaveBeenCalledWith(
+      '5',
+      { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' },
+      undefined,
+      'USD',
+      undefined,
+    );
     expect(budget.updateSettlement).toHaveBeenCalledWith('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
     svc().deleteSettlement('7', '5');
     expect(budget.deleteSettlement).toHaveBeenCalledWith('7', '5');

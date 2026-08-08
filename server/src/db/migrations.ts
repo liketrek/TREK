@@ -3090,8 +3090,12 @@ function runMigrations(db: Database.Database): void {
       } catch (err: any) {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
-      db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_trips_feed_token ON trips(feed_token) WHERE feed_token IS NOT NULL');
-      db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_feed_token ON users(feed_token) WHERE feed_token IS NOT NULL');
+      db.exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_trips_feed_token ON trips(feed_token) WHERE feed_token IS NOT NULL',
+      );
+      db.exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_feed_token ON users(feed_token) WHERE feed_token IS NOT NULL',
+      );
     },
     // Optimistic-concurrency token for offline conflict detection (#1135).
     // packing_items had only created_at, so an offline edit could not be checked
@@ -3105,7 +3109,9 @@ function runMigrations(db: Database.Database): void {
       } catch (err: any) {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
-      db.exec('UPDATE packing_items SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL');
+      db.exec(
+        'UPDATE packing_items SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL',
+      );
     },
     // Video support (#823): the trek_photos registry held only images. media_type
     // discriminates image vs video so the gallery, lightbox and provider proxy can
@@ -3258,13 +3264,25 @@ function runMigrations(db: Database.Database): void {
 
     // Migration 151: user-added links on collections + saved places (JSON text)
     () => {
-      try { db.exec('ALTER TABLE collections ADD COLUMN links TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
-      try { db.exec('ALTER TABLE collection_places ADD COLUMN links TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try {
+        db.exec('ALTER TABLE collections ADD COLUMN links TEXT');
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
+      try {
+        db.exec('ALTER TABLE collection_places ADD COLUMN links TEXT');
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
     },
     // Migration 152: per-member permission role on a shared list. Existing
     // accepted members default to 'editor' so nothing regresses.
     () => {
-      try { db.exec("ALTER TABLE collection_members ADD COLUMN role TEXT NOT NULL DEFAULT 'editor'"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try {
+        db.exec("ALTER TABLE collection_members ADD COLUMN role TEXT NOT NULL DEFAULT 'editor'");
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
     },
     // Migration 153: per-trip invite links (#1143). One rotating token per trip;
     // a logged-in existing user who opens the link joins the trip as a member.
@@ -3287,7 +3305,11 @@ function runMigrations(db: Database.Database): void {
     // who REGISTERS via the link is auto-added to the trip. Nullable for backward
     // compatibility; ON DELETE SET NULL so removing the trip just unbinds the invite.
     () => {
-      try { db.exec('ALTER TABLE invite_tokens ADD COLUMN trip_id INTEGER REFERENCES trips(id) ON DELETE SET NULL'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try {
+        db.exec('ALTER TABLE invite_tokens ADD COLUMN trip_id INTEGER REFERENCES trips(id) ON DELETE SET NULL');
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
     },
     // Migration 155: plugin system scaffold (#plugins). A plugin is a row here;
     // its code lives on the /plugins volume and (once the runtime lands) runs in
@@ -3358,24 +3380,34 @@ function runMigrations(db: Database.Database): void {
     // Boot now retries every enabled plugin regardless of last status.
     () => {
       try {
-        db.exec("ALTER TABLE plugins ADD COLUMN enabled INTEGER NOT NULL DEFAULT 0;");
+        db.exec('ALTER TABLE plugins ADD COLUMN enabled INTEGER NOT NULL DEFAULT 0;');
         // Anything not explicitly deactivated was meant to be on ('inactive' is the
         // only status deactivate() sets; a crash/shutdown could leave error/stopped/starting).
         db.exec("UPDATE plugins SET enabled = 1 WHERE status != 'inactive';");
-      } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
     },
     // Migration 157: plugin capabilities (from trek-plugin.json) — the client
     // needs them to place widgets (e.g. widget.slot 'hero' renders as an overlay
     // on the boarding-pass bar instead of the dashboard sidebar).
     () => {
-      try { db.exec("ALTER TABLE plugins ADD COLUMN capabilities TEXT NOT NULL DEFAULT '{}';"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try {
+        db.exec("ALTER TABLE plugins ADD COLUMN capabilities TEXT NOT NULL DEFAULT '{}';");
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
     },
     // Migration 158: TOFU pin for a plugin's author signing key (#plugins, #4).
     // Set on first install of a signed plugin; a later install whose registry key
     // differs is a hard stop (author change / key rotation / attack) unless an
     // admin re-trusts. NULL for unsigned plugins (signing is opt-in).
     () => {
-      try { db.exec("ALTER TABLE plugins ADD COLUMN author_pubkey TEXT;"); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try {
+        db.exec('ALTER TABLE plugins ADD COLUMN author_pubkey TEXT;');
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
     },
     // Migration 159: hash-chained capability audit log (#plugins, L1 hardening).
     // Every host-mediated capability call the plugin makes is recorded at the RPC
@@ -3396,7 +3428,9 @@ function runMigrations(db: Database.Database): void {
           hash TEXT NOT NULL
         );`);
         db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_audit_plugin ON plugin_capability_audit (plugin_id, id);');
-      } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
     },
     // Migration 160: per-collection custom labels (#collections). Each list owns
     // its own label set (unlike the instance-wide `tags` table), and a place can
@@ -3416,7 +3450,9 @@ function runMigrations(db: Database.Database): void {
         PRIMARY KEY (collection_place_id, label_id)
       );`);
       db.exec('CREATE INDEX IF NOT EXISTS idx_collection_labels_collection ON collection_labels(collection_id);');
-      db.exec('CREATE INDEX IF NOT EXISTS idx_collection_place_labels_place ON collection_place_labels(collection_place_id);');
+      db.exec(
+        'CREATE INDEX IF NOT EXISTS idx_collection_place_labels_place ON collection_place_labels(collection_place_id);',
+      );
       db.exec('CREATE INDEX IF NOT EXISTS idx_collection_place_labels_label ON collection_place_labels(label_id);');
     },
     // Migration 161: plugin-owned metadata on core entities (#1429). A namespaced
@@ -3436,7 +3472,9 @@ function runMigrations(db: Database.Database): void {
         updated_at TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE (plugin_id, entity_type, entity_id, key)
       );`);
-      db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_meta_entity ON plugin_entity_metadata (plugin_id, entity_type, entity_id);');
+      db.exec(
+        'CREATE INDEX IF NOT EXISTS idx_plugin_meta_entity ON plugin_entity_metadata (plugin_id, entity_type, entity_id);',
+      );
     },
 
     // Freeze the FX rate on settle-up transfers too (#1445). budget_settlements
@@ -3700,6 +3738,115 @@ function runMigrations(db: Database.Database): void {
         );
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_regions_user ON hidden_regions (user_id);');
+    },
+
+    // Layered exchange-rate defaults. Global provider snapshots survive restarts;
+    // trip rates are defaults only; every expense/payment keeps its own frozen
+    // value and provenance. The quote table is removed by the next migration.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS global_exchange_rate_snapshots (
+          base_currency TEXT PRIMARY KEY,
+          rates_json TEXT NOT NULL,
+          source_version TEXT NOT NULL,
+          effective_date TEXT,
+          fetched_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS trip_exchange_rates (
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          currency TEXT NOT NULL,
+          exchange_rate REAL NOT NULL CHECK(exchange_rate > 0),
+          effective_date TEXT,
+          source_version TEXT NOT NULL,
+          set_at TEXT NOT NULL DEFAULT (datetime('now')),
+          set_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          note TEXT,
+          PRIMARY KEY (trip_id, currency)
+        );
+
+        CREATE TABLE IF NOT EXISTS exchange_rate_quotes (
+          id TEXT PRIMARY KEY,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          trip_currency TEXT NOT NULL,
+          item_currency TEXT NOT NULL,
+          exchange_rate REAL NOT NULL CHECK(exchange_rate > 0),
+          source TEXT NOT NULL,
+          source_version TEXT NOT NULL,
+          effective_date TEXT,
+          fetched_at TEXT,
+          stale INTEGER NOT NULL DEFAULT 0,
+          quoted_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS exchange_rate_batch_previews (
+          id TEXT PRIMARY KEY,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          currency TEXT NOT NULL,
+          exchange_rate REAL NOT NULL CHECK(exchange_rate > 0),
+          note TEXT,
+          state_token TEXT NOT NULL,
+          preview_json TEXT NOT NULL,
+          created_by_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+
+      const add = (table: string, definition: string) => {
+        try {
+          db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
+        } catch (err) {
+          if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err;
+        }
+      };
+      for (const table of ['budget_items', 'budget_settlements']) {
+        add(table, "exchange_rate_source TEXT NOT NULL DEFAULT 'legacy'");
+        add(table, 'exchange_rate_source_version TEXT');
+        add(table, 'exchange_rate_effective_date TEXT');
+        add(table, 'exchange_rate_set_at TEXT');
+        add(table, 'exchange_rate_set_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
+        add(table, 'exchange_rate_note TEXT');
+        add(table, 'exchange_rate_reset_at TEXT');
+      }
+
+      db.exec(`
+        UPDATE budget_items
+        SET exchange_rate_source = CASE
+          WHEN COALESCE(NULLIF(UPPER(currency), ''),
+               (SELECT UPPER(COALESCE(currency, 'EUR')) FROM trips WHERE trips.id = budget_items.trip_id)) =
+               (SELECT UPPER(COALESCE(currency, 'EUR')) FROM trips WHERE trips.id = budget_items.trip_id)
+            THEN 'identity'
+          ELSE 'legacy'
+        END,
+        exchange_rate_set_at = COALESCE(exchange_rate_set_at, created_at);
+
+        UPDATE budget_settlements
+        SET exchange_rate_source = CASE
+          WHEN COALESCE(NULLIF(UPPER(currency), ''),
+               (SELECT UPPER(COALESCE(currency, 'EUR')) FROM trips WHERE trips.id = budget_settlements.trip_id)) =
+               (SELECT UPPER(COALESCE(currency, 'EUR')) FROM trips WHERE trips.id = budget_settlements.trip_id)
+            THEN 'identity'
+          ELSE 'legacy'
+        END,
+        exchange_rate_set_at = COALESCE(exchange_rate_set_at, created_at);
+      `);
+    },
+
+    // Exchange-rate resolution is a read-only suggestion. Quotes were never part
+    // of a released contract, so safely discard any preview-era quote rows and
+    // index the remaining expiring batch previews for hourly cleanup.
+    () => {
+      db.exec(`
+        DROP TABLE IF EXISTS exchange_rate_quotes;
+        UPDATE budget_items
+          SET exchange_rate_source = 'explicit'
+          WHERE exchange_rate_source = 'manual';
+        UPDATE budget_settlements
+          SET exchange_rate_source = 'explicit'
+          WHERE exchange_rate_source = 'manual';
+        CREATE INDEX IF NOT EXISTS idx_exchange_rate_batch_previews_created_at
+          ON exchange_rate_batch_previews (created_at);
+      `);
     },
   ];
 

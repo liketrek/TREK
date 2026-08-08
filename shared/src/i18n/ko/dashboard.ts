@@ -102,7 +102,8 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftTitle': '새 시작일',
   'dashboard.dateShiftIntro': '여행 시작일이 변경되었습니다. 계획을 새 날짜에 어떻게 맞출까요?',
   'dashboard.dateShiftKeepBookings': '예약은 원래 날짜에 유지',
-  'dashboard.dateShiftKeepBookingsDesc': '일별 계획은 새 날짜로 이동하고, 예약과 숙박은 여행 기간에 포함되어 있는 한 원래 날짜에 그대로 유지됩니다.',
+  'dashboard.dateShiftKeepBookingsDesc':
+    '일별 계획은 새 날짜로 이동하고, 예약과 숙박은 여행 기간에 포함되어 있는 한 원래 날짜에 그대로 유지됩니다.',
   'dashboard.dateShiftAll': '모두 이동',
   'dashboard.dateShiftAllDesc': '예약과 숙박을 포함한 전체 일정이 새 날짜로 이동합니다.',
   'dashboard.dateShiftHint': '팁: 일정의 일부만 이동하려면 플래너의 "날짜 추가" 기능을 사용하세요.',
@@ -177,5 +178,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': '시간대 추가',
   'dashboard.aria.removeTimezone': '{city} 제거',
   'dashboard.dayCountRequired': '일수는 필수입니다',
+  'dashboard.fx.staleSnapshot': '오래된 스냅샷',
 };
 export default dashboard;

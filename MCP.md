@@ -343,6 +343,14 @@ For flights, trains, cars, and cruises, use the **Transport** tools above. Reser
 | `delete_budget_item`       | Remove a budget item.                                                                 |
 | `set_budget_item_members`  | Set which trip members are splitting a budget item (replaces current member list).    |
 | `toggle_budget_member_paid`| Mark or unmark a member as having paid their share of a budget item.                  |
+| `list_trip_exchange_rates` | List trip-specific defaults; frozen items are unchanged.                              |
+| `resolve_trip_exchange_rate` | Quote the exact trip/global version a new item would freeze.                        |
+| `set_trip_exchange_rate`   | Set a trip default rate using `budget:write`.                                          |
+| `delete_trip_exchange_rate`| Delete a trip default without changing frozen items.                                  |
+| `list_settlements`         | List settlement payments, including frozen rate provenance.                           |
+| `create_settlement`        | Record a payment with optional currency and manual exchange rate.                      |
+| `update_settlement`        | Update a payment while preserving its frozen rate unless currency/rate changes.        |
+| `delete_settlement`        | Delete a settlement payment.                                                           |
 
 ### Packing
 

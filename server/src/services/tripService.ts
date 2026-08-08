@@ -1,18 +1,24 @@
-import path from 'path';
-import { avatarUrl } from './avatarUrl';
-import fs from 'fs';
-import { randomUUID } from 'crypto';
 import { db, isOwner } from '../db/database';
-import { erasePluginUserData } from './userCleanupService';
 import { emitUserDeleted } from '../plugin-user-lifecycle';
 import { Trip, User } from '../types';
+import { avatarUrl } from './avatarUrl';
+import {
+  applyPreparedTripCurrencyRebase,
+  listBudgetItems,
+  prepareTripCurrencyRebase,
+  removeUserFromBudgetItems,
+} from './budgetService';
+import { listNotes as listCollabNotes } from './collabService';
 import { listDays, listAccommodations, addDays, resyncAccommodationDays, restampReservationDates } from './dayService';
-import { listBudgetItems, removeUserFromBudgetItems } from './budgetService';
 import { listItems as listPackingItems } from './packingService';
 import { listReservations, loadEndpointsByTrip, resyncReservationDays } from './reservationService';
-import { listNotes as listCollabNotes } from './collabService';
-import { shiftOwnerEntriesForTripWindow } from './vacayService';
 import { resolveTimeZone } from './timezoneService';
+import { erasePluginUserData } from './userCleanupService';
+import { shiftOwnerEntriesForTripWindow } from './vacayService';
+
+import { randomUUID } from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 export const MS_PER_DAY = 86400000;
 export const MAX_TRIP_DAYS = 365;
@@ -35,8 +41,18 @@ export { isOwner };
 
 // ── Day generation ────────────────────────────────────────────────────────
 
-export function generateDays(tripId: number | bigint | string, startDate: string | null, endDate: string | null, maxDays?: number, dayCount?: number) {
-  const existing = db.prepare('SELECT id, day_number, date FROM days WHERE trip_id = ?').all(tripId) as { id: number; day_number: number; date: string | null }[];
+export function generateDays(
+  tripId: number | bigint | string,
+  startDate: string | null,
+  endDate: string | null,
+  maxDays?: number,
+  dayCount?: number,
+) {
+  const existing = db.prepare('SELECT id, day_number, date FROM days WHERE trip_id = ?').all(tripId) as {
+    id: number;
+    day_number: number;
+    date: string | null;
+  }[];
   const setDayNumber = db.prepare('UPDATE days SET day_number = ? WHERE id = ?');
 
   // Helper: two-phase renumber to avoid UNIQUE(trip_id, day_number) collisions
@@ -47,13 +63,15 @@ export function generateDays(tripId: number | bigint | string, startDate: string
 
   if (!startDate || !endDate) {
     // Nullify all dated days instead of deleting them — preserves assignments/notes/accommodations
-    const withDates = existing.filter(d => d.date);
+    const withDates = existing.filter((d) => d.date);
     if (withDates.length > 0) {
       const nullify = db.prepare('UPDATE days SET date = NULL WHERE id = ?');
       for (const d of withDates) nullify.run(d.id);
     }
     // Now all days are dateless — adjust count toward dayCount target
-    const allDays = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as { id: number }[];
+    const allDays = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as {
+      id: number;
+    }[];
     const targetCount = Math.min(Math.max(dayCount ?? (allDays.length || 7), 1), MAX_TRIP_DAYS);
     const needed = targetCount - allDays.length;
     if (needed > 0) {
@@ -61,19 +79,23 @@ export function generateDays(tripId: number | bigint | string, startDate: string
       for (let i = 0; i < needed; i++) insert.run(tripId, allDays.length + i + 1);
     } else if (needed < 0) {
       // Only trim trailing empty days to avoid destroying content
-      const candidates = db.prepare(
-        `SELECT d.id FROM days d
+      const candidates = db
+        .prepare(
+          `SELECT d.id FROM days d
          WHERE d.trip_id = ?
            AND NOT EXISTS (SELECT 1 FROM day_assignments da WHERE da.day_id = d.id)
            AND NOT EXISTS (SELECT 1 FROM day_notes dn WHERE dn.day_id = d.id)
            AND NOT EXISTS (SELECT 1 FROM day_accommodations dac WHERE dac.start_day_id = d.id OR dac.end_day_id = d.id)
          ORDER BY d.day_number DESC
-         LIMIT ?`
-      ).all(tripId, -needed) as { id: number }[];
+         LIMIT ?`,
+        )
+        .all(tripId, -needed) as { id: number }[];
       const del = db.prepare('DELETE FROM days WHERE id = ?');
       for (const d of candidates) del.run(d.id);
     }
-    const remaining = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as { id: number }[];
+    const remaining = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as {
+      id: number;
+    }[];
     renumber(remaining);
     return;
   }
@@ -94,8 +116,8 @@ export function generateDays(tripId: number | bigint | string, startDate: string
   }
 
   // Split into dated (sorted by day_number = position) and dateless (spare pool)
-  const dated = existing.filter(d => d.date).sort((a, b) => a.day_number - b.day_number);
-  const dateless = existing.filter(d => !d.date).sort((a, b) => a.day_number - b.day_number);
+  const dated = existing.filter((d) => d.date).sort((a, b) => a.day_number - b.day_number);
+  const dateless = existing.filter((d) => !d.date).sort((a, b) => a.day_number - b.day_number);
 
   // Phase 1: stamp all existing days with negative day_numbers to free up slots
   const allExisting = [...dated, ...dateless];
@@ -135,7 +157,7 @@ export function generateDays(tripId: number | bigint | string, startDate: string
   const isEmptyDay = db.prepare(
     `SELECT NOT EXISTS (SELECT 1 FROM day_assignments da WHERE da.day_id = @id)
           AND NOT EXISTS (SELECT 1 FROM day_notes dn WHERE dn.day_id = @id)
-          AND NOT EXISTS (SELECT 1 FROM day_accommodations dac WHERE dac.start_day_id = @id OR dac.end_day_id = @id) AS empty`
+          AND NOT EXISTS (SELECT 1 FROM day_accommodations dac WHERE dac.start_day_id = @id OR dac.end_day_id = @id) AS empty`,
   );
   const maxAssigned = Math.max(targetDates.length, dated.length);
   let keptDateless = 0;
@@ -150,7 +172,9 @@ export function generateDays(tripId: number | bigint | string, startDate: string
   }
 
   // Final renumber to compact and eliminate any gaps/negatives
-  const remaining = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as { id: number }[];
+  const remaining = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as {
+    id: number;
+  }[];
   renumber(remaining);
 }
 
@@ -158,19 +182,27 @@ export function generateDays(tripId: number | bigint | string, startDate: string
 
 export function listTrips(userId: number, archived: number | null) {
   if (archived === null) {
-    return db.prepare(`
+    return db
+      .prepare(
+        `
       ${TRIP_SELECT}
       LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
       WHERE (t.user_id = :userId OR m.user_id IS NOT NULL)
       ORDER BY t.created_at DESC
-    `).all({ userId });
+    `,
+      )
+      .all({ userId });
   }
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     ${TRIP_SELECT}
     LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
     WHERE (t.user_id = :userId OR m.user_id IS NOT NULL) AND t.is_archived = :archived
     ORDER BY t.created_at DESC
-  `).all({ userId, archived });
+  `,
+    )
+    .all({ userId, archived });
 }
 
 interface CreateTripData {
@@ -184,14 +216,29 @@ interface CreateTripData {
 }
 
 export function createTrip(userId: number, data: CreateTripData, maxDays?: number) {
-  const rd = data.reminder_days !== undefined
-    ? (Number(data.reminder_days) >= 0 && Number(data.reminder_days) <= 30 ? Number(data.reminder_days) : 3)
-    : 3;
+  const rd =
+    data.reminder_days !== undefined
+      ? Number(data.reminder_days) >= 0 && Number(data.reminder_days) <= 30
+        ? Number(data.reminder_days)
+        : 3
+      : 3;
 
-  const result = db.prepare(`
+  const result = db
+    .prepare(
+      `
     INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'EUR', rd);
+  `,
+    )
+    .run(
+      userId,
+      data.title,
+      data.description || null,
+      data.start_date || null,
+      data.end_date || null,
+      data.currency || 'EUR',
+      rd,
+    );
 
   const tripId = result.lastInsertRowid;
   generateDays(tripId, data.start_date || null, data.end_date || null, maxDays, data.day_count);
@@ -201,21 +248,25 @@ export function createTrip(userId: number, data: CreateTripData, maxDays?: numbe
 }
 
 export function getTrip(tripId: string | number, userId: number) {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     ${TRIP_SELECT}
     LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
     WHERE t.id = :tripId AND (t.user_id = :userId OR m.user_id IS NOT NULL)
-  `).get({ userId, tripId }) as Trip | undefined;
+  `,
+    )
+    .get({ userId, tripId }) as Trip | undefined;
 }
 
-interface UpdateTripData {
+export interface UpdateTripData {
   title?: string;
   description?: string;
-  start_date?: string;
-  end_date?: string;
+  start_date?: string | null;
+  end_date?: string | null;
   currency?: string;
   is_archived?: boolean | number;
-  cover_image?: string;
+  cover_image?: string | null;
   reminder_days?: number;
   day_count?: number;
   date_shift_mode?: 'keep_bookings' | 'shift_all';
@@ -231,8 +282,15 @@ export interface UpdateTripResult {
   oldReminder: number;
 }
 
-export function updateTrip(tripId: string | number, userId: number, data: UpdateTripData, userRole: string): UpdateTripResult {
-  const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Trip & { reminder_days?: number } | undefined;
+export function updateTrip(
+  tripId: string | number,
+  userId: number,
+  data: UpdateTripData,
+  userRole: string,
+): UpdateTripResult {
+  const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as
+    | (Trip & { reminder_days?: number })
+    | undefined;
   if (!trip) throw new NotFoundError('Trip not found');
 
   const { title, description, start_date, end_date, currency, is_archived, cover_image, reminder_days } = data;
@@ -248,15 +306,20 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const newArchived = is_archived !== undefined ? (is_archived ? 1 : 0) : trip.is_archived;
   const newCover = cover_image !== undefined ? cover_image : trip.cover_image;
   const oldReminder = (trip as any).reminder_days ?? 3;
-  const newReminder = reminder_days !== undefined
-    ? (Number(reminder_days) >= 0 && Number(reminder_days) <= 30 ? Number(reminder_days) : oldReminder)
-    : oldReminder;
+  const newReminder =
+    reminder_days !== undefined
+      ? Number(reminder_days) >= 0 && Number(reminder_days) <= 30
+        ? Number(reminder_days)
+        : oldReminder
+      : oldReminder;
 
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE trips SET title=?, description=?, start_date=?, end_date=?,
       currency=?, is_archived=?, cover_image=?, reminder_days=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, tripId);
+  `,
+  ).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, tripId);
 
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
@@ -267,16 +330,21 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
       // Accommodations have no absolute date columns, so their pre-change dates must be
       // snapshotted before generateDays re-dates the day rows in place.
       const prevDateByDayId = new Map(
-        (db.prepare('SELECT id, date FROM days WHERE trip_id = ?').all(tripId) as { id: number; date: string | null }[])
-          .map(d => [d.id, d.date]),
+        (
+          db.prepare('SELECT id, date FROM days WHERE trip_id = ?').all(tripId) as { id: number; date: string | null }[]
+        ).map((d) => [d.id, d.date]),
       );
       generateDays(tripId, newStart || null, newEnd || null, undefined, dayCount);
       if (data.date_shift_mode === 'shift_all') {
         // Explicit "shift everything": bookings stay glued to their (re-dated) day rows,
         // so re-stamp reservation_time to follow — same rules as reorderDays/insertDay.
         const newDateByDayId = new Map(
-          (db.prepare('SELECT id, date FROM days WHERE trip_id = ?').all(tripId) as { id: number; date: string | null }[])
-            .map(d => [d.id, d.date]),
+          (
+            db.prepare('SELECT id, date FROM days WHERE trip_id = ?').all(tripId) as {
+              id: number;
+              date: string | null;
+            }[]
+          ).map((d) => [d.id, d.date]),
         );
         restampReservationDates(tripId, prevDateByDayId, newDateByDayId);
       } else {
@@ -299,12 +367,60 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const isAdminEdit = userRole === 'admin' && trip.user_id !== userId;
   let ownerEmail: string | undefined;
   if (Object.keys(changes).length > 0 && isAdminEdit) {
-    ownerEmail = (db.prepare('SELECT email FROM users WHERE id = ?').get(trip.user_id) as { email: string } | undefined)?.email;
+    ownerEmail = (db.prepare('SELECT email FROM users WHERE id = ?').get(trip.user_id) as { email: string } | undefined)
+      ?.email;
   }
 
   const updatedTrip = db.prepare(`${TRIP_SELECT} WHERE t.id = :tripId`).get({ userId, tripId });
 
   return { updatedTrip, changes, isAdminEdit, ownerEmail, newTitle, newReminder, oldReminder };
+}
+
+function validCalendarDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+/**
+ * Validate and update the complete trip aggregate. Provider I/O is prepared
+ * first; every trip-scoped currency/date mutation then commits atomically.
+ */
+export async function updateTripAggregate(
+  tripId: string | number,
+  userId: number,
+  data: UpdateTripData,
+  userRole: string,
+): Promise<UpdateTripResult> {
+  const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Trip | undefined;
+  if (!trip) throw new NotFoundError('Trip not found');
+
+  for (const [field, value] of [
+    ['start_date', data.start_date],
+    ['end_date', data.end_date],
+  ] as const) {
+    if (value != null && !validCalendarDate(value)) {
+      throw new ValidationError(`${field} is not a valid calendar date`);
+    }
+  }
+  if (data.currency !== undefined && !/^[A-Za-z]{3}$/.test(data.currency)) {
+    throw new ValidationError('currency must be a three-letter ISO code');
+  }
+  const nextStart = data.start_date ?? trip.start_date;
+  const nextEnd = data.end_date ?? trip.end_date;
+  if (nextStart && nextEnd && new Date(nextEnd) < new Date(nextStart)) {
+    throw new ValidationError('End date must be after start date');
+  }
+
+  const normalized = {
+    ...data,
+    currency: data.currency?.toUpperCase(),
+  };
+  const preparedRebase = await prepareTripCurrencyRebase(tripId, normalized.currency, userId);
+  return db.transaction(() => {
+    if (preparedRebase) applyPreparedTripCurrencyRebase(preparedRebase);
+    return updateTrip(tripId, userId, normalized, userRole);
+  })();
 }
 
 // ── Delete ─────────────────────────────────────────────────────────────────
@@ -318,26 +434,33 @@ export interface DeleteTripInfo {
 }
 
 export function deleteTrip(tripId: string | number, userId: number, userRole: string): DeleteTripInfo {
-  const trip = db.prepare('SELECT title, user_id FROM trips WHERE id = ?').get(tripId) as { title: string; user_id: number } | undefined;
+  const trip = db.prepare('SELECT title, user_id FROM trips WHERE id = ?').get(tripId) as
+    | { title: string; user_id: number }
+    | undefined;
   if (!trip) throw new NotFoundError('Trip not found');
 
   const isAdminDelete = userRole === 'admin' && trip.user_id !== userId;
   let ownerEmail: string | undefined;
   if (isAdminDelete) {
-    ownerEmail = (db.prepare('SELECT email FROM users WHERE id = ?').get(trip.user_id) as { email: string } | undefined)?.email;
+    ownerEmail = (db.prepare('SELECT email FROM users WHERE id = ?').get(trip.user_id) as { email: string } | undefined)
+      ?.email;
   }
 
   // Clean up journey entries synced from this trip before deleting
   // Delete skeleton entries (unfilled synced places)
-  db.prepare(`
+  db.prepare(
+    `
     DELETE FROM journey_entries
     WHERE source_trip_id = ? AND type = 'skeleton'
-  `).run(tripId);
+  `,
+  ).run(tripId);
   // Detach filled entries (keep user's written content, just remove trip link)
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE journey_entries SET source_trip_id = NULL, source_place_id = NULL
     WHERE source_trip_id = ?
-  `).run(tripId);
+  `,
+  ).run(tripId);
 
   db.prepare('DELETE FROM trips WHERE id = ?').run(tripId);
 
@@ -375,7 +498,9 @@ export function getTripOwner(tripId: string | number): { user_id: number } | und
 export function listMembers(tripId: string | number, tripOwnerId: number) {
   // u.is_guest rides along (#1362) so guests stay assignable everywhere a member is,
   // while the UI can badge them and suppress owner-only actions. The owner is never a guest.
-  const members = db.prepare(`
+  const members = db
+    .prepare(
+      `
     SELECT u.id, COALESCE(u.display_name, u.username) AS username, u.email, u.avatar, u.is_guest,
       CASE WHEN u.id = ? THEN 'owner' ELSE 'member' END as role,
       m.added_at,
@@ -385,40 +510,71 @@ export function listMembers(tripId: string | number, tripOwnerId: number) {
     LEFT JOIN users ib ON ib.id = m.invited_by
     WHERE m.trip_id = ?
     ORDER BY m.added_at ASC
-  `).all(tripOwnerId, tripId) as { id: number; username: string; email: string; avatar: string | null; is_guest: number; role: string; added_at: string; invited_by_username: string | null }[];
+  `,
+    )
+    .all(tripOwnerId, tripId) as {
+    id: number;
+    username: string;
+    email: string;
+    avatar: string | null;
+    is_guest: number;
+    role: string;
+    added_at: string;
+    invited_by_username: string | null;
+  }[];
 
-  const owner = db.prepare('SELECT id, username, email, avatar FROM users WHERE id = ?').get(tripOwnerId) as Pick<User, 'id' | 'username' | 'email' | 'avatar'>;
+  const owner = db.prepare('SELECT id, username, email, avatar FROM users WHERE id = ?').get(tripOwnerId) as Pick<
+    User,
+    'id' | 'username' | 'email' | 'avatar'
+  >;
 
   return {
     owner: { ...owner, role: 'owner', is_guest: false, avatar_url: avatarUrl(owner) },
-    members: members.map(m => ({ ...m, is_guest: !!m.is_guest, avatar_url: avatarUrl(m) })),
+    members: members.map((m) => ({ ...m, is_guest: !!m.is_guest, avatar_url: avatarUrl(m) })),
   };
 }
 
 export interface AddMemberResult {
-  member: { id: number; username: string; email: string; avatar?: string | null; role: string; avatar_url: string | null };
+  member: {
+    id: number;
+    username: string;
+    email: string;
+    avatar?: string | null;
+    role: string;
+    avatar_url: string | null;
+  };
   targetUserId: number;
   tripTitle: string;
 }
 
-export function addMember(tripId: string | number, identifier: string, tripOwnerId: number, invitedByUserId: number): AddMemberResult {
+export function addMember(
+  tripId: string | number,
+  identifier: string,
+  tripOwnerId: number,
+  invitedByUserId: number,
+): AddMemberResult {
   if (!identifier) throw new ValidationError('Email or username required');
 
   // Guests (#1362) are not invitable accounts — exclude them so a trip-scoped guest
   // can never be resolved (and re-attached to another trip) through the invite box.
-  const target = db.prepare(
-    'SELECT id, username, email, avatar FROM users WHERE (email = ? OR username = ?) AND COALESCE(is_guest, 0) = 0'
-  ).get(identifier.trim(), identifier.trim()) as Pick<User, 'id' | 'username' | 'email' | 'avatar'> | undefined;
+  const target = db
+    .prepare(
+      'SELECT id, username, email, avatar FROM users WHERE (email = ? OR username = ?) AND COALESCE(is_guest, 0) = 0',
+    )
+    .get(identifier.trim(), identifier.trim()) as Pick<User, 'id' | 'username' | 'email' | 'avatar'> | undefined;
 
   if (!target) throw new NotFoundError('User not found');
 
-  if (target.id === tripOwnerId)
-    throw new ValidationError('Trip owner is already a member');
+  if (target.id === tripOwnerId) throw new ValidationError('Trip owner is already a member');
 
   const existing = db.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(tripId, target.id);
   if (existing) throw new ValidationError('User already has access');
 
-  db.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, target.id, invitedByUserId);
+  db.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(
+    tripId,
+    target.id,
+    invitedByUserId,
+  );
 
   const tripInfo = db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
 
@@ -450,12 +606,16 @@ export function transferOwnership(
   newOwnerId: number,
   currentOwnerId: number,
 ): TransferOwnershipResult {
-  const trip = db.prepare('SELECT id, title, user_id FROM trips WHERE id = ?').get(tripId) as { id: number; title: string; user_id: number } | undefined;
+  const trip = db.prepare('SELECT id, title, user_id FROM trips WHERE id = ?').get(tripId) as
+    | { id: number; title: string; user_id: number }
+    | undefined;
   if (!trip) throw new NotFoundError('Trip not found');
   if (trip.user_id !== currentOwnerId) throw new ValidationError('Only the owner can transfer ownership');
   if (newOwnerId === currentOwnerId) throw new ValidationError('You already own this trip');
 
-  const newOwner = db.prepare('SELECT id, email, is_guest FROM users WHERE id = ?').get(newOwnerId) as { id: number; email: string; is_guest?: number } | undefined;
+  const newOwner = db.prepare('SELECT id, email, is_guest FROM users WHERE id = ?').get(newOwnerId) as
+    | { id: number; email: string; is_guest?: number }
+    | undefined;
   if (!newOwner) throw new NotFoundError('User not found');
   // A guest (#1362) can never log in, so it must never become the owner of a trip.
   if (newOwner.is_guest) throw new ValidationError('Cannot transfer ownership to a guest');
@@ -463,14 +623,20 @@ export function transferOwnership(
   const isMember = db.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(tripId, newOwnerId);
   if (!isMember) throw new ValidationError('New owner must be a trip member');
 
-  const fromEmail = (db.prepare('SELECT email FROM users WHERE id = ?').get(currentOwnerId) as { email: string } | undefined)?.email || '';
+  const fromEmail =
+    (db.prepare('SELECT email FROM users WHERE id = ?').get(currentOwnerId) as { email: string } | undefined)?.email ||
+    '';
 
   const run = db.transaction(() => {
     db.prepare('UPDATE trips SET user_id = ? WHERE id = ?').run(newOwnerId, tripId);
     // The new owner is no longer a plain member…
     db.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, newOwnerId);
     // …and the former owner keeps access as a member.
-    db.prepare('INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, currentOwnerId, newOwnerId);
+    db.prepare('INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(
+      tripId,
+      currentOwnerId,
+      newOwnerId,
+    );
   });
   run();
 
@@ -509,11 +675,17 @@ export function createGuest(tripId: string | number, name: string, invitedByUser
   const username = `guest-${randomUUID()}`;
 
   const create = db.transaction(() => {
-    const res = db.prepare(
-      "INSERT INTO users (username, email, password_hash, role, is_guest, display_name) VALUES (?, ?, '', 'user', 1, ?)"
-    ).run(username, email, display);
+    const res = db
+      .prepare(
+        "INSERT INTO users (username, email, password_hash, role, is_guest, display_name) VALUES (?, ?, '', 'user', 1, ?)",
+      )
+      .run(username, email, display);
     const guestId = Number(res.lastInsertRowid);
-    db.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, guestId, invitedByUserId);
+    db.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(
+      tripId,
+      guestId,
+      invitedByUserId,
+    );
     return guestId;
   });
   const guestId = create();
@@ -523,9 +695,11 @@ export function createGuest(tripId: string | number, name: string, invitedByUser
 
 /** Confirms a user id is a guest of THIS trip, so guest mutations stay trip-scoped. */
 function guestOfTrip(tripId: string | number, guestUserId: number): boolean {
-  return !!db.prepare(
-    'SELECT u.id FROM users u JOIN trip_members m ON m.user_id = u.id WHERE u.id = ? AND m.trip_id = ? AND u.is_guest = 1'
-  ).get(guestUserId, tripId);
+  return !!db
+    .prepare(
+      'SELECT u.id FROM users u JOIN trip_members m ON m.user_id = u.id WHERE u.id = ? AND m.trip_id = ? AND u.is_guest = 1',
+    )
+    .get(guestUserId, tripId);
 }
 
 export function renameGuest(tripId: string | number, guestUserId: number, name: string): boolean {
@@ -536,7 +710,10 @@ export function renameGuest(tripId: string | number, guestUserId: number, name: 
 
   // Rename only the display name — no global-uniqueness dedup, so a rename to a name
   // another trip's guest already uses no longer produces "Name 2" (#1446).
-  db.prepare('UPDATE users SET display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_guest = 1').run(display, guestUserId);
+  db.prepare('UPDATE users SET display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_guest = 1').run(
+    display,
+    guestUserId,
+  );
   return true;
 }
 
@@ -657,12 +834,8 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     )
     .all(tripId) as any[];
 
-  const esc = (s: string) => s
-    .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .replace(/\r?\n/g, '\\n')
-    .replace(/\r/g, '');
+  const esc = (s: string) =>
+    s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n').replace(/\r/g, '');
   const fmtDate = (d: string) => d.replace(/-/g, '');
   const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   const uid = (id: number, type: string) => `trek-${type}-${id}@trek`;
@@ -690,12 +863,7 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   // Emit a DTSTART/DTEND line, attaching TZID when the event's zone is known so
   // subscribers see the time in TREK's zone. Falls back to a floating local time
   // (unchanged behavior) when no zone resolves or the value is not a date-time.
-  const dtLine = (
-    prop: 'DTSTART' | 'DTEND',
-    wallClock: string,
-    zone: string | null,
-    refDate?: string,
-  ): string => {
+  const dtLine = (prop: 'DTSTART' | 'DTEND', wallClock: string, zone: string | null, refDate?: string): string => {
     const val = fmtDateTime(wallClock, refDate);
     if (zone && isValidTimeZone(zone) && /^\d{8}T\d{6}$/.test(val)) {
       if (!usedZones.has(zone)) usedZones.set(zone, val.slice(0, 8));
@@ -704,7 +872,8 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     return `${prop}:${val}\r\n`;
   };
 
-  let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
+  let ics =
+    'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
   ics += `X-WR-CALNAME:${esc(trip.title || 'TREK Trip')}\r\n`;
 
   // Trip as all-day event. DTEND is exclusive, so it must be the day *after* the last
@@ -722,7 +891,9 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   for (const day of days) {
     if (!day.date) continue;
 
-    const assignments = db.prepare(`
+    const assignments = db
+      .prepare(
+        `
       SELECT da.*, p.name as place_name, p.address as place_address,
         p.lat as place_lat, p.lng as place_lng,
         COALESCE(da.assignment_time, p.place_time) as effective_time,
@@ -731,14 +902,16 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
       JOIN places p ON da.place_id = p.id
       WHERE da.day_id = ?
       ORDER BY da.order_index ASC, da.created_at ASC
-    `).all(day.id) as any[];
+    `,
+      )
+      .all(day.id) as any[];
 
-    const notes = db.prepare(
-      'SELECT * FROM day_notes WHERE day_id = ? ORDER BY sort_order ASC, created_at ASC'
-    ).all(day.id) as any[];
+    const notes = db
+      .prepare('SELECT * FROM day_notes WHERE day_id = ? ORDER BY sort_order ASC, created_at ASC')
+      .all(day.id) as any[];
 
-    const timed = assignments.filter(a => a.effective_time);
-    const untimed = assignments.filter(a => !a.effective_time);
+    const timed = assignments.filter((a) => a.effective_time);
+    const untimed = assignments.filter((a) => !a.effective_time);
 
     // Timed assignments → individual events
     for (const a of timed) {
@@ -768,19 +941,25 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
 
       let desc = '';
       if (untimed.length > 0) {
-        desc += untimed.map(a => {
-          let line = `• ${a.place_name}`;
-          if (a.place_address) line += ` (${a.place_address})`;
-          if (a.notes) line += ` — ${a.notes}`;
-          return line;
-        }).join('\n');
+        desc += untimed
+          .map((a) => {
+            let line = `• ${a.place_name}`;
+            if (a.place_address) line += ` (${a.place_address})`;
+            if (a.notes) line += ` — ${a.notes}`;
+            return line;
+          })
+          .join('\n');
       }
       if (notes.length > 0) {
         if (desc) desc += '\n\n';
-        desc += 'Notes:\n' + notes.map(n => {
-          const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
-          return line;
-        }).join('\n');
+        desc +=
+          'Notes:\n' +
+          notes
+            .map((n) => {
+              const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
+              return line;
+            })
+            .join('\n');
       }
       if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;
       ics += `END:VEVENT\r\n`;
@@ -858,7 +1037,10 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
       // Endpoint-based transport without route metadata: derive it from endpoints.
       const eps = endpointsMap.get(r.id);
       if (eps && eps.length > 1) {
-        const stops = [...eps].sort((a, b) => a.sequence - b.sequence).map(e => e.code || e.name).filter(Boolean);
+        const stops = [...eps]
+          .sort((a, b) => a.sequence - b.sequence)
+          .map((e) => e.code || e.name)
+          .filter(Boolean);
         if (stops.length > 1) desc += `\nRoute: ${stops.join(' → ')}`;
       }
     }
@@ -898,10 +1080,23 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
   const newTitle = title || src.title;
 
   const fn = db.transaction(() => {
-    const tripResult = db.prepare(`
+    const tripResult = db
+      .prepare(
+        `
       INSERT INTO trips (user_id, title, description, start_date, end_date, currency, cover_image, is_archived, reminder_days)
       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
-    `).run(newOwnerId, newTitle, src.description, src.start_date, src.end_date, src.currency, src.cover_image, src.reminder_days ?? 3);
+    `,
+      )
+      .run(
+        newOwnerId,
+        newTitle,
+        src.description,
+        src.start_date,
+        src.end_date,
+        src.currency,
+        src.cover_image,
+        src.reminder_days ?? 3,
+      );
     const newTripId = tripResult.lastInsertRowid;
 
     const oldDays = db.prepare('SELECT * FROM days WHERE trip_id = ? ORDER BY day_number').all(sourceTripId) as any[];
@@ -921,25 +1116,54 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const p of oldPlaces) {
-      const r = insertPlace.run(newTripId, p.name, p.description, p.lat, p.lng, p.address, p.category_id,
-        p.price, p.currency, p.reservation_status, p.reservation_notes, p.reservation_datetime,
-        p.place_time, p.end_time, p.duration_minutes, p.notes, p.image_url, p.google_place_id,
-        p.google_ftid, p.website, p.phone, p.transport_mode, p.osm_id);
+      const r = insertPlace.run(
+        newTripId,
+        p.name,
+        p.description,
+        p.lat,
+        p.lng,
+        p.address,
+        p.category_id,
+        p.price,
+        p.currency,
+        p.reservation_status,
+        p.reservation_notes,
+        p.reservation_datetime,
+        p.place_time,
+        p.end_time,
+        p.duration_minutes,
+        p.notes,
+        p.image_url,
+        p.google_place_id,
+        p.google_ftid,
+        p.website,
+        p.phone,
+        p.transport_mode,
+        p.osm_id,
+      );
       placeMap.set(p.id, r.lastInsertRowid);
     }
 
-    const oldTags = db.prepare(`
+    const oldTags = db
+      .prepare(
+        `
       SELECT pt.* FROM place_tags pt JOIN places p ON p.id = pt.place_id WHERE p.trip_id = ?
-    `).all(sourceTripId) as any[];
+    `,
+      )
+      .all(sourceTripId) as any[];
     const insertTag = db.prepare('INSERT OR IGNORE INTO place_tags (place_id, tag_id) VALUES (?, ?)');
     for (const t of oldTags) {
       const newPlaceId = placeMap.get(t.place_id);
       if (newPlaceId) insertTag.run(newPlaceId, t.tag_id);
     }
 
-    const oldAssignments = db.prepare(`
+    const oldAssignments = db
+      .prepare(
+        `
       SELECT da.* FROM day_assignments da JOIN days d ON d.id = da.day_id WHERE d.trip_id = ?
-    `).all(sourceTripId) as any[];
+    `,
+      )
+      .all(sourceTripId) as any[];
     const assignmentMap = new Map<number, number | bigint>();
     const insertAssignment = db.prepare(`
       INSERT INTO day_assignments (day_id, place_id, order_index, notes, reservation_status, reservation_notes, reservation_datetime, assignment_time, assignment_end_time)
@@ -949,9 +1173,17 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
       const newDayId = dayMap.get(a.day_id);
       const newPlaceId = placeMap.get(a.place_id);
       if (newDayId && newPlaceId) {
-        const r = insertAssignment.run(newDayId, newPlaceId, a.order_index, a.notes,
-          a.reservation_status, a.reservation_notes, a.reservation_datetime,
-          a.assignment_time, a.assignment_end_time);
+        const r = insertAssignment.run(
+          newDayId,
+          newPlaceId,
+          a.order_index,
+          a.notes,
+          a.reservation_status,
+          a.reservation_notes,
+          a.reservation_datetime,
+          a.assignment_time,
+          a.assignment_end_time,
+        );
         assignmentMap.set(a.id, r.lastInsertRowid);
       }
     }
@@ -967,7 +1199,16 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
       const newStartDay = dayMap.get(a.start_day_id);
       const newEndDay = dayMap.get(a.end_day_id);
       if (newPlaceId && newStartDay && newEndDay) {
-        const r = insertAccom.run(newTripId, newPlaceId, newStartDay, newEndDay, a.check_in, a.check_out, a.confirmation, a.notes);
+        const r = insertAccom.run(
+          newTripId,
+          newPlaceId,
+          newStartDay,
+          newEndDay,
+          a.check_in,
+          a.check_out,
+          a.confirmation,
+          a.notes,
+        );
         accomMap.set(a.id, r.lastInsertRowid);
       }
     }
@@ -979,7 +1220,8 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const r of oldReservations) {
-      insertReservation.run(newTripId,
+      insertReservation.run(
+        newTripId,
         r.day_id ? (dayMap.get(r.day_id) ?? null) : null,
         // end_day_id is a day reference too (multi-day transport) — remap it like
         // day_id, otherwise the duplicated trip loses the reservation's end-day link.
@@ -987,9 +1229,18 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
         r.place_id ? (placeMap.get(r.place_id) ?? null) : null,
         r.assignment_id ? (assignmentMap.get(r.assignment_id) ?? null) : null,
         r.accommodation_id ? (accomMap.get(r.accommodation_id) ?? null) : null,
-        r.title, r.reservation_time, r.reservation_end_time,
-        r.location, r.confirmation_number, r.notes, r.status, r.type,
-        r.metadata, r.day_plan_position, r.needs_review ?? 0);
+        r.title,
+        r.reservation_time,
+        r.reservation_end_time,
+        r.location,
+        r.confirmation_number,
+        r.notes,
+        r.status,
+        r.type,
+        r.metadata,
+        r.day_plan_position,
+        r.needs_review ?? 0,
+      );
     }
 
     const oldBudget = db.prepare('SELECT * FROM budget_items WHERE trip_id = ?').all(sourceTripId) as any[];
@@ -1018,8 +1269,14 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
       VALUES (?, ?, 0, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
     for (const p of oldPacking) {
-      insertPacking.run(newTripId, p.name, p.category, p.sort_order, p.weight_grams,
-        p.bag_id ? (bagMap.get(p.bag_id) ?? null) : null);
+      insertPacking.run(
+        newTripId,
+        p.name,
+        p.category,
+        p.sort_order,
+        p.weight_grams,
+        p.bag_id ? (bagMap.get(p.bag_id) ?? null) : null,
+      );
     }
 
     const oldNotes = db.prepare('SELECT * FROM day_notes WHERE trip_id = ?').all(sourceTripId) as any[];
@@ -1041,7 +1298,9 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
       insertTodo.run(newTripId, t.name, t.category, t.sort_order, t.due_date, t.description, t.priority);
     }
 
-    const oldCategoryOrder = db.prepare('SELECT category, sort_order FROM budget_category_order WHERE trip_id = ?').all(sourceTripId) as any[];
+    const oldCategoryOrder = db
+      .prepare('SELECT category, sort_order FROM budget_category_order WHERE trip_id = ?')
+      .all(sourceTripId) as any[];
     const insertCategoryOrder = db.prepare(`
       INSERT INTO budget_category_order (trip_id, category, sort_order)
       VALUES (?, ?, ?)
@@ -1085,7 +1344,7 @@ export function getTripSummary(tripId: number, viewerUserId?: number) {
   const packing = {
     items: packingItems,
     total: packingItems.length,
-    checked: (packingItems as { checked: number }[]).filter(i => i.checked).length,
+    checked: (packingItems as { checked: number }[]).filter((i) => i.checked).length,
   };
 
   const reservations = listReservations(tripId);

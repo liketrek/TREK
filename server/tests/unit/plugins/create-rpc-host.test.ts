@@ -50,6 +50,12 @@ vi.mock('../../../src/nest/budget/budget.service', () => ({
       return id === '404' ? null : { id: Number(id), trip_id: Number(tid), ...input };
     }
     remove(id: string, _tid: string) { return id !== '404'; }
+    async createSettlement(tid: string, input: Record<string, unknown>, userId: number) {
+      return { id: 12, trip_id: Number(tid), set_by_user_id: userId, ...input };
+    }
+    async updateSettlement(id: string, tid: string, input: Record<string, unknown>, userId: number) {
+      return id === '404' ? null : { id: Number(id), trip_id: Number(tid), set_by_user_id: userId, ...input };
+    }
   },
 }));
 
@@ -65,7 +71,7 @@ vi.mock('../../../src/services/tripService', () => {
   class NotFoundError extends Error {}
   class ValidationError extends Error {}
   return {
-    updateTrip: (tripId: number, _u: number, input: Record<string, unknown>) => {
+    updateTripAggregate: async (tripId: number, _u: number, input: Record<string, unknown>) => {
       if (input.title === 'boom') throw new ValidationError('bad dates');
       if (input.title === 'gone') throw new NotFoundError('no trip');
       if (input.title === 'crash') throw new Error('unexpected');
@@ -81,6 +87,12 @@ vi.mock('../../../src/services/tripService', () => {
 });
 vi.mock('../../../src/services/exchangeRateService', () => ({
   getRates: vi.fn(async (base: string) => ({ [base]: 1, USD: 1.08, GBP: 0.85 })),
+  listTripExchangeRates: vi.fn(() => [{ trip_id: 1, currency: 'USD', exchange_rate: 1.2 }]),
+  resolveExchangeRate: vi.fn(async () => ({ exchange_rate: 1.2, source: 'trip' })),
+  setTripExchangeRate: vi.fn((tripId: number, currency: string, exchangeRate: number, userId: number, note: string | null) => ({
+    trip_id: tripId, currency, exchange_rate: exchangeRate, set_by_user_id: userId, note,
+  })),
+  deleteTripExchangeRate: vi.fn(() => true),
 }));
 vi.mock('../../../src/services/placeService', () => ({
   createPlace: vi.fn((tid: string, body: Record<string, unknown>) => ({ id: 10, trip_id: Number(tid), ...body })),
@@ -113,7 +125,11 @@ vi.mock('../../../src/services/assignmentService', () => ({
   placeExists: vi.fn((placeId: number) => placeId === 7),
   getAssignmentForTrip: vi.fn((id: number) => (id === 99 ? undefined : { id })),
 }));
-vi.mock('../../../src/services/budgetService', () => ({ listBudgetItems: vi.fn(() => []) }));
+vi.mock('../../../src/services/budgetService', () => ({
+  listBudgetItems: vi.fn(() => []),
+  listSettlements: vi.fn(() => [{ id: 12, trip_id: 1, amount: 20 }]),
+  deleteSettlement: vi.fn(() => true),
+}));
 vi.mock('../../../src/services/packingService', () => ({
   listItems: vi.fn((tid: number, userId: number) => [{ id: 1, trip_id: tid, name: 'Socks', _uid: userId }]),
   // Return the item with the #858 privacy fields the create-rpc-host deps scope on.
@@ -431,6 +447,34 @@ describe('create-rpc-host — planner write + metadata deps', () => {
   it('costs deps: delete of a missing item is RESOURCE_FORBIDDEN', async () => {
     const h = host('db:write:costs');
     expect((await call(h, 'costs.delete', { tripId: 1, itemId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('costs deps: rates and settlements delegate with explicit input and parity broadcasts', async () => {
+    const h = host('db:read:costs', 'db:write:costs');
+    expect((await call(h, 'costs.listRates', { tripId: 1 })).ok).toBe(true);
+    const resolution = await call(h, 'costs.resolveRate', { tripId: 1, currency: 'USD' });
+    expect(resolution.result).toMatchObject({ exchange_rate: 1.2, source: 'trip' });
+
+    expect((await call(h, 'costs.setRate', {
+      tripId: 1, currency: 'USD', exchangeRate: 1.25, note: 'bank',
+    })).ok).toBe(true);
+    expect(broadcast).toHaveBeenCalledWith(1, 'budget:exchange-rates-updated', expect.anything());
+
+    const created = await call(h, 'costs.createSettlement', {
+      tripId: 1,
+      input: { from_user_id: 5, to_user_id: 6, amount: 20, currency: 'USD', exchange_rate: 1.2 },
+    });
+    expect(created.result).toMatchObject({ exchange_rate: 1.2, set_by_user_id: 5 });
+    expect(broadcast).toHaveBeenCalledWith(1, 'budget:settlement-created', expect.anything());
+
+    expect((await call(h, 'costs.updateSettlement', {
+      tripId: 1, settlementId: 12,
+      input: { from_user_id: 5, to_user_id: 6, amount: 20, exchange_rate: 1.15 },
+    })).ok).toBe(true);
+    expect(broadcast).toHaveBeenCalledWith(1, 'budget:settlement-updated', expect.anything());
+    expect((await call(h, 'costs.listSettlements', { tripId: 1 })).ok).toBe(true);
+    expect((await call(h, 'costs.deleteSettlement', { tripId: 1, settlementId: 12 })).ok).toBe(true);
+    expect(broadcast).toHaveBeenCalledWith(1, 'budget:settlement-deleted', { settlementId: 12 });
   });
 
   it('packing/files read deps delegate to their services (trash excluded for files)', async () => {
