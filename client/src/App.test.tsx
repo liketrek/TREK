@@ -421,6 +421,20 @@ describe('RootRedirect — preference not mirrored on this device', () => {
     await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
   })
 
+  // Waiting for someone else's effect to fetch the settings made the decision
+  // ride on where that request landed in the queue — behind ~380 others on a
+  // cold start, which is how the redirect silently lost the race and fell
+  // through to the dashboard. It now asks for them itself.
+  it('FE-COMP-APP-033: asks for the settings itself instead of waiting to be told', async () => {
+    const loadSettings = vi.fn().mockResolvedValue(undefined)
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({ isLoaded: false, loadSettings })
+
+    renderApp('/')
+
+    await waitFor(() => expect(loadSettings).toHaveBeenCalled())
+  })
+
   // loadSettings leaves isLoaded false on a failed request so it can retry, so
   // the wait above needs a floor or a launch with no backend never resolves.
   it('FE-COMP-APP-032: gives up on the settings after the timeout and opens the dashboard', async () => {

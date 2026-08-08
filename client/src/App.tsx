@@ -190,6 +190,7 @@ function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuthStore()
   const settingsLoaded = useSettingsStore((s) => s.isLoaded)
   const settings = useSettingsStore((s) => s.settings)
+  const loadSettings = useSettingsStore((s) => s.loadSettings)
   const [target, setTarget] = useState<string | null>(null)
   // Bounds the wait below: loadSettings deliberately leaves isLoaded false on a
   // failed request so it can retry, which would otherwise strand a launch that
@@ -205,7 +206,14 @@ function RootRedirect() {
   useEffect(() => {
     if (isLoading || !isAuthenticated || target) return
     const mirrored = readStartDestination()
-    if (!mirrored && !settingsLoaded && !settingsGaveUp) return
+    if (!mirrored && !settingsLoaded && !settingsGaveUp) {
+      // Ask for the settings instead of waiting for whoever else might. The
+      // store de-dupes concurrent loads, so this is free when one is already in
+      // flight — and it stops the decision from riding on where that request
+      // happens to land in the queue behind everything else a launch fires off.
+      loadSettings()
+      return
+    }
     // Loaded settings are the truth; the mirror is what we knew last time.
     const { page, tab } = settingsLoaded
       ? { page: settings.start_page ?? DEFAULT_START_PAGE, tab: settings.start_trip_tab ?? DEFAULT_START_TRIP_TAB }
