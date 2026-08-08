@@ -3,7 +3,6 @@ import { db } from '../../db/database';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 import { checkSsrf, safeFetch } from '../../utils/ssrfGuard';
 import { writeAudit } from '../../nest/audit/audit.bridge';
-import { addTripPhotos} from './unifiedService';
 import { getAlbumIdFromLink, updateSyncTimeForAlbumLink, Selection, pipeAsset } from './helpersService';
 
 // ── Credentials ────────────────────────────────────────────────────────────
@@ -489,12 +488,21 @@ export async function getAlbumPhotos(
   }
 }
 
-export async function syncAlbumAssets(
+/**
+ * The Immich half of an album sync: resolve the link, fetch the album, and hand
+ * back the picked asset ids.
+ *
+ * Adding them to the trip stays with the unified service, which owns
+ * addTripPhotos. Splitting it there is what breaks the import cycle this module
+ * used to close (immich -> unified -> photoResolver -> immich): the provider now
+ * only ever points downhill. Every error string and status below is the one the
+ * combined function returned.
+ */
+export async function collectAlbumSelection(
   tripId: string,
   linkId: string,
   userId: number,
-  sid: string,
-): Promise<{ success?: boolean; added?: number; total?: number; error?: string; status?: number }> {
+): Promise<{ selection: Selection; total: number } | { error: string; status: number }> {
   const response = getAlbumIdFromLink(tripId, linkId, userId);
   if (!response.success) return { error: 'Album link not found', status: 404 };
 
@@ -508,17 +516,10 @@ export async function syncAlbumAssets(
     // visibility, so a stored hidden asset is a permanently broken tile (#1474).
     const assets = albumResult.assets.filter((a: any) => a.type === 'IMAGE' && isVisibleAsset(a));
 
-    const selection: Selection = {
-      provider: 'immich',
-      asset_ids: assets.map((a: any) => a.id),
+    return {
+      selection: { provider: 'immich', asset_ids: assets.map((a: any) => a.id) },
+      total: assets.length,
     };
-
-    const result = await addTripPhotos(tripId, userId, true, [selection], sid, linkId);
-    if ('error' in result) return { error: result.error.message, status: result.error.status };
-
-    updateSyncTimeForAlbumLink(linkId);
-
-    return { success: true, added: result.data.added, total: assets.length };
   } catch {
     return { error: 'Could not reach Immich', status: 502 };
   }

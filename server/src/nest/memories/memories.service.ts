@@ -6,6 +6,8 @@ import {
   createTripAlbumLink,
   removeAlbumLink,
   addTripPhotos,
+  syncImmichAlbum,
+  syncSynologyAlbum,
   removeTripPhoto,
   setTripPhotoSharing,
 } from '../../services/memories/unifiedService';
@@ -20,7 +22,6 @@ import {
   streamImmichAsset,
   listAlbums,
   getAlbumPhotos,
-  syncAlbumAssets,
   getAssetInfo,
   isValidAssetId,
 } from '../../services/memories/immichService';
@@ -31,7 +32,6 @@ import {
   testSynologyConnection,
   listSynologyAlbums,
   getSynologyAlbumPhotos,
-  syncSynologyAlbumLink,
   searchSynologyPhotos,
   getSynologyAssetInfo,
   streamSynologyAsset,
@@ -140,7 +140,7 @@ export class MemoriesService {
   }
 
   immichSyncAlbumAssets(tripId: string, linkId: string, userId: number, sid: string) {
-    return syncAlbumAssets(tripId, linkId, userId, sid);
+    return syncImmichAlbum(tripId, linkId, userId, sid);
   }
 
   // ── Synology ────────────────────────────────────────────────────────────────
@@ -169,7 +169,7 @@ export class MemoriesService {
   }
 
   synologySyncAlbumLink(userId: number, tripId: string, linkId: string, sid: string) {
-    return syncSynologyAlbumLink(userId, tripId, linkId, sid);
+    return syncSynologyAlbum(userId, tripId, linkId, sid);
   }
 
   synologySearchPhotos(userId: number, from: string | undefined, to: string | undefined, offset: number, limit: number) {

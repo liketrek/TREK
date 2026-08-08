@@ -3,7 +3,6 @@ import { Response } from 'express';
 import { db } from '../../db/database';
 import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../../nest/common/crypto/apiKeyCrypto';
 import { safeFetch, SsrfBlockedError, checkSsrf } from '../../utils/ssrfGuard';
-import { addTripPhotos } from './unifiedService';
 import {
     getAlbumLinkForSync,
     updateSyncTimeForAlbumLink,
@@ -510,9 +509,13 @@ export async function getSynologyAlbumPhotos(userId: number, albumId: string, pa
     return success({ assets, total: assets.length, hasMore: false });
 }
 
-export async function syncSynologyAlbumLink(userId: number, tripId: string, linkId: string, sid: string): Promise<ServiceResult<SyncAlbumResult>> {
+/**
+ * The Synology half of an album sync — see collectAlbumSelection in
+ * immichService for why the trip-side write lives in the unified service now.
+ */
+export async function collectSynologyAlbumSelection(userId: number, tripId: string, linkId: string): Promise<ServiceResult<{ selection: Selection; total: number }>> {
     const response = getAlbumLinkForSync(tripId, linkId, userId);
-    if (!response.success) return response as ServiceResult<SyncAlbumResult>;
+    if (!response.success) return response as ServiceResult<{ selection: Selection; total: number }>;
 
     const { albumId, passphrase } = response.data;
 
@@ -527,7 +530,7 @@ export async function syncSynologyAlbumLink(userId: number, tripId: string, link
 
         const result = await _requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, itemParams);
 
-        if (!result.success) return result as ServiceResult<SyncAlbumResult>;
+        if (!result.success) return result as ServiceResult<{ selection: Selection; total: number }>;
 
         const items = result.data.list || [];
         allItems.push(...items);
@@ -541,12 +544,7 @@ export async function syncSynologyAlbumLink(userId: number, tripId: string, link
         passphrase,
     };
 
-    const result = await addTripPhotos(tripId, userId, true, [selection], sid, linkId);
-    if (!result.success) return result as ServiceResult<SyncAlbumResult>;
-
-    updateSyncTimeForAlbumLink(linkId);
-
-    return success({ added: result.data.added, total: allItems.length });
+    return success({ selection, total: allItems.length });
 }
 
 export async function searchSynologyPhotos(userId: number, from?: string, to?: string, offset = 0, limit = 300): Promise<ServiceResult<AssetsList>> {
