@@ -63,6 +63,43 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 // ---------------------------------------------------------------------------
 
 describe('Tool: create_budget_item', () => {
+  it('accepts an immutable quote and freezes its provenance', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare(`
+      INSERT INTO exchange_rate_quotes
+        (id, trip_id, trip_currency, item_currency, exchange_rate, source, source_version,
+         effective_date, fetched_at, stale)
+      VALUES ('expense-quote', ?, 'EUR', 'USD', 1.25, 'global', 'snapshot:1',
+              '2026-08-07', '2026-08-08T00:00:00.000Z', 0)
+    `).run(trip.id);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    try {
+      await withHarness(user.id, async (h) => {
+        const result = await h.client.callTool({
+          name: 'create_budget_item',
+          arguments: {
+            tripId: trip.id,
+            name: 'Quoted hotel',
+            total_price: 125,
+            currency: 'USD',
+            quote_id: 'expense-quote',
+          },
+        });
+        const data = parseToolResult(result) as any;
+        expect(data.item).toMatchObject({
+          currency: 'USD',
+          exchange_rate: 1.25,
+          exchange_rate_source: 'global',
+          exchange_rate_source_version: 'snapshot:1',
+          exchange_rate_set_by_user_id: user.id,
+        });
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('creates a budget item with all fields', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -210,6 +247,37 @@ describe('Tool: create_budget_item', () => {
 // ---------------------------------------------------------------------------
 
 describe('Tool: update_budget_item', () => {
+  it('accepts a quote when changing an expense currency', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createBudgetItem(testDb, trip.id, { name: 'Old', total_price: 100 });
+    testDb.prepare(`
+      INSERT INTO exchange_rate_quotes
+        (id, trip_id, trip_currency, item_currency, exchange_rate, source, source_version,
+         effective_date, fetched_at, stale)
+      VALUES ('update-quote', ?, 'EUR', 'USD', 1.2, 'trip', 'trip:1',
+              NULL, '2026-08-08T00:00:00.000Z', 0)
+    `).run(trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_budget_item',
+        arguments: {
+          tripId: trip.id,
+          itemId: item.id,
+          currency: 'USD',
+          quote_id: 'update-quote',
+        },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.item).toMatchObject({
+        currency: 'USD',
+        exchange_rate: 1.2,
+        exchange_rate_source: 'trip',
+        exchange_rate_source_version: 'trip:1',
+      });
+    });
+  });
+
   it('updates budget item fields', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

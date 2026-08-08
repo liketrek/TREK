@@ -62,7 +62,7 @@ export class TripsService {
     // Re-anchor the budget while the outgoing currency is still on the trip row,
     // otherwise the frozen FX rates and the currency-less expenses that inherit the
     // trip's base are left pointing at a currency that no longer exists (#1543).
-    await rebaseTripCurrency(tripId, body.currency);
+    await rebaseTripCurrency(tripId, body.currency, userId);
     return tripSvc.updateTrip(tripId, userId, body, role);
   }
 

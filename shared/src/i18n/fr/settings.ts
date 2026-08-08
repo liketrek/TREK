@@ -502,7 +502,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Quand',
   'settings.pluginActivity.columns.status': 'Résultat',
   'settings.alwaysShowRoutes': 'Toujours afficher les itinéraires de réservation',
-  'settings.alwaysShowRoutesHint': 'Affiche automatiquement sur la carte l\'itinéraire de chaque vol, trajet en train et autre réservation, sans avoir à l\'activer un par un.',
+  'settings.alwaysShowRoutesHint':
+    "Affiche automatiquement sur la carte l'itinéraire de chaque vol, trajet en train et autre réservation, sans avoir à l'activer un par un.",
 };
 
 export default settings;

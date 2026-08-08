@@ -35,6 +35,20 @@ const RATES: Record<string, Record<string, number>> = {
 };
 vi.mock('../../../src/services/exchangeRateService', () => ({
   getRates: vi.fn(async (base: string) => RATES[base.toUpperCase()] ?? null),
+  getGlobalRateSnapshot: vi.fn(async (base: string) => {
+    const normalizedBase = base.toUpperCase();
+    const rates = RATES[normalizedBase];
+    return rates
+      ? {
+          base_currency: normalizedBase,
+          rates,
+          source_version: 'test-snapshot',
+          effective_date: '2026-08-08',
+          fetched_at: '2026-08-08T00:00:00.000Z',
+          stale: false,
+        }
+      : null;
+  }),
 }));
 
 import { createTables } from '../../../src/db/schema';

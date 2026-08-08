@@ -41,13 +41,13 @@ export class BudgetService {
     return svc.calculateSettlement(tripId, { base: effectiveBase, rates, tripCurrency });
   }
 
-  async create(tripId: string, data: Parameters<typeof svc.createBudgetItem>[1]) {
-    await svc.freezeForeignRate(tripId, data);
+  async create(tripId: string, data: Parameters<typeof svc.createBudgetItem>[1], userId?: number) {
+    await svc.freezeForeignRate(tripId, data, undefined, undefined, userId);
     return svc.createBudgetItem(tripId, data);
   }
 
-  async update(id: string, tripId: string, data: Parameters<typeof svc.updateBudgetItem>[2]) {
-    await svc.freezeForeignRate(tripId, data, id);
+  async update(id: string, tripId: string, data: Parameters<typeof svc.updateBudgetItem>[2], userId?: number) {
+    await svc.freezeForeignRate(tripId, data, id, undefined, userId);
     return svc.updateBudgetItem(id, tripId, data);
   }
 
@@ -71,19 +71,19 @@ export class BudgetService {
     return svc.listSettlements(tripId);
   }
 
-  async createSettlement(tripId: string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }, userId: number) {
+  async createSettlement(tripId: string, data: Parameters<typeof svc.createSettlement>[1], userId: number) {
     // Freeze the FX rate for the display currency the amount was entered in so the
     // transfer keeps cancelling its expense when live rates drift (#1445).
-    await svc.freezeForeignRate(tripId, data);
+    await svc.freezeForeignRate(tripId, data, undefined, undefined, userId);
     return svc.createSettlement(tripId, data, userId);
   }
 
-  async updateSettlement(id: string, tripId: string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }) {
+  async updateSettlement(id: string, tripId: string, data: Parameters<typeof svc.updateSettlement>[2], userId?: number) {
     // Pass the settlement's stored currency so an edit that doesn't change it keeps
     // the already-frozen rate (#1445) — otherwise a live-rate drift would re-open a
     // settled position on an unrelated edit.
     const existing = svc.listSettlements(tripId).find((s) => s.id === Number(id));
-    await svc.freezeForeignRate(tripId, data, undefined, existing?.currency ?? null);
+    await svc.freezeForeignRate(tripId, data, undefined, existing?.currency ?? null, userId);
     return svc.updateSettlement(id, tripId, data);
   }
 

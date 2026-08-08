@@ -9,7 +9,14 @@ import { listTags, createTag, updateTag, deleteTag, getTagByIdAndUser } from '..
 import { listItems as listTodosSvc, createItem as createTodoSvc, updateItem as updateTodoSvc, deleteItem as deleteTodoSvc } from '../../../services/todoService';
 import { listFiles, createFile, createFileLink, getFileById, updateFile, softDeleteFile, findForeignLinkTarget, resolveFilePath, BLOCKED_EXTENSIONS, filesDir } from '../../../services/fileService';
 import { createNote as createCollabNoteSvc, createPoll as createCollabPollSvc, votePoll as voteCollabPollSvc, createMessage as createCollabMessageSvc, listNotes as listCollabNotesSvc, listPolls as listCollabPollsSvc, listMessages as listCollabMessagesSvc } from '../../../services/collabService';
-import { getRates as getExchangeRates } from '../../../services/exchangeRateService';
+import {
+  deleteTripExchangeRate,
+  getRates as getExchangeRates,
+  listTripExchangeRates,
+  resolveExchangeRate,
+  setTripExchangeRate,
+} from '../../../services/exchangeRateService';
+import { deleteSettlement, listSettlements } from '../../../services/budgetService';
 import { joinTripAsMember } from '../../../services/tripMembership';
 import { send as sendNotification } from '../../../services/notificationService';
 import { resolveLlmConfig } from '../../llm-parse/llm-config.resolver';
@@ -483,6 +490,36 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       const deleted = budgetSvc.remove(String(itemId), String(tripId));
       if (!deleted) throw new ForbiddenResource(`no cost ${itemId} on trip ${tripId}`);
       broadcast(tripId, 'budget:deleted', { itemId });
+      return { deleted: true };
+    },
+    listCostRates: (tripId) => listTripExchangeRates(tripId),
+    resolveCostRate: (tripId, currency) => resolveExchangeRate(tripId, currency),
+    setCostRate: (tripId, currency, exchangeRate, userId, note) => {
+      const rate = setTripExchangeRate(tripId, currency, exchangeRate, userId, note);
+      broadcast(tripId, 'budget:exchange-rates-updated', { rate });
+      return rate;
+    },
+    deleteCostRate: (tripId, currency) => {
+      const deleted = deleteTripExchangeRate(tripId, currency);
+      if (!deleted) throw new ForbiddenResource(`no trip exchange rate for ${currency}`);
+      broadcast(tripId, 'budget:exchange-rates-updated', { currency, deleted: true });
+      return { deleted: true };
+    },
+    listCostSettlements: (tripId) => listSettlements(tripId),
+    createCostSettlement: async (tripId, input, userId) => {
+      const settlement = await budgetSvc.createSettlement(String(tripId), input as any, userId);
+      broadcast(tripId, 'budget:settlement-created', { settlement });
+      return settlement;
+    },
+    updateCostSettlement: async (tripId, settlementId, input, userId) => {
+      const settlement = await budgetSvc.updateSettlement(String(settlementId), String(tripId), input as any, userId);
+      if (!settlement) throw new ForbiddenResource(`no settlement ${settlementId} on trip ${tripId}`);
+      broadcast(tripId, 'budget:settlement-updated', { settlement });
+      return settlement;
+    },
+    deleteCostSettlement: (tripId, settlementId) => {
+      if (!deleteSettlement(settlementId, tripId)) throw new ForbiddenResource(`no settlement ${settlementId} on trip ${tripId}`);
+      broadcast(tripId, 'budget:settlement-deleted', { settlementId });
       return { deleted: true };
     },
     // --- Places (place_edit). Delegate to the same placeService the REST/MCP paths

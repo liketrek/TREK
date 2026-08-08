@@ -505,7 +505,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Πότε',
   'settings.pluginActivity.columns.status': 'Αποτέλεσμα',
   'settings.alwaysShowRoutes': 'Πάντα εμφάνιση διαδρομών κράτησης',
-  'settings.alwaysShowRoutesHint': 'Εμφανίζει αυτόματα στον χάρτη τη διαδρομή κάθε πτήσης, τρένου και άλλης κράτησης, χωρίς να χρειάζεται να την ενεργοποιείτε μία προς μία.',
+  'settings.alwaysShowRoutesHint':
+    'Εμφανίζει αυτόματα στον χάρτη τη διαδρομή κάθε πτήσης, τρένου και άλλης κράτησης, χωρίς να χρειάζεται να την ενεργοποιείτε μία προς μία.',
 };
 
 export default settings;

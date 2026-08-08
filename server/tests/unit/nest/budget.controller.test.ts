@@ -150,7 +150,20 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const svc = makeService({ updateSettlement, broadcast } as Partial<BudgetService>);
       const res = await new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 2, to_user_id: 1, amount: 15, currency: 'USD' }, 'sock');
       expect(res).toEqual({ settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } });
-      expect(updateSettlement).toHaveBeenCalledWith('7', '5', { from_user_id: 2, to_user_id: 1, amount: 15, currency: 'USD' });
+      expect(updateSettlement).toHaveBeenCalledWith(
+        '7',
+        '5',
+        {
+          from_user_id: 2,
+          to_user_id: 1,
+          amount: 15,
+          currency: 'USD',
+          quote_id: undefined,
+          exchange_rate: undefined,
+          exchange_rate_note: undefined,
+        },
+        user.id,
+      );
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:settlement-updated', { settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } }, 'sock');
     });
   });

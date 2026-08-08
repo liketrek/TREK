@@ -50,7 +50,7 @@ describe('TripsService (wrapper delegation + bundle/copy/notify helpers)', () =>
     s.getOwner('9'); expect(tripSvc.getTripOwner).toHaveBeenCalledWith('9');
     // update() first re-anchors the budget to any incoming currency, so it is async now.
     await s.update('9', 1, {} as never, 'user'); expect(tripSvc.updateTrip).toHaveBeenCalledWith('9', 1, {}, 'user');
-    expect(rebaseTripCurrency).toHaveBeenCalledWith('9', undefined);
+    expect(rebaseTripCurrency).toHaveBeenCalledWith('9', undefined, 1);
     s.remove('9', 1, 'user'); expect(tripSvc.deleteTrip).toHaveBeenCalledWith('9', 1, 'user');
     s.deleteOldCover('/old.jpg'); expect(tripSvc.deleteOldCover).toHaveBeenCalledWith('/old.jpg');
     s.updateCoverImage('9', '/n.jpg'); expect(tripSvc.updateCoverImage).toHaveBeenCalledWith('9', '/n.jpg');
@@ -73,7 +73,7 @@ describe('TripsService (wrapper delegation + bundle/copy/notify helpers)', () =>
     await svc().update('9', 1, { currency: 'RUB' } as never, 'user');
 
     // The rebase reads the outgoing currency off the trip row, so it has to run first.
-    expect(rebaseTripCurrency).toHaveBeenCalledWith('9', 'RUB');
+    expect(rebaseTripCurrency).toHaveBeenCalledWith('9', 'RUB', 1);
     expect(order).toEqual(['rebase', 'update']);
   });
 

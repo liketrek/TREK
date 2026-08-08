@@ -101,7 +101,7 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
           return { content: [{ type: 'text' as const, text: 'end_date is not a valid calendar date.' }], isError: true };
       }
       // Re-anchor the budget before the trip row moves off the old currency (#1543).
-      await rebaseTripCurrency(tripId, currency);
+      await rebaseTripCurrency(tripId, currency, userId);
       const { updatedTrip } = updateTrip(tripId, userId, { title, description, start_date, end_date, currency, is_archived, cover_image, date_shift_mode }, 'user');
       safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
       return ok({ trip: updatedTrip });

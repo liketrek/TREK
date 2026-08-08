@@ -267,6 +267,70 @@ describe('Settlement tools', () => {
     });
   });
 
+  it('creates a foreign-currency settlement from a quote', async () => {
+    const { user, other, trip } = tripWithTwo();
+    testDb.prepare(`
+      INSERT INTO exchange_rate_quotes
+        (id, trip_id, trip_currency, item_currency, exchange_rate, source, source_version,
+         effective_date, fetched_at, stale)
+      VALUES ('settlement-quote', ?, 'EUR', 'USD', 1.25, 'global', 'snapshot:2',
+              '2026-08-07', '2026-08-08T00:00:00.000Z', 0)
+    `).run(trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_settlement',
+        arguments: {
+          tripId: trip.id,
+          from_user_id: other.id,
+          to_user_id: user.id,
+          amount: 62.5,
+          currency: 'USD',
+          quote_id: 'settlement-quote',
+        },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.settlement).toMatchObject({
+        currency: 'USD',
+        exchange_rate: 1.25,
+        exchange_rate_source: 'global',
+        exchange_rate_source_version: 'snapshot:2',
+        exchange_rate_set_by_user_id: user.id,
+      });
+    });
+  });
+
+  it('prefers a manual rate over a supplied quote when updating a settlement', async () => {
+    const { user, other, trip } = tripWithTwo();
+    const created = testDb.prepare(`
+      INSERT INTO budget_settlements
+        (trip_id, from_user_id, to_user_id, amount, currency, exchange_rate,
+         exchange_rate_source, created_by_user_id)
+      VALUES (?, ?, ?, 50, 'USD', 1.25, 'global', ?)
+    `).run(trip.id, other.id, user.id, user.id);
+    const settlementId = Number(created.lastInsertRowid);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_settlement',
+        arguments: {
+          tripId: trip.id,
+          settlementId,
+          from_user_id: other.id,
+          to_user_id: user.id,
+          amount: 60,
+          currency: 'USD',
+          quote_id: 'does-not-exist',
+          exchange_rate: 1.5,
+        },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.settlement).toMatchObject({
+        exchange_rate: 1.5,
+        exchange_rate_source: 'manual',
+        exchange_rate_set_by_user_id: user.id,
+      });
+    });
+  });
+
   it('update_settlement changes the amount; delete_settlement removes it', async () => {
     const { user, other, trip } = tripWithTwo();
     await withHarness(user.id, async (h) => {

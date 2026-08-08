@@ -102,7 +102,8 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftTitle': '新しい開始日',
   'dashboard.dateShiftIntro': '旅行の開始日が変更されました。予定を新しい日程にどのように合わせますか？',
   'dashboard.dateShiftKeepBookings': '予約を元の日付のままにする',
-  'dashboard.dateShiftKeepBookingsDesc': '日別計画は新しい日程に合わせて移動しますが、予約と宿泊先は旅行期間内にある限り元の日付のままになります。',
+  'dashboard.dateShiftKeepBookingsDesc':
+    '日別計画は新しい日程に合わせて移動しますが、予約と宿泊先は旅行期間内にある限り元の日付のままになります。',
   'dashboard.dateShiftAll': 'すべてを移動する',
   'dashboard.dateShiftAllDesc': '予約や宿泊先を含む旅程全体が新しい日程に合わせて移動します。',
   'dashboard.dateShiftHint': 'ヒント：旅程の一部だけを移動したい場合は、プランナーの「日付を追加」を使用してください。',
@@ -177,5 +178,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'タイムゾーンを追加',
   'dashboard.aria.removeTimezone': '{city}を削除',
   'dashboard.dayCountRequired': '日数は必須です',
+  'dashboard.fx.staleSnapshot': '古いスナップショット',
 };
 export default dashboard;

@@ -495,7 +495,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Cuándo',
   'settings.pluginActivity.columns.status': 'Resultado',
   'settings.alwaysShowRoutes': 'Mostrar siempre las rutas de reserva',
-  'settings.alwaysShowRoutesHint': 'Muestra automáticamente en el mapa la ruta de cada vuelo, tren y otra reserva, sin necesidad de activarla una por una.',
+  'settings.alwaysShowRoutesHint':
+    'Muestra automáticamente en el mapa la ruta de cada vuelo, tren y otra reserva, sin necesidad de activarla una por una.',
 };
 
 export default settings;

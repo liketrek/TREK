@@ -99,12 +99,15 @@ const dashboard: TranslationStrings = {
   'dashboard.titleRequired': 'Başlık gerekli',
   'dashboard.endDateError': 'Bitiş tarihi başlangıçtan sonra olmalı',
   'dashboard.dateShiftTitle': 'Yeni başlangıç tarihi',
-  'dashboard.dateShiftIntro': 'Bu seyahatin başlangıç tarihini değiştirdiniz. Planlarınız yeni tarihlere nasıl uyum sağlasın?',
+  'dashboard.dateShiftIntro':
+    'Bu seyahatin başlangıç tarihini değiştirdiniz. Planlarınız yeni tarihlere nasıl uyum sağlasın?',
   'dashboard.dateShiftKeepBookings': 'Rezervasyonları kendi tarihlerinde tut',
-  'dashboard.dateShiftKeepBookingsDesc': 'Gün planları yeni tarihlerle birlikte taşınır; rezervasyonlar ve konaklamalar ise seyahatin kapsamında kaldıkları sürece orijinal tarihlerinde kalır.',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'Gün planları yeni tarihlerle birlikte taşınır; rezervasyonlar ve konaklamalar ise seyahatin kapsamında kaldıkları sürece orijinal tarihlerinde kalır.',
   'dashboard.dateShiftAll': 'Her şeyi kaydır',
   'dashboard.dateShiftAllDesc': 'Rezervasyonlar ve konaklamalar dahil tüm plan yeni tarihlerle birlikte taşınır.',
-  'dashboard.dateShiftHint': 'İpucu: planın yalnızca bir kısmını kaydırmak için planlayıcıdaki "Gün ekle" özelliğini kullanın.',
+  'dashboard.dateShiftHint':
+    'İpucu: planın yalnızca bir kısmını kaydırmak için planlayıcıdaki "Gün ekle" özelliğini kullanın.',
   'dashboard.greeting.morning': 'Günaydın,',
   'dashboard.greeting.afternoon': 'İyi günler,',
   'dashboard.greeting.evening': 'İyi akşamlar,',
@@ -176,5 +179,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Saat dilimi ekle',
   'dashboard.aria.removeTimezone': '{city} kaldır',
   'dashboard.dayCountRequired': 'Gün sayısı gereklidir',
+  'dashboard.fx.staleSnapshot': 'Güncel olmayan anlık görüntü',
 };
 export default dashboard;

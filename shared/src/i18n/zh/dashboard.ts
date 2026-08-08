@@ -177,5 +177,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': '添加时区',
   'dashboard.aria.removeTimezone': '移除 {city}',
   'dashboard.dayCountRequired': '天数为必填项',
+  'dashboard.fx.staleSnapshot': '快照已过期',
 };
 export default dashboard;

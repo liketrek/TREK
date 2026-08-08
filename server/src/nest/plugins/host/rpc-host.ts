@@ -173,6 +173,14 @@ export interface HostDeps {
   updateCost(tripId: number, itemId: number, input: BudgetUpdateItemRequest): unknown;
   /** Delete a budget item from a trip (and broadcast); returns { deleted: true }. */
   deleteCost(tripId: number, itemId: number): unknown;
+  listCostRates(tripId: number): unknown;
+  resolveCostRate(tripId: number, currency: string): Promise<unknown>;
+  setCostRate(tripId: number, currency: string, exchangeRate: number, userId: number, note?: string | null): unknown;
+  deleteCostRate(tripId: number, currency: string): unknown;
+  listCostSettlements(tripId: number): unknown;
+  createCostSettlement(tripId: number, input: Record<string, unknown>, userId: number): Promise<unknown>;
+  updateCostSettlement(tripId: number, settlementId: number, input: Record<string, unknown>, userId: number): Promise<unknown>;
+  deleteCostSettlement(tripId: number, settlementId: number): unknown;
   // --- Places (the 'place_edit' permission) ---
   canEditPlaces(tripId: number, userId: number): boolean;
   createPlace(tripId: number, input: Record<string, unknown>): unknown;
@@ -625,6 +633,18 @@ export class PluginRpcHost {
         this.requireBudgetAddon();
         return deps.listCostsForUser(uid);
       });
+      this.methods.set('costs.listRates', (p, uid) => this.tripRead(p, uid, () => {
+        this.requireBudgetAddon();
+        return deps.listCostRates(num(p.tripId, 'tripId'));
+      }));
+      this.methods.set('costs.resolveRate', (p, uid) => this.tripRead(p, uid, () => {
+        this.requireBudgetAddon();
+        return deps.resolveCostRate(num(p.tripId, 'tripId'), str(p.currency, 'currency'));
+      }));
+      this.methods.set('costs.listSettlements', (p, uid) => this.tripRead(p, uid, () => {
+        this.requireBudgetAddon();
+        return deps.listCostSettlements(num(p.tripId, 'tripId'));
+      }));
     }
 
     if (has('db:write:costs')) {
@@ -665,6 +685,34 @@ export class PluginRpcHost {
         if (!this.deps.canAccessTrip(tripId, uid)) throw new ForbiddenResource(`no access to trip ${tripId}`);
         if (!this.deps.canEditCosts(tripId, uid)) throw new ForbiddenResource(`no permission to edit costs on trip ${tripId}`);
         return deps.deleteCost(tripId, itemId);
+      });
+      const requireCostWrite = (p: Record<string, unknown>, uid: number | undefined) => {
+        const tripId = num(p.tripId, 'tripId');
+        const actor = this.requireActor(uid, 'cost');
+        this.requireBudgetAddon();
+        if (!this.deps.canAccessTrip(tripId, actor)) throw new ForbiddenResource(`no access to trip ${tripId}`);
+        if (!this.deps.canEditCosts(tripId, actor)) throw new ForbiddenResource(`no permission to edit costs on trip ${tripId}`);
+        return { tripId, actor };
+      };
+      this.methods.set('costs.setRate', (p, uid) => {
+        const { tripId, actor } = requireCostWrite(p, uid);
+        return deps.setCostRate(tripId, str(p.currency, 'currency'), num(p.exchangeRate, 'exchangeRate'), actor, typeof p.note === 'string' ? p.note : null);
+      });
+      this.methods.set('costs.deleteRate', (p, uid) => {
+        const { tripId } = requireCostWrite(p, uid);
+        return deps.deleteCostRate(tripId, str(p.currency, 'currency'));
+      });
+      this.methods.set('costs.createSettlement', (p, uid) => {
+        const { tripId, actor } = requireCostWrite(p, uid);
+        return deps.createCostSettlement(tripId, asPayload(p.input), actor);
+      });
+      this.methods.set('costs.updateSettlement', (p, uid) => {
+        const { tripId, actor } = requireCostWrite(p, uid);
+        return deps.updateCostSettlement(tripId, num(p.settlementId, 'settlementId'), asPayload(p.input), actor);
+      });
+      this.methods.set('costs.deleteSettlement', (p, uid) => {
+        const { tripId } = requireCostWrite(p, uid);
+        return deps.deleteCostSettlement(tripId, num(p.settlementId, 'settlementId'));
       });
     }
 

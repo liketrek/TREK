@@ -3701,6 +3701,98 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_regions_user ON hidden_regions (user_id);');
     },
+
+    // Layered exchange-rate defaults. Global provider snapshots survive restarts;
+    // trip rates are defaults only; quotes preserve the exact version shown to a
+    // caller; every expense/payment keeps its own frozen value and provenance.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS global_exchange_rate_snapshots (
+          base_currency TEXT PRIMARY KEY,
+          rates_json TEXT NOT NULL,
+          source_version TEXT NOT NULL,
+          effective_date TEXT,
+          fetched_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS trip_exchange_rates (
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          currency TEXT NOT NULL,
+          exchange_rate REAL NOT NULL CHECK(exchange_rate > 0),
+          effective_date TEXT,
+          source_version TEXT NOT NULL,
+          set_at TEXT NOT NULL DEFAULT (datetime('now')),
+          set_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          note TEXT,
+          PRIMARY KEY (trip_id, currency)
+        );
+
+        CREATE TABLE IF NOT EXISTS exchange_rate_quotes (
+          id TEXT PRIMARY KEY,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          trip_currency TEXT NOT NULL,
+          item_currency TEXT NOT NULL,
+          exchange_rate REAL NOT NULL CHECK(exchange_rate > 0),
+          source TEXT NOT NULL,
+          source_version TEXT NOT NULL,
+          effective_date TEXT,
+          fetched_at TEXT,
+          stale INTEGER NOT NULL DEFAULT 0,
+          quoted_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS exchange_rate_batch_previews (
+          id TEXT PRIMARY KEY,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          currency TEXT NOT NULL,
+          exchange_rate REAL NOT NULL CHECK(exchange_rate > 0),
+          note TEXT,
+          state_token TEXT NOT NULL,
+          preview_json TEXT NOT NULL,
+          created_by_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+
+      const add = (table: string, definition: string) => {
+        try {
+          db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
+        } catch (err) {
+          if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err;
+        }
+      };
+      for (const table of ['budget_items', 'budget_settlements']) {
+        add(table, "exchange_rate_source TEXT NOT NULL DEFAULT 'legacy'");
+        add(table, 'exchange_rate_source_version TEXT');
+        add(table, 'exchange_rate_effective_date TEXT');
+        add(table, 'exchange_rate_set_at TEXT');
+        add(table, 'exchange_rate_set_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
+        add(table, 'exchange_rate_note TEXT');
+        add(table, 'exchange_rate_reset_at TEXT');
+      }
+
+      db.exec(`
+        UPDATE budget_items
+        SET exchange_rate_source = CASE
+          WHEN COALESCE(NULLIF(UPPER(currency), ''),
+               (SELECT UPPER(COALESCE(currency, 'EUR')) FROM trips WHERE trips.id = budget_items.trip_id)) =
+               (SELECT UPPER(COALESCE(currency, 'EUR')) FROM trips WHERE trips.id = budget_items.trip_id)
+            THEN 'identity'
+          ELSE 'legacy'
+        END,
+        exchange_rate_set_at = COALESCE(exchange_rate_set_at, created_at);
+
+        UPDATE budget_settlements
+        SET exchange_rate_source = CASE
+          WHEN COALESCE(NULLIF(UPPER(currency), ''),
+               (SELECT UPPER(COALESCE(currency, 'EUR')) FROM trips WHERE trips.id = budget_settlements.trip_id)) =
+               (SELECT UPPER(COALESCE(currency, 'EUR')) FROM trips WHERE trips.id = budget_settlements.trip_id)
+            THEN 'identity'
+          ELSE 'legacy'
+        END,
+        exchange_rate_set_at = COALESCE(exchange_rate_set_at, created_at);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

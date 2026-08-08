@@ -17,7 +17,11 @@ const mockDb = vi.hoisted(() => {
 
 vi.mock('../../../src/db/database', () => mockDb);
 
-const mockRates = vi.hoisted(() => ({ getRates: vi.fn() }));
+const mockRates = vi.hoisted(() => ({
+  getRates: vi.fn(),
+  getGlobalRateSnapshot: vi.fn(),
+  freezeRateForWrite: vi.fn(),
+}));
 vi.mock('../../../src/services/exchangeRateService', () => mockRates);
 
 import { calculateSettlement, updateSettlement, freezeForeignRate } from '../../../src/services/budgetService';
@@ -364,76 +368,33 @@ describe('calculateSettlement', () => {
 // ── freezeForeignRate (write-path FX freeze, #1445) ───────────────────────────
 
 describe('freezeForeignRate', () => {
-  const tripRow = (currency: string) => ({
-    get: vi.fn(() => ({ currency })), all: vi.fn(), run: vi.fn(),
+  it('delegates new writes to the authoritative freezer with the acting user', async () => {
+    const data = { currency: 'USD', quote_id: 'quote-1' };
+    await freezeForeignRate(1, data, undefined, undefined, 42);
+    expect(mockRates.freezeRateForWrite).toHaveBeenCalledWith(1, data, 42, null);
   });
 
-  it('freezes the live rate for a foreign currency into exchange_rate', async () => {
+  it('passes the existing frozen expense to preserve unchanged-currency edits', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) => {
-      if (sql.includes('FROM trips')) return tripRow('EUR');
+      if (sql.includes('FROM budget_items')) {
+        return { get: vi.fn(() => ({ currency: 'USD', exchange_rate: 1.25 })), all: vi.fn(), run: vi.fn() };
+      }
       return { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() };
     });
-    mockRates.getRates.mockResolvedValue({ EUR: 1, USD: 1.25 });
-    const data: { currency?: string | null; exchange_rate?: number } = { currency: 'usd' };
-    await freezeForeignRate(1, data);
-    expect(mockRates.getRates).toHaveBeenCalledWith('EUR');
-    expect(data.exchange_rate).toBe(1.25);
+    const data = { currency: 'USD' };
+    await freezeForeignRate(1, data, 9, undefined, 42);
+    expect(mockRates.freezeRateForWrite).toHaveBeenCalledWith(
+      1,
+      data,
+      42,
+      { currency: 'USD', exchange_rate: 1.25 },
+    );
   });
 
-  it('leaves the rate unset when the currency equals the trip currency', async () => {
-    mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
-    const data: { currency?: string | null; exchange_rate?: number } = { currency: 'EUR' };
-    await freezeForeignRate(1, data);
-    expect(mockRates.getRates).not.toHaveBeenCalled();
-    expect(data.exchange_rate).toBeUndefined();
-  });
-
-  it('respects an explicit exchange_rate from the caller', async () => {
-    const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD', exchange_rate: 2 };
-    await freezeForeignRate(1, data);
-    expect(mockRates.getRates).not.toHaveBeenCalled();
-    expect(data.exchange_rate).toBe(2);
-  });
-
-  it('degrades to live rates (no freeze) when the rate fetch fails', async () => {
-    mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
-    mockRates.getRates.mockResolvedValue(null);
-    const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
-    await freezeForeignRate(1, data);
-    expect(data.exchange_rate).toBeUndefined();
-  });
-
-  it('does not re-freeze on update when the currency is unchanged', async () => {
-    mockDb.db.prepare.mockImplementation((sql: string) => {
-      if (sql.includes('FROM budget_items')) return { get: vi.fn(() => ({ currency: 'USD' })), all: vi.fn(), run: vi.fn() };
-      if (sql.includes('FROM trips')) return tripRow('EUR');
-      return { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() };
-    });
-    const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
-    await freezeForeignRate(1, data, 9);
-    expect(mockRates.getRates).not.toHaveBeenCalled();
-    expect(data.exchange_rate).toBeUndefined();
-  });
-
-  it('does not re-freeze a settlement edit when its stored currency is unchanged (#1445)', async () => {
-    mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
-    const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
-    // the settlement already holds USD — pass it as existingCurrency → keep the frozen rate
-    await freezeForeignRate(1, data, undefined, 'USD');
-    expect(mockRates.getRates).not.toHaveBeenCalled();
-    expect(data.exchange_rate).toBeUndefined();
-  });
-
-  it('re-freezes a settlement edit when its currency actually changes', async () => {
-    mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
-    mockRates.getRates.mockResolvedValue({ EUR: 1, USD: 1.25 });
-    const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
-    await freezeForeignRate(1, data, undefined, 'GBP'); // was GBP → now USD → re-freeze
-    expect(data.exchange_rate).toBe(1.25);
+  it('passes the stored settlement currency to the authoritative freezer', async () => {
+    const data = { currency: 'USD' };
+    await freezeForeignRate(1, data, undefined, 'GBP', 42);
+    expect(mockRates.freezeRateForWrite).toHaveBeenCalledWith(1, data, 42, { currency: 'GBP' });
   });
 });
 
@@ -468,9 +429,20 @@ describe('updateSettlement', () => {
     });
 
     const res = updateSettlement(7, 1, { from_user_id: 2, to_user_id: 1, amount: 10.126 });
-    // from, to, rounded amount, currency-flag(0)/value(null), rate-flag(null)/value(1), id.
-    // No currency/exchange_rate passed → both CASE guards keep the existing columns.
-    expect(run).toHaveBeenCalledWith(2, 1, 10.13, 0, null, null, 1, 7);
+    // No FX fields passed: every CASE guard keeps the existing frozen provenance.
+    expect(run).toHaveBeenCalledWith(
+      2, 1, 10.13,
+      0, null,
+      null, 1,
+      null, null,
+      0, null,
+      0, null,
+      0, null,
+      0, null,
+      0, null,
+      0, null,
+      7,
+    );
     expect(res).toMatchObject({ id: 7, from_user_id: 2, to_user_id: 1, amount: 10.13 });
   });
 });

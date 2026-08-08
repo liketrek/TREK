@@ -181,5 +181,6 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAllDesc': "Tot l'itinerari es mou amb les noves dates, incloses les reserves i els allotjaments.",
   'dashboard.dateShiftHint':
     'Consell: per moure només una part de l\'itinerari, fes servir "Afegeix un dia" al planificador.',
+  'dashboard.fx.staleSnapshot': 'Instantània obsoleta',
 };
 export default dashboard;

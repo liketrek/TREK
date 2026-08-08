@@ -103,7 +103,8 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftTitle': 'Нова дата початку',
   'dashboard.dateShiftIntro': 'Ви змінили дату початку поїздки. Як ваші плани мають перейти на нові дати?',
   'dashboard.dateShiftKeepBookings': 'Залишити бронювання на своїх датах',
-  'dashboard.dateShiftKeepBookingsDesc': 'Плани днів переміщуються разом із новими датами, а бронювання та проживання залишаються на своїх початкових датах, поки ті все ще входять до поїздки.',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'Плани днів переміщуються разом із новими датами, а бронювання та проживання залишаються на своїх початкових датах, поки ті все ще входять до поїздки.',
   'dashboard.dateShiftAll': 'Перемістити все',
   'dashboard.dateShiftAllDesc': 'Весь маршрут переміщується на нові дати, включно з бронюваннями та проживанням.',
   'dashboard.dateShiftHint': 'Порада: щоб зсунути лише частину маршруту, скористайтеся «Додати день» у планувальнику.',
@@ -178,5 +179,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Додати часовий пояс',
   'dashboard.aria.removeTimezone': 'Вилучити {city}',
   'dashboard.dayCountRequired': 'Вкажіть кількість днів',
+  'dashboard.fx.staleSnapshot': 'Застарілий знімок',
 };
 export default dashboard;

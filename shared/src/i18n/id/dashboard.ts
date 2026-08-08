@@ -180,5 +180,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Tambah zona waktu',
   'dashboard.aria.removeTimezone': 'Hapus {city}',
   'dashboard.dayCountRequired': 'Jumlah hari wajib diisi',
+  'dashboard.fx.staleSnapshot': 'Data sudah usang',
 };
 export default dashboard;

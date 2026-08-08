@@ -182,5 +182,6 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Ajouter un fuseau horaire',
   'dashboard.aria.removeTimezone': 'Supprimer {city}',
   'dashboard.dayCountRequired': 'Le nombre de jours est requis',
+  'dashboard.fx.staleSnapshot': 'Données obsolètes',
 };
 export default dashboard;

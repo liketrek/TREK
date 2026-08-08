@@ -897,16 +897,27 @@ export default function SharedTripPage() {
         {activeTab === 'budget' &&
           (budget || []).length > 0 &&
           (() => {
-            // Pre-rework rows store currency = NULL ("the trip's own currency"); convert
-            // each expense into the owner's display base via live FX, mirroring CostsPanel.
+            // Net each row through its frozen trip-currency value first. Only the
+            // final trip→display step uses the current server snapshot.
             const curOf = (i: any) => i.currency || trip.currency || base;
+            const tripCurrency = String(trip.currency || base).toUpperCase();
+            const convertItem = (i: any) => {
+              const amount = parseFloat(i.total_price) || 0;
+              const currency = String(curOf(i)).toUpperCase();
+              if (currency === tripCurrency) return convert(amount, tripCurrency);
+              const rate = Number(i.exchange_rate);
+              if (Number.isFinite(rate) && rate > 0 && !(i.exchange_rate_source === 'legacy' && rate === 1)) {
+                return convert(amount / rate, tripCurrency);
+              }
+              return convert(amount, currency);
+            };
             const grouped = (budget || []).reduce((g: any, i: any) => {
               const c = i.category || t('shared.other');
               (g[c] = g[c] || []).push(i);
               return g;
             }, {});
             const sumIn = (items: any[]) =>
-              items.reduce((s: number, i: any) => s + convert(parseFloat(i.total_price) || 0, curOf(i)), 0);
+              items.reduce((s: number, i: any) => s + convertItem(i), 0);
             const total = sumIn(budget || []);
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -983,7 +994,7 @@ export default function SharedTripPage() {
                           style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}
                         >
                           {item.total_price
-                            ? `${convert(parseFloat(item.total_price) || 0, curOf(item)).toLocaleString(locale, { minimumFractionDigits: 2 })} ${base}`
+                            ? `${convertItem(item).toLocaleString(locale, { minimumFractionDigits: 2 })} ${base}`
                             : '—'}
                         </span>
                       </div>

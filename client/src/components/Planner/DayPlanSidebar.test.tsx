@@ -135,7 +135,7 @@ beforeEach(() => {
   localStorage.clear()
   // Cost totals fetch FX rates for their base currency; keep the suite hermetic.
   clearExchangeRateCache()
-  server.use(http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([])))
+  server.use(http.get('/api/exchange-rates', () => HttpResponse.json({ rates: { EUR: 1 }, effective_date: '2026-06-16', stale: false })))
   // Reset mutable day-notes state
   mockDayNotesState.noteUi = {}
   mockDayNotesState.dayNotes = {}
@@ -656,9 +656,9 @@ describe('DayPlanSidebar', () => {
   })
 
   it('FE-PLANNER-DAYPLAN-037b: converts foreign-currency prices into the display currency (#1561)', async () => {
-    server.use(http.get('https://api.frankfurter.dev/v2/rates', ({ request }) => {
+    server.use(http.get('/api/exchange-rates', ({ request }) => {
       expect(new URL(request.url).searchParams.get('base')).toBe('USD')
-      return HttpResponse.json([{ quote: 'NOK', rate: 10 }]) // 10 NOK per 1 USD
+      return HttpResponse.json({ rates: { USD: 1, NOK: 10 }, effective_date: '2026-06-16', stale: false }) // 10 NOK per 1 USD
     }))
     seedStore(useSettingsStore, { settings: { time_format: '24h', default_currency: 'USD' } } as any)
     const placeUsd = buildPlace({ id: 1, name: 'Hotel', price: 25, currency: 'USD' } as any)
@@ -679,7 +679,7 @@ describe('DayPlanSidebar', () => {
   })
 
   it('FE-PLANNER-DAYPLAN-037c: falls back to a per-currency breakdown when rates are unavailable (#1561)', async () => {
-    server.use(http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.error()))
+    server.use(http.get('/api/exchange-rates', () => HttpResponse.error()))
     const placeUsd = buildPlace({ id: 1, name: 'Hotel', price: 2730.27, currency: 'USD' } as any)
     const placeNok = buildPlace({ id: 2, name: 'Museum', price: 2500, currency: 'NOK' } as any)
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })

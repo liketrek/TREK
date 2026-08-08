@@ -1,7 +1,7 @@
 import { db } from '../db/database';
 import { BudgetItem, BudgetItemMember, BudgetItemPayer } from '../types';
 import { avatarUrl } from './avatarUrl';
-import { getRates } from './exchangeRateService';
+import { ExchangeRateWrite, freezeRateForWrite, getGlobalRateSnapshot } from './exchangeRateService';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -123,32 +123,18 @@ export function listBudgetItems(tripId: string | number) {
  */
 export async function freezeForeignRate(
   tripId: string | number,
-  data: { currency?: string | null; exchange_rate?: number },
+  data: ExchangeRateWrite,
   existingItemId?: string | number,
   existingCurrency?: string | null,
+  userId?: number,
 ): Promise<void> {
-  if (data.exchange_rate != null) return; // an explicit rate from the caller wins
-  const cur = (data.currency || '').toUpperCase();
-  if (!cur) return; // currency not being set in this request
-  // Skip the re-freeze when the currency isn't actually changing, so an unrelated
-  // edit never moves money. Items resolve the prior currency from budget_items; a
-  // settlement lives in a different table, so its caller passes it in directly.
-  let prior: string | undefined;
-  if (existingCurrency !== undefined) {
-    prior = (existingCurrency || '').toUpperCase();
-  } else if (existingItemId != null) {
-    const existing = db.prepare('SELECT currency FROM budget_items WHERE id = ?')
-      .get(existingItemId) as { currency?: string } | undefined;
-    if (existing) prior = (existing.currency || '').toUpperCase();
+  let existing: { currency?: string | null; exchange_rate?: number } | null = null;
+  if (existingCurrency !== undefined) existing = { currency: existingCurrency };
+  else if (existingItemId != null) {
+    existing = db.prepare('SELECT currency, exchange_rate FROM budget_items WHERE id = ?')
+      .get(existingItemId) as { currency?: string | null; exchange_rate?: number } | undefined || null;
   }
-  if (prior !== undefined && prior === cur) return; // currency unchanged
-  const trip = db.prepare('SELECT currency FROM trips WHERE id = ?')
-    .get(tripId) as { currency?: string } | undefined;
-  const tripCur = (trip?.currency || 'EUR').toUpperCase();
-  if (cur === tripCur) return; // same as the trip currency → no conversion to freeze
-  const rates = await getRates(tripCur);
-  const r = rates?.[cur];
-  if (r && r > 0) data.exchange_rate = r;
+  await freezeRateForWrite(tripId, data, userId, existing);
 }
 
 /**
@@ -177,6 +163,7 @@ export async function freezeForeignRate(
 export async function rebaseTripCurrency(
   tripId: string | number,
   newCurrency: string | null | undefined,
+  userId?: number,
 ): Promise<void> {
   const next = (newCurrency || '').toUpperCase();
   if (!next) return;
@@ -186,15 +173,19 @@ export async function rebaseTripCurrency(
   const prev = (trip.currency || 'EUR').toUpperCase();
   if (prev === next) return;
 
-  const rates = await getRates(next);
+  const snapshot = await getGlobalRateSnapshot(next);
+  const rates = snapshot?.rates ?? null;
+  const resetAt = new Date().toISOString();
   // A row already denominated in the new base needs no conversion (rate 1). When no
   // live rate is available we also store 1 rather than a stale one: rate 1 means "not
   // frozen", so the settlement falls back to live rates instead of trusting a figure
   // anchored to a currency this trip no longer uses.
-  const rateFor = (cur: string): number => {
-    if (cur === next) return 1;
+  const rateFor = (cur: string): { rate: number; source: string; version: string | null; effectiveDate: string | null } => {
+    if (cur === next) return { rate: 1, source: 'identity', version: `identity:${next}`, effectiveDate: null };
     const r = rates?.[cur];
-    return r && r > 0 ? r : 1;
+    return r && r > 0
+      ? { rate: r, source: 'global', version: snapshot?.source_version ?? null, effectiveDate: snapshot?.effective_date ?? null }
+      : { rate: 1, source: 'legacy', version: null, effectiveDate: null };
   };
 
   const rebase = (table: 'budget_items' | 'budget_settlements') => {
@@ -203,8 +194,16 @@ export async function rebaseTripCurrency(
     const rows = db.prepare(`SELECT DISTINCT currency AS cur FROM ${table} WHERE trip_id = ? AND currency IS NOT NULL`)
       .all(tripId) as { cur: string }[];
     for (const { cur } of rows) {
-      db.prepare(`UPDATE ${table} SET exchange_rate = ? WHERE trip_id = ? AND currency = ?`)
-        .run(rateFor(cur.toUpperCase()), tripId, cur);
+      const resolved = rateFor(cur.toUpperCase());
+      db.prepare(`
+        UPDATE ${table} SET exchange_rate = ?, exchange_rate_source = ?,
+          exchange_rate_source_version = ?, exchange_rate_effective_date = ?,
+          exchange_rate_set_at = ?, exchange_rate_set_by_user_id = ?, exchange_rate_reset_at = ?
+        WHERE trip_id = ? AND currency = ?
+      `).run(
+        resolved.rate, resolved.source, resolved.version, resolved.effectiveDate,
+        resetAt, userId ?? null, resetAt, tripId, cur,
+      );
     }
   };
 
@@ -218,14 +217,22 @@ export async function rebaseTripCurrency(
     `).run(prev, tripId);
   };
 
-  db.transaction(() => { rebase('budget_items'); rebase('budget_settlements'); pinPlaces(); })();
+  db.transaction(() => {
+    rebase('budget_items');
+    rebase('budget_settlements');
+    pinPlaces();
+    db.prepare('DELETE FROM trip_exchange_rates WHERE trip_id = ?').run(tripId);
+  })();
 }
 
 export function createBudgetItem(
   tripId: string | number,
   data: {
     category?: string; name: string; total_price?: number;
-    currency?: string | null; exchange_rate?: number;
+    currency?: string | null; exchange_rate?: number; quote_id?: string; exchange_rate_note?: string | null;
+    exchange_rate_source?: ExchangeRateWrite['exchange_rate_source']; exchange_rate_source_version?: string | null;
+    exchange_rate_effective_date?: string | null; exchange_rate_set_at?: string | null;
+    exchange_rate_set_by_user_id?: number | null; exchange_rate_reset_at?: string | null;
     payers?: { user_id: number; amount: number }[]; member_ids?: number[];
     members?: { user_id: number; amount?: number | null }[];
     persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null;
@@ -256,9 +263,17 @@ export function createBudgetItem(
   const members = data.members && knownMembers ? data.members.filter(m => knownMembers.has(m.user_id)) : undefined;
   const knownIds = data.member_ids ? knownUserIds(data.member_ids) : null;
   const memberIds = data.member_ids && knownIds ? data.member_ids.filter(uid => knownIds.has(uid)) : undefined;
+  const tripCurrency = (db.prepare('SELECT currency FROM trips WHERE id = ?').get(tripId) as { currency?: string | null } | undefined)?.currency || 'EUR';
+  const itemCurrency = (data.currency || tripCurrency).toUpperCase();
+  const identity = itemCurrency === tripCurrency.toUpperCase();
 
   const result = db.prepare(
-    'INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate, persons, days, note, sort_order, expense_date, reservation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    `INSERT INTO budget_items
+      (trip_id, category, name, total_price, currency, exchange_rate,
+       exchange_rate_source, exchange_rate_source_version, exchange_rate_effective_date,
+       exchange_rate_set_at, exchange_rate_set_by_user_id, exchange_rate_note, exchange_rate_reset_at,
+       persons, days, note, sort_order, expense_date, reservation_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     tripId,
     cat,
@@ -266,6 +281,13 @@ export function createBudgetItem(
     total,
     data.currency || null,
     data.exchange_rate != null ? data.exchange_rate : 1,
+    data.exchange_rate_source || (identity ? 'identity' : 'legacy'),
+    data.exchange_rate_source_version || (identity ? `identity:${tripCurrency.toUpperCase()}` : null),
+    data.exchange_rate_effective_date || null,
+    data.exchange_rate_set_at || null,
+    data.exchange_rate_set_by_user_id ?? null,
+    data.exchange_rate_note || null,
+    data.exchange_rate_reset_at || null,
     memberIds ? memberIds.length : (data.persons != null ? data.persons : null),
     data.days !== undefined && data.days !== null ? data.days : null,
     data.note || null,
@@ -315,7 +337,10 @@ export function updateBudgetItem(
   tripId: string | number,
   data: {
     category?: string; name?: string; total_price?: number;
-    currency?: string | null; exchange_rate?: number;
+    currency?: string | null; exchange_rate?: number; quote_id?: string; exchange_rate_note?: string | null;
+    exchange_rate_source?: ExchangeRateWrite['exchange_rate_source']; exchange_rate_source_version?: string | null;
+    exchange_rate_effective_date?: string | null; exchange_rate_set_at?: string | null;
+    exchange_rate_set_by_user_id?: number | null; exchange_rate_reset_at?: string | null;
     payers?: { user_id: number; amount: number }[]; member_ids?: number[];
     members?: { user_id: number; amount?: number | null }[];
     persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null;
@@ -331,6 +356,13 @@ export function updateBudgetItem(
       total_price = CASE WHEN ? IS NOT NULL THEN ? ELSE total_price END,
       currency = CASE WHEN ? THEN ? ELSE currency END,
       exchange_rate = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate END,
+      exchange_rate_source = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate_source END,
+      exchange_rate_source_version = CASE WHEN ? THEN ? ELSE exchange_rate_source_version END,
+      exchange_rate_effective_date = CASE WHEN ? THEN ? ELSE exchange_rate_effective_date END,
+      exchange_rate_set_at = CASE WHEN ? THEN ? ELSE exchange_rate_set_at END,
+      exchange_rate_set_by_user_id = CASE WHEN ? THEN ? ELSE exchange_rate_set_by_user_id END,
+      exchange_rate_note = CASE WHEN ? THEN ? ELSE exchange_rate_note END,
+      exchange_rate_reset_at = CASE WHEN ? THEN ? ELSE exchange_rate_reset_at END,
       persons = CASE WHEN ? IS NOT NULL THEN ? ELSE persons END,
       days = CASE WHEN ? THEN ? ELSE days END,
       note = CASE WHEN ? THEN ? ELSE note END,
@@ -343,6 +375,13 @@ export function updateBudgetItem(
     data.total_price !== undefined ? 1 : null, data.total_price !== undefined ? data.total_price : 0,
     data.currency !== undefined ? 1 : 0, data.currency !== undefined ? (data.currency || null) : null,
     data.exchange_rate !== undefined ? 1 : null, data.exchange_rate !== undefined ? data.exchange_rate : 1,
+    data.exchange_rate_source !== undefined ? 1 : null, data.exchange_rate_source ?? null,
+    data.exchange_rate_source_version !== undefined ? 1 : 0, data.exchange_rate_source_version ?? null,
+    data.exchange_rate_effective_date !== undefined ? 1 : 0, data.exchange_rate_effective_date ?? null,
+    data.exchange_rate_set_at !== undefined ? 1 : 0, data.exchange_rate_set_at ?? null,
+    data.exchange_rate_set_by_user_id !== undefined ? 1 : 0, data.exchange_rate_set_by_user_id ?? null,
+    data.exchange_rate_note !== undefined ? 1 : 0, data.exchange_rate_note ?? null,
+    data.exchange_rate_reset_at !== undefined ? 1 : 0, data.exchange_rate_reset_at ?? null,
     data.persons !== undefined ? 1 : null, data.persons !== undefined ? data.persons : null,
     data.days !== undefined ? 1 : 0, data.days !== undefined ? data.days : null,
     data.note !== undefined ? 1 : 0, data.note !== undefined ? data.note : null,
@@ -533,12 +572,19 @@ export function calculateSettlement(
   // is the identity, so behaviour is unchanged.
   // rates[X] = units of X per 1 base; the frozen exchange_rate is units of item-currency
   // per 1 trip-currency. Pre-rework rows store currency = NULL = "the trip's own currency".
-  const toTrip = (amount: number, itemCurrency: string | null | undefined, itemRate?: number | null): number => {
+  const toTrip = (
+    amount: number,
+    itemCurrency: string | null | undefined,
+    itemRate?: number | null,
+    source?: string | null,
+  ): number => {
     const cur = (itemCurrency || tripCurrency).toUpperCase();
     if (cur === tripCurrency) return amount;
     // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate
     // it was booked at, so a later live-rate drift doesn't re-open it with a residual.
-    if (itemRate != null && itemRate > 0 && itemRate !== 1) return amount / itemRate;
+    if (itemRate != null && itemRate > 0 && (itemRate !== 1 || (source != null && source !== 'legacy'))) {
+      return amount / itemRate;
+    }
     // Legacy rows without a frozen rate: convert via base with live rates.
     if (!rates) return amount;
     const rCur = rates[cur];
@@ -555,11 +601,11 @@ export function calculateSettlement(
   // toTrip for expenses. Legacy rows (currency = NULL) have no frozen rate, so fall
   // back to the old behaviour: assume they were entered in the current display base
   // and convert with live rates.
-  const settleToTrip = (amount: number, sCurrency?: string | null, sRate?: number | null): number => {
+  const settleToTrip = (amount: number, sCurrency?: string | null, sRate?: number | null, source?: string | null): number => {
     if (sCurrency) {
       const cur = sCurrency.toUpperCase();
       if (cur === tripCurrency) return amount;
-      if (sRate != null && sRate > 0 && sRate !== 1) return amount / sRate;
+      if (sRate != null && sRate > 0 && (sRate !== 1 || (source != null && source !== 'legacy'))) return amount / sRate;
       // Frozen currency but no usable rate (fetch failed at settle time): live fallback.
       if (rates) {
         const rCur = rates[cur];
@@ -601,15 +647,15 @@ export function calculateSettlement(
 
     // Payers are credited what they actually paid (converted to trip currency with
     // the item's stored exchange rate)…
-    for (const p of payers) ensure(p.user_id, p).balance += toTrip(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate);
+    for (const p of payers) ensure(p.user_id, p).balance += toTrip(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate, item.exchange_rate_source);
     // …and each split participant owes their share — a custom per-member amount
     // when one is set, otherwise an equal share of the expense total.
     const hasCustomSplit = members.some(m => m.amount !== null && m.amount !== undefined);
     const equalShares = !hasCustomSplit ? splitEqualShares(item.total_price, members, item.id) : {};
     for (const m of members) {
       const memberShare = hasCustomSplit && m.amount !== null && m.amount !== undefined
-        ? toTrip(m.amount, item.currency, item.exchange_rate)
-        : toTrip(equalShares[m.user_id] || 0, item.currency, item.exchange_rate);
+        ? toTrip(m.amount, item.currency, item.exchange_rate, item.exchange_rate_source)
+        : toTrip(equalShares[m.user_id] || 0, item.currency, item.exchange_rate, item.exchange_rate_source);
       ensure(m.user_id, m).balance -= memberShare;
     }
   }
@@ -625,7 +671,7 @@ export function calculateSettlement(
     return balances[id];
   };
   for (const s of settlements) {
-    const inTrip = settleToTrip(s.amount, s.currency, s.exchange_rate);
+    const inTrip = settleToTrip(s.amount, s.currency, s.exchange_rate, s.exchange_rate_source);
     ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).balance += inTrip;
     ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).balance -= inTrip;
   }
@@ -670,7 +716,10 @@ export function calculateSettlement(
 
 export function listSettlements(tripId: string | number) {
   const rows = db.prepare(`
-    SELECT s.id, s.trip_id, s.from_user_id, s.to_user_id, s.amount, s.currency, s.exchange_rate, s.created_at, s.created_by_user_id,
+    SELECT s.id, s.trip_id, s.from_user_id, s.to_user_id, s.amount, s.currency, s.exchange_rate,
+           s.exchange_rate_source, s.exchange_rate_source_version, s.exchange_rate_effective_date,
+           s.exchange_rate_set_at, s.exchange_rate_set_by_user_id, s.exchange_rate_note, s.exchange_rate_reset_at,
+           s.created_at, s.created_by_user_id,
            fu.username AS from_username, fu.avatar AS from_avatar,
            tu.username AS to_username,   tu.avatar AS to_avatar
     FROM budget_settlements s
@@ -683,6 +732,13 @@ export function listSettlements(tripId: string | number) {
     id: r.id, trip_id: r.trip_id,
     from_user_id: r.from_user_id, to_user_id: r.to_user_id,
     amount: r.amount, currency: r.currency ?? null, exchange_rate: r.exchange_rate ?? 1,
+    exchange_rate_source: r.exchange_rate_source ?? 'legacy',
+    exchange_rate_source_version: r.exchange_rate_source_version ?? null,
+    exchange_rate_effective_date: r.exchange_rate_effective_date ?? null,
+    exchange_rate_set_at: r.exchange_rate_set_at ?? null,
+    exchange_rate_set_by_user_id: r.exchange_rate_set_by_user_id ?? null,
+    exchange_rate_note: r.exchange_rate_note ?? null,
+    exchange_rate_reset_at: r.exchange_rate_reset_at ?? null,
     created_at: r.created_at, created_by_user_id: r.created_by_user_id,
     from_username: r.from_username, from_avatar_url: avatarUrl({ avatar: r.from_avatar }),
     to_username: r.to_username, to_avatar_url: avatarUrl({ avatar: r.to_avatar }),
@@ -691,15 +747,29 @@ export function listSettlements(tripId: string | number) {
 
 export function createSettlement(
   tripId: string | number,
-  data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number },
+  data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null } & ExchangeRateWrite,
   createdByUserId?: number,
 ) {
+  const tripCurrency = (db.prepare('SELECT currency FROM trips WHERE id = ?').get(tripId) as { currency?: string | null } | undefined)?.currency || 'EUR';
+  const identity = (data.currency || tripCurrency).toUpperCase() === tripCurrency.toUpperCase();
   const result = db.prepare(
-    'INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount, currency, exchange_rate, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    `INSERT INTO budget_settlements
+      (trip_id, from_user_id, to_user_id, amount, currency, exchange_rate,
+       exchange_rate_source, exchange_rate_source_version, exchange_rate_effective_date,
+       exchange_rate_set_at, exchange_rate_set_by_user_id, exchange_rate_note, exchange_rate_reset_at,
+       created_by_user_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     tripId, data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100,
     data.currency ? data.currency.toUpperCase() : null,
     data.exchange_rate != null ? data.exchange_rate : 1,
+    data.exchange_rate_source || (identity ? 'identity' : 'legacy'),
+    data.exchange_rate_source_version || (identity ? `identity:${tripCurrency.toUpperCase()}` : null),
+    data.exchange_rate_effective_date || null,
+    data.exchange_rate_set_at || null,
+    data.exchange_rate_set_by_user_id ?? null,
+    data.exchange_rate_note || null,
+    data.exchange_rate_reset_at || null,
     createdByUserId ?? null,
   );
   return listSettlements(tripId).find(s => s.id === Number(result.lastInsertRowid)) || null;
@@ -708,7 +778,7 @@ export function createSettlement(
 export function updateSettlement(
   id: string | number,
   tripId: string | number,
-  data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number },
+  data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null } & ExchangeRateWrite,
 ) {
   const row = db.prepare('SELECT id FROM budget_settlements WHERE id = ? AND trip_id = ?').get(id, tripId);
   if (!row) return null;
@@ -716,12 +786,26 @@ export function updateSettlement(
     UPDATE budget_settlements SET
       from_user_id = ?, to_user_id = ?, amount = ?,
       currency = CASE WHEN ? THEN ? ELSE currency END,
-      exchange_rate = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate END
+      exchange_rate = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate END,
+      exchange_rate_source = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate_source END,
+      exchange_rate_source_version = CASE WHEN ? THEN ? ELSE exchange_rate_source_version END,
+      exchange_rate_effective_date = CASE WHEN ? THEN ? ELSE exchange_rate_effective_date END,
+      exchange_rate_set_at = CASE WHEN ? THEN ? ELSE exchange_rate_set_at END,
+      exchange_rate_set_by_user_id = CASE WHEN ? THEN ? ELSE exchange_rate_set_by_user_id END,
+      exchange_rate_note = CASE WHEN ? THEN ? ELSE exchange_rate_note END,
+      exchange_rate_reset_at = CASE WHEN ? THEN ? ELSE exchange_rate_reset_at END
     WHERE id = ?
   `).run(
     data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100,
     data.currency !== undefined ? 1 : 0, data.currency ? data.currency.toUpperCase() : null,
     data.exchange_rate !== undefined ? 1 : null, data.exchange_rate !== undefined ? data.exchange_rate : 1,
+    data.exchange_rate_source !== undefined ? 1 : null, data.exchange_rate_source ?? null,
+    data.exchange_rate_source_version !== undefined ? 1 : 0, data.exchange_rate_source_version ?? null,
+    data.exchange_rate_effective_date !== undefined ? 1 : 0, data.exchange_rate_effective_date ?? null,
+    data.exchange_rate_set_at !== undefined ? 1 : 0, data.exchange_rate_set_at ?? null,
+    data.exchange_rate_set_by_user_id !== undefined ? 1 : 0, data.exchange_rate_set_by_user_id ?? null,
+    data.exchange_rate_note !== undefined ? 1 : 0, data.exchange_rate_note ?? null,
+    data.exchange_rate_reset_at !== undefined ? 1 : 0, data.exchange_rate_reset_at ?? null,
     id,
   );
   return listSettlements(tripId).find(s => s.id === Number(id)) || null;

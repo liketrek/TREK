@@ -492,7 +492,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Waktu',
   'settings.pluginActivity.columns.status': 'Hasil',
   'settings.alwaysShowRoutes': 'Selalu tampilkan rute pemesanan',
-  'settings.alwaysShowRoutesHint': 'Menampilkan rute setiap penerbangan, kereta, dan pemesanan lainnya di peta secara otomatis, tanpa perlu mengaktifkannya satu per satu.',
+  'settings.alwaysShowRoutesHint':
+    'Menampilkan rute setiap penerbangan, kereta, dan pemesanan lainnya di peta secara otomatis, tanpa perlu mengaktifkannya satu per satu.',
 };
 
 export default settings;

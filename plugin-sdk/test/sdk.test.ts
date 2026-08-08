@@ -166,6 +166,91 @@ describe('createMockHost', () => {
     await expect(ctx.costs.delete(1, 999)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
   });
 
+  it('mirrors exchange-rate and settlement CRUD with immutable quote provenance', async () => {
+    const { ctx } = createMockHost({
+      grants: ['db:read:costs', 'db:write:costs'],
+      actingUserId: 42,
+      ratesResult: { JPY: 170 },
+      trips: {
+        1: {
+          members: [42, 7],
+          data: { id: 1, currency: 'EUR' },
+          rates: [{
+            trip_id: 1,
+            currency: 'USD',
+            exchange_rate: 1.2,
+            source_version: 'trip:seed',
+            set_at: '2026-08-01T00:00:00.000Z',
+            set_by_user_id: 42,
+            note: 'seed',
+          }],
+          settlements: [],
+        },
+      },
+    });
+
+    expect(await ctx.costs.listRates(1)).toEqual([
+      expect.objectContaining({ currency: 'USD', exchange_rate: 1.2, source_version: 'trip:seed' }),
+    ]);
+    const identity = await ctx.costs.resolveRate(1, 'eur');
+    expect(identity).toMatchObject({ exchange_rate: 1, source: 'identity', item_currency: 'EUR' });
+    const quote = await ctx.costs.resolveRate(1, 'usd');
+    expect(quote).toMatchObject({ exchange_rate: 1.2, source: 'trip', source_version: 'trip:seed' });
+
+    const created = await ctx.costs.createSettlement(1, {
+      from_user_id: 42,
+      to_user_id: 7,
+      amount: 30,
+      currency: 'USD',
+      quote_id: quote?.quote_id,
+    });
+    expect(created).toMatchObject({
+      trip_id: 1,
+      exchange_rate: 1.2,
+      exchange_rate_source: 'trip',
+      exchange_rate_source_version: 'trip:seed',
+      exchange_rate_set_by_user_id: 42,
+    });
+
+    const updated = await ctx.costs.updateSettlement(1, created.id, {
+      exchange_rate: 1.15,
+      quote_id: 'invalid-but-manual-wins',
+      exchange_rate_note: 'cash desk',
+    });
+    expect(updated).toMatchObject({
+      exchange_rate: 1.15,
+      exchange_rate_source: 'manual',
+      exchange_rate_set_by_user_id: 42,
+      exchange_rate_note: 'cash desk',
+    });
+    expect(await ctx.costs.listSettlements(1)).toHaveLength(1);
+    expect(await ctx.costs.deleteSettlement(1, created.id)).toEqual({ deleted: true });
+
+    expect(await ctx.costs.setRate(1, 'GBP', 0.85, 'bank')).toMatchObject({
+      currency: 'GBP', exchange_rate: 0.85, set_by_user_id: 42, note: 'bank',
+    });
+    expect(await ctx.costs.deleteRate(1, 'gbp')).toEqual({ deleted: true });
+  });
+
+  it('applies cost grants, membership and budget_edit to rates and settlements', async () => {
+    const denied = createMockHost({
+      grants: ['db:read:costs', 'db:write:costs'],
+      actingUserId: 42,
+      trips: {
+        1: { members: [42], data: { id: 1, currency: 'EUR' }, canEditCosts: false },
+        2: { members: [7], data: { id: 2, currency: 'EUR' } },
+      },
+    });
+    await expect(denied.ctx.costs.setRate(1, 'USD', 1.2)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+    await expect(denied.ctx.costs.createSettlement(1, { amount: 1, currency: 'EUR' }))
+      .rejects.toThrow(/RESOURCE_FORBIDDEN/);
+    await expect(denied.ctx.costs.listRates(2)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+
+    const ungranted = createMockHost({ actingUserId: 42, trips: { 1: { members: [42] } } });
+    await expect(ungranted.ctx.costs.listRates(1)).rejects.toThrow(/PERMISSION_DENIED/);
+    await expect(ungranted.ctx.costs.createSettlement(1, {})).rejects.toThrow(/PERMISSION_DENIED/);
+  });
+
   it('gates planner writes (places/days/itinerary/trips) on grant, membership and edit permission', async () => {
     const { ctx } = createMockHost({
       grants: ['db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips'],

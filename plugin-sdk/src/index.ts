@@ -19,7 +19,11 @@ export interface Day { id: number; trip_id?: number; date?: string | null; title
 export interface Reservation { id: number; trip_id?: number; type?: string; [k: string]: unknown }
 export interface PackingItem { id: number; trip_id?: number; name?: string; [k: string]: unknown }
 export interface TripFile { id: number; trip_id?: number; filename?: string; [k: string]: unknown }
-export interface BudgetItem { id: number; trip_id?: number; name?: string; total_price?: number | null; currency?: string | null; [k: string]: unknown }
+export type ExchangeRateSource = 'identity' | 'global' | 'trip' | 'manual' | 'legacy';
+export interface BudgetItem { id: number; trip_id?: number; name?: string; total_price?: number | null; currency?: string | null; exchange_rate?: number; exchange_rate_source?: ExchangeRateSource; exchange_rate_source_version?: string | null; exchange_rate_effective_date?: string | null; exchange_rate_set_at?: string | null; exchange_rate_set_by_user_id?: number | null; exchange_rate_note?: string | null; exchange_rate_reset_at?: string | null; [k: string]: unknown }
+export interface BudgetSettlement { id: number; trip_id?: number; from_user_id?: number; to_user_id?: number; amount?: number; currency?: string | null; exchange_rate?: number; exchange_rate_source?: ExchangeRateSource; exchange_rate_source_version?: string | null; exchange_rate_effective_date?: string | null; exchange_rate_set_at?: string | null; exchange_rate_set_by_user_id?: number | null; exchange_rate_note?: string | null; exchange_rate_reset_at?: string | null; [k: string]: unknown }
+export interface TripExchangeRate { trip_id: number; currency: string; exchange_rate: number; source_version: string; set_at: string; set_by_user_id: number | null; note: string | null; [k: string]: unknown }
+export interface ExchangeRateQuote { quote_id: string; trip_id: number; trip_currency: string; item_currency: string; exchange_rate: number; source: ExchangeRateSource; source_version: string; effective_date: string | null; fetched_at: string | null; stale: boolean }
 export interface Assignment { id: number; day_id?: number; place_id?: number; notes?: string | null; [k: string]: unknown }
 export interface User { id: number; username?: string; display_name?: string | null; avatar?: string | null; [k: string]: unknown }
 
@@ -263,6 +267,14 @@ export interface PluginContext {
     create(tripId: number, input: Record<string, unknown>): Promise<BudgetItem>;
     update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<BudgetItem>;
     delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
+    listRates(tripId: number): Promise<TripExchangeRate[]>;
+    resolveRate(tripId: number, currency: string): Promise<ExchangeRateQuote | null>;
+    setRate(tripId: number, currency: string, exchangeRate: number, note?: string): Promise<TripExchangeRate>;
+    deleteRate(tripId: number, currency: string): Promise<{ deleted: boolean }>;
+    listSettlements(tripId: number): Promise<BudgetSettlement[]>;
+    createSettlement(tripId: number, input: Record<string, unknown>): Promise<BudgetSettlement>;
+    updateSettlement(tripId: number, settlementId: number, input: Record<string, unknown>): Promise<BudgetSettlement>;
+    deleteSettlement(tripId: number, settlementId: number): Promise<{ deleted: boolean }>;
   };
   // Core planner writes (#1429). Membership-checked against the invocation's user;
   // each needs the matching write scope + the app's place_edit/day_edit permission.

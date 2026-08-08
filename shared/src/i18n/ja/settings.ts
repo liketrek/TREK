@@ -466,7 +466,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': '日時',
   'settings.pluginActivity.columns.status': '結果',
   'settings.alwaysShowRoutes': '予約ルートを常に表示',
-  'settings.alwaysShowRoutesHint': 'フライトや電車などすべての予約のルートを、個別にオンにしなくても地図上に自動的に表示します。',
+  'settings.alwaysShowRoutesHint':
+    'フライトや電車などすべての予約のルートを、個別にオンにしなくても地図上に自動的に表示します。',
 };
 
 export default settings;

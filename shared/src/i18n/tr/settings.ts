@@ -491,7 +491,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.when': 'Ne zaman',
   'settings.pluginActivity.columns.status': 'Sonuç',
   'settings.alwaysShowRoutes': 'Rezervasyon rotalarını her zaman göster',
-  'settings.alwaysShowRoutesHint': 'Haritada her uçuş, tren ve diğer rezervasyonun rotasını, tek tek açmaya gerek kalmadan otomatik olarak gösterir.',
+  'settings.alwaysShowRoutesHint':
+    'Haritada her uçuş, tren ve diğer rezervasyonun rotasını, tek tek açmaya gerek kalmadan otomatik olarak gösterir.',
 };
 
 export default settings;
