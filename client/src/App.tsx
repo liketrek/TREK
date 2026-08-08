@@ -1,4 +1,4 @@
-import React, { useEffect, ReactNode, Suspense } from 'react'
+import React, { useEffect, useRef, ReactNode, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
@@ -149,8 +149,21 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
  * never sees them — including /login, where someone lands when everything else
  * failed, and the two anonymous share pages.
  */
-function PublicRoute({ children }: { children: React.ReactNode }) {
+function PublicRoute({ children, redirectAuthed = false }: { children: React.ReactNode; redirectAuthed?: boolean }) {
   const location = useLocation()
+  // redirectAuthed (only /login and /register) bounces a visitor who is already
+  // authenticated when they land here — manual URL, browser back button (#1810)
+  // — to the dashboard. Only when there is no ?redirect= target: the OAuth
+  // consent login handoff (useOAuthAuthorize.handleLoginRedirect) parks the
+  // consent URL in ?redirect= and must reach useLogin untouched — bouncing on it
+  // would drop the flow, or loop if the server still reports login_required.
+  // Capture the flag at mount so a fresh login is left alone: it flips
+  // isAuthenticated to true while the takeoff animation still plays here, before
+  // useLogin navigates away.
+  const wasAuthenticated = useRef(useAuthStore.getState().isAuthenticated)
+  if (redirectAuthed && wasAuthenticated.current && !new URLSearchParams(location.search).has('redirect')) {
+    return <Navigate to="/dashboard" replace />
+  }
   return (
     <ErrorBoundary key={location.pathname} boundaryId="public-route" level="route">
       {children}
@@ -315,10 +328,10 @@ export default function App() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<RootRedirect />} />
-          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/login" element={<PublicRoute redirectAuthed><LoginPage /></PublicRoute>} />
           <Route path="/shared/:token" element={<PublicRoute><SharedTripPage /></PublicRoute>} />
           <Route path="/public/journey/:token" element={<PublicRoute><JourneyPublicPage /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute redirectAuthed><LoginPage /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
           {/* OAuth 2.1 consent page — intentionally outside ProtectedRoute */}

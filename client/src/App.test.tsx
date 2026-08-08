@@ -190,6 +190,34 @@ describe('Public routes', () => {
   })
 })
 
+// ── PublicRoute — redirect already-authenticated visitors ─────────────────────
+
+describe('PublicRoute — already authenticated', () => {
+  it('FE-COMP-APP-012a: /login redirects to /dashboard when already authenticated', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    renderApp('/login')
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+    expect(screen.queryByText('Login')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-APP-012b: /register redirects to /dashboard when already authenticated', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    renderApp('/register')
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+    expect(screen.queryByText('Login')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-APP-012c: /login with a ?redirect= target is left to useLogin (OAuth consent handoff), not bounced', async () => {
+    // The consent page parks its URL in ?redirect= when it needs a login; that
+    // flow must reach the form even for an authenticated visitor, so the guard
+    // stays out of the way whenever a redirect target is present.
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    renderApp('/login?redirect=' + encodeURIComponent('/oauth/consent?client_id=x'))
+    await waitFor(() => expect(screen.getByText('Login')).toBeInTheDocument())
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
+  })
+})
+
 // ── App — on-mount effects ─────────────────────────────────────────────────────
 
 describe('App — on-mount effects', () => {
