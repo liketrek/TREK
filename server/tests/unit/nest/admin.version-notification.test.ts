@@ -55,6 +55,7 @@ import { PackingService } from '../../../src/nest/packing/packing.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { AdminService } from '../../../src/nest/admin/admin.service';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
 
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
@@ -70,8 +71,9 @@ const svc = new AdminService(
   new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
-  new NotificationsService(dbs, realtime),
+  makeNotificationsService(dbs, realtime),
   userCleanup,
+  makeNotificationPreferencesService(dbs),
 );
 const checkAndNotifyVersion = () => svc.checkAndNotifyVersion();
 

@@ -2,24 +2,12 @@ import { Injectable } from '@nestjs/common';
 import type { ChannelTestResult } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
 import { logDebug, logError } from '../audit/audit-log.logger';
-import {
-  testSmtp,
-  testWebhook,
-  testNtfy,
-  getAdminWebhookUrl,
-  getUserWebhookUrl,
-  getUserNtfyConfig,
-  getAdminNtfyConfig,
-  getEventText,
-  getUserLanguage,
-} from '../../services/notifications';
-import {
-  getPreferencesMatrix,
-  setPreferences,
-  getActiveChannels,
-  isEnabledForEvent,
-  getAdminGlobalPref,
-} from '../../services/notificationPreferencesService';
+import { getEventText } from './mailer/email-html';
+import { MailerService } from './mailer/mailer.service';
+import { NtfyService, type NtfyConfig } from './transports/ntfy.service';
+import { WebhookService } from './transports/webhook.service';
+import { NotificationPreferencesService, type PreferencesMatrix } from './notification-preferences.service';
+import { registerBuiltinChannels } from './channels/builtins';
 import {
   ADMIN_SCOPED_EVENTS,
   isAdminGlobalChannel,
@@ -27,14 +15,12 @@ import {
   type ExternalChannel,
   type NotifEventType,
 } from './notification-events';
-import { getChannel, listChannels } from '../../services/notifications/channelRegistry';
+import { getChannel, listChannels } from './channel-registry';
 import { getAction } from './in-app-actions';
 import { avatarUrl } from '../common/avatarUrl';
 import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
 
-type NtfyConfig = ReturnType<typeof getAdminNtfyConfig>;
-type PreferencesMatrix = ReturnType<typeof getPreferencesMatrix>;
 
 // SQLite's CURRENT_TIMESTAMP is UTC but the string ('YYYY-MM-DD HH:MM:SS') has
 // no 'T'/'Z', so `new Date(...)` parses it as LOCAL time. Normalize to ISO-UTC
@@ -276,6 +262,7 @@ function shouldSendToUser(
   event: NotifEventType,
   recipientId: number,
   activeChannels: string[],
+  prefs: NotificationPreferencesService,
 ): boolean {
   if (!channel.supportsEvent(event)) return false;
   if (channel.isInstanceConfigured && !channel.isInstanceConfigured()) return false;
@@ -283,12 +270,12 @@ function shouldSendToUser(
   if (ADMIN_SCOPED_EVENTS.has(event)) {
     if (!channel.bypassesActiveToggleForAdminEvents) return false;
     if (!isAdminGlobalChannel(channel.id)) return false;
-    if (!getAdminGlobalPref(event, channel.id)) return false;
+    if (!prefs.getAdminGlobalPref(event, channel.id)) return false;
   } else {
     // A built-in needs the admin's explicit switch; a plugin channel is on because the
     // admin enabled the plugin — that IS the opt-in (see getActiveChannels).
     if (channel.source === 'builtin' && !activeChannels.includes(channel.id)) return false;
-    if (!isEnabledForEvent(recipientId, event, channel.id)) return false;
+    if (!prefs.isEnabledForEvent(recipientId, event, channel.id)) return false;
   }
 
   return channel.isConfiguredFor(recipientId);
@@ -304,10 +291,10 @@ function shouldSendToUser(
  * was originally patched on only one of three), and `respond` claims the
  * response atomically BEFORE running the action handler (double-submits can
  * no longer execute the action twice; a handler failure releases the claim).
- * Channel transports, the preference matrix and the channel
- * registry stay plain-module imports (`services/notifications*`,
- * `services/notificationPreferencesService`) — they are classified as
- * infra helpers, not wave material, in `migration-graph.md`.
+ * The channel transports and the preference matrix are injected providers
+ * since the notifications fold; the channel registry stays a module singleton
+ * because notifications.bridge.ts and the plugin runtime both reach it from
+ * outside the container.
  *
  * Non-Nest consumers (scheduler, legacy adminService/memories, the lazy
  * fire-and-forget sends in migrated Nest services) go through
@@ -319,10 +306,20 @@ export class NotificationsService {
   constructor(
     private readonly db: DatabaseService,
     private readonly realtime: RealtimeService,
-  ) {}
+    private readonly mailer: MailerService,
+    private readonly webhook: WebhookService,
+    private readonly ntfy: NtfyService,
+    private readonly prefs: NotificationPreferencesService,
+  ) {
+    // The registry is a module singleton shared with notifications.bridge.ts and
+    // the plugin runtime, so registering from here means every path that can
+    // dispatch has the built-ins — including the bridge instance, which never
+    // runs onModuleInit. registerChannel is an idempotent Map.set.
+    registerBuiltinChannels({ mailer, webhook, ntfy });
+  }
 
   getPreferences(userId: number, role: string): PreferencesMatrix {
-    return getPreferencesMatrix(userId, role, 'user');
+    return this.prefs.getPreferencesMatrix(userId, role, 'user');
   }
 
   /** Send a test notification over any registered channel (built-in or plugin). */
@@ -338,36 +335,36 @@ export class NotificationsService {
     }
   }
 
-  setPreferences(userId: number, body: Parameters<typeof setPreferences>[1]): void {
-    setPreferences(userId, body);
+  setPreferences(userId: number, body: Parameters<NotificationPreferencesService['setPreferences']>[1]): void {
+    this.prefs.setPreferences(userId, body);
   }
 
   testSmtp(to: string): Promise<ChannelTestResult> {
-    return testSmtp(to);
+    return this.mailer.testSmtp(to);
   }
 
   testWebhook(url: string): Promise<ChannelTestResult> {
-    return testWebhook(url);
+    return this.webhook.testWebhook(url);
   }
 
   testNtfy(cfg: { topic: string; server?: string | null; token?: string | null }): Promise<ChannelTestResult> {
-    return testNtfy(cfg);
+    return this.ntfy.testNtfy(cfg);
   }
 
   userWebhookUrl(userId: number): string | null {
-    return getUserWebhookUrl(userId);
+    return this.webhook.getUserWebhookUrl(userId);
   }
 
   adminWebhookUrl(): string | null {
-    return getAdminWebhookUrl();
+    return this.webhook.getAdminWebhookUrl();
   }
 
   userNtfyConfig(userId: number): NtfyConfig | null {
-    return getUserNtfyConfig(userId);
+    return this.ntfy.getUserNtfyConfig(userId);
   }
 
   adminNtfyConfig(): NtfyConfig {
-    return getAdminNtfyConfig();
+    return this.ntfy.getAdminNtfyConfig();
   }
 
   // ── In-app notification store (from services/inAppNotifications.ts) ───────
@@ -429,7 +426,7 @@ export class NotificationsService {
 
       for (const recipientId of recipients) {
         // Check per-user in-app preference if an event_type is provided
-        if (input.event_type && !isEnabledForEvent(recipientId, input.event_type, 'inapp')) {
+        if (input.event_type && !this.prefs.isEnabledForEvent(recipientId, input.event_type, 'inapp')) {
           continue;
         }
 
@@ -699,7 +696,7 @@ export class NotificationsService {
       }
     }
     const config = configEntry ?? FALLBACK_EVENT_CONFIG;
-    const activeChannels = getActiveChannels();
+    const activeChannels = this.prefs.getActiveChannels();
     const channels = listChannels();
     const appUrl = getAppUrl();
 
@@ -719,7 +716,7 @@ export class NotificationsService {
       const promises: Promise<unknown>[] = [];
 
       // ── In-app ──────────────────────────────────────────────────────────
-      if (isEnabledForEvent(recipientId, event, 'inapp')) {
+      if (this.prefs.isEnabledForEvent(recipientId, event, 'inapp')) {
         const inAppType = inApp?.type ?? config.inAppType;
         let notifInput: NotificationInput;
 
@@ -776,9 +773,9 @@ export class NotificationsService {
       // One loop over the registry. The message is rendered once per recipient, in
       // their language, and handed to every channel that wants it — so a plugin
       // channel never touches i18n.
-      const deliverable = channels.filter(ch => shouldSendToUser(ch, event, recipientId, activeChannels));
+      const deliverable = channels.filter(ch => shouldSendToUser(ch, event, recipientId, activeChannels, this.prefs));
       if (deliverable.length > 0) {
-        const lang = getUserLanguage(recipientId);
+        const lang = this.mailer.getUserLanguage(recipientId);
         const { title, body } = getEventText(lang, event, params);
         const msg: ChannelMessage = {
           event,
@@ -804,7 +801,7 @@ export class NotificationsService {
     // Always rendered in English — there is no single recipient to take a language from.
     if (scope === 'admin') {
       const globalChannels = channels.filter(
-        ch => ch.sendGlobal && ch.supportsEvent(event) && isAdminGlobalChannel(ch.id) && getAdminGlobalPref(event, ch.id),
+        ch => ch.sendGlobal && ch.supportsEvent(event) && isAdminGlobalChannel(ch.id) && this.prefs.getAdminGlobalPref(event, ch.id),
       );
       if (globalChannels.length > 0) {
         const { title, body } = getEventText('en', event, params);

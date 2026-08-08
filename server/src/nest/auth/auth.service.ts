@@ -32,7 +32,7 @@ import { avatarUrl } from '../common/avatarUrl';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { WebauthnConfigService } from './webauthn-config.service';
 import { setAuthCookie, clearAuthCookie } from '../common/cookie';
-import { sendPasswordResetEmail } from '../../services/notifications';
+import { MailerService } from '../notifications/mailer/mailer.service';
 import { getAppUrl } from '../../app-config';
 import {
   ADMIN_SETTINGS_KEYS,
@@ -140,6 +140,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     private readonly membership: TripMembershipService,
     private readonly webauthn: WebauthnConfigService,
     private readonly userCleanup: UserCleanupService,
+    private readonly mailer: MailerService,
   ) {}
 
   // Cookie
@@ -148,7 +149,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
 
   // Reset-email delivery (canonical app URL, never request headers)
   getAppUrl() { return getAppUrl(); }
-  sendPasswordResetEmail(email: string, url: string, userId: number | null) { return sendPasswordResetEmail(email, url, userId); }
+  sendPasswordResetEmail(email: string, url: string, userId: number | null) { return this.mailer.sendPasswordResetEmail(email, url, userId); }
 
   // -------------------------------------------------------------------------
   // Toggles + tokens

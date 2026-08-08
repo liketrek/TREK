@@ -45,13 +45,18 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-vi.mock('../../src/services/notifications', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/services/notifications')>();
-  return {
-    ...actual,
-    testSmtp: vi.fn().mockResolvedValue({ success: true }),
-    testWebhook: vi.fn().mockResolvedValue({ success: true }),
-  };
+// The two test-send endpoints must not reach a real SMTP server or URL. Since
+// the fold they are provider methods, so they are stubbed on the prototype
+// rather than by module path — everything else in the domain stays real.
+vi.mock('../../src/nest/notifications/mailer/mailer.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/nest/notifications/mailer/mailer.service')>();
+  actual.MailerService.prototype.testSmtp = vi.fn().mockResolvedValue({ success: true });
+  return actual;
+});
+vi.mock('../../src/nest/notifications/transports/webhook.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/nest/notifications/transports/webhook.service')>();
+  actual.WebhookService.prototype.testWebhook = vi.fn().mockResolvedValue({ success: true });
+  return actual;
 });
 
 import { buildApp } from '../../src/bootstrap';

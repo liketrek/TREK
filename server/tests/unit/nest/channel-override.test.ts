@@ -30,14 +30,25 @@ import { createUser, createAdmin, setAppSetting, setNotificationChannels } from 
 // The send dispatcher is DI-native since the notifications fold; drive it
 // through the same outside-container entry point the scheduler uses.
 import { send } from '../../../src/nest/notifications/notifications.bridge';
-import { getPreferencesMatrix } from '../../../src/services/notificationPreferencesService';
+import { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
+import { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { createPluginRuntime } from '../../helpers/plugin-host';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
+
 import {
   setPluginChannelSource,
   listChannels,
   getChannel,
   registerChannel,
   type ExternalChannel,
-} from '../../../src/services/notifications/channelRegistry';
+} from '../../../src/nest/notifications/channel-registry';
+
+const prefsDbs = new DatabaseService(testDb);
+const prefsSvc = new NotificationPreferencesService(prefsDbs, new MailerService(prefsDbs));
+const getPreferencesMatrix = prefsSvc.getPreferencesMatrix.bind(prefsSvc);
+void WebhookService; void NtfyService;
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => { resetTestDb(testDb); setPluginChannelSource(null); });
@@ -191,5 +202,56 @@ describe('a live plugin channel needs no second opt-in', () => {
 
     await send({ ...TRIP_INVITE, targetId: user.id });
     expect(rogueSend).not.toHaveBeenCalled(); // no credentials → nothing to send with
+  });
+});
+
+/**
+ * The seam itself, end to end.
+ *
+ * PluginRuntimeService pushes its channel getter into the registry at
+ * onModuleInit; notifications.bridge.ts constructs its own NotificationsService
+ * for the scheduler crons and the memories senders. Both only meet because the
+ * registry is a module singleton. Make it a provider and the bridge gets an
+ * empty one — plugin channels then go quiet with no error anywhere, which is
+ * exactly the kind of failure nothing else here would catch. Every case above
+ * sets the source by hand; this one goes through the runtime.
+ */
+describe('the plugin channel source reaches the bridge instance', () => {
+  it('CHOVR-015 — a channel the runtime publishes is delivered by notifications.bridge.send', async () => {
+    const { user } = createUser(testDb, { username: 'recipient' });
+    setNotificationChannels(testDb, 'none');
+    const delivered: Array<{ userId: number; title: string }> = [];
+
+    const runtime = createPluginRuntime(new DatabaseService(testDb));
+    // Stand in for a booted supervisor: one plugin providing the hook, and an
+    // invokeHook that records instead of forking a child.
+    Object.defineProperty(runtime, 'supervisor', {
+      value: { providersOf: (hook: string) => (hook === 'notificationChannel' ? ['gotify'] : []) },
+      configurable: true,
+    });
+    (runtime as unknown as { invokeHook: unknown }).invokeHook = async (
+      _id: string,
+      _hook: string,
+      _method: string,
+      args: unknown[],
+    ) => {
+      const msg = args[0] as { title: string };
+      delivered.push({ userId: user.id, title: msg.title });
+      return true;
+    };
+    testDb.prepare("INSERT INTO plugins (id, name, version, status, enabled) VALUES ('gotify', 'Gotify', '1.0.0', 'active', 1)").run();
+
+    // The exact line plugin-runtime.service.ts runs in onModuleInit.
+    setPluginChannelSource(() => runtime.notificationChannels());
+
+    try {
+      expect(getChannel('plugin:gotify')).toBeDefined();
+
+      await send({ ...TRIP_INVITE, targetId: user.id });
+
+      expect(delivered).toHaveLength(1);
+    } finally {
+      setPluginChannelSource(null);
+    }
   });
 });

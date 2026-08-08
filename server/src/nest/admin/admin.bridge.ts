@@ -11,6 +11,10 @@ import { WebauthnConfigService } from '../auth/webauthn-config.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { PackingService } from '../packing/packing.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { MailerService } from '../notifications/mailer/mailer.service';
+import { NotificationPreferencesService } from '../notifications/notification-preferences.service';
+import { NtfyService } from '../notifications/transports/ntfy.service';
+import { WebhookService } from '../notifications/transports/webhook.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AdminService } from './admin.service';
 
@@ -35,7 +39,9 @@ const realtime = new RealtimeService();
 const permissions = new PermissionsService(dbs);
 const webauthn = new WebauthnConfigService(dbs);
 const userCleanup = new UserCleanupService(dbs);
-const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup);
+const mailer = new MailerService(dbs);
+const notifPrefs = new NotificationPreferencesService(dbs, mailer);
+const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup, mailer);
 const admin = new AdminService(
   dbs,
   new SettingsService(dbs),
@@ -44,8 +50,9 @@ const admin = new AdminService(
   new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
-  new NotificationsService(dbs, realtime),
+  new NotificationsService(dbs, realtime, mailer, new WebhookService(dbs), new NtfyService(dbs), notifPrefs),
   userCleanup,
+  notifPrefs,
 );
 
 export function checkAndNotifyVersion(): Promise<void> {

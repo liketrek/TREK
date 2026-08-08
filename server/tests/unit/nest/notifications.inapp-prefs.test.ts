@@ -45,8 +45,9 @@ import { registerAction } from '../../../src/nest/notifications/in-app-actions';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
 
-const notifications = new NotificationsService(new DatabaseService(testDb), new RealtimeService());
+const notifications = makeNotificationsService(new DatabaseService(testDb));
 const createNotification = notifications.createNotification.bind(notifications);
 const createNotificationForRecipient = notifications.createNotificationForRecipient.bind(notifications);
 const respondToBoolean = notifications.respond.bind(notifications);

@@ -54,7 +54,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   encrypt_api_key: vi.fn((v) => v),
 }));
 vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
-vi.mock('../../../src/services/notifications', () => ({ sendPasswordResetEmail: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 vi.mock('../../../src/scheduler', () => ({
   startTripReminders: vi.fn(),
@@ -85,6 +84,11 @@ import { TripMembershipService } from '../../../src/nest/trip-membership/trip-me
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { revokeUserSessions } from '../../../src/mcp/sessionManager';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+
+// MailerService is injected since the notifications fold — a stub instead of a
+// module mock. sendPasswordResetEmail is the only thing auth reaches for.
+const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerService;
 
 // Stubbed rather than real: these tests assert that the invite path CALLS the
 // join, not what the join writes (TRIP-JOIN-* cover that).
@@ -97,6 +101,7 @@ const svc = new AuthService(
   membershipStub,
   new WebauthnConfigService(new DatabaseService(testDb)),
   new UserCleanupService(new DatabaseService(testDb)),
+  mailerStub,
 );
 
 // ---------------------------------------------------------------------------

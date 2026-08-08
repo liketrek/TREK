@@ -73,7 +73,15 @@ vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: (
 vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
 vi.mock('../../src/mcp', () => ({ invalidateMcpSessions: vi.fn() }));
 vi.mock('../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn() }));
-vi.mock('../../src/services/notificationPreferencesService', () => ({ getPreferencesMatrix: vi.fn(() => ({})), setAdminPreferences: vi.fn() }));
+// Preferences are a provider since the notifications fold; stub the two methods
+// the admin surface calls on the prototype, so AdminService still resolves it
+// through DI.
+vi.mock('../../src/nest/notifications/notification-preferences.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/nest/notifications/notification-preferences.service')>();
+  actual.NotificationPreferencesService.prototype.getPreferencesMatrix = vi.fn(() => ({}) as never);
+  actual.NotificationPreferencesService.prototype.setAdminPreferences = vi.fn();
+  return actual;
+});
 vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
 
 import { AdminModule } from '../../src/nest/admin/admin.module';

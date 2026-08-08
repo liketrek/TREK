@@ -54,7 +54,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   encrypt_api_key: vi.fn((v) => v),
 }));
 vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
-vi.mock('../../../src/services/notifications', () => ({ sendPasswordResetEmail: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 vi.mock('../../../src/scheduler', () => ({
   startTripReminders: vi.fn(),
@@ -86,6 +85,11 @@ import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { PasskeyService } from '../../../src/nest/auth/passkey.service';
 import type { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+
+// MailerService is injected since the notifications fold — a stub instead of a
+// module mock. sendPasswordResetEmail is the only thing auth reaches for.
+const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerService;
 
 // The RP config resolver has its own suite (webauthn-config.service.test.ts);
 // here it is a switch for the configured / not-configured branches, handed in
@@ -97,6 +101,10 @@ const auth = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
   new AtlasService(new DatabaseService(testDb)),
+  undefined as never, // membership — not reached from the passkey paths
+  undefined as never, // webauthn — PasskeyService gets its own stub below
+  undefined as never, // userCleanup — not reached from the passkey paths
+  mailerStub,
 );
 const svc = new PasskeyService(new DatabaseService(testDb), auth, webauthn);
 

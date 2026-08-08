@@ -29,8 +29,9 @@ remains as the platform underneath `@nestjs/platform-express`.
   todo, packing, day-notes, trip-invite, assignments, share, settings, files,
   collab, vacay, reservations, day, permissions, audit, budget, trip, maps,
   transit, place, transit-itinerary, collections, atlas, auth, oidc, passkey,
-  notifications, admin, webauthn-config, user-cleanup, oauth, wiki — see the
-  migration recipe below.
+  notifications, admin, webauthn-config, user-cleanup, oauth, wiki, mailer,
+  notification transports, notification preferences — see the migration recipe
+  below.
 - **Foundation (BE-Phase 1, complete):** the eight stateless helpers moved to
   `common/`; every trip-access check routes through `DatabaseService`
   (`services/tripAccess.ts` and the dead `middleware/tripAccess.ts` are gone);
@@ -41,9 +42,11 @@ remains as the platform underneath `@nestjs/platform-express`.
   addon guards are one `AddonGuard` + `@RequireAddon`; the demo-mode block is one
   condition. Still open: `TripAccessGuard`, default-deny, the MFA policy.
 
-`src/services/` is down to five top-level files (journey, journeyShare,
-notifications, notificationPreferences, backup) plus the `airtrail/`,
-`memories/` and `notifications/` directories. Note that the trip-access and
+`src/services/` is down to three top-level files (journey, journeyShare, backup)
+plus the `airtrail/` and `memories/` directories. What is left each waits on an
+open decision: memories on its Zod contracts, journey on memories, backup on the
+plugins module split and the db-lifecycle question, airtrail on the credential
+handling. Note that the trip-access and
 `canEdit` methods on the domain services are **not** dead weight waiting for a
 guard: their callers are overwhelmingly the `*.mcp.ts` tools, which never pass
 through an HTTP guard. In the five domains piloted for `TripAccessGuard`, 40 of
@@ -119,6 +122,20 @@ singleton rather than a second instance.
   for free just because it is global: a provider injecting `RuntimeEnvService`
   fails to resolve and takes every suite importing that module down with it.
   Import it explicitly, the way `PermissionsModule` is handled.
+- **A module-scoped registry that outside code writes into must stay a module,
+  not a provider.** The notification channel registry is the live example:
+  `PluginRuntimeService` pushes its channel getter in at `onModuleInit`, and
+  `notifications.bridge.ts` builds its own `NotificationsService` for the
+  scheduler crons. As a provider the bridge would get a second, empty registry
+  and every plugin channel would go quiet — with no error anywhere.
+  `CHOVR-015` is the regression test. Same reasoning as
+  `oauth/oauth.pending-codes.ts`.
+- **Self-registration by side-effect import is a trap.** The built-in channels
+  used to register because `notificationPreferencesService` happened to `import
+  './notifications/builtins'`. Dropping that one line would have silenced email,
+  webhook and ntfy without a failure. They are built from injected transports and
+  registered in `NotificationsService`'s constructor now, so every path that can
+  dispatch has them.
 - A guard with a constructor dependency has to be a registered provider
   everywhere it is used. The three auth guards are dependency-free on purpose —
   38 directories apply them and 21 do not import `AuthModule`, so giving them a

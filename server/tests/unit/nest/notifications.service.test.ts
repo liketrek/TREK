@@ -77,9 +77,10 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { NotificationsService, type NotificationPayload } from '../../../src/nest/notifications/notifications.service';
 import { send as bridgeSend } from '../../../src/nest/notifications/notifications.bridge';
-import { setPluginChannelSource, type ExternalChannel } from '../../../src/services/notifications/channelRegistry';
+import { setPluginChannelSource, type ExternalChannel } from '../../../src/nest/notifications/channel-registry';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
 
-const notifications = new NotificationsService(new DatabaseService(testDb), new RealtimeService());
+const notifications = makeNotificationsService(new DatabaseService(testDb));
 const send = (payload: NotificationPayload) => notifications.send(payload);
 
 // ── Helpers ────────────────────────────────────────────────────────────────

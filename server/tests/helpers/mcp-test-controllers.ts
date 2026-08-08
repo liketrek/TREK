@@ -47,6 +47,7 @@ import { VacayMcp } from '../../src/nest/vacay/vacay.mcp';
 import { VacayService } from '../../src/nest/vacay/vacay.service';
 import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../src/nest/query-helpers/query-helpers.service';
+import { makeNotificationsService, makeNotificationPreferencesService } from './notifications';
 
 /**
  * Hand-wired counterpart of the boot-time discovery in McpRegistryService,
@@ -104,7 +105,7 @@ export function createMcpTestRegistry(): McpRegistry {
       new CollectionsMcp(new CollectionsService(dbService, permissionsService, realtimeService), dbService, authService),
       new TransitMcp(new TransitService(), daysService, reservationsService, dbService, authService),
       new AtlasMcp(new AtlasService(dbService)),
-      new NotificationsMcp(new NotificationsService(dbService, realtimeService), authService),
+      new NotificationsMcp(makeNotificationsService(dbService, realtimeService), authService),
     ],
     { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
   );

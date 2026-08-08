@@ -36,12 +36,12 @@ vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.
 // The audit domain is DI-native: writeAudit runs for real against the temp
 // db's audit_log table; only the file logger is silenced.
 vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
-vi.mock('../../src/services/notifications', () => ({ sendPasswordResetEmail: vi.fn().mockResolvedValue({ delivered: true }) }));
 vi.mock('../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/app-config')>();
   return { ...actual, getAppUrl: () => 'https://x' };
 });
 
+import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { createUser } from '../helpers/factories';
@@ -58,7 +58,12 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
   let userPassword: string;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, AuthModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, AuthModule] })
+      // The mailer is a provider since the notifications fold; overriding it is
+      // the DI-native replacement for the old services/notifications module mock.
+      .overrideProvider(MailerService)
+      .useValue({ sendPasswordResetEmail: vi.fn().mockResolvedValue({ delivered: 'email' }) })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

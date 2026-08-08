@@ -13,8 +13,20 @@ import {
   __resetChannelsForTest,
   type ChannelMessage,
   type ExternalChannel,
-} from '../../../src/services/notifications/channelRegistry';
-import { registerBuiltinChannels } from '../../../src/services/notifications/builtins';
+} from '../../../src/nest/notifications/channel-registry';
+import { registerBuiltinChannels } from '../../../src/nest/notifications/channels/builtins';
+import type { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import type { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
+import type { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
+
+// The built-ins take their transports as an argument now; these cases only care
+// that the three ids land in the registry with the right privileges, so the
+// transports are stubs.
+const stubTransports = {
+  mailer: { isSmtpConfigured: () => true, getUserEmail: () => null } as unknown as MailerService,
+  webhook: { getUserWebhookUrl: () => null, getAdminWebhookUrl: () => null } as unknown as WebhookService,
+  ntfy: { getUserNtfyConfig: () => null, getAdminNtfyConfig: () => ({ server: null, topic: null, token: null }) } as unknown as NtfyService,
+};
 
 function fakeChannel(id: string, over: Partial<ExternalChannel> = {}): ExternalChannel {
   return {
@@ -32,7 +44,7 @@ const MSG: ChannelMessage = { event: 'trip_invite', title: 't', body: 'b' };
 
 beforeEach(() => {
   __resetChannelsForTest();
-  registerBuiltinChannels();
+  registerBuiltinChannels(stubTransports);
 });
 
 afterEach(() => {

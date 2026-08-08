@@ -1,11 +1,16 @@
-import type { ExternalChannel } from '../../nest/notifications/notification-events';
+import type { ExternalChannel } from './notification-events';
 
-// The channel contract itself (ChannelMessage, ExternalChannel) lives in
-// nest/notifications/notification-events.ts so that this registry, the
-// preferences service and the transports can all name it without importing each
-// other. Re-exported here for the consumers that reach the contract through the
-// registry.
-export type { ChannelMessage, ExternalChannel } from '../../nest/notifications/notification-events';
+/**
+ * The live set of notification channels.
+ *
+ * Deliberately a module singleton and not a provider. Two things read it from
+ * outside the container: notifications.bridge.ts constructs its own
+ * NotificationsService for the scheduler crons and the memories senders, and
+ * PluginRuntimeService pushes its channel getter in at onModuleInit. Make this a
+ * provider and the bridge gets a second, empty registry - plugin channels would
+ * then go quiet with no error anywhere. The built-ins are registered from
+ * NotificationsService's constructor, so every path that can dispatch has them.
+ */
 
 /** Namespace for plugin channel ids, so a plugin can never claim `email`. */
 export const PLUGIN_CHANNEL_PREFIX = 'plugin:';

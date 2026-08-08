@@ -72,6 +72,7 @@ import { NotificationsService } from '../../../src/nest/notifications/notificati
 import { AdminService } from '../../../src/nest/admin/admin.service';
 import { checkAndNotifyVersion as bridgeCheckAndNotifyVersion } from '../../../src/nest/admin/admin.bridge';
 import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
 
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
@@ -87,8 +88,9 @@ const svc = new AdminService(
   new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
-  new NotificationsService(dbs, realtime),
+  makeNotificationsService(dbs, realtime),
   userCleanup,
+  makeNotificationPreferencesService(dbs),
 );
 
 // Legacy free-function names bound to the service, so the moved cases below read

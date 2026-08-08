@@ -29,6 +29,7 @@ import { AuditService } from '../../src/nest/audit/audit.service';
 import { AddonsService } from '../../src/nest/addons/addons.service';
 import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../src/nest/query-helpers/query-helpers.service';
+import { makeNotificationsService, makeNotificationPreferencesService } from './notifications';
 
 /**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
@@ -75,7 +76,7 @@ export function createHostDepsFactory(dbs: DatabaseService): PluginHostDepsFacto
     places,
     new CollectionsService(dbs, permissions, realtime),
     new AtlasService(dbs),
-    new NotificationsService(dbs, realtime),
+    makeNotificationsService(dbs, realtime),
   );
 }
 

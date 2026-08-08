@@ -36,16 +36,29 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, setAppSetting, setNotificationChannels, disableNotificationPref } from '../../helpers/factories';
-import {
-  isEnabledForEvent,
-  getPreferencesMatrix,
-  setPreferences,
-  setAdminPreferences,
-  getAdminGlobalPref,
-  getActiveChannels,
-  isSmtpConfigured,
-  isWebhookConfigured,
-} from '../../../src/services/notificationPreferencesService';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
+import { registerBuiltinChannels } from '../../../src/nest/notifications/channels/builtins';
+import { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
+import { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
+import { __resetChannelsForTest } from '../../../src/nest/notifications/channel-registry';
+
+const dbs = new DatabaseService(testDb);
+const mailer = new MailerService(dbs);
+registerBuiltinChannels({ mailer, webhook: new WebhookService(dbs), ntfy: new NtfyService(dbs) });
+const svc = new NotificationPreferencesService(dbs, mailer);
+
+// Legacy free-function names bound to the service, so the moved cases read as before.
+const isEnabledForEvent = svc.isEnabledForEvent.bind(svc);
+const getPreferencesMatrix = svc.getPreferencesMatrix.bind(svc);
+const setPreferences = svc.setPreferences.bind(svc);
+const setAdminPreferences = svc.setAdminPreferences.bind(svc);
+const getAdminGlobalPref = svc.getAdminGlobalPref.bind(svc);
+const getActiveChannels = svc.getActiveChannels.bind(svc);
+const isSmtpConfigured = svc.isSmtpConfigured.bind(svc);
+const isWebhookConfigured = svc.isWebhookConfigured.bind(svc);
+
 
 beforeAll(() => {
   createTables(testDb);

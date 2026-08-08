@@ -24,7 +24,18 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   createPinnedDispatcher: vi.fn(() => ({})),
 }));
 
-import { getEventText, buildEmailHtml, buildWebhookBody, sendWebhook, sendNtfy, resolveNtfyUrl, resolveAdminNtfyUrl, type NtfyConfig } from '../../../src/services/notifications';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { getEventText, buildEmailHtml } from '../../../src/nest/notifications/mailer/email-html';
+import { WebhookService, buildWebhookBody } from '../../../src/nest/notifications/transports/webhook.service';
+import { NtfyService, resolveNtfyUrl, resolveAdminNtfyUrl, type NtfyConfig } from '../../../src/nest/notifications/transports/ntfy.service';
+
+// The transports are providers now; the db stub below is the same one the
+// module-level `db` mock used to supply, handed in instead of imported.
+const stubDb = { prepare: () => ({ get: () => undefined, all: () => [], run: () => undefined }) } as unknown as ConstructorParameters<typeof DatabaseService>[0];
+const webhookSvc = new WebhookService(new DatabaseService(stubDb));
+const ntfySvc = new NtfyService(new DatabaseService(stubDb));
+const sendWebhook = webhookSvc.sendWebhook.bind(webhookSvc);
+const sendNtfy = ntfySvc.sendNtfy.bind(ntfySvc);
 import { checkSsrf } from '../../../src/utils/ssrfGuard';
 import { logError } from '../../../src/nest/audit/audit-log.logger';
 

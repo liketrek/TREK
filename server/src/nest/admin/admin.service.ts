@@ -21,7 +21,7 @@ import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/
 import { getPhotoProviderConfig } from '../../services/memories/helpersService';
 import { validatePassword } from '../common/passwordPolicy';
 import { UserCleanupService } from '../auth/user-cleanup.service';
-import { getPreferencesMatrix, setAdminPreferences } from '../../services/notificationPreferencesService';
+import { NotificationPreferencesService } from '../notifications/notification-preferences.service';
 import { DatabaseService } from '../database/database.service';
 import { AddonsService } from '../addons/addons.service';
 import { SettingsService } from '../settings/settings.service';
@@ -78,6 +78,7 @@ export class AdminService {
     private readonly permissions: PermissionsService,
     private readonly notifications: NotificationsService,
     private readonly userCleanup: UserCleanupService,
+    private readonly notifPrefs: NotificationPreferencesService,
   ) {}
 
   // ── User CRUD ──────────────────────────────────────────────────────────────
@@ -851,6 +852,6 @@ export class AdminService {
 
   getAdminUserDefaults() { return this.settings.getAdminUserDefaults(); }
   setAdminUserDefaults(body: Record<string, unknown>) { return this.settings.setAdminUserDefaults(body); }
-  getPreferencesMatrix(userId: number, role: string) { return getPreferencesMatrix(userId, role, 'admin'); }
-  setAdminPreferences(userId: number, body: unknown) { return setAdminPreferences(userId, body as Parameters<typeof setAdminPreferences>[1]); }
+  getPreferencesMatrix(userId: number, role: string) { return this.notifPrefs.getPreferencesMatrix(userId, role, 'admin'); }
+  setAdminPreferences(userId: number, body: unknown) { return this.notifPrefs.setAdminPreferences(userId, body as Parameters<NotificationPreferencesService['setAdminPreferences']>[1]); }
 }

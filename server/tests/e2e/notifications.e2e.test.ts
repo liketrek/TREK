@@ -49,22 +49,23 @@ const { db } = vi.hoisted(() => {
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
-// The preference matrix and the channel transports stay plain services/*
-// modules after the fold — mock them; the in-app store is real SQL now.
-const { prefs, channels } = vi.hoisted(() => ({
+// The preference matrix and the channel transports are providers since the
+// fold — overridden at the container instead of mocked by module path; the
+// in-app store is real SQL.
+const { prefs, mailer, webhook, ntfy } = vi.hoisted(() => ({
   prefs: { getPreferencesMatrix: vi.fn(), setPreferences: vi.fn() },
-  channels: {
-    testSmtp: vi.fn(), testWebhook: vi.fn(), testNtfy: vi.fn(),
-    getUserWebhookUrl: vi.fn(), getAdminWebhookUrl: vi.fn(),
-    getUserNtfyConfig: vi.fn(), getAdminNtfyConfig: vi.fn(),
-  },
+  mailer: { testSmtp: vi.fn(), isSmtpConfigured: vi.fn(() => true), getUserEmail: vi.fn(), getUserLanguage: vi.fn(() => 'en') },
+  webhook: { testWebhook: vi.fn(), getUserWebhookUrl: vi.fn(), getAdminWebhookUrl: vi.fn() },
+  ntfy: { testNtfy: vi.fn(), getUserNtfyConfig: vi.fn(), getAdminNtfyConfig: vi.fn() },
 }));
-vi.mock('../../src/services/notificationPreferencesService', () => prefs);
-vi.mock('../../src/services/notifications', () => channels);
 
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
+import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
+import { NotificationPreferencesService } from '../../src/nest/notifications/notification-preferences.service';
+import { NtfyService } from '../../src/nest/notifications/transports/ntfy.service';
+import { WebhookService } from '../../src/nest/notifications/transports/webhook.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 function seedNotification(recipientId: number, overrides: { is_read?: number } = {}): number {
@@ -82,7 +83,12 @@ describe('Notifications e2e (real auth guard + temp SQLite)', () => {
   async function build() {
     const moduleRef = await Test.createTestingModule({
       imports: [DatabaseModule, RealtimeModule, NotificationsModule],
-    }).compile();
+    })
+      .overrideProvider(NotificationPreferencesService).useValue(prefs)
+      .overrideProvider(MailerService).useValue(mailer)
+      .overrideProvider(WebhookService).useValue(webhook)
+      .overrideProvider(NtfyService).useValue(ntfy)
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -96,7 +102,7 @@ describe('Notifications e2e (real auth guard + temp SQLite)', () => {
     app = await build();
     server = app.getHttpServer();
     prefs.getPreferencesMatrix.mockReturnValue({ preferences: {}, available_channels: {}, event_types: [], implemented_combos: {} });
-    channels.testSmtp.mockResolvedValue({ success: true });
+    mailer.testSmtp.mockResolvedValue({ success: true });
   });
 
   afterAll(async () => {
@@ -118,7 +124,7 @@ describe('Notifications e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).post('/api/notifications/test-smtp').set('Cookie', sessionCookie(2)).send({});
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'Admin only' });
-    expect(channels.testSmtp).not.toHaveBeenCalled();
+    expect(mailer.testSmtp).not.toHaveBeenCalled();
   });
 
   it('200 test-smtp for an admin (stays 200, not 201)', async () => {

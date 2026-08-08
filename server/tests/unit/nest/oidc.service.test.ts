@@ -62,7 +62,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   encrypt_api_key: vi.fn((v) => v),
 }));
 vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
-vi.mock('../../../src/services/notifications', () => ({ sendPasswordResetEmail: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 vi.mock('../../../src/scheduler', () => ({
   startTripReminders: vi.fn(),
@@ -94,6 +93,11 @@ import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { OidcService } from '../../../src/nest/oidc/oidc.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+
+// MailerService is injected since the notifications fold — a stub instead of a
+// module mock. sendPasswordResetEmail is the only thing auth reaches for.
+const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerService;
 
 const membership = new TripMembershipService(new DatabaseService(testDb));
 const auth = new AuthService(
@@ -101,6 +105,9 @@ const auth = new AuthService(
   new PermissionsService(new DatabaseService(testDb)),
   new AtlasService(new DatabaseService(testDb)),
   membership,
+  undefined as never, // webauthn — not reached from the OIDC paths
+  undefined as never, // userCleanup — not reached from the OIDC paths
+  mailerStub,
 );
 const svc = new OidcService(new DatabaseService(testDb), auth, membership);
 
