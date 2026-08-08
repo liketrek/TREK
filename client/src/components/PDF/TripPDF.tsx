@@ -10,6 +10,7 @@ import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
+import { createPdfPreviewOverlay } from './createPdfPreviewOverlay'
 
 /**
  * Every day starts a new page by default. On a trip of short days that prints
@@ -698,15 +699,6 @@ ${daysHtml}
 ${pluginSectionsHtml}
 </body></html>`
 
-  // Open in modal with srcdoc iframe (no URL loading = no X-Frame-Options issue)
-  const overlay = document.createElement('div')
-  overlay.id = 'pdf-preview-overlay'
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:8px;'
-  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove() }
-
-  const card = document.createElement('div')
-  card.style.cssText = 'width:100%;max-width:1000px;height:95vh;background:var(--bg-card);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);'
-
   const header = document.createElement('div')
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border-primary);flex-shrink:0;'
   header.innerHTML = `
@@ -723,17 +715,13 @@ ${pluginSectionsHtml}
     </div>
   `
 
-  const iframe = document.createElement('iframe')
-  iframe.style.cssText = 'flex:1;width:100%;border:none;'
-  // No script runs inside the document (print is parent-initiated), so withhold
-  // allow-scripts to keep the sandbox tight.
-  iframe.sandbox = 'allow-same-origin allow-modals'
-  iframe.srcdoc = html
-
-  card.appendChild(header)
-  card.appendChild(iframe)
-  overlay.appendChild(card)
-  document.body.appendChild(overlay)
+  const { overlay, iframe } = createPdfPreviewOverlay({
+    id: 'pdf-preview-overlay',
+    html,
+    header,
+    overlayStyle: 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:8px;',
+    cardStyle: 'width:100%;max-width:1000px;height:95vh;background:var(--bg-card);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);',
+  })
 
   const closeBtn = header.querySelector<HTMLElement>('#pdf-close-btn')
   if (closeBtn) closeBtn.onclick = () => overlay.remove()

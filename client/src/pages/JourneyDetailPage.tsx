@@ -221,7 +221,7 @@ function JourneyDetailPageDesktop() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => { import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current)) }} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
+                    <button onClick={() => { import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current, t)) }} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
                     <div className="relative group">
                       <button
                         onClick={async () => {

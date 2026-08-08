@@ -158,7 +158,7 @@ describe('JourneyDetailPage wiring', () => {
     const { hook } = setup();
     const buttons = screen.getAllByRole('button');
     fireEvent.click(buttons[1]);
-    await waitFor(() => expect(mocks.downloadPdf).toHaveBeenCalledWith(hook.current));
+    await waitFor(() => expect(mocks.downloadPdf).toHaveBeenCalledWith(hook.current, expect.any(Function)));
   });
 
   it('FE-JRN-DETWIRE-005: the eye toggle flips hide_skeletons and persists the preference', async () => {
