@@ -444,6 +444,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Tersembunyi',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Mulai',
+  'settings.startPage': 'Halaman awal',
+  'settings.startPageDashboard': 'Dasbor',
+  'settings.startPageActiveTrip': 'Perjalanan aktif',
+  'settings.startPageHint':
+    'TREK langsung membuka perjalanan yang sedang berlangsung, atau yang paling dekat akan dimulai. Perjalanan yang sama yang disorot dasbor.',
+  'settings.startTripTab': 'Tab awal',
+  'settings.startTripTabHint':
+    'Tab yang dibuka bersama perjalanan. Jika tab itu milik addon yang dimatikan, tampilan rencana yang dibuka.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Cache offline',

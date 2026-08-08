@@ -1,4 +1,4 @@
-// FE-TP-HOOK-001 to FE-TP-HOOK-103
+// FE-TP-HOOK-001 to FE-TP-HOOK-110
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n/TranslationContext'
@@ -500,6 +500,85 @@ describe('useTripPlanner — tabs', () => {
     const { result } = await renderPlanner()
 
     expect(result.current.activeTab).toBe('plugin:late')
+  })
+
+  // ── ?tab= deep link (startup destination, shortcuts, wrapper apps) ──────────
+
+  it('FE-TP-HOOK-104: ?tab= opens that tab on the very first render and clears the param', async () => {
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'budget' }] })
+    searchParams = new URLSearchParams('tab=finanzplan')
+    seedTrip()
+
+    const { result } = await renderPlanner()
+
+    // No frame on 'plan' first — the tab is right from the initial state.
+    expect(result.current.activeTab).toBe('finanzplan')
+    await waitFor(() => expect(searchParams.get('tab')).toBeNull())
+  })
+
+  it('FE-TP-HOOK-105: ?tab= beats the tab the last session ended on', async () => {
+    sessionStorage.setItem('trip-tab-42', 'buchungen')
+    searchParams = new URLSearchParams('tab=transports')
+    seedTrip()
+
+    const { result } = await renderPlanner()
+
+    expect(result.current.activeTab).toBe('transports')
+    await waitFor(() => expect(sessionStorage.getItem('trip-tab-42')).toBe('transports'))
+  })
+
+  it('FE-TP-HOOK-106: a junk ?tab= is ignored rather than rendering a dead panel', async () => {
+    searchParams = new URLSearchParams('tab=../../etc/passwd')
+    seedTrip()
+
+    const { result } = await renderPlanner()
+
+    expect(result.current.activeTab).toBe('plan')
+  })
+
+  // The lazy loads live in handleTabChange, which a deep link never goes through.
+  it('FE-TP-HOOK-107: starting on Costs still loads the budget items', async () => {
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'budget' }] })
+    searchParams = new URLSearchParams('tab=finanzplan')
+    seedTrip()
+
+    await renderPlanner()
+
+    await waitFor(() => expect(actions.loadBudgetItems).toHaveBeenCalledWith(42))
+  })
+
+  it('FE-TP-HOOK-108: starting on Files still loads the files', async () => {
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'documents' }] })
+    searchParams = new URLSearchParams('tab=dateien')
+    seedTrip()
+
+    await renderPlanner()
+
+    await waitFor(() => expect(actions.loadFiles).toHaveBeenCalledWith(42))
+  })
+
+  // enabledAddons is an optimistic guess until the feed answers, and 'collab'
+  // is guessed off — evicting on that guess would drop a requested tab.
+  it('FE-TP-HOOK-109: a requested collab tab survives until the addon feed answers', async () => {
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'collab' }] })
+    searchParams = new URLSearchParams('tab=collab')
+    seedTrip()
+
+    const { result } = await renderPlanner()
+
+    expect(result.current.activeTab).toBe('collab')
+    await waitFor(() => expect(result.current.TRIP_TABS.map(t => t.id)).toContain('collab'))
+    expect(result.current.activeTab).toBe('collab')
+  })
+
+  it('FE-TP-HOOK-110: but a tab whose addon really is off still falls back to plan', async () => {
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [] })
+    searchParams = new URLSearchParams('tab=finanzplan')
+    seedTrip()
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.activeTab).toBe('plan'))
   })
 })
 

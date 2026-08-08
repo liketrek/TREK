@@ -446,6 +446,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Приховано',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Запуск',
+  'settings.startPage': 'Стартова сторінка',
+  'settings.startPageDashboard': 'Панель',
+  'settings.startPageActiveTrip': 'Активна поїздка',
+  'settings.startPageHint':
+    'TREK одразу відкриває поїздку, яка триває зараз, інакше найближчу майбутню. Це та сама поїздка, яку виділяє панель.',
+  'settings.startTripTab': 'Стартова вкладка',
+  'settings.startTripTabHint':
+    'Вкладка, з якою відкривається поїздка. Якщо вона належить до вимкненого доповнення, натомість відкриється план.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Офлайн-кеш',

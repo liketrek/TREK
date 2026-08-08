@@ -419,6 +419,14 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': '非表示',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': '起動',
+  'settings.startPage': '起動時の画面',
+  'settings.startPageDashboard': 'ダッシュボード',
+  'settings.startPageActiveTrip': '進行中の旅行',
+  'settings.startPageHint':
+    'TREK を開くと、進行中の旅行、なければ次に始まる旅行が直接開きます。ダッシュボードで大きく表示される旅行と同じです。',
+  'settings.startTripTab': '起動時のタブ',
+  'settings.startTripTabHint': '旅行を開くタブです。無効にしたアドオンのタブの場合は、代わりに計画が開きます。',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'オフラインキャッシュ',

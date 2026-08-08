@@ -448,6 +448,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Ausgeblendet',
   'settings.general.languageRegion': 'Sprache & Region',
   'settings.general.travelMap': 'Reise & Karte',
+  'settings.general.startup': 'Start',
+  'settings.startPage': 'Startseite',
+  'settings.startPageDashboard': 'Dashboard',
+  'settings.startPageActiveTrip': 'Aktive Reise',
+  'settings.startPageHint':
+    'TREK öffnet direkt die Reise, die gerade läuft, sonst die nächste anstehende. Also genau die Reise, die auch das Dashboard hervorhebt.',
+  'settings.startTripTab': 'Start-Tab',
+  'settings.startTripTabHint':
+    'Der Tab, mit dem die Reise öffnet. Gehört er zu einem ausgeschalteten Addon, öffnet stattdessen die Planung.',
 
   // ── Offline (#1135) ────────────────────────────────────────────────────────
   'settings.offline.cache.title': 'Offline-Cache',

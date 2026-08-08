@@ -447,6 +447,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Oculto',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Inicio',
+  'settings.startPage': 'Página de inicio',
+  'settings.startPageDashboard': 'Panel',
+  'settings.startPageActiveTrip': 'Viaje activo',
+  'settings.startPageHint':
+    'TREK abre directamente el viaje que está en curso o el siguiente que empieza. Es el mismo viaje que destaca el panel.',
+  'settings.startTripTab': 'Pestaña de inicio',
+  'settings.startTripTabHint':
+    'La pestaña con la que se abre el viaje. Si pertenece a un complemento desactivado, se abre la vista de plan.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Caché offline',

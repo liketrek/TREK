@@ -18,6 +18,8 @@ TREK must be served over **HTTPS** — the install prompt does not appear on pla
 
 Once installed, TREK launches in **standalone** mode (fullscreen, no browser UI) using the TREK icon.
 
+The installed app starts at the app root, so the **Start page** setting decides what you see when you tap the icon — the dashboard, or straight into your active trip on a tab of your choice. See [Display-Settings](Display-Settings).
+
 ## What works offline
 
 TREK uses Workbox service-worker caching plus an IndexedDB database (Dexie) for structured trip data. The following content is available offline after the first sync:

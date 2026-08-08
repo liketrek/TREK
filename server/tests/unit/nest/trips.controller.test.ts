@@ -20,7 +20,7 @@ import { TripsController } from '../../../src/nest/trips/trips.controller';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
 import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
 import type { User } from '../../../src/types';
-import { tripCreateRequestSchema, tripTransferOwnershipRequestSchema } from '@trek/shared';
+import { activeTripResponseSchema, tripCreateRequestSchema, tripTransferOwnershipRequestSchema } from '@trek/shared';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const req = { headers: {} } as Request;
@@ -75,6 +75,24 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
     expect(list).toHaveBeenLastCalledWith(1, 0);
     c.list(user, '0');
     expect(list).toHaveBeenLastCalledWith(1, 0);
+  });
+
+  describe('GET /active (startup destination)', () => {
+    it('narrows the row to the contract shape and drops the sort helper', () => {
+      const activeTrip = vi.fn().mockReturnValue({
+        id: 7, title: 'Japan', start_date: '2026-09-01', end_date: '2026-09-14', relevance: 1,
+      });
+      const res = tc(svc({ activeTrip } as Partial<TripsService>)).active(user);
+      expect(res).toEqual({ trip: { id: 7, title: 'Japan', start_date: '2026-09-01', end_date: '2026-09-14' } });
+      expect(activeTripResponseSchema.safeParse(res).success).toBe(true);
+      expect(activeTrip).toHaveBeenCalledWith(1);
+    });
+
+    it('answers null instead of 404 when the user has no trip, so the caller can fall back', () => {
+      const res = tc(svc({ activeTrip: vi.fn().mockReturnValue(undefined) } as Partial<TripsService>)).active(user);
+      expect(res).toEqual({ trip: null });
+      expect(activeTripResponseSchema.safeParse(res).success).toBe(true);
+    });
   });
 
   describe('POST / (create)', () => {

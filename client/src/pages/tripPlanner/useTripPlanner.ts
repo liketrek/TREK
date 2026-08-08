@@ -27,6 +27,7 @@ import { usePluginStore } from '../../store/pluginStore'
 import type { Accommodation, TripMember, Day, Place, Reservation } from '../../types'
 import { DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { resolvePoolAssignmentId } from './tripPlannerModel'
+import { isDeepLinkableTripTab, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
 import {
   parseStoredConnections, resolveEffectiveConnections, resolveVisibleConnectionIds,
@@ -81,6 +82,10 @@ export function useTripPlanner() {
   }, [undo, lastActionLabel, toast])
 
   const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>({ packing: true, budget: true, documents: true, collab: false })
+  // The values above are an optimistic guess until the addon feed answers. The
+  // tab guard below waits for this before evicting anything, so a tab we were
+  // asked to open ('collab' in particular, guessed off) survives the gap.
+  const [addonsLoaded, setAddonsLoaded] = useState<boolean>(false)
   const [collabFeatures, setCollabFeatures] = useState<{ chat: boolean; notes: boolean; polls: boolean; whatsnext: boolean }>({ chat: true, notes: true, polls: true, whatsnext: true })
   const [tripAccommodations, setTripAccommodations] = useState<Accommodation[]>([])
   const [allowedFileTypes, setAllowedFileTypes] = useState<string | null>(null)
@@ -109,7 +114,7 @@ export function useTripPlanner() {
       data.addons.forEach(a => { map[a.id] = true })
       setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab })
       if (data.collabFeatures) setCollabFeatures(data.collabFeatures)
-    }).catch(() => {})
+    }).catch(() => {}).finally(() => setAddonsLoaded(true))
     authApi.getAppConfig().then(config => {
       if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
     }).catch(() => {})
@@ -124,13 +129,13 @@ export function useTripPlanner() {
   // them; 'plan' is never replaceable) and may pick where its own tab sits.
   const replacedTabs = new Set(tripPagePlugins.flatMap(p => p.tripPage?.replaces ?? []))
   const TRIP_TABS = [
-    { id: 'plan', label: t('trip.tabs.plan'), icon: Map },
-    { id: 'transports', label: t('trip.tabs.transports'), icon: Train },
-    { id: 'buchungen', label: t('trip.tabs.reservations'), shortLabel: t('trip.tabs.reservationsShort'), icon: Ticket },
-    ...(enabledAddons.packing ? [{ id: 'listen', label: t('trip.tabs.lists'), shortLabel: t('trip.tabs.listsShort'), icon: PackageCheck }] : []),
-    ...(enabledAddons.budget ? [{ id: 'finanzplan', label: t('trip.tabs.budget'), icon: Wallet }] : []),
-    ...(enabledAddons.documents ? [{ id: 'dateien', label: t('trip.tabs.files'), icon: FolderOpen }] : []),
-    ...(enabledAddons.collab ? [{ id: 'collab', label: t('admin.addons.catalog.collab.name'), icon: Users }] : []),
+    { id: 'plan', label: t(TRIP_TAB_LABEL_KEYS.plan), icon: Map },
+    { id: 'transports', label: t(TRIP_TAB_LABEL_KEYS.transports), icon: Train },
+    { id: 'buchungen', label: t(TRIP_TAB_LABEL_KEYS.buchungen), shortLabel: t('trip.tabs.reservationsShort'), icon: Ticket },
+    ...(enabledAddons.packing ? [{ id: 'listen', label: t(TRIP_TAB_LABEL_KEYS.listen), shortLabel: t('trip.tabs.listsShort'), icon: PackageCheck }] : []),
+    ...(enabledAddons.budget ? [{ id: 'finanzplan', label: t(TRIP_TAB_LABEL_KEYS.finanzplan), icon: Wallet }] : []),
+    ...(enabledAddons.documents ? [{ id: 'dateien', label: t(TRIP_TAB_LABEL_KEYS.dateien), icon: FolderOpen }] : []),
+    ...(enabledAddons.collab ? [{ id: 'collab', label: t(TRIP_TAB_LABEL_KEYS.collab), icon: Users }] : []),
   ].filter(tab => tab.id === 'plan' || !replacedTabs.has(tab.id))
   // Positioned plugin tabs splice in ascending order so two positions stay stable;
   // the rest append, exactly as before this capability existed.
@@ -138,20 +143,31 @@ export function useTripPlanner() {
   for (const p of positioned) TRIP_TABS.splice(Math.min(p.tripPage!.position!, TRIP_TABS.length), 0, { id: `plugin:${p.id}`, label: p.name, icon: resolvePluginIcon(p.icon) })
   for (const p of tripPagePlugins.filter(p => p.tripPage?.position == null)) TRIP_TABS.push({ id: `plugin:${p.id}`, label: p.name, icon: resolvePluginIcon(p.icon) })
 
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // ?tab=<id> opens the trip straight on that tab (the startup destination
+  // setting, a browser shortcut, a wrapper app). It beats the session's last
+  // tab because it is an explicit request for this one, and it is read in the
+  // initializer rather than an effect so the planner never paints the plan view
+  // first and swaps a frame later.
   const [activeTab, setActiveTab] = useState<string>(() => {
-    const saved = sessionStorage.getItem(`trip-tab-${tripId}`)
-    return saved || 'plan'
+    const requested = searchParams.get('tab')
+    if (requested && isDeepLinkableTripTab(requested)) return requested
+    return sessionStorage.getItem(`trip-tab-${tripId}`) || 'plan'
   })
 
   useEffect(() => {
     // Don't evict a saved plugin tab before the plugin feed has loaded.
     if (activeTab.startsWith('plugin:') && !pluginsLoaded) return
+    // Same for the addon-owned tabs: until the feed answers, enabledAddons is a
+    // guess, and evicting on a guess would drop a legitimately requested tab.
+    if (!addonsLoaded) return
     const validTabIds = TRIP_TABS.map(t => t.id)
     if (!validTabIds.includes(activeTab)) {
       setActiveTab('plan')
       sessionStorage.setItem(`trip-tab-${tripId}`, 'plan')
     }
-  }, [activeTab, enabledAddons, tripPluginIds, pluginsLoaded])
+  }, [activeTab, enabledAddons, addonsLoaded, tripPluginIds, pluginsLoaded])
 
   const handleTabChange = (rawTabId: string): void => {
     // A core tab a plugin replaced is gone from the bar, but a programmatic jump
@@ -163,6 +179,19 @@ export function useTripPlanner() {
     if (tabId === 'finanzplan') tripActions.loadBudgetItems?.(tripId)
     if (tabId === 'dateien' && (!files || files.length === 0)) tripActions.loadFiles?.(tripId)
   }
+
+  // handleTabChange is where a tab's lazy load and its session memory happen, and
+  // the tab we *start* on never goes through it — neither a ?tab= deep link nor a
+  // tab restored from a previous visit. Catch both up once per trip, or opening
+  // straight into Files shows an empty list.
+  const startTabSettled = useRef<number | null>(null)
+  useEffect(() => {
+    if (!tripId || startTabSettled.current === tripId) return
+    startTabSettled.current = tripId
+    sessionStorage.setItem(`trip-tab-${tripId}`, activeTab)
+    if (activeTab === 'finanzplan') tripActions.loadBudgetItems?.(tripId)
+    if (activeTab === 'dateien' && (!files || files.length === 0)) tripActions.loadFiles?.(tripId)
+  }, [tripId])
   const { leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed, startResizeLeft, startResizeRight } = useResizablePanels()
   const { selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment } = usePlaceSelection()
   const [showDayDetail, setShowDayDetail] = useState<Day | null>(null)
@@ -171,7 +200,6 @@ export function useTripPlanner() {
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null>(null)
   const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(null)
-  const [searchParams, setSearchParams] = useSearchParams()
 
   // The bottom-nav "+" opens the new-place form via ?create=place.
   useEffect(() => {
@@ -179,6 +207,14 @@ export function useTripPlanner() {
       setEditingPlace(null); setEditingAssignmentId(null); setShowPlaceForm(true)
       setSearchParams(p => { p.delete('create'); return p }, { replace: true })
     }
+  }, [searchParams])
+
+  // ?tab= has done its job in the state initializer above — drop it so the URL
+  // stops claiming a tab the user may have since switched away from. The session
+  // memory keeps the choice across a reload.
+  useEffect(() => {
+    if (searchParams.get('tab') === null) return
+    setSearchParams(p => { p.delete('tab'); return p }, { replace: true })
   }, [searchParams])
   const [showTripForm, setShowTripForm] = useState<boolean>(false)
   const [showMembersModal, setShowMembersModal] = useState<boolean>(false)

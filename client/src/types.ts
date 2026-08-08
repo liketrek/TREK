@@ -133,6 +133,10 @@ export interface Settings {
   dashboard_fx_from?: string
   dashboard_fx_to?: string
   dashboard_timezones?: string[]
+  /** Where opening TREK lands: the dashboard, or straight in the active trip. */
+  start_page?: 'dashboard' | 'active_trip'
+  /** Which planner tab 'active_trip' opens on — a TripTabId (constants/tripTabs). */
+  start_trip_tab?: string
   // AI booking-import fallback (per-user config; used when the admin has not set
   // instance-wide config on the llm_parsing addon). llm_api_key is masked on read.
   llm_provider?: 'local' | 'openai' | 'anthropic'

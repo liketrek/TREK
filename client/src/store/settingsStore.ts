@@ -5,6 +5,7 @@ import { DEFAULT_APPEARANCE } from '@trek/shared'
 import { getApiErrorMessage } from '../types'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
 import { normalizeTileUrl } from '../utils/tileUrl'
+import { rememberStartDestination, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from '../utils/startDestination'
 
 interface SettingsState {
   settings: Settings
@@ -49,6 +50,8 @@ export const DEFAULT_SETTINGS: Settings = {
   mapbox_quality_mode: false,
   dashboard_fx_from: 'EUR',
   dashboard_fx_to: 'USD',
+  start_page: DEFAULT_START_PAGE,
+  start_trip_tab: DEFAULT_START_TRIP_TAB,
   appearance: DEFAULT_APPEARANCE,
   // dashboard_timezones is intentionally left unset so the widget can tell "never
   // chosen" (fall back to home + defaults) from an explicitly emptied list.
@@ -84,6 +87,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           settings: { ...state.settings, ...incoming },
           isLoaded: true,
         }))
+        // The startup redirect runs before this ever resolves, so keep a mirror
+        // it can read synchronously on the next launch.
+        rememberStartDestination(incoming)
       } catch (err: unknown) {
         // Leave isLoaded false so a transient failure — offline at launch, or a
         // (docker) server cold-start racing the first request — is retried on
@@ -104,6 +110,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       settings: { ...state.settings, [key]: next },
     }))
     if (key === 'language') localStorage.setItem('app_language', next as string)
+    rememberStartDestination({ [key]: next } as Partial<Settings>)
     try {
       await settingsApi.set(key, next)
     } catch (err: unknown) {
@@ -130,6 +137,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set((state) => ({
       settings: { ...state.settings, ...patch },
     }))
+    rememberStartDestination(patch)
     try {
       await settingsApi.setBulk(patch)
     } catch (err: unknown) {

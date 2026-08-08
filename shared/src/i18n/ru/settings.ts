@@ -447,6 +447,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Скрыто',
   'settings.general.languageRegion': 'Язык и регион',
   'settings.general.travelMap': 'Карта и путешествия',
+  'settings.general.startup': 'Запуск',
+  'settings.startPage': 'Стартовая страница',
+  'settings.startPageDashboard': 'Панель управления',
+  'settings.startPageActiveTrip': 'Активная поездка',
+  'settings.startPageHint':
+    'TREK сразу открывает поездку, которая идёт сейчас, иначе ближайшую предстоящую. Это та же поездка, которую выделяет панель управления.',
+  'settings.startTripTab': 'Стартовая вкладка',
+  'settings.startTripTabHint':
+    'Вкладка, с которой открывается поездка. Если она относится к отключённому дополнению, откроется план.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Офлайн-кэш',

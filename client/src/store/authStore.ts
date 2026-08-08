@@ -11,6 +11,7 @@ import { unregisterSyncTriggers } from '../sync/syncTriggers'
 import { useSystemNoticeStore } from './systemNoticeStore.js'
 import { clearAppearanceSnapshot } from '../theme/applyAppearance'
 import { clearAllPluginSessions } from './pluginStore'
+import { forgetStartDestination } from '../utils/startDestination'
 
 interface AuthResponse {
   user: User
@@ -199,6 +200,9 @@ export const useAuthStore = create<AuthState>()(
     // Same reason for the brokered plugin session state: it is keyed by user id,
     // but sessionStorage outlives a logout within the tab.
     clearAllPluginSessions()
+    // And the startup-destination mirror, or the next account on this browser
+    // gets bounced into a trip it may not even be able to see.
+    forgetStartDestination()
     // 4. Tell server to clear the httpOnly cookie (best-effort).
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {})
     // 5. Clear service worker caches containing sensitive data.

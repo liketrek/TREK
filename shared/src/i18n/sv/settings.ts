@@ -445,6 +445,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Dold',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Start',
+  'settings.startPage': 'Startsida',
+  'settings.startPageDashboard': 'Översikt',
+  'settings.startPageActiveTrip': 'Aktiv resa',
+  'settings.startPageHint':
+    'TREK öppnar direkt i resan som pågår, annars i nästa som börjar. Det är samma resa som översikten lyfter fram.',
+  'settings.startTripTab': 'Startflik',
+  'settings.startTripTabHint':
+    'Fliken som resan öppnas med. Hör den till ett avstängt tillägg öppnas planvyn i stället.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Offline-cache',

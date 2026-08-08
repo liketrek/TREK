@@ -439,6 +439,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Skryto',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Spuštění',
+  'settings.startPage': 'Úvodní stránka',
+  'settings.startPageDashboard': 'Přehled',
+  'settings.startPageActiveTrip': 'Aktivní cesta',
+  'settings.startPageHint':
+    'TREK se otevře rovnou na cestě, která právě probíhá, jinak na nejbližší nadcházející. Je to táž cesta, kterou zvýrazňuje přehled.',
+  'settings.startTripTab': 'Úvodní karta',
+  'settings.startTripTabHint':
+    'Karta, kterou se cesta otevře. Pokud patří k vypnutému doplňku, otevře se místo ní plán.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Offline mezipaměť',

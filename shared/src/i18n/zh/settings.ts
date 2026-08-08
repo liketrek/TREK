@@ -416,6 +416,14 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': '已隐藏',
   'settings.general.languageRegion': '语言与地区',
   'settings.general.travelMap': '旅行与地图',
+  'settings.general.startup': '启动',
+  'settings.startPage': '启动页面',
+  'settings.startPageDashboard': '仪表盘',
+  'settings.startPageActiveTrip': '进行中的旅行',
+  'settings.startPageHint':
+    'TREK 会直接打开正在进行的旅行，没有则打开最近要开始的那次。与仪表盘突出显示的是同一次旅行。',
+  'settings.startTripTab': '启动标签页',
+  'settings.startTripTabHint': '旅行打开时所在的标签页。如果该标签页属于已关闭的插件，则改为打开计划视图。',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': '离线缓存',

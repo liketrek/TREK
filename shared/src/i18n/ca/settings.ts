@@ -429,6 +429,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Ocult',
   'settings.general.languageRegion': 'Idioma i regió',
   'settings.general.travelMap': 'Viatge i mapa',
+  'settings.general.startup': 'Inici',
+  'settings.startPage': "Pàgina d'inici",
+  'settings.startPageDashboard': 'Tauler',
+  'settings.startPageActiveTrip': 'Viatge actiu',
+  'settings.startPageHint':
+    'TREK obre directament el viatge que està en curs, o el següent que comença. És el mateix viatge que destaca el tauler.',
+  'settings.startTripTab': "Pestanya d'inici",
+  'settings.startTripTabHint':
+    "La pestanya amb què s'obre el viatge. Si pertany a un complement desactivat, s'obre la vista de planificació.",
   'settings.offline.cache.title': 'Memòria cau fora de línia',
   'settings.offline.mode.title': 'Mode fora de línia',
   'settings.offline.mode.force': 'Forçar mode fora de línia',
