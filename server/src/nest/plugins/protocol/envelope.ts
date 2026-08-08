@@ -161,7 +161,7 @@ export const KNOWN_METHODS = [
 export type KnownMethod = (typeof KNOWN_METHODS)[number];
 
 /** Which permission unlocks which method(s). The single source for the router. */
-export const METHOD_PERMISSION: Record<KnownMethod, string> = {
+export const METHOD_PERMISSION = {
   'db.exec': 'db:own',
   'db.query': 'db:own',
   'db.migrate': 'db:own',
@@ -274,7 +274,11 @@ export const METHOD_PERMISSION: Record<KnownMethod, string> = {
   // it rides on the existing jobs:run grant (no new permission, no re-consent).
   'scheduler.set': 'jobs:run',
   'scheduler.cancel': 'jobs:run',
-};
+} as const satisfies Record<KnownMethod, KnownPermission>;
+
+/** The permission METHOD_PERMISSION assigns to `M` — the data-source binding a
+ *  @PluginMethod decorator argument is checked against. */
+export type MethodPermission<M extends KnownMethod> = (typeof METHOD_PERMISSION)[M];
 
 /** All permission strings the host understands (unknown ones are rejected at activation). */
 export const KNOWN_PERMISSIONS = [
@@ -352,6 +356,63 @@ export const KNOWN_PERMISSIONS = [
   // position unless its own client ships it through one of its routes.
   'geolocation:read',
 ] as const;
+
+/**
+ * The union every permission-shaped value must live in. This closes an asymmetry:
+ * KnownMethod was derived, this was not, so METHOD_PERMISSION's value side was a bare
+ * `string` — 'db:read:trps' compiled fine and made the method unreachable forever.
+ *
+ * NOT usable for `http:outbound:<host>`: that family is open-ended by design and is
+ * only ever checked through isKnownPermission below.
+ */
+export type KnownPermission = (typeof KNOWN_PERMISSIONS)[number];
+
+/**
+ * hooks.<key> -> the permission that must ALSO be granted for the host to ever call it.
+ *
+ * A plugin may only act as a provider for a hook it BOTH implements (reported by the
+ * child at load) AND was granted the matching hook:* permission for. The child reports
+ * Object.keys(def.hooks) with no knowledge of grants, so the grant check must happen
+ * host-side.
+ *
+ * Moved here verbatim from supervisor/plugin-supervisor.ts, which had a byte-identical
+ * copy, as did plugin-sdk/src/permissions.ts. The three were in sync, but a hook whose
+ * permission is missing on one side fails SILENTLY in production - the plugin installs,
+ * activates and then simply never gets called - so the duplication was a quiet outage
+ * waiting to happen. `satisfies` is new enforcement on top: 'hook:typo-provider' used to
+ * compile and leave the hook dead forever.
+ */
+export const HOOK_PERMISSION = {
+  photoProvider: 'hook:photo-provider',
+  calendarSource: 'hook:calendar-source',
+  placeDetailProvider: 'hook:place-detail-provider',
+  warningProvider: 'hook:trip-warning-provider',
+  tableContributor: 'hook:table-contributor',
+  mapMarkerProvider: 'hook:map-marker-provider',
+  mapLayerProvider: 'hook:map-layer-provider',
+  routeProvider: 'hook:route-provider',
+  dayScheduleProvider: 'hook:day-schedule-provider',
+  dayTintProvider: 'hook:day-tint-provider',
+  pdfSectionProvider: 'hook:pdf-section-provider',
+  atlasLayerProvider: 'hook:atlas-layer-provider',
+  journalEntryProvider: 'hook:journal-entry-provider',
+  tripCardProvider: 'hook:trip-card-provider',
+  notificationChannel: 'hook:notification-channel',
+} as const satisfies Record<string, KnownPermission>;
+
+export type HookKey = keyof typeof HOOK_PERMISSION;
+/** The hook:* permission HOOK_PERMISSION assigns to `H`. */
+export type HookPermission<H extends HookKey> = (typeof HOOK_PERMISSION)[H];
+
+/** Gates the GDPR handlers (deleteUserData / exportUserData). Not a hooks.* key. */
+export const USER_DATA_PERMISSION = 'hook:user-data' satisfies KnownPermission;
+/** Gates event subscriptions - without it the host delivers the plugin nothing. */
+export const EVENTS_PERMISSION = 'events:subscribe' satisfies KnownPermission;
+/** Gates jobs, and the ctx.scheduler timers that fire `scheduled`. */
+export const JOBS_PERMISSION = 'jobs:run' satisfies KnownPermission;
+/** Prefix of the host-scoped egress family. Deliberately NOT a KnownPermission -
+ *  the host half is open-ended, so it is only ever checked by isKnownPermission. */
+export const HTTP_OUTBOUND_PREFIX = 'http:outbound:';
 
 export function isKnownPermission(p: string): boolean {
   return (KNOWN_PERMISSIONS as readonly string[]).includes(p) || p.startsWith('http:outbound:');

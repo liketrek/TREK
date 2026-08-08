@@ -14,36 +14,28 @@
 export class PermissionDenied extends Error {}
 
 /**
- * hooks.<key> → the permission that must ALSO be granted for TREK to ever call it.
- * Mirrors HOOK_PERMISSION in the host's supervisor (plugin-supervisor.ts): a plugin
- * provides a hook only if it BOTH implements it and holds this grant.
+ * hooks.<key> -> the permission that must ALSO be granted for TREK to ever call it, plus
+ * the three capability gates that are not hooks.* keys.
+ *
+ * These are GENERATED from the host's single source, server/src/nest/plugins/protocol/
+ * envelope.ts, by server/scripts/gen-plugin-facts.ts. They used to be a hand-kept copy
+ * guarded by a regex scrape of plugin-supervisor.ts in test/permissions-parity.test.ts -
+ * which only ran from prepublishOnly, so drift would have surfaced as a broken release.
+ *
+ * The re-exported types stay WIDE (Readonly<Record<string, string>>), exactly as before:
+ * grantGaps below indexes HOOK_PERMISSION with a plain string, and this package compiles
+ * under "strict": true.
  */
-export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
-  photoProvider: 'hook:photo-provider',
-  calendarSource: 'hook:calendar-source',
-  placeDetailProvider: 'hook:place-detail-provider',
-  warningProvider: 'hook:trip-warning-provider',
-  tableContributor: 'hook:table-contributor',
-  mapMarkerProvider: 'hook:map-marker-provider',
-  mapLayerProvider: 'hook:map-layer-provider',
-  routeProvider: 'hook:route-provider',
-  dayScheduleProvider: 'hook:day-schedule-provider',
-  dayTintProvider: 'hook:day-tint-provider',
-  pdfSectionProvider: 'hook:pdf-section-provider',
-  atlasLayerProvider: 'hook:atlas-layer-provider',
-  journalEntryProvider: 'hook:journal-entry-provider',
-  tripCardProvider: 'hook:trip-card-provider',
-  notificationChannel: 'hook:notification-channel',
-};
-
-/** Gates the GDPR handlers (deleteUserData / exportUserData). Not a hooks.* key. */
-export const USER_DATA_PERMISSION = 'hook:user-data';
-/** Gates event subscriptions — without it the host delivers the plugin nothing. */
-export const EVENTS_PERMISSION = 'events:subscribe';
-/** Gates jobs, and the ctx.scheduler timers that fire `scheduled`. */
-export const JOBS_PERMISSION = 'jobs:run';
-
-const HTTP_OUTBOUND = 'http:outbound:';
+export {
+  HOOK_PERMISSION,
+  USER_DATA_PERMISSION,
+  EVENTS_PERMISSION,
+  JOBS_PERMISSION,
+} from './generated/host-facts.js';
+import {
+  HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION,
+  HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND,
+} from './generated/host-facts.js';
 
 /** The structural shape of a loaded plugin that grantGaps needs. */
 export interface PluginEntryPoints {

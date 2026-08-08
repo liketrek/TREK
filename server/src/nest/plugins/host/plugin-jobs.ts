@@ -1,4 +1,5 @@
 import cron, { type ScheduledTask } from 'node-cron';
+import { JOBS_PERMISSION } from '../protocol/envelope';
 
 /**
  * Host-side scheduler for a plugin's declared background jobs (#plugins).
@@ -23,7 +24,7 @@ export interface ScheduledJob {
 }
 
 /** Grant that must be present for a plugin's jobs to be scheduled at all. */
-export const JOBS_RUN_PERMISSION = 'jobs:run';
+export { JOBS_PERMISSION as JOBS_RUN_PERMISSION } from '../protocol/envelope';
 
 /**
  * Schedule every valid-cron job (returns the node-cron tasks to keep for teardown).
@@ -34,7 +35,7 @@ export function scheduleJobs(
   jobs: readonly ScheduledJob[],
   run: (jobId: string) => void,
 ): ScheduledTask[] {
-  if (!granted.has(JOBS_RUN_PERMISSION)) return [];
+  if (!granted.has(JOBS_PERMISSION)) return [];
   const tasks: ScheduledTask[] = [];
   for (const job of jobs) {
     if (!job.schedule || !cron.validate(job.schedule)) continue; // invalid cron -> never runs

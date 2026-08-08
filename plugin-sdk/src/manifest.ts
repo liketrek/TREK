@@ -75,26 +75,8 @@ export const CHANNEL_EVENTS = [
 // This is THE list. `create`'s permission picker is built from it (see PERMISSION_FAMILIES
 // in cli/ui.ts, which only supplies the grouping and hints), so a permission added here can
 // never again go missing from the scaffolder — test/cli.test.ts fails until it has an entry.
-export const KNOWN_PERMISSIONS = [
-  'db:own',
-  'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files',
-  'db:read:files:content', 'db:read:collab',
-  'db:read:journal', 'db:read:atlas', 'db:read:vacay', 'db:read:daynotes', 'db:read:collections',
-  'db:read:categories', 'db:read:tags', 'db:read:todos',
-  'db:write:costs', 'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
-  'db:write:reservations', 'db:write:accommodations', 'db:write:packing', 'db:write:files',
-  'db:write:collab', 'db:write:members', 'db:write:collections', 'db:write:atlas', 'db:write:vacay',
-  'db:write:journal', 'db:write:tags', 'db:write:todos', 'db:write:daynotes',
-  'db:create:trips',
-  'db:meta',
-  'ws:broadcast:trip', 'ws:broadcast:user',
-  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider',
-  'hook:table-contributor', 'hook:map-marker-provider', 'hook:map-layer-provider', 'hook:route-provider', 'hook:day-schedule-provider', 'hook:day-tint-provider', 'hook:pdf-section-provider', 'hook:atlas-layer-provider',
-  'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data',
-  'events:subscribe', 'jobs:run', 'http:outbound',
-  'weather:read', 'rates:read', 'notify:send', 'ai:invoke', 'oauth:client',
-  'geolocation:read',
-];
+export { KNOWN_PERMISSIONS } from './generated/host-facts.js';
+import { KNOWN_PERMISSIONS } from './generated/host-facts.js';
 
 function isKnownPermission(p: string): boolean {
   return KNOWN_PERMISSIONS.includes(p) || p.startsWith('http:outbound:');
