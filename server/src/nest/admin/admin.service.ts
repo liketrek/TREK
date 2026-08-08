@@ -18,7 +18,7 @@ import type { User, Addon } from '../../types';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { avatarUrl } from '../common/avatarUrl';
 import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
-import { getPhotoProviderConfig } from '../../services/memories/helpersService';
+import { getPhotoProviderConfig } from '../memories/memories.helpers';
 import { validatePassword } from '../common/passwordPolicy';
 import { UserCleanupService } from '../auth/user-cleanup.service';
 import { NotificationPreferencesService } from '../notifications/notification-preferences.service';

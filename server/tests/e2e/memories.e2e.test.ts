@@ -52,19 +52,16 @@ const { unified, immich, synology } = vi.hoisted(() => ({
     streamSynologyAsset: vi.fn(),
   },
 }));
-vi.mock('../../src/services/memories/unifiedService', () => unified);
-vi.mock('../../src/services/memories/immichService', () => immich);
-vi.mock('../../src/services/memories/synologyService', () => synology);
-
+// The three provider services and the access check are injected since the fold,
+// so they are overridden at the container instead of mocked by module path.
 const { canAccessUserPhoto } = vi.hoisted(() => ({ canAccessUserPhoto: vi.fn() }));
-vi.mock('../../src/services/memories/helpersService', async () => {
-  const actual = await vi.importActual<typeof import('../../src/services/memories/helpersService')>(
-    '../../src/services/memories/helpersService',
-  );
-  return { ...actual, canAccessUserPhoto };
-});
 
+import { DatabaseModule } from '../../src/nest/database/database.module';
 import { MemoriesModule } from '../../src/nest/memories/memories.module';
+import { UnifiedMemoriesService } from '../../src/nest/memories/unified-memories.service';
+import { ImmichService } from '../../src/nest/memories/immich.service';
+import { SynologyService } from '../../src/nest/memories/synology.service';
+import { MemoriesAccessService } from '../../src/nest/memories/memories-access.service';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
@@ -78,7 +75,12 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [RealtimeModule, MemoriesModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, MemoriesModule] })
+      .overrideProvider(UnifiedMemoriesService).useValue(unified)
+      .overrideProvider(ImmichService).useValue(immich)
+      .overrideProvider(SynologyService).useValue(synology)
+      .overrideProvider(MemoriesAccessService).useValue({ canAccessUserPhoto })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

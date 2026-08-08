@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import * as svc from '../../services/journeyService';
 import * as share from '../../services/journeyShareService';
-import { uploadToImmich, streamImmichAsset } from '../../services/memories/immichService';
-import { streamPhoto } from '../../services/memories/photoResolverService';
+import { ImmichService } from '../memories/immich.service';
+import { SynologyService } from '../memories/synology.service';
+import { PhotoResolverService } from '../memories/photo-resolver.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
 import type { Response } from 'express';
@@ -19,6 +20,9 @@ export class JourneyService {
   constructor(
     private readonly dbs: DatabaseService,
     private readonly addons: AddonsService,
+    private readonly immich: ImmichService,
+    private readonly synology: SynologyService,
+    private readonly photoResolver: PhotoResolverService,
   ) {}
 
   private get db() {
@@ -85,16 +89,17 @@ export class JourneyService {
     const prefs = this.db.prepare('SELECT immich_auto_upload FROM users WHERE id = ?').get(userId) as { immich_auto_upload?: number } | undefined;
     return !!prefs?.immich_auto_upload;
   }
-  uploadToImmich(userId: number, relativePath: string, originalName: string) { return uploadToImmich(userId, relativePath, originalName); }
+  uploadToImmich(userId: number, relativePath: string, originalName: string) { return this.immich.uploadToImmich(userId, relativePath, originalName); }
 
   // Public (share-token) access — no auth, validated by token.
   getPublicJourney(token: string) { return share.getPublicJourney(token); }
   validateShareTokenForPhoto(token: string, photoId: number) { return share.validateShareTokenForPhoto(token, photoId); }
   validateShareTokenForAsset(token: string, assetId: string) { return share.validateShareTokenForAsset(token, assetId); }
-  streamPhoto(res: Response, ownerId: number, photoId: number, kind: 'thumbnail' | 'original') { return streamPhoto(res, ownerId, photoId, kind); }
-  streamImmichAsset(res: Response, userId: number, assetId: string, kind: 'thumbnail' | 'original', ownerId: number) { return streamImmichAsset(res, userId, assetId, kind, ownerId); }
-  async streamSynologyAsset(res: Response, userId: number, ownerId: number, assetId: string, kind: 'thumbnail' | 'original') {
-    const { streamSynologyAsset } = await import('../../services/memories/synologyService');
-    return streamSynologyAsset(res, userId, ownerId, assetId, kind);
+  streamPhoto(res: Response, ownerId: number, photoId: number, kind: 'thumbnail' | 'original') { return this.photoResolver.streamPhoto(res, ownerId, photoId, kind); }
+  streamImmichAsset(res: Response, userId: number, assetId: string, kind: 'thumbnail' | 'original', ownerId: number) { return this.immich.streamImmichAsset(res, userId, assetId, kind, ownerId); }
+  // Was a dynamic import(): the memories cluster had a real import cycle and
+  // this was the workaround. The cycle is gone, so it is a plain injection now.
+  streamSynologyAsset(res: Response, userId: number, ownerId: number, assetId: string, kind: 'thumbnail' | 'original') {
+    return this.synology.streamSynologyAsset(res, userId, ownerId, assetId, kind);
   }
 }

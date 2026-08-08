@@ -11,7 +11,7 @@ import { db as dbConn } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 
 const { getPhotoProviderConfig } = vi.hoisted(() => ({ getPhotoProviderConfig: vi.fn(() => ({})) }));
-vi.mock('../../../src/services/memories/helpersService', () => ({ getPhotoProviderConfig }));
+vi.mock('../../../src/nest/memories/memories.helpers', () => ({ getPhotoProviderConfig }));
 
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 

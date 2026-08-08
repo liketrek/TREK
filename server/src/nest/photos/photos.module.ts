@@ -1,17 +1,19 @@
 import { Module } from '@nestjs/common';
 import { PhotosController } from './photos.controller';
 import { PhotosService } from './photos.service';
-import { TrekPhotosRepository } from './trek-photos.repository';
+import { TrekPhotosModule } from './trek-photos.module';
+import { MemoriesModule } from '../memories/memories.module';
 
 /**
- * The trek_photos store plus the /api/photos read surface. The repository is
- * exported because the trip-photo and journey domains register rows in it
- * without caring which provider the bytes come from — that dispatch stays in
- * memories/.
+ * /api/photos — the trek_photo read surface. Access control and the byte
+ * fetching both come from the memories domain, which owns provider dispatch;
+ * the row store comes from TrekPhotosModule, which memories imports too. That
+ * shared leaf is what keeps this a straight line instead of a forwardRef.
  */
 @Module({
+  imports: [TrekPhotosModule, MemoriesModule],
   controllers: [PhotosController],
-  providers: [PhotosService, TrekPhotosRepository],
-  exports: [TrekPhotosRepository],
+  providers: [PhotosService],
+  exports: [TrekPhotosModule],
 })
 export class PhotosModule {}

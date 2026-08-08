@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import type { Addon } from '../../types';
-import { getPhotoProviderConfig } from '../../services/memories/helpersService';
+import { getPhotoProviderConfig } from '../memories/memories.helpers';
 
 /**
  * Thin wrapper around the enabled-addons + photo-provider read that the legacy

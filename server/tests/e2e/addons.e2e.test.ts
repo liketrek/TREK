@@ -36,7 +36,7 @@ vi.mock('../../src/db/database', () => ({
 const { getPhotoProviderConfig } = vi.hoisted(() => ({
   getPhotoProviderConfig: vi.fn(() => ({ url: 'https://immich.example' })),
 }));
-vi.mock('../../src/services/memories/helpersService', () => ({ getPhotoProviderConfig }));
+vi.mock('../../src/nest/memories/memories.helpers', () => ({ getPhotoProviderConfig }));
 
 import { AddonsModule } from '../../src/nest/addons/addons.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';

@@ -57,8 +57,19 @@ const { photoSvc, helperSvc } = vi.hoisted(() => ({
   photoSvc: { streamPhoto: vi.fn(), getPhotoInfo: vi.fn(), resolveTrekPhoto: vi.fn() },
   helperSvc: { canAccessTrekPhoto: vi.fn() },
 }));
-vi.mock('../../src/services/memories/photoResolverService', () => photoSvc);
-vi.mock('../../src/services/memories/helpersService', () => helperSvc);
+// Both are providers since the fold; PhotosModule resolves them through DI, so
+// the stubs go on the prototypes rather than on a module path.
+vi.mock('../../src/nest/memories/photo-resolver.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/nest/memories/photo-resolver.service')>();
+  actual.PhotoResolverService.prototype.streamPhoto = photoSvc.streamPhoto;
+  actual.PhotoResolverService.prototype.getPhotoInfo = photoSvc.getPhotoInfo;
+  return actual;
+});
+vi.mock('../../src/nest/memories/memories-access.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/nest/memories/memories-access.service')>();
+  actual.MemoriesAccessService.prototype.canAccessTrekPhoto = helperSvc.canAccessTrekPhoto;
+  return actual;
+});
 
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';

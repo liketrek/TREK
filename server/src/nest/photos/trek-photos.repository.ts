@@ -79,6 +79,17 @@ export class TrekPhotosRepository {
   }
 
   /**
+   * Stamp a generated local thumbnail onto the row. COALESCE keeps dimensions
+   * that were already known — a re-generated thumbnail must not blank them.
+   */
+  recordLocalThumbnail(photoId: number, thumbnailPath: string, width: number, height: number): void {
+    this.db.run(
+      'UPDATE trek_photos SET thumbnail_path = ?, width = COALESCE(width, ?), height = COALESCE(height, ?) WHERE id = ?',
+      thumbnailPath, width, height, photoId,
+    );
+  }
+
+  /**
    * Drop the row once no trip and no journey references it. Local photos are
    * kept: their bytes are ours, and the file would outlive the row.
    */

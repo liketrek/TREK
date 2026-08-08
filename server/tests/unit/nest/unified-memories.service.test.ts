@@ -1,5 +1,6 @@
 /**
- * Unit tests for memories/unifiedService — MEM-UNIFIED-001 to MEM-UNIFIED-010.
+ * Unit tests for UnifiedMemoriesService — MEM-UNIFIED-001 to MEM-UNIFIED-010.
+ * Moved 1:1 with the fold; the free functions became methods.
  * Covers error paths: access denied, disabled provider, no providers enabled.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
@@ -44,15 +45,32 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
-import {
-  listTripPhotos,
-  listTripAlbumLinks,
-  addTripPhotos,
-  setTripPhotoSharing,
-  removeTripPhoto,
-  createTripAlbumLink,
-  removeAlbumLink,
-} from '../../../src/services/memories/unifiedService';
+import { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
+import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { ImmichService } from '../../../src/nest/memories/immich.service';
+import type { SynologyService } from '../../../src/nest/memories/synology.service';
+
+// The album-sync paths are the providers' half and have their own suites; these
+// cases never reach them, so stubs keep the graph small.
+const dbs = new DatabaseService(testDb);
+const svc = new UnifiedMemoriesService(
+  dbs,
+  new TrekPhotosRepository(dbs),
+  {} as ImmichService,
+  {} as SynologyService,
+  new MemoriesAccessService(dbs),
+);
+
+// Legacy free-function names bound to the service, so the moved cases read as before.
+const listTripPhotos = svc.listTripPhotos.bind(svc);
+const listTripAlbumLinks = svc.listTripAlbumLinks.bind(svc);
+const addTripPhotos = svc.addTripPhotos.bind(svc);
+const setTripPhotoSharing = svc.setTripPhotoSharing.bind(svc);
+const removeTripPhoto = svc.removeTripPhoto.bind(svc);
+const createTripAlbumLink = svc.createTripAlbumLink.bind(svc);
+const removeAlbumLink = svc.removeAlbumLink.bind(svc);
 
 beforeAll(() => {
   createTables(testDb);

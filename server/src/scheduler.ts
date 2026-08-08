@@ -352,6 +352,25 @@ function startIdempotencyCleanup(): void {
 }
 
 // Trek photo cache cleanup: every 2 hours — evict disk files and DB rows past their 1h TTL
+/**
+ * The cache sweep, reached from outside the container.
+ *
+ * Constructed per call rather than injected: the cron runs before/independently
+ * of any request, and the service holds no state of its own — the stampede
+ * guard it does own is a module-scoped Map, deliberately shared with the
+ * container instance. Required lazily so a boot without the nest graph (some
+ * tests) does not pull it in.
+ */
+function sweepTrekPhotoCache(): void {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { TrekPhotoCacheService } = require('./nest/memories/trek-photo-cache.service');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { DatabaseService } = require('./nest/database/database.service');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { db } = require('./db/database');
+  new TrekPhotoCacheService(new DatabaseService(db)).sweepExpired();
+}
+
 let trekPhotoCacheTask: ScheduledTask | null = null;
 
 function startTrekPhotoCacheCleanup(): void {
@@ -359,14 +378,12 @@ function startTrekPhotoCacheCleanup(): void {
 
   // Run once immediately on startup to evict any entries left over from a previous run
   try {
-    const { sweepExpired } = require('./services/memories/trekPhotoCache');
-    sweepExpired();
+    sweepTrekPhotoCache();
   } catch { /* cache dir may not exist yet — harmless */ }
 
   trekPhotoCacheTask = cron.schedule('0 */2 * * *', () => {
     try {
-      const { sweepExpired } = require('./services/memories/trekPhotoCache');
-      sweepExpired();
+      sweepTrekPhotoCache();
     } catch (err: unknown) {
       logError(`Trek photo cache cleanup: ${err instanceof Error ? err.message : err}`);
     }

@@ -15,7 +15,6 @@ const unified = vi.hoisted(() => ({
   removeTripPhoto: vi.fn(() => ({ data: {} })),
   setTripPhotoSharing: vi.fn(async () => ({ data: {} })),
 }));
-vi.mock('../../../src/services/memories/unifiedService', () => unified);
 
 const immich = vi.hoisted(() => ({
   getConnectionSettings: vi.fn(() => ({})),
@@ -32,7 +31,6 @@ const immich = vi.hoisted(() => ({
   getAssetInfo: vi.fn(async () => ({ data: {} })),
   isValidAssetId: vi.fn(() => true),
 }));
-vi.mock('../../../src/services/memories/immichService', () => immich);
 
 const synology = vi.hoisted(() => ({
   getSynologySettings: vi.fn(async () => ({ success: true, data: {} })),
@@ -46,16 +44,18 @@ const synology = vi.hoisted(() => ({
   getSynologyAssetInfo: vi.fn(async () => ({ success: true, data: {} })),
   streamSynologyAsset: vi.fn(async () => undefined),
 }));
-vi.mock('../../../src/services/memories/synologyService', () => synology);
 
 const helpers = vi.hoisted(() => ({ canAccessUserPhoto: vi.fn(() => true) }));
-vi.mock('../../../src/services/memories/helpersService', () => helpers);
 
 const ws = vi.hoisted(() => ({ broadcast: vi.fn() }));
 vi.mock('../../../src/websocket', () => ws);
 
 import { MemoriesService } from '../../../src/nest/memories/memories.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import type { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
+import type { ImmichService } from '../../../src/nest/memories/immich.service';
+import type { SynologyService } from '../../../src/nest/memories/synology.service';
+import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
 
 const res = {} as import('express').Response;
 
@@ -64,7 +64,13 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
 
   beforeEach(() => {
     vi.clearAllMocks();
-    svc = new MemoriesService(new RealtimeService());
+    svc = new MemoriesService(
+      new RealtimeService(),
+      unified as unknown as UnifiedMemoriesService,
+      immich as unknown as ImmichService,
+      synology as unknown as SynologyService,
+      helpers as unknown as MemoriesAccessService,
+    );
   });
 
   it('access check + broadcast forward verbatim', () => {

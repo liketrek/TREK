@@ -30,8 +30,19 @@ const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true)
 // now come from the real files.constants; only the request-time app_settings
 // read is mocked, preserving the old '*'-allowlist semantics for the fixtures.
 vi.mock('../../src/nest/files/files.bridge', () => ({ getAllowedExtensions: () => '*' }));
-vi.mock('../../src/services/memories/immichService', () => ({ uploadToImmich: vi.fn(), streamImmichAsset: vi.fn() }));
-vi.mock('../../src/services/memories/photoResolverService', () => ({ streamPhoto: vi.fn() }));
+// The memories providers are injected since the fold — stubbed on the prototype
+// so JourneyModule still resolves them through DI.
+vi.mock('../../src/nest/memories/immich.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/nest/memories/immich.service')>();
+  actual.ImmichService.prototype.uploadToImmich = vi.fn();
+  actual.ImmichService.prototype.streamImmichAsset = vi.fn();
+  return actual;
+});
+vi.mock('../../src/nest/memories/photo-resolver.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/nest/memories/photo-resolver.service')>();
+  actual.PhotoResolverService.prototype.streamPhoto = vi.fn();
+  return actual;
+});
 
 const { jsvc } = vi.hoisted(() => ({
   jsvc: { listJourneys: vi.fn(), createJourney: vi.fn(), getJourneyFull: vi.fn() },

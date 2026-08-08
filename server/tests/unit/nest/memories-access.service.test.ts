@@ -1,5 +1,7 @@
 /**
- * Unit tests for memories/helpersService — MEM-HELPERS-001 to MEM-HELPERS-020.
+ * Unit tests for the memories helpers and access checks — MEM-HELPERS-001 to 020.
+ * Moved with the fold: the pure half is nest/memories/memories.helpers.ts, the
+ * DB-backed half is MemoriesAccessService.
  * Covers mapDbError, getAlbumIdFromLink, pipeAsset error paths.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
@@ -55,7 +57,12 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
-import { mapDbError, getAlbumIdFromLink, pipeAsset } from '../../../src/services/memories/helpersService';
+import { mapDbError, pipeAsset } from '../../../src/nest/memories/memories.helpers';
+import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+
+const access = new MemoriesAccessService(new DatabaseService(testDb));
+const getAlbumIdFromLink = access.getAlbumIdFromLink.bind(access);
 import { SsrfBlockedError } from '../../../src/utils/ssrfGuard';
 
 beforeAll(() => {
@@ -272,5 +279,177 @@ describe('pipeAsset fetch options (#1611)', () => {
     expect(res.status).toHaveBeenCalledWith(500);
     expect(errorSpy).toHaveBeenCalledWith(expect.any(String), boom);
     errorSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The access checks
+//
+// These decide who may fetch someone else's provider photo, and they had no
+// cases at all — they sat outside the measured tree. A provider asset is
+// reachable through a trip *or* a journey, which is why neither check can live
+// in the trips or the journey domain alone, and why both need pinning here.
+// ---------------------------------------------------------------------------
+
+/** A trek_photos row plus the trip_photos link that shares it. */
+function shareInTrip(tripId: number, ownerId: number, assetId: string, provider = 'immich', shared = 1): number {
+  const photoId = Number(testDb.prepare(
+    'INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)'
+  ).run(provider, assetId, ownerId).lastInsertRowid);
+  testDb.prepare('INSERT INTO trip_photos (trip_id, photo_id, user_id, shared) VALUES (?, ?, ?, ?)')
+    .run(tripId, photoId, ownerId, shared);
+  return photoId;
+}
+
+function makeJourney(userId: number): number {
+  return Number(testDb.prepare(
+    "INSERT INTO journeys (user_id, title, status, created_at, updated_at) VALUES (?, 'J', 'draft', 0, 0)"
+  ).run(userId).lastInsertRowid);
+}
+
+describe('canAccessUserPhoto', () => {
+  it('MEM-ACCESS-001: the owner always passes, with no lookup needed', () => {
+    expect(access.canAccessUserPhoto(7, 7, '1', 'asset-1', 'immich')).toBe(true);
+  });
+
+  it('MEM-ACCESS-002: a trip member sees an asset shared into that trip', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb, { username: 'member' });
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, member.id);
+    shareInTrip(trip.id, owner.id, 'asset-shared');
+
+    expect(access.canAccessUserPhoto(member.id, owner.id, String(trip.id), 'asset-shared', 'immich')).toBe(true);
+  });
+
+  it('MEM-ACCESS-003: an unshared asset stays private even inside the same trip', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb, { username: 'member' });
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, member.id);
+    shareInTrip(trip.id, owner.id, 'asset-private', 'immich', 0);
+
+    expect(access.canAccessUserPhoto(member.id, owner.id, String(trip.id), 'asset-private', 'immich')).toBe(false);
+  });
+
+  it('MEM-ACCESS-004: a stranger is refused even for a shared asset', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: stranger } = createUser(testDb, { username: 'stranger' });
+    const trip = createTrip(testDb, owner.id);
+    shareInTrip(trip.id, owner.id, 'asset-shared');
+
+    expect(access.canAccessUserPhoto(stranger.id, owner.id, String(trip.id), 'asset-shared', 'immich')).toBe(false);
+  });
+
+  it('MEM-ACCESS-005: the provider is part of the match — same asset id, other provider, no access', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb, { username: 'member' });
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, member.id);
+    shareInTrip(trip.id, owner.id, 'same-id', 'immich');
+
+    expect(access.canAccessUserPhoto(member.id, owner.id, String(trip.id), 'same-id', 'synologyphotos')).toBe(false);
+  });
+
+  it('MEM-ACCESS-006: tripId "0" routes through journeys — a contributor passes', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: contributor } = createUser(testDb, { username: 'contrib' });
+    const journeyId = makeJourney(owner.id);
+    const photoId = Number(testDb.prepare(
+      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset', ?)"
+    ).run(owner.id).lastInsertRowid);
+    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)").run(journeyId, contributor.id);
+
+    expect(access.canAccessUserPhoto(contributor.id, owner.id, '0', 'j-asset', 'immich')).toBe(true);
+  });
+
+  it('MEM-ACCESS-007: tripId "0" refuses someone with no journey link', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: stranger } = createUser(testDb, { username: 'stranger' });
+    const journeyId = makeJourney(owner.id);
+    const photoId = Number(testDb.prepare(
+      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset-2', ?)"
+    ).run(owner.id).lastInsertRowid);
+    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+
+    expect(access.canAccessUserPhoto(stranger.id, owner.id, '0', 'j-asset-2', 'immich')).toBe(false);
+  });
+
+  it('MEM-ACCESS-008: tripId "0" refuses an asset that is in no journey at all', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: other } = createUser(testDb, { username: 'other' });
+    expect(access.canAccessUserPhoto(other.id, owner.id, '0', 'not-in-any-journey', 'immich')).toBe(false);
+  });
+});
+
+describe('canAccessTrekPhoto', () => {
+  it('MEM-ACCESS-010: an unknown photo id is refused, not treated as public', () => {
+    expect(access.canAccessTrekPhoto(1, 999999)).toBe(false);
+  });
+
+  it('MEM-ACCESS-011: the owner passes', () => {
+    const { user } = createUser(testDb);
+    const photoId = Number(testDb.prepare(
+      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'own', ?)"
+    ).run(user.id).lastInsertRowid);
+
+    expect(access.canAccessTrekPhoto(user.id, photoId)).toBe(true);
+  });
+
+  it('MEM-ACCESS-012: a trip member passes for a shared photo, a stranger does not', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb, { username: 'member' });
+    const { user: stranger } = createUser(testDb, { username: 'stranger' });
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, member.id);
+    const photoId = shareInTrip(trip.id, owner.id, 'trek-shared');
+
+    expect(access.canAccessTrekPhoto(member.id, photoId)).toBe(true);
+    expect(access.canAccessTrekPhoto(stranger.id, photoId)).toBe(false);
+  });
+
+  it('MEM-ACCESS-013: the trip owner passes without a trip_members row', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: uploader } = createUser(testDb, { username: 'uploader' });
+    const trip = createTrip(testDb, owner.id);
+    const photoId = shareInTrip(trip.id, uploader.id, 'owner-path');
+
+    expect(access.canAccessTrekPhoto(owner.id, photoId)).toBe(true);
+  });
+
+  it('MEM-ACCESS-014: a journey contributor passes', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: contributor } = createUser(testDb, { username: 'contrib' });
+    const journeyId = makeJourney(owner.id);
+    const photoId = Number(testDb.prepare(
+      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-trek', ?)"
+    ).run(owner.id).lastInsertRowid);
+    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)").run(journeyId, contributor.id);
+
+    expect(access.canAccessTrekPhoto(contributor.id, photoId)).toBe(true);
+  });
+
+  it('MEM-ACCESS-015: an ownerless local upload is reachable only through its journey', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: outsider } = createUser(testDb, { username: 'outsider' });
+    const journeyId = makeJourney(owner.id);
+    const photoId = Number(testDb.prepare(
+      "INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'journey/x.jpg')"
+    ).run().lastInsertRowid);
+    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+
+    expect(access.canAccessTrekPhoto(owner.id, photoId)).toBe(true);
+    expect(access.canAccessTrekPhoto(outsider.id, photoId)).toBe(false);
+  });
+
+  it('MEM-ACCESS-016: an ownerless local upload in no journey is reachable by nobody', () => {
+    const { user } = createUser(testDb);
+    const photoId = Number(testDb.prepare(
+      "INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'orphan.jpg')"
+    ).run().lastInsertRowid);
+
+    expect(access.canAccessTrekPhoto(user.id, photoId)).toBe(false);
   });
 });
