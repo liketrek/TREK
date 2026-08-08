@@ -200,6 +200,37 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(res.body).toEqual({ error: 'Trip not found' });
   });
 
+  describe('GET /active (startup destination)', () => {
+    const seedDated = (title: string, start: string, end: string) =>
+      Number(db.prepare('INSERT INTO trips (user_id, title, start_date, end_date) VALUES (1, ?, ?, ?)')
+        .run(title, start, end).lastInsertRowid);
+
+    it('401 without a cookie', async () => {
+      expect((await request(server).get('/api/trips/active')).status).toBe(401);
+    });
+
+    // The literal route sits above @Get(':id'); if it ever slips below, this
+    // asks for a trip with the id "active" and comes back 404 instead.
+    it('resolves as its own route rather than as /api/trips/:id', async () => {
+      const running = seedDated('Running', '2000-01-01', '2999-12-31');
+      const res = await request(server).get('/api/trips/active').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ trip: { id: running, title: 'Running', start_date: '2000-01-01', end_date: '2999-12-31' } });
+    });
+
+    it('answers { trip: null } when the user has no trip at all', async () => {
+      const res = await request(server).get('/api/trips/active').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ trip: null });
+    });
+
+    it('carries no wide trip columns — it is read on first paint', async () => {
+      seedDated('Running', '2000-01-01', '2999-12-31');
+      const res = await request(server).get('/api/trips/active').set('Cookie', sessionCookie(1));
+      expect(Object.keys(res.body.trip).sort()).toEqual(['end_date', 'id', 'start_date', 'title']);
+    });
+  });
+
   it('200 bundle for an accessible trip (real member list)', async () => {
     const tripId = seedTrip('B');
     const res = await request(server).get(`/api/trips/${tripId}/bundle`).set('Cookie', sessionCookie(1));

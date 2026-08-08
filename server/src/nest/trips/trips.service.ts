@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { DatabaseService } from '../database/database.service';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import type { ActiveTrip, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import type { Trip, User } from '../../types';
@@ -414,6 +414,35 @@ export class TripsService {
       LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
       WHERE t.id = :tripId AND (t.user_id = :userId OR m.user_id IS NOT NULL)
     `).get({ userId, tripId }) as Trip | undefined;
+  }
+
+  /**
+   * The trip a user most likely means by "my trip" right now: the one running
+   * today, else the next one starting, else the one that started most recently.
+   * Archived trips never qualify. Same order the dashboard hero picks its
+   * spotlight with (client sortTrips) — the two must agree, or "open my trip on
+   * startup" would land somewhere other than the trip the dashboard features.
+   *
+   * Kept separate from list() on purpose: this runs on the very first paint of
+   * a startup redirect, so it reads four columns of one row instead of every
+   * trip with its per-trip day/place counts.
+   */
+  activeTrip(userId: number, today = new Date().toISOString().slice(0, 10)) {
+    return this.db.prepare(`
+      SELECT t.id, t.title, t.start_date, t.end_date,
+        CASE
+          WHEN t.start_date IS NOT NULL AND t.end_date IS NOT NULL AND t.start_date <= :today AND t.end_date >= :today THEN 0
+          WHEN t.start_date IS NOT NULL AND t.start_date >= :today THEN 1
+          ELSE 2
+        END AS relevance
+      FROM trips t
+      LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
+      WHERE (t.user_id = :userId OR m.user_id IS NOT NULL) AND t.is_archived = 0
+      ORDER BY relevance ASC,
+        CASE WHEN relevance < 2 THEN t.start_date END ASC,
+        CASE WHEN relevance = 2 THEN t.start_date END DESC
+      LIMIT 1
+    `).get({ userId, today }) as ActiveTrip & { relevance: number } | undefined;
   }
 
   getRaw(tripId: string | number): Trip | undefined {

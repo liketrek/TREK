@@ -24,6 +24,7 @@ import { diskStorage } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import type { ActiveTripResponse } from '@trek/shared';
 import type { User } from '../../types';
 import { TripsService } from './trips.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -74,6 +75,18 @@ export class TripsController {
   @Get()
   list(@CurrentUser() user: User, @Query('archived') archived?: string) {
     return { trips: this.trips.list(user.id, archived === '1' ? 1 : 0) };
+  }
+
+  /**
+   * Where "open TREK straight in my trip" lands. Declared above @Get(':id') —
+   * a literal segment below it would never be reached.
+   */
+  @Get('active')
+  active(@CurrentUser() user: User): ActiveTripResponse {
+    const row = this.trips.activeTrip(user.id);
+    if (!row) return { trip: null };
+    const { id, title, start_date, end_date } = row;
+    return { trip: { id, title, start_date, end_date } };
   }
 
   @Get('cover-images/search')

@@ -1,5 +1,5 @@
 /**
- * Unit tests for the DI-native TripsService — TRIP-SVC-001 through TRIP-SVC-053
+ * Unit tests for the DI-native TripsService — TRIP-SVC-001 through TRIP-SVC-058
  * (001–038 moved 1:1 from the legacy tests/unit/services/tripService.test.ts;
  * the exportICS cases that duplicated the generateDays 010–012 numbering were
  * renumbered to 024–026 with the post-fold quirk-fix commit; 040–041 pin the
@@ -1253,5 +1253,53 @@ describe('quirk fixes', () => {
     const trip = createTrip(testDb, owner.id);
     const { owner: row } = svc.listMembers(trip.id, owner.id);
     expect(row.username).toBe('Olive Displayed');
+  });
+});
+
+/**
+ * activeTrip powers the startup redirect, so its order has to stay identical to
+ * the dashboard's sortTrips (client/src/pages/dashboard/dashboardModel.ts):
+ * running today → next one starting (earliest first) → most recently started →
+ * undated last. If these drift, "open my trip" and the hero show different trips.
+ */
+describe('activeTrip (startup destination)', () => {
+  const TODAY = '2026-08-08';
+
+  it('TRIP-SVC-054: prefers the trip running today over anything upcoming', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'soon', start_date: '2026-08-20', end_date: '2026-08-25' });
+    createTrip(testDb, user.id, { title: 'running', start_date: '2026-08-05', end_date: '2026-08-12' });
+    expect(svc.activeTrip(user.id, TODAY)?.title).toBe('running');
+  });
+
+  it('TRIP-SVC-055: without a running trip it takes the next one starting, earliest first', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'late', start_date: '2026-12-01', end_date: '2026-12-10' });
+    createTrip(testDb, user.id, { title: 'soon', start_date: '2026-09-01', end_date: '2026-09-10' });
+    expect(svc.activeTrip(user.id, TODAY)?.title).toBe('soon');
+  });
+
+  it('TRIP-SVC-056: falls back to the most recently started trip, undated ones last', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'undated' });
+    createTrip(testDb, user.id, { title: 'old', start_date: '2020-01-01', end_date: '2020-01-10' });
+    createTrip(testDb, user.id, { title: 'recent', start_date: '2026-07-01', end_date: '2026-07-10' });
+    expect(svc.activeTrip(user.id, TODAY)?.title).toBe('recent');
+  });
+
+  it('TRIP-SVC-057: skips archived trips and returns undefined when nothing is left', () => {
+    const { user } = createUser(testDb);
+    const archived = createTrip(testDb, user.id, { title: 'archived', start_date: '2026-08-05', end_date: '2026-08-12' });
+    testDb.prepare('UPDATE trips SET is_archived = 1 WHERE id = ?').run(archived.id);
+    expect(svc.activeTrip(user.id, TODAY)).toBeUndefined();
+  });
+
+  it('TRIP-SVC-058: sees shared trips but never another user\'s private ones', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: guest } = createUser(testDb);
+    createTrip(testDb, owner.id, { title: 'private', start_date: '2026-08-05', end_date: '2026-08-12' });
+    const shared = createTrip(testDb, owner.id, { title: 'shared', start_date: '2026-09-01', end_date: '2026-09-10' });
+    addTripMember(testDb, shared.id, guest.id);
+    expect(svc.activeTrip(guest.id, TODAY)?.title).toBe('shared');
   });
 });
