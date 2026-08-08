@@ -1,6 +1,8 @@
 import {
   budgetCreateItemRequestSchema, type BudgetCreateItemRequest,
+  budgetCreateSettlementRequestSchema,
   budgetUpdateItemRequestSchema, type BudgetUpdateItemRequest,
+  budgetUpdateSettlementRequestSchema,
   placeCreateRequestSchema, placeUpdateRequestSchema,
   dayCreateRequestSchema, dayUpdateRequestSchema,
   tripUpdateRequestSchema, tripCreateRequestSchema,
@@ -704,11 +706,15 @@ export class PluginRpcHost {
       });
       this.methods.set('costs.createSettlement', (p, uid) => {
         const { tripId, actor } = requireCostWrite(p, uid);
-        return deps.createCostSettlement(tripId, asPayload(p.input), actor);
+        const parsed = budgetCreateSettlementRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid settlement: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        return deps.createCostSettlement(tripId, parsed.data, actor);
       });
       this.methods.set('costs.updateSettlement', (p, uid) => {
         const { tripId, actor } = requireCostWrite(p, uid);
-        return deps.updateCostSettlement(tripId, num(p.settlementId, 'settlementId'), asPayload(p.input), actor);
+        const parsed = budgetUpdateSettlementRequestSchema.safeParse(p.input);
+        if (!parsed.success) throw new BadParams(`invalid settlement: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
+        return deps.updateCostSettlement(tripId, num(p.settlementId, 'settlementId'), parsed.data, actor);
       });
       this.methods.set('costs.deleteSettlement', (p, uid) => {
         const { tripId } = requireCostWrite(p, uid);

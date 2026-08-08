@@ -13,7 +13,7 @@ import {
   Search,
   Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { budgetApi, exchangeRateApi } from '../../api/client';
 import { useExchangeRates } from '../../hooks/useExchangeRates';
@@ -116,7 +116,7 @@ interface Settlement {
   // read as the display currency, which is what the server assumes for them too.
   currency?: string | null;
   exchange_rate?: number;
-  exchange_rate_source?: 'identity' | 'global' | 'trip' | 'manual' | 'legacy';
+  exchange_rate_source?: 'identity' | 'global' | 'trip' | 'explicit' | 'legacy';
   exchange_rate_source_version?: string | null;
   exchange_rate_effective_date?: string | null;
   exchange_rate_note?: string | null;
@@ -223,7 +223,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     (amount: number, itemCurrency: string, rate?: number, source?: string) => {
       const cur = itemCurrency.toUpperCase();
       if (cur === tripCurrency) return convert(amount, tripCurrency);
-      // An unresolved legacy 1 was never a real 1:1 quote. Keep its compatibility
+      // An unresolved legacy 1 was never a real 1:1 rate. Keep its compatibility
       // display via the global snapshot until the user resolves it explicitly.
       if (rate && rate > 0 && !(source === 'legacy' && rate === 1)) {
         return convert(amount / rate, tripCurrency);
@@ -2307,7 +2307,7 @@ const exchangeRateSourceLabel = (
   t: (key: string, params?: Record<string, string | number>) => string,
   source?: string
 ) => {
-  const knownSource = ['identity', 'global', 'trip', 'manual', 'legacy'].includes(source || '')
+  const knownSource = ['identity', 'global', 'trip', 'explicit', 'legacy'].includes(source || '')
     ? source
     : 'unavailable';
   return t(`costs.exchangeRates.source.${knownSource}`);
@@ -2573,10 +2573,9 @@ function TripRateSettings({
   );
 }
 
-interface FxQuoteState {
-  quote_id?: string;
+interface FxResolutionState {
   exchange_rate: number;
-  source: 'identity' | 'global' | 'trip' | 'manual' | 'legacy';
+  source: 'identity' | 'global' | 'trip' | 'explicit' | 'legacy';
   effective_date?: string | null;
   stale?: boolean;
 }
@@ -2593,14 +2592,14 @@ function useItemRate(
   existing?: {
     currency?: string | null;
     exchange_rate?: number;
-    exchange_rate_source?: FxQuoteState['source'];
+    exchange_rate_source?: FxResolutionState['source'];
     exchange_rate_effective_date?: string | null;
   } | null
 ) {
   const sameExistingCurrency = Boolean(
     existing && (existing.currency || tripCurrency).toUpperCase() === currency.toUpperCase()
   );
-  const [quote, setQuote] = useState<FxQuoteState | null>(() =>
+  const [suggestion, setSuggestion] = useState<FxResolutionState | null>(() =>
     sameExistingCurrency && existing?.exchange_rate
       ? {
           exchange_rate: existing.exchange_rate,
@@ -2609,52 +2608,57 @@ function useItemRate(
         }
       : null
   );
-  const [value, setValue] = useState(() => (quote ? displayRate(quote.exchange_rate) : ''));
+  const [value, setValue] = useState(() => (suggestion ? displayRate(suggestion.exchange_rate) : ''));
   const [manual, setManual] = useState(false);
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+  const requestRevision = useRef(0);
+  const manualRevision = useRef(0);
 
   useEffect(() => {
-    let cancelled = false;
+    const revision = ++requestRevision.current;
+    const startedManualRevision = manualRevision.current;
+    const current = () => requestRevision.current === revision && manualRevision.current === startedManualRevision;
     const cur = currency.toUpperCase();
     const tripCur = tripCurrency.toUpperCase();
     const unchanged = existing && (existing.currency || tripCur).toUpperCase() === cur;
     setManual(false);
     setUnavailable(false);
+    setLoading(false);
     if (unchanged && existing?.exchange_rate) {
       const next = {
         exchange_rate: existing.exchange_rate,
         source: existing.exchange_rate_source || 'legacy',
         effective_date: existing.exchange_rate_effective_date,
-      } as FxQuoteState;
-      setQuote(next);
+      } as FxResolutionState;
+      setSuggestion(next);
       setValue(displayRate(next.exchange_rate));
       return;
     }
     if (cur === tripCur) {
-      setQuote({ exchange_rate: 1, source: 'identity' });
+      setSuggestion({ exchange_rate: 1, source: 'identity' });
       setValue('1');
       return;
     }
     setLoading(true);
     exchangeRateApi
       .resolve(tripId, cur)
-      .then((resolved: FxQuoteState) => {
-        if (cancelled) return;
-        setQuote(resolved);
+      .then((resolved: FxResolutionState) => {
+        if (!current()) return;
+        setSuggestion(resolved);
         setValue(displayRate(resolved.exchange_rate));
       })
       .catch(() => {
-        if (cancelled) return;
-        setQuote(null);
+        if (!current()) return;
+        setSuggestion(null);
         setValue('');
         setUnavailable(true);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (current()) setLoading(false);
       });
     return () => {
-      cancelled = true;
+      if (requestRevision.current === revision) requestRevision.current += 1;
     };
   }, [
     tripId,
@@ -2667,7 +2671,11 @@ function useItemRate(
   ]);
 
   const setManualValue = (next: string) => {
+    manualRevision.current += 1;
+    requestRevision.current += 1;
     setManual(true);
+    setSuggestion(null);
+    setLoading(false);
     setUnavailable(false);
     setValue(next.replace(',', '.'));
   };
@@ -2676,12 +2684,10 @@ function useItemRate(
   const write =
     sameExistingCurrency && !manual
       ? {}
-      : manual
-        ? { exchange_rate: displayRateToStored(numeric)! }
-        : quote?.quote_id
-          ? { quote_id: quote.quote_id }
-          : {};
-  return { quote, value, setManualValue, manual, loading, unavailable, valid, write };
+      : valid && currency.toUpperCase() !== tripCurrency.toUpperCase()
+        ? { exchange_rate: !manual && suggestion ? suggestion.exchange_rate : displayRateToStored(numeric)! }
+        : {};
+  return { suggestion, value, setManualValue, manual, loading, unavailable, valid, write };
 }
 
 // Add or edit a settle-up payment (from / to / amount / currency). Reachable inline
@@ -2876,9 +2882,11 @@ function SettlementModal({
             <div className="text-content-faint" style={{ fontSize: 11.5, marginTop: 5 }}>
               {rate.manual
                 ? t('costs.exchangeRates.manualRate')
-                : t('costs.exchangeRates.sourceLabel', { source: exchangeRateSourceLabel(t, rate.quote?.source) })}
-              {rate.quote?.effective_date && <span> · {rate.quote.effective_date}</span>}
-              {rate.quote?.stale && (
+                : t('costs.exchangeRates.suggestedLabel', {
+                    source: exchangeRateSourceLabel(t, rate.suggestion?.source),
+                  })}
+              {rate.suggestion?.effective_date && <span> · {rate.suggestion.effective_date}</span>}
+              {rate.suggestion?.stale && (
                 <span style={{ color: '#dc2626' }}> · {t('costs.exchangeRates.staleSnapshot')}</span>
               )}
               {rate.unavailable && (
@@ -3372,9 +3380,11 @@ export function ExpenseModal({
             <div className="text-content-faint" style={{ fontSize: 11.5, marginTop: 5 }}>
               {rate.manual
                 ? t('costs.exchangeRates.manualRate')
-                : t('costs.exchangeRates.sourceLabel', { source: exchangeRateSourceLabel(t, rate.quote?.source) })}
-              {rate.quote?.effective_date && <span> · {rate.quote.effective_date}</span>}
-              {rate.quote?.stale && (
+                : t('costs.exchangeRates.suggestedLabel', {
+                    source: exchangeRateSourceLabel(t, rate.suggestion?.source),
+                  })}
+              {rate.suggestion?.effective_date && <span> · {rate.suggestion.effective_date}</span>}
+              {rate.suggestion?.stale && (
                 <span style={{ color: '#dc2626' }}> · {t('costs.exchangeRates.staleSnapshot')}</span>
               )}
               {rate.unavailable && (

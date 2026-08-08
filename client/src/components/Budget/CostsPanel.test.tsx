@@ -726,7 +726,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     // Bob paid me back in dollars — the server freezes the USD rate on write.
     await user.click(screen.getByText(/^EUR/));
     await user.click(await screen.findByText(/^USD/));
-    await screen.findByText(/Source: global/);
+    await screen.findByText(/Suggested: global/);
     const addButtons = screen.getAllByRole('button', { name: 'Add payment' });
     await user.click(addButtons[addButtons.length - 1]);
 
@@ -734,12 +734,13 @@ describe('CostsPanel — settlements in the ledger', () => {
       expect(posted).toMatchObject({
         amount: 25,
         currency: 'USD',
-        quote_id: 'test-quote-1-USD',
+        exchange_rate: 1.2,
       })
     );
+    expect(posted).not.toHaveProperty('quote_id');
   });
 
-  it('shows a stale quote while still allowing its immutable quote id to be saved', async () => {
+  it('shows a stale suggestion and saves its value as explicit input', async () => {
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
     let posted: Record<string, unknown> | null = null;
     server.use(
@@ -747,7 +748,6 @@ describe('CostsPanel — settlements in the ledger', () => {
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.get('/api/trips/1/exchange-rates/resolve', () =>
         HttpResponse.json({
-          quote_id: 'stale-quote',
           exchange_rate: 1.25,
           source: 'global',
           effective_date: '2026-08-01',
@@ -772,7 +772,8 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     const addButtons = screen.getAllByRole('button', { name: 'Add payment' });
     await user.click(addButtons[addButtons.length - 1]);
-    await waitFor(() => expect(posted).toMatchObject({ quote_id: 'stale-quote' }));
+    await waitFor(() => expect(posted).toMatchObject({ exchange_rate: 1.25 }));
+    expect(posted).not.toHaveProperty('quote_id');
   });
 
   it('requires a manual displayed rate when no snapshot exists and stores its inverse', async () => {
@@ -809,7 +810,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(posted).not.toHaveProperty('quote_id');
   });
 
-  it('stores a manually changed prefilled quote rate instead of the quote id', async () => {
+  it('stores a manually changed prefilled suggestion rate', async () => {
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
     let posted: Record<string, unknown> | null = null;
     server.use(
@@ -817,7 +818,6 @@ describe('CostsPanel — settlements in the ledger', () => {
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.get('/api/trips/1/exchange-rates/resolve', () =>
         HttpResponse.json({
-          quote_id: 'prefill-quote',
           exchange_rate: 1.25,
           source: 'trip',
           effective_date: null,
@@ -837,7 +837,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     await user.type(await screen.findByPlaceholderText('0.00'), '25');
     await user.click(screen.getByText(/^EUR/));
     await user.click(await screen.findByText(/^USD/));
-    await screen.findByText('Source: trip default');
+    await screen.findByText('Suggested: trip default');
     const rateInput = screen.getByPlaceholderText('Required') as HTMLInputElement;
     expect(rateInput.value).toBe('0.8');
     await user.clear(rateInput);
@@ -847,6 +847,75 @@ describe('CostsPanel — settlements in the ledger', () => {
     await user.click(addButtons[addButtons.length - 1]);
     await waitFor(() => expect(posted).toMatchObject({ exchange_rate: 2 }));
     expect(posted).not.toHaveProperty('quote_id');
+  });
+
+  it('does not let a delayed successful suggestion overwrite user input', async () => {
+    let release!: () => void;
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.get('/api/trips/1/exchange-rates/resolve', async () => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return HttpResponse.json({ exchange_rate: 1.25, source: 'global', effective_date: null, stale: false });
+      }),
+      http.post('/api/trips/1/budget/settlements', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 1, ...posted } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
+
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+    await user.type(await screen.findByPlaceholderText('0.00'), '25');
+    await user.click(screen.getByText(/^EUR/));
+    await user.click(await screen.findByText(/^USD/));
+    const rateInput = screen.getByText('1 USD =').parentElement!.querySelector('input')!;
+    await user.type(rateInput, '0.5');
+    release();
+    await waitFor(() => expect(rateInput).toHaveValue('0.5'));
+
+    const addButtons = screen.getAllByRole('button', { name: 'Add payment' });
+    await user.click(addButtons[addButtons.length - 1]);
+    await waitFor(() => expect(posted).toMatchObject({ exchange_rate: 2 }));
+  });
+
+  it('allows a valid explicit rate to save before a delayed resolve failure', async () => {
+    let release!: () => void;
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.get('/api/trips/1/exchange-rates/resolve', async () => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return HttpResponse.json({ error: 'unavailable' }, { status: 404 });
+      }),
+      http.post('/api/trips/1/budget/settlements', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 1, ...posted } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
+
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+    await user.type(await screen.findByPlaceholderText('0.00'), '25');
+    await user.click(screen.getByText(/^EUR/));
+    await user.click(await screen.findByText(/^USD/));
+    const rateInput = screen.getByText('1 USD =').parentElement!.querySelector('input')!;
+    await user.type(rateInput, '0.5');
+    const addButtons = screen.getAllByRole('button', { name: 'Add payment' });
+    expect(addButtons[addButtons.length - 1]).not.toBeDisabled();
+    await user.click(addButtons[addButtons.length - 1]);
+    await waitFor(() => expect(posted).toMatchObject({ exchange_rate: 2 }));
+    release();
   });
 
   it('reopens a foreign-currency payment with its own currency', async () => {

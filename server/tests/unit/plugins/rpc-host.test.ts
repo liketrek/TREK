@@ -57,7 +57,7 @@ function makeDeps(): HostDeps {
     updateCost: vi.fn((tripId: number, itemId: number, input: unknown) => ({ id: itemId, trip_id: tripId, ...(input as object) })),
     deleteCost: vi.fn(() => ({ deleted: true })),
     listCostRates: vi.fn(() => [{ trip_id: 1, currency: 'USD', exchange_rate: 1.2 }]),
-    resolveCostRate: vi.fn(async () => ({ quote_id: 'quote-1', exchange_rate: 1.2, source: 'trip' })),
+    resolveCostRate: vi.fn(async () => ({ exchange_rate: 1.2, source: 'trip' })),
     setCostRate: vi.fn((tripId: number, currency: string, exchangeRate: number, userId: number, note?: string | null) => ({
       trip_id: tripId, currency, exchange_rate: exchangeRate, set_by_user_id: userId, note,
     })),
@@ -960,7 +960,7 @@ describe('PluginRpcHost — capability enforcement', () => {
       .toBe('RESOURCE_FORBIDDEN');
   });
 
-  it('cost rate writes and settlement CRUD preserve the host-bound user and quote payload', async () => {
+  it('cost rate writes and settlement CRUD preserve the host-bound user and strip provenance', async () => {
     const host = new PluginRpcHost('p', new Set(['db:read:costs', 'db:write:costs']), deps);
     expect(ok(await host.dispatch(req('costs.setRate', {
       tripId: 1, currency: 'USD', exchangeRate: 1.2, note: 'bank',
@@ -972,18 +972,22 @@ describe('PluginRpcHost — capability enforcement', () => {
       to_user_id: 7,
       amount: 25,
       currency: 'USD',
-      quote_id: 'quote-1',
+      exchange_rate: 1.2,
+      exchange_rate_source: 'trip',
     };
     expect(ok(await host.dispatch(req('costs.createSettlement', { tripId: 1, input }), 42))).toBe(true);
-    expect(deps.createCostSettlement).toHaveBeenCalledWith(1, expect.objectContaining({ quote_id: 'quote-1' }), 42);
+    expect(deps.createCostSettlement).toHaveBeenCalledWith(1, expect.objectContaining({ exchange_rate: 1.2 }), 42);
+    expect(deps.createCostSettlement.mock.calls[0][1]).not.toHaveProperty('exchange_rate_source');
     expect(ok(await host.dispatch(req('costs.updateSettlement', {
       tripId: 1,
       settlementId: 12,
-      input: { exchange_rate: 1.15, quote_id: 'quote-1' },
+      input: {
+        from_user_id: 42, to_user_id: 7, amount: 25, currency: 'USD',
+        exchange_rate: 1.15, exchange_rate_source_version: 'forged',
+      },
     }), 42))).toBe(true);
-    expect(deps.updateCostSettlement).toHaveBeenCalledWith(
-      1, 12, expect.objectContaining({ exchange_rate: 1.15, quote_id: 'quote-1' }), 42,
-    );
+    expect(deps.updateCostSettlement).toHaveBeenCalledWith(1, 12, expect.objectContaining({ exchange_rate: 1.15 }), 42);
+    expect(deps.updateCostSettlement.mock.calls[0][2]).not.toHaveProperty('exchange_rate_source_version');
     expect(ok(await host.dispatch(req('costs.listSettlements', { tripId: 1 }), 42))).toBe(true);
     expect(ok(await host.dispatch(req('costs.deleteSettlement', { tripId: 1, settlementId: 12 }), 42))).toBe(true);
   });

@@ -107,7 +107,7 @@ test('mobile exchange-rate action adapts without horizontal overflow', async ({ 
   );
 });
 
-test('foreign expenses and payments freeze manual and quote provenance', async ({ page, request }) => {
+test('foreign expenses and payments freeze explicit provenance', async ({ page, request }) => {
   const { tripId } = await createTripFixture(request);
   await openCosts(page, tripId);
 
@@ -116,7 +116,7 @@ test('foreign expenses and payments freeze manual and quote provenance', async (
   await modal.getByPlaceholder('e.g. Dinner, souvenirs, gas…').fill('USD dinner');
   await modal.getByPlaceholder('0.00').first().fill('100');
   modal = await chooseUsd(page);
-  await expect(modal.getByText(/Source: global/)).toBeVisible();
+  await expect(modal.getByText(/Suggested: global/)).toBeVisible();
   const expenseRate = modal.getByPlaceholder('Required');
   await expect(expenseRate).toHaveValue('0.8');
   await expenseRate.fill('0.5');
@@ -126,14 +126,14 @@ test('foreign expenses and payments freeze manual and quote provenance', async (
   expect(budget.items.find((item) => item.name === 'USD dinner')).toMatchObject({
     currency: 'USD',
     exchange_rate: 2,
-    exchange_rate_source: 'manual',
+    exchange_rate_source: 'explicit',
   });
 
   await page.getByRole('button', { name: 'Add payment' }).click();
   modal = page.locator('.trek-modal-backdrop');
   await modal.getByPlaceholder('0.00').fill('25');
   modal = await chooseUsd(page);
-  await expect(modal.getByText(/Source: global/)).toBeVisible();
+  await expect(modal.getByText(/Suggested: global/)).toBeVisible();
   await modal.getByRole('button', { name: 'Add payment' }).last().click();
 
   const settlement = await api<{ settlements: Array<Record<string, unknown>> }>(
@@ -145,23 +145,17 @@ test('foreign expenses and payments freeze manual and quote provenance', async (
     amount: 25,
     currency: 'USD',
     exchange_rate: 1.25,
-    exchange_rate_source: 'global',
+    exchange_rate_source: 'explicit',
   });
 });
 
 test('trip rate preview applies only the selected frozen rows', async ({ page, request }) => {
   const { tripId, meId } = await createTripFixture(request);
-  const quote = await api<{ quote_id: string }>(
-    request,
-    'get',
-    `/api/trips/${tripId}/exchange-rates/resolve?currency=USD`
-  );
   await api(request, 'post', `/api/trips/${tripId}/budget`, {
-    name: 'Quoted lunch',
+    name: 'Derived lunch',
     category: 'food',
     total_price: 100,
     currency: 'USD',
-    quote_id: quote.quote_id,
     payers: [{ user_id: meId, amount: 100 }],
     member_ids: [meId],
   });
@@ -191,17 +185,17 @@ test('trip rate preview applies only the selected frozen rows', async ({ page, r
   await modal.getByRole('button', { name: 'Preview changes' }).click();
 
   await expect(modal.getByText(/expense #\d+ · global/)).toBeVisible();
-  await expect(modal.getByText(/expense #\d+ · manual/)).toBeVisible();
+  await expect(modal.getByText(/expense #\d+ · explicit/)).toBeVisible();
   await expect(modal.getByRole('button', { name: 'Apply to 1 item(s)' })).toBeVisible();
   await modal.getByRole('button', { name: 'Apply to 1 item(s)' }).click();
 
   const budget = await api<{ items: Array<Record<string, unknown>> }>(request, 'get', `/api/trips/${tripId}/budget`);
-  expect(budget.items.find((item) => item.name === 'Quoted lunch')).toMatchObject({
+  expect(budget.items.find((item) => item.name === 'Derived lunch')).toMatchObject({
     exchange_rate_source: 'trip',
   });
   expect(budget.items.find((item) => item.name === 'Manual taxi')).toMatchObject({
     exchange_rate: 1.1,
-    exchange_rate_source: 'manual',
+    exchange_rate_source: 'explicit',
   });
   const rates = await api<{ rates: Array<Record<string, unknown>> }>(
     request,
@@ -213,7 +207,7 @@ test('trip rate preview applies only the selected frozen rows', async ({ page, r
   );
 });
 
-test('stale and unavailable quotes warn, and unavailable requires a manual rate', async ({ page, request }) => {
+test('stale and unavailable suggestions warn, and unavailable requires a manual rate', async ({ page, request }) => {
   const { tripId } = await createTripFixture(request);
   let mode: 'stale' | 'unavailable' = 'stale';
   await page.route(`**/api/trips/${tripId}/exchange-rates/resolve?currency=USD`, async (route) => {
@@ -229,7 +223,6 @@ test('stale and unavailable quotes warn, and unavailable requires a manual rate'
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        quote_id: 'stale-ui-only',
         exchange_rate: 1.25,
         source: 'global',
         effective_date: '2026-08-01',

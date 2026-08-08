@@ -71,7 +71,7 @@ vi.mock('../../../src/services/tripService', () => {
   class NotFoundError extends Error {}
   class ValidationError extends Error {}
   return {
-    updateTrip: (tripId: number, _u: number, input: Record<string, unknown>) => {
+    updateTripAggregate: async (tripId: number, _u: number, input: Record<string, unknown>) => {
       if (input.title === 'boom') throw new ValidationError('bad dates');
       if (input.title === 'gone') throw new NotFoundError('no trip');
       if (input.title === 'crash') throw new Error('unexpected');
@@ -88,7 +88,7 @@ vi.mock('../../../src/services/tripService', () => {
 vi.mock('../../../src/services/exchangeRateService', () => ({
   getRates: vi.fn(async (base: string) => ({ [base]: 1, USD: 1.08, GBP: 0.85 })),
   listTripExchangeRates: vi.fn(() => [{ trip_id: 1, currency: 'USD', exchange_rate: 1.2 }]),
-  resolveExchangeRate: vi.fn(async () => ({ quote_id: 'quote-1', exchange_rate: 1.2, source: 'trip' })),
+  resolveExchangeRate: vi.fn(async () => ({ exchange_rate: 1.2, source: 'trip' })),
   setTripExchangeRate: vi.fn((tripId: number, currency: string, exchangeRate: number, userId: number, note: string | null) => ({
     trip_id: tripId, currency, exchange_rate: exchangeRate, set_by_user_id: userId, note,
   })),
@@ -449,11 +449,11 @@ describe('create-rpc-host — planner write + metadata deps', () => {
     expect((await call(h, 'costs.delete', { tripId: 1, itemId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
-  it('costs deps: rates and settlements delegate with frozen quote input and parity broadcasts', async () => {
+  it('costs deps: rates and settlements delegate with explicit input and parity broadcasts', async () => {
     const h = host('db:read:costs', 'db:write:costs');
     expect((await call(h, 'costs.listRates', { tripId: 1 })).ok).toBe(true);
-    const quote = await call(h, 'costs.resolveRate', { tripId: 1, currency: 'USD' });
-    expect(quote.result).toMatchObject({ quote_id: 'quote-1', exchange_rate: 1.2, source: 'trip' });
+    const resolution = await call(h, 'costs.resolveRate', { tripId: 1, currency: 'USD' });
+    expect(resolution.result).toMatchObject({ exchange_rate: 1.2, source: 'trip' });
 
     expect((await call(h, 'costs.setRate', {
       tripId: 1, currency: 'USD', exchangeRate: 1.25, note: 'bank',
@@ -462,13 +462,14 @@ describe('create-rpc-host — planner write + metadata deps', () => {
 
     const created = await call(h, 'costs.createSettlement', {
       tripId: 1,
-      input: { from_user_id: 5, to_user_id: 6, amount: 20, currency: 'USD', quote_id: 'quote-1' },
+      input: { from_user_id: 5, to_user_id: 6, amount: 20, currency: 'USD', exchange_rate: 1.2 },
     });
-    expect(created.result).toMatchObject({ quote_id: 'quote-1', set_by_user_id: 5 });
+    expect(created.result).toMatchObject({ exchange_rate: 1.2, set_by_user_id: 5 });
     expect(broadcast).toHaveBeenCalledWith(1, 'budget:settlement-created', expect.anything());
 
     expect((await call(h, 'costs.updateSettlement', {
-      tripId: 1, settlementId: 12, input: { exchange_rate: 1.15, quote_id: 'quote-1' },
+      tripId: 1, settlementId: 12,
+      input: { from_user_id: 5, to_user_id: 6, amount: 20, exchange_rate: 1.15 },
     })).ok).toBe(true);
     expect(broadcast).toHaveBeenCalledWith(1, 'budget:settlement-updated', expect.anything());
     expect((await call(h, 'costs.listSettlements', { tripId: 1 })).ok).toBe(true);

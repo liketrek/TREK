@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const exchangeRateSourceSchema = z.enum(['identity', 'global', 'trip', 'manual', 'legacy']);
+export const exchangeRateSourceSchema = z.enum(['identity', 'global', 'trip', 'explicit', 'legacy']);
 export type ExchangeRateSource = z.infer<typeof exchangeRateSourceSchema>;
 
 export const exchangeRateSnapshotSchema = z.object({
@@ -13,8 +13,7 @@ export const exchangeRateSnapshotSchema = z.object({
 });
 export type ExchangeRateSnapshot = z.infer<typeof exchangeRateSnapshotSchema>;
 
-export const exchangeRateQuoteSchema = z.object({
-  quote_id: z.string(),
+export const exchangeRateResolutionSchema = z.object({
   trip_id: z.number(),
   trip_currency: z.string().length(3),
   item_currency: z.string().length(3),
@@ -25,7 +24,7 @@ export const exchangeRateQuoteSchema = z.object({
   fetched_at: z.string().nullable(),
   stale: z.boolean(),
 });
-export type ExchangeRateQuote = z.infer<typeof exchangeRateQuoteSchema>;
+export type ExchangeRateResolution = z.infer<typeof exchangeRateResolutionSchema>;
 
 export const tripExchangeRateSchema = z.object({
   trip_id: z.number(),
@@ -46,7 +45,6 @@ export const setTripExchangeRateRequestSchema = z.object({
 export type SetTripExchangeRateRequest = z.infer<typeof setTripExchangeRateRequestSchema>;
 
 export const exchangeRateWriteSchema = z.object({
-  quote_id: z.string().optional(),
   exchange_rate: z.number().positive().finite().optional(),
   exchange_rate_note: z.string().max(500).nullable().optional(),
 });

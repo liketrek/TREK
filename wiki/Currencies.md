@@ -37,13 +37,13 @@ The numbers you typed are never rewritten. Each expense keeps its original amoun
 
 Each expense in the Costs tab carries **its own currency**, chosen in the expense modal. Enter what the receipt says: a $100 dinner on a rouble trip is entered as **100 USD**, not as its rouble equivalent.
 
-When an expense's currency differs from the trip currency, TREK prefills a rate from the trip default or global snapshot and lets you edit it. Saving copies the chosen value onto the expense as its frozen exchange rate. Unedited values retain their source and provider version; edited values are marked manual.
+When an expense's currency differs from the trip currency, TREK prefills a read-only suggestion from the trip default or global snapshot and lets you edit it. Saving from the UI submits the chosen value, so it is frozen with `explicit` provenance whether or not the suggestion was edited. API, MCP, and plugin callers that omit the rate let the server resolve and freeze `trip` or `global` provenance directly.
 
 > **Why freeze it?** Because a debt settled today shouldn't reopen tomorrow. If balances were recomputed at live rates, a settled-up trip would drift back into a few cents of debt every time the FX market moved. The rate you booked at is the rate you owe at.
 
 Rates come from [Frankfurter](https://frankfurter.dev) (European Central Bank data, no API key needed). **165 currencies** are supported. TREK checks on the server every six hours and persists the last successful snapshot. A stale snapshot remains usable with its effective date and a warning; if no snapshot or trip default has ever existed, you must enter a manual rate before saving.
 
-The priority for a new item is: **manual value → trip exchange rate → global exchange-rate snapshot**. Changing a default never silently rewrites existing frozen rates. Costs settings can preview and selectively apply a trip rate to existing items; global/trip items are selected automatically, legacy items are opt-in, and manual items are not automatically selected.
+The priority for a new item is: **explicit value → trip exchange rate → global exchange-rate snapshot**. Changing a default never silently rewrites existing frozen rates. Costs settings can preview and selectively apply a trip rate to existing items; global/trip items are selected automatically, legacy items are opt-in, and explicit items are not automatically selected.
 
 ### Settle-up payments
 

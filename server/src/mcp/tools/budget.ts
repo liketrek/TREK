@@ -68,13 +68,13 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
   if (R) server.registerTool(
     'resolve_trip_exchange_rate',
     {
-      description: 'Resolve and quote the frozen exchange rate a new expense or payment would use (trip default, then global snapshot).',
+      description: 'Resolve a read-only exchange-rate suggestion for a new expense or payment (trip default, then global snapshot).',
       inputSchema: { tripId: z.number().int().positive(), currency: z.string().length(3) },
       annotations: TOOL_ANNOTATIONS_READONLY,
     },
     async ({ tripId, currency }) => {
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      return ok({ quote: await resolveExchangeRate(tripId, currency) });
+      return ok({ resolution: await resolveExchangeRate(tripId, currency) });
     },
   );
 
@@ -125,7 +125,6 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
         category: z.string().max(100).optional().describe('Budget category (e.g. Accommodation, Food, Transport)'),
         total_price: z.number().nonnegative(),
         currency: z.string().max(10).nullable().optional().describe('ISO currency code (e.g. "EUR"); defaults to the trip currency'),
-        quote_id: z.string().optional().describe('Immutable quote returned by resolve_trip_exchange_rate'),
         exchange_rate: z.number().positive().finite().optional().describe('Optional frozen rate: units of expense currency per 1 trip-currency unit'),
         exchange_rate_note: z.string().max(500).nullable().optional(),
         member_ids: z.array(z.number().int().positive()).optional().describe('Trip member user IDs splitting this expense. Omit to split across all trip members (owner + members); pass [] for no split.'),
@@ -135,12 +134,12 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, name, category, total_price, currency, quote_id, exchange_rate, exchange_rate_note, member_ids, payers, expense_date, note }) => {
+    async ({ tripId, name, category, total_price, currency, exchange_rate, exchange_rate_note, member_ids, payers, expense_date, note }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
       const members = resolveMemberIds(tripId, member_ids);
-      const itemData = { category, name, total_price, currency, quote_id, exchange_rate, exchange_rate_note, member_ids: members, payers, expense_date, note };
+      const itemData = { category, name, total_price, currency, exchange_rate, exchange_rate_note, member_ids: members, payers, expense_date, note };
       // Freeze the live FX rate at entry time so a settled position isn't re-opened
       // when live rates drift (#1445) — same as the REST create path.
       await freezeForeignRate(tripId, itemData, undefined, undefined, userId);
@@ -184,7 +183,6 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
         category: z.string().max(100).optional(),
         total_price: z.number().nonnegative().optional(),
         currency: z.string().max(10).nullable().optional(),
-        quote_id: z.string().optional().describe('Immutable quote returned by resolve_trip_exchange_rate'),
         exchange_rate: z.number().positive().finite().optional().describe('Optional frozen rate: units of expense currency per 1 trip-currency unit'),
         exchange_rate_note: z.string().max(500).nullable().optional(),
         member_ids: z.array(z.number().int().positive()).optional().describe('Trip member user IDs splitting this expense; replaces the current split. Omit to leave unchanged, pass [] for no split.'),
@@ -195,11 +193,11 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
       },
       annotations: TOOL_ANNOTATIONS_WRITE,
     },
-    async ({ tripId, itemId, name, category, total_price, currency, quote_id, exchange_rate, exchange_rate_note, member_ids, payers, persons, days, note }) => {
+    async ({ tripId, itemId, name, category, total_price, currency, exchange_rate, exchange_rate_note, member_ids, payers, persons, days, note }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
-      const itemData = { name, category, total_price, currency, quote_id, exchange_rate, exchange_rate_note, member_ids, payers, persons, days, note };
+      const itemData = { name, category, total_price, currency, exchange_rate, exchange_rate_note, member_ids, payers, persons, days, note };
       await freezeForeignRate(tripId, itemData, itemId, undefined, userId);
       const item = updateBudgetItem(itemId, tripId, itemData);
       if (!item) return { content: [{ type: 'text' as const, text: 'Budget item not found.' }], isError: true };
@@ -337,17 +335,16 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
         to_user_id: z.number().int().positive().describe('User ID of the member who received the payment'),
         amount: z.number().positive().describe("Amount paid, in the trip's base currency"),
         currency: z.string().length(3).nullable().optional(),
-        quote_id: z.string().optional().describe('Immutable quote returned by resolve_trip_exchange_rate'),
         exchange_rate: z.number().positive().finite().optional().describe('Optional frozen rate: units of payment currency per 1 trip-currency unit'),
         exchange_rate_note: z.string().max(500).nullable().optional(),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, from_user_id, to_user_id, amount, currency, quote_id, exchange_rate, exchange_rate_note }) => {
+    async ({ tripId, from_user_id, to_user_id, amount, currency, exchange_rate, exchange_rate_note }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
-      const data = { from_user_id, to_user_id, amount, currency, quote_id, exchange_rate, exchange_rate_note };
+      const data = { from_user_id, to_user_id, amount, currency, exchange_rate, exchange_rate_note };
       await freezeForeignRate(tripId, data, undefined, undefined, userId);
       const settlement = createSettlement(tripId, data, userId);
       safeBroadcast(tripId, 'budget:settlement-created', { settlement });
@@ -366,18 +363,17 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
         to_user_id: z.number().int().positive().describe('User ID of the member who received the payment'),
         amount: z.number().positive().describe("Amount paid, in the trip's base currency"),
         currency: z.string().length(3).nullable().optional(),
-        quote_id: z.string().optional().describe('Immutable quote returned by resolve_trip_exchange_rate'),
         exchange_rate: z.number().positive().finite().optional().describe('Optional frozen rate: units of payment currency per 1 trip-currency unit'),
         exchange_rate_note: z.string().max(500).nullable().optional(),
       },
       annotations: TOOL_ANNOTATIONS_WRITE,
     },
-    async ({ tripId, settlementId, from_user_id, to_user_id, amount, currency, quote_id, exchange_rate, exchange_rate_note }) => {
+    async ({ tripId, settlementId, from_user_id, to_user_id, amount, currency, exchange_rate, exchange_rate_note }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('budget_edit', tripId, userId)) return permissionDenied();
       const current = listSettlements(tripId).find(row => row.id === settlementId);
-      const data = { from_user_id, to_user_id, amount, currency, quote_id, exchange_rate, exchange_rate_note };
+      const data = { from_user_id, to_user_id, amount, currency, exchange_rate, exchange_rate_note };
       await freezeForeignRate(tripId, data, undefined, current?.currency ?? null, userId);
       const settlement = updateSettlement(settlementId, tripId, data);
       if (!settlement) return { content: [{ type: 'text' as const, text: 'Settlement not found.' }], isError: true };

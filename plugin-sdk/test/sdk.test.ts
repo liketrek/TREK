@@ -166,7 +166,7 @@ describe('createMockHost', () => {
     await expect(ctx.costs.delete(1, 999)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
   });
 
-  it('mirrors exchange-rate and settlement CRUD with immutable quote provenance', async () => {
+  it('mirrors exchange-rate suggestions and settlement provenance', async () => {
     const { ctx } = createMockHost({
       grants: ['db:read:costs', 'db:write:costs'],
       actingUserId: 42,
@@ -194,15 +194,15 @@ describe('createMockHost', () => {
     ]);
     const identity = await ctx.costs.resolveRate(1, 'eur');
     expect(identity).toMatchObject({ exchange_rate: 1, source: 'identity', item_currency: 'EUR' });
-    const quote = await ctx.costs.resolveRate(1, 'usd');
-    expect(quote).toMatchObject({ exchange_rate: 1.2, source: 'trip', source_version: 'trip:seed' });
+    const resolution = await ctx.costs.resolveRate(1, 'usd');
+    expect(resolution).toMatchObject({ exchange_rate: 1.2, source: 'trip', source_version: 'trip:seed' });
+    expect(resolution).not.toHaveProperty('quote_id');
 
     const created = await ctx.costs.createSettlement(1, {
       from_user_id: 42,
       to_user_id: 7,
       amount: 30,
       currency: 'USD',
-      quote_id: quote?.quote_id,
     });
     expect(created).toMatchObject({
       trip_id: 1,
@@ -214,15 +214,18 @@ describe('createMockHost', () => {
 
     const updated = await ctx.costs.updateSettlement(1, created.id, {
       exchange_rate: 1.15,
-      quote_id: 'invalid-but-manual-wins',
       exchange_rate_note: 'cash desk',
+      exchange_rate_source: 'trip',
+      exchange_rate_source_version: 'forged',
+      exchange_rate_set_by_user_id: 7,
     });
     expect(updated).toMatchObject({
       exchange_rate: 1.15,
-      exchange_rate_source: 'manual',
+      exchange_rate_source: 'explicit',
       exchange_rate_set_by_user_id: 42,
       exchange_rate_note: 'cash desk',
     });
+    expect(updated.exchange_rate_source_version).not.toBe('forged');
     expect(await ctx.costs.listSettlements(1)).toHaveLength(1);
     expect(await ctx.costs.deleteSettlement(1, created.id)).toEqual({ deleted: true });
 

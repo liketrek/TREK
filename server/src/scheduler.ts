@@ -415,7 +415,8 @@ function startExchangeRateRefresh(): void {
   if (exchangeRateTask) { exchangeRateTask.stop(); exchangeRateTask = null; }
   const refresh = async () => {
     try {
-      const { refreshStoredRateBases } = require('./services/exchangeRateService');
+      const { cleanupExpiredExchangeRatePreviews, refreshStoredRateBases } = require('./services/exchangeRateService');
+      cleanupExpiredExchangeRatePreviews();
       await refreshStoredRateBases();
     } catch (err: unknown) {
       logError(`Exchange-rate refresh failed: ${err instanceof Error ? err.message : err}`);

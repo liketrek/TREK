@@ -27,7 +27,7 @@ import fsMod from 'node:fs';
 import pathMod from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { checkPermission } from '../../../services/permissions';
-import { listTrips, updateTrip, createTrip, removeMember as removeTripMemberSvc, NotFoundError, ValidationError } from '../../../services/tripService';
+import { listTrips, updateTripAggregate, createTrip, removeMember as removeTripMemberSvc, NotFoundError, ValidationError } from '../../../services/tripService';
 import { createPlace, updatePlace, deletePlace } from '../../../services/placeService';
 import { createDay, getDay, updateDay, deleteDay, listDays, listAccommodations, validateAccommodationRefs, createAccommodation as createAccommodationSvc, getAccommodation, updateAccommodation as updateAccommodationSvc, deleteAccommodation as deleteAccommodationSvc } from '../../../services/dayService';
 import { createAssignment, deleteAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../services/assignmentService';
@@ -600,7 +600,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
     // --- Trip (trip_edit). Only the schema-writable fields reach updateTrip; its
     // NotFound/Validation errors are mapped to clean RPC codes. ---
     canEditTrip: (tripId, userId) => canEditTripAs('trip_edit', tripId, userId),
-    updateTrip: (tripId, userId, input) => {
+    updateTrip: async (tripId, userId, input) => {
       // The REST controller gates two fields behind their OWN admin-configurable
       // permissions, separate from trip_edit — reproduce that here so a plugin (or
       // its member user) can't archive or re-cover a trip it may only edit.
@@ -612,7 +612,7 @@ export function createRealRpcHost(id: string, granted: ReadonlySet<string>, rout
       }
       const u = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role?: string } | undefined;
       try {
-        const result = updateTrip(tripId, userId, input as Parameters<typeof updateTrip>[2], u?.role ?? 'user');
+        const result = await updateTripAggregate(tripId, userId, input as Parameters<typeof updateTripAggregate>[2], u?.role ?? 'user');
         broadcast(tripId, 'trip:updated', { trip: result.updatedTrip });
         return result.updatedTrip;
       } catch (e) {

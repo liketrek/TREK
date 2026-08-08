@@ -1,4 +1,4 @@
-import type { PluginContext, PluginDefinition, PluginRequest, PluginResponse, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, BudgetSettlement, TripExchangeRate, ExchangeRateQuote, ExchangeRateSource, User, NotificationMessage, PluginActionResult } from './index.js';
+import type { PluginContext, PluginDefinition, PluginRequest, PluginResponse, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, BudgetSettlement, TripExchangeRate, ExchangeRateResolution, ExchangeRateSource, User, NotificationMessage, PluginActionResult } from './index.js';
 import { CHANNEL_EVENTS } from './manifest.js';
 import { PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION } from './permissions.js';
 
@@ -29,7 +29,7 @@ export interface MockHostOptions {
     number,
     {
       members: number[]; data?: unknown; places?: unknown[]; reservations?: unknown[]; costs?: unknown[];
-      rates?: TripExchangeRate[]; settlements?: BudgetSettlement[]; quotes?: ExchangeRateQuote[];
+      rates?: TripExchangeRate[]; settlements?: BudgetSettlement[];
       days?: unknown[]; assignments?: unknown[]; packing?: unknown[]; files?: unknown[];
       accommodations?: unknown[]; bags?: unknown[]; todos?: unknown[]; daynotes?: unknown[];
       notes?: unknown[]; polls?: unknown[]; messages?: unknown[];
@@ -315,11 +315,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   // In-memory namespaced metadata store for ctx.meta (per mock plugin).
   const metaStore: Record<string, unknown> = {};
   const metaKey = (et: string, eid: number, key: string) => `${et}:${eid}:${key}`;
-  const exchangeRateQuotes = new Map<string, ExchangeRateQuote>();
-  for (const trip of Object.values(opts.trips ?? {})) {
-    for (const quote of trip.quotes ?? []) exchangeRateQuotes.set(quote.quote_id, quote);
-  }
-  let exchangeRateSequence = exchangeRateQuotes.size;
+  let exchangeRateSequence = 0;
   const tripCurrency = (trip: MockTripFixture): string =>
     String((trip.data as { currency?: unknown } | undefined)?.currency ?? 'EUR').toUpperCase();
   const positiveRate = (value: unknown): value is number =>
@@ -328,7 +324,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     tripId: number,
     trip: MockTripFixture,
     currencyInput: string,
-  ): ExchangeRateQuote | null => {
+  ): ExchangeRateResolution | null => {
     const base = tripCurrency(trip);
     const currency = String(currencyInput || base).toUpperCase();
     let exchangeRate: number | undefined;
@@ -358,8 +354,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       }
     }
 
-    const quote: ExchangeRateQuote = {
-      quote_id: `mock-quote-${++exchangeRateSequence}`,
+    return {
       trip_id: tripId,
       trip_currency: base,
       item_currency: currency,
@@ -370,8 +365,6 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       fetched_at: fetchedAt,
       stale: false,
     };
-    exchangeRateQuotes.set(quote.quote_id, quote);
-    return quote;
   };
   const applyFixtureProvenance = (
     input: Record<string, unknown>,
@@ -395,6 +388,14 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     userId: number,
     existing?: Record<string, unknown>,
   ) => {
+    for (const key of [
+      'exchange_rate_source',
+      'exchange_rate_source_version',
+      'exchange_rate_effective_date',
+      'exchange_rate_set_at',
+      'exchange_rate_set_by_user_id',
+      'exchange_rate_reset_at',
+    ]) delete input[key];
     const base = tripCurrency(trip);
     const currency = String(input.currency ?? existing?.currency ?? base).toUpperCase();
     const oldCurrency = existing ? String(existing.currency ?? base).toUpperCase() : null;
@@ -406,21 +407,13 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     }
     if (input.exchange_rate !== undefined) {
       if (!positiveRate(input.exchange_rate)) throw new Error('exchange_rate must be finite and greater than zero');
-      applyFixtureProvenance(input, input.exchange_rate, 'manual', `manual:mock-${++exchangeRateSequence}`, null, userId);
-      return;
-    }
-    if (input.quote_id !== undefined) {
-      const quote = exchangeRateQuotes.get(String(input.quote_id));
-      if (!quote || quote.trip_id !== tripId || quote.trip_currency !== base || quote.item_currency !== currency) {
-        throw new Error('the exchange-rate quote does not match this trip and currency');
-      }
-      applyFixtureProvenance(input, quote.exchange_rate, quote.source, quote.source_version, quote.effective_date, userId);
+      applyFixtureProvenance(input, input.exchange_rate, 'explicit', `explicit:mock-${++exchangeRateSequence}`, null, userId);
       return;
     }
     if (existing && currency === oldCurrency) return;
-    const quote = resolveFixtureRate(tripId, trip, currency);
-    if (!quote) throw new Error('no exchange rate is available; enter a manual rate');
-    applyFixtureProvenance(input, quote.exchange_rate, quote.source, quote.source_version, quote.effective_date, userId);
+    const resolution = resolveFixtureRate(tripId, trip, currency);
+    if (!resolution) throw new Error('no exchange rate is available; enter a manual rate');
+    applyFixtureProvenance(input, resolution.exchange_rate, resolution.source, resolution.source_version, resolution.effective_date, userId);
   };
 
   const buildCtx = (actingUserId: number | undefined): PluginContext => {
@@ -1280,7 +1273,6 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           }
           const frozen = { ...input };
           freezeFixtureRate(tripId, t, frozen, uid);
-          delete frozen.quote_id;
           const item = { id: (t.costs?.length ?? 0) + 1, trip_id: tripId, ...frozen };
           (t.costs ??= []).push(item);
           return item;
@@ -1297,7 +1289,6 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           if (!item) throw new Error(`RESOURCE_FORBIDDEN: no cost ${itemId} on trip ${tripId}`);
           const frozen = { ...input };
           freezeFixtureRate(tripId, t, frozen, uid, item);
-          delete frozen.quote_id;
           Object.assign(item, frozen);
           return item as BudgetItem;
         },
@@ -1386,7 +1377,6 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           }
           const frozen = { ...input };
           freezeFixtureRate(tripId, t, frozen, uid);
-          delete frozen.quote_id;
           const settlement = {
             id: (t.settlements?.length ?? 0) + 1,
             trip_id: tripId,
@@ -1407,7 +1397,6 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           if (!settlement) throw new Error(`RESOURCE_FORBIDDEN: no settlement ${settlementId} on trip ${tripId}`);
           const frozen = { ...input };
           freezeFixtureRate(tripId, t, frozen, uid, settlement);
-          delete frozen.quote_id;
           Object.assign(settlement, frozen);
           return settlement;
         },

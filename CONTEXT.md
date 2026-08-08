@@ -32,6 +32,10 @@ _Avoid_: Trip override
 The one effective exchange rate saved on an individual expense or settlement payment.
 _Avoid_: Current rate, live rate
 
+**Exchange-rate suggestion**:
+A read-only rate proposed for a new expense or settlement payment, with temporary trip or global provenance that is not proof of what was ultimately saved.
+_Avoid_: Quote, reserved rate
+
 **Rate provenance**:
-The recorded origin and version of a frozen exchange rate: identity, global, trip, manual, or legacy.
+The server-recorded origin and version of a frozen exchange rate: identity, global, trip, explicit, or legacy. Explicit means the caller supplied the saved rate value.
 _Avoid_: Rate type, rate metadata

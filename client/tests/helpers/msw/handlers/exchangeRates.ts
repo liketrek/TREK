@@ -21,7 +21,6 @@ export const exchangeRateHandlers = [
     const currency = new URL(request.url).searchParams.get('currency')?.toUpperCase() || 'EUR';
     const rate = currency === 'EUR' ? 1 : currency === 'USD' ? 1.2 : currency === 'JPY' ? 170 : 0.85;
     return HttpResponse.json({
-      quote_id: `test-quote-${String(params.id)}-${currency}`,
       trip_id: Number(params.id),
       trip_currency: 'EUR',
       item_currency: currency,
@@ -35,7 +34,7 @@ export const exchangeRateHandlers = [
   }),
 
   http.put('/api/trips/:id/exchange-rates/:currency', async ({ params, request }) => {
-    const body = await request.json() as { exchange_rate: number; note?: string | null };
+    const body = (await request.json()) as { exchange_rate: number; note?: string | null };
     return HttpResponse.json({
       rate: {
         trip_id: Number(params.id),
@@ -52,7 +51,7 @@ export const exchangeRateHandlers = [
   http.delete('/api/trips/:id/exchange-rates/:currency', () => HttpResponse.json({ success: true })),
 
   http.post('/api/trips/:id/exchange-rates/:currency/preview', async ({ params, request }) => {
-    const body = await request.json() as { exchange_rate: number };
+    const body = (await request.json()) as { exchange_rate: number };
     return HttpResponse.json({
       preview_id: `test-preview-${String(params.currency).toUpperCase()}`,
       trip_id: Number(params.id),
@@ -63,7 +62,7 @@ export const exchangeRateHandlers = [
   }),
 
   http.post('/api/trips/:id/exchange-rates/:currency/apply', async ({ params, request }) => {
-    const body = await request.json() as { selected: Array<{ type: string; id: number }> };
+    const body = (await request.json()) as { selected: Array<{ type: string; id: number }> };
     return HttpResponse.json({
       rate: { trip_id: Number(params.id), currency: String(params.currency).toUpperCase() },
       updated: body.selected,

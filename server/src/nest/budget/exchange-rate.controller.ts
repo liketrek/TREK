@@ -1,25 +1,74 @@
-import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import type { User } from '../../types';
 import { getClientIp, writeAudit } from '../../services/auditLog';
 import {
   applyTripExchangeRateUpdate,
   deleteTripExchangeRate,
+  ExchangeRatePreviewExpiredError,
   getGlobalRateSnapshot,
+  isSupportedProviderCurrency,
   listTripExchangeRates,
   previewTripExchangeRateUpdate,
   resolveExchangeRate,
   setTripExchangeRate,
 } from '../../services/exchangeRateService';
+import type { User } from '../../types';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { BudgetService } from './budget.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  HttpException,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+
+import type { Request } from 'express';
+
+const PUBLIC_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const PUBLIC_RATE_LIMIT_MAX = 60;
+const PUBLIC_RATE_LIMIT_BUCKETS_MAX = 10_000;
+const publicRateBuckets = new Map<string, { count: number; expiresAt: number }>();
+
+function consumePublicRateLimit(ip: string, now = Date.now()): boolean {
+  for (const [key, bucket] of publicRateBuckets) {
+    if (bucket.expiresAt <= now) publicRateBuckets.delete(key);
+  }
+  let bucket = publicRateBuckets.get(ip);
+  if (!bucket) {
+    if (publicRateBuckets.size >= PUBLIC_RATE_LIMIT_BUCKETS_MAX) {
+      publicRateBuckets.delete(publicRateBuckets.keys().next().value as string);
+    }
+    bucket = { count: 0, expiresAt: now + PUBLIC_RATE_LIMIT_WINDOW_MS };
+    publicRateBuckets.set(ip, bucket);
+  }
+  if (bucket.count >= PUBLIC_RATE_LIMIT_MAX) return false;
+  bucket.count += 1;
+  return true;
+}
+
+export function resetPublicExchangeRateLimitForTests(): void {
+  publicRateBuckets.clear();
+}
 
 @Controller('api/exchange-rates')
 export class GlobalExchangeRateController {
   @Get()
-  async get(@Query('base') base?: string) {
-    const snapshot = await getGlobalRateSnapshot(base || 'EUR');
+  async get(@Query('base') base: string | undefined, @Req() req: Request) {
+    const normalizedBase = (base || 'EUR').trim().toUpperCase();
+    if (!isSupportedProviderCurrency(normalizedBase)) {
+      throw new HttpException({ error: 'Unsupported exchange-rate base currency' }, 400);
+    }
+    if (!consumePublicRateLimit(getClientIp(req) || 'unknown')) {
+      throw new HttpException({ error: 'Too many exchange-rate requests' }, 429);
+    }
+    const snapshot = await getGlobalRateSnapshot(normalizedBase);
     if (!snapshot) throw new HttpException({ error: 'No exchange-rate snapshot is available' }, 503);
     return snapshot;
   }
@@ -52,9 +101,9 @@ export class TripExchangeRateController {
   async resolve(@CurrentUser() user: User, @Param('tripId') tripId: string, @Query('currency') currency?: string) {
     this.trip(tripId, user);
     if (!currency) throw new HttpException({ error: 'currency is required' }, 400);
-    const quote = await resolveExchangeRate(tripId, currency);
-    if (!quote) throw new HttpException({ error: 'No exchange rate is available; enter a manual rate' }, 404);
-    return quote;
+    const resolution = await resolveExchangeRate(tripId, currency);
+    if (!resolution) throw new HttpException({ error: 'No exchange rate is available; enter a manual rate' }, 404);
+    return resolution;
   }
 
   @Put(':currency')
@@ -91,7 +140,12 @@ export class TripExchangeRateController {
     this.editable(tripId, user);
     const deleted = deleteTripExchangeRate(tripId, currency);
     if (!deleted) throw new HttpException({ error: 'Trip exchange rate not found' }, 404);
-    this.budget.broadcast(tripId, 'budget:exchange-rates-updated', { currency: currency.toUpperCase(), deleted: true }, socketId);
+    this.budget.broadcast(
+      tripId,
+      'budget:exchange-rates-updated',
+      { currency: currency.toUpperCase(), deleted: true },
+      socketId,
+    );
     writeAudit({
       userId: user.id,
       action: 'budget.exchange_rate_delete',
@@ -103,7 +157,7 @@ export class TripExchangeRateController {
   }
 
   @Post(':currency/preview')
-  preview(
+  async preview(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('currency') currency: string,
@@ -111,7 +165,7 @@ export class TripExchangeRateController {
   ) {
     this.editable(tripId, user);
     if (body.exchange_rate === undefined) throw new HttpException({ error: 'exchange_rate is required' }, 400);
-    return previewTripExchangeRateUpdate(tripId, currency, body.exchange_rate, user.id, body.note);
+    return await previewTripExchangeRateUpdate(tripId, currency, body.exchange_rate, user.id, body.note);
   }
 
   @Post(':currency/apply')
@@ -127,7 +181,20 @@ export class TripExchangeRateController {
     if (!body.preview_id || !Array.isArray(body.selected)) {
       throw new HttpException({ error: 'preview_id and selected are required' }, 400);
     }
-    const result = applyTripExchangeRateUpdate(tripId, body.preview_id, body.selected, user.id, currency);
+    let result;
+    try {
+      result = applyTripExchangeRateUpdate(tripId, body.preview_id, body.selected, user.id, currency);
+    } catch (error) {
+      const status = (error as { status?: unknown })?.status;
+      if (typeof status === 'number') {
+        const code = error instanceof ExchangeRatePreviewExpiredError ? error.code : undefined;
+        throw new HttpException(
+          { error: error instanceof Error ? error.message : 'Exchange-rate update failed', ...(code ? { code } : {}) },
+          status,
+        );
+      }
+      throw error;
+    }
     this.budget.broadcast(tripId, 'budget:exchange-rates-applied', result as any, socketId);
     writeAudit({
       userId: user.id,

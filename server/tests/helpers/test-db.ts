@@ -54,7 +54,6 @@ const RESET_TABLES = [
   'packing_items',
   // Budget
   'exchange_rate_batch_previews',
-  'exchange_rate_quotes',
   'trip_exchange_rates',
   'global_exchange_rate_snapshots',
   'budget_item_members',
