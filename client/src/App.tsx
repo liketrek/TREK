@@ -82,6 +82,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   const user = useAuthStore((s) => s.user)
   const isLoading = useAuthStore((s) => s.isLoading)
   const appRequireMfa = useAuthStore((s) => s.appRequireMfa)
+  const loggingOut = useAuthStore((s) => s.loggingOut)
   const addonStore = useAddonStore()
   const { t } = useTranslation()
   const location = useLocation()
@@ -99,6 +100,10 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   }
 
   if (!isAuthenticated) {
+    // A session that ended on its own should come back to where it left off; a
+    // deliberate sign-out is a fresh start and gets no return ticket, so the
+    // startup destination decides where the next login lands.
+    if (loggingOut) return <Navigate to="/login" replace />
     const redirectParam = encodeURIComponent(location.pathname + location.search + location.hash)
     return <Navigate to={`/login?redirect=${redirectParam}`} replace />
   }

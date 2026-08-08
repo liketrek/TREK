@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, waitFor, act } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../tests/helpers/msw/server'
@@ -30,10 +30,19 @@ vi.mock('./hooks/useInAppNotificationListener.ts', () => ({
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+/** Reports the router's current location, so a test can assert where App sent it. */
+function LocationProbe() {
+  const loc = useLocation()
+  return <span data-testid="loc">{loc.pathname + loc.search}</span>
+}
+
+const currentPath = () => screen.getByTestId('loc').textContent
+
 function renderApp(initialPath = '/') {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
       <App />
+      <LocationProbe />
     </MemoryRouter>
   )
 }
@@ -164,6 +173,22 @@ describe('ProtectedRoute — unauthenticated', () => {
     seedAuth({ isAuthenticated: false })
     renderApp('/dashboard')
     await waitFor(() => expect(screen.getByText('Login')).toBeInTheDocument())
+  })
+
+  // A session that ran out should return you to the page you were on. Pressing
+  // "log out" should not: clearing isAuthenticated re-renders this route for the
+  // page still on screen, and the ?redirect= it stamped there beat the user's
+  // startup destination on every login after the first.
+  it('FE-COMP-APP-034: keeps the return ticket when the session merely ended', async () => {
+    seedAuth({ isAuthenticated: false, loggingOut: false })
+    renderApp('/trips/1/files')
+    await waitFor(() => expect(currentPath()).toBe('/login?redirect=%2Ftrips%2F1%2Ffiles'))
+  })
+
+  it('FE-COMP-APP-035: drops it on a deliberate sign-out, so the startup destination decides', async () => {
+    seedAuth({ isAuthenticated: false, loggingOut: true })
+    renderApp('/dashboard')
+    await waitFor(() => expect(currentPath()).toBe('/login'))
   })
 
   it('FE-COMP-APP-005: /trips/42 redirects to /login when not authenticated', async () => {

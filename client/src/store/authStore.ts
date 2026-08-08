@@ -33,6 +33,10 @@ interface AuthState {
    *  outage doesn't render as a blank, error-free page that looks like lost data.
    *  Transient, never persisted. #1283 */
   authCheckFailed: boolean
+  /** The user pressed "log out" — as opposed to a session that simply ended.
+   *  Read by ProtectedRoute: a deliberate sign-out should not leave a
+   *  ?redirect= pointing back at the page they just left. Transient. */
+  loggingOut: boolean
   error: string | null
   demoMode: boolean
   devMode: boolean
@@ -95,6 +99,7 @@ export const useAuthStore = create<AuthState>()(
   isAuthenticated: false,
   isLoading: true,
   authCheckFailed: false,
+  loggingOut: false,
   error: null,
   demoMode: localStorage.getItem('demo_mode') === 'true',
   devMode: false,
@@ -120,6 +125,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         error: null,
       })
@@ -145,6 +151,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         error: null,
       })
@@ -170,6 +177,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         error: null,
       })
@@ -188,7 +196,11 @@ export const useAuthStore = create<AuthState>()(
   logout: async () => {
     // 1. Gate first so any in-flight flush/syncAll bails before we wipe the DB.
     setAuthed(false)
-    set({ isAuthenticated: false })
+    // Flagged in the same update that drops the session: clearing isAuthenticated
+    // re-renders ProtectedRoute for whatever page is still on screen, and without
+    // this it would stamp a ?redirect= back to it — which then beats the user's
+    // startup destination on the next login.
+    set({ isAuthenticated: false, loggingOut: true })
     // 2. Stop background sync triggers (30s interval, WS pre-reconnect hook, listeners).
     unregisterSyncTriggers()
     // 3. Tear down the live connection.
@@ -233,6 +245,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         authCheckFailed: false,
       })
@@ -336,6 +349,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         demoMode: true,
         error: null,
