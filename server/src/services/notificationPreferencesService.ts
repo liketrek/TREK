@@ -1,71 +1,22 @@
 import type Database from 'better-sqlite3';
 import { db } from '../db/database';
 import { isSmtpConfigured } from './notifications';
-import { listChannels, type ExternalChannel } from './notifications/channelRegistry';
+import {
+  ADMIN_SCOPED_EVENTS,
+  ALL_EVENT_TYPES,
+  INAPP_CHANNEL,
+  isAdminGlobalChannel,
+  type AdminGlobalChannel,
+  type ChannelDescriptor,
+  type ExternalChannel,
+  type NotifChannel,
+  type NotifEventType,
+} from '../nest/notifications/notification-events';
+import { listChannels } from './notifications/channelRegistry';
 // Side-effect import: populates the registry with email/webhook/ntfy. Safe from
 // here — builtins only reaches ../notifications, which imports this module's
 // types with `import type`, so there is no runtime cycle.
 import './notifications/builtins';
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
-/**
- * A channel id. Open by design: the built-ins below plus `plugin:<id>` for any
- * plugin implementing the `notificationChannel` hook. The DB column is a bare
- * TEXT with no CHECK constraint and the Zod contract is already a string record,
- * so the set was only ever closed in TypeScript.
- */
-export type NotifChannel = string;
-
-export const INAPP_CHANNEL = 'inapp';
-
-export type NotifEventType =
-  | 'trip_invite'
-  | 'booking_change'
-  | 'trip_reminder'
-  | 'todo_due'
-  | 'vacay_invite'
-  | 'vacay_share'
-  | 'collection_invite'
-  | 'photos_shared'
-  | 'collab_message'
-  | 'packing_tagged'
-  | 'version_available'
-  | 'synology_session_cleared'
-  | 'plugin_notification';
-
-/** Every event, in the order the preferences UI lists them. */
-export const ALL_EVENT_TYPES: NotifEventType[] = [
-  'trip_invite',
-  'booking_change',
-  'trip_reminder',
-  'todo_due',
-  'vacay_invite',
-  'vacay_share',
-  'collection_invite',
-  'photos_shared',
-  'collab_message',
-  'packing_tagged',
-  'version_available',
-  'synology_session_cleared',
-  'plugin_notification',
-];
-
-/** One channel column in the preferences matrix. */
-export interface ChannelDescriptor {
-  id: string;
-  source: 'builtin' | 'plugin';
-  /** Built-ins: an i18n key. */
-  labelKey?: string;
-  /** Plugin channels: a literal display name. */
-  label?: string;
-  /** Where the user sets their credentials for this channel, if anywhere. */
-  settingsPath?: string;
-  /** The admin has enabled this channel (in-app is always on). */
-  active: boolean;
-  /** This user has credentials for it. */
-  configured: boolean;
-}
 
 /**
  * Channels implemented for an event. In-app takes everything; external channels
@@ -80,9 +31,6 @@ function allCombos(): Record<string, NotifChannel[]> {
   for (const event of ALL_EVENT_TYPES) out[event] = combosFor(event);
   return out;
 }
-
-/** Events that target admins only (shown in admin panel, not in user settings). */
-export const ADMIN_SCOPED_EVENTS = new Set<NotifEventType>(['version_available']);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -246,18 +194,6 @@ export function getPreferencesMatrix(userId: number, userRole: string, scope: 'u
 }
 
 // ── Admin global preferences (stored in app_settings) ─────────────────────
-
-/**
- * Channels whose admin-scoped preference is global (app_settings) rather than
- * per-user. Built-ins only: plugin channels are user-scoped and never carry
- * admin-scoped events.
- */
-const ADMIN_GLOBAL_CHANNELS = ['email', 'webhook', 'ntfy'] as const;
-export type AdminGlobalChannel = (typeof ADMIN_GLOBAL_CHANNELS)[number];
-
-export function isAdminGlobalChannel(channel: string): channel is AdminGlobalChannel {
-  return (ADMIN_GLOBAL_CHANNELS as readonly string[]).includes(channel);
-}
 
 /**
  * Returns the global admin preference for an event+channel.

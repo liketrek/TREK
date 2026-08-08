@@ -5,21 +5,15 @@ import { decrypt_api_key } from '../nest/common/crypto/apiKeyCrypto';
 import { logInfo, logDebug, logError } from '../nest/audit/audit-log.logger';
 // ── Types ──────────────────────────────────────────────────────────────────
 
-import type { NotifEventType } from './notificationPreferencesService';
+import type { NotifEventType } from '../nest/notifications/notification-events';
 import { EMAIL_I18N as I18N, EVENT_TEXTS, PASSWORD_RESET_I18N } from '@trek/shared/i18n/externalNotifications';
 import type {
   EmailStrings,
   EventText,
   PasswordResetStrings,
-  NotificationEventKey,
 } from '@trek/shared/i18n/externalNotifications';
 
 import nodemailer from 'nodemailer';
-
-// Compile-time guard: shared NotificationEventKey and server NotifEventType must stay in sync.
-type _EvtFwd = NotifEventType extends NotificationEventKey ? true : never;
-type _EvtBwd = NotificationEventKey extends NotifEventType ? true : never;
-const _eventKeyDriftGuard: [_EvtFwd, _EvtBwd] = [true, true];
 
 interface SmtpConfig {
   host: string;

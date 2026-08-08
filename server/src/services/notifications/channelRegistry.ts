@@ -1,62 +1,11 @@
-import type { NotifEventType } from '../notificationPreferencesService';
+import type { ExternalChannel } from '../../nest/notifications/notification-events';
 
-// ── External notification channels ─────────────────────────────────────────
-//
-// A channel is anything that delivers a *rendered* notification out of TREK:
-// email, webhook, ntfy, and any plugin that implements the `notificationChannel`
-// hook. In-app is deliberately NOT a channel — it writes typed rows with
-// scope/target/callback payloads rather than a title+body, so it keeps its own
-// path in notificationService.send(). The split mirrors the one shared/ already
-// draws in i18n/<locale>/externalNotifications.ts.
-//
-// Channels are declarative: they say what they support and whether a given user
-// has credentials, and they send. They do NOT consult preferences — the admin
-// toggle (`notification_channels`) and the per-user event opt-outs are applied by
-// the dispatch loop. That keeps this module free of any runtime dependency on
-// notificationPreferencesService, which in turn imports listChannels() from here.
-
-/** A notification already rendered into the recipient's language. */
-export interface ChannelMessage {
-  event: NotifEventType;
-  title: string;
-  body: string;
-  /** Relative navigate target (e.g. `/trips/12`) — what the email CTA builder takes. */
-  navigateTarget?: string;
-  /** Absolute link (appUrl + navigateTarget) — what webhook/ntfy/plugin payloads carry. */
-  url?: string;
-  tripName?: string;
-}
-
-export interface ExternalChannel {
-  readonly id: string;
-  readonly source: 'builtin' | 'plugin';
-  /** Built-ins: an i18n key the client resolves. */
-  readonly labelKey?: string;
-  /** Plugin channels: a literal display name (the host has no i18n for it). */
-  readonly label?: string;
-  /** Where the user configures their credentials, if anywhere. */
-  readonly settingsPath?: string;
-  /**
-   * Admin-scoped events (`version_available`) bypass the `notification_channels`
-   * toggle for this channel and are gated by the admin global pref instead.
-   * Only email does this today; preserved verbatim from the pre-registry dispatch.
-   */
-  readonly bypassesActiveToggleForAdminEvents?: boolean;
-  /** Delivers the one admin-scoped global copy (not per-recipient). */
-  readonly supportsAdminGlobal?: boolean;
-
-  supportsEvent(event: NotifEventType): boolean;
-  /**
-   * Instance-level readiness, independent of any one recipient (email: is SMTP set
-   * up at all?). Absent means "always ready".
-   */
-  isInstanceConfigured?(): boolean;
-  /** Does this recipient have credentials for this channel? */
-  isConfiguredFor(userId: number): boolean;
-  sendToUser(userId: number, msg: ChannelMessage): Promise<unknown>;
-  sendGlobal?(msg: ChannelMessage): Promise<unknown>;
-  test?(userId: number, override?: Record<string, unknown>): Promise<{ success: boolean; error?: string }>;
-}
+// The channel contract itself (ChannelMessage, ExternalChannel) lives in
+// nest/notifications/notification-events.ts so that this registry, the
+// preferences service and the transports can all name it without importing each
+// other. Re-exported here for the consumers that reach the contract through the
+// registry.
+export type { ChannelMessage, ExternalChannel } from '../../nest/notifications/notification-events';
 
 /** Namespace for plugin channel ids, so a plugin can never claim `email`. */
 export const PLUGIN_CHANNEL_PREFIX = 'plugin:';

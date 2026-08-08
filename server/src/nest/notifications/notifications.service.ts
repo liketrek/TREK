@@ -19,11 +19,15 @@ import {
   getActiveChannels,
   isEnabledForEvent,
   getAdminGlobalPref,
-  isAdminGlobalChannel,
-  ADMIN_SCOPED_EVENTS,
-  type NotifEventType,
 } from '../../services/notificationPreferencesService';
-import { getChannel, listChannels, type ChannelMessage, type ExternalChannel } from '../../services/notifications/channelRegistry';
+import {
+  ADMIN_SCOPED_EVENTS,
+  isAdminGlobalChannel,
+  type ChannelMessage,
+  type ExternalChannel,
+  type NotifEventType,
+} from './notification-events';
+import { getChannel, listChannels } from '../../services/notifications/channelRegistry';
 import { getAction } from './in-app-actions';
 import { avatarUrl } from '../common/avatarUrl';
 import { DatabaseService } from '../database/database.service';

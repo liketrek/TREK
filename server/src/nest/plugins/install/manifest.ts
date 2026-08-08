@@ -1,7 +1,7 @@
 import semver from 'semver';
 import { isKnownPermission } from '../protocol/envelope';
 import { isValidTrekRange, minTrekOf } from './host-compat';
-import type { NotifEventType } from '../../../services/notificationPreferencesService';
+import type { NotifEventType } from '../../notifications/notification-events';
 
 /**
  * Parse + validate a plugin's trek-plugin.json (#plugins, M4). Kept deliberately
