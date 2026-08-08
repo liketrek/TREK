@@ -58,7 +58,7 @@ import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import { createOAuthClient, createAuthCode, getUserByAccessToken } from '../../src/services/oauthService';
+import { createOAuthClient, createAuthCode, getUserByAccessToken } from '../../src/nest/oauth/oauth.bridge';
 
 let nestApp: INestApplication;
 let app: Application;

@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
 import { User } from '../types';
 import { verifyMcpToken, verifyJwtToken } from '../nest/auth/auth.bridge';
-import { getUserByAccessToken } from '../services/oauthService';
+import { getUserByAccessToken } from '../nest/oauth/oauth.bridge';
 import { isAddonEnabled } from '../nest/addons/addons.bridge';
 import { ADDON_IDS } from '../addons';
 import { registerResources } from './resources';

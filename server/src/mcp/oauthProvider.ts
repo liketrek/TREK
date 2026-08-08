@@ -14,7 +14,7 @@ import {
     revokeToken as serviceRevokeToken,
     verifyPKCE,
     getUserByAccessToken,
-} from '../services/oauthService';
+} from '../nest/oauth/oauth.bridge';
 import { ALL_SCOPES } from './scopes';
 import { getMcpSafeUrl } from '../app-config';
 import { writeAudit } from '../nest/audit/audit.bridge';

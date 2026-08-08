@@ -8,7 +8,7 @@ import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import type { User } from '../../types';
-import type { AuthorizeParams } from '../../services/oauthService';
+import type { AuthorizeParams } from './oauth.service';
 
 const MIN = 60_000;
 

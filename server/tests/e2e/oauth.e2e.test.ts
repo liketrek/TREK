@@ -38,6 +38,9 @@ vi.mock('../../src/app-config', async (importOriginal) => {
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
 
+// Stubbed at the provider, not the module path: the domain folded into
+// OauthService, so there is no legacy module left to vi.mock. Same six cases,
+// same assertions — these pin the guard/gate layer, not the OAuth logic.
 const { oauthSvc } = vi.hoisted(() => ({
   oauthSvc: {
     validateAuthorizeRequest: vi.fn(), createAuthCode: vi.fn(), consumeAuthCode: vi.fn(), saveConsent: vi.fn(),
@@ -47,9 +50,9 @@ const { oauthSvc } = vi.hoisted(() => ({
     getUserByAccessToken: vi.fn(),
   },
 }));
-vi.mock('../../src/services/oauthService', () => oauthSvc);
 
 import { OauthModule } from '../../src/nest/oauth/oauth.module';
+import { OauthService } from '../../src/nest/oauth/oauth.service';
 import { AddonsService } from '../../src/nest/addons/addons.service';
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
@@ -62,6 +65,8 @@ describe('OAuth e2e (real guards + temp SQLite)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, OauthModule] })
       .overrideProvider(AddonsService)
       .useValue({ isAddonEnabled })
+      .overrideProvider(OauthService)
+      .useValue({ ...oauthSvc, mcpEnabled: () => isAddonEnabled(), mcpSafeUrl: () => 'https://mcp.test' })
       .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
