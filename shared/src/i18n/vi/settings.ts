@@ -448,6 +448,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Đã ẩn',
   'settings.general.languageRegion': 'Ngôn ngữ & khu vực',
   'settings.general.travelMap': 'Du lịch & bản đồ',
+  'settings.general.startup': 'Khởi động',
+  'settings.startPage': 'Trang khởi động',
+  'settings.startPageDashboard': 'Bảng điều khiển',
+  'settings.startPageActiveTrip': 'Chuyến đi đang diễn ra',
+  'settings.startPageHint':
+    'TREK mở thẳng chuyến đi đang diễn ra, nếu không thì chuyến gần nhất sắp tới. Đó cũng là chuyến mà bảng điều khiển làm nổi bật.',
+  'settings.startTripTab': 'Tab khởi động',
+  'settings.startTripTabHint':
+    'Tab mà chuyến đi mở ra. Nếu tab đó thuộc tiện ích đã tắt, chế độ xem kế hoạch sẽ mở thay thế.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Bộ nhớ đệm ngoại tuyến',

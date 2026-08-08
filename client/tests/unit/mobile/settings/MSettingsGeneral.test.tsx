@@ -156,4 +156,38 @@ describe('MSettingsGeneral', () => {
     await user.click(screen.getByRole('button', { name: '°F Fahrenheit' }));
     await screen.findByText('Error');
   });
+
+  it('FE-MOB-SET-012: the startup card defaults to the dashboard and hides the tab row', () => {
+    render(<MSettingsGeneral />);
+
+    expect(screen.getByText('Startup')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dashboard' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('Start tab')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-SET-013: picking the active trip persists it and reveals the tab row', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'en' }), updateSetting });
+    render(<MSettingsGeneral />);
+
+    await user.click(screen.getByRole('button', { name: 'Active trip' }));
+    expect(updateSetting).toHaveBeenCalledWith('start_page', 'active_trip');
+  });
+
+  it('FE-MOB-SET-014: the start-tab sheet saves the planner tab id behind the label', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, {
+      settings: buildSettings({ language: 'en', start_page: 'active_trip', start_trip_tab: 'plan' }),
+      updateSetting,
+    });
+    render(<MSettingsGeneral />);
+
+    expect(screen.getByText('Start tab')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Plan' }));
+    await user.click(await screen.findByText('Costs'));
+
+    expect(updateSetting).toHaveBeenCalledWith('start_trip_tab', 'finanzplan');
+  });
 });

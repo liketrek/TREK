@@ -443,6 +443,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Gizli',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Başlangıç',
+  'settings.startPage': 'Başlangıç sayfası',
+  'settings.startPageDashboard': 'Pano',
+  'settings.startPageActiveTrip': 'Aktif seyahat',
+  'settings.startPageHint':
+    'TREK doğrudan devam eden seyahati, yoksa sıradaki seyahati açar. Panonun öne çıkardığı seyahatin aynısı.',
+  'settings.startTripTab': 'Başlangıç sekmesi',
+  'settings.startTripTabHint':
+    'Seyahatin açılacağı sekme. Kapalı bir eklentiye aitse onun yerine plan görünümü açılır.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Çevrimdışı önbellek',

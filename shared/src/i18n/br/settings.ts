@@ -446,6 +446,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Oculto',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Inicialização',
+  'settings.startPage': 'Página inicial',
+  'settings.startPageDashboard': 'Painel',
+  'settings.startPageActiveTrip': 'Viagem ativa',
+  'settings.startPageHint':
+    'O TREK abre direto na viagem que está acontecendo, ou na próxima que começa. É a mesma viagem que o painel destaca.',
+  'settings.startTripTab': 'Aba inicial',
+  'settings.startTripTabHint':
+    'A aba com que a viagem abre. Se ela pertencer a um complemento desativado, abre a visão de plano.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Cache offline',

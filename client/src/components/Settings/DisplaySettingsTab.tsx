@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Languages, Map, ChevronDown, Check } from 'lucide-react'
+import { Languages, Map, ChevronDown, Check, Rocket } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
 import { useSettingsStore, DEFAULT_SETTINGS } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
 import Section from './Section'
+import { TRIP_TAB_IDS, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
+import { DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from '../../utils/startDestination'
 import type { DistanceUnit } from '../../types'
 
 export default function DisplaySettingsTab(): React.ReactElement {
@@ -34,8 +36,60 @@ export default function DisplaySettingsTab(): React.ReactElement {
     setDistanceUnit(settings.distance_unit || DEFAULT_SETTINGS.distance_unit)
   }, [settings.distance_unit])
 
+  const startPage = settings.start_page === 'active_trip' ? 'active_trip' : DEFAULT_START_PAGE
+  const startTripTab = settings.start_trip_tab || DEFAULT_START_TRIP_TAB
+
   return (
     <>
+      <Section title={t('settings.general.startup')} icon={Rocket}>
+      {/* Where opening TREK lands */}
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.startPage')}</label>
+        <div className="flex gap-3">
+          {([
+            { value: 'dashboard', label: t('settings.startPageDashboard') },
+            { value: 'active_trip', label: t('settings.startPageActiveTrip') },
+          ] as const).map(opt => (
+            <button
+              key={opt.value}
+              onClick={async () => {
+                try { await updateSetting('start_page', opt.value) }
+                catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
+                border: startPage === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
+                background: startPage === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs mt-1 text-content-faint">{t('settings.startPageHint')}</p>
+      </div>
+
+      {/* Which planner tab the trip opens on — only meaningful for 'active_trip' */}
+      {startPage === 'active_trip' && (
+        <div>
+          <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.startTripTab')}</label>
+          <CustomSelect
+            value={startTripTab}
+            onChange={async v => {
+              try { await updateSetting('start_trip_tab', String(v)) }
+              catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+            }}
+            options={TRIP_TAB_IDS.map(id => ({ value: id, label: t(TRIP_TAB_LABEL_KEYS[id]) }))}
+          />
+          <p className="text-xs text-content-faint mt-2">{t('settings.startTripTabHint')}</p>
+        </div>
+      )}
+      </Section>
+
       <Section title={t('settings.general.languageRegion')} icon={Languages}>
       {/* Display currency */}
       <div>

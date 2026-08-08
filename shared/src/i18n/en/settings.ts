@@ -447,6 +447,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Hidden',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Startup',
+  'settings.startPage': 'Start page',
+  'settings.startPageDashboard': 'Dashboard',
+  'settings.startPageActiveTrip': 'Active trip',
+  'settings.startPageHint':
+    'TREK opens straight in the trip running today, or the next one coming up. That is the same trip the dashboard features.',
+  'settings.startTripTab': 'Start tab',
+  'settings.startTripTabHint':
+    'The tab the trip opens on. If it belongs to an addon you switched off, the plan view opens instead.',
 
   // ── Offline (#1135) ────────────────────────────────────────────────────────
   'settings.offline.cache.title': 'Offline cache',

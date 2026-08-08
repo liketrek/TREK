@@ -433,6 +433,14 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': '숨김',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': '시작',
+  'settings.startPage': '시작 화면',
+  'settings.startPageDashboard': '대시보드',
+  'settings.startPageActiveTrip': '진행 중인 여행',
+  'settings.startPageHint':
+    'TREK을 열면 지금 진행 중인 여행, 없으면 다음에 시작하는 여행으로 바로 이동합니다. 대시보드가 강조하는 여행과 같습니다.',
+  'settings.startTripTab': '시작 탭',
+  'settings.startTripTabHint': '여행이 열릴 탭입니다. 꺼 둔 애드온의 탭이면 대신 계획이 열립니다.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': '오프라인 캐시',

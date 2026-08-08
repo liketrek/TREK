@@ -453,6 +453,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Masqué',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Démarrage',
+  'settings.startPage': 'Page de démarrage',
+  'settings.startPageDashboard': 'Tableau de bord',
+  'settings.startPageActiveTrip': 'Voyage en cours',
+  'settings.startPageHint':
+    "TREK s'ouvre directement sur le voyage en cours, ou sur le prochain à venir. C'est le même voyage que celui mis en avant sur le tableau de bord.",
+  'settings.startTripTab': 'Onglet de démarrage',
+  'settings.startTripTabHint':
+    "L'onglet sur lequel le voyage s'ouvre. S'il appartient à un module désactivé, la vue Plan s'ouvre à la place.",
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Cache hors ligne',
