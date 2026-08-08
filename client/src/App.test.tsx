@@ -81,6 +81,81 @@ describe('RootRedirect', () => {
   })
 })
 
+// ── RootRedirect — startup destination ────────────────────────────────────────
+
+describe('RootRedirect — startup destination', () => {
+  /** Serves GET /api/trips/active and reports whether it was asked at all. */
+  function stubActiveTrip(trip: { id: number; title: string } | null) {
+    const calls: string[] = []
+    server.use(
+      http.get('/api/trips/active', ({ request }) => {
+        calls.push(request.url)
+        return HttpResponse.json({ trip })
+      }),
+    )
+    return calls
+  }
+
+  it('FE-COMP-APP-026: opens the active trip on the chosen tab', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({
+      isLoaded: true,
+      settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'finanzplan' }),
+    })
+    stubActiveTrip({ id: 42, title: 'Japan' })
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
+  })
+
+  it('FE-COMP-APP-027: falls back to the dashboard when the user has no trip', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({
+      isLoaded: true,
+      settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'finanzplan' }),
+    })
+    stubActiveTrip(null)
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+  })
+
+  it('FE-COMP-APP-028: falls back to the dashboard when the lookup fails', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({
+      isLoaded: true,
+      settings: buildSettings({ start_page: 'active_trip' }),
+    })
+    server.use(http.get('/api/trips/active', () => HttpResponse.error()))
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+  })
+
+  // The whole point of the localStorage mirror: the default launch must not pay
+  // for a lookup it doesn't need.
+  it('FE-COMP-APP-029: never asks for the active trip when starting on the dashboard', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({ isLoaded: true, settings: buildSettings({ start_page: 'dashboard' }) })
+    const calls = stubActiveTrip({ id: 42, title: 'Japan' })
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+    expect(calls).toHaveLength(0)
+  })
+
+  it('FE-COMP-APP-030: reads the preference from localStorage before settings have loaded', async () => {
+    localStorage.setItem('trek_start_page', 'active_trip')
+    localStorage.setItem('trek_start_trip_tab', 'finanzplan')
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({ isLoaded: false })
+    stubActiveTrip({ id: 42, title: 'Japan' })
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
+  })
+})
+
 // ── ProtectedRoute — unauthenticated ──────────────────────────────────────────
 
 describe('ProtectedRoute — unauthenticated', () => {

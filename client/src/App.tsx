@@ -1,4 +1,4 @@
-import React, { useEffect, ReactNode, Suspense } from 'react'
+import React, { useEffect, useState, ReactNode, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
@@ -19,7 +19,8 @@ import ErrorBoundary from './components/shared/ErrorBoundary'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useIsPhone } from './mobile/useIsPhone'
 import { TranslationProvider, useTranslation } from './i18n'
-import { authApi } from './api/client'
+import { authApi, tripsApi } from './api/client'
+import { readStartDestination, tripStartPath, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from './utils/startDestination'
 import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
 import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts'
 import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
@@ -172,10 +173,39 @@ function ViewportRoute({ phone: Phone, desktop: Desktop }: {
   return isPhone ? <Phone /> : <Desktop />
 }
 
+/**
+ * The entry point every shortcut, bookmark and the installed PWA share
+ * (manifest start_url is '/'), which is why the startup destination is decided
+ * here rather than on /dashboard — landing on the dashboard directly has to keep
+ * working, or there would be no way back to it.
+ *
+ * The preference is read from the localStorage mirror, so the default path stays
+ * exactly as fast as before: no settings request to wait for. Only someone who
+ * asked for 'active_trip' pays for the one lookup that finds their trip, and a
+ * failure there just falls back to the dashboard.
+ */
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuthStore()
+  const settingsLoaded = useSettingsStore((s) => s.isLoaded)
+  const settings = useSettingsStore((s) => s.settings)
+  const [target, setTarget] = useState<string | null>(null)
 
-  if (isLoading) {
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || target) return
+    // Straight after login the real settings are already in the store, so use
+    // them; on a cold start they aren't, and waiting would defeat the point.
+    const { page, tab } = settingsLoaded
+      ? { page: settings.start_page ?? DEFAULT_START_PAGE, tab: settings.start_trip_tab ?? DEFAULT_START_TRIP_TAB }
+      : readStartDestination()
+    if (page !== 'active_trip') { setTarget('/dashboard'); return }
+    let cancelled = false
+    tripsApi.active()
+      .then(({ trip }) => { if (!cancelled) setTarget(trip ? tripStartPath(trip.id, tab) : '/dashboard') })
+      .catch(() => { if (!cancelled) setTarget('/dashboard') })
+    return () => { cancelled = true }
+  }, [isLoading, isAuthenticated, settingsLoaded, target])
+
+  if (isLoading || (isAuthenticated && !target)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
@@ -183,7 +213,7 @@ function RootRedirect() {
     )
   }
 
-  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
+  return <Navigate to={isAuthenticated ? (target ?? '/dashboard') : '/login'} replace />
 }
 
 /**

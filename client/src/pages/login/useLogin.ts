@@ -6,6 +6,7 @@ import { useTranslation, detectBrowserLanguage } from '../../i18n'
 import { startAuthentication } from '@simplewebauthn/browser'
 import { authApi, configApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
+import { START_DESTINATION_ROUTE } from '../../utils/startDestination'
 
 interface AppConfig {
   has_users: boolean
@@ -73,11 +74,13 @@ export function useLogin() {
     if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.startsWith('/\\')) {
       return redirect
     }
-    return '/dashboard'
+    // No page to return to: hand the choice to RootRedirect, which is the one
+    // place that knows whether this user starts on the dashboard or in a trip.
+    return START_DESTINATION_ROUTE
   }, [])
 
   useEffect(() => {
-    if (redirectTarget !== '/dashboard') {
+    if (redirectTarget !== START_DESTINATION_ROUTE) {
       sessionStorage.setItem('oidc_redirect', redirectTarget)
     }
   }, [redirectTarget])
@@ -110,7 +113,7 @@ export function useLogin() {
           window.history.replaceState({}, '', '/login')
           if (data.token) {
             await loadUser()
-            const savedRedirect = sessionStorage.getItem('oidc_redirect') || '/dashboard'
+            const savedRedirect = sessionStorage.getItem('oidc_redirect') || START_DESTINATION_ROUTE
             sessionStorage.removeItem('oidc_redirect')
             navigate(savedRedirect, { replace: true })
           } else {

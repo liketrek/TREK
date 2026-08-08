@@ -11,6 +11,7 @@ import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAuthStore, type LoginResult } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { startAuthentication } from '@simplewebauthn/browser';
+import { START_DESTINATION_ROUTE } from '../../utils/startDestination';
 import { useLogin } from './useLogin';
 
 const mockNavigate = vi.fn();
@@ -242,6 +243,30 @@ describe('useLogin — redirect target', () => {
 
     expect(sessionStorage.getItem('oidc_redirect')).toBeNull();
   });
+
+  it('FE-LOGIN-HOOK-056: without a redirect param it defers to the startup destination, not the dashboard', async () => {
+    setSearch('');
+    const { result } = renderLogin();
+    await ready(result);
+
+    // Nothing stashed: '/' is the resolver route, not a place worth returning to.
+    expect(sessionStorage.getItem('oidc_redirect')).toBeNull();
+
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await act(async () => {
+      await result.current.handleDemoLogin();
+    });
+    act(() => { vi.advanceTimersByTime(2600); });
+    expect(mockNavigate).toHaveBeenCalledWith(START_DESTINATION_ROUTE);
+  });
+
+  it('FE-LOGIN-HOOK-057: an explicit redirect still beats the startup destination', async () => {
+    setSearch('?redirect=/trips/9%3Ftab%3Dfinanzplan');
+    const { result } = renderLogin();
+    await ready(result);
+
+    expect(sessionStorage.getItem('oidc_redirect')).toBe('/trips/9?tab=finanzplan');
+  });
 });
 
 describe('useLogin — invite links', () => {
@@ -293,7 +318,7 @@ describe('useLogin — OIDC callback', () => {
     );
 
     renderLogin();
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true }));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(START_DESTINATION_ROUTE, { replace: true }));
 
     // Switching language rebuilds `t`, which the callback effect depends on.
     await act(async () => {
@@ -507,7 +532,7 @@ describe('useLogin — passkey login', () => {
     act(() => {
       vi.advanceTimersByTime(2600);
     });
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    expect(mockNavigate).toHaveBeenCalledWith(START_DESTINATION_ROUTE);
   });
 
   it.each(['NotAllowedError', 'AbortError'])(
@@ -654,7 +679,7 @@ describe('useLogin — password submit', () => {
     act(() => {
       vi.advanceTimersByTime(2600);
     });
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    expect(mockNavigate).toHaveBeenCalledWith(START_DESTINATION_ROUTE);
   });
 
   it('FE-LOGIN-HOOK-040: stops on a dropped Secure cookie instead of dead-ending later', async () => {
@@ -790,7 +815,7 @@ describe('useLogin — MFA step', () => {
     act(() => {
       vi.advanceTimersByTime(2600);
     });
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    expect(mockNavigate).toHaveBeenCalledWith(START_DESTINATION_ROUTE);
   });
 
   it('FE-LOGIN-HOOK-047: hands over to the password-change step after MFA when the account is flagged', async () => {
@@ -888,7 +913,7 @@ describe('useLogin — forced password change', () => {
     act(() => {
       vi.advanceTimersByTime(2600);
     });
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    expect(mockNavigate).toHaveBeenCalledWith(START_DESTINATION_ROUTE);
   });
 
   it('FE-LOGIN-HOOK-052: surfaces a rejected password change', async () => {
