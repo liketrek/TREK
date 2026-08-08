@@ -6,6 +6,8 @@ import { SettingsService } from '../settings/settings.service';
 import { AuthService } from '../auth/auth.service';
 import { PasskeyService } from '../auth/passkey.service';
 import { AtlasService } from '../atlas/atlas.service';
+import { UserCleanupService } from '../auth/user-cleanup.service';
+import { WebauthnConfigService } from '../auth/webauthn-config.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { PackingService } from '../packing/packing.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -31,16 +33,19 @@ import { AdminService } from './admin.service';
 const dbs = new DatabaseService(db);
 const realtime = new RealtimeService();
 const permissions = new PermissionsService(dbs);
-const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs));
+const webauthn = new WebauthnConfigService(dbs);
+const userCleanup = new UserCleanupService(dbs);
+const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup);
 const admin = new AdminService(
   dbs,
   new SettingsService(dbs),
   new AddonsService(dbs),
-  new PasskeyService(dbs, auth),
+  new PasskeyService(dbs, auth, webauthn),
   new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
   new NotificationsService(dbs, realtime),
+  userCleanup,
 );
 
 export function checkAndNotifyVersion(): Promise<void> {

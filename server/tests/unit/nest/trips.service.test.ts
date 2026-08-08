@@ -64,6 +64,7 @@ import { CollabService } from '../../../src/nest/collab/collab.service';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { TripsService } from '../../../src/nest/trips/trips.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { getTripOwner, listMembers as bridgeListMembers } from '../../../src/nest/trips/trips.bridge';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
@@ -90,6 +91,8 @@ const svc = new TripsService(
   new VacayService(dbs(), new RealtimeService()),
   new RealtimeService(),
   placesSvc,
+  undefined as never, // unsplash — not exercised here
+  new UserCleanupService(dbs()),
 );
 
 beforeAll(() => {
@@ -1206,6 +1209,8 @@ describe('quirk fixes', () => {
       new VacayService(dbs(), new RealtimeService()),
       new RealtimeService(),
       placesSvc,
+      undefined as never, // unsplash — not exercised here
+      new UserCleanupService(dbs()),
     );
   }
 

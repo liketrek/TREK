@@ -7,7 +7,7 @@ import {
   verifyAuthenticationResponse,
   type AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
-import { resolveWebauthnConfig } from '../../services/webauthnConfig';
+import { WebauthnConfigService } from './webauthn-config.service';
 import { avatarUrl } from '../common/avatarUrl';
 import { stripUserForClient } from './auth.helpers';
 import { AuthService } from './auth.service';
@@ -94,6 +94,7 @@ export class PasskeyService {
   constructor(
     private readonly db: DatabaseService,
     private readonly auth: AuthService,
+    private readonly webauthn: WebauthnConfigService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -133,7 +134,7 @@ export class PasskeyService {
     userId: number,
     password: string | undefined,
   ): Promise<{ error?: string; status?: number; options?: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {
-    const cfg = resolveWebauthnConfig();
+    const cfg = this.webauthn.resolve();
     if (!cfg) return { ...NOT_CONFIGURED };
 
     const user = this.db.get<User>('SELECT * FROM users WHERE id = ?', userId);
@@ -174,7 +175,7 @@ export class PasskeyService {
     userId: number,
     body: { attestationResponse?: unknown; name?: unknown },
   ): Promise<{ error?: string; status?: number; success?: boolean; credential?: unknown }> {
-    const cfg = resolveWebauthnConfig();
+    const cfg = this.webauthn.resolve();
     if (!cfg) return { ...NOT_CONFIGURED };
 
     const resp = body?.attestationResponse;
@@ -257,7 +258,7 @@ export class PasskeyService {
     status?: number;
     options?: Awaited<ReturnType<typeof generateAuthenticationOptions>>;
   }> {
-    const cfg = resolveWebauthnConfig();
+    const cfg = this.webauthn.resolve();
     if (!cfg) return { ...NOT_CONFIGURED };
 
     const now = Date.now();
@@ -282,7 +283,7 @@ export class PasskeyService {
     auditUserId?: number | null;
     auditAction?: string;
   }> {
-    const cfg = resolveWebauthnConfig();
+    const cfg = this.webauthn.resolve();
     if (!cfg) return { ...NOT_CONFIGURED };
 
     const resp = body?.assertionResponse;

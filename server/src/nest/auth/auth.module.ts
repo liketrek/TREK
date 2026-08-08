@@ -5,6 +5,8 @@ import { AuthController } from './auth.controller';
 import { PasskeyController } from './passkey.controller';
 import { AuthService } from './auth.service';
 import { PasskeyService } from './passkey.service';
+import { UserCleanupService } from './user-cleanup.service';
+import { WebauthnConfigService } from './webauthn-config.service';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { AuditModule } from '../audit/audit.module';
 import { PermissionsModule } from '../permissions/permissions.module';
@@ -18,15 +20,17 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * sub-paths explicitly rather than claiming all of /api/auth.
  *
  * PermissionsModule feeds getAppConfig's permissions block; AtlasModule feeds
- * getTravelStats' hidden-countries subtraction. AuthService is exported for
- * the in-container consumers (the domain *.mcp.ts demo guards, OidcService,
- * PasskeyEnabledGuard); PasskeyService for AdminService's passkey reset;
- * everything outside the container goes through auth.bridge.ts.
+ * getTravelStats' hidden-countries subtraction. AuthService is
+ * exported for the in-container consumers (the domain *.mcp.ts demo guards,
+ * OidcService, PasskeyEnabledGuard); PasskeyService for AdminService's passkey
+ * reset; UserCleanupService for the two account-deletion paths (AdminService)
+ * and the guest deletion in TripsService; everything outside the container goes
+ * through auth.bridge.ts.
  */
 @Module({
   imports: [RateLimitModule, AuditModule, PermissionsModule, AtlasModule, TripMembershipModule, AppConfigModule],
   controllers: [AuthPublicController, AuthController, PasskeyController],
-  providers: [AuthService, PasskeyService],
-  exports: [AuthService, PasskeyService],
+  providers: [AuthService, PasskeyService, UserCleanupService, WebauthnConfigService],
+  exports: [AuthService, PasskeyService, UserCleanupService],
 })
 export class AuthModule {}

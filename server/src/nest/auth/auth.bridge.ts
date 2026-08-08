@@ -4,6 +4,8 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { AtlasService } from '../atlas/atlas.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { AuthService } from './auth.service';
+import { UserCleanupService } from './user-cleanup.service';
+import { WebauthnConfigService } from './webauthn-config.service';
 import { User } from '../../types';
 
 /**
@@ -28,12 +30,18 @@ import { User } from '../../types';
  *
  * Module-level construction is safe: `db` is the reinitialize-proof Proxy onto
  * the shared better-sqlite3 singleton (same pattern as permissions.bridge.ts).
+ * WebauthnConfigService and UserCleanupService are constructed only because
+ * AuthService takes them — nothing this file exports reaches either one.
  */
+const dbs = new DatabaseService(db);
+const permissions = new PermissionsService(dbs);
 const auth = new AuthService(
-  new DatabaseService(db),
-  new PermissionsService(new DatabaseService(db)),
-  new AtlasService(new DatabaseService(db)),
-  new TripMembershipService(new DatabaseService(db)),
+  dbs,
+  permissions,
+  new AtlasService(dbs),
+  new TripMembershipService(dbs),
+  new WebauthnConfigService(dbs),
+  new UserCleanupService(dbs),
 );
 
 export { stripUserForClient } from './auth.helpers';

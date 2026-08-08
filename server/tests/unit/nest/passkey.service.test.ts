@@ -63,15 +63,6 @@ vi.mock('../../../src/scheduler', () => ({
   VALID_INTERVALS: ['daily', 'weekly', 'monthly'],
 }));
 
-// The RP config resolver is a plain helper with its own suite
-// (webauthnConfig.test.ts); here it is a switch for the configured/
-// not-configured branches. isPasskeyConfigured stays real for auth.service.
-const { resolveWebauthnConfigMock } = vi.hoisted(() => ({ resolveWebauthnConfigMock: vi.fn() }));
-vi.mock('../../../src/services/webauthnConfig', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../src/services/webauthnConfig')>();
-  return { ...actual, resolveWebauthnConfig: resolveWebauthnConfigMock };
-});
-
 // The WebAuthn ceremony verdicts are the mock boundary — the service must
 // persist ONLY what the verifier vouches for, so the tests hand it verdicts.
 const { swMock } = vi.hoisted(() => ({
@@ -94,13 +85,20 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { PasskeyService } from '../../../src/nest/auth/passkey.service';
+import type { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+
+// The RP config resolver has its own suite (webauthn-config.service.test.ts);
+// here it is a switch for the configured / not-configured branches, handed in
+// as a stub now that PasskeyService injects it.
+const resolveWebauthnConfigMock = vi.fn();
+const webauthn = { resolve: resolveWebauthnConfigMock } as unknown as WebauthnConfigService;
 
 const auth = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
   new AtlasService(new DatabaseService(testDb)),
 );
-const svc = new PasskeyService(new DatabaseService(testDb), auth);
+const svc = new PasskeyService(new DatabaseService(testDb), auth, webauthn);
 
 const CFG = { rpID: 'trek.example.com', rpName: 'TREK', origins: ['https://trek.example.com'] };
 const NOT_CONFIGURED_ERROR = 'Passkey login is not configured for this server.';

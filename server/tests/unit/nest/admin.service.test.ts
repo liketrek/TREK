@@ -61,6 +61,9 @@ import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { SettingsService } from '../../../src/nest/settings/settings.service';
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { PasskeyService } from '../../../src/nest/auth/passkey.service';
 import { PackingService } from '../../../src/nest/packing/packing.service';
@@ -73,16 +76,19 @@ import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpe
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
 const permissions = new PermissionsService(dbs);
-const auth = new AuthService(dbs, permissions, new AtlasService(dbs));
+const webauthn = new WebauthnConfigService(dbs);
+const userCleanup = new UserCleanupService(dbs);
+const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup);
 const svc = new AdminService(
   dbs,
   new SettingsService(dbs),
   new AddonsService(dbs),
-  new PasskeyService(dbs, auth),
+  new PasskeyService(dbs, auth, webauthn),
   new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
   new NotificationsService(dbs, realtime),
+  userCleanup,
 );
 
 // Legacy free-function names bound to the service, so the moved cases below read

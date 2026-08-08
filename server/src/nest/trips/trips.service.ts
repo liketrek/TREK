@@ -8,7 +8,7 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import type { Trip, User } from '../../types';
 import { avatarUrl } from '../common/avatarUrl';
-import { erasePluginUserData } from '../../services/userCleanupService';
+import { UserCleanupService } from '../auth/user-cleanup.service';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { resolveTimeZone } from '../common/timezoneService';
 import { PlacesService } from '../places/places.service';
@@ -228,6 +228,7 @@ export class TripsService {
     private readonly realtime: RealtimeService,
     private readonly places: PlacesService,
     private readonly unsplash: UnsplashService,
+    private readonly userCleanup: UserCleanupService,
   ) {}
 
   private get db() {
@@ -897,7 +898,7 @@ export class TripsService {
     // A guest is still a user id a plugin may hold data for, so erase that too — the
     // host-side per-user tables + a durable own-db erasure per granted plugin — exactly
     // like a full account deletion (otherwise a deleted guest's plugin data lingers).
-    erasePluginUserData(guestUserId);
+    this.userCleanup.erasePluginUserData(guestUserId);
     // Quirk fix on top of the 1:1 move: the budget re-split and the user delete
     // run in one transaction, so a failure mid-flow can't leave the expense
     // divisors re-derived for a guest that still exists (or vice versa). The

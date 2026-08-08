@@ -22,7 +22,7 @@ import { createEphemeralToken, startTokenCleanup, stopTokenCleanup } from './eph
 // every consumer of this module — a nest→mcp→nest module cycle.
 import { revokeUserSessions } from '../../mcp/sessionManager';
 import { startTripReminders } from '../../scheduler';
-import { deleteUserCompletely } from '../../services/userCleanupService';
+import { UserCleanupService } from './user-cleanup.service';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { haversineKm } from '../common/geo';
 import { verifyJwtAndLoadUser } from './jwt-verify';
@@ -30,7 +30,7 @@ import { User } from '../../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from '../common/demo';
 import { avatarUrl } from '../common/avatarUrl';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { isPasskeyConfigured } from '../../services/webauthnConfig';
+import { WebauthnConfigService } from './webauthn-config.service';
 import { setAuthCookie, clearAuthCookie } from '../common/cookie';
 import { sendPasswordResetEmail } from '../../services/notifications';
 import { getAppUrl } from '../../app-config';
@@ -138,6 +138,8 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     private readonly permissions: PermissionsService,
     private readonly atlas: AtlasService,
     private readonly membership: TripMembershipService,
+    private readonly webauthn: WebauthnConfigService,
+    private readonly userCleanup: UserCleanupService,
   ) {}
 
   // Cookie
@@ -279,7 +281,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       // are true. `passkey_configured` stays a pure boolean — it never leaks the
       // resolved RP ID / origin / APP_URL on this unauthenticated endpoint.
       passkey_login: toggles.passkey_login,
-      passkey_configured: isPasskeyConfigured(),
+      passkey_configured: this.webauthn.isConfigured(),
       env_override_oidc_only: readEnv().oidc.only,
       has_users: userCount > 0,
       setup_complete: setupComplete,
@@ -566,7 +568,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         return { error: 'Cannot delete the last admin account', status: 400 };
       }
     }
-    deleteUserCompletely(userId);
+    this.userCleanup.deleteUserCompletely(userId);
     emitUserDeleted(userId); // let plugins erase their own per-user data
     return { success: true };
   }

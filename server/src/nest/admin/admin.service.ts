@@ -20,7 +20,7 @@ import { avatarUrl } from '../common/avatarUrl';
 import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
 import { getPhotoProviderConfig } from '../../services/memories/helpersService';
 import { validatePassword } from '../common/passwordPolicy';
-import { deleteUserCompletely } from '../../services/userCleanupService';
+import { UserCleanupService } from '../auth/user-cleanup.service';
 import { getPreferencesMatrix, setAdminPreferences } from '../../services/notificationPreferencesService';
 import { DatabaseService } from '../database/database.service';
 import { AddonsService } from '../addons/addons.service';
@@ -77,6 +77,7 @@ export class AdminService {
     private readonly auth: AuthService,
     private readonly permissions: PermissionsService,
     private readonly notifications: NotificationsService,
+    private readonly userCleanup: UserCleanupService,
   ) {}
 
   // ── User CRUD ──────────────────────────────────────────────────────────────
@@ -231,7 +232,7 @@ export class AdminService {
     const userToDel = this.db.get<{ id: number; email: string }>('SELECT id, email FROM users WHERE id = ?', id);
     if (!userToDel) return { error: 'User not found', status: 404 };
 
-    deleteUserCompletely(userToDel.id);
+    this.userCleanup.deleteUserCompletely(userToDel.id);
     emitUserDeleted(userToDel.id); // let plugins erase their own per-user data
     return { email: userToDel.email };
   }

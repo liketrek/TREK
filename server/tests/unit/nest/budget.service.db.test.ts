@@ -61,6 +61,7 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import * as bridge from '../../../src/nest/budget/budget.bridge';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { TripsService } from '../../../src/nest/trips/trips.service';
 import { TodoService } from '../../../src/nest/todo/todo.service';
@@ -95,6 +96,9 @@ const tripsSvc = new TripsService(
   new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new VacayService(dbs(), new RealtimeService()),
   new RealtimeService(),
+  undefined as never, // places — not exercised here
+  undefined as never, // unsplash — not exercised here
+  new UserCleanupService(dbs()),
 );
 const createGuest = tripsSvc.createGuest.bind(tripsSvc);
 const deleteGuest = tripsSvc.deleteGuest.bind(tripsSvc);
@@ -404,9 +408,10 @@ describe('rebaseTripCurrency', () => {
 });
 
 describe('budget.bridge delegation', () => {
-  // The listBudgetItems / rebaseTripCurrency bridge exports were pruned when
-  // their last outside-container consumers (legacy tripService + trips MCP
-  // registrar) migrated — 015/017 pin the same behavior on the service.
+  // The listBudgetItems / rebaseTripCurrency / removeUserFromBudgetItems bridge
+  // exports were pruned when their last outside-container consumers (legacy
+  // tripService, the trips MCP registrar, services/userCleanupService) migrated
+  // — 015/016/017 pin the same behavior on the service.
   it('BUDGET-SVC-DB-015: listBudgetItems returns the hydrated list', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -418,13 +423,13 @@ describe('budget.bridge delegation', () => {
     expect(items[0].members.map(m => m.user_id)).toEqual([user.id]);
   });
 
-  it('BUDGET-SVC-DB-016: removeUserFromBudgetItems re-derives persons through the bridge', () => {
+  it('BUDGET-SVC-DB-016: removeUserFromBudgetItems re-derives persons', () => {
     const { user: owner } = createUser(testDb);
     const { user: other } = createUser(testDb, { username: 'other' });
     const trip = createTrip(testDb, owner.id);
     const item = budget.createBudgetItem(trip.id, { name: 'Dinner', total_price: 80, member_ids: [owner.id, other.id] });
 
-    bridge.removeUserFromBudgetItems(other.id);
+    budget.removeUserFromBudgetItems(other.id);
 
     const row = testDb.prepare('SELECT persons FROM budget_items WHERE id = ?').get(item.id) as { persons: number | null };
     expect(row.persons).toBe(1);

@@ -82,6 +82,8 @@ import { authenticator } from 'otplib';
 import { hashBackupCode } from '../../../src/nest/auth/auth.helpers';
 import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { revokeUserSessions } from '../../../src/mcp/sessionManager';
 
 // Stubbed rather than real: these tests assert that the invite path CALLS the
@@ -93,6 +95,8 @@ const svc = new AuthService(
   new PermissionsService(new DatabaseService(testDb)),
   new AtlasService(new DatabaseService(testDb)),
   membershipStub,
+  new WebauthnConfigService(new DatabaseService(testDb)),
+  new UserCleanupService(new DatabaseService(testDb)),
 );
 
 // ---------------------------------------------------------------------------
