@@ -1,5 +1,6 @@
 import { RateLimitModule } from '../common/rate-limit.module';
 import { Module } from '@nestjs/common';
+import { TokensModule } from '../tokens/tokens.module';
 import { AuthPublicController } from './auth-public.controller';
 import { AuthController } from './auth.controller';
 import { PasskeyController } from './passkey.controller';
@@ -35,7 +36,7 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * through auth.bridge.ts.
  */
 @Module({
-  imports: [RateLimitModule, AuditModule, PermissionsModule, TripMembershipModule, MailerModule, AppConfigModule],
+  imports: [RateLimitModule, AuditModule, PermissionsModule, TripMembershipModule, MailerModule, AppConfigModule, TokensModule],
   controllers: [AuthPublicController, AuthController, PasskeyController],
   providers: [AuthService, PasskeyService, UserCleanupService, WebauthnConfigService, AuthMcp],
   exports: [AuthService, PasskeyService, UserCleanupService],

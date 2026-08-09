@@ -9,6 +9,7 @@ vi.mock('../../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false
 
 import { AuthPublicController } from '../../../src/nest/auth/auth-public.controller';
 import { AuthController } from '../../../src/nest/auth/auth.controller';
+import type { TokenService } from '../../../src/nest/tokens/token.service';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import type { AuthService } from '../../../src/nest/auth/auth.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
@@ -29,7 +30,10 @@ function rl(): RateLimitService { return new RateLimitService(); }
 const writeAudit = vi.fn();
 const audit = { writeAudit } as unknown as AuditService;
 const apc = (a: AuthService, limiter: RateLimitService) => new AuthPublicController(a, limiter, audit);
-const ac = (a: AuthService, limiter: RateLimitService) => new AuthController(a, limiter, audit, new RuntimeEnvService());
+// Tokens moved to TokenService; the controller takes it second. Stubbed via a
+// third, optional argument so every non-token call site stays as it was.
+const ac = (a: AuthService, limiter: RateLimitService, t: Partial<TokenService> = {}) =>
+  new AuthController(a, t as TokenService, limiter, audit, new RuntimeEnvService());
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try { fn(); } catch (err) {
@@ -236,13 +240,13 @@ describe('AuthController (authenticated)', () => {
     const enable = ac(asvc({ enableMfa: vi.fn().mockReturnValue({ mfa_enabled: true, backup_codes: ['a', 'b'] }) } as Partial<AuthService>), rl());
     expect(enable.mfaEnable(user, { code: '123456' }, req)).toEqual({ success: true, mfa_enabled: true, backup_codes: ['a', 'b'] });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.mfa_enable' }));
-    const tok = ac(asvc({ createMcpToken: vi.fn().mockReturnValue({ token: 'mcp_x' }) } as Partial<AuthService>), rl());
+    const tok = ac(asvc({}), rl(), { createMcpToken: vi.fn().mockReturnValue({ token: 'mcp_x' }) });
     expect(tok.createMcpToken(user, { name: 'CLI' }, req)).toEqual({ token: 'mcp_x' });
   });
 
   it('resource-token 503 when unavailable, else returns the token payload', () => {
-    expect(thrown(() => ac(asvc({ createResourceToken: vi.fn().mockReturnValue(null) } as Partial<AuthService>), rl()).resourceToken(user, {}))).toEqual({ status: 503, body: { error: 'Service unavailable' } });
-    expect(ac(asvc({ createResourceToken: vi.fn().mockReturnValue({ token: 'rt' }) } as Partial<AuthService>), rl()).resourceToken(user, { purpose: 'download' })).toEqual({ token: 'rt' });
+    expect(thrown(() => ac(asvc({}), rl(), { createResourceToken: vi.fn().mockReturnValue(null) }).resourceToken(user, {}))).toEqual({ status: 503, body: { error: 'Service unavailable' } });
+    expect(ac(asvc({}), rl(), { createResourceToken: vi.fn().mockReturnValue({ token: 'rt' }) }).resourceToken(user, { purpose: 'download' })).toEqual({ token: 'rt' });
   });
 
   it('rate-limited account ops throw 429 once the bucket is exhausted', () => {
@@ -320,15 +324,15 @@ describe('AuthController (authenticated)', () => {
   });
 
   it('mcp-tokens list + create error + delete error/success', () => {
-    expect(ac(asvc({ listMcpTokens: vi.fn().mockReturnValue([{ id: 't' }]) } as Partial<AuthService>), rl()).listMcpTokens(user)).toEqual({ tokens: [{ id: 't' }] });
-    expect(thrown(() => ac(asvc({ createMcpToken: vi.fn().mockReturnValue({ error: 'Name taken', status: 409 }) } as Partial<AuthService>), rl()).createMcpToken(user, { name: 'x' }, req))).toEqual({ status: 409, body: { error: 'Name taken' } });
-    expect(thrown(() => ac(asvc({ deleteMcpToken: vi.fn().mockReturnValue({ error: 'Not found', status: 404 }) } as Partial<AuthService>), rl()).deleteMcpToken(user, 'tid'))).toEqual({ status: 404, body: { error: 'Not found' } });
-    expect(ac(asvc({ deleteMcpToken: vi.fn().mockReturnValue({}) } as Partial<AuthService>), rl()).deleteMcpToken(user, 'tid')).toEqual({ success: true });
+    expect(ac(asvc({}), rl(), { listMcpTokens: vi.fn().mockReturnValue([{ id: 't' }]) }).listMcpTokens(user)).toEqual({ tokens: [{ id: 't' }] });
+    expect(thrown(() => ac(asvc({}), rl(), { createMcpToken: vi.fn().mockReturnValue({ error: 'Name taken', status: 409 }) }).createMcpToken(user, { name: 'x' }, req))).toEqual({ status: 409, body: { error: 'Name taken' } });
+    expect(thrown(() => ac(asvc({}), rl(), { deleteMcpToken: vi.fn().mockReturnValue({ error: 'Not found', status: 404 }) }).deleteMcpToken(user, 'tid'))).toEqual({ status: 404, body: { error: 'Not found' } });
+    expect(ac(asvc({}), rl(), { deleteMcpToken: vi.fn().mockReturnValue({}) }).deleteMcpToken(user, 'tid')).toEqual({ success: true });
   });
 
   it('ws-token maps error, else returns the token', () => {
-    expect(thrown(() => ac(asvc({ createWsToken: vi.fn().mockReturnValue({ error: 'down', status: 503 }) } as Partial<AuthService>), rl()).wsToken(user))).toEqual({ status: 503, body: { error: 'down' } });
-    expect(ac(asvc({ createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) } as Partial<AuthService>), rl()).wsToken(user)).toEqual({ token: 'ws' });
+    expect(thrown(() => ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ error: 'down', status: 503 }) }).wsToken(user))).toEqual({ status: 503, body: { error: 'down' } });
+    expect(ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user)).toEqual({ token: 'ws' });
   });
 
   it('avatar saves when not in demo mode (env present but email is not a demo email)', async () => {

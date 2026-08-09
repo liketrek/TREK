@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpException, NotFoundExcepti
 import type { Request } from 'express';
 import { readEnv } from '../../app-config';
 import { AdminService } from './admin.service';
+import { TokenService } from '../tokens/token.service';
 import {
   AdminUserCreateDto,
   AdminUserUpdateDto,
@@ -61,6 +62,7 @@ export class AdminController {
     private readonly pluginRuntime: PluginRuntimeService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly tokens: TokenService,
   ) {}
 
   // ── Users ──
@@ -243,11 +245,11 @@ export class AdminController {
 
   // ── MCP tokens / OAuth sessions ──
   @Get('mcp-tokens')
-  listMcpTokens() { return { tokens: this.admin.listMcpTokens() }; }
+  listMcpTokens() { return { tokens: this.tokens.listAllMcpTokens() }; }
 
   @Delete('mcp-tokens/:id')
   deleteMcpToken(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    ok(this.admin.deleteMcpToken(id));
+    ok(this.tokens.adminDeleteMcpToken(id));
     this.audit.writeAudit({ userId: user.id, action: 'admin.mcp_token_delete', resource: String(id), ip: getClientIp(req) });
     return { success: true };
   }

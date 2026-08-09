@@ -110,8 +110,6 @@ const getGithubReleases = (perPage?: string, page?: string) => svc.getGithubRele
 const checkVersion = () => svc.checkVersion();
 const listAddons = () => svc.listAddons();
 const updateAddon = (id: string, d: Parameters<AdminService['updateAddon']>[1]) => svc.updateAddon(id, d);
-const listMcpTokens = () => svc.listMcpTokens();
-const deleteMcpToken = (id: string) => svc.deleteMcpToken(id);
 
 beforeAll(() => {
   createTables(testDb);
@@ -512,22 +510,6 @@ describe('updateAddon', () => {
     // real flip of an addon with no MCP surface → sessions survive
     const docsFlip = updateAddon('documents', { enabled: false }) as any;
     if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(false);
-  });
-});
-
-// ── MCP Tokens ────────────────────────────────────────────────────────────────
-
-describe('MCP Tokens', () => {
-  it('ADMIN-SVC-068 — listMcpTokens returns empty array initially', () => {
-    const result = listMcpTokens() as any[];
-    expect(Array.isArray(result)).toBe(true);
-    expect(result).toHaveLength(0);
-  });
-
-  it('ADMIN-SVC-069 — deleteMcpToken returns 404 for non-existent token', () => {
-    const result = deleteMcpToken('99999') as any;
-    expect(result.status).toBe(404);
-    expect(result.error).toBeDefined();
   });
 });
 

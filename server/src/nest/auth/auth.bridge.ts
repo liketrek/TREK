@@ -3,6 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { AuthService } from './auth.service';
+import { TokenService } from '../tokens/token.service';
 import { MailerService } from '../notifications/mailer/mailer.service';
 import { UserCleanupService } from './user-cleanup.service';
 import { WebauthnConfigService } from './webauthn-config.service';
@@ -46,6 +47,8 @@ const auth = new AuthService(
   new MailerService(dbs),
 );
 
+const tokens = new TokenService(dbs);
+
 export { stripUserForClient } from './auth.helpers';
 export { avatarUrl } from '../common/avatarUrl';
 
@@ -54,7 +57,7 @@ export function isDemoUser(userId: number): boolean {
 }
 
 export function verifyMcpToken(rawToken: string): User | null {
-  return auth.verifyMcpToken(rawToken);
+  return tokens.verifyMcpToken(rawToken);
 }
 
 export function verifyJwtToken(token: string): User | null {
@@ -70,5 +73,5 @@ export function generateToken(user: { id: number | bigint; password_version?: nu
 }
 
 export function createWsToken(userId: number) {
-  return auth.createWsToken(userId);
+  return tokens.createWsToken(userId);
 }

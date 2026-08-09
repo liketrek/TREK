@@ -23,6 +23,7 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuid } from 'uuid';
 import { AuthService } from './auth.service';
+import { TokenService } from '../tokens/token.service';
 import { avatarDir } from './auth.helpers';
 import {
   ChangePasswordDto,
@@ -72,7 +73,7 @@ const AVATAR_UPLOAD = {
 @Controller('api/auth')
 @UseGuards(JwtAuthGuard)
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly rl: RateLimitService, private readonly audit: AuditService, private readonly env: RuntimeEnvService) {}
+  constructor(private readonly auth: AuthService, private readonly tokens: TokenService, private readonly rl: RateLimitService, private readonly audit: AuditService, private readonly env: RuntimeEnvService) {}
 
   private limit(bucket: string, req: Request, max: number): void {
     if (!this.rl.check(bucket, req.ip || 'unknown', max, WINDOW, Date.now())) {
@@ -238,14 +239,14 @@ export class AuthController {
 
   @Get('mcp-tokens')
   listMcpTokens(@CurrentUser() user: User) {
-    return { tokens: this.auth.listMcpTokens(user.id) };
+    return { tokens: this.tokens.listMcpTokens(user.id) };
   }
 
   @Post('mcp-tokens')
   @HttpCode(201)
   createMcpToken(@CurrentUser() user: User, @Body() body: McpTokenCreateDto, @Req() req: Request) {
     this.limit('login', req, 5);
-    const result = this.auth.createMcpToken(user.id, body.name);
+    const result = this.tokens.createMcpToken(user.id, body.name);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -254,7 +255,7 @@ export class AuthController {
 
   @Delete('mcp-tokens/:id')
   deleteMcpToken(@CurrentUser() user: User, @Param('id') id: string) {
-    const result = this.auth.deleteMcpToken(user.id, id);
+    const result = this.tokens.deleteMcpToken(user.id, id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -264,7 +265,7 @@ export class AuthController {
   @Post('ws-token')
   @HttpCode(200)
   wsToken(@CurrentUser() user: User) {
-    const result = this.auth.createWsToken(user.id);
+    const result = this.tokens.createWsToken(user.id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -274,7 +275,7 @@ export class AuthController {
   @Post('resource-token')
   @HttpCode(200)
   resourceToken(@CurrentUser() user: User, @Body() body: ResourceTokenDto) {
-    const token = this.auth.createResourceToken(user.id, body.purpose);
+    const token = this.tokens.createResourceToken(user.id, body.purpose);
     if (!token) {
       throw new HttpException({ error: 'Service unavailable' }, 503);
     }

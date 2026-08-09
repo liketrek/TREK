@@ -7,6 +7,7 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error',
 
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { AdminController } from '../../../src/nest/admin/admin.controller';
+import type { TokenService } from '../../../src/nest/tokens/token.service';
 import type { AdminService } from '../../../src/nest/admin/admin.service';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
@@ -42,8 +43,10 @@ const addonsStub = () => ({
   updateCollabFeatures: vi.fn(() => ({ features: { chat: true }, changed: true })),
 }) as unknown as AddonsService;
 
-const adminCtl = (s: AdminService, rt?: PluginRuntimeService, addons: AddonsService = addonsStub()) =>
-  new AdminController(s, addons, rt as unknown as PluginRuntimeService, audit, notifications);
+// The MCP-token routes read TokenService now, not AdminService. Stubbed via a
+// fourth, optional argument so every existing call site stays as it was.
+const adminCtl = (s: AdminService, rt?: PluginRuntimeService, addons: AddonsService = addonsStub(), tokens: Partial<TokenService> = {}) =>
+  new AdminController(s, addons, rt as unknown as PluginRuntimeService, audit, notifications, tokens as TokenService);
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try { fn(); } catch (err) {
     if (err instanceof NotFoundException) return { status: 404, body: err.getResponse() };
@@ -153,7 +156,7 @@ describe('AdminController read-only getters', () => {
     expect(adminCtl(svc({ checkVersion: vi.fn().mockResolvedValue({ current: '1' }) } as Partial<AdminService>)).versionCheck()).resolves.toEqual({ current: '1' });
     expect(adminCtl(svc({ listInvites: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listInvites()).toEqual({ invites: [{ id: 1 }] });
     expect(adminCtl(svc({ listAddons: vi.fn().mockReturnValue([{ id: 'mcp' }]) } as Partial<AdminService>)).listAddons()).toEqual({ addons: [{ id: 'mcp' }] });
-    expect(adminCtl(svc({ listMcpTokens: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listMcpTokens()).toEqual({ tokens: [{ id: 1 }] });
+    expect(adminCtl(svc(), undefined, undefined, { listAllMcpTokens: vi.fn().mockReturnValue([{ id: 1 }]) }).listMcpTokens()).toEqual({ tokens: [{ id: 1 }] });
     expect(adminCtl(svc({ listOAuthSessions: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listOAuthSessions()).toEqual({ sessions: [{ id: 1 }] });
   });
 
@@ -172,8 +175,8 @@ describe('AdminController read-only getters', () => {
 
 describe('AdminController tokens + sessions', () => {
   it('mcp token + oauth session deletes return success and map errors', () => {
-    expect(adminCtl(svc({ deleteMcpToken: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).deleteMcpToken('2')).toEqual({ success: true });
-    expect(thrown(() => adminCtl(svc({ deleteMcpToken: vi.fn().mockReturnValue({ error: 'no token', status: 404 }) } as Partial<AdminService>)).deleteMcpToken('9'))).toEqual({ status: 404, body: { error: 'no token' } });
+    expect(adminCtl(svc(), undefined, undefined, { adminDeleteMcpToken: vi.fn().mockReturnValue({}) }).deleteMcpToken('2')).toEqual({ success: true });
+    expect(thrown(() => adminCtl(svc(), undefined, undefined, { adminDeleteMcpToken: vi.fn().mockReturnValue({ error: 'no token', status: 404 }) }).deleteMcpToken('9'))).toEqual({ status: 404, body: { error: 'no token' } });
     expect(thrown(() => adminCtl(svc({ revokeOAuthSession: vi.fn().mockReturnValue({ error: 'no session', status: 404 }) } as Partial<AdminService>)).revokeOAuthSession(user, '9', req))).toEqual({ status: 404, body: { error: 'no session' } });
   });
 });

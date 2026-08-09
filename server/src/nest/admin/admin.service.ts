@@ -667,25 +667,6 @@ export class AdminService {
     };
   }
 
-  // ── MCP Tokens ─────────────────────────────────────────────────────────────
-
-  listMcpTokens() {
-    return this.db.all(`
-    SELECT t.id, t.name, t.token_prefix, t.created_at, t.last_used_at, t.user_id, u.username
-    FROM mcp_tokens t
-    JOIN users u ON u.id = t.user_id
-    ORDER BY t.created_at DESC
-  `);
-  }
-
-  deleteMcpToken(id: string) {
-    const token = this.db.get<{ id: number; user_id: number }>('SELECT id, user_id FROM mcp_tokens WHERE id = ?', id);
-    if (!token) return { error: 'Token not found', status: 404 };
-    this.db.run('DELETE FROM mcp_tokens WHERE id = ?', id);
-    revokeUserSessions(token.user_id);
-    return {};
-  }
-
   // ── OAuth Sessions ─────────────────────────────────────────────────────────
 
   listOAuthSessions() {

@@ -72,6 +72,7 @@ import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, createInviteToken, createTrip, createPlace, createReservation } from '../../helpers/factories';
 import { AuthService } from '../../../src/nest/auth/auth.service';
+import { TokenService } from '../../../src/nest/tokens/token.service';
 import * as authBridge from '../../../src/nest/auth/auth.bridge';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
@@ -93,6 +94,10 @@ const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerServi
 // join, not what the join writes (TRIP-JOIN-* cover that).
 const joinTripAsMember = vi.fn();
 const membershipStub = { joinTripAsMember } as unknown as TripMembershipService;
+// Tokens left AuthService for tokens/token.service.ts. The two cases below still
+// need one as a fixture: changePassword prunes MCP tokens, and the bridge parity
+// case verifies a token it just minted.
+const tokens = new TokenService(new DatabaseService(testDb));
 const svc = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
@@ -631,7 +636,7 @@ describe('changePassword — session invalidation', () => {
 
   it('AUTH-DB-036b: bumps password_version, prunes MCP tokens, and re-issues a session', () => {
     const { user, password } = createUser(testDb);
-    svc.createMcpToken(user.id, 'cli');
+    tokens.createMcpToken(user.id, 'cli');
 
     expect(pvOf(user.id)).toBe(0);
     expect(mcpCount(user.id)).toBe(1);
@@ -696,60 +701,6 @@ describe('verifyMfaLogin — validation', () => {
     const tok = jwt.sign({ id: 99999, purpose: 'mfa_login' }, 'test-secret', { expiresIn: '5m', algorithm: 'HS256' });
     const result = svc.verifyMfaLogin({ mfa_token: tok, code: '123456' });
     expect(result.status).toBe(401);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// MCP token service
-// ---------------------------------------------------------------------------
-
-describe('MCP token service', () => {
-  it('AUTH-DB-041: createMcpToken returns 400 when name is missing', () => {
-    const { user } = createUser(testDb);
-    const result = svc.createMcpToken(user.id, undefined);
-    expect(result.status).toBe(400);
-  });
-
-  it('AUTH-DB-042: createMcpToken returns 400 when name exceeds 100 chars', () => {
-    const { user } = createUser(testDb);
-    const result = svc.createMcpToken(user.id, 'a'.repeat(101));
-    expect(result.status).toBe(400);
-  });
-
-  it('AUTH-DB-043: createMcpToken creates token and returns raw_token', () => {
-    const { user } = createUser(testDb);
-    const result = svc.createMcpToken(user.id, 'My Token');
-    expect(result.token).toBeDefined();
-    expect((result.token as any).raw_token).toMatch(/^trek_/);
-  });
-
-  it('AUTH-DB-044: createMcpToken returns 400 when user has 10 tokens already', () => {
-    const { user } = createUser(testDb);
-    for (let i = 0; i < 10; i++) {
-      testDb.prepare(
-        'INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix) VALUES (?, ?, ?, ?)'
-      ).run(user.id, `Token ${i}`, `hash${i}`, `trek_prefix${i}`);
-    }
-    const result = svc.createMcpToken(user.id, 'One More');
-    expect(result.status).toBe(400);
-  });
-
-  it('AUTH-DB-045: deleteMcpToken returns 404 for non-existent token', () => {
-    const { user } = createUser(testDb);
-    const result = svc.deleteMcpToken(user.id, '99999');
-    expect(result.status).toBe(404);
-  });
-
-  it('AUTH-DB-046: deleteMcpToken deletes the token and returns success', () => {
-    const { user } = createUser(testDb);
-    const created = svc.createMcpToken(user.id, 'Deletable Token');
-    const tokenId = String((created.token as any).id);
-
-    const result = svc.deleteMcpToken(user.id, tokenId);
-    expect(result).toEqual({ success: true });
-
-    const row = testDb.prepare('SELECT id FROM mcp_tokens WHERE id = ?').get(tokenId);
-    expect(row).toBeUndefined();
   });
 });
 
@@ -1125,20 +1076,6 @@ describe('resetPassword', () => {
 });
 
 describe('ephemeral + demo helpers', () => {
-  it('AUTH-DB-086: createResourceToken rejects a non-download purpose and 503s when the store is down', () => {
-    const { user } = createUser(testDb);
-    expect(svc.createResourceToken(user.id, 'exfiltrate')).toEqual({ error: 'Invalid purpose', status: 400 });
-    expect(svc.createResourceToken(user.id, 'download')).toEqual({ error: 'Service unavailable', status: 503 });
-    vi.mocked(createEphemeralToken).mockReturnValueOnce('tok-1');
-    expect(svc.createResourceToken(user.id, 'download')).toEqual({ token: 'tok-1' });
-  });
-
-  it('AUTH-DB-087: createWsToken returns the ephemeral token when the store answers', () => {
-    const { user } = createUser(testDb);
-    vi.mocked(createEphemeralToken).mockReturnValueOnce('ws-tok');
-    expect(svc.createWsToken(user.id)).toEqual({ token: 'ws-tok' });
-  });
-
   it('AUTH-DB-088: isDemoUser is true only for the demo email in demo mode', () => {
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
     const { user: other } = createUser(testDb);
@@ -1188,16 +1125,6 @@ describe('auth quirk fixes', () => {
     expect(row.last_login).not.toBeNull();
   });
 
-  it('AUTH-DB-092: deleteMcpToken succeeds even when the session sweep throws (best-effort)', () => {
-    const { user } = createUser(testDb);
-    const created = svc.createMcpToken(user.id, 'sweep-down');
-    const tokenId = String((created.token as { id: number }).id);
-    vi.mocked(revokeUserSessions).mockImplementationOnce(() => { throw new Error('sweep down'); });
-
-    expect(svc.deleteMcpToken(user.id, tokenId)).toEqual({ success: true });
-    expect(testDb.prepare('SELECT id FROM mcp_tokens WHERE id = ?').get(tokenId)).toBeUndefined();
-  });
-
   it('AUTH-DB-093: updateApiKeys degrades gracefully when the user row is gone (no TypeError/500)', () => {
     expect(() => svc.updateApiKeys(999999, { maps_api_key: 'k' })).not.toThrow();
     const result = svc.updateApiKeys(999999, { openweather_api_key: 'w' });
@@ -1217,7 +1144,7 @@ describe('auth.bridge delegation', () => {
 
   it('AUTH-BR-002: verifyMcpToken resolves a freshly created token to its user', () => {
     const { user } = createUser(testDb);
-    const created = svc.createMcpToken(user.id, 'bridge-case');
+    const created = tokens.createMcpToken(user.id, 'bridge-case');
     const raw = (created.token as { raw_token: string }).raw_token;
     const resolved = authBridge.verifyMcpToken(raw);
     expect(resolved?.id).toBe(user.id);
