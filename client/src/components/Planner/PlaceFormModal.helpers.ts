@@ -15,6 +15,10 @@ export interface PlaceFormData {
   google_place_id?: string
   google_ftid?: string
   osm_id?: string
+  // Hero image picked from the detail column. Optional and absent from
+  // DEFAULT_FORM on purpose: the mobile sheet shares this type and never sets
+  // it, and places.service already writes image_url through on create/update.
+  image_url?: string
 }
 
 export function isGoogleMapsUrl(input: string): boolean {

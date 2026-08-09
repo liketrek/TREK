@@ -7,6 +7,7 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
 import CollectionPicker from '../Collections/CollectionPicker'
+import PlaceDetailsColumn, { type PlaceDetailsSelection } from './PlaceDetailsColumn'
 import { useToast } from '../shared/Toast'
 import { Search, Paperclip, X, AlertTriangle, Loader2, Plus } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -84,6 +85,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const [showNewCategory, setShowNewCategory] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
+  // What the detail column is describing. Null until the user picks a result.
+  const [detailsSelection, setDetailsSelection] = useState<PlaceDetailsSelection | null>(null)
   const [pendingFiles, setPendingFiles] = useState([])
   const fileRef = useRef(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -93,7 +96,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const acAbortRef = useRef<AbortController | null>(null)
   const toast = useToast()
   const { t, language } = useTranslation()
-  const { hasMapsKey } = useAuthStore()
+  const { hasMapsKey, placesEnrichEnabled } = useAuthStore()
   const can = useCanDo()
   const tripObj = useTripStore((s) => s.trip)
   const canUploadFiles = can('file_upload', tripObj)
@@ -267,6 +270,19 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       website: result.website || prev.website,
       phone: result.phone || prev.phone,
     }))
+    // The one point every pick flows through, so the detail column hangs here.
+    // A new pick drops whatever hero image belonged to the previous place.
+    const lat = Number(result.lat)
+    const lng = Number(result.lng)
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      setDetailsSelection({
+        placeId: result.google_place_id || result.osm_id || undefined,
+        lat,
+        lng,
+        name: result.name || '',
+      })
+      setForm(prev => ({ ...prev, image_url: undefined }))
+    }
     setMapsResults([])
     setMapsSearch('')
   }
@@ -453,6 +469,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     t,
     language,
     hasMapsKey,
+    placesEnrichEnabled,
     can,
     tripObj,
     canUploadFiles,
@@ -472,6 +489,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     hasTimeError,
     handleSubmit,
     duplicateWarning,
+    detailsSelection,
   }
 }
 
@@ -517,6 +535,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     t,
     language,
     hasMapsKey,
+    placesEnrichEnabled,
     can,
     tripObj,
     canUploadFiles,
@@ -536,16 +555,22 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     hasTimeError,
     handleSubmit,
     duplicateWarning,
+    detailsSelection,
   } = S
-  // Desktop + Collections addon → two columns (form + saved-place picker). Mobile
+  // Desktop + Collections addon → the saved-place picker on the right. Mobile
   // always keeps the original single-column form untouched.
   const twoColumn = !isMobile && collectionsEnabled
+  // The detail column sits on the left on desktop whenever enrichment is on. It
+  // stays mounted with the selection null rather than appearing on the first
+  // pick — otherwise the dialog would jump sideways mid-typing.
+  const showDetails = !isMobile && placesEnrichEnabled
+  const modalSize = isMobile ? 'lg' : showDetails && twoColumn ? '5xl' : showDetails || twoColumn ? '4xl' : 'lg'
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={place ? t('places.editPlace') : t('places.addPlace')}
-      size={twoColumn ? '3xl' : 'lg'}
+      size={modalSize}
       footer={
         <div className="flex justify-end gap-3">
           <button
@@ -566,8 +591,19 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         </div>
       }
     >
-      <div className={twoColumn ? 'flex gap-5 items-stretch' : ''}>
-      <form onSubmit={handleSubmit} className={twoColumn ? 'flex-1 min-w-0 space-y-4' : 'space-y-4'} onPaste={handlePaste}>
+      <div className={twoColumn || showDetails ? 'flex gap-5 items-stretch' : ''}>
+      {showDetails && (
+        <PlaceDetailsColumn
+          selection={detailsSelection}
+          selectedImageUrl={form.image_url}
+          onPickImage={(url) => setForm(prev => ({ ...prev, image_url: url ?? undefined }))}
+          onAdoptDescription={(text) => setForm(prev => ({ ...prev, description: text }))}
+          hasDescription={!!form.description.trim()}
+          language={language}
+          t={t}
+        />
+      )}
+      <form onSubmit={handleSubmit} className={twoColumn || showDetails ? 'flex-1 min-w-0 space-y-4' : 'space-y-4'} onPaste={handlePaste}>
         {/* Place Search */}
         <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
           {!hasMapsKey && (
