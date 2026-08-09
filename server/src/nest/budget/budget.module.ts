@@ -3,6 +3,7 @@ import { BudgetController } from './budget.controller';
 import { BudgetService } from './budget.service';
 import { BudgetMcp } from './budget.mcp';
 import { ExchangeRatesService } from './exchange-rates.service';
+import { ExchangeRatesRpc } from './exchange-rates.rpc';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AuthModule } from '../auth/auth.module';
 
@@ -11,7 +12,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [PermissionsModule, AuthModule],
   controllers: [BudgetController],
-  providers: [BudgetService, ExchangeRatesService, BudgetMcp],
+  providers: [BudgetService, ExchangeRatesService, BudgetMcp, ExchangeRatesRpc],
   // For in-container consumers (PluginHostDepsFactory, TripsService,
   // ReservationsService, BookingImportService).
   exports: [BudgetService, ExchangeRatesService],

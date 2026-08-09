@@ -1,7 +1,11 @@
 import { vi } from 'vitest';
 import type { HostDeps } from '../../src/nest/plugins/host/rpc-host';
 import { TagsRpc } from '../../src/nest/tags/tags.rpc';
-import type { TagsService } from '../../src/nest/tags/tags.service';
+import { CategoriesRpc } from '../../src/nest/categories/categories.rpc';
+import { WeatherRpc } from '../../src/nest/weather/weather.rpc';
+import { ExchangeRatesRpc } from '../../src/nest/budget/exchange-rates.rpc';
+import { TodoRpc } from '../../src/nest/todo/todo.rpc';
+import { DayNotesRpc } from '../../src/nest/days/day-notes.rpc';
 
 /**
  * The stubbed HostDeps every plugin router test builds on. It used to live inside
@@ -173,12 +177,14 @@ export function makeDeps(): HostDeps {
  * them. Behaviour is asserted in each domain's own <domain>.rpc.test.ts.
  */
 export function allRpcControllers(): object[] {
-  const tags = {
-    list: vi.fn(() => []),
-    getByIdAndUser: vi.fn(() => undefined),
-    create: vi.fn(() => ({})),
-    update: vi.fn(() => ({})),
-    remove: vi.fn(),
-  } as unknown as TagsService;
-  return [new TagsRpc(tags)];
+  const anyService = () =>
+    new Proxy({}, { get: () => vi.fn(() => undefined) }) as unknown as never;
+  return [
+    new TagsRpc(anyService()),
+    new CategoriesRpc(anyService()),
+    new WeatherRpc(anyService()),
+    new ExchangeRatesRpc(anyService()),
+    new TodoRpc(anyService(), anyService(), anyService()),
+    new DayNotesRpc(anyService(), anyService(), anyService()),
+  ];
 }

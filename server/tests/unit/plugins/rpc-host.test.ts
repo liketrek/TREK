@@ -315,9 +315,6 @@ describe('PluginRpcHost — capability enforcement', () => {
     // reading content is NOT unlocked by plain db:read:files
     const filesList = new PluginRpcHost('p', new Set(['db:read:files']), deps);
     expect((await filesList.dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42) as RpcError).error.code).toBe('PERMISSION_DENIED');
-    // rates.get: tenant-free (works without a user), needs rates:read
-    const rates = new PluginRpcHost('p', new Set(['rates:read']), deps);
-    expect(ok(await rates.dispatch(req('rates.get', { base: 'EUR' }), undefined))).toBe(true);
     // trips.create: needs db:create:trips + the acting user's trip_create + a bound user
     const create = new PluginRpcHost('p', new Set(['db:create:trips']), deps);
     expect(ok(await create.dispatch(req('trips.create', { input: { title: 'Japan' } }), 42))).toBe(true);
@@ -326,14 +323,7 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((await create.dispatch(req('trips.create', { input: {} }), 42) as RpcError).error.code).toBe('BAD_PARAMS'); // title required
   });
 
-  it('daynotes.list is membership-checked (trip-scoped)', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:read:daynotes']), deps);
-    const good = await host.dispatch(req('daynotes.list', { tripId: 1, dayId: 5 }), 42);
-    expect(ok(good)).toBe(true);
-    expect(deps.listDayNotes).toHaveBeenCalledWith(1, 5);
-    const forbidden = await host.dispatch(req('daynotes.list', { tripId: 999, dayId: 5 }), 42);
-    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
-  });
+  // The daynotes cases moved to tests/unit/days/day-notes.rpc.test.ts.
 
   it('collections reads are user-scoped and need db:read:collections + a bound user', async () => {
     const host = new PluginRpcHost('p', new Set(['db:read:collections']), deps);
@@ -342,26 +332,6 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect(ok(one)).toBe(true);
     expect(deps.getCollectionForUser).toHaveBeenCalledWith(42, 1);
     expect((await host.dispatch(req('collections.listMine'), undefined)).ok).toBe(false);
-  });
-
-  it('daynotes.create needs db:write:daynotes + day_edit, membership-checked, text required', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:write:daynotes']), deps);
-    const good = await host.dispatch(req('daynotes.create', { tripId: 1, dayId: 5, input: { text: 'Pack sunscreen' } }), 42);
-    expect(ok(good)).toBe(true);
-    expect(deps.createDayNote).toHaveBeenCalledWith(1, 5, expect.objectContaining({ text: 'Pack sunscreen' }));
-    const bad = await host.dispatch(req('daynotes.create', { tripId: 1, dayId: 5, input: { text: '  ' } }), 42);
-    expect((bad as RpcError).error.code).toBe('BAD_PARAMS');
-    const forbidden = await host.dispatch(req('daynotes.create', { tripId: 2, dayId: 5, input: { text: 'x' } }), 42);
-    expect((forbidden as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
-  });
-
-  it('daynotes.delete is gated the same way (edit + membership + bound user)', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:write:daynotes']), deps);
-    const good = await host.dispatch(req('daynotes.delete', { tripId: 1, dayId: 5, noteId: 50 }), 42);
-    expect(ok(good)).toBe(true);
-    expect(deps.deleteDayNote).toHaveBeenCalledWith(1, 5, 50);
-    const noUser = await host.dispatch(req('daynotes.delete', { tripId: 1, dayId: 5, noteId: 50 }), undefined);
-    expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('packing.create needs db:write:packing + packing_edit, membership-checked, name required', async () => {
@@ -384,27 +354,18 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((await noGrant.dispatch(req('packing.create', { tripId: 1, input: { name: 'x' } }), 42)).ok).toBe(false);
   });
 
-  it('weather.get + categories.list are tenant-free (work without a user)', async () => {
-    const w = new PluginRpcHost('p', new Set(['weather:read']), deps);
-    expect(ok(await w.dispatch(req('weather.get', { lat: 48, lng: 11 }), undefined))).toBe(true);
-    const c = new PluginRpcHost('p', new Set(['db:read:categories']), deps);
-    expect(ok(await c.dispatch(req('categories.list', {}), undefined))).toBe(true);
-  });
+  // weather.get, categories.list and rates.get moved to tests/unit/plugins/tenant-free.rpc.test.ts.
 
   // The tags cases moved to tests/unit/tags/tags.rpc.test.ts with the handlers.
 
-  it('trips.members + todos.list are trip-membership-gated', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:read:trips', 'db:read:todos']), deps);
+  it('trips.members is trip-membership-gated', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
     expect(ok(await host.dispatch(req('trips.members', { tripId: 1 }), 42))).toBe(true);
-    expect(ok(await host.dispatch(req('todos.list', { tripId: 1 }), 42))).toBe(true);
     expect(((await host.dispatch(req('trips.members', { tripId: 2 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
-  it('todos + packing-bags writes need the grant + edit right + a bound user', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:write:todos', 'db:write:packing']), deps);
-    expect(ok(await host.dispatch(req('todos.create', { tripId: 1, input: { name: 'Pack' } }), 42))).toBe(true);
-    expect((await host.dispatch(req('todos.create', { tripId: 1, input: { name: ' ' } }), 42)).ok).toBe(false);
-    expect(((await host.dispatch(req('todos.create', { tripId: 2, input: { name: 'x' } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  it('packing-bags writes need the grant + edit right + a bound user', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:write:packing']), deps);
     expect(ok(await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag' } }), 42))).toBe(true);
     expect(ok(await host.dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5, 6] }), 42))).toBe(true);
     expect(deps.setPackingBagMembers).toHaveBeenCalledWith(1, 80, [5, 6]);

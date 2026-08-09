@@ -622,15 +622,8 @@ describe('host-deps factory — reservations, day notes, cross-trip + addon read
     expect((await call(h, 'reservations.delete', { tripId: 1, reservationId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
-  it('day notes create/update/delete run the wiring; a day/note outside the trip is refused', async () => {
-    const h = host('db:write:daynotes');
-    expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 3, input: { text: 'Pack' } })).ok).toBe(true);
-    expect((await call(h, 'daynotes.create', { tripId: 1, dayId: 88, input: { text: 'x' } })).error.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 5, input: { text: 'y' } })).ok).toBe(true);
-    expect((await call(h, 'daynotes.update', { tripId: 1, dayId: 3, noteId: 99, input: {} })).error.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(h, 'daynotes.delete', { tripId: 1, dayId: 3, noteId: 5 })).ok).toBe(true);
-    expect((await call(h, 'daynotes.delete', { tripId: 1, dayId: 3, noteId: 99 })).error.code).toBe('RESOURCE_FORBIDDEN');
-  });
+  // daynotes.* left this factory with the decorator migration; the cases now run in
+  // tests/unit/days/day-notes.rpc.test.ts against DayNotesRpc.
 
   it('cross-trip reads enumerate accessible trips and reservations', async () => {
     const h = host('db:read:trips');
@@ -640,7 +633,7 @@ describe('host-deps factory — reservations, day notes, cross-trip + addon read
     expect(r.result).toHaveLength(1);
   });
 
-  it('wave-13 wiring: collab reads, journal entries, atlas bucket, file content, trip create, rates delegate correctly', async () => {
+  it('wave-13 wiring: collab reads, journal entries, atlas bucket, file content and trip create delegate correctly', async () => {
     // collab reads delegate to collabService and require the collab addon
     const collab = host('db:read:collab');
     expect((await call(collab, 'collab.listNotes', { tripId: 1 })).result).toEqual([{ id: 1, trip_id: 1, title: 'Note' }]);
@@ -666,9 +659,6 @@ describe('host-deps factory — reservations, day notes, cross-trip + addon read
     const create = host('db:create:trips');
     expect((await call(create, 'trips.create', { input: { title: 'Japan' } })).result).toMatchObject({ id: 99, user_id: 5, title: 'Japan' });
     expect((await call(create, 'trips.create', { input: { title: 'boom' } })).error.code).toBe('BAD_PARAMS');
-    // rates.get: tenant-free, delegates to the cached service
-    const rates = host('rates:read');
-    expect((await call(rates, 'rates.get', { base: 'EUR' })).result).toMatchObject({ EUR: 1, USD: 1.08 });
   });
 
   it('trip-scoped reads are wired to the hydrated services (days incl. assignments, reservations incl. endpoints)', async () => {
@@ -795,10 +785,8 @@ describe('host-deps factory — Wave 1 wiring (weather/categories/tags/todos/ros
   beforeEach(() => { checkPermission.mockReset(); checkPermission.mockReturnValue(true) })
   afterAll(() => closePluginDataDb('w1'))
 
-  it('weather + categories are tenant-free reads (no user needed)', async () => {
-    expect((await call(host('weather:read'), 'weather.get', { lat: 48, lng: 11 }, undefined)).ok).toBe(true)
-    expect((await call(host('db:read:categories'), 'categories.list', {}, undefined)).ok).toBe(true)
-  })
+  // weather.get, categories.list and rates.get left this factory with the decorator
+  // migration; the cases now run in tests/unit/plugins/tenant-free.rpc.test.ts.
 
   // tags.* left this factory with the decorator migration. The same cases now run in
   // tests/unit/tags/tags.rpc.test.ts against TagsRpc.
@@ -809,15 +797,8 @@ describe('host-deps factory — Wave 1 wiring (weather/categories/tags/todos/ros
     expect(Array.isArray(r.result)).toBe(true)
   })
 
-  it('todos list/create/update/delete run the wiring; a missing one is RESOURCE_FORBIDDEN', async () => {
-    const h = host('db:write:todos', 'db:read:todos')
-    expect((await call(h, 'todos.list', { tripId: 1 }, 5)).ok).toBe(true)
-    expect((await call(h, 'todos.create', { tripId: 1, input: { name: 'Pack' } }, 5)).ok).toBe(true)
-    expect((await call(h, 'todos.update', { tripId: 1, todoId: 90, input: { checked: 1 } }, 5)).ok).toBe(true)
-    expect((await call(h, 'todos.delete', { tripId: 1, todoId: 90 }, 5)).ok).toBe(true)
-    expect(((await call(h, 'todos.update', { tripId: 1, todoId: 404, input: {} }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-    expect(((await call(h, 'todos.delete', { tripId: 1, todoId: 404 }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-  })
+  // todos.* left this factory with the decorator migration; the cases now run in
+  // tests/unit/todo/todo.rpc.test.ts against TodoRpc.
 
   it('packing bags list/create/update/delete/setMembers run the wiring', async () => {
     const h = host('db:write:packing')

@@ -161,13 +161,9 @@ export interface HostDeps {
   createJournal(userId: number, input: Record<string, unknown>): unknown;
   deleteJournal(userId: number, journeyId: number): unknown;
   /** A trip day's notes (trip-scoped), for `daynotes.list`. */
-  listDayNotes(tripId: number, dayId: number): unknown[];
   /** Create a day note (the day must be on the trip); broadcasts dayNote:created. */
-  createDayNote(tripId: number, dayId: number, input: Record<string, unknown>): unknown;
   /** Update a day note (scoped to the day+trip); broadcasts dayNote:updated. */
-  updateDayNote(tripId: number, dayId: number, noteId: number, input: Record<string, unknown>): unknown;
   /** Delete a day note (scoped to the day+trip); broadcasts dayNote:deleted. */
-  deleteDayNote(tripId: number, dayId: number, noteId: number): unknown;
   /** All budget items of one trip, hydrated with members/payers. */
   listCostsForTrip(tripId: number): unknown[];
   /** All budget items across every trip the acting user can access. */
@@ -199,7 +195,6 @@ export interface HostDeps {
   canCreateTrip(userId: number): boolean;
   createTripForUser(userId: number, input: Record<string, unknown>): unknown;
   // --- Exchange rates (tenant-free, like weather) ---
-  getRates(base: string): Promise<unknown>;
   // --- Cross-trip reads (membership baked in — every trip the acting user can access) ---
   /** Every trip the acting user owns or is a member of (the listTrips baseline). */
   listTripsForUser(userId: number): unknown[];
@@ -241,16 +236,9 @@ export interface HostDeps {
   deletePackingBag(tripId: number, bagId: number): unknown;
   setPackingBagMembers(tripId: number, bagId: number, userIds: number[]): unknown;
   // --- Read-convenience: weather (tenant-free), categories (global), the trip roster ---
-  getWeather(lat: number, lng: number, date: string | undefined): unknown;
-  listCategories(): unknown[];
   tripMembers(tripId: number): unknown[];
   // --- Tags (the acting user's own; no trip) ---
   // --- Todos (core, trip-scoped; the 'packing_edit' permission, like the REST path) ---
-  canEditTodos(tripId: number, userId: number): boolean;
-  listTodos(tripId: number): unknown[];
-  createTodo(tripId: number, input: Record<string, unknown>): unknown;
-  updateTodo(tripId: number, todoId: number, input: Record<string, unknown>): unknown;
-  deleteTodo(tripId: number, todoId: number): unknown;
   // --- Plugin metadata on core entities (db:meta) ---
   /** The trip a trip/place/day belongs to (for the membership gate), or undefined. */
   metaEntityTrip(entityType: string, entityId: number): number | undefined;
@@ -596,12 +584,6 @@ export class PluginRpcHost {
       this.methods.set('journal.createJourney', (p, uid) => deps.createJournal(requireUid(uid), asPayload(p.input)));
       this.methods.set('journal.deleteJourney', (p, uid) => deps.deleteJournal(requireUid(uid), num(p.journeyId, 'journeyId')));
     }
-    if (has('db:read:daynotes')) {
-      // Day notes are trip-scoped (core, no addon), so the standard membership gate applies.
-      this.methods.set('daynotes.list', (p, uid) =>
-        this.tripRead(p, uid, () => deps.listDayNotes(num(p.tripId, 'tripId'), num(p.dayId, 'dayId'))),
-      );
-    }
 
     if (has('db:read:costs')) {
       // "Costs" = budget items (trip-scoped). Same membership gate as trip reads;
@@ -772,42 +754,9 @@ export class PluginRpcHost {
       });
     }
 
-    if (has('rates:read')) {
-      // Exchange rates are tenant-free (like weather) — a cached upstream feed, no
-      // user or trip. Useful for any plugin that shows or converts money.
-      this.methods.set('rates.get', (p) => deps.getRates(str(p.base, 'base')));
-    }
+    // rates.get now lives in src/nest/budget/exchange-rates.rpc.ts.
 
-    if (has('db:write:daynotes')) {
-      // Day notes are edited under the app's 'day_edit' permission (like days). The
-      // wiring verifies the day belongs to the trip, so a plugin can't note a day on
-      // another trip. Text is required; time/icon/sort_order are optional.
-      this.methods.set('daynotes.create', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const dayId = num(p.dayId, 'dayId');
-        const actor = this.requireActor(uid, 'day note');
-        const input = asPayload(p.input);
-        if (typeof input.text !== 'string' || input.text.trim() === '') throw new BadParams('note text is required');
-        this.requireTripEdit(tripId, actor, deps.canEditDays);
-        return deps.createDayNote(tripId, dayId, input);
-      });
-      this.methods.set('daynotes.update', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const dayId = num(p.dayId, 'dayId');
-        const noteId = num(p.noteId, 'noteId');
-        const actor = this.requireActor(uid, 'day note');
-        this.requireTripEdit(tripId, actor, deps.canEditDays);
-        return deps.updateDayNote(tripId, dayId, noteId, asPayload(p.input));
-      });
-      this.methods.set('daynotes.delete', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const dayId = num(p.dayId, 'dayId');
-        const noteId = num(p.noteId, 'noteId');
-        const actor = this.requireActor(uid, 'day note');
-        this.requireTripEdit(tripId, actor, deps.canEditDays);
-        return deps.deleteDayNote(tripId, dayId, noteId);
-      });
-    }
+    // daynotes.* now live in src/nest/days/day-notes.rpc.ts.
 
     if (has('db:write:reservations')) {
       // Bookings write. Gated exactly like the reservations REST/MCP path: trip
@@ -938,43 +887,9 @@ export class PluginRpcHost {
       });
     }
 
-    if (has('weather:read')) {
-      // Tenant-free host cache: forecast by coordinates + optional date. No user needed.
-      this.methods.set('weather.get', (p) => deps.getWeather(num(p.lat, 'lat'), num(p.lng, 'lng'), typeof p.date === 'string' ? p.date : undefined));
-    }
-    if (has('db:read:categories')) {
-      // Global, read-only reference list — carries no tenant data.
-      this.methods.set('categories.list', () => deps.listCategories());
-    }
+    // weather.get and categories.list now live in their own domains' *.rpc.ts.
     // tags.* now lives in src/nest/tags/tags.rpc.ts, bound through the registry below.
-    if (has('db:read:todos')) {
-      this.methods.set('todos.list', (p, uid) => this.tripRead(p, uid, () => deps.listTodos(num(p.tripId, 'tripId'))));
-    }
-    if (has('db:write:todos')) {
-      // Todos are edited under the app's 'packing_edit' permission (like the REST path).
-      this.methods.set('todos.create', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const actor = this.requireActor(uid, 'todo');
-        const input = asPayload(p.input);
-        if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('todo name is required');
-        this.requireTripEdit(tripId, actor, deps.canEditTodos);
-        return deps.createTodo(tripId, input);
-      });
-      this.methods.set('todos.update', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const todoId = num(p.todoId, 'todoId');
-        const actor = this.requireActor(uid, 'todo');
-        this.requireTripEdit(tripId, actor, deps.canEditTodos);
-        return deps.updateTodo(tripId, todoId, asPayload(p.input));
-      });
-      this.methods.set('todos.delete', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const todoId = num(p.todoId, 'todoId');
-        const actor = this.requireActor(uid, 'todo');
-        this.requireTripEdit(tripId, actor, deps.canEditTodos);
-        return deps.deleteTodo(tripId, todoId);
-      });
-    }
+    // todos.* now live in src/nest/todo/todo.rpc.ts.
 
     if (has('db:meta')) {
       // A plugin's OWN namespaced key/value store attached to a core entity. Not

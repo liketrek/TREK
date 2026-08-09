@@ -577,7 +577,6 @@ export class PluginHostDepsFactory {
         }
       },
       // --- Exchange rates: the same cached upstream feed the budget uses (tenant-free). ---
-      getRates: (base) => this.exchangeRates.getRates(base),
       // --- Trip (trip_edit). Only the schema-writable fields reach updateTrip; its
       // NotFound/Validation errors are mapped to clean RPC codes. ---
       canEditTrip: (tripId, userId) => this.canEditTripAs('trip_edit', tripId, userId),
@@ -750,30 +749,8 @@ export class PluginHostDepsFactory {
         return { deleted: true };
       },
       // Day notes are core (no addon) and trip-scoped; membership is enforced by the host.
-      listDayNotes: (tripId, dayId) => this.dayNotes.list(dayId, tripId),
       // --- Day notes write (day_edit). The day must belong to the trip; broadcasts the
       // same dayNote:* events the REST controller emits so open sessions update live. ---
-      createDayNote: (tripId, dayId, input) => {
-        if (!this.dayNotes.dayExists(dayId, tripId)) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
-        const i = input as { text?: string; time?: string; icon?: string; sort_order?: number };
-        const note = this.dayNotes.create(dayId, tripId, i.text ?? '', i.time, i.icon, i.sort_order);
-        this.realtime.broadcast(tripId, 'dayNote:created', { dayId, note }, undefined);
-        return note;
-      },
-      updateDayNote: (tripId, dayId, noteId, input) => {
-        const current = this.dayNotes.getNote(noteId, dayId, tripId);
-        if (!current) throw new ForbiddenResource(`no note ${noteId} on day ${dayId}`);
-        const note = this.dayNotes.update(noteId, current as never, input as { text?: string; time?: string; icon?: string; sort_order?: number });
-        this.realtime.broadcast(tripId, 'dayNote:updated', { dayId, note }, undefined);
-        return note;
-      },
-      deleteDayNote: (tripId, dayId, noteId) => {
-        const current = this.dayNotes.getNote(noteId, dayId, tripId);
-        if (!current) throw new ForbiddenResource(`no note ${noteId} on day ${dayId}`);
-        this.dayNotes.remove(noteId);
-        this.realtime.broadcast(tripId, 'dayNote:deleted', { noteId, dayId }, undefined);
-        return { deleted: true };
-      },
       // --- Reservations (bookings, reservation_edit). Delegates to ReservationsService
       // so the accommodation/budget-sync/notification/broadcast side effects match the
       // web app EXACTLY. socketId is undefined — a plugin has no originating socket. ---
@@ -859,29 +836,9 @@ export class PluginHostDepsFactory {
         return members;
       },
       // --- Read-convenience: weather (host cache, tenant-free), categories (global), roster ---
-      getWeather: (lat, lng, date) => getWeather(String(lat), String(lng), date, 'en'),
-      listCategories: () => this.categories.list() as unknown[],
       tripMembers: (tripId) =>
         this.db.prepare('SELECT u.id, u.username, u.display_name, u.avatar FROM trip_members tm JOIN users u ON u.id = tm.user_id WHERE tm.trip_id = ?').all(tripId) as unknown[],
       // --- Todos (core, trip-scoped; the app's 'packing_edit' permission). ---
-      canEditTodos: (tripId, userId) => this.canEditTripAs('packing_edit', tripId, userId),
-      listTodos: (tripId) => this.todos.listItems(String(tripId)) as unknown[],
-      createTodo: (tripId, input) => {
-        const item = this.todos.createItem(String(tripId), input as never);
-        this.realtime.broadcast(tripId, 'todo:created', { item }, undefined);
-        return item;
-      },
-      updateTodo: (tripId, todoId, input) => {
-        const updated = this.todos.updateItem(String(tripId), String(todoId), input as never, Object.keys(input));
-        if (!updated) throw new ForbiddenResource(`no todo ${todoId} on trip ${tripId}`);
-        this.realtime.broadcast(tripId, 'todo:updated', { item: updated }, undefined);
-        return updated;
-      },
-      deleteTodo: (tripId, todoId) => {
-        if (!this.todos.deleteItem(String(tripId), String(todoId))) throw new ForbiddenResource(`no todo ${todoId} on trip ${tripId}`);
-        this.realtime.broadcast(tripId, 'todo:deleted', { itemId: todoId }, undefined);
-        return { deleted: true };
-      },
       // --- Plugin metadata (db:meta). A per-plugin namespaced key/value store keyed
       // to a core entity; the plugin only ever sees rows tagged with its own id. ---
       metaEntityTrip: (entityType, entityId) => {
