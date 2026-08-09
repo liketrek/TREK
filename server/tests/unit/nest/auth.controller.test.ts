@@ -10,6 +10,7 @@ vi.mock('../../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false
 import { AuthPublicController } from '../../../src/nest/auth/auth-public.controller';
 import { AuthController } from '../../../src/nest/auth/auth.controller';
 import type { TokenService } from '../../../src/nest/tokens/token.service';
+import type { UserProfileService } from '../../../src/nest/auth/user-profile.service';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import type { AuthService } from '../../../src/nest/auth/auth.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
@@ -32,8 +33,8 @@ const audit = { writeAudit } as unknown as AuditService;
 const apc = (a: AuthService, limiter: RateLimitService) => new AuthPublicController(a, limiter, audit);
 // Tokens moved to TokenService; the controller takes it second. Stubbed via a
 // third, optional argument so every non-token call site stays as it was.
-const ac = (a: AuthService, limiter: RateLimitService, t: Partial<TokenService> = {}) =>
-  new AuthController(a, t as TokenService, limiter, audit, new RuntimeEnvService());
+const ac = (a: AuthService, limiter: RateLimitService, t: Partial<TokenService> = {}, pr: Partial<UserProfileService> = {}) =>
+  new AuthController(a, pr as UserProfileService, t as TokenService, limiter, audit, new RuntimeEnvService());
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try { fn(); } catch (err) {
@@ -225,7 +226,7 @@ describe('AuthController (authenticated)', () => {
     delete process.env.DEMO_MODE;
     expect(await thrownAsync(() => ac(asvc(), rl()).avatar(user, undefined))).toEqual({ status: 400, body: { error: 'No image uploaded' } });
     const saveAvatar = vi.fn().mockResolvedValue({ avatar: '/a.jpg' });
-    expect(await ac(asvc({ saveAvatar } as Partial<AuthService>), rl()).avatar(user, { filename: 'a.jpg' } as Express.Multer.File)).toEqual({ avatar: '/a.jpg' });
+    expect(await ac(asvc({}), rl(), {}, { saveAvatar }).avatar(user, { filename: 'a.jpg' } as Express.Multer.File)).toEqual({ avatar: '/a.jpg' });
   });
 
   it('mfa/setup awaits the QR promise, maps a generation failure to 500', async () => {
@@ -273,32 +274,32 @@ describe('AuthController (authenticated)', () => {
 
   it('maps-key + api-keys pass straight through to the service', () => {
     const updateMapsKey = vi.fn().mockReturnValue({ success: true });
-    expect(ac(asvc({ updateMapsKey } as Partial<AuthService>), rl()).mapsKey(user, { maps_api_key: 'k' })).toEqual({ success: true });
+    expect(ac(asvc({}), rl(), {}, { updateMapsKey }).mapsKey(user, { maps_api_key: 'k' })).toEqual({ success: true });
     expect(updateMapsKey).toHaveBeenCalledWith(1, 'k');
     const updateApiKeys = vi.fn().mockReturnValue({ ok: 1 });
-    expect(ac(asvc({ updateApiKeys } as Partial<AuthService>), rl()).apiKeys(user, { a: 1 })).toEqual({ ok: 1 });
+    expect(ac(asvc({}), rl(), {}, { updateApiKeys }).apiKeys(user, { a: 1 })).toEqual({ ok: 1 });
   });
 
   it('update-settings + get-settings map errors, else return their payloads', () => {
-    expect(thrown(() => ac(asvc({ updateSettings: vi.fn().mockReturnValue({ error: 'Bad', status: 400 }) } as Partial<AuthService>), rl()).updateSettings(user, {}))).toEqual({ status: 400, body: { error: 'Bad' } });
-    expect(ac(asvc({ updateSettings: vi.fn().mockReturnValue({ success: true, user: { id: 1 } }) } as Partial<AuthService>), rl()).updateSettings(user, {})).toEqual({ success: true, user: { id: 1 } });
-    expect(thrown(() => ac(asvc({ getSettings: vi.fn().mockReturnValue({ error: 'Nope', status: 404 }) } as Partial<AuthService>), rl()).getSettings(user))).toEqual({ status: 404, body: { error: 'Nope' } });
-    expect(ac(asvc({ getSettings: vi.fn().mockReturnValue({ settings: { theme: 'dark' } }) } as Partial<AuthService>), rl()).getSettings(user)).toEqual({ settings: { theme: 'dark' } });
+    expect(thrown(() => ac(asvc({}), rl(), {}, { updateSettings: vi.fn().mockReturnValue({ error: 'Bad', status: 400 }) }).updateSettings(user, {}))).toEqual({ status: 400, body: { error: 'Bad' } });
+    expect(ac(asvc({}), rl(), {}, { updateSettings: vi.fn().mockReturnValue({ success: true, user: { id: 1 } }) }).updateSettings(user, {})).toEqual({ success: true, user: { id: 1 } });
+    expect(thrown(() => ac(asvc({}), rl(), {}, { getSettings: vi.fn().mockReturnValue({ error: 'Nope', status: 404 }) }).getSettings(user))).toEqual({ status: 404, body: { error: 'Nope' } });
+    expect(ac(asvc({}), rl(), {}, { getSettings: vi.fn().mockReturnValue({ settings: { theme: 'dark' } }) }).getSettings(user)).toEqual({ settings: { theme: 'dark' } });
   });
 
   // travel-stats left with getTravelStats; it is covered by
   // atlas.controller.test.ts (TravelStatsController).
   it('delete-avatar + users delegate to the service', async () => {
     const deleteAvatar = vi.fn().mockResolvedValue({ removed: true });
-    expect(await ac(asvc({ deleteAvatar } as Partial<AuthService>), rl()).deleteAvatar(user)).toEqual({ removed: true });
+    expect(await ac(asvc({}), rl(), {}, { deleteAvatar }).deleteAvatar(user)).toEqual({ removed: true });
     const listUsers = vi.fn().mockReturnValue([{ id: 1 }]);
-    expect(ac(asvc({ listUsers } as Partial<AuthService>), rl()).users(user)).toEqual({ users: [{ id: 1 }] });
+    expect(ac(asvc({}), rl(), {}, { listUsers }).users(user)).toEqual({ users: [{ id: 1 }] });
     expect(listUsers).toHaveBeenCalledWith(1);
   });
 
   it('validate-keys maps error, else returns the maps/weather payload', async () => {
-    expect(await thrownAsync(() => ac(asvc({ validateKeys: vi.fn().mockResolvedValue({ error: 'fail', status: 502 }) } as Partial<AuthService>), rl()).validateKeys(user))).toEqual({ status: 502, body: { error: 'fail' } });
-    const ok = ac(asvc({ validateKeys: vi.fn().mockResolvedValue({ maps: true, weather: false, maps_details: { ok: 1 } }) } as Partial<AuthService>), rl());
+    expect(await thrownAsync(() => ac(asvc({}), rl(), {}, { validateKeys: vi.fn().mockResolvedValue({ error: 'fail', status: 502 }) }).validateKeys(user))).toEqual({ status: 502, body: { error: 'fail' } });
+    const ok = ac(asvc({}), rl(), {}, { validateKeys: vi.fn().mockResolvedValue({ maps: true, weather: false, maps_details: { ok: 1 } }) });
     expect(await ok.validateKeys(user)).toEqual({ maps: true, weather: false, maps_details: { ok: 1 } });
   });
 
@@ -339,6 +340,6 @@ describe('AuthController (authenticated)', () => {
     process.env.DEMO_MODE = 'true';
     vi.mocked(isDemoEmail).mockReturnValue(false);
     const saveAvatar = vi.fn().mockResolvedValue({ avatar: '/b.png' });
-    expect(await ac(asvc({ saveAvatar } as Partial<AuthService>), rl()).avatar(user, { filename: 'b.png' } as Express.Multer.File)).toEqual({ avatar: '/b.png' });
+    expect(await ac(asvc({}), rl(), {}, { saveAvatar }).avatar(user, { filename: 'b.png' } as Express.Multer.File)).toEqual({ avatar: '/b.png' });
   });
 });

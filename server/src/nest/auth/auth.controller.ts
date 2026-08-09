@@ -24,6 +24,7 @@ import fs from 'fs';
 import { v4 as uuid } from 'uuid';
 import { AuthService } from './auth.service';
 import { TokenService } from '../tokens/token.service';
+import { UserProfileService } from './user-profile.service';
 import { avatarDir } from './auth.helpers';
 import {
   ChangePasswordDto,
@@ -73,7 +74,7 @@ const AVATAR_UPLOAD = {
 @Controller('api/auth')
 @UseGuards(JwtAuthGuard)
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly tokens: TokenService, private readonly rl: RateLimitService, private readonly audit: AuditService, private readonly env: RuntimeEnvService) {}
+  constructor(private readonly auth: AuthService, private readonly profile: UserProfileService, private readonly tokens: TokenService, private readonly rl: RateLimitService, private readonly audit: AuditService, private readonly env: RuntimeEnvService) {}
 
   private limit(bucket: string, req: Request, max: number): void {
     if (!this.rl.check(bucket, req.ip || 'unknown', max, WINDOW, Date.now())) {
@@ -116,17 +117,17 @@ export class AuthController {
 
   @Put('me/maps-key')
   mapsKey(@CurrentUser() user: User, @Body() body: MapsKeyUpdateDto) {
-    return this.auth.updateMapsKey(user.id, body.maps_api_key);
+    return this.profile.updateMapsKey(user.id, body.maps_api_key);
   }
 
   @Put('me/api-keys')
   apiKeys(@CurrentUser() user: User, @Body() body: ApiKeysUpdateDto) {
-    return this.auth.updateApiKeys(user.id, body);
+    return this.profile.updateApiKeys(user.id, body);
   }
 
   @Put('me/settings')
   updateSettings(@CurrentUser() user: User, @Body() body: SettingsUpdateDto) {
-    const result = this.auth.updateSettings(user.id, body);
+    const result = this.profile.updateSettings(user.id, body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -135,7 +136,7 @@ export class AuthController {
 
   @Get('me/settings')
   getSettings(@CurrentUser() user: User) {
-    const result = this.auth.getSettings(user.id);
+    const result = this.profile.getSettings(user.id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -152,22 +153,22 @@ export class AuthController {
     if (!file) {
       throw new HttpException({ error: 'No image uploaded' }, 400);
     }
-    return this.auth.saveAvatar(user.id, file.filename);
+    return this.profile.saveAvatar(user.id, file.filename);
   }
 
   @Delete('avatar')
   async deleteAvatar(@CurrentUser() user: User) {
-    return this.auth.deleteAvatar(user.id);
+    return this.profile.deleteAvatar(user.id);
   }
 
   @Get('users')
   users(@CurrentUser() user: User) {
-    return { users: this.auth.listUsers(user.id) };
+    return { users: this.profile.listUsers(user.id) };
   }
 
   @Get('validate-keys')
   async validateKeys(@CurrentUser() user: User) {
-    const result = await this.auth.validateKeys(user.id);
+    const result = await this.profile.validateKeys(user.id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
