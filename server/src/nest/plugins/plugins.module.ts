@@ -33,6 +33,7 @@ import { PluginGuardsModule } from './host/plugin-guards.module';
 import { DbRpc } from './host/rpc/db.rpc';
 import { MetaRpc } from './host/rpc/meta.rpc';
 import { HostSurfaceRpc } from './host/rpc/host-surface.rpc';
+import { WeatherModule } from '../weather/weather.module';
 import { TagsModule } from '../tags/tags.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { BudgetModule } from '../budget/budget.module';
@@ -63,12 +64,18 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * widget assets at /plugin-frame/:id/*.
  */
 @Module({
-  // The domain modules whose @PluginController providers own the plugin wire surface;
+  // Every domain module whose @PluginController providers own part of the plugin wire
+  // surface. The list has to be COMPLETE, not just "whatever this module's own code
+  // needs": PluginRpcRegistryService validates total coverage at boot, so a domain
+  // reachable only via AppModule would make PluginsModule fail to start in any test
+  // app that assembles a subset (WeatherModule is here for exactly that reason, and
+  // for nothing else). Importing PluginsModule therefore pulls in the whole surface.
+  //
   // DatabaseModule is @Global, so not listed. DiscoveryModule is what lets
   // PluginRpcRegistryService find those providers at boot. PluginGuardsModule is a leaf
   // that hands the resource gates to the domain modules; it must not be this module,
   // because the domains would then have to import PluginsModule back and close a cycle.
-  imports: [DiscoveryModule, PluginGuardsModule, TagsModule, CategoriesModule, BudgetModule, ReservationsModule, TodoModule, PackingModule, DaysModule, AssignmentsModule, LlmParseModule, FilesModule, CollabModule, VacayModule, TripsModule, PermissionsModule, AuditModule, AddonsModule, PlacesModule, CollectionsModule, AtlasModule, NotificationsModule, TripMembershipModule, JourneyDomainModule],
+  imports: [DiscoveryModule, PluginGuardsModule, WeatherModule, TagsModule, CategoriesModule, BudgetModule, ReservationsModule, TodoModule, PackingModule, DaysModule, AssignmentsModule, LlmParseModule, FilesModule, CollabModule, VacayModule, TripsModule, PermissionsModule, AuditModule, AddonsModule, PlacesModule, CollectionsModule, AtlasModule, NotificationsModule, TripMembershipModule, JourneyDomainModule],
   controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, TripCardContributionsController, PluginPhotosController, PluginCalendarController, MapMarkersController, MapLayersController, PluginRoutesController, DayScheduleController, DayTintsController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController],
   // DbRpc, MetaRpc and HostSurfaceRpc are the plugin surface that belongs to no
   // domain: the plugin's own sqlite, its namespaced entity metadata, and the
