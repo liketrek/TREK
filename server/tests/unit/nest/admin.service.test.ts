@@ -100,9 +100,6 @@ const getStats = () => svc.getStats();
 const getPermissions = () => svc.getPermissions();
 const savePermissions = (p: Record<string, string>) => svc.savePermissions(p);
 const getAuditLog = (q: { limit?: string; offset?: string }) => svc.getAuditLog(q);
-const listInvites = () => svc.listInvites();
-const createInvite = (by: number, d: Parameters<AdminService['createInvite']>[1]) => svc.createInvite(by, d);
-const deleteInvite = (id: string) => svc.deleteInvite(id);
 const getOidcSettings = () => svc.getOidcSettings();
 const updateOidcSettings = (d: Parameters<AdminService['updateOidcSettings']>[0]) => svc.updateOidcSettings(d);
 const saveDemoBaseline = () => svc.saveDemoBaseline();
@@ -296,44 +293,6 @@ describe('getAuditLog', () => {
   it('ADMIN-SVC-023 — caps limit at 500', () => {
     const result = getAuditLog({ limit: '9999' }) as any;
     expect(result.limit).toBe(500);
-  });
-});
-
-// ── Invites ───────────────────────────────────────────────────────────────────
-
-describe('Invites', () => {
-  it('ADMIN-SVC-024 — createInvite returns invite with token', () => {
-    const { user: admin } = createAdmin(testDb);
-    const result = createInvite(admin.id, { max_uses: 5 }) as any;
-    expect(result.invite.token).toBeDefined();
-    expect(result.invite.max_uses).toBe(5);
-  });
-
-  it('ADMIN-SVC-025 — createInvite defaults to 1 use', () => {
-    const { user: admin } = createAdmin(testDb);
-    const result = createInvite(admin.id, {}) as any;
-    expect(result.uses).toBe(1);
-  });
-
-  it('ADMIN-SVC-026 — listInvites returns array', () => {
-    const { user: admin } = createAdmin(testDb);
-    createInvite(admin.id, {});
-    const invites = listInvites() as any[];
-    expect(invites.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('ADMIN-SVC-027 — deleteInvite removes invite', () => {
-    const { user: admin } = createAdmin(testDb);
-    const invite = createInviteToken(testDb, { created_by: admin.id }) as any;
-    const result = deleteInvite(String(invite.id)) as any;
-    expect(result.error).toBeUndefined();
-    const check = testDb.prepare('SELECT id FROM invite_tokens WHERE id = ?').get(invite.id);
-    expect(check).toBeUndefined();
-  });
-
-  it('ADMIN-SVC-028 — deleteInvite returns 404 for non-existent invite', () => {
-    const result = deleteInvite('99999') as any;
-    expect(result.status).toBe(404);
   });
 });
 
@@ -555,14 +514,6 @@ describe('admin quirk fixes (post-fold)', () => {
     expect(row.username).toBe(user.username);
   });
 
-  it('ADMIN-SVC-073 — createInvite 404s on a trip_id that does not resolve', () => {
-    const { user: admin } = createAdmin(testDb);
-    expect(createInvite(admin.id, { trip_id: 99999 }) as any).toMatchObject({ status: 404, error: 'Trip not found' });
-    expect(createInvite(admin.id, { trip_id: 'not-a-number' }) as any).toMatchObject({ status: 404 });
-    expect(testDb.prepare('SELECT COUNT(*) as c FROM invite_tokens').get()).toEqual({ c: 0 });
-    // An absent/blank binding is still a plain registration invite.
-    expect((createInvite(admin.id, {}) as any).tripId).toBeNull();
-  });
 
   it('ADMIN-SVC-074 — listOAuthSessions survives a row with malformed scopes JSON', () => {
     const { user } = createUser(testDb);

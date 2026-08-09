@@ -8,6 +8,7 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error',
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { AdminController } from '../../../src/nest/admin/admin.controller';
 import type { TokenService } from '../../../src/nest/tokens/token.service';
+import type { RegistrationInvitesService } from '../../../src/nest/auth/registration-invites.service';
 import type { AdminService } from '../../../src/nest/admin/admin.service';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
@@ -45,8 +46,8 @@ const addonsStub = () => ({
 
 // The MCP-token routes read TokenService now, not AdminService. Stubbed via a
 // fourth, optional argument so every existing call site stays as it was.
-const adminCtl = (s: AdminService, rt?: PluginRuntimeService, addons: AddonsService = addonsStub(), tokens: Partial<TokenService> = {}) =>
-  new AdminController(s, addons, rt as unknown as PluginRuntimeService, audit, notifications, tokens as TokenService);
+const adminCtl = (s: AdminService, rt?: PluginRuntimeService, addons: AddonsService = addonsStub(), tokens: Partial<TokenService> = {}, invites: Partial<RegistrationInvitesService> = {}) =>
+  new AdminController(s, addons, rt as unknown as PluginRuntimeService, audit, notifications, tokens as TokenService, invites as RegistrationInvitesService);
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try { fn(); } catch (err) {
     if (err instanceof NotFoundException) return { status: 404, body: err.getResponse() };
@@ -99,10 +100,10 @@ describe('AdminController permissions + oidc + misc', () => {
 // admin-packing-templates.controller.test.ts.
 describe('AdminController invites', () => {
   it('invites: create 201 + audit, delete maps error', () => {
-    const c = adminCtl(svc({ createInvite: vi.fn().mockReturnValue({ invite: { id: 5 }, inviteId: 5, uses: 1, expiresInDays: 7 }) } as Partial<AdminService>));
+    const c = adminCtl(svc(), undefined, undefined, {}, { createInvite: vi.fn().mockReturnValue({ invite: { id: 5 }, inviteId: 5, uses: 1, expiresInDays: 7 }) });
     expect(c.createInvite(user, {}, req)).toEqual({ invite: { id: 5 } });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'admin.invite_create' }));
-    expect(thrown(() => adminCtl(svc({ deleteInvite: vi.fn().mockReturnValue({ error: 'not found', status: 404 }) } as Partial<AdminService>)).deleteInvite(user, '5', req))).toEqual({ status: 404, body: { error: 'not found' } });
+    expect(thrown(() => adminCtl(svc(), undefined, undefined, {}, { deleteInvite: vi.fn().mockReturnValue({ error: 'not found', status: 404 }) }).deleteInvite(user, '5', req))).toEqual({ status: 404, body: { error: 'not found' } });
   });
 
 
@@ -154,7 +155,7 @@ describe('AdminController read-only getters', () => {
     expect(adminCtl(svc({ getPermissions: vi.fn().mockReturnValue({ a: 1 }) } as Partial<AdminService>)).permissions()).toEqual({ a: 1 });
     expect(adminCtl(svc({ getAuditLog: vi.fn().mockReturnValue({ entries: [] }) } as Partial<AdminService>)).auditLog({})).toEqual({ entries: [] });
     expect(adminCtl(svc({ checkVersion: vi.fn().mockResolvedValue({ current: '1' }) } as Partial<AdminService>)).versionCheck()).resolves.toEqual({ current: '1' });
-    expect(adminCtl(svc({ listInvites: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listInvites()).toEqual({ invites: [{ id: 1 }] });
+    expect(adminCtl(svc(), undefined, undefined, {}, { listInvites: vi.fn().mockReturnValue([{ id: 1 }]) }).listInvites()).toEqual({ invites: [{ id: 1 }] });
     expect(adminCtl(svc({ listAddons: vi.fn().mockReturnValue([{ id: 'mcp' }]) } as Partial<AdminService>)).listAddons()).toEqual({ addons: [{ id: 'mcp' }] });
     expect(adminCtl(svc(), undefined, undefined, { listAllMcpTokens: vi.fn().mockReturnValue([{ id: 1 }]) }).listMcpTokens()).toEqual({ tokens: [{ id: 1 }] });
     expect(adminCtl(svc({ listOAuthSessions: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listOAuthSessions()).toEqual({ sessions: [{ id: 1 }] });

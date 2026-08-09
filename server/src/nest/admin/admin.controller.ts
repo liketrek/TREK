@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { readEnv } from '../../app-config';
 import { AdminService } from './admin.service';
 import { TokenService } from '../tokens/token.service';
+import { RegistrationInvitesService } from '../auth/registration-invites.service';
 import {
   AdminUserCreateDto,
   AdminUserUpdateDto,
@@ -63,6 +64,7 @@ export class AdminController {
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
     private readonly tokens: TokenService,
+    private readonly invites: RegistrationInvitesService,
   ) {}
 
   // ── Users ──
@@ -139,23 +141,23 @@ export class AdminController {
 
   // ── Invites ──
   @Get('invites')
-  listInvites() { return { invites: this.admin.listInvites() }; }
+  listInvites() { return { invites: this.invites.listInvites() }; }
 
   // Trips an admin can optionally bind a registration invite to (#1402).
   @Get('invites/trips')
-  listInviteTrips() { return { trips: this.admin.listTripsForInvite() }; }
+  listInviteTrips() { return { trips: this.invites.listTripsForInvite() }; }
 
   @Post('invites')
   @HttpCode(201)
   createInvite(@CurrentUser() user: User, @Body() body: AdminInviteCreateDto, @Req() req: Request) {
-    const result = this.admin.createInvite(user.id, body);
+    const result = this.invites.createInvite(user.id, body);
     this.audit.writeAudit({ userId: user.id, action: 'admin.invite_create', resource: String(result.inviteId), ip: getClientIp(req), details: { max_uses: result.uses, expires_in_days: result.expiresInDays, trip_id: result.tripId } });
     return { invite: result.invite };
   }
 
   @Delete('invites/:id')
   deleteInvite(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    ok(this.admin.deleteInvite(id));
+    ok(this.invites.deleteInvite(id));
     this.audit.writeAudit({ userId: user.id, action: 'admin.invite_delete', resource: String(id), ip: getClientIp(req) });
     return { success: true };
   }

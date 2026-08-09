@@ -574,6 +574,16 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
 
   // -------------------------------------------------------------------------
   // Admin settings
+  //
+  // These stay here, against the first instinct to file them under settings/
+  // with the other app_settings readers. updateAppSettings runs the lockout
+  // guard that stops an admin disabling every login method at once, and that
+  // guard is resolveAuthToggles — auth's own view of which methods exist.
+  // Moving the pair would put an AuthModule import inside SettingsModule, a
+  // leaf that half the container pulls in, to buy nothing but a tidier
+  // directory. The role check below is likewise left as written: swapping it
+  // for AdminGuard changes the response body, so it belongs with the guard
+  // work, not with a move.
   // -------------------------------------------------------------------------
 
   getAppSettings(userId: number): { error?: string; status?: number; data?: Record<string, string> } {
