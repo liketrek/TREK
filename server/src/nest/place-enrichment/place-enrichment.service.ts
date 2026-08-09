@@ -300,10 +300,13 @@ export class PlaceEnrichmentService {
       if (!row || Date.now() - row.fetched_at >= CACHE_TTL_MS) return null;
       const parsed = JSON.parse(row.payload_json) as CachedEnrichment;
 
-      // A cached candidate is only usable while its bytes are still on disk —
-      // the nightly sweep removes pictures nobody picked, and serving their
-      // proxy URLs afterwards would fill the strip with broken images.
+      // A cached candidate is only usable while its bytes are still on disk, and
+      // the nightly sweep deletes every picture nobody picked — which is most of
+      // them. Treat any loss as a stale entry and rebuild, rather than serving
+      // the survivors: filtering alone would leave the column empty for the rest
+      // of the week for a place that has pictures perfectly available.
       const photos = parsed.photos.filter((photo) => this.photoCache.get(photo.key));
+      if (photos.length !== parsed.photos.length) return null;
       return { photos, description: parsed.description ?? null };
     } catch {
       return null;

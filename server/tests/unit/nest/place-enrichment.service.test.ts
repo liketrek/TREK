@@ -491,9 +491,19 @@ describe('result cache', () => {
     expect(maps.fetchCommonsCandidates).toHaveBeenCalled();
   });
 
-  it('ENRICH-023: drops cached candidates whose bytes the nightly sweep removed', async () => {
-    const maps = mapsStub();
-    const cache = cacheStub({ get: vi.fn(() => null) }); // nothing on disk any more
+  it('ENRICH-023: rebuilds when the nightly sweep removed a cached candidate', async () => {
+    // The sweep deletes every picture nobody picked, so this is the normal state
+    // of a cached entry the morning after. Serving the survivors would leave the
+    // column empty for the rest of the week for a place that has pictures.
+    const maps = mapsStub({ fetchCommonsCandidates: vi.fn(async () => [commonsCandidate()]) });
+    let onDisk = false;
+    const cache = cacheStub({
+      get: vi.fn(() => (onDisk ? { photoUrl: '/x', filePath: '/tmp/x', attribution: null } : null)),
+      put: vi.fn(async (key: string) => {
+        onDisk = true;
+        return { photoUrl: `/api/maps/place-photo/${key}/bytes`, filePath: '/tmp/x', attribution: null };
+      }),
+    });
     mockDbGet.mockImplementation((sql: string) =>
       String(sql).includes('place_details_cache')
         ? cachedRow([{ key: 'ChIJmuseum~p0', url: '/x', attribution: null, license: null, licenseUrl: null, sourceUrl: null, source: 'wikimedia' }])
@@ -502,7 +512,23 @@ describe('result cache', () => {
 
     const out = await make(maps, cache).enrich(1, REQ);
 
-    expect(out.photos).toEqual([]);
+    expect(maps.fetchCommonsCandidates).toHaveBeenCalled();
+    expect(out.photos).toHaveLength(1);
+  });
+
+  it('ENRICH-023b: keeps serving a cached entry while all its bytes are still there', async () => {
+    const maps = mapsStub();
+    const cache = cacheStub({ get: vi.fn(() => ({ photoUrl: '/x', filePath: '/tmp/x', attribution: null })) });
+    mockDbGet.mockImplementation((sql: string) =>
+      String(sql).includes('place_details_cache')
+        ? cachedRow([{ key: 'ChIJmuseum~p0', url: '/x', attribution: null, license: null, licenseUrl: null, sourceUrl: null, source: 'wikimedia' }])
+        : undefined,
+    );
+
+    const out = await make(maps, cache).enrich(1, REQ);
+
+    expect(out.photos).toHaveLength(1);
+    expect(maps.fetchCommonsCandidates).not.toHaveBeenCalled();
   });
 
   it('ENRICH-024: ignores an unreadable cache row and rebuilds', async () => {
