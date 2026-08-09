@@ -84,6 +84,49 @@ export class PackingService {
     return ids;
   }
 
+  /** Deliver an item event to exactly the people who can see it (#858): the whole
+   *  room for a Common item, or owner + recipients for a restricted one. */
+  emitToViewers<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, item: PrivacyFields | null | undefined, socketId: string | undefined): void {
+    const viewers = this.viewersOf(item);
+    if (viewers === null) {
+      this.broadcast(tripId, event, payload, socketId);
+    } else {
+      this.broadcastToViewers(tripId, event, payload, viewers, socketId);
+    }
+  }
+
+  /**
+   * The four public/private transitions after an update (#858). `wasPrivate` must be
+   * read BEFORE the write: getting it wrong leaks a freshly-privatized item to the
+   * whole room.
+   *
+   *  - private -> private: owner-only update
+   *  - public  -> private: drop it from the room, then re-add it for the owner
+   *  - private -> public:  add it for the members who did not have it, then update
+   *  - public  -> public:  a plain update to everyone
+   *
+   * Both the REST controller and the plugin RPC handler call this. It used to exist
+   * three times over (here, in the controller, and as a standalone copy inside the
+   * plugin deps factory), with a comment asking for all of them to be kept in
+   * lockstep by hand.
+   */
+  broadcastUpdate(tripId: string, id: string | number, item: PrivacyFields, wasPrivate: boolean, socketId: string | undefined): void {
+    const nowPrivate = !!item.is_private;
+    if (nowPrivate) {
+      if (wasPrivate) {
+        this.broadcastItem(tripId, 'packing:updated', { item } as TrekWsPayload<'packing:updated'>, item, socketId);
+      } else {
+        this.broadcast(tripId, 'packing:deleted', { itemId: Number(id) }, socketId);
+        this.broadcastItem(tripId, 'packing:created', { item } as TrekWsPayload<'packing:created'>, item, socketId);
+      }
+    } else {
+      if (wasPrivate) {
+        this.broadcast(tripId, 'packing:created', { item } as TrekWsPayload<'packing:created'>, socketId);
+      }
+      this.broadcast(tripId, 'packing:updated', { item } as TrekWsPayload<'packing:updated'>, socketId);
+    }
+  }
+
   // ── Items ──────────────────────────────────────────────────────────────────
 
   /**

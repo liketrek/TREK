@@ -91,7 +91,6 @@ export interface HostDeps {
   /** True if the acting user may create costs on the trip (the 'budget_edit' permission). */
   canEditCosts(tripId: number, userId: number): boolean;
   /** A trip's packing items visible to `userId` (#858 private-item filter), for `packing.list`. */
-  listPackingItems(tripId: number, userId: number): unknown[];
   /** A trip's files (trash excluded), for `files.list`. */
   listTripFiles(tripId: number): unknown[];
   /** One trip file's bytes as base64 (size-capped), for `files.getContent`. Throws if it's not on the trip or exceeds the cap. */
@@ -222,19 +221,10 @@ export interface HostDeps {
   /** Delete a reservation from a trip (same side effects); returns { deleted: true }. */
   deleteReservation(tripId: number, reservationId: number, actingUserId: number): unknown;
   // --- Packing (the 'packing_edit' permission; #858 privacy-scoped broadcasts) ---
-  canEditPacking(tripId: number, userId: number): boolean;
   /** Create a packing item (owner = acting user); privacy-scoped packing:created broadcast; returns it. */
-  createPackingItem(tripId: number, input: Record<string, unknown>, actingUserId: number): unknown;
   /** Update a packing item; four-case public<->private broadcast; throws if not on the trip. */
-  updatePackingItem(tripId: number, itemId: number, input: Record<string, unknown>, actingUserId: number): unknown;
   /** Delete a packing item; owner+recipients-scoped packing:deleted broadcast; returns { deleted: true }. */
-  deletePackingItem(tripId: number, itemId: number): unknown;
   // --- Packing bags (packing_edit; no privacy — broadcast to the whole room) ---
-  listPackingBags(tripId: number): unknown[];
-  createPackingBag(tripId: number, input: Record<string, unknown>): unknown;
-  updatePackingBag(tripId: number, bagId: number, input: Record<string, unknown>): unknown;
-  deletePackingBag(tripId: number, bagId: number): unknown;
-  setPackingBagMembers(tripId: number, bagId: number, userIds: number[]): unknown;
   // --- Read-convenience: weather (tenant-free), categories (global), the trip roster ---
   tripMembers(tripId: number): unknown[];
   // --- Tags (the acting user's own; no trip) ---
@@ -324,13 +314,6 @@ export class PluginRpcHost {
       });
       // The trip's member roster (ids + display fields only), membership-checked.
       this.methods.set('trips.members', (p, uid) => this.tripRead(p, uid, () => deps.tripMembers(num(p.tripId, 'tripId'))));
-    }
-    if (has('db:read:packing')) {
-      // Delegate to the packing service, scoped to the acting user so its #858 private-
-      // item visibility filter applies (a plugin must not see other members' private items).
-      this.methods.set('packing.list', (p, uid) =>
-        this.tripRead(p, uid, (userId) => deps.listPackingItems(num(p.tripId, 'tripId'), userId)),
-      );
     }
     if (has('db:read:files')) {
       // Trip files, trash excluded — same view the files tab shows.
@@ -823,69 +806,7 @@ export class PluginRpcHost {
       });
     }
 
-    if (has('db:write:packing')) {
-      // Packing list write. Gated exactly like the packing REST path — trip access +
-      // the 'packing_edit' permission for the HOST-bound acting user. The deps reuse
-      // packingService and replicate the #858 privacy-scoped broadcasts 1:1, so a
-      // private item is never leaked to the whole trip room.
-      this.methods.set('packing.create', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const actor = this.requireActor(uid, 'packing item');
-        const parsed = packingCreateItemRequestSchema.safeParse(p.input);
-        if (!parsed.success) throw new BadParams(`invalid packing item: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
-        this.requireTripEdit(tripId, actor, deps.canEditPacking);
-        return deps.createPackingItem(tripId, parsed.data as Record<string, unknown>, actor);
-      });
-      this.methods.set('packing.update', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const itemId = num(p.itemId, 'itemId');
-        const actor = this.requireActor(uid, 'packing item');
-        const parsed = packingUpdateItemRequestSchema.safeParse(p.input);
-        if (!parsed.success) throw new BadParams(`invalid packing item: ${parsed.error.issues[0]?.message ?? 'bad input'}`);
-        this.requireTripEdit(tripId, actor, deps.canEditPacking);
-        return deps.updatePackingItem(tripId, itemId, parsed.data as Record<string, unknown>, actor);
-      });
-      this.methods.set('packing.delete', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const itemId = num(p.itemId, 'itemId');
-        const actor = this.requireActor(uid, 'packing item');
-        this.requireTripEdit(tripId, actor, deps.canEditPacking);
-        return deps.deletePackingItem(tripId, itemId);
-      });
-      // Bags carry no privacy — a plain packing:bag-* broadcast to the whole room.
-      this.methods.set('packing.listBags', (p, uid) => this.tripRead(p, uid, () => deps.listPackingBags(num(p.tripId, 'tripId'))));
-      this.methods.set('packing.createBag', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const actor = this.requireActor(uid, 'packing bag');
-        const input = asPayload(p.input);
-        if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('bag name is required');
-        this.requireTripEdit(tripId, actor, deps.canEditPacking);
-        return deps.createPackingBag(tripId, input);
-      });
-      this.methods.set('packing.updateBag', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const bagId = num(p.bagId, 'bagId');
-        const actor = this.requireActor(uid, 'packing bag');
-        this.requireTripEdit(tripId, actor, deps.canEditPacking);
-        return deps.updatePackingBag(tripId, bagId, asPayload(p.input));
-      });
-      this.methods.set('packing.deleteBag', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const bagId = num(p.bagId, 'bagId');
-        const actor = this.requireActor(uid, 'packing bag');
-        this.requireTripEdit(tripId, actor, deps.canEditPacking);
-        return deps.deletePackingBag(tripId, bagId);
-      });
-      this.methods.set('packing.setBagMembers', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const bagId = num(p.bagId, 'bagId');
-        const actor = this.requireActor(uid, 'packing bag');
-        this.requireTripEdit(tripId, actor, deps.canEditPacking);
-        const raw = asPayload(p).userIds;
-        const userIds = Array.isArray(raw) ? raw.filter((x): x is number => typeof x === 'number') : [];
-        return deps.setPackingBagMembers(tripId, bagId, userIds);
-      });
-    }
+    // packing.* now lives in src/nest/packing/packing.rpc.ts.
 
     // weather.get and categories.list now live in their own domains' *.rpc.ts.
     // tags.* now lives in src/nest/tags/tags.rpc.ts, bound through the registry below.

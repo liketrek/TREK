@@ -10,7 +10,7 @@ const trip = { id: 5, user_id: 1 };
 
 /** Service mock with trip access granted + edit allowed by default. */
 function makeService(overrides: Partial<PackingService> = {}): PackingService {
-  return {
+  const base = {
     verifyTripAccess: vi.fn().mockReturnValue(trip),
     canEdit: vi.fn().mockReturnValue(true),
     broadcast: vi.fn(),
@@ -23,6 +23,30 @@ function makeService(overrides: Partial<PackingService> = {}): PackingService {
     notifyTagged: vi.fn(),
     ...overrides,
   } as unknown as PackingService;
+  // emitToViewers and broadcastUpdate moved from the controller into the service, so
+  // the mock reproduces their routing on top of whatever broadcast stubs a test
+  // supplied. That keeps every #858 assertion below pointed at the same three
+  // primitives it always was.
+  const svc = base as unknown as PackingService & Record<string, (...a: never[]) => unknown>;
+  svc.emitToViewers = ((tripId, event, payload, item, socketId) => {
+    const viewers = svc.viewersOf(item);
+    if (viewers === null) svc.broadcast(tripId, event, payload, socketId);
+    else svc.broadcastToViewers(tripId, event, payload, viewers, socketId);
+  }) as PackingService['emitToViewers'];
+  svc.broadcastUpdate = ((tripId, id, item, wasPrivate, socketId) => {
+    if (item.is_private) {
+      if (wasPrivate) {
+        svc.broadcastItem(tripId, 'packing:updated', { item }, item, socketId);
+      } else {
+        svc.broadcast(tripId, 'packing:deleted', { itemId: Number(id) }, socketId);
+        svc.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
+      }
+    } else {
+      if (wasPrivate) svc.broadcast(tripId, 'packing:created', { item }, socketId);
+      svc.broadcast(tripId, 'packing:updated', { item }, socketId);
+    }
+  }) as PackingService['broadcastUpdate'];
+  return svc;
 }
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {

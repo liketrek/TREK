@@ -10,6 +10,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import type { RpcRequest, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
+import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
+import { PackingRpc } from '../../../src/nest/packing/packing.rpc';
+import type { PackingService } from '../../../src/nest/packing/packing.service';
+import type { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 const req = (method: string, params: Record<string, unknown>): RpcRequest => ({ k: 'req', id: 'x', method, params });
 
@@ -60,11 +65,23 @@ describe('dispatch strips the supervisor _inv marker', () => {
   });
 
   it('RPCINV-006 a handler reading the whole payload object no longer finds _inv in it', async () => {
-    const deps = makeDeps();
-    const host = new PluginRpcHost('p', new Set(['db:write:packing']), deps);
     // packing.setBagMembers is the one handler that reads the params object as a
-    // whole (asPayload(p).userIds) rather than a named field off it.
+    // whole (asPayload(p).userIds) rather than a named field off it, which makes it
+    // the case where a stray _inv could actually change behaviour.
+    const setBagMembers = vi.fn(() => ({ bagId: 80, members: [3] }));
+    const packing = { setBagMembers } as unknown as PackingService;
+    const guards = {
+      requireActor: () => 42,
+      requireTripEdit: () => undefined,
+    } as unknown as PluginGuards;
+    const realtime = { broadcast: vi.fn() } as unknown as RealtimeService;
+    const host = new PluginRpcHost(
+      'p',
+      new Set(['db:write:packing']),
+      makeDeps(),
+      createTestPluginRegistry([new PackingRpc(packing, realtime, guards)]),
+    );
     await host.dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [3], _inv: 'req-7' }), 42);
-    expect(deps.setPackingBagMembers).toHaveBeenCalledWith(1, 80, [3]);
+    expect(setBagMembers).toHaveBeenCalledWith('1', '80', [3]);
   });
 });

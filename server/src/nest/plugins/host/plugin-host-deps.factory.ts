@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { readEnv } from '../../../app-config';
 import { RealtimeService } from '../../realtime/realtime.service';
-import { isUpdateConflict } from '../../common/conflictResult';
-import { getWeather } from '../../weather/weather.impl';
 import { BLOCKED_EXTENSIONS, filesDir } from '../../files/files.constants';
 import { TripMembershipService } from '../../trip-membership/trip-membership.service';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -64,54 +61,10 @@ function mirrorJourneys(run: () => void): void {
   try { run(); } catch { /* non-fatal */ }
 }
 
-// --- #858 packing privacy: viewer-scoped fan-out mirrored from
-// packing.controller.broadcastUpdate/emitToViewers and PackingService's
-// broadcastItem/viewersOf/broadcastToViewers. A private item's events reach ONLY
-// its owner (+ recipients for a shared item), never the whole trip room; passing the
-// wrong onlyUserId — or forgetting to drop a freshly-privatized item from the room —
-// leaks it. Kept as a local copy (rather than delegating to the injected
-// PackingService) so the factory's unit test can assert the fan-out through the
-// websocket mock while PackingService stays a plain data stub. Keep in lockstep
-// with packing.controller.ts + packing.service.ts. ---
-type PackingPrivacy = { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] };
-
-function packingViewersOf(item: PackingPrivacy | null | undefined): number[] | null {
-  if (!item || !item.is_private) return null; // Common — visible to the whole room
-  return [item.owner_id, ...(item.recipients || []).map((r) => r.user_id)].filter((x): x is number => x != null);
-}
-
-/** CREATE/DELETE fan-out: whole room for a Common item, else owner + recipients only. */
-function emitPackingToViewers<E extends TrekWsTripEventName>(realtime: RealtimeService, tripId: number, event: E, payload: TrekWsPayload<E>, item: PackingPrivacy): void {
-  const viewers = packingViewersOf(item);
-  if (viewers === null) {
-    realtime.broadcast(tripId, event, payload, undefined);
-    return;
-  }
-  for (const uid of new Set(viewers)) if (uid != null) realtime.broadcast(tripId, event, payload, undefined, uid);
-}
-
-/** An item event delivered owner-only when the item is private (else to the room). */
-function broadcastPackingItem<E extends TrekWsTripEventName>(realtime: RealtimeService, tripId: number, event: E, payload: TrekWsPayload<E>, item: PackingPrivacy): void {
-  const onlyUserId = item?.is_private && item.owner_id != null ? item.owner_id : undefined;
-  realtime.broadcast(tripId, event, payload, undefined, onlyUserId);
-}
-
-/** The four public<->private transitions (packing.controller.broadcastUpdate). `wasPrivate`
- * is read BEFORE the write — getting this wrong LEAKS a freshly-privatized item. */
-function broadcastPackingUpdate(realtime: RealtimeService, tripId: number, itemId: number, item: PackingPrivacy, wasPrivate: boolean): void {
-  const nowPrivate = !!item.is_private;
-  if (nowPrivate) {
-    if (wasPrivate) {
-      broadcastPackingItem(realtime, tripId, 'packing:updated', { item }, item); // stays private -> owner-only
-    } else {
-      realtime.broadcast(tripId, 'packing:deleted', { itemId }, undefined); // public->private: drop from the room...
-      broadcastPackingItem(realtime, tripId, 'packing:created', { item }, item); // ...then re-add for the owner
-    }
-  } else {
-    if (wasPrivate) realtime.broadcast(tripId, 'packing:created', { item }, undefined); // private->public: add for members who lacked it
-    realtime.broadcast(tripId, 'packing:updated', { item }, undefined);
-  }
-}
+// The #858 privacy-scoped packing broadcasts used to be copied here, with a comment
+// asking for the copy to be kept in lockstep with packing.controller.ts and
+// packing.service.ts by hand. They now live once, in PackingService, and both the
+// REST controller and PackingRpc call them there.
 
 // Quotas for plugin entity metadata (db:meta) — a cheap disk-DoS guard on the
 // shared trek.db volume. Generous for real use, small enough to bound abuse.
@@ -243,7 +196,6 @@ export class PluginHostDepsFactory {
       },
       // --- Read scopes (packing/files). Membership is checked by the host (tripRead);
       // these just delegate to the same services the REST paths use. ---
-      listPackingItems: (tripId, userId) => this.packing.listItems(tripId, userId),
       listTripFiles: (tripId) => this.files.listFiles(tripId, false),
       // A file's bytes as base64, size-capped BEFORE the read so a 500MB video can't
       // be pulled (~667MB base64) through the IPC pipe. 10MB matches the plugin upload
@@ -788,53 +740,7 @@ export class PluginHostDepsFactory {
       // --- Packing (packing_edit). Reuses PackingService + replicates the #858
       // privacy-scoped broadcasts (create/delete via emitPackingToViewers, update via
       // the four-case broadcastPackingUpdate) so a private item never leaks room-wide. ---
-      canEditPacking: (tripId, userId) => this.canEditTripAs('packing_edit', tripId, userId),
-      createPackingItem: (tripId, input, actingUserId) => {
-        const i = input as { name: string; category?: string; checked?: boolean; is_private?: boolean; visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] };
-        const item = this.packing.createItem(String(tripId), i, actingUserId) as PackingPrivacy;
-        emitPackingToViewers(this.realtime, tripId, 'packing:created', { item }, item);
-        return item;
-      },
-      updatePackingItem: (tripId, itemId, input, actingUserId) => {
-        // Privacy BEFORE the write, so a public<->private toggle routes correctly.
-        const before = this.packing.getItemPrivacy(tripId, itemId);
-        const updated = this.packing.updateItem(String(tripId), String(itemId), input as never, Object.keys(input), undefined, actingUserId);
-        if (!updated) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
-        if (isUpdateConflict(updated)) throw new BadParams('packing item was modified concurrently');
-        broadcastPackingUpdate(this.realtime, tripId, itemId, updated as PackingPrivacy, !!before?.is_private);
-        return updated;
-      },
-      deletePackingItem: (tripId, itemId) => {
-        const deleted = this.packing.deleteItem(String(tripId), String(itemId)) as PackingPrivacy | null;
-        if (!deleted) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
-        emitPackingToViewers(this.realtime, tripId, 'packing:deleted', { itemId }, deleted);
-        return { deleted: true };
-      },
       // --- Packing bags (no privacy — plain room broadcasts). ---
-      listPackingBags: (tripId) => this.packing.listBags(String(tripId)) as unknown[],
-      createPackingBag: (tripId, input) => {
-        const i = input as { name: string; color?: string };
-        const bag = this.packing.createBag(String(tripId), { name: i.name, color: i.color });
-        this.realtime.broadcast(tripId, 'packing:bag-created', { bag }, undefined);
-        return bag;
-      },
-      updatePackingBag: (tripId, bagId, input) => {
-        const bag = this.packing.updateBag(String(tripId), String(bagId), input as never, Object.keys(input));
-        if (!bag) throw new ForbiddenResource(`no packing bag ${bagId} on trip ${tripId}`);
-        this.realtime.broadcast(tripId, 'packing:bag-updated', { bag }, undefined);
-        return bag;
-      },
-      deletePackingBag: (tripId, bagId) => {
-        if (!this.packing.deleteBag(String(tripId), String(bagId))) throw new ForbiddenResource(`no packing bag ${bagId} on trip ${tripId}`);
-        this.realtime.broadcast(tripId, 'packing:bag-deleted', { bagId }, undefined);
-        return { deleted: true };
-      },
-      setPackingBagMembers: (tripId, bagId, userIds) => {
-        const members = this.packing.setBagMembers(String(tripId), String(bagId), userIds);
-        if (!members) throw new ForbiddenResource(`no packing bag ${bagId} on trip ${tripId}`);
-        this.realtime.broadcast(tripId, 'packing:bag-members-updated', { bagId, members }, undefined);
-        return members;
-      },
       // --- Read-convenience: weather (host cache, tenant-free), categories (global), roster ---
       tripMembers: (tripId) =>
         this.db.prepare('SELECT u.id, u.username, u.display_name, u.avatar FROM trip_members tm JOIN users u ON u.id = tm.user_id WHERE tm.trip_id = ?').all(tripId) as unknown[],

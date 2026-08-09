@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { PackingController } from './packing.controller';
 import { PackingMcp } from './packing.mcp';
 import { PackingService } from './packing.service';
+import { PackingRpc } from './packing.rpc';
+import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AuthModule } from '../auth/auth.module';
 
@@ -9,9 +12,9 @@ import { AuthModule } from '../auth/auth.module';
  *  Exports PackingService for in-container consumers (TripsService bundle,
  *  PluginHostDepsFactory). */
 @Module({
-  imports: [PermissionsModule, AuthModule],
+  imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule],
   controllers: [PackingController],
-  providers: [PackingService, PackingMcp],
+  providers: [PackingService, PackingMcp, PackingRpc],
   exports: [PackingService],
 })
 export class PackingModule {}

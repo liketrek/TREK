@@ -585,13 +585,6 @@ describe('host-deps factory — planner write + metadata deps', () => {
     expect((await call(h, 'costs.delete', { tripId: 1, itemId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
   });
 
-  it('packing/files read deps delegate to their services (trash excluded for files)', async () => {
-    const h = host('db:read:packing', 'db:read:files');
-    // acting user 5 is threaded to the packing service (#858 private-item filter); _uid proves it
-    expect((await call(h, 'packing.list', { tripId: 1 })).result).toEqual([{ id: 1, trip_id: 1, name: 'Socks', _uid: 5 }]);
-    expect((await call(h, 'files.list', { tripId: 1 })).result).toEqual([{ id: 2, trip_id: 1, trash: false }]);
-  });
-
   it('users.getById is scoped to people the acting user shares a trip with', async () => {
     const h = host('db:read:users');
     expect((await call(h, 'users.getById', { id: 6 }, 5)).ok).toBe(true); // 5 (owner) + 6 (member) share trip 1
@@ -714,68 +707,9 @@ describe('host-deps factory — reservations, day notes, cross-trip + addon read
   });
 });
 
-describe('host-deps factory — packing write with #858 privacy-scoped broadcasts', () => {
-  const host = () => createRealRpcHost('pk', new Set(['db:write:packing']))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const call = async (method: string, params: Record<string, unknown>, uid = 5): Promise<any> =>
-    host().dispatch({ k: 'req', id: 'x', method, params }, uid)
-  // the onlyUserId (5th arg) of every broadcast for `event` since the last clear:
-  // undefined = whole trip room, a number = that user's sockets only.
-  const fanout = (event: string) => broadcast.mock.calls.filter((c) => c[1] === event).map((c) => c[4])
-  beforeEach(() => { checkPermission.mockReset(); checkPermission.mockReturnValue(true); isAddonEnabled.mockReset(); isAddonEnabled.mockReturnValue(true); broadcast.mockClear() })
-  afterAll(() => closePluginDataDb('pk'))
-
-  it('create: Common -> whole room; Personal -> owner-only; Shared -> owner + recipients', async () => {
-    expect((await call('packing.create', { tripId: 1, input: { name: 'Common', visibility: 'common' } })).ok).toBe(true)
-    expect(fanout('packing:created')).toEqual([undefined]) // whole room
-
-    broadcast.mockClear()
-    expect((await call('packing.create', { tripId: 1, input: { name: 'Mine', visibility: 'personal' } })).ok).toBe(true)
-    expect(fanout('packing:created')).toEqual([5]) // owner-only
-
-    broadcast.mockClear()
-    expect((await call('packing.create', { tripId: 1, input: { name: 'Ours', visibility: 'shared', recipient_ids: [6] } })).ok).toBe(true)
-    expect([...fanout('packing:created')].sort()).toEqual([5, 6]) // owner + recipient, never the room
-  })
-
-  it('update: the four public<->private transitions route correctly (never leaks a privatized item)', async () => {
-    await call('packing.update', { tripId: 1, itemId: 71, input: { is_private: true } }) // stays private (71 seeded private)
-    expect(fanout('packing:updated')).toEqual([5])
-    expect(fanout('packing:deleted')).toEqual([])
-    expect(fanout('packing:created')).toEqual([])
-
-    broadcast.mockClear()
-    await call('packing.update', { tripId: 1, itemId: 70, input: { is_private: true } }) // public -> private (70 seeded public)
-    expect(fanout('packing:deleted')).toEqual([undefined]) // drop from the room FIRST (the anti-leak)
-    expect(fanout('packing:created')).toEqual([5])         // then re-add owner-only
-
-    broadcast.mockClear()
-    await call('packing.update', { tripId: 1, itemId: 71, input: { is_private: false } }) // private -> public
-    expect(fanout('packing:created')).toEqual([undefined])
-    expect(fanout('packing:updated')).toEqual([undefined])
-
-    broadcast.mockClear()
-    await call('packing.update', { tripId: 1, itemId: 70, input: { is_private: false } }) // stays public
-    expect(fanout('packing:updated')).toEqual([undefined])
-    expect(fanout('packing:deleted')).toEqual([])
-  })
-
-  it('update: a stale-write conflict is BAD_PARAMS and never broadcasts', async () => {
-    const res = await call('packing.update', { tripId: 1, itemId: 99, input: { name: 'x' } })
-    expect((res as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
-    expect(broadcast).not.toHaveBeenCalled()
-  })
-
-  it('delete: a private item is owner-scoped; a missing one is RESOURCE_FORBIDDEN', async () => {
-    await call('packing.delete', { tripId: 1, itemId: 71 })
-    expect(fanout('packing:deleted')).toEqual([5]) // owner-only (recipients get no packing:deleted)
-    broadcast.mockClear()
-    await call('packing.delete', { tripId: 1, itemId: 70 })
-    expect(fanout('packing:deleted')).toEqual([undefined]) // common -> room
-    const missing = await call('packing.delete', { tripId: 1, itemId: 404 })
-    expect((missing as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-  })
-})
+// The packing write deps left this factory with the decorator migration. The #858
+// transitions are asserted in tests/unit/packing/packing.rpc.test.ts, against the
+// PackingService methods the REST controller uses too, so there is one copy now.
 
 describe('host-deps factory — Wave 1 wiring (weather/categories/tags/todos/roster/bags)', () => {
   const host = (...perms: string[]) => createRealRpcHost('w1', new Set(perms))
@@ -800,15 +734,6 @@ describe('host-deps factory — Wave 1 wiring (weather/categories/tags/todos/ros
   // todos.* left this factory with the decorator migration; the cases now run in
   // tests/unit/todo/todo.rpc.test.ts against TodoRpc.
 
-  it('packing bags list/create/update/delete/setMembers run the wiring', async () => {
-    const h = host('db:write:packing')
-    expect((await call(h, 'packing.listBags', { tripId: 1 }, 5)).ok).toBe(true)
-    expect((await call(h, 'packing.createBag', { tripId: 1, input: { name: 'Bag' } }, 5)).ok).toBe(true)
-    expect((await call(h, 'packing.updateBag', { tripId: 1, bagId: 80, input: { name: 'X' } }, 5)).ok).toBe(true)
-    expect((await call(h, 'packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5] }, 5)).ok).toBe(true)
-    expect((await call(h, 'packing.deleteBag', { tripId: 1, bagId: 80 }, 5)).ok).toBe(true)
-    expect(((await call(h, 'packing.deleteBag', { tripId: 1, bagId: 404 }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-  })
 })
 
 describe('host-deps factory — Wave 2 wiring (atlas/vacay/journal/collections writes)', () => {

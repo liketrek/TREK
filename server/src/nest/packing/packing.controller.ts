@@ -109,19 +109,8 @@ export class PackingController {
     this.requireEdit(trip, user);
     // checked arrives as boolean or legacy 0/1 — the service coerces by truthiness.
     const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked === undefined ? undefined : !!body.checked, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, user.id);
-    this.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
+    this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
     return { item };
-  }
-
-  /** Deliver an item event to exactly the people who can see it (#858): the whole
-   *  room for a Common item, or owner + recipients for a restricted one. */
-  private emitToViewers<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, item: PackingItemRow, socketId: string | undefined): void {
-    const viewers = this.packing.viewersOf(item);
-    if (viewers === null) {
-      this.packing.broadcast(tripId, event, payload, socketId);
-    } else {
-      this.packing.broadcastToViewers(tripId, event, payload, viewers, socketId);
-    }
   }
 
   @Put('reorder')
@@ -163,39 +152,8 @@ export class PackingController {
     if (isUpdateConflict(updated)) {
       throw new HttpException({ error: 'conflict', server: updated.server }, 409);
     }
-    this.broadcastUpdate(tripId, id, updated as PackingItemRow, !!before?.is_private, socketId);
+    this.packing.broadcastUpdate(tripId, id, updated as PackingItemRow, !!before?.is_private, socketId);
     return { item: updated };
-  }
-
-  /**
-   * Routes a packing-item update over WebSocket so private items (#858) stay
-   * scoped to their owner across the four public↔private transitions:
-   *  - stays private  → owner-only update
-   *  - public→private → drop it from the whole room, re-add for the owner
-   *  - private→public → create for members who lacked it, then update for all
-   *  - stays public   → plain update to all
-   */
-  private broadcastUpdate(
-    tripId: string,
-    id: string,
-    item: PackingItemRow,
-    wasPrivate: boolean,
-    socketId: string | undefined,
-  ): void {
-    const nowPrivate = !!item.is_private;
-    if (nowPrivate) {
-      if (wasPrivate) {
-        this.packing.broadcastItem(tripId, 'packing:updated', { item }, item, socketId);
-      } else {
-        this.packing.broadcast(tripId, 'packing:deleted', { itemId: Number(id) }, socketId);
-        this.packing.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
-      }
-    } else {
-      if (wasPrivate) {
-        this.packing.broadcast(tripId, 'packing:created', { item }, socketId);
-      }
-      this.packing.broadcast(tripId, 'packing:updated', { item }, socketId);
-    }
   }
 
   @Delete(':id')
@@ -212,7 +170,7 @@ export class PackingController {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
     // Scope the delete to the people who could see it (owner + recipients, #858).
-    this.emitToViewers(tripId, 'packing:deleted', { itemId: Number(id) }, deleted as PackingItemRow, socketId);
+    this.packing.emitToViewers(tripId, 'packing:deleted', { itemId: Number(id) }, deleted as PackingItemRow, socketId);
     return { success: true };
   }
 
@@ -236,7 +194,7 @@ export class PackingController {
     // The viewer set just changed: drop the item from the whole room, then re-add
     // it for whoever can now see it (owner + recipients, or everyone if Common).
     this.packing.broadcast(tripId, 'packing:deleted', { itemId: Number(id) }, socketId);
-    this.emitToViewers(tripId, 'packing:created', { item: updated }, updated as PackingItemRow, socketId);
+    this.packing.emitToViewers(tripId, 'packing:created', { item: updated }, updated as PackingItemRow, socketId);
     return { item: updated };
   }
 
@@ -255,7 +213,7 @@ export class PackingController {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
     // The clone is personal to the caller — only their sockets need it.
-    this.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
+    this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
     return { item };
   }
 

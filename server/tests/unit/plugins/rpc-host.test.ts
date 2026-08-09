@@ -77,23 +77,6 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((allowed as RpcResponse).result).toEqual([{ id: 7, name: 'Place' }]);
   });
 
-  it('db:read:packing / db:read:files delegate to the service, membership-checked, and stay separate scopes', async () => {
-    const packing = new PluginRpcHost('p', new Set(['db:read:packing']), deps);
-    // no access to trip 2 → refused before the service is called
-    expect(((await packing.dispatch(req('packing.list', { tripId: 2 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
-    expect(deps.listPackingItems).not.toHaveBeenCalled();
-    const okP = await packing.dispatch(req('packing.list', { tripId: 1 }), 42);
-    expect(ok(okP)).toBe(true);
-    // the acting user is threaded through so packing's #858 private-item filter applies
-    expect(deps.listPackingItems).toHaveBeenCalledWith(1, 42);
-    // the packing scope does NOT unlock files
-    expect(((await packing.dispatch(req('files.list', { tripId: 1 }), 42)) as RpcError).error.code).toBe('PERMISSION_DENIED');
-
-    const files = new PluginRpcHost('p', new Set(['db:read:files']), deps);
-    const okF = await files.dispatch(req('files.list', { tripId: 1 }), 42);
-    expect((okF as RpcResponse).result).toEqual([{ id: 2, trip_id: 1, filename: 'visa.pdf' }]);
-  });
-
   it('db:read:users returns only the public projection for a visible user', async () => {
     const host = new PluginRpcHost('p', new Set(['db:read:users']), deps);
     const res = await host.dispatch(req('users.getById', { id: 3 }), 42);
@@ -334,26 +317,6 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((await host.dispatch(req('collections.listMine'), undefined)).ok).toBe(false);
   });
 
-  it('packing.create needs db:write:packing + packing_edit, membership-checked, name required', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:write:packing']), deps);
-    const good = await host.dispatch(req('packing.create', { tripId: 1, input: { name: 'Socks' } }), 42);
-    expect(ok(good)).toBe(true);
-    expect(deps.createPackingItem).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'Socks' }), 42);
-    expect((await host.dispatch(req('packing.create', { tripId: 1, input: { name: '' } }), 42)).ok).toBe(false); // schema: name min 1
-    expect(((await host.dispatch(req('packing.create', { tripId: 2, input: { name: 'x' } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await host.dispatch(req('packing.create', { tripId: 1, input: { name: 'x' } }), undefined)).ok).toBe(false); // no acting user
-  });
-
-  it('packing.update/delete are gated the same way; nothing without the grant', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:write:packing']), deps);
-    expect(ok(await host.dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { checked: true } }), 42))).toBe(true);
-    expect(deps.updatePackingItem).toHaveBeenCalledWith(1, 70, expect.objectContaining({ checked: true }), 42);
-    expect(ok(await host.dispatch(req('packing.delete', { tripId: 1, itemId: 70 }), 42))).toBe(true);
-    expect(deps.deletePackingItem).toHaveBeenCalledWith(1, 70);
-    const noGrant = new PluginRpcHost('p', new Set(['db:read:packing']), deps);
-    expect((await noGrant.dispatch(req('packing.create', { tripId: 1, input: { name: 'x' } }), 42)).ok).toBe(false);
-  });
-
   // weather.get, categories.list and rates.get moved to tests/unit/plugins/tenant-free.rpc.test.ts.
 
   // The tags cases moved to tests/unit/tags/tags.rpc.test.ts with the handlers.
@@ -362,14 +325,6 @@ describe('PluginRpcHost — capability enforcement', () => {
     const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
     expect(ok(await host.dispatch(req('trips.members', { tripId: 1 }), 42))).toBe(true);
     expect(((await host.dispatch(req('trips.members', { tripId: 2 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
-  });
-
-  it('packing-bags writes need the grant + edit right + a bound user', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:write:packing']), deps);
-    expect(ok(await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag' } }), 42))).toBe(true);
-    expect(ok(await host.dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5, 6] }), 42))).toBe(true);
-    expect(deps.setPackingBagMembers).toHaveBeenCalledWith(1, 80, [5, 6]);
-    expect((await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag' } }), undefined)).ok).toBe(false);
   });
 
   it('atlas writes are uid-bound (code-validated, userless refused)', async () => {
