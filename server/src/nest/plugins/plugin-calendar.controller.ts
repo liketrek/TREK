@@ -2,7 +2,7 @@ import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -39,7 +39,7 @@ function normalizeEvents(pluginId: string, source: string, raw: unknown): DevEve
 @Controller('api/plugin-calendar')
 @UseGuards(JwtAuthGuard)
 export class PluginCalendarController {
-  constructor(private readonly runtime: PluginRuntimeService) {}
+  constructor(private readonly hooks: PluginHooks) {}
 
   @Get()
   async get(
@@ -54,13 +54,13 @@ export class PluginCalendarController {
     const s = isoish(start) ?? new Date(Date.now() - 90 * 864e5).toISOString();
     const e = isoish(end) ?? new Date(Date.now() + 366 * 864e5).toISOString();
 
-    const ids = this.runtime.providersOf('calendarSource');
+    const ids = this.hooks.providersOf('calendarSource');
     const results = await Promise.all(
       ids.map(async (id) => {
         try {
           const [rawName, rawEvents] = await Promise.all([
-            this.runtime.invokeHook(id, 'calendarSource', 'getName', [], userId, 3000).catch(() => id),
-            this.runtime.invokeHook(id, 'calendarSource', 'getEvents', [userId, s, e], userId, 5000),
+            this.hooks.calendarName(id, userId).catch(() => id),
+            this.hooks.calendarEvents(id, userId, s, e),
           ]);
           const name = cap(rawName, 80) || id;
           const events = normalizeEvents(id, name, rawEvents);

@@ -15,7 +15,7 @@ import { AuthModule } from '../auth/auth.module';
  * Assignments domain (S7 — Phase 2 trip sub-domain). The day-assignments mount
  * sits under the /api/trips/:tripId/days prefix (S6); the per-assignment ops use
  * the /api/trips/:tripId/assignments prefix. AssignmentsService is exported for
- * the plugin RPC host (PluginHostDepsFactory injects it).
+ * the plugin RPC surface (ItineraryRpc injects it).
  */
 @Module({
   // DaysModule: AssignmentsMcp injects DaysService for the target-day checks.

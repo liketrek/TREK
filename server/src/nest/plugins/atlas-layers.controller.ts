@@ -2,7 +2,7 @@ import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -78,7 +78,7 @@ function normalize(pluginId: string, raw: unknown): AtlasLayer[] {
 @Controller('api/atlas-layers')
 @UseGuards(JwtAuthGuard)
 export class AtlasLayersController {
-  constructor(private readonly runtime: PluginRuntimeService) {}
+  constructor(private readonly hooks: PluginHooks) {}
 
   @Get()
   async get(@Req() req: Request & { user?: { id: number } }): Promise<{ layers: AtlasLayer[] }> {
@@ -86,11 +86,11 @@ export class AtlasLayersController {
     const userId = req.user?.id;
     if (userId == null) return { layers: [] };
 
-    const ids = this.runtime.providersOf('atlasLayerProvider');
+    const ids = this.hooks.providersOf('atlasLayerProvider');
     const perProvider = await Promise.all(
       ids.map(async (id): Promise<AtlasLayer[]> => {
         try {
-          const raw = await this.runtime.invokeHook(id, 'atlasLayerProvider', 'getLayers', [], userId, 5000);
+          const raw = await this.hooks.atlasLayers(id, userId);
           return normalize(id, raw);
         } catch {
           return []; // a slow / failing provider contributes nothing

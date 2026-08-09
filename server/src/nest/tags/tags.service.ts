@@ -6,7 +6,7 @@ import { DatabaseService } from '../database/database.service';
  * Tags domain service — owns the tag SQL (moved 1:1 from the legacy
  * services/tagService.ts: identical statements, the #10b981 default and the
  * COALESCE update semantics). All consumers are in-container now — the plugin
- * RPC host injects this class via PluginHostDepsFactory.
+ * RPC surface injects this class into TagsRpc.
  */
 @Injectable()
 export class TagsService {

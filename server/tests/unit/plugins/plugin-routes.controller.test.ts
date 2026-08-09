@@ -21,15 +21,15 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { PluginRoutesController } from '../../../src/nest/plugins/plugin-routes.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
 function controller(invoke: () => unknown, providers = ['ev-plug']) {
   const runtime = {
     providersOf: vi.fn(() => providers),
-    invokeHook: vi.fn(async () => invoke()),
-  } as unknown as PluginRuntimeService;
+    route: vi.fn(async () => invoke()),
+  } as unknown as PluginHooks;
   return { c: new PluginRoutesController(runtime, new DatabaseService(dbConn)), runtime };
 }
 const wp = (n = 3) => Array.from({ length: n }, (_, i) => ({ lat: 48 + i * 0.1, lng: 2 + i * 0.1 }));
@@ -74,7 +74,7 @@ describe('PluginRoutesController', () => {
     for (const b of cases) {
       const { c, runtime } = controller(() => goodRoute());
       expect((await c.route('ev-plug', 'ev', b as never, req(5))).route).toBeNull();
-      expect(runtime.invokeHook).not.toHaveBeenCalled();
+      expect(runtime.route).not.toHaveBeenCalled();
     }
   });
 
@@ -97,11 +97,7 @@ describe('PluginRoutesController', () => {
     expect(route!.profile).toBe('ev');
     expect(route!.legs[0].note).toBe('charge to 80%');
     expect(route!.viaPoints[0]).toMatchObject({ label: 'Fastned', tone: 'success', dwellSeconds: 1501 });
-    expect(runtime.invokeHook).toHaveBeenCalledWith(
-      'ev-plug', 'routeProvider', 'getRoute',
-      [{ tripId: 1, dayId: 7, profile: 'ev', waypoints: wp() }],
-      5, 20_000,
-    );
+    expect(runtime.route).toHaveBeenCalledWith('ev-plug', { tripId: 1, dayId: 7, profile: 'ev', waypoints: wp() }, 5);
   });
 
   it('rejects a malformed route whole: wrong leg count, bad vertex, negative numbers', async () => {

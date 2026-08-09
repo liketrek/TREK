@@ -9,7 +9,7 @@ import { PermissionsService } from '../permissions/permissions.service';
  * Nest container (the legacy packing-list prompt registrar in
  * src/mcp/tools/prompts.ts; the packing MCP tools and resources moved to the
  * DI-discovered packing.mcp.ts, the plugin RPC host injects PackingService
- * via PluginHostDepsFactory, and the trip domain folded into the DI-native
+ * via PackingRpc, and the trip domain folded into the DI-native
  * TripsService, which injects PackingService). Exports only the legacy
  * services/packingService names still consumed outside the container, 1:1, so
  * repointing a consumer is an import-path-only diff. Inside the container,

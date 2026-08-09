@@ -19,6 +19,22 @@ export interface PluginRpcContext {
   readonly pluginId: string;
   readonly actingUserId: number | undefined;
   readonly data: PluginDataDb;
+  /**
+   * The inter-plugin capabilities. PER HOST, like everything else on this context:
+   * the router that backs them is created per plugin and binds THIS plugin as the
+   * caller, which is what lets it authorise a call against the declared dependency
+   * edge and the target's provides/emits allowlist.
+   *
+   * Typed structurally rather than imported, so the kit stays free of host imports
+   * (see rpc-kit/README.md). The host supplies the real router when it binds.
+   */
+  readonly plugins: PluginRpcPeers;
+}
+
+/** What a plugin may do to its declared dependencies. */
+export interface PluginRpcPeers {
+  call(targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown>;
+  emit(event: string, payload: unknown): void;
 }
 
 export type PluginRpcHandler = (params: Record<string, unknown>, ctx: PluginRpcContext) => unknown;

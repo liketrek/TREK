@@ -16,7 +16,7 @@ import { AuthModule } from '../auth/auth.module';
   imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule],
   controllers: [BudgetController],
   providers: [BudgetService, ExchangeRatesService, BudgetMcp, ExchangeRatesRpc, CostsRpc],
-  // For in-container consumers (PluginHostDepsFactory, TripsService,
+  // For in-container consumers (CostsRpc, TripsService,
   // ReservationsService, BookingImportService).
   exports: [BudgetService, ExchangeRatesService],
 })

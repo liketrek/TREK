@@ -14,7 +14,7 @@ import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PluginHostDepsFactory } from './host/plugin-host-deps.factory';
+import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
 import { closePluginDataDb } from './host/plugin-host-state';
 import { ForbiddenResource } from './host/rpc-host';
 import { removePluginData } from './host/plugin-data.service';
@@ -123,11 +123,11 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   // The rpc-host factory is bound to `this` as the inter-plugin router, so a
   // plugin's ctx.plugins.call / ctx.events.emit resolve through callPlugin/
   // emitPluginEvent below (which own the dependency-edge authorization). The
-  // arrow reads this.hostDeps lazily at spawn time, so the field-initializer
+  // arrow reads this.hostFactory lazily at spawn time, so the field-initializer
   // ordering (it runs before the constructor params are assigned) is safe.
   private readonly supervisor = new PluginSupervisor((id, granted) => {
-    if (!this.hostDeps) throw new Error('PluginHostDepsFactory not provided — tests that activate plugins must pass one');
-    return this.hostDeps.create(id, granted, this);
+    if (!this.hostFactory) throw new Error('PluginRpcHostFactory not provided — tests that activate plugins must pass one');
+    return this.hostFactory.create(id, granted, this);
   }, {
     // Both hooks run from child lifecycle EventEmitter callbacks (exit / stderr 'data'),
     // so a throw here becomes an uncaughtException that has no host-side handler. During a
@@ -160,7 +160,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   // Coalesces overlapping erasure drains (the sweep and enqueue both trigger one).
   private drainInFlight: Promise<void> | null = null;
 
-  // The registry and host-deps factory stay optional at the type level so tests
+  // The registry and host factory stay optional at the type level so tests
   // can construct the service without them; Nest always injects the real ones
   // (both providers are in the module). audit sits before the optionals
   // because a required param cannot follow optional ones.
@@ -169,7 +169,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     private readonly audit: AuditService,
     private readonly addons: AddonsService,
     private readonly registry?: PluginRegistryService,
-    private readonly hostDeps?: PluginHostDepsFactory,
+    private readonly hostFactory?: PluginRpcHostFactory,
   ) {}
 
   private get db() {
@@ -1048,6 +1048,9 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
         // excludes them, and a manifest can only narrow that set, never widen it.
         supportsEvent: (event: string) => allowed.has(event),
         isConfiguredFor: (userId: number) => hasRequiredUserSettings(id, userId),
+        // Declared as a contract on PluginHooks.sendNotification, like every other
+        // hook. It is invoked here rather than through that class because PluginHooks
+        // injects this service, and going back the other way would close a DI cycle.
         sendToUser: (userId: number, msg: ChannelMessage) =>
           this.invokeHook(
             id,

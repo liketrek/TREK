@@ -11,7 +11,7 @@ import { ExchangeRatesService } from './exchange-rates.service';
  * because BudgetModule imports AuthModule for BudgetMcp's demo guard, so
  * AuthModule cannot import BudgetModule back — see the note there. (The budget MCP
  * tools and resources moved to the DI-discovered budget.mcp.ts, the plugin
- * RPC host injects BudgetService via PluginHostDepsFactory, and the trip
+ * surface, CostsRpc, injects BudgetService directly, and the trip
  * domain folded into the DI-native TripsService, which injects BudgetService —
  * its bridge exports were pruned with it). Exports only the legacy
  * services/budgetService names still consumed outside the container, 1:1, so

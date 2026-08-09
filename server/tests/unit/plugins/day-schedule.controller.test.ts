@@ -21,15 +21,15 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { DayScheduleController } from '../../../src/nest/plugins/day-schedule.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
 function controller(invoke: (id: string) => unknown, providers = ['p1']) {
   const runtime = {
     providersOf: vi.fn(() => providers),
-    invokeHook: vi.fn(async (id: string) => invoke(id)),
-  } as unknown as PluginRuntimeService;
+    daySchedule: vi.fn(async (id: string) => invoke(id)),
+  } as unknown as PluginHooks;
   return { c: new DayScheduleController(runtime, new DatabaseService(dbConn)), runtime };
 }
 const item = (over: Record<string, unknown> = {}) => ({ id: 's1', dayId: 10, label: 'Charging', ...over });
@@ -97,6 +97,6 @@ describe('DayScheduleController', () => {
   it('skips the day lookup entirely when no provider is active', async () => {
     const { c, runtime } = controller(() => [item()], []);
     expect((await c.get('1', req(5))).items).toEqual([]);
-    expect(runtime.invokeHook).not.toHaveBeenCalled();
+    expect(runtime.daySchedule).not.toHaveBeenCalled();
   });
 });

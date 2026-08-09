@@ -8,7 +8,7 @@ import { AuthModule } from '../auth/auth.module';
 
 /**
  * Vacay addon domain (S1 — Phase 2 trip sub-domain). Registered in AppModule.
- * VacayService is exported for the plugin host wiring (PluginHostDepsFactory);
+ * VacayService is exported for the plugin host surface (VacayRpc);
  * VacayMcp carries the DI-discovered MCP tools/resources.
  */
 @Module({

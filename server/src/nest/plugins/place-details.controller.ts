@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -62,7 +62,7 @@ function normalize(raw: unknown): DetailItem[] {
 @UseGuards(JwtAuthGuard)
 export class PlaceDetailsController {
   constructor(
-    private readonly runtime: PluginRuntimeService,
+    private readonly hooks: PluginHooks,
     private readonly dbs: DatabaseService,
   ) {}
 
@@ -80,11 +80,11 @@ export class PlaceDetailsController {
     const row = this.dbs.connection.prepare('SELECT trip_id FROM places WHERE id = ?').get(placeId) as { trip_id: number } | undefined;
     if (!row || !this.dbs.canAccessTrip(row.trip_id, userId)) return { providers: [] };
 
-    const ids = this.runtime.providersOf('placeDetailProvider');
+    const ids = this.hooks.providersOf('placeDetailProvider');
     const results = await Promise.all(
       ids.map(async (id): Promise<ProviderResult | null> => {
         try {
-          const raw = await this.runtime.invokeHook(id, 'placeDetailProvider', 'getDetails', [placeId], userId, 5000);
+          const raw = await this.hooks.placeDetails(id, placeId, userId);
           const items = normalize(raw);
           return items.length > 0 ? { pluginId: id, items } : null;
         } catch {

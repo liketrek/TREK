@@ -25,7 +25,7 @@ import { AuthModule } from '../auth/auth.module';
   imports: [DaysModule, PermissionsModule, BudgetModule, AuthModule, RealtimeModule, PluginGuardsModule],
   controllers: [ReservationsController, AccommodationsController, UpcomingReservationsController],
   providers: [ReservationsService, AccommodationsService, ReservationsMcp, ReservationsRpc],
-  // For in-container consumers (PluginHostDepsFactory, TripsService, BookingImportService).
+  // For in-container consumers (ReservationsRpc, TripsService, BookingImportService).
   exports: [ReservationsService],
 })
 export class ReservationsModule {}

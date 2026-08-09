@@ -12,7 +12,7 @@ import { TrekPhotosRepository } from '../photos/trek-photos.repository';
  * the Nest container (the legacy places and reservations MCP registrars in
  * src/mcp/tools/places.ts and src/mcp/tools/reservations.ts; the assignment
  * MCP tools moved to the DI-discovered assignments.mcp.ts, and the plugin RPC
- * host injects AssignmentsService via PluginHostDepsFactory). Exports only the
+ * surface, ItineraryRpc, injects AssignmentsService directly). Exports only the
  * legacy services/assignmentService names still consumed outside the
  * container, 1:1, so repointing a consumer is an import-path-only diff. Inside
  * the container, inject AssignmentsService instead. Delete this file when

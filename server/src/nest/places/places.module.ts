@@ -19,7 +19,7 @@ import { AuthModule } from '../auth/auth.module';
  * Tags for the joined projections, and on MapsModule for places.mcp.ts's
  * search_place tool. Exports PlacesService for the in-container consumers —
  * TripsService's trip summary, DaysMcp's place-accommodation creation,
- * BookingImportService and the plugin RPC host's PluginHostDepsFactory. There
+ * BookingImportService and the plugin RPC surface, PlacesRpc. There
  * is no places.bridge.ts: nothing outside the container consumes this domain.
  */
 @Module({

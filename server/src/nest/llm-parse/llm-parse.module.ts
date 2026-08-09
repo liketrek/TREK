@@ -8,7 +8,7 @@ import { AddonsModule } from '../addons/addons.module';
 
 /**
  * Provides the LLM booking-import fallback; imported by BookingImportModule.
- * Exports LlmConfigResolver for the plugin host wiring (PluginHostDepsFactory).
+ * Exports LlmConfigResolver for the plugin host surface (HostSurfaceRpc).
  */
 @Module({
   imports: [SettingsModule, AddonsModule],

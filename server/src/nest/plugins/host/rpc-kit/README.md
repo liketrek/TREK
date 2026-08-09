@@ -74,5 +74,8 @@ from the generated `plugin-sdk/src/generated/host-facts.ts` instead.
 A `@PluginController()` class that is missing from its module's `providers: []` is
 invisible to discovery. Its methods are simply never bound, and every call to them
 comes back `PERMISSION_DENIED` with no other symptom. The compiler cannot see this.
-What catches it is `server/tests/unit/plugins/rpc-coverage.test.ts`, and, once the
-rollout is finished, `requireTotalCoverage: true` turning it into a boot failure.
+
+`requireTotalCoverage` is now on, so the app refuses to boot instead: `validate()`
+names every `KNOWN_METHOD` left without a handler, and every hook left without a
+host-side consumer. `server/tests/unit/plugins/rpc-coverage.test.ts` catches the same
+gap in CI, before anyone starts the server.

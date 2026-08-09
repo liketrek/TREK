@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -79,7 +79,7 @@ function normalize(pluginId: string, tripDayIds: ReadonlySet<number>, raw: unkno
 @UseGuards(JwtAuthGuard)
 export class DayScheduleController {
   constructor(
-    private readonly runtime: PluginRuntimeService,
+    private readonly hooks: PluginHooks,
     private readonly dbs: DatabaseService,
   ) {}
 
@@ -93,7 +93,7 @@ export class DayScheduleController {
     const userId = req.user?.id;
     if (!Number.isFinite(tripId) || userId == null || !this.dbs.canAccessTrip(tripId, userId)) return { items: [] };
 
-    const ids = this.runtime.providersOf('dayScheduleProvider');
+    const ids = this.hooks.providersOf('dayScheduleProvider');
     if (ids.length === 0) return { items: [] };
     const dayRows = this.dbs.connection.prepare('SELECT id FROM days WHERE trip_id = ?').all(tripId) as Array<{ id: number }>;
     const tripDayIds: ReadonlySet<number> = new Set(dayRows.map((d) => d.id));
@@ -101,7 +101,7 @@ export class DayScheduleController {
     const perProvider = await Promise.all(
       ids.map(async (id): Promise<DayScheduleItem[]> => {
         try {
-          const raw = await this.runtime.invokeHook(id, 'dayScheduleProvider', 'getSchedule', [tripId], userId, 5000);
+          const raw = await this.hooks.daySchedule(id, tripId, userId);
           return normalize(id, tripDayIds, raw);
         } catch {
           return []; // a slow / failing provider contributes nothing

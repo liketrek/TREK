@@ -17,12 +17,29 @@ export class PluginRpcRegistryService extends PluginRpcRegistry implements OnMod
     private readonly discovery: DiscoveryService,
     private readonly scanner: MetadataScanner,
   ) {
-    // Flipped to true in the closing PR of the rollout, once the legacy router map
-    // in rpc-host.ts is empty and every KNOWN_METHOD has a decorated owner.
-    super({ requireTotalCoverage: false });
+    // The rollout is done: the legacy router map is gone, every KNOWN_METHOD has a
+    // decorated owner and every hook has a host-side consumer. Boot now FAILS on a
+    // gap rather than letting it surface as a runtime PERMISSION_DENIED, or as a
+    // hook:* grant on the consent screen that nothing behind it ever calls.
+    super({ requireTotalCoverage: true });
   }
 
   onModuleInit(): void {
+    this.scanProviders();
+    // Fail app boot on a wrong decorator argument, a double-owned method or a gap in
+    // the surface, rather than failing per-plugin at activation time.
+    this.validate();
+  }
+
+  /**
+   * Records every `@PluginController()` provider the container knows about.
+   *
+   * Separate from validate() because the two answer different questions: this one is
+   * about discovery (which providers were found, and once each), validate() is about
+   * the surface being complete and correctly declared. Keeping them apart lets the
+   * discovery behaviour be tested without assembling all 113 methods first.
+   */
+  scanProviders(): void {
     // A provider can be wrapped once per module that lists it, so dedupe by instance
     // or every entry is recorded twice and the duplicate check fires spuriously.
     const seen = new Set<object>();
@@ -33,8 +50,5 @@ export class PluginRpcRegistryService extends PluginRpcRegistry implements OnMod
       seen.add(instance);
       this.register(instance, this.scanner.getAllMethodNames(Object.getPrototypeOf(instance)));
     }
-    // Fail app boot on a wrong decorator argument or a double-owned method rather
-    // than failing per-plugin at activation time.
-    this.validate();
   }
 }

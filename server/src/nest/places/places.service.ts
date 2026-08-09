@@ -96,7 +96,7 @@ export interface PlaceUpdateInput {
  * places.helpers.ts. Nothing outside the Nest container consumes this domain
  * any more, so there is no places.bridge.ts: the MCP surface is the
  * DI-discovered places.mcp.ts, and TripsService / DaysMcp /
- * BookingImportService / PluginHostDepsFactory all inject this class.
+ * BookingImportService / PlacesRpc all inject this class.
  */
 @Injectable()
 export class PlacesService {

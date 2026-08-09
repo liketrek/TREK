@@ -15,10 +15,14 @@ import { PackingRpc } from '../../../src/nest/packing/packing.rpc';
 import type { PackingService } from '../../../src/nest/packing/packing.service';
 import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { TripsRpc } from '../../../src/nest/trips/trips.rpc';
+import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 const req = (method: string, params: Record<string, unknown>): RpcRequest => ({ k: 'req', id: 'x', method, params });
+
+/** db.* is the cheapest handler to watch, and it needs no services of its own. */
+const dbRegistry = () => createTestPluginRegistry([new DbRpc()]);
 
 /** trips.getById lives on the decorators now, so the audit cases bind it through them. */
 const tripsRegistry = () => {
@@ -35,13 +39,13 @@ const tripsRegistry = () => {
 describe('dispatch strips the supervisor _inv marker', () => {
   it('RPCINV-001 the handler never sees _inv', async () => {
     const deps = makeDeps();
-    const host = new PluginRpcHost('p', new Set(['db:own']), deps);
+    const host = new PluginRpcHost('p', new Set(['db:own']), deps, dbRegistry());
     await host.dispatch(req('db.query', { sql: 'SELECT 1', args: [], _inv: 'req-7' }));
     expect(deps.data.query).toHaveBeenCalledWith('SELECT 1', []);
   });
 
   it('RPCINV-002 the result is identical with and without the marker', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:own']), makeDeps());
+    const host = new PluginRpcHost('p', new Set(['db:own']), makeDeps(), dbRegistry());
     const withMarker = (await host.dispatch(req('db.query', { sql: 'SELECT 1', _inv: 'req-7' }))) as RpcResponse;
     const without = (await host.dispatch(req('db.query', { sql: 'SELECT 1' }))) as RpcResponse;
     expect(withMarker.ok).toBe(true);
@@ -73,7 +77,7 @@ describe('dispatch strips the supervisor _inv marker', () => {
 
   it('RPCINV-005 params without the marker are passed through untouched', async () => {
     const deps = makeDeps();
-    const host = new PluginRpcHost('p', new Set(['db:own']), deps);
+    const host = new PluginRpcHost('p', new Set(['db:own']), deps, dbRegistry());
     await host.dispatch(req('db.exec', { sql: 'INSERT INTO t VALUES (1)', args: [1] }));
     expect(deps.data.exec).toHaveBeenCalledWith('INSERT INTO t VALUES (1)', [1]);
   });

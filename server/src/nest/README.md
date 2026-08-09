@@ -38,6 +38,16 @@ remains as the platform underneath `@nestjs/platform-express`.
   (`services/tripAccess.ts` and the dead `middleware/tripAccess.ts` are gone);
   `queryHelpers` and `tripMembership` are providers; the scheduler takes its
   dependencies from the container.
+- **Plugin RPC surface (BE-7, complete):** all 113 wire methods are
+  `@PluginMethod` / `@PluginOpenMethod` handlers on `@PluginController()` providers
+  in their own domains (`<domain>/<domain>.rpc.ts`; the three that belong to no
+  domain live in `plugins/host/rpc/`), and all 18 host-to-plugin hook contracts are
+  `@PluginHook` declarations on `PluginHooks`. `PluginRpcHost` no longer holds a
+  handler: it builds the granted subset of the dispatch map from the registry,
+  dispatches, audits and maps errors. `PluginHostDepsFactory` — the 26-argument
+  wiring sheet named throughout the log below — is now
+  `PluginRpcHostFactory` and injects two things. See
+  `plugins/host/rpc-kit/README.md`.
 - **Guards (BE-Phase 2, in progress):** the JWT verify lives in `auth/`, and
   `middleware/auth.ts`, `validate.ts` and `idempotency.ts` are deleted; the three
   addon guards are one `AddonGuard` + `@RequireAddon`; the demo-mode block is one

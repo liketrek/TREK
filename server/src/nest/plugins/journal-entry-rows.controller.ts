@@ -6,7 +6,7 @@ import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -67,7 +67,7 @@ function normalize(raw: unknown): EntryRow[] {
 @UseGuards(JwtAuthGuard)
 export class JournalEntryRowsController {
   constructor(
-    private readonly runtime: PluginRuntimeService,
+    private readonly hooks: PluginHooks,
     private readonly dbs: DatabaseService,
     private readonly addons: AddonsService,
     private readonly journey: JourneyDomainService,
@@ -87,11 +87,11 @@ export class JournalEntryRowsController {
     const row = this.dbs.connection.prepare('SELECT journey_id FROM journey_entries WHERE id = ?').get(entryId) as { journey_id: number } | undefined;
     if (!row || !this.journey.canAccessJourney(row.journey_id, userId)) return { providers: [] };
 
-    const ids = this.runtime.providersOf('journalEntryProvider');
+    const ids = this.hooks.providersOf('journalEntryProvider');
     const results = await Promise.all(
       ids.map(async (id): Promise<ProviderResult | null> => {
         try {
-          const raw = await this.runtime.invokeHook(id, 'journalEntryProvider', 'getRows', [entryId], userId, 5000);
+          const raw = await this.hooks.journalRows(id, entryId, userId);
           const items = normalize(raw);
           return items.length > 0 ? { pluginId: id, items } : null;
         } catch {

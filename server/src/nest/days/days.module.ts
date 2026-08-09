@@ -20,7 +20,7 @@ import { AuthModule } from '../auth/auth.module';
  * /api/trips/:tripId/days covers both the days mount and the nested
  * /days/:dayId/notes mount. DaysMcp/DayNotesMcp carry the
  * decorator-registered MCP tools + resources. DaysService and DayNotesService
- * are exported for in-container consumers (PluginHostDepsFactory,
+ * are exported for in-container consumers (DaysRpc, DayNotesRpc,
  * AccommodationsService, TripsService, the assignments/reservations MCP
  * controllers).
  */

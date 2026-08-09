@@ -10,7 +10,7 @@ import { AuthModule } from '../auth/auth.module';
 
 /** Packing domain (S2 — Phase 2 trip sub-domain). Registered in AppModule.
  *  Exports PackingService for in-container consumers (TripsService bundle,
- *  PluginHostDepsFactory). */
+ *  PackingRpc). */
 @Module({
   imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule],
   controllers: [PackingController],

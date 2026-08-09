@@ -7,7 +7,7 @@ import { AtlasMcp } from './atlas.mcp';
 
 /**
  * Atlas addon domain (L7 leaf module). Registered in AppModule. Exports
- * AtlasService for the plugin RPC host (PluginHostDepsFactory injects it).
+ * AtlasService for the plugin RPC surface (AtlasRpc injects it).
  * AtlasMcp is a provider (not a controller) — the nest-mcp registry discovers
  * it after app.init().
  */

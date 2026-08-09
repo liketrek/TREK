@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -83,7 +83,7 @@ function normalize(pluginId: string, raw: unknown, allowed: Set<number>): TripCa
 @UseGuards(JwtAuthGuard)
 export class TripCardContributionsController {
   constructor(
-    private readonly runtime: PluginRuntimeService,
+    private readonly hooks: PluginHooks,
     private readonly dbs: DatabaseService,
   ) {}
 
@@ -107,11 +107,11 @@ export class TripCardContributionsController {
     if (accessible.length === 0) return { contributions: [] };
     const allowed = new Set(accessible);
 
-    const ids = this.runtime.providersOf('tripCardProvider');
+    const ids = this.hooks.providersOf('tripCardProvider');
     const perProvider = await Promise.all(
       ids.map(async (id): Promise<TripCardBadge[]> => {
         try {
-          const raw = await this.runtime.invokeHook(id, 'tripCardProvider', 'getCards', [accessible], userId, 5000);
+          const raw = await this.hooks.tripCards(id, accessible, userId);
           return normalize(id, raw, allowed);
         } catch {
           return []; // a slow / failing provider contributes nothing

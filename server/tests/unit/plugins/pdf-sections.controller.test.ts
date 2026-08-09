@@ -15,7 +15,7 @@ vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: () => 
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { PdfSectionsController } from '../../../src/nest/plugins/pdf-sections.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,8 +23,8 @@ const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) a
 function controller(invoke: (id: string) => unknown, providers = ['p1']) {
   const runtime = {
     providersOf: vi.fn(() => providers),
-    invokeHook: vi.fn(async (id: string) => invoke(id)),
-  } as unknown as PluginRuntimeService;
+    pdfSections: vi.fn(async (id: string) => invoke(id)),
+  } as unknown as PluginHooks;
   return { c: new PdfSectionsController(runtime, { canAccessTrip } as unknown as DatabaseService), runtime };
 }
 const sec = (over: Record<string, unknown> = {}) => ({ title: 'Weather', ...over });
@@ -56,7 +56,7 @@ describe('PdfSectionsController', () => {
       paragraphs: ['Sunny all week'],
       table: { headers: ['Day', 'Temp'], rows: [['Mon', '24°C']] },
     }]);
-    expect(runtime.invokeHook).toHaveBeenCalledWith('p1', 'pdfSectionProvider', 'getSections', [1], 5, 5000);
+    expect(runtime.pdfSections).toHaveBeenCalledWith('p1', 1, 5);
   });
 
   it('drops non-objects, untitled sections and a non-array result; coerces + caps the title', async () => {

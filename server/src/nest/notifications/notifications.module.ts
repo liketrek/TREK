@@ -14,7 +14,7 @@ import { AuthModule } from '../auth/auth.module';
  *  mail without AuthModule and NotificationsModule importing each other.
  *  NotificationsService and NotificationPreferencesService are exported for
  *  in-container consumers (AdminController's dev test send and preferences tab,
- *  the plugin RPC host's PluginHostDepsFactory). */
+ *  the plugin RPC surface, HostSurfaceRpc). */
 @Module({
   imports: [AuthModule, MailerModule],
   controllers: [NotificationsController],

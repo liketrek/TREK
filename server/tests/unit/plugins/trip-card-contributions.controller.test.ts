@@ -16,7 +16,7 @@ vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: () => 
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { TripCardContributionsController } from '../../../src/nest/plugins/trip-card-contributions.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,8 +24,8 @@ const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) a
 function controller(invoke: (id: string, args: unknown[]) => unknown, providers = ['p1']) {
   const runtime = {
     providersOf: vi.fn(() => providers),
-    invokeHook: vi.fn(async (id: string, _h: string, _fn: string, args: unknown[]) => invoke(id, args)),
-  } as unknown as PluginRuntimeService;
+    tripCards: vi.fn(async (id: string, _h: string, _fn: string, args: unknown[]) => invoke(id, args)),
+  } as unknown as PluginHooks;
   return { c: new TripCardContributionsController(runtime, { canAccessTrip } as unknown as DatabaseService), runtime };
 }
 const badge = (over: Record<string, unknown> = {}) => ({ tripId: 1, id: 'b1', label: 'Visa', ...over });
@@ -52,7 +52,7 @@ describe('TripCardContributionsController', () => {
   it('passes only the accessible, deduped tripIds to the hook once', async () => {
     const { c, runtime } = controller(() => [badge()]);
     await c.get('1,2,2,99,abc', req(5)); // 99 inaccessible, abc invalid, 2 duplicated
-    expect(runtime.invokeHook).toHaveBeenCalledWith('p1', 'tripCardProvider', 'getCards', [[1, 2]], 5, 5000);
+    expect(runtime.tripCards).toHaveBeenCalledWith('p1', [1, 2], 5);
   });
 
   it('drops a badge whose tripId was not requested / is inaccessible', async () => {

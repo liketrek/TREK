@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -28,7 +28,7 @@ const MESSAGE_MAX = 300;
 @UseGuards(JwtAuthGuard)
 export class TripWarningsController {
   constructor(
-    private readonly runtime: PluginRuntimeService,
+    private readonly hooks: PluginHooks,
     private readonly dbs: DatabaseService,
   ) {}
 
@@ -42,11 +42,11 @@ export class TripWarningsController {
     const userId = req.user?.id;
     if (!Number.isFinite(tripId) || userId == null || !this.dbs.canAccessTrip(tripId, userId)) return { warnings: [] };
 
-    const ids = this.runtime.providersOf('warningProvider');
+    const ids = this.hooks.providersOf('warningProvider');
     const perProvider = await Promise.all(
       ids.map(async (id): Promise<Warning[]> => {
         try {
-          const raw = (await this.runtime.invokeHook(id, 'warningProvider', 'getWarnings', [tripId], userId, 5000)) as unknown;
+          const raw = (await this.hooks.tripWarnings(id, tripId, userId)) as unknown;
           const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
           // Drop non-object elements BEFORE the cap — otherwise one null in the array
           // throws inside map() and the catch below discards ALL of this provider's

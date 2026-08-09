@@ -8,7 +8,7 @@ import type { PluginRpcContext } from './rpc-kit/types';
 
 /**
  * The resource gates every plugin RPC handler needs, lifted out of PluginRpcHost's
- * private methods and PluginHostDepsFactory's canEditTripAs / requireAddon so that
+ * private methods and the host factory's canEditTripAs / requireAddon so that
  * decorated *.rpc.ts handlers get them by injection instead of through a closure.
  *
  * Every message string is character-identical to what the legacy router produced.

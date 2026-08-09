@@ -12,7 +12,7 @@ import { AuthModule } from '../auth/auth.module';
   imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule],
   controllers: [CollabController],
   providers: [CollabService, CollabMcp, CollabRpc],
-  // For in-container consumers (PluginHostDepsFactory).
+  // For in-container consumers (CollabRpc).
   exports: [CollabService],
 })
 export class CollabModule {}

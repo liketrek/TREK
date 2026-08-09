@@ -8,7 +8,7 @@ import { CategoriesRpc } from './categories.rpc';
 @Module({
   controllers: [CategoriesController],
   providers: [CategoriesService, CategoriesMcp, CategoriesRpc],
-  // For in-container consumers (PluginHostDepsFactory).
+  // For in-container consumers (CategoriesRpc).
   exports: [CategoriesService],
 })
 export class CategoriesModule {}

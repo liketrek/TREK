@@ -25,10 +25,14 @@ import { PluginOAuthController } from './plugin-oauth.controller';
 import { PluginOAuthService } from './plugin-oauth.service';
 import { PluginsService } from './plugins.service';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { PluginRegistryService } from './registry/registry.service';
-import { PluginHostDepsFactory } from './host/plugin-host-deps.factory';
+import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
 import { PluginRpcRegistryService } from './host/rpc-kit/registry.service';
 import { PluginGuardsModule } from './host/plugin-guards.module';
+import { DbRpc } from './host/rpc/db.rpc';
+import { MetaRpc } from './host/rpc/meta.rpc';
+import { HostSurfaceRpc } from './host/rpc/host-surface.rpc';
 import { TagsModule } from '../tags/tags.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { BudgetModule } from '../budget/budget.module';
@@ -59,15 +63,17 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * widget assets at /plugin-frame/:id/*.
  */
 @Module({
-  // The DI-native domain services the plugin host wiring injects
-  // (PluginHostDepsFactory); DatabaseModule is @Global, so not listed.
-  // DiscoveryModule is what lets PluginRpcRegistryService find the @PluginController
-  // providers at boot. PluginGuardsModule is a leaf that hands the resource gates to
-  // the domain modules; it must not be this module, because the domains would then
-  // have to import PluginsModule back and close a cycle.
+  // The domain modules whose @PluginController providers own the plugin wire surface;
+  // DatabaseModule is @Global, so not listed. DiscoveryModule is what lets
+  // PluginRpcRegistryService find those providers at boot. PluginGuardsModule is a leaf
+  // that hands the resource gates to the domain modules; it must not be this module,
+  // because the domains would then have to import PluginsModule back and close a cycle.
   imports: [DiscoveryModule, PluginGuardsModule, TagsModule, CategoriesModule, BudgetModule, ReservationsModule, TodoModule, PackingModule, DaysModule, AssignmentsModule, LlmParseModule, FilesModule, CollabModule, VacayModule, TripsModule, PermissionsModule, AuditModule, AddonsModule, PlacesModule, CollectionsModule, AtlasModule, NotificationsModule, TripMembershipModule, JourneyDomainModule],
   controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, TripCardContributionsController, PluginPhotosController, PluginCalendarController, MapMarkersController, MapLayersController, PluginRoutesController, DayScheduleController, DayTintsController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController],
-  providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService, PluginHostDepsFactory, PluginRpcRegistryService],
+  // DbRpc, MetaRpc and HostSurfaceRpc are the plugin surface that belongs to no
+  // domain: the plugin's own sqlite, its namespaced entity metadata, and the
+  // host-mediated calls (user lookup, broadcasts, notifications, LLM, OAuth, scheduler).
+  providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService, PluginRpcHostFactory, PluginRpcRegistryService, PluginHooks, DbRpc, MetaRpc, HostSurfaceRpc],
   // Exported so the admin addon-toggle handler can cascade-disable plugins whose
   // required addon was just turned off (#plugins dependencies).
   exports: [PluginRuntimeService],

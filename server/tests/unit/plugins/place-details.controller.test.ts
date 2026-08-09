@@ -14,16 +14,16 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { PlaceDetailsController } from '../../../src/nest/plugins/place-details.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
-function controller(over: Partial<PluginRuntimeService> = {}) {
+function controller(over: Partial<PluginHooks> = {}) {
   const runtime = {
     providersOf: vi.fn(() => ['p1', 'p2']),
-    invokeHook: vi.fn(async (id: string) => (id === 'p2' ? [{ label: 'Rating', value: '4.5' }] : [{ label: 'Reviews', value: '12', url: 'https://x' }])),
+    placeDetails: vi.fn(async (id: string) => (id === 'p2' ? [{ label: 'Rating', value: '4.5' }] : [{ label: 'Reviews', value: '12', url: 'https://x' }])),
     ...over,
-  } as unknown as PluginRuntimeService;
+  } as unknown as PluginHooks;
   return { c: new PlaceDetailsController(runtime, new DatabaseService(dbConn)), runtime };
 }
 
@@ -51,26 +51,26 @@ describe('PlaceDetailsController', () => {
 
   it('merges every provider that returns items and skips one that throws (graceful)', async () => {
     const { c, runtime } = controller({
-      invokeHook: vi.fn(async (id: string) => {
+      placeDetails: vi.fn(async (id: string) => {
         if (id === 'p2') throw new Error('slow provider');
         return [{ label: 'Reviews', value: '12' }];
-      }) as unknown as PluginRuntimeService['invokeHook'],
+      }) as unknown as PluginHooks['placeDetails'],
     });
     const res = await c.get('7', req(5));
     expect(res.providers).toEqual([{ pluginId: 'p1', items: [{ label: 'Reviews', value: '12' }] }]);
-    expect(runtime.invokeHook).toHaveBeenCalledWith('p1', 'placeDetailProvider', 'getDetails', [7], 5, 5000);
+    expect(runtime.placeDetails).toHaveBeenCalledWith('p1', 7, 5);
   });
 
   it('normalizes rows: drops a javascript: url, caps lengths, drops non-objects + label-less rows', async () => {
     const { c } = controller({
       providersOf: vi.fn(() => ['p1']),
-      invokeHook: vi.fn(async () => [
+      placeDetails: vi.fn(async () => [
         { label: 'x'.repeat(200), value: 'y'.repeat(500), url: 'javascript:alert(1)' },
         { label: 'Site', url: 'https://ok.example' },
         { value: 'no label' },   // dropped
         'not an object',         // dropped
         { label: 'Mail', url: 'mailto:a@b.c' },
-      ]) as unknown as PluginRuntimeService['invokeHook'],
+      ]) as unknown as PluginHooks['placeDetails'],
     });
     const items = (await c.get('7', req(5))).providers[0].items;
     expect(items).toEqual([
@@ -83,11 +83,11 @@ describe('PlaceDetailsController', () => {
   it('caps the row count per provider at 12 and drops a provider that yields nothing usable', async () => {
     const { c } = controller({
       providersOf: vi.fn(() => ['flood', 'empty']),
-      invokeHook: vi.fn(async (id: string) =>
+      placeDetails: vi.fn(async (id: string) =>
         id === 'flood'
           ? Array.from({ length: 50 }, (_v, i) => ({ label: `r${i}` }))
           : [{ value: 'no label' }, 'junk'],
-      ) as unknown as PluginRuntimeService['invokeHook'],
+      ) as unknown as PluginHooks['placeDetails'],
     });
     const res = await c.get('7', req(5));
     expect(res.providers).toHaveLength(1); // 'empty' contributes nothing -> dropped

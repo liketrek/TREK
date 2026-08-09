@@ -45,14 +45,14 @@ function serviceFor(instances: object[]): PluginRpcRegistryService {
 describe('PluginRpcRegistryService', () => {
   it('RPCKIT-SVC-001 registers the marked providers at boot', () => {
     const service = serviceFor([new TagsRpc(), new PlainProvider()]);
-    service.onModuleInit();
+    service.scanProviders();
     expect(service.methodNames()).toEqual(new Set(['tags.list']));
   });
 
   it('RPCKIT-SVC-002 the same instance wrapped twice is registered once', () => {
     const instance = new TagsRpc();
     const service = serviceFor([instance, instance]);
-    service.onModuleInit();
+    service.scanProviders();
     // Without the dedupe this would be two entries and validate() would report
     // tags.list as double-owned.
     expect(service.list()).toHaveLength(1);
@@ -60,7 +60,7 @@ describe('PluginRpcRegistryService', () => {
 
   it('RPCKIT-SVC-003 unmarked providers are skipped rather than rejected', () => {
     const service = serviceFor([new PlainProvider()]);
-    expect(() => service.onModuleInit()).not.toThrow();
+    expect(() => service.scanProviders()).not.toThrow();
     expect(service.list()).toEqual([]);
   });
 
@@ -70,7 +70,7 @@ describe('PluginRpcRegistryService', () => {
     } as unknown as DiscoveryService;
     const scanner = { getAllMethodNames: () => [] } as unknown as MetadataScanner;
     const service = new PluginRpcRegistryService(discovery, scanner);
-    expect(() => service.onModuleInit()).not.toThrow();
+    expect(() => service.scanProviders()).not.toThrow();
     expect(service.list()).toEqual([]);
   });
 
@@ -81,9 +81,19 @@ describe('PluginRpcRegistryService', () => {
     );
   });
 
-  it('RPCKIT-SVC-006 total coverage is NOT required while the legacy router still owns methods', () => {
+  it('RPCKIT-SVC-006 boot fails when the surface is incomplete', () => {
+    // The rollout is finished, so a decorated class that no module registers is no
+    // longer a silent PERMISSION_DENIED at runtime: the app refuses to start, and the
+    // message names the method that lost its owner.
     const service = serviceFor([new TagsRpc()]);
-    expect(() => service.onModuleInit()).not.toThrow();
+    expect(() => service.onModuleInit()).toThrow(/has no handler/);
+  });
+
+  it('RPCKIT-SVC-008 a hook nobody consumes fails boot too, so no grant is dead', () => {
+    // A hook:* permission on the consent screen with nothing behind it looks exactly
+    // like a live one to the user granting it.
+    const service = serviceFor([new TagsRpc()]);
+    expect(() => service.onModuleInit()).toThrow(/has no host-side consumer/);
   });
 
   it('RPCKIT-SVC-007 only providers are scanned, never controllers', () => {
@@ -93,7 +103,7 @@ describe('PluginRpcRegistryService', () => {
       getControllers,
     } as unknown as DiscoveryService;
     const scanner = { getAllMethodNames: () => [] } as unknown as MetadataScanner;
-    new PluginRpcRegistryService(discovery, scanner).onModuleInit();
+    new PluginRpcRegistryService(discovery, scanner).scanProviders();
     expect(getControllers).not.toHaveBeenCalled();
   });
 });

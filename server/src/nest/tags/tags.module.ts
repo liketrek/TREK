@@ -13,7 +13,7 @@ import { AuthModule } from '../auth/auth.module';
   // PROVIDERS only, and a missing entry here would leave tags.* answering
   // PERMISSION_DENIED with no other symptom.
   providers: [TagsService, TagsMcp, TagsRpc],
-  // For in-container consumers (PluginHostDepsFactory).
+  // For in-container consumers (TagsRpc).
   exports: [TagsService],
 })
 export class TagsModule {}

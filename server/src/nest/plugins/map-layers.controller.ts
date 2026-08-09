@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -146,7 +146,7 @@ function normalize(pluginId: string, raw: unknown): MapLayer[] {
 @UseGuards(JwtAuthGuard)
 export class MapLayersController {
   constructor(
-    private readonly runtime: PluginRuntimeService,
+    private readonly hooks: PluginHooks,
     private readonly dbs: DatabaseService,
   ) {}
 
@@ -160,11 +160,11 @@ export class MapLayersController {
     const userId = req.user?.id;
     if (!Number.isFinite(tripId) || userId == null || !this.dbs.canAccessTrip(tripId, userId)) return { layers: [] };
 
-    const ids = this.runtime.providersOf('mapLayerProvider');
+    const ids = this.hooks.providersOf('mapLayerProvider');
     const perProvider = await Promise.all(
       ids.map(async (id): Promise<MapLayer[]> => {
         try {
-          const raw = await this.runtime.invokeHook(id, 'mapLayerProvider', 'getLayers', [tripId], userId, 5000);
+          const raw = await this.hooks.mapLayers(id, tripId, userId);
           return normalize(id, raw);
         } catch {
           return []; // a slow / failing provider contributes nothing

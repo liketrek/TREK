@@ -15,7 +15,7 @@ vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: () => 
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 import { ViewContributionsController } from '../../../src/nest/plugins/view-contributions.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,8 +23,8 @@ const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) a
 function controller(invoke: (id: string) => unknown, providers = ['p1']) {
   const runtime = {
     providersOf: vi.fn(() => providers),
-    invokeHook: vi.fn(async (id: string) => invoke(id)),
-  } as unknown as PluginRuntimeService;
+    tableContributions: vi.fn(async (id: string) => invoke(id)),
+  } as unknown as PluginHooks;
   return { c: new ViewContributionsController(runtime, { canAccessTrip } as unknown as DatabaseService), runtime };
 }
 const col = (over: Record<string, unknown> = {}) => ({ kind: 'column', entityId: 1, id: 'c1', label: 'X', ...over });
@@ -115,6 +115,6 @@ describe('ViewContributionsController', () => {
     const { c, runtime } = controller((id) => { if (id === 'p2') throw new Error('slow'); return [col({ id: 'from-p1' })]; }, ['p1', 'p2']);
     const out = (await c.get('reservations', '1', req(5))).contributions;
     expect(out.map((o) => o.id)).toEqual(['from-p1']);
-    expect(runtime.invokeHook).toHaveBeenCalledWith('p1', 'tableContributor', 'getContributions', ['reservations', 1], 5, 5000);
+    expect(runtime.tableContributions).toHaveBeenCalledWith('p1', 'reservations', 1, 5);
   });
 });

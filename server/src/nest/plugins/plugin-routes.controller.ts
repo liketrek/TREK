@@ -4,7 +4,7 @@ import type Database from 'better-sqlite3';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -150,7 +150,7 @@ function normalize(pluginId: string, profile: string, waypointCount: number, raw
 @UseGuards(JwtAuthGuard)
 export class PluginRoutesController {
   constructor(
-    private readonly runtime: PluginRuntimeService,
+    private readonly hooks: PluginHooks,
     private readonly dbs: DatabaseService,
   ) {}
 
@@ -174,18 +174,11 @@ export class PluginRoutesController {
     // Provider gate (implements the hook AND holds the grant) + the profile must be
     // one the manifest declared — re-validated from the DB row like the plugins feed,
     // so a hand-edited capabilities blob can't invent profiles.
-    if (!this.runtime.providersOf('routeProvider').includes(pluginId)) return { route: null };
+    if (!this.hooks.providersOf('routeProvider').includes(pluginId)) return { route: null };
     if (!declaredProfiles(this.dbs.connection, pluginId).includes(profileId)) return { route: null };
 
     try {
-      const raw = await this.runtime.invokeHook(
-        pluginId,
-        'routeProvider',
-        'getRoute',
-        [{ tripId, dayId, profile: profileId, waypoints }],
-        userId,
-        20_000,
-      );
+      const raw = await this.hooks.route(pluginId, { tripId, dayId, profile: profileId, waypoints }, userId);
       return { route: normalize(pluginId, profileId, waypoints.length, raw) };
     } catch {
       return { route: null }; // slow / failing provider — client falls back to straight lines

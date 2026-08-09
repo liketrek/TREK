@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -75,7 +75,7 @@ function normalize(pluginId: string, raw: unknown): PdfSection[] {
 @UseGuards(JwtAuthGuard)
 export class PdfSectionsController {
   constructor(
-    private readonly runtime: PluginRuntimeService,
+    private readonly hooks: PluginHooks,
     private readonly dbs: DatabaseService,
   ) {}
 
@@ -89,11 +89,11 @@ export class PdfSectionsController {
     const userId = req.user?.id;
     if (!Number.isFinite(tripId) || userId == null || !this.dbs.canAccessTrip(tripId, userId)) return { sections: [] };
 
-    const ids = this.runtime.providersOf('pdfSectionProvider');
+    const ids = this.hooks.providersOf('pdfSectionProvider');
     const perProvider = await Promise.all(
       ids.map(async (id): Promise<PdfSection[]> => {
         try {
-          const raw = await this.runtime.invokeHook(id, 'pdfSectionProvider', 'getSections', [tripId], userId, 5000);
+          const raw = await this.hooks.pdfSections(id, tripId, userId);
           return normalize(id, raw);
         } catch {
           return []; // a slow / failing provider contributes nothing

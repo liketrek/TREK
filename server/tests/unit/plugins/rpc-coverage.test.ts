@@ -1,17 +1,18 @@
 /**
  * The coverage ledger: the anchor for the whole decorator rollout.
  *
- * Every wire method is owned exactly once, either by the legacy router blocks in
- * rpc-host.ts or by a decorated *.rpc.ts class in the registry. Both sets are derived
- * by construction, so no list is maintained by hand and the test cannot drift.
+ * Every wire method is owned by exactly one decorated *.rpc.ts class in the registry.
+ * Both sets are derived by construction, so no list is maintained by hand and the test
+ * cannot drift.
  *
- * It fails the moment a migration PR moves a method and forgets to delete the legacy
- * registration, deletes one without adding it, or forgets to list a new *.rpc.ts class
- * in allRpcControllers().
+ * The rollout is finished, so the legacy set is empty and the ledger's job flips from
+ * "how far along is the move" to "nothing fell out of it": a method deleted without a
+ * replacement, or a new *.rpc.ts class that no one listed in allRpcControllers().
  */
 import { describe, it, expect } from 'vitest';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
+import { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
 import {
   KNOWN_METHODS,
   KNOWN_PERMISSIONS,
@@ -29,130 +30,48 @@ describe('plugin RPC coverage ledger', () => {
   const host = new PluginRpcHost('probe', new Set<string>(KNOWN_PERMISSIONS), makeDeps(), registry);
   const all = boundMethods(host);
   const fromRegistry = registry.methodNames();
-  const legacy = new Set([...all].filter((m) => !fromRegistry.has(m)));
+  const vocabulary = new Set<string>([...KNOWN_METHODS, ...UNCONDITIONAL_METHODS]);
 
-  it('RPCLEDGER-001 no method is owned by both the registry and the legacy router', () => {
-    expect([...fromRegistry].filter((m) => legacy.has(m))).toEqual([]);
+  it('RPCLEDGER-001 every bound method comes from the registry, none from anywhere else', () => {
+    expect([...all].filter((m) => !fromRegistry.has(m))).toEqual([]);
   });
 
   it('RPCLEDGER-002 every registered method is one the wire protocol knows', () => {
-    const vocabulary = new Set<string>([...KNOWN_METHODS, ...UNCONDITIONAL_METHODS]);
     expect([...all].filter((m) => !vocabulary.has(m))).toEqual([]);
   });
 
   it('RPCLEDGER-003 no method in the vocabulary is orphaned', () => {
-    const vocabulary = new Set<string>([...KNOWN_METHODS, ...UNCONDITIONAL_METHODS]);
     expect([...vocabulary].filter((m) => !all.has(m))).toEqual([]);
   });
 
-  it('RPCLEDGER-004 the two owner sets partition the vocabulary exactly', () => {
-    expect(all).toEqual(new Set<string>([...KNOWN_METHODS, ...UNCONDITIONAL_METHODS]));
-    expect(fromRegistry.size + legacy.size).toBe(all.size);
+  it('RPCLEDGER-004 the registry covers the vocabulary exactly', () => {
+    expect(all).toEqual(vocabulary);
+    expect(fromRegistry.size).toBe(KNOWN_METHODS.length + UNCONDITIONAL_METHODS.length);
   });
 
-  it('RPCLEDGER-005 the migration ledger reads as expected for this PR', () => {
-    // Update these two numbers in every rollout PR. They make the diff state the size
-    // of the move out loud, which is the number a reviewer wants to see.
-    const total = KNOWN_METHODS.length + UNCONDITIONAL_METHODS.length;
-    expect(fromRegistry.size).toBe(93);
-    expect(legacy.size).toBe(total - 93);
+  it('RPCLEDGER-005 the surface is the 113 methods the protocol declares', () => {
+    // Pinned rather than derived: a method DELETED from KNOWN_METHODS together with
+    // its handler would keep every test above green, and this is the line that makes
+    // that show up in the diff.
+    expect(KNOWN_METHODS.length).toBe(110);
+    expect(UNCONDITIONAL_METHODS.length).toBe(3);
+    expect(fromRegistry.size).toBe(113);
   });
 
-  it('RPCLEDGER-006 the migrated methods are exactly the ones this PR claims', () => {
-    expect([...fromRegistry].sort()).toEqual([
-      'accommodations.create',
-      'accommodations.delete',
-      'accommodations.update',
-      'atlas.bucketList',
-      'atlas.createBucketItem',
-      'atlas.deleteBucketItem',
-      'atlas.markCountry',
-      'atlas.markRegion',
-      'atlas.unmarkCountry',
-      'atlas.unmarkRegion',
-      'atlas.visited',
-      'categories.list',
-      'collab.createMessage',
-      'collab.createNote',
-      'collab.createPoll',
-      'collab.listMessages',
-      'collab.listNotes',
-      'collab.listPolls',
-      'collab.votePoll',
-      'collections.copyToTrip',
-      'collections.create',
-      'collections.deletePlace',
-      'collections.get',
-      'collections.listMine',
-      'collections.savePlace',
-      'collections.update',
-      'costs.create',
-      'costs.delete',
-      'costs.getByTrip',
-      'costs.listMine',
-      'costs.update',
-      'daynotes.create',
-      'daynotes.delete',
-      'daynotes.list',
-      'daynotes.update',
-      'days.create',
-      'days.delete',
-      'days.update',
-      'files.create',
-      'files.createLink',
-      'files.getContent',
-      'files.list',
-      'files.softDelete',
-      'files.update',
-      'itinerary.assign',
-      'itinerary.unassign',
-      'journal.createEntry',
-      'journal.createJourney',
-      'journal.deleteEntry',
-      'journal.deleteJourney',
-      'journal.getEntries',
-      'journal.listMine',
-      'journal.updateEntry',
-      'packing.create',
-      'packing.createBag',
-      'packing.delete',
-      'packing.deleteBag',
-      'packing.list',
-      'packing.listBags',
-      'packing.setBagMembers',
-      'packing.update',
-      'packing.updateBag',
-      'places.create',
-      'places.delete',
-      'places.update',
-      'rates.get',
-      'reservations.create',
-      'reservations.delete',
-      'reservations.listMine',
-      'reservations.update',
-      'tags.create',
-      'tags.delete',
-      'tags.list',
-      'tags.update',
-      'todos.create',
-      'todos.delete',
-      'todos.list',
-      'todos.update',
-      'trips.addMember',
-      'trips.create',
-      'trips.getAccommodations',
-      'trips.getById',
-      'trips.getDays',
-      'trips.getPlaces',
-      'trips.getReservations',
-      'trips.listMine',
-      'trips.members',
-      'trips.removeMember',
-      'trips.update',
-      'vacay.mine',
-      'vacay.toggleCompanyHoliday',
-      'vacay.toggleEntry',
-      'weather.get',
-    ]);
+  it('RPCLEDGER-006 boot-time total coverage is armed in production', () => {
+    // The rollout's closing move: the registry service now FAILS APP BOOT when a
+    // KNOWN_METHOD has no decorated owner, instead of letting it surface as a runtime
+    // PERMISSION_DENIED nobody can explain.
+    const options = (new PluginRpcRegistryService({} as never, {} as never) as unknown as {
+      options: { requireTotalCoverage?: boolean };
+    }).options;
+    expect(options.requireTotalCoverage).toBe(true);
+  });
+
+  it('RPCLEDGER-007 a registry missing a method fails validate() rather than booting', () => {
+    // Drops TagsRpc, a method owner. Dropping the last entry would drop PluginHooks
+    // instead, and the failure would be about hooks rather than methods.
+    const short = allRpcControllers().slice(1);
+    expect(() => createTestPluginRegistry(short, { requireTotalCoverage: true })).toThrow(/has no handler/);
   });
 });

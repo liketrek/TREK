@@ -6,7 +6,7 @@ import { DatabaseService } from '../database/database.service';
  * Categories domain service — owns the category SQL (moved 1:1 from the legacy
  * services/categoryService.ts: identical statements, the #6366f1/📍 defaults
  * and the COALESCE update semantics). All consumers are in-container now — the
- * plugin RPC host injects this class via PluginHostDepsFactory.
+ * plugin RPC surface injects this class into CategoriesRpc.
  */
 @Injectable()
 export class CategoriesService {

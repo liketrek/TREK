@@ -2,7 +2,7 @@ import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginHooks } from './plugin-hooks.service';
 import { stripEmoji } from './text-sanitize';
 
 /**
@@ -57,12 +57,12 @@ function normalizePhotos(pluginId: string, raw: unknown): DevPhoto[] {
 @Controller('api/plugin-photos')
 @UseGuards(JwtAuthGuard)
 export class PluginPhotosController {
-  constructor(private readonly runtime: PluginRuntimeService) {}
+  constructor(private readonly hooks: PluginHooks) {}
 
   @Get('sources')
   sources(): { sources: Array<{ pluginId: string }> } {
     if (!pluginsEnabled()) return { sources: [] };
-    return { sources: this.runtime.providersOf('photoProvider').map((pluginId) => ({ pluginId })) };
+    return { sources: this.hooks.providersOf('photoProvider').map((pluginId) => ({ pluginId })) };
   }
 
   @Get('search')
@@ -77,11 +77,11 @@ export class PluginPhotosController {
     const query = cap(q, 200);
     const page = Math.max(1, Math.min(1000, Number(pageRaw) || 1));
 
-    const ids = this.runtime.providersOf('photoProvider');
+    const ids = this.hooks.providersOf('photoProvider');
     const results = await Promise.all(
       ids.map(async (id) => {
         try {
-          const raw = (await this.runtime.invokeHook(id, 'photoProvider', 'search', [query, { page, limit: MAX_PHOTOS }], userId, 5000)) as
+          const raw = (await this.hooks.searchPhotos(id, query, page, MAX_PHOTOS, userId)) as
             | { photos?: unknown; total?: unknown; hasMore?: unknown }
             | undefined;
           const photos = normalizePhotos(id, raw?.photos);
@@ -104,9 +104,9 @@ export class PluginPhotosController {
     if (!pluginsEnabled()) return { photo: null };
     const userId = req.user?.id;
     if (userId == null || !pluginId || !id) return { photo: null };
-    if (!this.runtime.providersOf('photoProvider').includes(pluginId)) return { photo: null };
+    if (!this.hooks.providersOf('photoProvider').includes(pluginId)) return { photo: null };
     try {
-      const raw = await this.runtime.invokeHook(pluginId, 'photoProvider', 'getById', [cap(id, 256)], userId, 5000);
+      const raw = await this.hooks.getPhoto(pluginId, cap(id, 256), userId);
       return { photo: normalizePhotos(pluginId, [raw])[0] ?? null };
     } catch {
       return { photo: null };
