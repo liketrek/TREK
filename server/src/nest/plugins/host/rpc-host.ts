@@ -92,21 +92,12 @@ export interface HostDeps {
   canEditCosts(tripId: number, userId: number): boolean;
   /** A trip's packing items visible to `userId` (#858 private-item filter), for `packing.list`. */
   /** A trip's files (trash excluded), for `files.list`. */
-  listTripFiles(tripId: number): unknown[];
   /** One trip file's bytes as base64 (size-capped), for `files.getContent`. Throws if it's not on the trip or exceeds the cap. */
-  getTripFileContent(tripId: number, fileId: number): unknown;
   // --- Files write (the app's file_upload / file_edit / file_delete permissions) ---
-  canUploadFiles(tripId: number, userId: number): boolean;
-  canEditFiles(tripId: number, userId: number): boolean;
-  canDeleteFiles(tripId: number, userId: number): boolean;
   /** Store a bounded base64 payload as a trip file (extension + size validated); broadcasts file:created. */
-  createTripFile(tripId: number, input: Record<string, unknown>, actingUserId: number): unknown;
   /** Link an existing trip file to a reservation/place/assignment on the SAME trip. */
-  createTripFileLink(tripId: number, fileId: number, opts: Record<string, unknown>): unknown;
   /** Update a file's description/links (same-trip targets enforced); broadcasts file:updated. */
-  updateTripFile(tripId: number, fileId: number, input: Record<string, unknown>): unknown;
   /** Move a trip file to the trash; broadcasts file:deleted. */
-  softDeleteTripFile(tripId: number, fileId: number): unknown;
   // --- Collab reads (membership + collab addon; no separate right, like the REST GETs) ---
   listCollabNotes(tripId: number): unknown[];
   listCollabPolls(tripId: number): unknown[];
@@ -315,58 +306,7 @@ export class PluginRpcHost {
       // The trip's member roster (ids + display fields only), membership-checked.
       this.methods.set('trips.members', (p, uid) => this.tripRead(p, uid, () => deps.tripMembers(num(p.tripId, 'tripId'))));
     }
-    if (has('db:read:files')) {
-      // Trip files, trash excluded — same view the files tab shows.
-      this.methods.set('files.list', (p, uid) =>
-        this.tripRead(p, uid, () => deps.listTripFiles(num(p.tripId, 'tripId'))),
-      );
-    }
-    if (has('db:read:files:content')) {
-      // Reading a file's BYTES is a step up from its metadata (a passport scan is
-      // more sensitive than its filename), so it's a separate grant. Membership-
-      // checked like files.list; the wiring caps the size before base64-ing it
-      // through the IPC pipe.
-      this.methods.set('files.getContent', (p, uid) =>
-        this.tripRead(p, uid, () => deps.getTripFileContent(num(p.tripId, 'tripId'), num(p.fileId, 'fileId'))),
-      );
-    }
-    if (has('db:write:files')) {
-      // Files write, under the app's separate file_upload / file_edit / file_delete
-      // rights. A created file arrives as bounded base64 (10MB decoded cap — well
-      // under the app's 50MB upload limit); the wiring validates the extension
-      // against the central blocklist before anything touches disk.
-      this.methods.set('files.create', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const actor = this.requireActor(uid, 'file');
-        const input = asPayload(p.input);
-        if (typeof input.name !== 'string' || input.name.trim() === '' || input.name.length > 255) throw new BadParams('file name is required (max 255 chars)');
-        if (typeof input.content_base64 !== 'string' || input.content_base64 === '') throw new BadParams('content_base64 is required');
-        if (input.content_base64.length > 14 * 1024 * 1024) throw new BadParams('file exceeds the 10MB plugin upload cap');
-        this.requireTripEdit(tripId, actor, deps.canUploadFiles);
-        return deps.createTripFile(tripId, input, actor);
-      });
-      this.methods.set('files.createLink', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const fileId = num(p.fileId, 'fileId');
-        const actor = this.requireActor(uid, 'file link');
-        this.requireTripEdit(tripId, actor, deps.canEditFiles);
-        return deps.createTripFileLink(tripId, fileId, asPayload(p.opts));
-      });
-      this.methods.set('files.update', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const fileId = num(p.fileId, 'fileId');
-        const actor = this.requireActor(uid, 'file');
-        this.requireTripEdit(tripId, actor, deps.canEditFiles);
-        return deps.updateTripFile(tripId, fileId, asPayload(p.input));
-      });
-      this.methods.set('files.softDelete', (p, uid) => {
-        const tripId = num(p.tripId, 'tripId');
-        const fileId = num(p.fileId, 'fileId');
-        const actor = this.requireActor(uid, 'file');
-        this.requireTripEdit(tripId, actor, deps.canDeleteFiles);
-        return deps.softDeleteTripFile(tripId, fileId);
-      });
-    }
+    // files.* now lives in src/nest/files/files.rpc.ts.
     if (has('db:write:collab')) {
       // Collab content (notes/polls/messages) under the app's collab_edit right.
       this.methods.set('collab.createNote', (p, uid) => {

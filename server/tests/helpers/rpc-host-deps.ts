@@ -7,6 +7,7 @@ import { ExchangeRatesRpc } from '../../src/nest/budget/exchange-rates.rpc';
 import { TodoRpc } from '../../src/nest/todo/todo.rpc';
 import { DayNotesRpc } from '../../src/nest/days/day-notes.rpc';
 import { PackingRpc } from '../../src/nest/packing/packing.rpc';
+import { FilesRpc } from '../../src/nest/files/files.rpc';
 
 /**
  * The stubbed HostDeps every plugin router test builds on. It used to live inside
@@ -188,5 +189,6 @@ export function allRpcControllers(): object[] {
     new TodoRpc(anyService(), anyService(), anyService()),
     new DayNotesRpc(anyService(), anyService(), anyService()),
     new PackingRpc(anyService(), anyService(), anyService()),
+    new FilesRpc(anyService(), anyService(), anyService(), anyService()),
   ];
 }

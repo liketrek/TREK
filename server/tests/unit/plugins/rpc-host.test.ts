@@ -277,7 +277,7 @@ describe('PluginRpcHost — capability enforcement', () => {
     }
   });
 
-  it('wave-13 reads: collab / journal.getEntries / atlas.bucketList / files.getContent / rates / trips.create gated correctly', async () => {
+  it('wave-13 reads: collab / journal.getEntries / atlas.bucketList / trips.create gated correctly', async () => {
     // collab reads: membership-checked, need db:read:collab
     const collab = new PluginRpcHost('p', new Set(['db:read:collab']), deps);
     expect(ok(await collab.dispatch(req('collab.listNotes', { tripId: 1 }), 42))).toBe(true);
@@ -291,13 +291,6 @@ describe('PluginRpcHost — capability enforcement', () => {
     const atlas = new PluginRpcHost('p', new Set(['db:read:atlas']), deps);
     expect(ok(await atlas.dispatch(req('atlas.bucketList'), 42))).toBe(true);
     expect((await atlas.dispatch(req('atlas.bucketList'), undefined)).ok).toBe(false);
-    // files.getContent: separate grant from files.list, membership-checked
-    const files = new PluginRpcHost('p', new Set(['db:read:files:content']), deps);
-    expect(ok(await files.dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42))).toBe(true);
-    expect((await files.dispatch(req('files.getContent', { tripId: 2, fileId: 2 }), 42)).ok).toBe(false);
-    // reading content is NOT unlocked by plain db:read:files
-    const filesList = new PluginRpcHost('p', new Set(['db:read:files']), deps);
-    expect((await filesList.dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42) as RpcError).error.code).toBe('PERMISSION_DENIED');
     // trips.create: needs db:create:trips + the acting user's trip_create + a bound user
     const create = new PluginRpcHost('p', new Set(['db:create:trips']), deps);
     expect(ok(await create.dispatch(req('trips.create', { input: { title: 'Japan' } }), 42))).toBe(true);
@@ -366,25 +359,7 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((await noGrant.dispatch(req('collections.create', { input: { name: 'x' } }), 42)).ok).toBe(false);
   });
 
-  it('files.create validates name/content/size and is gated by file_upload', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:write:files']), deps);
-    const good = await host.dispatch(req('files.create', { tripId: 1, input: { name: 'itinerary.pdf', content_base64: 'aGk=' } }), 42);
-    expect(ok(good)).toBe(true);
-    expect(deps.createTripFile).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'itinerary.pdf' }), 42);
-    expect((await host.dispatch(req('files.create', { tripId: 1, input: { name: '', content_base64: 'aGk=' } }), 42)).ok).toBe(false);
-    expect((await host.dispatch(req('files.create', { tripId: 1, input: { name: 'a.pdf' } }), 42)).ok).toBe(false); // no content
-    expect(((await host.dispatch(req('files.create', { tripId: 2, input: { name: 'a.pdf', content_base64: 'aGk=' } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await host.dispatch(req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: 'aGk=' } }), undefined)).ok).toBe(false);
-  });
-
-  it('files link/update/softDelete run under file_edit / file_delete', async () => {
-    const host = new PluginRpcHost('p', new Set(['db:write:files']), deps);
-    expect(ok(await host.dispatch(req('files.createLink', { tripId: 1, fileId: 130, opts: { place_id: 7 } }), 42))).toBe(true);
-    expect(ok(await host.dispatch(req('files.update', { tripId: 1, fileId: 130, input: { description: 'x' } }), 42))).toBe(true);
-    expect(ok(await host.dispatch(req('files.softDelete', { tripId: 1, fileId: 130 }), 42))).toBe(true);
-    expect(deps.canDeleteFiles).toHaveBeenCalled();
-  });
-
+  // The files cases moved to tests/unit/files/files.rpc.test.ts with the handlers.
   it('collab writes are gated by collab_edit and validate their inputs', async () => {
     const host = new PluginRpcHost('p', new Set(['db:write:collab']), deps);
     expect(ok(await host.dispatch(req('collab.createNote', { tripId: 1, input: { title: 'Ideas' } }), 42))).toBe(true);

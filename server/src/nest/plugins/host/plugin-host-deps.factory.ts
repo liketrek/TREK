@@ -196,82 +196,12 @@ export class PluginHostDepsFactory {
       },
       // --- Read scopes (packing/files). Membership is checked by the host (tripRead);
       // these just delegate to the same services the REST paths use. ---
-      listTripFiles: (tripId) => this.files.listFiles(tripId, false),
       // A file's bytes as base64, size-capped BEFORE the read so a 500MB video can't
       // be pulled (~667MB base64) through the IPC pipe. 10MB matches the plugin upload
       // cap; trashed files (deleted_at set) are refused like the download path.
-      getTripFileContent: async (tripId, fileId) => {
-        const CONTENT_MAX = 10 * 1024 * 1024;
-        const file = this.files.getFileById(fileId, tripId) as { filename: string; original_name: string; mime_type: string | null; file_size: number | null; deleted_at: string | null } | undefined;
-        if (!file || file.deleted_at) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
-        if ((file.file_size ?? 0) > CONTENT_MAX) throw new BadParams(`file too large to read (>${CONTENT_MAX} bytes); use the download UI`);
-        const { resolved, safe } = this.files.resolveFilePath(file.filename);
-        if (!safe) throw new ForbiddenResource('file path is not accessible');
-        // Read off the event loop — a 10MB read + base64 on the host thread would
-        // otherwise stall every other plugin RPC and request for its duration.
-        const buf = await fsMod.promises.readFile(resolved);
-        if (buf.length > CONTENT_MAX) throw new BadParams('file too large to read');
-        return { name: file.original_name, mimetype: file.mime_type ?? 'application/octet-stream', size: buf.length, content_base64: buf.toString('base64') };
-      },
       // --- Files write. Bytes arrive as bounded base64; the extension is validated
       // against the central blocklist BEFORE anything touches disk, and link targets
       // must live on the same trip (findForeignLinkTarget). Same events as the app. ---
-      canUploadFiles: (tripId, userId) => this.canEditTripAs('file_upload', tripId, userId),
-      canEditFiles: (tripId, userId) => this.canEditTripAs('file_edit', tripId, userId),
-      canDeleteFiles: (tripId, userId) => this.canEditTripAs('file_delete', tripId, userId),
-      createTripFile: (tripId, input, actingUserId) => {
-        // Mirror the REST upload guard (files.controller): a demo user must not write
-        // bytes to the shared demo instance, even through a plugin's db:write:files.
-        // Only resolve the email when demo mode is actually on — keeps the hot path
-        // (and the schema surface) untouched for self-hosted installs.
-        if (readEnv().demo.enabled) {
-          const uploader = this.db.prepare('SELECT email FROM users WHERE id = ?').get(actingUserId) as { email?: string } | undefined;
-          if (isDemoEmail(uploader?.email)) throw new ForbiddenResource('Uploads are disabled in demo mode.');
-        }
-        const i = input as { name: string; content_base64: string; mimetype?: string; description?: string; place_id?: number; reservation_id?: number };
-        const original = pathMod.basename(i.name);
-        const ext = pathMod.extname(original).toLowerCase();
-        if (!ext || BLOCKED_EXTENSIONS.includes(ext)) throw new BadParams(`file extension '${ext || '(none)'}' is not allowed`);
-        const buf = Buffer.from(i.content_base64, 'base64');
-        if (buf.length === 0) throw new BadParams('file content is empty');
-        if (buf.length > 10 * 1024 * 1024) throw new BadParams('file exceeds the 10MB plugin upload cap');
-        const foreign = this.files.findForeignLinkTarget(tripId, { reservation_id: i.reservation_id ?? null, place_id: i.place_id ?? null });
-        if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
-        const filename = `${randomUUID()}${ext}`;
-        fsMod.mkdirSync(filesDir, { recursive: true });
-        fsMod.writeFileSync(pathMod.join(filesDir, filename), buf);
-        const file = this.files.createFile(
-          tripId,
-          { filename, originalname: original, size: buf.length, mimetype: i.mimetype || 'application/octet-stream' },
-          actingUserId,
-          { place_id: i.place_id != null ? String(i.place_id) : null, reservation_id: i.reservation_id != null ? String(i.reservation_id) : null, description: i.description ?? null },
-        );
-        this.realtime.broadcast(tripId, 'file:created', { file }, undefined);
-        return file;
-      },
-      createTripFileLink: (tripId, fileId, opts) => {
-        if (!this.files.getFileById(fileId, tripId)) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
-        const o = opts as { reservation_id?: number; assignment_id?: number; place_id?: number };
-        const foreign = this.files.findForeignLinkTarget(tripId, o);
-        if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
-        return this.files.createFileLink(fileId, { reservation_id: o.reservation_id != null ? String(o.reservation_id) : null, assignment_id: o.assignment_id != null ? String(o.assignment_id) : null, place_id: o.place_id != null ? String(o.place_id) : null });
-      },
-      updateTripFile: (tripId, fileId, input) => {
-        const current = this.files.getFileById(fileId, tripId);
-        if (!current) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
-        const i = input as { description?: string; place_id?: number | null; reservation_id?: number | null };
-        const foreign = this.files.findForeignLinkTarget(tripId, { reservation_id: i.reservation_id ?? null, place_id: i.place_id ?? null });
-        if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
-        const file = this.files.updateFile(fileId, current, { description: i.description, place_id: i.place_id != null ? String(i.place_id) : i.place_id === null ? null : undefined, reservation_id: i.reservation_id != null ? String(i.reservation_id) : i.reservation_id === null ? null : undefined });
-        this.realtime.broadcast(tripId, 'file:updated', { file }, undefined);
-        return file;
-      },
-      softDeleteTripFile: (tripId, fileId) => {
-        if (!this.files.getFileById(fileId, tripId)) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
-        this.files.softDeleteFile(fileId);
-        this.realtime.broadcast(tripId, 'file:deleted', { fileId }, undefined);
-        return { deleted: true };
-      },
       // --- Collab reads (collab addon; membership checked by the host). Same hydrated
       // shapes as the REST GETs, so a collab plugin can finally read what it writes. ---
       listCollabNotes: (tripId) => { requireAddon(ADDON_IDS.COLLAB, 'collab'); return this.collab.listNotes(tripId) as unknown[]; },

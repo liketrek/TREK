@@ -626,7 +626,7 @@ describe('host-deps factory — reservations, day notes, cross-trip + addon read
     expect(r.result).toHaveLength(1);
   });
 
-  it('wave-13 wiring: collab reads, journal entries, atlas bucket, file content and trip create delegate correctly', async () => {
+  it('wave-13 wiring: collab reads, journal entries, atlas bucket and trip create delegate correctly', async () => {
     // collab reads delegate to collabService and require the collab addon
     const collab = host('db:read:collab');
     expect((await call(collab, 'collab.listNotes', { tripId: 1 })).result).toEqual([{ id: 1, trip_id: 1, title: 'Note' }]);
@@ -640,14 +640,6 @@ describe('host-deps factory — reservations, day notes, cross-trip + addon read
     // atlas.bucketList
     const atlas = host('db:read:atlas');
     expect((await call(atlas, 'atlas.bucketList', {})).result).toEqual([{ id: 5, user_id: 5, name: 'Kyoto' }]);
-    // files.getContent: size-capped (file 500 = 400MB -> BAD_PARAMS), 404 refused
-    fs.mkdirSync(testFilesDir, { recursive: true });
-    fs.writeFileSync(`${testFilesDir}/visa.pdf`, 'hi');
-    const files = host('db:read:files:content');
-    const content = await call(files, 'files.getContent', { tripId: 1, fileId: 2 });
-    expect(content.result).toMatchObject({ name: 'visa.pdf', mimetype: 'application/pdf', content_base64: Buffer.from('hi').toString('base64') });
-    expect((await call(files, 'files.getContent', { tripId: 1, fileId: 500 })).error.code).toBe('BAD_PARAMS');
-    expect((await call(files, 'files.getContent', { tripId: 1, fileId: 404 })).error.code).toBe('RESOURCE_FORBIDDEN');
     // trips.create: owner = acting user, delegates to createTrip; validation error mapped
     const create = host('db:create:trips');
     expect((await call(create, 'trips.create', { input: { title: 'Japan' } })).result).toMatchObject({ id: 99, user_id: 5, title: 'Japan' });
@@ -795,44 +787,8 @@ describe('host-deps factory — Wave 3 wiring (files write / collab / member-add
   beforeEach(() => { checkPermission.mockReset(); checkPermission.mockReturnValue(true); isAddonEnabled.mockReset(); isAddonEnabled.mockReturnValue(true); broadcast.mockClear() })
   afterAll(() => closePluginDataDb('w3'))
 
-  it('files.create writes bytes, blocks bad extensions + foreign targets, broadcasts file:created', async () => {
-    const h = host('db:write:files')
-    const good = await call(h, 'files.create', { tripId: 1, input: { name: 'plan.pdf', content_base64: Buffer.from('hello').toString('base64') } })
-    expect(good.ok).toBe(true)
-    expect(broadcast.mock.calls.some((c) => c[1] === 'file:created')).toBe(true)
-    expect(((await call(h, 'files.create', { tripId: 1, input: { name: 'evil.exe', content_base64: 'aGk=' } })) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
-    expect(((await call(h, 'files.create', { tripId: 1, input: { name: 'noext', content_base64: 'aGk=' } })) as { error: { code: string } }).error.code).toBe('BAD_PARAMS')
-    expect(((await call(h, 'files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: 'aGk=', reservation_id: 999 } })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-  })
-
-  it('files.create blocks a demo user while DEMO_MODE is on, but not other members', async () => {
-    const prev = process.env.DEMO_MODE
-    process.env.DEMO_MODE = 'true'
-    try {
-      const h = host('db:write:files')
-      // user 77 is the demo account (demo@trek.app) → the plugin upload is refused
-      const denied = await call(h, 'files.create', { tripId: 1, input: { name: 'demo.pdf', content_base64: Buffer.from('x').toString('base64') } }, 77)
-      expect((denied as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-      // a normal member (user 5, no demo email) is unaffected
-      const ok = await call(h, 'files.create', { tripId: 1, input: { name: 'ok.pdf', content_base64: Buffer.from('x').toString('base64') } }, 5)
-      expect(ok.ok).toBe(true)
-    } finally {
-      if (prev === undefined) delete process.env.DEMO_MODE; else process.env.DEMO_MODE = prev
-    }
-  })
-
-  it('files link/update/softDelete verify the file is on the trip + same-trip targets', async () => {
-    const h = host('db:write:files')
-    expect((await call(h, 'files.createLink', { tripId: 1, fileId: 130, opts: { place_id: 7 } })).ok).toBe(true)
-    expect(((await call(h, 'files.createLink', { tripId: 1, fileId: 404, opts: {} })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-    expect(((await call(h, 'files.createLink', { tripId: 1, fileId: 130, opts: { place_id: 999 } })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-    expect((await call(h, 'files.update', { tripId: 1, fileId: 130, input: { description: 'new' } })).ok).toBe(true)
-    expect(broadcast.mock.calls.some((c) => c[1] === 'file:updated')).toBe(true)
-    expect((await call(h, 'files.softDelete', { tripId: 1, fileId: 130 })).ok).toBe(true)
-    expect(broadcast.mock.calls.some((c) => c[1] === 'file:deleted')).toBe(true)
-    expect(((await call(h, 'files.softDelete', { tripId: 1, fileId: 404 })) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-  })
-
+  // The files write deps left this factory with the decorator migration; the cases
+  // now run in tests/unit/files/files.rpc.test.ts against FilesRpc.
   it('collab writes delegate + broadcast; service errors map to BAD_PARAMS; addon gated', async () => {
     const h = host('db:write:collab')
     expect((await call(h, 'collab.createNote', { tripId: 1, input: { title: 'Ideas' } })).ok).toBe(true)
