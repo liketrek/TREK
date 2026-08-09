@@ -9,6 +9,7 @@ import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { AdminController } from '../../../src/nest/admin/admin.controller';
 import type { TokenService } from '../../../src/nest/tokens/token.service';
 import type { RegistrationInvitesService } from '../../../src/nest/auth/registration-invites.service';
+import type { OauthService } from '../../../src/nest/oauth/oauth.service';
 import type { AdminService } from '../../../src/nest/admin/admin.service';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
@@ -46,8 +47,8 @@ const addonsStub = () => ({
 
 // The MCP-token routes read TokenService now, not AdminService. Stubbed via a
 // fourth, optional argument so every existing call site stays as it was.
-const adminCtl = (s: AdminService, rt?: PluginRuntimeService, addons: AddonsService = addonsStub(), tokens: Partial<TokenService> = {}, invites: Partial<RegistrationInvitesService> = {}) =>
-  new AdminController(s, addons, rt as unknown as PluginRuntimeService, audit, notifications, tokens as TokenService, invites as RegistrationInvitesService);
+const adminCtl = (s: AdminService, rt?: PluginRuntimeService, addons: AddonsService = addonsStub(), tokens: Partial<TokenService> = {}, invites: Partial<RegistrationInvitesService> = {}, oauth: Partial<OauthService> = {}) =>
+  new AdminController(s, addons, rt as unknown as PluginRuntimeService, audit, notifications, tokens as TokenService, invites as RegistrationInvitesService, oauth as OauthService);
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try { fn(); } catch (err) {
     if (err instanceof NotFoundException) return { status: 404, body: err.getResponse() };
@@ -133,7 +134,7 @@ describe('AdminController addons + sessions + jwt + defaults', () => {
   });
 
   it('oauth-sessions revoke audits; rotate-jwt maps error', () => {
-    expect(adminCtl(svc({ revokeOAuthSession: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).revokeOAuthSession(user, '3', req)).toEqual({ success: true });
+    expect(adminCtl(svc(), undefined, undefined, {}, {}, { adminRevokeOAuthSession: vi.fn().mockReturnValue({}) }).revokeOAuthSession(user, '3', req)).toEqual({ success: true });
     expect(thrown(() => adminCtl(svc({ rotateJwtSecret: vi.fn().mockReturnValue({ error: 'locked', status: 409 }) } as Partial<AdminService>)).rotateJwtSecret(user, req))).toEqual({ status: 409, body: { error: 'locked' } });
     expect(adminCtl(svc({ rotateJwtSecret: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).rotateJwtSecret(user, req)).toEqual({ success: true });
   });
@@ -158,7 +159,7 @@ describe('AdminController read-only getters', () => {
     expect(adminCtl(svc(), undefined, undefined, {}, { listInvites: vi.fn().mockReturnValue([{ id: 1 }]) }).listInvites()).toEqual({ invites: [{ id: 1 }] });
     expect(adminCtl(svc({ listAddons: vi.fn().mockReturnValue([{ id: 'mcp' }]) } as Partial<AdminService>)).listAddons()).toEqual({ addons: [{ id: 'mcp' }] });
     expect(adminCtl(svc(), undefined, undefined, { listAllMcpTokens: vi.fn().mockReturnValue([{ id: 1 }]) }).listMcpTokens()).toEqual({ tokens: [{ id: 1 }] });
-    expect(adminCtl(svc({ listOAuthSessions: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listOAuthSessions()).toEqual({ sessions: [{ id: 1 }] });
+    expect(adminCtl(svc(), undefined, undefined, {}, {}, { listAllOAuthSessions: vi.fn().mockReturnValue([{ id: 1 }]) }).listOAuthSessions()).toEqual({ sessions: [{ id: 1 }] });
   });
 
 
@@ -178,7 +179,7 @@ describe('AdminController tokens + sessions', () => {
   it('mcp token + oauth session deletes return success and map errors', () => {
     expect(adminCtl(svc(), undefined, undefined, { adminDeleteMcpToken: vi.fn().mockReturnValue({}) }).deleteMcpToken('2')).toEqual({ success: true });
     expect(thrown(() => adminCtl(svc(), undefined, undefined, { adminDeleteMcpToken: vi.fn().mockReturnValue({ error: 'no token', status: 404 }) }).deleteMcpToken('9'))).toEqual({ status: 404, body: { error: 'no token' } });
-    expect(thrown(() => adminCtl(svc({ revokeOAuthSession: vi.fn().mockReturnValue({ error: 'no session', status: 404 }) } as Partial<AdminService>)).revokeOAuthSession(user, '9', req))).toEqual({ status: 404, body: { error: 'no session' } });
+    expect(thrown(() => adminCtl(svc(), undefined, undefined, {}, {}, { adminRevokeOAuthSession: vi.fn().mockReturnValue({ error: 'no session', status: 404 }) }).revokeOAuthSession(user, '9', req))).toEqual({ status: 404, body: { error: 'no session' } });
   });
 });
 

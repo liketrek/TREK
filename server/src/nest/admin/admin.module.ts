@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TokensModule } from '../tokens/tokens.module';
+import { OauthModule } from '../oauth/oauth.module';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { PluginsRuntimeModule } from '../plugins/plugins-runtime.module';
@@ -19,7 +20,7 @@ import { PackingModule } from '../packing/packing.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 
 @Module({
-  imports: [PluginsRuntimeModule, SettingsModule, AuditModule, AddonsModule, AuthModule, NotificationsModule, PackingModule, PermissionsModule, TokensModule],
+  imports: [PluginsRuntimeModule, SettingsModule, AuditModule, AddonsModule, AuthModule, NotificationsModule, PackingModule, PermissionsModule, TokensModule, OauthModule],
   controllers: [AdminController],
   providers: [AdminService],
 })

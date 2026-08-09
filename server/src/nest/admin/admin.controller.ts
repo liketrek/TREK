@@ -4,6 +4,7 @@ import { readEnv } from '../../app-config';
 import { AdminService } from './admin.service';
 import { TokenService } from '../tokens/token.service';
 import { RegistrationInvitesService } from '../auth/registration-invites.service';
+import { OauthService } from '../oauth/oauth.service';
 import {
   AdminUserCreateDto,
   AdminUserUpdateDto,
@@ -65,6 +66,7 @@ export class AdminController {
     private readonly notifications: NotificationsService,
     private readonly tokens: TokenService,
     private readonly invites: RegistrationInvitesService,
+    private readonly oauth: OauthService,
   ) {}
 
   // ── Users ──
@@ -257,11 +259,11 @@ export class AdminController {
   }
 
   @Get('oauth-sessions')
-  listOAuthSessions() { return { sessions: this.admin.listOAuthSessions() }; }
+  listOAuthSessions() { return { sessions: this.oauth.listAllOAuthSessions() }; }
 
   @Delete('oauth-sessions/:id')
   revokeOAuthSession(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    ok(this.admin.revokeOAuthSession(id));
+    ok(this.oauth.adminRevokeOAuthSession(id));
     this.audit.writeAudit({ userId: user.id, action: 'admin.oauth_session_revoke', resource: String(id), ip: getClientIp(req) });
     return { success: true };
   }

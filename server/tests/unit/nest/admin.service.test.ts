@@ -515,17 +515,4 @@ describe('admin quirk fixes (post-fold)', () => {
   });
 
 
-  it('ADMIN-SVC-074 — listOAuthSessions survives a row with malformed scopes JSON', () => {
-    const { user } = createUser(testDb);
-    testDb.prepare("INSERT INTO oauth_clients (client_id, client_secret_hash, name) VALUES ('c1', 'hash', 'Client')").run();
-    testDb.prepare(`
-      INSERT INTO oauth_tokens (client_id, user_id, access_token_hash, refresh_token_hash, scopes,
-                                access_token_expires_at, refresh_token_expires_at)
-      VALUES ('c1', ?, 'ahash', 'rhash', 'not-json{', datetime('now', '+1 hour'), datetime('now', '+1 day'))
-    `).run(user.id);
-
-    const sessions = svc.listOAuthSessions() as any[];
-    expect(sessions).toHaveLength(1);
-    expect(sessions[0].scopes).toBeNull();
-  });
 });
