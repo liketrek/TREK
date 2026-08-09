@@ -2,6 +2,39 @@
  * Unit tests for tripService — exportICS function (TRIP-SVC-001 through TRIP-SVC-009).
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { createAccommodation } from '../../../src/services/dayService';
+import {
+  exportICS,
+  generateDays,
+  deleteOldCover,
+  updateTrip,
+  transferOwnership,
+  createGuest,
+  renameGuest,
+  deleteGuest,
+  listMembers,
+  addMember,
+  listGuestClaimCandidates,
+  consumeGuestClaimPrompt,
+  claimGuest,
+  GuestClaimError,
+} from '../../../src/services/tripService';
+import {
+  createUser,
+  createTrip,
+  createReservation,
+  createPlace,
+  createDay,
+  createDayAssignment,
+  createDayNote,
+  addTripMember,
+  createBudgetItem,
+} from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
+import fs from 'fs';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -30,14 +63,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote, addTripMember } from '../../helpers/factories';
-import { exportICS, generateDays, deleteOldCover, updateTrip, transferOwnership, createGuest, renameGuest, deleteGuest, listMembers, addMember } from '../../../src/services/tripService';
-import { createAccommodation } from '../../../src/services/dayService';
-import fs from 'fs';
-
 beforeAll(() => {
   createTables(testDb);
   runMigrations(testDb);
@@ -55,12 +80,18 @@ afterAll(() => {
 
 function getDays(tripId: number) {
   return testDb.prepare('SELECT * FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as {
-    id: number; trip_id: number; day_number: number; date: string | null;
+    id: number;
+    trip_id: number;
+    day_number: number;
+    date: string | null;
   }[];
 }
 
 function getAssignments(dayId: number) {
-  return testDb.prepare('SELECT * FROM day_assignments WHERE day_id = ?').all(dayId) as { id: number; day_id: number }[];
+  return testDb.prepare('SELECT * FROM day_assignments WHERE day_id = ?').all(dayId) as {
+    id: number;
+    day_id: number;
+  }[];
 }
 
 function getNotes(dayId: number) {
@@ -85,8 +116,12 @@ describe('generateDays', () => {
 
     const daysAfter = getDays(trip.id);
     expect(daysAfter).toHaveLength(5);
-    expect(daysAfter.map(d => d.date)).toEqual([
-      '2025-06-10', '2025-06-11', '2025-06-12', '2025-06-13', '2025-06-14',
+    expect(daysAfter.map((d) => d.date)).toEqual([
+      '2025-06-10',
+      '2025-06-11',
+      '2025-06-12',
+      '2025-06-13',
+      '2025-06-14',
     ]);
 
     // day_number 1 (formerly June 1) now has date June 10 — assignment still attached
@@ -113,7 +148,7 @@ describe('generateDays', () => {
 
     const daysAfter = getDays(trip.id);
     expect(daysAfter).toHaveLength(3);
-    expect(daysAfter.map(d => d.date)).toEqual(['2025-07-01', '2025-07-02', '2025-07-03']);
+    expect(daysAfter.map((d) => d.date)).toEqual(['2025-07-01', '2025-07-02', '2025-07-03']);
   });
 
   it('TRIP-SVC-016: shrinking range deletes empty overflow days (issue #909)', () => {
@@ -126,8 +161,12 @@ describe('generateDays', () => {
 
     const daysAfter = getDays(trip.id);
     expect(daysAfter).toHaveLength(5);
-    expect(daysAfter.map(d => d.date)).toEqual([
-      '2025-07-01', '2025-07-02', '2025-07-03', '2025-07-04', '2025-07-05',
+    expect(daysAfter.map((d) => d.date)).toEqual([
+      '2025-07-01',
+      '2025-07-02',
+      '2025-07-03',
+      '2025-07-04',
+      '2025-07-05',
     ]);
   });
 
@@ -145,8 +184,12 @@ describe('generateDays', () => {
 
     const daysAfter = getDays(trip.id);
     expect(daysAfter).toHaveLength(5);
-    expect(daysAfter.map(d => d.date)).toEqual([
-      '2025-08-01', '2025-08-02', '2025-08-03', '2025-08-04', '2025-08-05',
+    expect(daysAfter.map((d) => d.date)).toEqual([
+      '2025-08-01',
+      '2025-08-02',
+      '2025-08-03',
+      '2025-08-04',
+      '2025-08-05',
     ]);
 
     // Existing day 1 retains its assignment
@@ -172,10 +215,10 @@ describe('generateDays', () => {
 
     const daysAfter = getDays(trip.id);
     expect(daysAfter).toHaveLength(4);
-    expect(daysAfter.every(d => d.date === null)).toBe(true);
+    expect(daysAfter.every((d) => d.date === null)).toBe(true);
 
     // The assignment on the former day 2 still exists
-    const formerDay2 = daysAfter.find(d => d.id === daysBefore[1].id);
+    const formerDay2 = daysAfter.find((d) => d.id === daysBefore[1].id);
     expect(formerDay2).toBeDefined();
     expect(getAssignments(formerDay2!.id)).toHaveLength(1);
     expect(getAssignments(formerDay2!.id)[0].id).toBe(assignment.id);
@@ -195,8 +238,12 @@ describe('generateDays', () => {
 
     const daysAfter = getDays(trip.id);
     expect(daysAfter).toHaveLength(5);
-    expect(daysAfter.map(d => d.date)).toEqual([
-      '2025-10-03', '2025-10-04', '2025-10-05', '2025-10-06', '2025-10-07',
+    expect(daysAfter.map((d) => d.date)).toEqual([
+      '2025-10-03',
+      '2025-10-04',
+      '2025-10-05',
+      '2025-10-06',
+      '2025-10-07',
     ]);
 
     // All 5 assignments survive
@@ -231,8 +278,8 @@ describe('generateDays', () => {
     const daysAfter = getDays(trip.id);
     expect(daysAfter).toHaveLength(5);
 
-    const dated = daysAfter.filter(d => d.date !== null);
-    const dateless = daysAfter.filter(d => d.date === null);
+    const dated = daysAfter.filter((d) => d.date !== null);
+    const dateless = daysAfter.filter((d) => d.date === null);
     expect(dated).toHaveLength(4);
     expect(dateless).toHaveLength(1);
 
@@ -241,7 +288,7 @@ describe('generateDays', () => {
     expect(getAssignments(dateless[0].id)[0].id).toBe(assignment.id);
 
     // All day_numbers are unique 1..5
-    const nums = daysAfter.map(d => d.day_number).sort((a, b) => a - b);
+    const nums = daysAfter.map((d) => d.day_number).sort((a, b) => a - b);
     expect(nums).toEqual([1, 2, 3, 4, 5]);
   });
 
@@ -252,7 +299,7 @@ describe('generateDays', () => {
     generateDays(trip.id, null, null);
     const dateless = getDays(trip.id);
     expect(dateless).toHaveLength(7);
-    expect(dateless.every(d => d.date === null)).toBe(true);
+    expect(dateless.every((d) => d.date === null)).toBe(true);
 
     // Give the LAST dateless day real content so it must be preserved.
     const place = createPlace(testDb, trip.id);
@@ -263,9 +310,9 @@ describe('generateDays', () => {
     generateDays(trip.id, '2026-01-10', '2026-01-11');
 
     const daysAfter = getDays(trip.id);
-    const dated = daysAfter.filter(d => d.date !== null);
-    const stillDateless = daysAfter.filter(d => d.date === null);
-    expect(dated.map(d => d.date)).toEqual(['2026-01-10', '2026-01-11']);
+    const dated = daysAfter.filter((d) => d.date !== null);
+    const stillDateless = daysAfter.filter((d) => d.date === null);
+    expect(dated.map((d) => d.date)).toEqual(['2026-01-10', '2026-01-11']);
     // day_count is COUNT(*) FROM days: 2 dated + 1 content-bearing dateless = 3 (not the stale 7)
     expect(daysAfter).toHaveLength(3);
     expect(stillDateless).toHaveLength(1);
@@ -353,9 +400,7 @@ describe('exportICS', () => {
       title: 'Morning Flight',
       type: 'flight',
     });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
-      .run('2025-06-02T09:00', reservation.id);
+    testDb.prepare('UPDATE reservations SET reservation_time=? WHERE id=?').run('2025-06-02T09:00', reservation.id);
 
     const { ics } = exportICS(trip.id);
 
@@ -370,9 +415,7 @@ describe('exportICS', () => {
       title: 'Hotel Check-in',
       type: 'hotel',
     });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
-      .run('2025-06-02', reservation.id);
+    testDb.prepare('UPDATE reservations SET reservation_time=? WHERE id=?').run('2025-06-02', reservation.id);
 
     const { ics } = exportICS(trip.id);
 
@@ -386,18 +429,16 @@ describe('exportICS', () => {
       title: 'CDG to JFK',
       type: 'flight',
     });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
-      .run(
-        '2025-06-02T09:00',
-        JSON.stringify({
-          airline: 'Air Test',
-          flight_number: 'AT100',
-          departure_airport: 'CDG',
-          arrival_airport: 'JFK',
-        }),
-        reservation.id
-      );
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?').run(
+      '2025-06-02T09:00',
+      JSON.stringify({
+        airline: 'Air Test',
+        flight_number: 'AT100',
+        departure_airport: 'CDG',
+        arrival_airport: 'JFK',
+      }),
+      reservation.id,
+    );
 
     const { ics } = exportICS(trip.id);
 
@@ -451,12 +492,25 @@ describe('exportICS', () => {
       type: 'flight',
     });
     // Confirmed flights store times per endpoint, never as reservation_time.
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?')
+      .run(reservation.id);
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Europe/Paris', '09:00', '2025-06-02');
-    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'America/New_York', '12:00', '2025-06-02');
+    insertEp.run(
+      reservation.id,
+      'to',
+      1,
+      'New York JFK',
+      'JFK',
+      40.6,
+      -73.8,
+      'America/New_York',
+      '12:00',
+      '2025-06-02',
+    );
 
     const { ics } = exportICS(trip.id);
 
@@ -476,9 +530,11 @@ describe('exportICS', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Bad TZ Trip' });
     const reservation = createReservation(testDb, trip.id, { title: 'CDG → JFK', type: 'flight' });
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?')
+      .run(reservation.id);
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     // A stored/plugin-written timezone can be any string; it must never reach Intl.
     // The bogus zone takes precedence over the coordinates (first.timezone || resolveZone).
@@ -486,7 +542,9 @@ describe('exportICS', () => {
     insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'garbage', '12:00', '2025-06-02');
 
     let ics = '';
-    expect(() => { ics = exportICS(trip.id).ics; }).not.toThrow();
+    expect(() => {
+      ics = exportICS(trip.id).ics;
+    }).not.toThrow();
     // Falls back to a floating local time (no TZID) and never emits a bogus VTIMEZONE.
     expect(ics).toContain('DTSTART:20250602T090000');
     expect(ics).not.toContain('TZID=Not/AZone');
@@ -501,9 +559,11 @@ describe('exportICS', () => {
       type: 'flight',
     });
     testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(reservation.id);
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(reservation.id, 'from', 0, 'Origin', 'AAA', 1.0, 1.0, null, '09:00', null);
+    testDb
+      .prepare(
+        'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(reservation.id, 'from', 0, 'Origin', 'AAA', 1.0, 1.0, null, '09:00', null);
 
     const { ics } = exportICS(trip.id);
 
@@ -517,9 +577,7 @@ describe('exportICS', () => {
     // Tokyo coordinates → Asia/Tokyo via tz-lookup.
     const place = createPlace(testDb, trip.id, { name: 'Senso-ji', lat: 35.7148, lng: 139.7967 });
     const assignment = createDayAssignment(testDb, day.id, place.id);
-    testDb
-      .prepare('UPDATE day_assignments SET assignment_time=? WHERE id=?')
-      .run('09:00', assignment.id);
+    testDb.prepare('UPDATE day_assignments SET assignment_time=? WHERE id=?').run('09:00', assignment.id);
 
     const { ics } = exportICS(trip.id);
 
@@ -571,9 +629,13 @@ describe('resyncReservationDays (#1288)', () => {
   const dayFor = (tripId: number, date: string) =>
     (testDb.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ?').get(tripId, date) as { id: number }).id;
   const insertDatedReservation = (tripId: number, dayId: number, time: string) =>
-    Number(testDb.prepare(
-      "INSERT INTO reservations (trip_id, day_id, title, reservation_time, type, status) VALUES (?, ?, 'Dinner', ?, 'restaurant', 'pending')",
-    ).run(tripId, dayId, time).lastInsertRowid);
+    Number(
+      testDb
+        .prepare(
+          "INSERT INTO reservations (trip_id, day_id, title, reservation_time, type, status) VALUES (?, ?, 'Dinner', ?, 'restaurant', 'pending')",
+        )
+        .run(tripId, dayId, time).lastInsertRowid,
+    );
 
   it('TRIP-SVC-018: changing the start date re-anchors a dated reservation to the day matching its time', () => {
     const { user } = createUser(testDb);
@@ -605,25 +667,35 @@ describe('resyncAccommodationDays (#1288)', () => {
   const insertAccommodation = (tripId: number, startDayId: number, endDayId: number) => {
     const place = createPlace(testDb, tripId, { name: 'Grand Hotel' });
     const acc = createAccommodation(tripId, {
-      place_id: place.id, start_day_id: startDayId, end_day_id: endDayId,
+      place_id: place.id,
+      start_day_id: startDayId,
+      end_day_id: endDayId,
     }) as { id: number };
-    const linkedRes = testDb.prepare(
-      'SELECT id FROM reservations WHERE accommodation_id = ?',
-    ).get(acc.id) as { id: number };
+    const linkedRes = testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(acc.id) as {
+      id: number;
+    };
     return { accId: acc.id, linkedResId: linkedRes.id };
   };
 
   const getAcc = (id: number) =>
-    testDb.prepare('SELECT start_day_id, end_day_id FROM day_accommodations WHERE id = ?').get(id) as
-      { start_day_id: number; end_day_id: number };
+    testDb.prepare('SELECT start_day_id, end_day_id FROM day_accommodations WHERE id = ?').get(id) as {
+      start_day_id: number;
+      end_day_id: number;
+    };
   const getRes = (id: number) =>
-    testDb.prepare('SELECT day_id, reservation_time FROM reservations WHERE id = ?').get(id) as
-      { day_id: number | null; reservation_time: string | null };
+    testDb.prepare('SELECT day_id, reservation_time FROM reservations WHERE id = ?').get(id) as {
+      day_id: number | null;
+      reservation_time: string | null;
+    };
 
   it('TRIP-SVC-035: extending the start keeps an accommodation on its absolute dates', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2025-06-10', end_date: '2025-06-14' });
-    const { accId, linkedResId } = insertAccommodation(trip.id, dayFor(trip.id, '2025-06-11'), dayFor(trip.id, '2025-06-13'));
+    const { accId, linkedResId } = insertAccommodation(
+      trip.id,
+      dayFor(trip.id, '2025-06-11'),
+      dayFor(trip.id, '2025-06-13'),
+    );
     // Add a day at the start: days re-date positionally (old 06-11 row becomes 06-10, …).
     updateTrip(trip.id, user.id, { start_date: '2025-06-09', end_date: '2025-06-14' }, 'user');
     const acc = getAcc(accId);
@@ -654,14 +726,25 @@ describe('resyncAccommodationDays (#1288)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-05' });
     const origDayId = dayFor(trip.id, '2025-06-02');
-    const resId = Number(testDb.prepare(
-      "INSERT INTO reservations (trip_id, day_id, title, reservation_time, type, status) VALUES (?, ?, 'Dinner', '2025-06-02T19:00:00', 'restaurant', 'pending')",
-    ).run(trip.id, origDayId).lastInsertRowid);
+    const resId = Number(
+      testDb
+        .prepare(
+          "INSERT INTO reservations (trip_id, day_id, title, reservation_time, type, status) VALUES (?, ?, 'Dinner', '2025-06-02T19:00:00', 'restaurant', 'pending')",
+        )
+        .run(trip.id, origDayId).lastInsertRowid,
+    );
     const { accId } = insertAccommodation(trip.id, origDayId, dayFor(trip.id, '2025-06-03'));
-    updateTrip(trip.id, user.id, { start_date: '2025-06-03', end_date: '2025-06-07', date_shift_mode: 'shift_all' }, 'user');
+    updateTrip(
+      trip.id,
+      user.id,
+      { start_date: '2025-06-03', end_date: '2025-06-07', date_shift_mode: 'shift_all' },
+      'user',
+    );
     // The booking stays on its day row (now 2025-06-04) and its time follows.
-    const res = testDb.prepare('SELECT day_id, reservation_time FROM reservations WHERE id = ?').get(resId) as
-      { day_id: number; reservation_time: string };
+    const res = testDb.prepare('SELECT day_id, reservation_time FROM reservations WHERE id = ?').get(resId) as {
+      day_id: number;
+      reservation_time: string;
+    };
     expect(res.day_id).toBe(origDayId);
     expect(res.reservation_time).toBe('2025-06-04T19:00:00');
     // The accommodation stays glued to its (re-dated) day rows too.
@@ -672,9 +755,13 @@ describe('resyncAccommodationDays (#1288)', () => {
   it('TRIP-SVC-037: a dated hotel reservation without a linked accommodation is re-anchored like other bookings', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-05' });
-    const resId = Number(testDb.prepare(
-      "INSERT INTO reservations (trip_id, day_id, title, reservation_time, type, status) VALUES (?, ?, 'Imported hotel', ?, 'hotel', 'pending')",
-    ).run(trip.id, dayFor(trip.id, '2025-06-02'), '2025-06-02T15:00:00').lastInsertRowid);
+    const resId = Number(
+      testDb
+        .prepare(
+          "INSERT INTO reservations (trip_id, day_id, title, reservation_time, type, status) VALUES (?, ?, 'Imported hotel', ?, 'hotel', 'pending')",
+        )
+        .run(trip.id, dayFor(trip.id, '2025-06-02'), '2025-06-02T15:00:00').lastInsertRowid,
+    );
     updateTrip(trip.id, user.id, { start_date: '2025-06-02', end_date: '2025-06-06' }, 'user');
     const res = testDb.prepare('SELECT day_id FROM reservations WHERE id = ?').get(resId) as { day_id: number };
     expect(res.day_id).toBe(dayFor(trip.id, '2025-06-02'));
@@ -695,7 +782,9 @@ describe('transferOwnership (#973)', () => {
     expect(updated.user_id).toBe(member.id);
 
     // New owner no longer sits in trip_members, former owner now does.
-    const memberIds = (testDb.prepare('SELECT user_id FROM trip_members WHERE trip_id = ?').all(trip.id) as { user_id: number }[]).map(r => r.user_id);
+    const memberIds = (
+      testDb.prepare('SELECT user_id FROM trip_members WHERE trip_id = ?').all(trip.id) as { user_id: number }[]
+    ).map((r) => r.user_id);
     expect(memberIds).toContain(owner.id);
     expect(memberIds).not.toContain(member.id);
   });
@@ -732,7 +821,9 @@ describe('guest members (#1362)', () => {
     expect(member.username).toBe('Anna');
     expect(member.is_guest).toBe(true);
 
-    const row = testDb.prepare('SELECT username, email, password_hash, is_guest, role FROM users WHERE id = ?').get(member.id) as any;
+    const row = testDb
+      .prepare('SELECT username, email, password_hash, is_guest, role FROM users WHERE id = ?')
+      .get(member.id) as any;
     expect(row.is_guest).toBe(1);
     expect(row.password_hash).toBe('');
     expect(row.email).toMatch(/@guests\.invalid$/);
@@ -758,7 +849,9 @@ describe('guest members (#1362)', () => {
     expect(a.member.username).toBe('Sam');
     expect(b.member.username).toBe('Sam');
     expect(b.member.id).not.toBe(a.member.id);
-    const usernames = testDb.prepare('SELECT username FROM users WHERE id IN (?, ?)').all(a.member.id, b.member.id) as { username: string }[];
+    const usernames = testDb.prepare('SELECT username FROM users WHERE id IN (?, ?)').all(a.member.id, b.member.id) as {
+      username: string;
+    }[];
     expect(usernames[0].username).not.toBe(usernames[1].username);
   });
 
@@ -770,7 +863,9 @@ describe('guest members (#1362)', () => {
     const { member } = createGuest(trip.id, 'Bob', owner.id);
 
     expect(renameGuest(trip.id, member.id, 'Robert')).toBe(true);
-    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(member.id) as any).display_name).toBe('Robert');
+    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(member.id) as any).display_name).toBe(
+      'Robert',
+    );
 
     // A real user cannot be renamed through the guest path…
     expect(renameGuest(trip.id, owner.id, 'Hacked')).toBe(false);
@@ -800,5 +895,344 @@ describe('guest members (#1362)', () => {
     expect(() => addMember(trip.id, 'Dora', owner.id, owner.id)).toThrow('User not found');
     // Ownership can never be handed to a guest.
     expect(() => transferOwnership(trip.id, member.id, owner.id)).toThrow('Cannot transfer ownership to a guest');
+  });
+});
+
+describe('guest claims', () => {
+  function claimFixture() {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const guest = createGuest(trip.id, 'Anna', owner.id).member;
+    return { owner, member, trip, guest };
+  }
+
+  it('TRIP-SVC-041: migration suppresses legacy prompts while later account memberships remain eligible', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: legacyMember } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, legacyMember.id);
+    expect(
+      (
+        testDb
+          .prepare('SELECT guest_claim_prompted_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
+          .get(trip.id, legacyMember.id) as any
+      ).guest_claim_prompted_at,
+    ).toBeNull();
+
+    const version = (testDb.prepare('SELECT version FROM schema_version').get() as { version: number }).version;
+    testDb.prepare('UPDATE schema_version SET version = ?').run(version - 1);
+    runMigrations(testDb);
+    expect(
+      (
+        testDb
+          .prepare('SELECT guest_claim_prompted_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
+          .get(trip.id, legacyMember.id) as any
+      ).guest_claim_prompted_at,
+    ).not.toBeNull();
+
+    const { user: newMember } = createUser(testDb);
+    addTripMember(testDb, trip.id, newMember.id);
+    expect(
+      (
+        testDb
+          .prepare('SELECT guest_claim_prompted_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
+          .get(trip.id, newMember.id) as any
+      ).guest_claim_prompted_at,
+    ).toBeNull();
+    const guest = createGuest(trip.id, 'No prompt', owner.id).member;
+    expect(
+      (
+        testDb
+          .prepare('SELECT guest_claim_prompted_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
+          .get(trip.id, guest.id) as any
+      ).guest_claim_prompted_at,
+    ).not.toBeNull();
+  });
+
+  it('TRIP-SVC-035: consumes the first-entry prompt once, including when candidates are present', () => {
+    const { member, trip, guest } = claimFixture();
+
+    expect(consumeGuestClaimPrompt(trip.id, member.id)).toMatchObject({
+      prompted: true,
+      candidates: [{ guest_user_id: guest.id, name: 'Anna' }],
+    });
+    expect(consumeGuestClaimPrompt(trip.id, member.id)).toEqual({ prompted: false, candidates: [] });
+  });
+
+  it('TRIP-SVC-036: previews and atomically moves every core trip participation reference', () => {
+    const { owner, member, trip, guest } = claimFixture();
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const expense = createBudgetItem(testDb, trip.id, { total_price: 123.45 });
+    testDb
+      .prepare(
+        "UPDATE budget_items SET paid_by_user_id = ?, note = ?, persons = 7, currency = 'USD', exchange_rate = 1.25, exchange_rate_source = 'explicit' WHERE id = ?",
+      )
+      .run(
+        guest.id,
+        `TICKETJSON:${JSON.stringify({ items: [{ name: 'Museum', price: '123.45', parts: [guest.id] }] })}`,
+        expense.id,
+      );
+    testDb
+      .prepare('INSERT INTO budget_item_members (budget_item_id, user_id, amount) VALUES (?, ?, ?)')
+      .run(expense.id, guest.id, 123.45);
+    testDb
+      .prepare('INSERT INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)')
+      .run(expense.id, guest.id, 123.45);
+    testDb
+      .prepare('INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount) VALUES (?, ?, ?, ?)')
+      .run(trip.id, guest.id, owner.id, 10);
+    testDb
+      .prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)')
+      .run(assignment.id, guest.id);
+    testDb
+      .prepare('INSERT INTO todo_items (trip_id, name, assigned_user_id) VALUES (?, ?, ?)')
+      .run(trip.id, 'Book', guest.id);
+    testDb
+      .prepare('INSERT INTO todo_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)')
+      .run(trip.id, 'Prep', guest.id);
+    const bag = Number(
+      testDb
+        .prepare('INSERT INTO packing_bags (trip_id, name, user_id) VALUES (?, ?, ?)')
+        .run(trip.id, 'Case', guest.id).lastInsertRowid,
+    );
+    testDb.prepare('INSERT INTO packing_bag_members (bag_id, user_id) VALUES (?, ?)').run(bag, guest.id);
+    const item = Number(
+      testDb
+        .prepare('INSERT INTO packing_items (trip_id, name, category, owner_id) VALUES (?, ?, ?, ?)')
+        .run(trip.id, 'Passport', 'Docs', guest.id).lastInsertRowid,
+    );
+    testDb.prepare('INSERT INTO packing_item_recipients (item_id, user_id) VALUES (?, ?)').run(item, guest.id);
+    testDb.prepare('INSERT INTO packing_item_contributors (item_id, user_id) VALUES (?, ?)').run(item, guest.id);
+    testDb
+      .prepare('INSERT INTO packing_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)')
+      .run(trip.id, 'Docs', guest.id);
+    testDb
+      .prepare(
+        "INSERT OR REPLACE INTO plugins (id, name, permissions) VALUES ('claim-test', 'Claim test', '[\"hook:user-data\"]')",
+      )
+      .run();
+    testDb
+      .prepare("INSERT INTO plugin_user_config (plugin_id, user_id, config) VALUES ('claim-test', ?, '{}')")
+      .run(guest.id);
+
+    const preview = listGuestClaimCandidates(trip.id, member.id)[0];
+    expect(preview.impact).toEqual({ expenses: 1, payments: 1, itinerary: 1, todos: 2, packing: 3 });
+    expect(preview.conflicts).toEqual([]);
+
+    const result = claimGuest(trip.id, guest.id, member.id);
+    expect(result).toMatchObject({ success: true, claimed_guest_user_id: guest.id, impact: preview.impact });
+    expect(testDb.prepare('SELECT id FROM users WHERE id = ?').get(guest.id)).toBeUndefined();
+    for (const [table, column] of [
+      ['budget_item_members', 'user_id'],
+      ['budget_item_payers', 'user_id'],
+      ['assignment_participants', 'user_id'],
+      ['todo_category_assignees', 'user_id'],
+      ['packing_category_assignees', 'user_id'],
+      ['packing_bag_members', 'user_id'],
+      ['packing_item_recipients', 'user_id'],
+      ['packing_item_contributors', 'user_id'],
+    ]) {
+      expect(
+        (testDb.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE ${column} = ?`).get(member.id) as any).n,
+      ).toBeGreaterThan(0);
+    }
+    expect(
+      testDb.prepare('SELECT paid_by_user_id, note FROM budget_items WHERE id = ?').get(expense.id) as any,
+    ).toMatchObject({ paid_by_user_id: member.id });
+    expect(
+      (testDb.prepare('SELECT assigned_user_id FROM todo_items WHERE trip_id = ?').get(trip.id) as any)
+        .assigned_user_id,
+    ).toBe(member.id);
+    expect((testDb.prepare('SELECT owner_id FROM packing_items WHERE id = ?').get(item) as any).owner_id).toBe(
+      member.id,
+    );
+    expect(
+      JSON.parse((testDb.prepare('SELECT note FROM budget_items WHERE id = ?').get(expense.id) as any).note.slice(11))
+        .items[0].parts,
+    ).toEqual([member.id]);
+    expect(
+      testDb
+        .prepare(
+          'SELECT total_price, persons, currency, exchange_rate, exchange_rate_source FROM budget_items WHERE id = ?',
+        )
+        .get(expense.id),
+    ).toMatchObject({
+      total_price: 123.45,
+      persons: 7,
+      currency: 'USD',
+      exchange_rate: 1.25,
+      exchange_rate_source: 'explicit',
+    });
+    expect(
+      (
+        testDb
+          .prepare('SELECT amount FROM budget_item_members WHERE budget_item_id = ? AND user_id = ?')
+          .get(expense.id, member.id) as any
+      ).amount,
+    ).toBe(123.45);
+    expect(
+      testDb.prepare("SELECT 1 FROM plugin_user_config WHERE plugin_id = 'claim-test' AND user_id = ?").get(guest.id),
+    ).toBeUndefined();
+    expect(
+      testDb
+        .prepare(
+          "SELECT plugin_id, user_id FROM plugin_user_erasure_queue WHERE plugin_id = 'claim-test' AND user_id = ?",
+        )
+        .get(guest.id),
+    ).toEqual({ plugin_id: 'claim-test', user_id: guest.id });
+    expect(
+      (testDb.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'trip.guest_claim'").get() as any).n,
+    ).toBe(1);
+    testDb.prepare("DELETE FROM plugin_user_erasure_queue WHERE plugin_id = 'claim-test'").run();
+    testDb.prepare("DELETE FROM plugins WHERE id = 'claim-test'").run();
+  });
+
+  it('TRIP-SVC-037: deduplicates non-financial joins while preserving the account member row', () => {
+    const { member, trip, guest } = claimFixture();
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+    testDb
+      .prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)')
+      .run(assignment.id, member.id);
+    testDb
+      .prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)')
+      .run(assignment.id, guest.id);
+
+    claimGuest(trip.id, guest.id, member.id);
+    expect(
+      (
+        testDb
+          .prepare('SELECT COUNT(*) AS n FROM assignment_participants WHERE assignment_id = ? AND user_id = ?')
+          .get(assignment.id, member.id) as any
+      ).n,
+    ).toBe(1);
+  });
+
+  it.each([
+    [
+      'expense share',
+      (expense: any, guestId: number, memberId: number) => {
+        testDb
+          .prepare('INSERT INTO budget_item_members (budget_item_id, user_id) VALUES (?, ?), (?, ?)')
+          .run(expense.id, guestId, expense.id, memberId);
+      },
+      'expense_share_overlap',
+    ],
+    [
+      'payer',
+      (expense: any, guestId: number, memberId: number) => {
+        testDb
+          .prepare('INSERT INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, 50), (?, ?, 50)')
+          .run(expense.id, guestId, expense.id, memberId);
+      },
+      'expense_payer_overlap',
+    ],
+    [
+      'ticket participant',
+      (expense: any, guestId: number, memberId: number) => {
+        testDb
+          .prepare('INSERT INTO budget_item_members (budget_item_id, user_id) VALUES (?, ?)')
+          .run(expense.id, guestId);
+        testDb
+          .prepare('UPDATE budget_items SET note = ? WHERE id = ?')
+          .run(
+            `TICKETJSON:${JSON.stringify({ items: [{ name: 'x', price: '10', parts: [guestId, memberId] }] })}`,
+            expense.id,
+          );
+      },
+      'ticket_participant_overlap',
+    ],
+  ])('TRIP-SVC-038: rolls back a %s ambiguity', (_label, arrange, conflictType) => {
+    const { member, trip, guest } = claimFixture();
+    const expense = createBudgetItem(testDb, trip.id);
+    arrange(expense, guest.id, member.id);
+
+    expect(() => claimGuest(trip.id, guest.id, member.id)).toThrow(GuestClaimError);
+    try {
+      claimGuest(trip.id, guest.id, member.id);
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: 'GUEST_CLAIM_CONFLICT',
+        conflicts: [{ type: conflictType, record_id: expense.id }],
+      });
+    }
+    expect(testDb.prepare('SELECT id FROM users WHERE id = ?').get(guest.id)).toBeTruthy();
+  });
+
+  it('TRIP-SVC-039: blocks malformed ticket data and a settlement that would become self-payment', () => {
+    const { member, trip, guest } = claimFixture();
+    const expense = createBudgetItem(testDb, trip.id);
+    testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id) VALUES (?, ?)').run(expense.id, guest.id);
+    testDb.prepare("UPDATE budget_items SET note = 'TICKETJSON:{broken' WHERE id = ?").run(expense.id);
+    testDb
+      .prepare('INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount) VALUES (?, ?, ?, 5)')
+      .run(trip.id, guest.id, member.id);
+
+    const conflicts = listGuestClaimCandidates(trip.id, member.id)[0].conflicts;
+    expect(conflicts).toEqual(
+      expect.arrayContaining([
+        { type: 'invalid_ticket_json', record_id: expense.id },
+        expect.objectContaining({ type: 'settlement_self_payment' }),
+      ]),
+    );
+    expect(() => claimGuest(trip.id, guest.id, member.id)).toThrow(GuestClaimError);
+  });
+
+  it.each([
+    ['name', (guestId: number) => `TICKETJSON:{"items":[{"name":"Room ${guestId}"`],
+    ['price', (guestId: number) => `TICKETJSON:{"items":[{"price":"${guestId}"`],
+    ['different IDs', (guestId: number) => `TICKETJSON:{"items":[{"parts":[1${guestId},${guestId}0]`],
+  ])('TRIP-SVC-042: damaged ticket %s text is not identity evidence', (_label, noteFor) => {
+    const { member, trip, guest } = claimFixture();
+    const expense = createBudgetItem(testDb, trip.id);
+    testDb.prepare('UPDATE budget_items SET note = ? WHERE id = ?').run(noteFor(guest.id), expense.id);
+
+    expect(listGuestClaimCandidates(trip.id, member.id)[0].conflicts).not.toContainEqual({
+      type: 'invalid_ticket_json',
+      record_id: expense.id,
+    });
+  });
+
+  it.each(['share', 'payer', 'legacy payer'])(
+    'TRIP-SVC-043: damaged ticket with a Guest %s blocks and rolls back',
+    (kind) => {
+      const { member, trip, guest } = claimFixture();
+      const expense = createBudgetItem(testDb, trip.id);
+      testDb.prepare("UPDATE budget_items SET note = 'TICKETJSON:{broken' WHERE id = ?").run(expense.id);
+      if (kind === 'share') {
+        testDb
+          .prepare('INSERT INTO budget_item_members (budget_item_id, user_id) VALUES (?, ?)')
+          .run(expense.id, guest.id);
+      } else if (kind === 'payer') {
+        testDb
+          .prepare('INSERT INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, 10)')
+          .run(expense.id, guest.id);
+      } else {
+        testDb.prepare('UPDATE budget_items SET paid_by_user_id = ? WHERE id = ?').run(guest.id, expense.id);
+      }
+
+      expect(() => claimGuest(trip.id, guest.id, member.id)).toThrow(
+        expect.objectContaining({
+          conflicts: expect.arrayContaining([{ type: 'invalid_ticket_json', record_id: expense.id }]),
+        }),
+      );
+      expect(testDb.prepare('SELECT id FROM users WHERE id = ?').get(guest.id)).toBeTruthy();
+    },
+  );
+
+  it('TRIP-SVC-040: forbids owners and rejects a guest after another member claimed it', () => {
+    const { owner, member, trip, guest } = claimFixture();
+    expect(() => listGuestClaimCandidates(trip.id, owner.id)).toThrow(
+      expect.objectContaining({ code: 'GUEST_CLAIM_FORBIDDEN' }),
+    );
+    claimGuest(trip.id, guest.id, member.id);
+    expect(() => claimGuest(trip.id, guest.id, member.id)).toThrow(
+      expect.objectContaining({ code: 'GUEST_ALREADY_CLAIMED' }),
+    );
   });
 });

@@ -31,6 +31,17 @@ describe('remoteEventHandler > trip', () => {
     expect(places[0].id).toBe(55);
   });
 
+  it('FE-WSEVT-TRIP-006: guest:claimed rehydrates the active trip and requests a member refresh', () => {
+    const hydrateActiveTrip = vi.fn().mockResolvedValue(undefined);
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+    useTripStore.setState({ trip: buildTrip({ id: 17 }), hydrateActiveTrip });
+
+    useTripStore.getState().handleRemoteEvent({ type: 'guest:claimed', guestUserId: 7, claimedByUserId: 2 });
+
+    expect(hydrateActiveTrip).toHaveBeenCalledWith(17);
+    expect(dispatchSpy.mock.calls.some(([event]) => (event as Event).type === 'guest:claimed')).toBe(true);
+  });
+
   // A remote date-range change re-anchors bookings/accommodations server-side, so the
   // handler must pull authoritative days + reservations and nudge the planner (#1288).
   describe('date-range change refresh (#1288)', () => {

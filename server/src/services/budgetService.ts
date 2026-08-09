@@ -7,6 +7,7 @@ import {
   freezeRateForWrite,
   getGlobalRateSnapshot,
 } from './exchangeRateService';
+import { TICKET_NOTE_PREFIX, ticketPayloadSchema } from '@trek/shared';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -50,6 +51,56 @@ function knownUserIds(userIds: number[]): Set<number> {
     id: number;
   }[];
   return new Set(rows.map((r) => r.id));
+}
+
+export type BudgetTicketValidationReason = 'MALFORMED_TICKET_JSON' | 'TICKET_PARTICIPANT_NOT_MEMBER';
+
+export class BudgetTicketValidationError extends Error {
+  readonly code = 'INVALID_TICKET_DATA' as const;
+
+  constructor(public readonly reason: BudgetTicketValidationReason) {
+    super(reason);
+    this.name = 'BudgetTicketValidationError';
+  }
+}
+
+function ticketPayload(note: string) {
+  try {
+    return ticketPayloadSchema.safeParse(JSON.parse(note.slice(TICKET_NOTE_PREFIX.length)));
+  } catch {
+    return { success: false as const };
+  }
+}
+
+function tripParticipantIds(tripId: string | number): Set<number> {
+  const rows = db
+    .prepare(
+      `SELECT user_id FROM trips WHERE id = ?
+       UNION
+       SELECT user_id FROM trip_members WHERE trip_id = ?`,
+    )
+    .all(tripId, tripId) as Array<{ user_id: number }>;
+  return new Set(rows.map((row) => row.user_id));
+}
+
+function validateTicketIdentity(
+  tripId: string | number,
+  note: string | null | undefined,
+  effectiveMemberIds: number[],
+): void {
+  if (!note?.startsWith(TICKET_NOTE_PREFIX)) return;
+  const parsed = ticketPayload(note);
+  if (!parsed.success) throw new BudgetTicketValidationError('MALFORMED_TICKET_JSON');
+
+  const expenseMembers = new Set(effectiveMemberIds);
+  const tripMembers = tripParticipantIds(tripId);
+  for (const item of parsed.data.items) {
+    for (const participantId of item.parts) {
+      if (!expenseMembers.has(participantId) || !tripMembers.has(participantId)) {
+        throw new BudgetTicketValidationError('TICKET_PARTICIPANT_NOT_MEMBER');
+      }
+    }
+  }
 }
 
 /** Replace the payer rows of an item and keep total_price = sum of payer amounts. */
@@ -329,6 +380,13 @@ export function createBudgetItem(
     reservation_id?: number | null;
   },
 ) {
+  const knownMembers = data.members ? knownUserIds(data.members.map((m) => m.user_id)) : null;
+  const members = data.members && knownMembers ? data.members.filter((m) => knownMembers.has(m.user_id)) : undefined;
+  const knownIds = data.member_ids ? knownUserIds(data.member_ids) : null;
+  const memberIds = data.member_ids && knownIds ? data.member_ids.filter((uid) => knownIds.has(uid)) : undefined;
+  const effectiveMemberIds = members?.length ? members.map((member) => member.user_id) : (memberIds ?? []);
+  validateTicketIdentity(tripId, data.note, effectiveMemberIds);
+
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM budget_items WHERE trip_id = ?').get(tripId) as {
     max: number | null;
   };
@@ -357,10 +415,6 @@ export function createBudgetItem(
   const payerTotal = (data.payers || []).reduce((a, p) => a + (p.amount > 0 ? p.amount : 0), 0);
   const total = data.payers && data.payers.length > 0 ? payerTotal : data.total_price || 0;
 
-  const knownMembers = data.members ? knownUserIds(data.members.map((m) => m.user_id)) : null;
-  const members = data.members && knownMembers ? data.members.filter((m) => knownMembers.has(m.user_id)) : undefined;
-  const knownIds = data.member_ids ? knownUserIds(data.member_ids) : null;
-  const memberIds = data.member_ids && knownIds ? data.member_ids.filter((uid) => knownIds.has(uid)) : undefined;
   const tripCurrency =
     (db.prepare('SELECT currency FROM trips WHERE id = ?').get(tripId) as { currency?: string | null } | undefined)
       ?.currency || 'EUR';
@@ -467,8 +521,24 @@ export function updateBudgetItem(
     expense_date?: string | null;
   },
 ) {
-  const item = db.prepare('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?').get(id, tripId);
+  const item = db.prepare('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?').get(id, tripId) as
+    | BudgetItem
+    | undefined;
   if (!item) return null;
+
+  if (data.note !== undefined || data.members !== undefined || data.member_ids !== undefined) {
+    let effectiveMemberIds: number[];
+    if (data.members !== undefined) {
+      const known = knownUserIds(data.members.map((member) => member.user_id));
+      effectiveMemberIds = data.members.filter((member) => known.has(member.user_id)).map((member) => member.user_id);
+    } else if (data.member_ids !== undefined) {
+      const known = knownUserIds(data.member_ids);
+      effectiveMemberIds = data.member_ids.filter((userId) => known.has(userId));
+    } else {
+      effectiveMemberIds = loadItemMembers(id).map((member) => member.user_id);
+    }
+    validateTicketIdentity(tripId, data.note !== undefined ? data.note : item.note, effectiveMemberIds);
+  }
 
   db.prepare(
     `
@@ -612,8 +682,14 @@ export function deleteBudgetItem(id: string | number, tripId: string | number): 
 // ---------------------------------------------------------------------------
 
 export function updateMembers(id: string | number, tripId: string | number, userIds: number[]) {
-  const item = db.prepare('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?').get(id, tripId);
+  const item = db.prepare('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?').get(id, tripId) as
+    | BudgetItem
+    | undefined;
   if (!item) return null;
+
+  const known = knownUserIds(userIds);
+  const memberIds = userIds.filter((uid) => known.has(uid));
+  validateTicketIdentity(tripId, item.note, memberIds);
 
   const existingPaid: Record<number, number> = {};
   const existing = db.prepare('SELECT user_id, paid FROM budget_item_members WHERE budget_item_id = ?').all(id) as {
@@ -624,8 +700,6 @@ export function updateMembers(id: string | number, tripId: string | number, user
 
   db.prepare('DELETE FROM budget_item_members WHERE budget_item_id = ?').run(id);
 
-  const known = knownUserIds(userIds);
-  const memberIds = userIds.filter((uid) => known.has(uid));
   if (memberIds.length > 0) {
     const insert = db.prepare(
       'INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, ?)',

@@ -39,7 +39,14 @@ const { tripSvc } = vi.hoisted(() => ({
     listTrips: vi.fn(), createTrip: vi.fn(), getTrip: vi.fn(), updateTrip: vi.fn(), deleteTrip: vi.fn(),
     getTripRaw: vi.fn(), getTripOwner: vi.fn(), deleteOldCover: vi.fn(), updateCoverImage: vi.fn(),
     listMembers: vi.fn(), addMember: vi.fn(), removeMember: vi.fn(), exportICS: vi.fn(), copyTripById: vi.fn(),
-    verifyTripAccess: vi.fn(), NotFoundError: class NotFoundError extends Error {}, ValidationError: class ValidationError extends Error {}, TRIP_SELECT: 'SELECT',
+    listGuestClaimCandidates: vi.fn(), consumeGuestClaimPrompt: vi.fn(), claimGuest: vi.fn(),
+    verifyTripAccess: vi.fn(), NotFoundError: class NotFoundError extends Error {}, ValidationError: class ValidationError extends Error {},
+    GuestClaimError: class GuestClaimError extends Error {
+      constructor(public code: string, public conflicts: unknown[] = []) {
+        super(code);
+      }
+    },
+    TRIP_SELECT: 'SELECT',
   },
 }));
 vi.mock('../../src/services/tripService', () => tripSvc);
@@ -75,6 +82,9 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     tripSvc.createTrip.mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 });
     tripSvc.getTrip.mockImplementation((id: string) => (id === '9' ? { id: 9, user_id: 1 } : undefined));
     tripSvc.listMembers.mockReturnValue({ owner: { id: 1 }, members: [] });
+    tripSvc.consumeGuestClaimPrompt.mockReturnValue({ prompted: true, candidates: [{ guest_user_id: 7 }] });
+    tripSvc.listGuestClaimCandidates.mockReturnValue([{ guest_user_id: 7 }]);
+    tripSvc.claimGuest.mockReturnValue({ claimed_guest_user_id: 7 });
   });
 
   beforeEach(() => {
@@ -115,5 +125,41 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get('/api/trips/9/bundle').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ trip: { id: 9 }, days: [], members: [{ id: 1 }] });
+  });
+
+  it('exposes guest claim prompt, candidate, and session-bound claim endpoints', async () => {
+    const prompt = await request(server).post('/api/trips/9/guest-claims/prompt').set('Cookie', sessionCookie(1));
+    expect(prompt.status).toBe(201);
+    expect(prompt.body).toEqual({ prompted: true, candidates: [{ guest_user_id: 7 }] });
+    expect(tripSvc.consumeGuestClaimPrompt).toHaveBeenCalledWith('9', 1);
+
+    const candidates = await request(server).get('/api/trips/9/guest-claims/candidates').set('Cookie', sessionCookie(1));
+    expect(candidates.status).toBe(200);
+    expect(candidates.body).toEqual({ candidates: [{ guest_user_id: 7 }] });
+    expect(tripSvc.listGuestClaimCandidates).toHaveBeenCalledWith('9', 1);
+
+    const claim = await request(server)
+      .post('/api/trips/9/guests/7/claim')
+      .set('Cookie', sessionCookie(1))
+      .send({ targetUserId: 999 });
+    expect(claim.status).toBe(201);
+    expect(claim.body).toEqual({ claimed_guest_user_id: 7 });
+    expect(tripSvc.claimGuest).toHaveBeenCalledWith('9', 7, 1);
+  });
+
+  it('returns stable guest-claim conflict details', async () => {
+    tripSvc.claimGuest.mockImplementationOnce(() => {
+      throw new tripSvc.GuestClaimError('GUEST_CLAIM_CONFLICT', [
+        { type: 'expense_share_overlap', record_id: 44 },
+      ]);
+    });
+    const response = await request(server)
+      .post('/api/trips/9/guests/7/claim')
+      .set('Cookie', sessionCookie(1));
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({
+      code: 'GUEST_CLAIM_CONFLICT',
+      conflicts: [{ type: 'expense_share_overlap', record_id: 44 }],
+    });
   });
 });
