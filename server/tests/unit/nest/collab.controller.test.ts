@@ -40,14 +40,12 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('CollabController (parity with the legacy /api/trips/:tripId/collab route)', () => {
   describe('notes', () => {
-    it('GET 404 without access, else lists', () => {
-      expect(thrown(() => new CollabController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).listNotes(user, '5'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+    it('GET lists', () => {
       const s = svc({ listNotes: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<CollabService>);
       expect(new CollabController(s).listNotes(user, '5')).toEqual({ notes: [{ id: 1 }] });
     });
 
-    it('POST 403 without collab_edit, else creates + broadcasts + notifies (empty title now 400s in the Zod pipe)', () => {
-      expect(thrown(() => new CollabController(svc({ canEdit: vi.fn().mockReturnValue(false) })).createNote(user, '5', { title: 'T' }))).toEqual({ status: 403, body: { error: 'No permission' } });
+    it('POST creates + broadcasts + notifies (empty title now 400s in the Zod pipe)', () => {
       const createNote = vi.fn().mockReturnValue({ id: 9 });
       const broadcast = vi.fn();
       const notifyCollab = vi.fn();
@@ -154,8 +152,7 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
   });
 
   describe('link preview', () => {
-    it('404 without trip access, 400 without url, maps an error result to 400, else returns the preview', async () => {
-      expect(await thrownAsync(() => new CollabController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).linkPreview(user, '5', 'http://x'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+    it('400 without url, maps an error result to 400, else returns the preview', async () => {
       expect(await thrownAsync(() => new CollabController(svc()).linkPreview(user, '5', undefined))).toEqual({ status: 400, body: { error: 'URL is required' } });
       expect(await thrownAsync(() => new CollabController(svc({ linkPreview: vi.fn().mockResolvedValue({ error: 'bad url' }) } as Partial<CollabService>)).linkPreview(user, '5', 'http://x'))).toEqual({ status: 400, body: { error: 'bad url' } });
       const s = svc({ linkPreview: vi.fn().mockResolvedValue({ title: 'T', description: null, image: null, url: 'http://x' }) } as Partial<CollabService>);

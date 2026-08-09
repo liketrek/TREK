@@ -39,13 +39,10 @@ async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number
   throw new Error('expected the handler to throw');
 }
 
+/** The trip row TripAccessGuard resolves and @Trip() hands to the settlement route. */
+const tripRow = { id: 5, user_id: 42, currency: 'USD' } as never;
+
 describe('BudgetController (parity with the legacy /api/trips/:tripId/budget route)', () => {
-  it('404 when the trip is not accessible', () => {
-    const svc = makeService({ verifyTripAccess: vi.fn().mockReturnValue(undefined) });
-    expect(thrown(() => new BudgetController(svc).list(user, '5'))).toEqual({
-      status: 404, body: { error: 'Trip not found' },
-    });
-  });
 
   it('GET / returns items', () => {
     const svc = makeService({ list: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<BudgetService>);
@@ -59,7 +56,8 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       settlement,
     } as Partial<BudgetService>);
     expect(new BudgetController(svc).perPerson(user, '5')).toEqual({ summary: [{ userId: 1, owes: 10 }] });
-    expect(new BudgetController(svc).settlement(user, '5')).toEqual({ transfers: [] });
+    // A trip with no currency set falls back to EUR rather than passing undefined on.
+    expect(new BudgetController(svc).settlement(user, { id: 5, user_id: 42 } as never, '5')).toEqual({ transfers: [] });
     expect(settlement).toHaveBeenLastCalledWith('5', undefined, 'EUR');
   });
 
@@ -69,7 +67,7 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       verifyTripAccess: vi.fn().mockReturnValue({ id: 5, user_id: 1, currency: 'USD' }),
       settlement,
     } as Partial<BudgetService>);
-    new BudgetController(svc).settlement(user, '5', 'GBP');
+    new BudgetController(svc).settlement(user, tripRow, '5', 'GBP');
     expect(settlement).toHaveBeenCalledWith('5', 'GBP', 'USD');
   });
 
@@ -79,12 +77,6 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       expect(new BudgetController(svc).listSettlements(user, '5')).toEqual({ settlements: [{ id: 1 }] });
     });
 
-    it('POST /settlements 403 without budget_edit', async () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(await thrownAsync(() => new BudgetController(svc).createSettlement(user, '5', { from_user_id: 1, to_user_id: 2, amount: 10 }))).toEqual({
-        status: 403, body: { error: 'No permission' },
-      });
-    });
 
     // The legacy 'from_user_id, to_user_id and amount are required' 400s are now
     // produced by the global ZodValidationPipe (budget.dto.ts) before the handler
@@ -114,12 +106,6 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:settlement-deleted', { settlementId: 7 }, 'sock');
     });
 
-    it('PUT /settlements/:id 403 without budget_edit', async () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(await thrownAsync(() => new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 1, to_user_id: 2, amount: 10 }))).toEqual({
-        status: 403, body: { error: 'No permission' },
-      });
-    });
 
     it('PUT /settlements/:id 404 when missing', async () => {
       const svc = makeService({ updateSettlement: vi.fn().mockResolvedValue(null) } as Partial<BudgetService>);
@@ -140,12 +126,6 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
   });
 
   describe('POST /', () => {
-    it('403 without budget_edit', async () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(await thrownAsync(() => new BudgetController(svc).create(user, '5', { name: 'Hotel' }))).toEqual({
-        status: 403, body: { error: 'No permission' },
-      });
-    });
 
     // The legacy 'Name is required' 400 is now produced by the global
     // ZodValidationPipe (budgetCreateItemRequestSchema requires name) before

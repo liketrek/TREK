@@ -25,9 +25,11 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
 }
 
 describe('DayAssignmentsController (parity with the legacy day-assignments routes)', () => {
-  it('404 trip, then 404 day on GET', () => {
-    expect(thrown(() => new DayAssignmentsController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).list(user, '5', '3'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-    expect(thrown(() => new DayAssignmentsController(svc({ dayExists: vi.fn().mockReturnValue(false) } as Partial<AssignmentsService>)).list(user, '5', '3'))).toEqual({ status: 404, body: { error: 'Day not found' } });
+  // The 404 "Trip not found" and 403 "No permission" cases moved to
+  // trip-access.guard.test.ts with the check itself.
+  it('404 day on GET', () => {
+    const s = svc({ dayExists: vi.fn().mockReturnValue(false) } as Partial<AssignmentsService>);
+    expect(thrown(() => new DayAssignmentsController(s).list(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Day not found' } });
   });
 
   it('GET returns assignments (access-only, no permission gate)', () => {
@@ -36,8 +38,7 @@ describe('DayAssignmentsController (parity with the legacy day-assignments route
   });
 
   describe('POST', () => {
-    it('403 without day_edit; 404 place not found; then creates + hooks', () => {
-      expect(thrown(() => new DayAssignmentsController(svc({ canEdit: vi.fn().mockReturnValue(false) })).create(user, '5', '3', { place_id: 2 }))).toEqual({ status: 403, body: { error: 'No permission' } });
+    it('404 place not found; then creates + hooks', () => {
       expect(thrown(() => new DayAssignmentsController(svc({ placeExists: vi.fn().mockReturnValue(false) } as Partial<AssignmentsService>)).create(user, '5', '3', { place_id: 2 }))).toEqual({ status: 404, body: { error: 'Place not found' } });
       const createAssignment = vi.fn().mockReturnValue({ id: 9 }); const broadcast = vi.fn(); const reconcile = vi.fn();
       const s = svc({ createAssignment, broadcast, reconcile } as Partial<AssignmentsService>);

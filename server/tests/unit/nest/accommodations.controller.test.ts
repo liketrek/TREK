@@ -28,10 +28,6 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
 }
 
 describe('AccommodationsController (parity with the legacy accommodations sub-router)', () => {
-  it('404 when trip not accessible', () => {
-    const svc = makeService({ verifyTripAccess: vi.fn().mockReturnValue(undefined) });
-    expect(thrown(() => new AccommodationsController(svc).list(user, '5'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-  });
 
   it('GET / lists (no permission gate)', () => {
     const svc = makeService({ list: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AccommodationsService>);
@@ -39,10 +35,6 @@ describe('AccommodationsController (parity with the legacy accommodations sub-ro
   });
 
   describe('POST /', () => {
-    it('403 without day_edit', () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(thrown(() => new AccommodationsController(svc).create(user, '5', refs))).toEqual({ status: 403, body: { error: 'No permission' } });
-    });
 
     it('400 when refs are missing', () => {
       expect(thrown(() => new AccommodationsController(makeService()).create(user, '5', { place_id: 2 }))).toEqual({

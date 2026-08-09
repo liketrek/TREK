@@ -178,6 +178,29 @@ strings. Where the legacy route returns a hand-written error (e.g. weather's
 `{ error: 'Latitude and longitude are required' }`), reproduce that exact body in
 the controller rather than relying on the generic `ZodValidationPipe` envelope.
 
+## TripAccessGuard, and the one domain it does not fit
+
+`permissions/trip-access.guard.ts` resolves `:tripId` once per request, answers 404
+"Trip not found" for anything the user cannot reach (never 403 — that would confirm the
+id exists), and hands the row to the handler through `@Trip()`. `@RequirePermission`
+carries the same action string the domain services pass to `checkPermission`.
+
+Two limits are worth knowing before rolling it onto another controller, because both
+were found the expensive way:
+
+- **A guard runs before the body pipe.** Any route whose DTO validation is expected to
+  answer 400 *ahead of* the trip 404 cannot use it. `places` is exactly that case — its
+  e2e suite documents the pipe-first ordering as a deliberate parity shift — so places
+  keeps its in-handler `requireTrip`, and that is not an oversight.
+- **A guard also runs before interceptors.** On a multipart upload route, a 404 sent
+  while the client is still streaming destroys the socket, so the caller sees
+  ECONNRESET instead of the 404. The three upload routes (files, collab note files,
+  places) keep their own check for that reason; their controllers apply the guard per
+  handler instead of on the class.
+
+The services keep `verifyTripAccess`/`canEdit` regardless: most of their callers are
+`*.mcp.ts` tools, which never pass through an HTTP guard.
+
 ## Coverage is gated per domain, as a ratchet
 
 `server/vitest.config.ts` carries one threshold entry per `src/nest/<domain>/`, set at

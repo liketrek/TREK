@@ -49,6 +49,7 @@ import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser, createTrip } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
+import { getRegionGeo } from '../../src/nest/atlas/atlas-geo';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -79,7 +80,13 @@ beforeAll(async () => {
   runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
-});
+
+  // Warm the admin-1 store here rather than inside ATLAS-013. The first call streams
+  // the multi-MB bundle through the brace-depth splitter and caches it for the process,
+  // which costs ~3s on a quiet machine and more when every worker is busy — so whichever
+  // test hit it first used to pay for it inside its own 5s budget and fail under load.
+  await getRegionGeo(['ZZ']);
+}, 60_000);
 
 beforeEach(() => {
   resetTestDb(testDb);

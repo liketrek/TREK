@@ -15,6 +15,7 @@ import { AccommodationsService } from './accommodations.service';
 import { AccommodationCreateDto, AccommodationUpdateDto } from './reservations.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 type AccommodationBody = {
   place_id?: number;
@@ -38,30 +39,21 @@ type AccommodationBody = {
  * reservation/budget deletions) with the forwarded X-Socket-Id.
  */
 @Controller('api/trips/:tripId/accommodations')
-@UseGuards(JwtAuthGuard)
+// TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
+// add @RequirePermission('day_edit'), the same action string the service's canEdit
+// passes, so the HTTP and MCP paths cannot demand different rights.
+@UseGuards(JwtAuthGuard, TripAccessGuard)
 export class AccommodationsController {
   constructor(private readonly accommodations: AccommodationsService) {}
 
-  private requireTrip(tripId: string, user: User) {
-    const trip = this.accommodations.verifyTripAccess(tripId, user.id);
-    if (!trip) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    return trip;
-  }
 
-  private requireEdit(trip: NonNullable<ReturnType<AccommodationsService['verifyTripAccess']>>, user: User): void {
-    if (!this.accommodations.canEdit(trip, user)) {
-      throw new HttpException({ error: 'No permission' }, 403);
-    }
-  }
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.requireTrip(tripId, user);
     return { accommodations: this.accommodations.list(tripId) };
   }
 
+  @RequirePermission('day_edit')
   @Post()
   create(
     @CurrentUser() user: User,
@@ -70,8 +62,6 @@ export class AccommodationsController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const body = rawBody as AccommodationBody;
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } = body;
     if (!place_id || !start_day_id || !end_day_id) {
       throw new HttpException({ error: 'place_id, start_day_id, and end_day_id are required' }, 400);
@@ -86,6 +76,7 @@ export class AccommodationsController {
     return { accommodation };
   }
 
+  @RequirePermission('day_edit')
   @Put(':id')
   update(
     @CurrentUser() user: User,
@@ -95,8 +86,6 @@ export class AccommodationsController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const body = rawBody as AccommodationBody;
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const existing = this.accommodations.get(id, tripId);
     if (!existing) {
       throw new HttpException({ error: 'Accommodation not found' }, 404);
@@ -111,6 +100,7 @@ export class AccommodationsController {
     return { accommodation };
   }
 
+  @RequirePermission('day_edit')
   @Delete(':id')
   remove(
     @CurrentUser() user: User,
@@ -118,8 +108,6 @@ export class AccommodationsController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     if (!this.accommodations.get(id, tripId)) {
       throw new HttpException({ error: 'Accommodation not found' }, 404);
     }
