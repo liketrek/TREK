@@ -38,6 +38,7 @@ import { FilesService } from '../../files/files.service';
 import { CollabService } from '../../collab/collab.service';
 import { VacayService } from '../../vacay/vacay.service';
 import { PluginRpcHost, ForbiddenResource, BadParams } from './rpc-host';
+import { PluginRpcRegistryService } from './rpc-kit/registry.service';
 import { appendAudit } from './plugin-audit';
 import { getPluginDataDb, budgetFor } from './plugin-host-state';
 
@@ -167,6 +168,10 @@ export class PluginHostDepsFactory {
     private readonly notifications: NotificationsService,
     private readonly membership: TripMembershipService,
     private readonly journey: JourneyDomainService,
+    // Appended last and OPTIONAL so the hand-wired 26-arg construction in
+    // plugin-host-deps.factory.test.ts keeps compiling. Handed to every host it
+    // builds, which is how decorated *.rpc.ts handlers reach the dispatch map.
+    private readonly rpcRegistry?: PluginRpcRegistryService,
   ) {}
 
   /**
@@ -858,18 +863,6 @@ export class PluginHostDepsFactory {
       listCategories: () => this.categories.list() as unknown[],
       tripMembers: (tripId) =>
         this.db.prepare('SELECT u.id, u.username, u.display_name, u.avatar FROM trip_members tm JOIN users u ON u.id = tm.user_id WHERE tm.trip_id = ?').all(tripId) as unknown[],
-      // --- Tags (the acting user's own; ownership re-checked before a write). ---
-      listTagsForUser: (userId) => this.tags.list(userId) as unknown[],
-      createTagForUser: (userId, name, color) => this.tags.create(userId, name, color),
-      updateTagForUser: (userId, tagId, name, color) => {
-        if (!this.tags.getByIdAndUser(tagId, userId)) throw new ForbiddenResource(`no tag ${tagId} for this user`);
-        return this.tags.update(tagId, name, color);
-      },
-      deleteTagForUser: (userId, tagId) => {
-        if (!this.tags.getByIdAndUser(tagId, userId)) throw new ForbiddenResource(`no tag ${tagId} for this user`);
-        this.tags.remove(tagId);
-        return { deleted: true };
-      },
       // --- Todos (core, trip-scoped; the app's 'packing_edit' permission). ---
       canEditTodos: (tripId, userId) => this.canEditTripAs('packing_edit', tripId, userId),
       listTodos: (tripId) => this.todos.listItems(String(tripId)) as unknown[],
@@ -939,6 +932,6 @@ export class PluginHostDepsFactory {
           .run(id, entityType, entityId, key);
         return { deleted: res.changes > 0 };
       },
-    });
+    }, this.rpcRegistry);
   }
 }

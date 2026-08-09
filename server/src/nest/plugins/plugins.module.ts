@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
 import { JourneyDomainModule } from '../journey/journey-domain.module';
 import { PluginsController } from './plugins.controller';
 import { PluginsFeedController } from './plugins-feed.controller';
@@ -26,6 +27,8 @@ import { PluginsService } from './plugins.service';
 import { PluginRuntimeService } from './plugin-runtime.service';
 import { PluginRegistryService } from './registry/registry.service';
 import { PluginHostDepsFactory } from './host/plugin-host-deps.factory';
+import { PluginRpcRegistryService } from './host/rpc-kit/registry.service';
+import { PluginGuards } from './host/plugin-guards.service';
 import { TagsModule } from '../tags/tags.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { BudgetModule } from '../budget/budget.module';
@@ -58,11 +61,15 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
 @Module({
   // The DI-native domain services the plugin host wiring injects
   // (PluginHostDepsFactory); DatabaseModule is @Global, so not listed.
-  imports: [TagsModule, CategoriesModule, BudgetModule, ReservationsModule, TodoModule, PackingModule, DaysModule, AssignmentsModule, LlmParseModule, FilesModule, CollabModule, VacayModule, TripsModule, PermissionsModule, AuditModule, AddonsModule, PlacesModule, CollectionsModule, AtlasModule, NotificationsModule, TripMembershipModule, JourneyDomainModule],
+  // DiscoveryModule is what lets PluginRpcRegistryService find the @PluginController
+  // providers at boot.
+  imports: [DiscoveryModule, TagsModule, CategoriesModule, BudgetModule, ReservationsModule, TodoModule, PackingModule, DaysModule, AssignmentsModule, LlmParseModule, FilesModule, CollabModule, VacayModule, TripsModule, PermissionsModule, AuditModule, AddonsModule, PlacesModule, CollectionsModule, AtlasModule, NotificationsModule, TripMembershipModule, JourneyDomainModule],
   controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, TripCardContributionsController, PluginPhotosController, PluginCalendarController, MapMarkersController, MapLayersController, PluginRoutesController, DayScheduleController, DayTintsController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController],
-  providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService, PluginHostDepsFactory],
-  // Exported so the admin addon-toggle handler can cascade-disable plugins whose
-  // required addon was just turned off (#plugins dependencies).
-  exports: [PluginRuntimeService],
+  providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService, PluginHostDepsFactory, PluginRpcRegistryService, PluginGuards],
+  // PluginRuntimeService is exported so the admin addon-toggle handler can
+  // cascade-disable plugins whose required addon was just turned off (#plugins
+  // dependencies). PluginGuards is exported so a domain module can inject it into
+  // its own <domain>.rpc.ts without importing the plugin host.
+  exports: [PluginRuntimeService, PluginGuards],
 })
 export class PluginsModule {}

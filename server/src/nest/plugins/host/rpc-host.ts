@@ -21,6 +21,14 @@ import {
 import type { PluginDataDb } from './plugin-data.service';
 import { stripEmoji } from '../text-sanitize';
 import { auditResource, isAuditable } from './plugin-audit';
+import { BadParams, ForbiddenResource } from './rpc-errors';
+import { asArgs, asPayload, asTxOps, num, str } from './rpc-params';
+import type { PluginRpcRegistry } from './rpc-kit/registry';
+
+// Both used to be declared here. They now live in rpc-errors.ts so decorated
+// *.rpc.ts handlers can throw them without importing the router, and are re-exported
+// so every existing importer keeps working unchanged.
+export { BadParams, ForbiddenResource };
 
 /**
  * The per-plugin capability router (#plugins, M1) — the ENFORCEMENT POINT.
@@ -32,9 +40,6 @@ import { auditResource, isAuditable } from './plugin-audit';
  *
  * Runs in the HOST (parent) process.
  */
-
-/** Thrown by a handler when the acting user may not touch the requested resource. */
-export class ForbiddenResource extends Error {}
 
 interface CoreDb {
   prepare(sql: string): {
@@ -240,10 +245,6 @@ export interface HostDeps {
   listCategories(): unknown[];
   tripMembers(tripId: number): unknown[];
   // --- Tags (the acting user's own; no trip) ---
-  listTagsForUser(userId: number): unknown[];
-  createTagForUser(userId: number, name: string, color: string | undefined): unknown;
-  updateTagForUser(userId: number, tagId: number, name: string | undefined, color: string | undefined): unknown;
-  deleteTagForUser(userId: number, tagId: number): unknown;
   // --- Todos (core, trip-scoped; the 'packing_edit' permission, like the REST path) ---
   canEditTodos(tripId: number, userId: number): boolean;
   listTodos(tripId: number): unknown[];
@@ -260,17 +261,6 @@ export interface HostDeps {
 }
 
 type Handler = (params: Record<string, unknown>, actingUserId: number | undefined) => unknown;
-
-const num = (v: unknown, name: string): number => {
-  const n = typeof v === 'string' ? Number(v) : v;
-  if (typeof n !== 'number' || !Number.isFinite(n)) throw new BadParams(`${name} must be a number`);
-  return n;
-};
-const str = (v: unknown, name: string): string => {
-  if (typeof v !== 'string') throw new BadParams(`${name} must be a string`);
-  return v;
-};
-export class BadParams extends Error {}
 
 // Mirrors the STRING_LIMITS the places REST controller enforces (the @trek/shared
 // schema doesn't), so the plugin write path rejects the same oversized fields.
@@ -289,6 +279,11 @@ export class PluginRpcHost {
     private readonly pluginId: string,
     granted: ReadonlySet<string>,
     private readonly deps: HostDeps,
+    // Additive and OPTIONAL, the same convention plugin-runtime.service.ts already
+    // uses for its own late-added params. Every existing
+    // `new PluginRpcHost(id, granted, deps)` site keeps compiling untouched, which is
+    // what makes the decorator rollout a per-domain move instead of a big-bang one.
+    registry?: PluginRpcRegistry,
   ) {
     const has = (p: string) => granted.has(p);
 
@@ -951,30 +946,7 @@ export class PluginRpcHost {
       // Global, read-only reference list — carries no tenant data.
       this.methods.set('categories.list', () => deps.listCategories());
     }
-    if (has('db:read:tags')) {
-      // The acting user's own tags (not trip-scoped) — refuse a userless context.
-      this.methods.set('tags.list', (_p, uid) => {
-        if (uid === undefined) throw new ForbiddenResource('tag reads require an authenticated user context');
-        return deps.listTagsForUser(uid);
-      });
-    }
-    if (has('db:write:tags')) {
-      this.methods.set('tags.create', (p, uid) => {
-        if (uid === undefined) throw new ForbiddenResource('tag writes require an authenticated user context');
-        const input = asPayload(p.input);
-        if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('tag name is required');
-        return deps.createTagForUser(uid, input.name, typeof input.color === 'string' ? input.color : undefined);
-      });
-      this.methods.set('tags.update', (p, uid) => {
-        if (uid === undefined) throw new ForbiddenResource('tag writes require an authenticated user context');
-        const input = asPayload(p.input);
-        return deps.updateTagForUser(uid, num(p.tagId, 'tagId'), typeof input.name === 'string' ? input.name : undefined, typeof input.color === 'string' ? input.color : undefined);
-      });
-      this.methods.set('tags.delete', (p, uid) => {
-        if (uid === undefined) throw new ForbiddenResource('tag writes require an authenticated user context');
-        return deps.deleteTagForUser(uid, num(p.tagId, 'tagId'));
-      });
-    }
+    // tags.* now lives in src/nest/tags/tags.rpc.ts, bound through the registry below.
     if (has('db:read:todos')) {
       this.methods.set('todos.list', (p, uid) => this.tripRead(p, uid, () => deps.listTodos(num(p.tripId, 'tripId'))));
     }
@@ -1155,6 +1127,21 @@ export class PluginRpcHost {
       if (uid === undefined) return { value: undefined };
       return { value: deps.getUserSetting(this.pluginId, uid, str(p.key, 'key')) };
     });
+
+    // LAST on purpose: a method still owned by one of the has() blocks above then
+    // collides loudly in bindInto instead of being silently overridden, which is the
+    // failure mode a half-finished domain move would otherwise have.
+    //
+    // `deps.data` is already the lazy per-access getter the factory supplies, so
+    // passing it through a getter here preserves the disable/re-enable semantics
+    // exactly and the kit never needs to know about plugin-host-state.
+    registry?.bindInto(this.methods, granted, (actingUserId) => ({
+      pluginId,
+      actingUserId,
+      get data() {
+        return deps.data;
+      },
+    }));
   }
 
   /**
@@ -1242,7 +1229,14 @@ export class PluginRpcHost {
   }
 
   async dispatch(req: RpcRequest, actingUserId?: number): Promise<RpcResponse | RpcError> {
-    const params = (req.params ?? {}) as Record<string, unknown>;
+    const raw = (req.params ?? {}) as Record<string, unknown>;
+    // The supervisor resolves the acting user from `_inv` BEFORE dispatch and passes
+    // the request on untouched, so `_inv` is visible to every handler today and is in
+    // effect a reserved param name. Strip it here: no handler and no audit reads
+    // anything but named fields, and dropping it keeps a future strict schema parse
+    // from rejecting calls every shipped plugin makes.
+    const { _inv, ...stripped } = raw;
+    const params = '_inv' in raw ? stripped : raw;
     const res = await this.handle(req, params, actingUserId);
     // Audit the core-data / broadcast surface (incl. denials) at the boundary.
     if (this.deps.audit && isAuditable(req.method)) {
@@ -1301,23 +1295,6 @@ export class PluginRpcHost {
   }
 }
 
-function asArgs(v: unknown): unknown[] {
-  if (v == null) return [];
-  if (Array.isArray(v)) return v;
-  throw new BadParams('args must be an array');
-}
-/** Coerce a db.tx `ops` param into a validated {sql, args}[] before it reaches the
- * data db — each op must carry a string sql and, if present, an array of args. */
-function asTxOps(v: unknown): Array<{ sql: string; args?: unknown[] }> {
-  if (!Array.isArray(v)) throw new BadParams('ops must be an array of { sql, args }');
-  return v.map((op) => {
-    const o = (op ?? {}) as Record<string, unknown>;
-    return { sql: str(o.sql, 'ops[].sql'), args: asArgs(o.args) };
-  });
-}
-function asPayload(v: unknown): Record<string, unknown> {
-  return v && typeof v === 'object' ? (v as Record<string, unknown>) : { value: v };
-}
 /**
  * The reservation body is passthrough by contract, but a malformed `endpoints`
  * array would otherwise fail DEEP in the service (NOT-NULL mid-transaction) or be

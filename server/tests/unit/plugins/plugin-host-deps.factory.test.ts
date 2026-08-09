@@ -800,15 +800,8 @@ describe('host-deps factory — Wave 1 wiring (weather/categories/tags/todos/ros
     expect((await call(host('db:read:categories'), 'categories.list', {}, undefined)).ok).toBe(true)
   })
 
-  it('tags: list/create/update/delete are the acting user\'s; a missing tag is RESOURCE_FORBIDDEN', async () => {
-    const h = host('db:read:tags', 'db:write:tags')
-    expect((await call(h, 'tags.list', {}, 5)).ok).toBe(true)
-    expect((await call(h, 'tags.create', { input: { name: 'x' } }, 5)).ok).toBe(true)
-    expect((await call(h, 'tags.update', { tagId: 1, input: { name: 'y' } }, 5)).ok).toBe(true)
-    expect((await call(h, 'tags.delete', { tagId: 1 }, 5)).ok).toBe(true)
-    expect(((await call(h, 'tags.update', { tagId: 404, input: {} }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-    expect(((await call(h, 'tags.delete', { tagId: 404 }, 5)) as { error: { code: string } }).error.code).toBe('RESOURCE_FORBIDDEN')
-  })
+  // tags.* left this factory with the decorator migration. The same cases now run in
+  // tests/unit/tags/tags.rpc.test.ts against TagsRpc.
 
   it('trips.members returns the roster', async () => {
     const r = await call(host('db:read:trips'), 'trips.members', { tripId: 1 }, 5)
