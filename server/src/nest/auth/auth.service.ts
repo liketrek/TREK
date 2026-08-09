@@ -754,11 +754,15 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     const maps_api_key = decrypt_api_key(user.maps_api_key);
     if (maps_api_key) {
       try {
+        // Same Referer as maps.service googleFetch — without it, keys with an
+        // HTTP-referrer restriction fail validation while real requests succeed.
+        const referer = readEnv().app.appUrl ? getAppUrl() : undefined;
         const mapsRes = await fetch(
           `https://places.googleapis.com/v1/places:searchText`,
           {
             method: 'POST',
             headers: {
+              ...(referer ? { Referer: referer } : {}),
               'Content-Type': 'application/json',
               'X-Goog-Api-Key': maps_api_key,
               'X-Goog-FieldMask': 'places.displayName',

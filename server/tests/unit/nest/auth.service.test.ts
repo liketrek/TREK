@@ -345,6 +345,27 @@ describe('validateKeys', () => {
 
     fetchSpy.mockRestore();
   });
+
+  it('AUTH-DB-094: sends Referer from APP_URL so referrer-restricted keys validate like real requests', async () => {
+    const { user } = createAdmin(testDb);
+    testDb.prepare('UPDATE users SET maps_api_key = ? WHERE id = ?').run('test-key', user.id);
+
+    const prevAppUrl = process.env.APP_URL;
+    process.env.APP_URL = 'https://trek.example.com';
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      text: async () => '',
+    } as Response);
+
+    await svc.validateKeys(user.id);
+    const headers = (fetchSpy.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
+    expect(headers.Referer).toBe('https://trek.example.com');
+
+    fetchSpy.mockRestore();
+    if (prevAppUrl === undefined) delete process.env.APP_URL;
+    else process.env.APP_URL = prevAppUrl;
+  });
 });
 
 // ---------------------------------------------------------------------------
