@@ -6,12 +6,12 @@ import { z } from 'zod';
  * Place API contract — single source of truth for the /api/trips/:tripId/places
  * endpoints (place pool CRUD, GPX/map/list imports, image search, bulk delete).
  *
- * Trip-scoped; mutations use the 'place_edit' permission. The legacy route
- * (server/src/routes/places.ts) wraps placeService and fires the journey
+ * Trip-scoped; mutations use the 'place_edit' permission.
+ * server/src/nest/places/places.controller.ts fires the journey
  * place-created/updated/deleted hooks. Place rows are wide and provider-derived,
  * so create/update payloads stay mostly open with `name` pinned; string fields
- * are capped (name 200, description 2000, address 500, notes 2000) by the legacy
- * validateStringLengths, reproduced in the controller.
+ * are capped (name 200, description 2000, address 500, notes 2000) in the
+ * controller.
  */
 
 const open = z.record(z.string(), z.unknown());
@@ -36,7 +36,7 @@ export type PlaceCategory = z.infer<typeof placeCategorySchema>;
 
 /**
  * Full place entity as returned by the place list / get / create / update
- * endpoints (server/src/services/placeService.ts -> getPlaceWithTags). All
+ * endpoints (server/src/nest/places/places.service.ts -> getPlaceWithTags). All
  * columns of the `places` table (see server/data DB) plus the joined `category`
  * projection and `tags` array. Numbers (lat/lng/price) are SQLite REAL, ids are
  * INTEGER; provider-derived columns are nullable.
