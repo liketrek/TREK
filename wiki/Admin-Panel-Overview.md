@@ -29,6 +29,12 @@ The Admin Panel is divided into tabs. Most tabs are always visible; a few appear
 
 ![Admin panel on the User Defaults tab, setting instance-wide defaults for colour mode, temperature unit, distance unit, time format, currency and blurred booking codes](assets/AdminUserDefaults.png)
 
+### Default common currencies
+
+On **User Defaults**, administrators can maintain an ordered list of up to 10 common currencies. It becomes the effective list for every user who has not saved a personal override, including existing users. A user's non-empty list or explicitly cleared `[]` fully replaces the administrator list. If that user selects **Reset** later, the personal override is removed and the latest administrator list applies dynamically. Resetting the administrator list returns the built-in empty list.
+
+This default only groups currency menus; it does not set the display currency or any trip's accounting currency. The separate default **Currency** control continues to set the instance default for display currency.
+
 ## Plugin activity and audit
 
 Plugins that are granted data-access capabilities have every host-mediated action they take recorded in a tamper-evident, hash-chained log. This log is separate from the instance **Audit** tab described above.

@@ -40,7 +40,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
-import { getUserSettings, upsertSetting, bulkUpsertSettings } from '../../../src/services/settingsService';
+import { bulkUpsertSettings, deleteSetting, getUserSettings, setAdminUserDefaults, upsertSetting } from '../../../src/services/settingsService';
 
 beforeAll(() => {
   createTables(testDb);
@@ -58,9 +58,9 @@ afterAll(() => {
 // ── getUserSettings ───────────────────────────────────────────────────────────
 
 describe('getUserSettings', () => {
-  it('SET-SVC-001 — returns empty object when user has no settings', () => {
+  it('SET-SVC-001 — returns the built-in empty common currency list when user has no settings', () => {
     const { user } = createUser(testDb);
-    expect(getUserSettings(user.id)).toEqual({});
+    expect(getUserSettings(user.id)).toEqual({ common_currencies: [] });
   });
 
   it('SET-SVC-002 — returns stored plain string values', () => {
@@ -154,6 +154,43 @@ describe('upsertSetting', () => {
     // But getUserSettings masks it
     const s = getUserSettings(user.id);
     expect(s.webhook_url).toBe('••••••••');
+  });
+
+  it('normalizes common currencies and round-trips them as JSON', () => {
+    const { user } = createUser(testDb);
+    upsertSetting(user.id, 'common_currencies', [' usd ', 'eur']);
+    expect(getUserSettings(user.id).common_currencies).toEqual(['USD', 'EUR']);
+    const row = testDb.prepare("SELECT value FROM settings WHERE user_id = ? AND key = 'common_currencies'").get(user.id) as { value: string };
+    expect(row.value).toBe('["USD","EUR"]');
+  });
+
+  it('inherits the admin list, preserves explicit empty and non-empty overrides, and restores inheritance on delete', () => {
+    const { user: inherited } = createUser(testDb);
+    const { user: overridden } = createUser(testDb);
+    const { user: empty } = createUser(testDb);
+    setAdminUserDefaults({ common_currencies: ['usd', 'EUR'] });
+    upsertSetting(overridden.id, 'common_currencies', ['jpy']);
+    upsertSetting(empty.id, 'common_currencies', []);
+    expect(getUserSettings(inherited.id).common_currencies).toEqual(['USD', 'EUR']);
+    expect(getUserSettings(overridden.id).common_currencies).toEqual(['JPY']);
+    expect(getUserSettings(empty.id).common_currencies).toEqual([]);
+    setAdminUserDefaults({ common_currencies: ['cad'] });
+    expect(getUserSettings(inherited.id).common_currencies).toEqual(['CAD']);
+    expect(getUserSettings(overridden.id).common_currencies).toEqual(['JPY']);
+    expect(deleteSetting(overridden.id, 'common_currencies')).toEqual(['CAD']);
+  });
+
+  it('rejects invalid user and administrator common currency lists', () => {
+    const { user } = createUser(testDb);
+    expect(() => upsertSetting(user.id, 'common_currencies', ['ZZZ'])).toThrow();
+    expect(() => upsertSetting(user.id, 'common_currencies', ['usd', 'USD'])).toThrow();
+    expect(() => upsertSetting(user.id, 'common_currencies', Array(11).fill('USD'))).toThrow();
+    expect(() => bulkUpsertSettings(user.id, { theme: 'dark', common_currencies: 'USD' })).toThrow();
+    expect(getUserSettings(user.id)).not.toHaveProperty('theme');
+    setAdminUserDefaults({ common_currencies: [' usd ', 'jpy'] });
+    expect(getUserSettings(user.id).common_currencies).toEqual(['USD', 'JPY']);
+    expect(() => setAdminUserDefaults({ common_currencies: ['ZZZ'] })).toThrow();
+    expect(() => setAdminUserDefaults({ common_currencies: ['usd', 'USD'] })).toThrow();
   });
 });
 

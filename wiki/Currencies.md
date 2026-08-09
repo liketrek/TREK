@@ -11,6 +11,8 @@ TREK distinguishes the trip, expense, payment, and display currencies. Exchange 
 
 The short version: **the trip currency is the accounting base, expense/payment currencies preserve the original amounts, and the display currency is your reading glasses.**
 
+The **common currency list** is different from all four: it is only an ordered set of up to 10 menu shortcuts. When populated, currency menus show **Common currencies** first and **Other currencies** second. It does not choose or convert any currency. `CNY` and `CNH` remain separate codes, and TREK does not introduce an `RMB` alias.
+
 ## Trip currency
 
 Every trip has exactly one currency. It is set when you create the trip and can be changed later in the trip edit dialog (requires the `trip_edit` permission). It defaults to **EUR**.
@@ -63,6 +65,8 @@ It has two modes:
 | A specific currency (e.g. `USD`) | **Every** trip is converted into that currency for you, whatever its own currency is. |
 
 Leave it on **Trip currency** unless you specifically want everything in your home currency regardless of where you are going. An administrator can set an instance-wide default for new users (Admin → Default User Settings); choosing **Trip currency** yourself overrides it, because it is a deliberate choice rather than an absence of one.
+
+The **Trip currency** entry in this menu is fixed above any common/other groups. It represents the display mode described here, not a currency code, so it cannot be added to the common currency list.
 
 > Display conversion uses **live** rates, not the frozen ones — it is a view, and a view should reflect today. This is why a converted total can shift slightly day to day while the underlying balances stay rock steady.
 

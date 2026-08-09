@@ -20,6 +20,10 @@ _Avoid_: Settlement currency, transfer currency
 A user's presentation-only currency for reading final totals and balances.
 _Avoid_: User currency, preferred currency
 
+**Common currency list**:
+A user's ordered shortcuts for currencies they choose frequently; it does not assign a currency to a trip, expense, payment, or display.
+_Avoid_: Favourite currency, preferred currencies
+
 **Global exchange rate**:
 A provider-derived rate in TREK's durable, server-wide snapshot.
 _Avoid_: Live rate, browser rate

@@ -10,4 +10,5 @@ export class SettingsService {
   getUserSettings(userId: number) { return svc.getUserSettings(userId); }
   upsertSetting(userId: number, key: string, value: unknown) { return svc.upsertSetting(userId, key, value); }
   bulkUpsertSettings(userId: number, settings: Record<string, unknown>) { return svc.bulkUpsertSettings(userId, settings); }
+  deleteSetting(userId: number, key: string) { return svc.deleteSetting(userId, key); }
 }

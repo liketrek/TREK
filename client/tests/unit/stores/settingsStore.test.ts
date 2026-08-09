@@ -5,6 +5,14 @@ import { useSettingsStore } from '../../../src/store/settingsStore';
 import { resetAllStores } from '../../helpers/store';
 import { buildSettings } from '../../helpers/factories';
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((next) => {
+    resolve = next;
+  });
+  return { promise, resolve };
+}
+
 beforeEach(() => {
   resetAllStores();
 });
@@ -204,8 +212,9 @@ describe('settingsStore', () => {
     });
   });
 
-  describe('FE-STORE-SETTINGS-014: updateSetting API failure leaves optimistic state', () => {
-    it('throws on API failure but keeps the optimistic state', async () => {
+  describe('FE-STORE-SETTINGS-014: updateSetting API failure restores durable state', () => {
+    it('throws on API failure and rolls back the optimistic state', async () => {
+      const previous = useSettingsStore.getState().settings.default_currency;
       server.use(
         http.put('/api/settings', () =>
           HttpResponse.json({ error: 'Server error' }, { status: 500 })
@@ -216,7 +225,138 @@ describe('settingsStore', () => {
         useSettingsStore.getState().updateSetting('default_currency', 'EUR')
       ).rejects.toThrow();
 
-      expect(useSettingsStore.getState().settings.default_currency).toBe('EUR');
+      expect(useSettingsStore.getState().settings.default_currency).toBe(previous);
     });
+
+    it('does not let an older failed request overwrite a newer successful value', async () => {
+      const firstStarted = deferred<void>();
+      const firstResponse = deferred<Response>();
+      let requestCount = 0;
+      server.use(
+        http.put('/api/settings', () => {
+          requestCount += 1;
+          if (requestCount === 1) {
+            firstStarted.resolve();
+            return firstResponse.promise;
+          }
+          return HttpResponse.json({ success: true });
+        }),
+      );
+
+      const staleRequest = useSettingsStore.getState().updateSetting('default_currency', 'EUR');
+      const staleRejection = expect(staleRequest).rejects.toThrow('Server error');
+      await firstStarted.promise;
+      await useSettingsStore.getState().updateSetting('default_currency', 'JPY');
+      firstResponse.resolve(HttpResponse.json({ error: 'Server error' }, { status: 500 }));
+
+      await staleRejection;
+      expect(useSettingsStore.getState().settings.default_currency).toBe('JPY');
+    });
+
+    it('restores the previous language in state and localStorage when saving fails', async () => {
+      useSettingsStore.getState().setLanguageLocal('de');
+      server.use(
+        http.put('/api/settings', () => HttpResponse.json({ error: 'Server error' }, { status: 500 })),
+      );
+
+      await expect(useSettingsStore.getState().updateSetting('language', 'fr')).rejects.toThrow('Server error');
+
+      expect(useSettingsStore.getState().settings.language).toBe('de');
+      expect(localStorage.getItem('app_language')).toBe('de');
+    });
+
+    it('removes app_language after a failed save when no preference existed before', async () => {
+      localStorage.removeItem('app_language');
+      useSettingsStore.getState().setLanguageTransient('en');
+      server.use(
+        http.put('/api/settings', () => HttpResponse.json({ error: 'Server error' }, { status: 500 })),
+      );
+
+      await expect(useSettingsStore.getState().updateSetting('language', 'fr')).rejects.toThrow('Server error');
+
+      expect(useSettingsStore.getState().settings.language).toBe('en');
+      expect(localStorage.getItem('app_language')).toBeNull();
+    });
+
+    it('rejects an older failed language request without overwriting a newer preference', async () => {
+      useSettingsStore.getState().setLanguageLocal('de');
+      const firstStarted = deferred<void>();
+      const firstResponse = deferred<Response>();
+      let requestCount = 0;
+      server.use(
+        http.put('/api/settings', () => {
+          requestCount += 1;
+          if (requestCount === 1) {
+            firstStarted.resolve();
+            return firstResponse.promise;
+          }
+          return HttpResponse.json({ success: true });
+        }),
+      );
+
+      const staleRequest = useSettingsStore.getState().updateSetting('language', 'fr');
+      const staleRejection = expect(staleRequest).rejects.toThrow('Server error');
+      await firstStarted.promise;
+      await useSettingsStore.getState().updateSetting('language', 'ja');
+      firstResponse.resolve(HttpResponse.json({ error: 'Server error' }, { status: 500 }));
+
+      await staleRejection;
+      expect(useSettingsStore.getState().settings.language).toBe('ja');
+      expect(localStorage.getItem('app_language')).toBe('ja');
+    });
+  });
+
+  it('resets common currencies to the inherited list returned by the server', async () => {
+    server.use(
+      http.delete('/api/settings/common_currencies', () =>
+        HttpResponse.json({ success: true, key: 'common_currencies', value: ['EUR', 'JPY'] }),
+      ),
+    );
+
+    await expect(useSettingsStore.getState().resetSetting('common_currencies')).resolves.toEqual(['EUR', 'JPY']);
+    expect(useSettingsStore.getState().settings.common_currencies).toEqual(['EUR', 'JPY']);
+  });
+
+  it('does not let a stale reset success overwrite or return over a newer value', async () => {
+    await useSettingsStore.getState().updateSetting('common_currencies', ['USD']);
+    const resetStarted = deferred<void>();
+    const resetResponse = deferred<Response>();
+    server.use(
+      http.delete('/api/settings/common_currencies', () => {
+        resetStarted.resolve();
+        return resetResponse.promise;
+      }),
+    );
+
+    const staleReset = useSettingsStore.getState().resetSetting('common_currencies');
+    await resetStarted.promise;
+    await useSettingsStore.getState().updateSetting('common_currencies', ['JPY']);
+    resetResponse.resolve(
+      HttpResponse.json({ success: true, key: 'common_currencies', value: ['EUR'] }),
+    );
+
+    await expect(staleReset).resolves.toEqual(['JPY']);
+    expect(useSettingsStore.getState().settings.common_currencies).toEqual(['JPY']);
+  });
+
+  it('does not modify a newer value when reset fails', async () => {
+    await useSettingsStore.getState().updateSetting('common_currencies', ['USD']);
+    const resetStarted = deferred<void>();
+    const resetResponse = deferred<Response>();
+    server.use(
+      http.delete('/api/settings/common_currencies', () => {
+        resetStarted.resolve();
+        return resetResponse.promise;
+      }),
+    );
+
+    const failedReset = useSettingsStore.getState().resetSetting('common_currencies');
+    const resetRejection = expect(failedReset).rejects.toThrow('Server error');
+    await resetStarted.promise;
+    await useSettingsStore.getState().updateSetting('common_currencies', ['JPY']);
+    resetResponse.resolve(HttpResponse.json({ error: 'Server error' }, { status: 500 }));
+
+    await resetRejection;
+    expect(useSettingsStore.getState().settings.common_currencies).toEqual(['JPY']);
   });
 });
