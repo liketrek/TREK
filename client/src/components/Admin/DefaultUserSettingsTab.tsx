@@ -5,8 +5,9 @@ import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import Section from '../Settings/Section'
 import CustomSelect from '../shared/CustomSelect'
+import CurrencySelect from '../shared/CurrencySelect'
 import { MapView } from '../Map/MapView'
-import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
+import CommonCurrenciesEditor from '../Settings/CommonCurrenciesEditor'
 import type { DistanceUnit, Place } from '../../types'
 import {
   MAPBOX_DEFAULT_STYLE,
@@ -32,6 +33,7 @@ type Defaults = {
   dark_mode?: string | boolean
   time_format?: string
   default_currency?: string
+  common_currencies?: string[]
   blur_booking_codes?: boolean
   map_tile_url?: string
   map_provider?: string
@@ -281,16 +283,35 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
         <label className="block text-sm font-medium mb-1.5 text-content-secondary">
           {t('settings.currency')} <ResetButton field="default_currency" />
         </label>
-        <CustomSelect
+        <CurrencySelect
           value={defaults.default_currency || ''}
-          onChange={(value: string) => { if (value) save({ default_currency: value }) }}
+          onChange={(value) => { if (value) save({ default_currency: value }) }}
           placeholder={t('settings.currency')}
-          searchable
-          options={currenciesWith(defaults.default_currency).map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+          commonCurrencies={defaults.common_currencies ?? []}
           size="sm"
           style={{ maxWidth: 240 }}
         />
         <p className="text-xs mt-1 text-content-faint">{t('settings.currencyHint')}</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1.5 text-content-secondary">
+          {t('settings.commonCurrencies.title')}
+        </label>
+        <p className="text-xs mb-2 text-content-faint">{t('settings.commonCurrencies.adminHint')}</p>
+        <CommonCurrenciesEditor
+          value={defaults.common_currencies ?? []}
+          onSave={async (value) => {
+            const updated = await adminApi.updateDefaultUserSettings({ common_currencies: value }) as Defaults
+            setDefaults(updated)
+            return updated.common_currencies ?? []
+          }}
+          onReset={async () => {
+            const updated = await adminApi.updateDefaultUserSettings({ common_currencies: null }) as Defaults
+            setDefaults(updated)
+            return updated.common_currencies ?? []
+          }}
+        />
       </div>
 
       {/* Blur Booking Codes */}

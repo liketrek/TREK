@@ -1,17 +1,17 @@
-import { Body, Controller, Get, HttpCode, HttpException, Post, Put, UseGuards } from '@nestjs/common';
 import type { User } from '../../types';
-import { SettingsService } from './settings.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SettingsService } from './settings.service';
+import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { commonCurrencyListSchema, settingResetKeySchema, settingResetResponseSchema } from '@trek/shared';
 
 const MASKED_VALUE = '••••••••';
 
 /**
  * /api/settings — per-user key/value preferences.
  *
- * Byte-identical to the legacy Express route (server/src/routes/settings.ts):
- * get-all, single upsert (400 without a key, no-op on the masked sentinel), and
- * bulk upsert (400 without an object, 500 on a write error). All answer 200.
+ * Supports get-all, validated single and bulk upserts, plus removal of the
+ * common-currency override so the effective administrator default applies.
  */
 @Controller('api/settings')
 @UseGuards(JwtAuthGuard)
@@ -32,8 +32,9 @@ export class SettingsController {
     if (body.value === MASKED_VALUE) {
       return { success: true, key: body.key, unchanged: true };
     }
-    this.settings.upsertSetting(user.id, body.key, body.value);
-    return { success: true, key: body.key, value: body.value };
+    const value = body.key === 'common_currencies' ? this.parseCommonCurrencies(body.value) : body.value;
+    this.settings.upsertSetting(user.id, body.key, value);
+    return { success: true, key: body.key, value };
   }
 
   @Post('bulk')
@@ -43,11 +44,34 @@ export class SettingsController {
       throw new HttpException({ error: 'Settings object is required' }, 400);
     }
     try {
-      const updated = this.settings.bulkUpsertSettings(user.id, body.settings as Record<string, unknown>);
+      const values = body.settings as Record<string, unknown>;
+      if ('common_currencies' in values)
+        values.common_currencies = this.parseCommonCurrencies(values.common_currencies);
+      const updated = this.settings.bulkUpsertSettings(user.id, values);
       return { success: true, updated };
     } catch (err) {
       console.error('Error saving settings:', err);
+      if (err instanceof HttpException) throw err;
       throw new HttpException({ error: 'Error saving settings' }, 500);
     }
+  }
+
+  @Delete(':key')
+  delete(@CurrentUser() user: User, @Param('key') key: string) {
+    const parsedKey = settingResetKeySchema.safeParse(key);
+    if (!parsedKey.success) throw new HttpException({ error: 'Setting cannot be reset' }, 400);
+    return settingResetResponseSchema.parse({
+      success: true,
+      key: parsedKey.data,
+      value: this.settings.deleteSetting(user.id, parsedKey.data),
+    });
+  }
+
+  private parseCommonCurrencies(value: unknown): string[] {
+    const result = commonCurrencyListSchema.safeParse(value);
+    if (!result.success) {
+      throw new HttpException({ error: result.error.issues[0]?.message || 'Invalid common currencies' }, 400);
+    }
+    return result.data;
   }
 }

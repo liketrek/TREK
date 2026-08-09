@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { SettingResetResponse } from '@trek/shared';
+import { describe, it, expect, expectTypeOf, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';
 import { buildUser } from '../../helpers/factories';
@@ -778,6 +779,25 @@ describe('API namespace smoke tests', () => {
   it('settingsApi.set updates a setting', async () => {
     server.use(http.put('/api/settings', () => HttpResponse.json({ ok: true })));
     await expect(settingsApi.set('dark_mode', true)).resolves.toMatchObject({ ok: true });
+  });
+
+  it('settingsApi.reset deletes the typed reset key and returns the typed response', async () => {
+    let requestMethod = '';
+    let requestPath = '';
+    server.use(
+      http.delete('/api/settings/common_currencies', ({ request }) => {
+        requestMethod = request.method;
+        requestPath = new URL(request.url).pathname;
+        return HttpResponse.json({ success: true, key: 'common_currencies', value: ['EUR', 'JPY'] });
+      }),
+    );
+
+    const response = await settingsApi.reset('common_currencies');
+
+    expectTypeOf(response).toEqualTypeOf<SettingResetResponse>();
+    expect(requestMethod).toBe('DELETE');
+    expect(requestPath).toBe('/api/settings/common_currencies');
+    expect(response).toEqual({ success: true, key: 'common_currencies', value: ['EUR', 'JPY'] });
   });
 
   // ── accommodationsApi additional methods ─────────────────────────────────────
