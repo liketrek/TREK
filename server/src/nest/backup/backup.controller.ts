@@ -25,7 +25,7 @@ import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
-import { getUploadTmpDir, MAX_BACKUP_UPLOAD_SIZE } from '../../services/backupService';
+import { getUploadTmpDir, MAX_BACKUP_UPLOAD_SIZE } from './backup.impl';
 
 const UPLOAD = {
   dest: getUploadTmpDir(),

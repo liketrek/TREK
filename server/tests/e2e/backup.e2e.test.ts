@@ -39,7 +39,7 @@ const { backupSvc } = vi.hoisted(() => ({
     MAX_BACKUP_UPLOAD_SIZE: 1024,
   },
 }));
-vi.mock('../../src/services/backupService', () => backupSvc);
+vi.mock('../../src/nest/backup/backup.impl', () => backupSvc);
 
 import { BackupModule } from '../../src/nest/backup/backup.module';
 import { DatabaseModule } from '../../src/nest/database/database.module';

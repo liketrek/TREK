@@ -92,7 +92,7 @@ import {
   backupFileExists,
   listBackups,
   updateAutoSettings,
-} from '../../../src/services/backupService';
+} from '../../../src/nest/backup/backup.impl';
 
 // ---------------------------------------------------------------------------
 // formatSize
@@ -712,6 +712,167 @@ describe('BACKUP-038 restoreFromZip', () => {
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/decompressed size/i);
     expect(unzipperMock.Extract).not.toHaveBeenCalled(); // bailed before extracting
+  });
+});
+
+// ---------------------------------------------------------------------------
+// restoreFromZip — the per-entry extraction loop
+//
+// This is the part of the restore that decides what an attacker-supplied archive is
+// allowed to write, and it had no tests of its own: the zip-slip refusal, the running
+// decompressed-byte cap (the declared size in the central directory is
+// attacker-controlled, so the real guard counts bytes as they land) and the failure
+// path that leaves the process without a reopened DB.
+// ---------------------------------------------------------------------------
+
+/** A minimal unzipper entry: emits `chunks` when its stream is piped. */
+function zipEntry(entryPath: string, chunks: Buffer[] = [Buffer.alloc(8)], type = 'File') {
+  return {
+    path: entryPath,
+    type,
+    uncompressedSize: chunks.reduce((n, c) => n + c.length, 0),
+    stream() {
+      const handlers: Record<string, Array<(arg?: unknown) => void>> = {};
+      return {
+        on(event: string, cb: (arg?: unknown) => void) {
+          (handlers[event] ??= []).push(cb);
+          return this;
+        },
+        destroy: vi.fn(),
+        // The production code pipes AFTER registering handlers, so emitting here is
+        // the moment every listener is in place.
+        pipe(out: { emit(event: string): void }) {
+          for (const chunk of chunks) for (const cb of handlers.data ?? []) cb(chunk);
+          out.emit('finish');
+        },
+      };
+    },
+  };
+}
+
+/** A write stream that only has to carry 'finish' back to the awaiting promise. */
+function fakeWriteStream() {
+  const handlers: Record<string, Array<() => void>> = {};
+  return {
+    on(event: string, cb: () => void) {
+      (handlers[event] ??= []).push(cb);
+      return this;
+    },
+    destroy: vi.fn(),
+    emit(event: string) {
+      for (const cb of handlers[event] ?? []) cb();
+    },
+  };
+}
+
+describe('BACKUP-061 restoreFromZip extraction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    fsMock.createWriteStream.mockImplementation(() => fakeWriteStream());
+    fsMock.existsSync.mockReturnValue(true);
+    fsMock.statSync.mockReturnValue({ size: 10 });
+  });
+
+  it('BACKUP-061a — refuses an entry whose path escapes the archive root (zip-slip)', async () => {
+    unzipperMock.Open.file.mockResolvedValueOnce({ files: [zipEntry('../../etc/passwd')] });
+
+    const result = await restoreFromZip('/data/tmp/slip.zip');
+
+    expect(result.success).toBe(false);
+    expect(result.status).toBe(400);
+    expect(result.error).toMatch(/escapes the archive root/i);
+    // Nothing of that archive is left behind, and no byte of it was written.
+    expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('restore-'), { recursive: true, force: true });
+    expect(fsMock.createWriteStream).not.toHaveBeenCalled();
+  });
+
+  it('BACKUP-061b — an absolute entry path is refused the same way', async () => {
+    unzipperMock.Open.file.mockResolvedValueOnce({ files: [zipEntry('C:/Windows/system32/evil.dll')] });
+
+    const result = await restoreFromZip('/data/tmp/abs.zip');
+
+    expect(result.success).toBe(false);
+    expect(result.status).toBe(400);
+    expect(fsMock.createWriteStream).not.toHaveBeenCalled();
+  });
+
+  it('BACKUP-061c — directory entries are skipped rather than written', async () => {
+    unzipperMock.Open.file.mockResolvedValueOnce({
+      files: [zipEntry('uploads/', [], 'Directory'), zipEntry('travel.db')],
+    });
+
+    // What happens after extraction is BACKUP-042..045's business; this case only
+    // cares that the directory entry never reached the writer.
+    await restoreFromZip('/data/tmp/dirs.zip').catch(() => undefined);
+
+    expect(fsMock.createWriteStream).toHaveBeenCalledTimes(1);
+  });
+
+  it('BACKUP-061d — stops mid-stream once the ACTUAL decompressed bytes cross the cap', async () => {
+    // The declared size is a lie: the central directory claims 8 bytes while the
+    // stream delivers well past the 5 GB cap. Only the running total catches this.
+    const lying = zipEntry('travel.db', [Buffer.alloc(3 * 1024 * 1024 * 1024), Buffer.alloc(3 * 1024 * 1024 * 1024)]);
+    lying.uncompressedSize = 8;
+    unzipperMock.Open.file.mockResolvedValueOnce({ files: [lying] });
+
+    const result = await restoreFromZip('/data/tmp/liar.zip');
+
+    expect(result.success).toBe(false);
+    expect(result.status).toBe(400);
+    expect(result.error).toMatch(/decompressed size/i);
+    expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('restore-'), { recursive: true, force: true });
+  });
+
+  it('BACKUP-061e — a stream error is not swallowed as a size refusal', async () => {
+    const entry = zipEntry('travel.db');
+    entry.stream = () => {
+      const handlers: Record<string, Array<(arg?: unknown) => void>> = {};
+      return {
+        on(event: string, cb: (arg?: unknown) => void) {
+          (handlers[event] ??= []).push(cb);
+          return this;
+        },
+        destroy: vi.fn(),
+        pipe() {
+          for (const cb of handlers.error ?? []) cb(new Error('corrupt deflate stream'));
+        },
+      };
+    };
+    unzipperMock.Open.file.mockResolvedValueOnce({ files: [entry] });
+
+    // A corrupt stream is NOT dressed up as a 400 "too large": it leaves the function
+    // as a throw, which is what makes the controller answer 500 rather than telling the
+    // admin their perfectly-sized backup is over the cap.
+    await expect(restoreFromZip('/data/tmp/corrupt.zip')).rejects.toThrow('corrupt deflate stream');
+    expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('restore-'), { recursive: true, force: true });
+  });
+
+  it('BACKUP-061f — a reopen failure after the swap reports "restart required", not success', async () => {
+    unzipperMock.Open.file.mockResolvedValueOnce({ files: [zipEntry('travel.db')] });
+    const restored = {
+      prepare: vi
+        .fn()
+        .mockReturnValueOnce({ get: vi.fn().mockReturnValue({ integrity_check: 'ok' }) })
+        .mockReturnValueOnce({
+          all: vi.fn().mockReturnValue([{ name: 'users' }, { name: 'trips' }, { name: 'trip_members' }, { name: 'places' }, { name: 'days' }]),
+        }),
+      close: vi.fn(),
+    };
+    DatabaseMock.mockImplementation(function () {
+      return restored;
+    });
+    fsMock.existsSync.mockImplementation((path: string) => !String(path).includes('uploads'));
+    dbMock.reinitialize.mockImplementationOnce(() => {
+      throw new Error('database is locked');
+    });
+
+    const result = await restoreFromZip('/data/tmp/ok.zip');
+
+    // The files already landed, so this is neither a success nor a plain failure: the
+    // admin has to restart, and the message has to say so.
+    expect(result.success).toBe(false);
+    expect(result.status).toBe(500);
+    expect(result.error).toMatch(/restart the server/i);
   });
 });
 

@@ -48,14 +48,28 @@ remains as the platform underneath `@nestjs/platform-express`.
   wiring sheet named throughout the log below — is now
   `PluginRpcHostFactory` and injects two things. See
   `plugins/host/rpc-kit/README.md`.
+- **Plugin module split (complete):** `PluginsModule` was 21 controllers, 24 domain
+  imports and 10 providers in one class, so `AdminModule` importing it for one
+  cascade-disable call inherited the whole graph. It is now `PluginsRuntimeModule`
+  (supervisor, capability router, hook contracts — the half with the domain imports),
+  `PluginContributionsModule` (the 14 read-only hook controllers, in
+  `plugins/contributions/`), `PluginOAuthModule` (`plugins/oauth/`) and a composition
+  root holding the install and delivery controllers. `AdminModule` imports the runtime
+  alone. Note the invariant the boot-time coverage check now depends on: importing
+  `PluginsRuntimeModule` must pull in EVERY domain that owns part of the wire surface,
+  which is why `WeatherModule` sits in its import list.
 - **Guards (BE-Phase 2, in progress):** the JWT verify lives in `auth/`, and
   `middleware/auth.ts`, `validate.ts` and `idempotency.ts` are deleted; the three
   addon guards are one `AddonGuard` + `@RequireAddon`; the demo-mode block is one
   condition. Still open: `TripAccessGuard`, default-deny, the MFA policy.
 
-`src/services/` is down to one top-level file (backup) plus the `airtrail/`
-directory. Both wait on an open decision: backup on the plugins module split and
-the db-lifecycle question, airtrail on the credential handling. Note that the trip-access and
+`src/services/` is down to the `airtrail/` directory, which waits on the credential
+decision. Backup has moved in: `services/backupService.ts` is now
+`nest/backup/backup.impl.ts`, imported only by its own domain. It stays a module of
+free functions rather than becoming methods, because the restore path closes and
+reinitializes the core DB handle and rewriting that shape in the same step as the move
+would make a regression there impossible to bisect — the db-lifecycle question is the
+LAST step of that fold, not part of it. Note that the trip-access and
 `canEdit` methods on the domain services are **not** dead weight waiting for a
 guard: their callers are overwhelmingly the `*.mcp.ts` tools, which never pass
 through an HTTP guard. In the five domains piloted for `TripAccessGuard`, 40 of
@@ -95,7 +109,7 @@ Two shapes, and the choice is settled:
 from the app after `buildApp()` — the way `bootstrap.ts` hands the `/mcp`
 handler its registry. The declaration is **structural** (`{ backups: {
 createBackup } }`), never the provider class: importing `BackupService` would
-pull in `src/nest/backup` → `src/services/backupService` → `src/scheduler` and
+pull in `src/nest/backup` → `nest/backup/backup.impl` → `src/scheduler` and
 close a cycle.
 
 **`<domain>.bridge.ts` is the older shape** and still correct for the MCP
@@ -163,6 +177,20 @@ query/body, HTTP status, `Set-Cookie`, and JSON body — including bespoke error
 strings. Where the legacy route returns a hand-written error (e.g. weather's
 `{ error: 'Latitude and longitude are required' }`), reproduce that exact body in
 the controller rather than relying on the generic `ZodValidationPipe` envelope.
+
+## Coverage is gated per domain, as a ratchet
+
+`server/vitest.config.ts` carries one threshold entry per `src/nest/<domain>/`, set at
+that domain's measured coverage minus one point. The single repo-wide 80% it replaced
+let a well-covered domain subsidise a thin one — `booking-import` sits at 50% and
+`integrations` at 20%, and the aggregate still cleared the bar, so either could have
+lost another ten points with the build staying green.
+
+Regenerate the block with `node scripts/coverage-thresholds.mjs` after a run that
+RAISED coverage. Raise an entry when you improve a domain; never lower one to make a
+build pass. The script reads `coverage/coverage-summary.json` rather than the text
+reporter on purpose: the text reporter prints one row per DIRECTORY, so a domain with
+subdirectories reads several points higher there than it actually is.
 
 ## How to write the tests
 

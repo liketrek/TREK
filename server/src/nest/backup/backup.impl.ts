@@ -1,23 +1,23 @@
 import archiver from 'archiver';
 import unzipper from 'unzipper';
 import path from 'path';
-import { readEnv } from '../app-config';
+import { readEnv } from '../../app-config';
 import fs from 'fs';
 import Database from 'better-sqlite3';
-import { db, closeDb, reinitialize } from '../db/database';
-import * as scheduler from '../scheduler';
-import { invalidatePermissionsCache } from '../nest/permissions/permissions.bridge';
-import { pluginsCodeRoot, pluginsDataRoot } from '../nest/plugins/paths';
-import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../nest/plugins/plugin-backup';
-import { snapshotAllPluginDataDbs } from '../nest/plugins/host/plugin-data.service';
+import { db, closeDb, reinitialize } from '../../db/database';
+import * as scheduler from '../../scheduler';
+import { invalidatePermissionsCache } from '../permissions/permissions.bridge';
+import { pluginsCodeRoot, pluginsDataRoot } from '../plugins/paths';
+import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../plugins/plugin-backup';
+import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
 
 // ---------------------------------------------------------------------------
 // Paths
 // ---------------------------------------------------------------------------
 
-const dataDir = path.join(__dirname, '../../data');
+const dataDir = path.join(__dirname, '../../../data');
 const backupsDir = path.join(dataDir, 'backups');
-const uploadsDir = path.join(__dirname, '../../uploads');
+const uploadsDir = path.join(__dirname, '../../../uploads');
 
 // Compressed upload cap for restore archives. Defaults to 500 MB, raisable via
 // BACKUP_UPLOAD_LIMIT_MB for instances whose backups (uploads/ included) grow

@@ -62,7 +62,7 @@ function saveSettings(settings: BackupSettings): void {
  *
  * The shapes are structural on purpose: the scheduler names the capability it
  * wants, never the provider class. Importing BackupService here would drag in
- * src/nest/backup → src/services/backupService → src/scheduler and put the
+ * src/nest/backup → src/nest/backup/backup.impl → src/scheduler and put the
  * cycle straight back — the same cycle the lazy `await import()` in runBackup
  * existed to dodge.
  *

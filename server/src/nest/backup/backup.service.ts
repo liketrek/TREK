@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import * as svc from '../../services/backupService';
+import * as svc from './backup.impl';
 
 /**
- * Thin Nest wrapper around the existing backup service. The zip packing/restore,
- * the auto-backup scheduler settings, the filename validation, the rate-limit
- * bookkeeping and the tmp-dir all reuse the legacy code unchanged.
+ * The backup domain's injectable face.
+ *
+ * The implementation moved here from src/services/backupService.ts with the code
+ * unchanged, and stays a module rather than becoming methods on this class: the zip
+ * packing and the restore path close and reinitialize the core DB handle, which is the
+ * single most dangerous sequence in the server. Rewriting its shape and moving it in
+ * one step would make a regression there impossible to bisect. The DB-lifecycle
+ * question is deliberately the LAST step of this fold, not part of the move.
  */
 @Injectable()
 export class BackupService {
