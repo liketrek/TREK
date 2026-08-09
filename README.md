@@ -476,6 +476,15 @@ The Atlas map's country and sub-national (province/county) boundaries come from
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
 for full third-party attributions.
 
+## AI usage
+
+We use LLM-assisted coding tools across parts of this codebase, from translations and
+tests to entire features. Every change goes through a pull request and is tested before
+it ships, and someone here is responsible for it either way.
+
+See [**How we use AI in TREK**](https://github.com/liketrek/TREK/discussions/1851) for
+the details.
+
 ## License
 
 TREK is [AGPL v3](LICENSE). Self-host freely for personal or internal company use. If you modify and offer TREK as a network service to third parties, your modifications must be open-sourced under the same licence.
