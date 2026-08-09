@@ -123,6 +123,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Dettagli del luogo',
   'admin.placesDetails.subtitle':
     "Recupera informazioni dettagliate sul luogo (orari, valutazione, sito web) dall'API Google Places. Disabilita per risparmiare la quota API.",
+  'admin.placesEnrich.title': 'Arricchimento luoghi',
+  'admin.placesEnrich.subtitle':
+    'Mostra immagini e una descrizione mentre aggiungi un luogo. Wikipedia e OpenStreetMap sono sempre usati; Google si aggiunge se Foto luoghi o Dettagli luoghi sono attivi.',
   'admin.bagTracking.title': 'Tracciamento valigia',
   'admin.bagTracking.subtitle': "Abilita il peso e l'assegnazione della valigia per gli elementi della lista valigia",
   'admin.collab.chat.title': 'Chat',

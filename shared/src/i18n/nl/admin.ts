@@ -124,6 +124,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Plaatsdetails',
   'admin.placesDetails.subtitle':
     'Haalt gedetailleerde plaatsinformatie (openingstijden, beoordeling, website) op via de Google Places API. Schakel uit om API-quota te besparen.',
+  'admin.placesEnrich.title': 'Plaatsverrijking',
+  'admin.placesEnrich.subtitle':
+    "Toont afbeeldingen en een beschrijving bij het toevoegen van een plaats. Wikipedia en OpenStreetMap worden altijd gebruikt; Google komt erbij als Plaatsfoto's of Plaatsdetails aanstaan.",
   'admin.bagTracking.title': 'Bagagetracking',
   'admin.bagTracking.subtitle': 'Gewicht en bagagetoewijzing inschakelen voor paklijstitems',
   'admin.collab.chat.title': 'Chat',

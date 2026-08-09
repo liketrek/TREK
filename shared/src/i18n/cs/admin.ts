@@ -122,6 +122,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Podrobnosti o místě',
   'admin.placesDetails.subtitle':
     'Načítání podrobných informací o místě (hodiny, hodnocení, web) z Google Places API. Zakázáním ušetříte kvótu API.',
+  'admin.placesEnrich.title': 'Obohacení míst',
+  'admin.placesEnrich.subtitle':
+    'Zobrazí obrázky a popis při přidávání místa. Wikipedie a OpenStreetMap se používají vždy; Google se přidá, když jsou zapnuté Fotky míst nebo Detaily míst.',
   'admin.bagTracking.title': 'Sledování zavazadel',
   'admin.bagTracking.subtitle': 'Povolit váhu a přiřazení k zavazadlům u položek balení',
   'admin.collab.chat.title': 'Chat',

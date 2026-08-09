@@ -46,7 +46,9 @@ export function useAdmin() {
 
   // Places details
   const [placesDetailsEnabled, setPlacesDetailsEnabledState] = useState<boolean>(true)
+  const [placesEnrichEnabled, setPlacesEnrichEnabledState] = useState<boolean>(true)
   useEffect(() => { adminApi.getPlacesDetails().then(d => setPlacesDetailsEnabledState(d.enabled)).catch(() => {}) }, [])
+  useEffect(() => { adminApi.getPlacesEnrich().then(d => setPlacesEnrichEnabledState(d.enabled)).catch(() => {}) }, [])
 
   // Collab features
   const [collabFeatures, setCollabFeatures] = useState<{ chat: boolean; notes: boolean; polls: boolean; whatsnext: boolean }>({ chat: true, notes: true, polls: true, whatsnext: true })
@@ -107,7 +109,7 @@ export function useAdmin() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false)
 
-  const { user: currentUser, updateApiKeys, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, logout } = useAuthStore()
+  const { user: currentUser, updateApiKeys, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, logout } = useAuthStore()
   const navigate = useNavigate()
   const toast = useToast()
 
@@ -361,7 +363,7 @@ export function useAdmin() {
     // store-derived
     demoMode, serverTimezone, hour12, mcpEnabled, devMode, currentUser,
     updateApiKeys, setAppRequireMfa, setTripRemindersEnabled,
-    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, logout,
+    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, logout,
     navigate, toast,
     // state + setters
     activeTab, setActiveTab, users, setUsers, stats, isLoading,
@@ -371,6 +373,7 @@ export function useAdmin() {
     placesPhotosEnabled, setPlacesPhotosEnabledState,
     placesAutocompleteEnabled, setPlacesAutocompleteEnabledState,
     placesDetailsEnabled, setPlacesDetailsEnabledState,
+    placesEnrichEnabled, setPlacesEnrichEnabledState,
     collabFeatures, setCollabFeatures,
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,

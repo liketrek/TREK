@@ -166,6 +166,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Chi tiết địa điểm',
   'admin.placesDetails.subtitle':
     'Tìm nạp thông tin chi tiết về địa điểm (giờ, xếp hạng, trang web) từ Google Địa điểm API. Tắt để lưu hạn ngạch API.',
+  'admin.placesEnrich.title': 'Làm giàu địa điểm',
+  'admin.placesEnrich.subtitle':
+    'Hiển thị hình ảnh và mô tả khi thêm địa điểm. Wikipedia và OpenStreetMap luôn được dùng; Google được thêm vào khi bật Ảnh địa điểm hoặc Chi tiết địa điểm.',
   'admin.bagTracking.title': 'Theo dõi túi',
   'admin.bagTracking.subtitle': 'Cho phép phân bổ trọng lượng và túi để đóng gói các mặt hàng',
   'admin.collab.chat.title': 'Trò chuyện',

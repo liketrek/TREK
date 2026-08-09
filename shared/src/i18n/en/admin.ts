@@ -163,6 +163,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Place Details',
   'admin.placesDetails.subtitle':
     'Fetch detailed place information (hours, rating, website) from the Google Places API. Disable to save API quota.',
+  'admin.placesEnrich.title': 'Place Enrichment',
+  'admin.placesEnrich.subtitle':
+    'Show pictures and a description while adding a place. Wikipedia and OpenStreetMap are always used; Google is added on top when Place Photos or Place Details are on.',
   'admin.bagTracking.title': 'Bag Tracking',
   'admin.bagTracking.subtitle': 'Enable weight and bag assignment for packing items',
   'admin.collab.chat.title': 'Chat',

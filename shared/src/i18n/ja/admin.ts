@@ -155,6 +155,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': '場所の詳細',
   'admin.placesDetails.subtitle':
     'Google Places APIから営業時間、評価、ウェブサイトなどの詳細情報を取得します。APIクォータ節約のため無効にできます。',
+  'admin.placesEnrich.title': '場所の情報補完',
+  'admin.placesEnrich.subtitle':
+    '場所を追加するときに写真と説明を表示します。WikipediaとOpenStreetMapは常に使用され、「場所の写真」または「場所の詳細」が有効な場合はGoogleも追加されます。',
   'admin.bagTracking.title': 'バッグ管理',
   'admin.bagTracking.subtitle': '持ち物の重量とバッグ割り当てを有効化',
   'admin.collab.chat.title': 'チャット',

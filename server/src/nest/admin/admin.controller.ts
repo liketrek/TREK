@@ -213,6 +213,16 @@ export class AdminController {
     return result;
   }
 
+  @Get('places-enrich')
+  getPlacesEnrich() { return this.admin.getPlacesEnrich(); }
+
+  @Put('places-enrich')
+  updatePlacesEnrich(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
+    const result = this.admin.updatePlacesEnrich(body.enabled);
+    this.audit.writeAudit({ userId: user.id, action: 'admin.places_enrich', ip: getClientIp(req), details: { enabled: result.enabled } });
+    return result;
+  }
+
   @Get('collab-features')
   getCollabFeatures() { return this.addons.getCollabFeatures(); }
 

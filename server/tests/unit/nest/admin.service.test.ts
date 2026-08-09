@@ -505,6 +505,23 @@ describe('admin.bridge', () => {
 
 describe('admin quirk fixes (post-fold)', () => {
 
+  it('ADMIN-SVC-071b — places enrichment is fail-OPEN, so no migration is needed for it', () => {
+    // Deliberately the other way round from the three above: unset means on, and
+    // PlaceEnrichmentService reads the same setting the same way. Reading it
+    // fail-closed here would show "off" in the panel while the feature ran.
+    expect(svc.getPlacesEnrich()).toEqual({ enabled: true });
+
+    svc.updatePlacesEnrich(false);
+    expect(svc.getPlacesEnrich()).toEqual({ enabled: false });
+
+    svc.updatePlacesEnrich(true);
+    expect(svc.getPlacesEnrich()).toEqual({ enabled: true });
+
+    // Only the literal 'false' switches it off; anything else stays on.
+    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_enrich_enabled', 'garbage')").run();
+    expect(svc.getPlacesEnrich()).toEqual({ enabled: true });
+  });
+
   it('ADMIN-SVC-072 — updateUser rejects an empty username/email instead of silently no-opping', () => {
     const { user } = createUser(testDb);
     expect(updateUser(String(user.id), { username: '' }) as any).toMatchObject({ status: 400, error: 'Username cannot be empty' });
