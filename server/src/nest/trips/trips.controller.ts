@@ -28,7 +28,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { writeAudit, getClientIp, logInfo } from '../../services/auditLog';
 import { isDemoEmail } from '../../services/demo';
-import { NotFoundError, ValidationError } from '../../services/tripService';
+import { GuestClaimError, NotFoundError, ValidationError } from '../../services/tripService';
 import { saveUnsplashCover, isUnsplashCoverUrl } from '../../services/unsplashService';
 
 const MAX_COVER_SIZE = 20 * 1024 * 1024;
@@ -366,6 +366,48 @@ export class TripsController {
       throw new HttpException({ error: 'Guest not found' }, 404);
     }
     return { success: true };
+  }
+
+  private mapGuestClaimError(error: unknown): never {
+    if (error instanceof GuestClaimError) {
+      const status = error.code === 'GUEST_CLAIM_FORBIDDEN' ? 403 : 409;
+      throw new HttpException({ error: error.message, code: error.code, conflicts: error.conflicts }, status);
+    }
+    throw error;
+  }
+
+  @Post(':id/guest-claims/prompt')
+  guestClaimPrompt(@CurrentUser() user: User, @Param('id') id: string) {
+    try {
+      return this.trips.consumeGuestClaimPrompt(id, user.id);
+    } catch (error) {
+      return this.mapGuestClaimError(error);
+    }
+  }
+
+  @Get(':id/guest-claims/candidates')
+  guestClaimCandidates(@CurrentUser() user: User, @Param('id') id: string) {
+    try {
+      return { candidates: this.trips.listGuestClaimCandidates(id, user.id) };
+    } catch (error) {
+      return this.mapGuestClaimError(error);
+    }
+  }
+
+  @Post(':id/guests/:userId/claim')
+  claimGuest(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('userId') guestUserId: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    try {
+      const result = this.trips.claimGuest(id, Number(guestUserId), user.id);
+      this.trips.broadcast(id, 'guest:claimed', { guestUserId: Number(guestUserId), claimedByUserId: user.id }, socketId);
+      return result;
+    } catch (error) {
+      return this.mapGuestClaimError(error);
+    }
   }
 
   @Get(':id/bundle')

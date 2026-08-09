@@ -440,6 +440,8 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
       // Trip
       case 'trip:updated':
         return { trip: payload.trip as Trip }
+      case 'guest:claimed':
+        return {}
 
       // Files
       case 'file:created':
@@ -485,6 +487,14 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
       get().refreshDays(updated.id)
       get().loadReservations(updated.id)
       window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+    }
+  }
+
+  if (type === 'guest:claimed') {
+    const tripId = get().trip?.id
+    if (tripId) {
+      void get().hydrateActiveTrip(tripId)
+      window.dispatchEvent(new CustomEvent('guest:claimed'))
     }
   }
 

@@ -71,6 +71,8 @@ The **Persons** column behaves differently depending on the trip:
 
 Click an assigned member chip again to mark them as **paid** (the chip shows a green ring).
 
+Guests can participate as expense shares, payers, itemized-ticket participants, and settlement-payment parties. If an Account member later [claims their Guest identity](Trip-Members-and-Sharing#claiming-your-guest-identity), TREK preserves the original amounts, custom shares, paid state, currencies, frozen exchange rates, and participant count while moving those records to the account. The claim is rejected as a whole when both identities occur in the same financial role or a settlement would become self-payment; there is no partial financial migration.
+
 ![Add Expense](assets/BudgetAddExpensive.gif)
 
 ## Settlement calculator

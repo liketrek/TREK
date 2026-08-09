@@ -39,11 +39,11 @@ Guests appear in their own **Guests** section below the members list, each with 
 
 ### Adding a guest
 
-Only the **trip owner** can manage guests (this is stricter than inviting members, which uses the `member_manage` permission). In the owner's view, the Guests section has a **Guest name** field and an **Add guest** button — type a name and click Add. A guest has a display name only: no email, no password, and no way to sign in.
+Only the **trip owner** can manage guests (this is stricter than inviting members, which uses the `member_manage` permission). In the owner's view, the Guests section has a **Guest name** field and an **Add guest** button — type a name and click Add. A guest has a display name but no credentials and no way to sign in. TREK uses an internal, non-deliverable address solely to satisfy the account record; it is never shown or used for messages.
 
 Other members see the Guests section too (when guests exist) but cannot add, rename or remove them.
 
-> If two guests share a name, TREK keeps them distinct internally (the second "Anna" becomes "Anna 2"), so assignments never get confused.
+> If two guests share a name, TREK keeps both display names unchanged and distinguishes their internal identities, so assignments never get confused.
 
 ### What a guest can be assigned to
 
@@ -53,6 +53,16 @@ Once added, a guest can be picked anywhere a member can:
 - **Packing** — assigned to packing items and categories (see [Packing-Lists](Packing-Lists)).
 - **To-dos** — set as a task assignee.
 - **Day plan** — added as a participant on activities and places.
+
+The assignment picker is limited to the trip's owner, Account members, and Guests; people outside the trip cannot be assigned.
+
+### Claiming your Guest identity
+
+When a newly added Account member first opens the trip, TREK asks once whether one of its Guests represents them. No Guest is preselected. Choosing **None of these are me** or closing the dialog dismisses this one-time prompt, but the member can reopen the flow later with **Claim a guest** in the members panel. The owner cannot claim a Guest.
+
+Before confirmation, TREK shows the number of affected expenses, settlement payments, itinerary activities, to-dos, and packing records. Claiming is irreversible: all current trip participation moves to the signed-in member and the Guest disappears. Other people viewing the trip refresh automatically.
+
+TREK blocks the entire claim if combining the identities would make a financial record ambiguous—for example, both identities share or paid the same expense, appear on the same itemized ticket, or a settlement would become a payment to yourself. Nothing is partially moved. Resolve the listed expenses or payments and try again.
 
 ### What a guest can never do
 

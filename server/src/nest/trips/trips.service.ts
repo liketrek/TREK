@@ -111,6 +111,18 @@ export class TripsService {
     return tripSvc.deleteGuest(tripId, guestUserId);
   }
 
+  listGuestClaimCandidates(tripId: string, claimantUserId: number) {
+    return tripSvc.listGuestClaimCandidates(tripId, claimantUserId);
+  }
+
+  consumeGuestClaimPrompt(tripId: string, claimantUserId: number) {
+    return tripSvc.consumeGuestClaimPrompt(tripId, claimantUserId);
+  }
+
+  claimGuest(tripId: string, guestUserId: number, claimantUserId: number) {
+    return tripSvc.claimGuest(tripId, guestUserId, claimantUserId);
+  }
+
   exportICS(tripId: string) {
     return tripSvc.exportICS(tripId);
   }
