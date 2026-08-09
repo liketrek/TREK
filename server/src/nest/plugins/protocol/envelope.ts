@@ -160,6 +160,25 @@ export const KNOWN_METHODS = [
 ] as const;
 export type KnownMethod = (typeof KNOWN_METHODS)[number];
 
+/**
+ * The three methods the router registers UNCONDITIONALLY (see rpc-host.ts, the block
+ * after the last `if (has(...))`). `plugins.call` and `events.emit` are authorized by
+ * the router's declared-dependency-edge check instead of by a grant, and `settings.get`
+ * only ever returns THIS plugin's config for the acting user, so it needs none.
+ *
+ * They MUST stay disjoint from KNOWN_METHODS. Putting them there would give each one a
+ * METHOD_PERMISSION row, and that table is what isAuditable (plugin-audit.ts) reads;
+ * settings.get is deliberately the one unconditional method that is NOT audited. It
+ * would also change the UNKNOWN_METHOD/PERMISSION_DENIED split documented above.
+ */
+export const UNCONDITIONAL_METHODS = ['plugins.call', 'events.emit', 'settings.get'] as const;
+export type UnconditionalMethod = (typeof UNCONDITIONAL_METHODS)[number];
+
+/** `true` only when the two unions share no member; otherwise `never`, which fails to compile. */
+type AssertDisjoint<A extends string, B extends string> = [Extract<A, B>] extends [never] ? true : never;
+/** Compile-time proof of the invariant the comment above states. */
+export const UNCONDITIONAL_METHODS_ARE_DISJOINT: AssertDisjoint<UnconditionalMethod, KnownMethod> = true;
+
 /** Which permission unlocks which method(s). The single source for the router. */
 export const METHOD_PERMISSION = {
   'db.exec': 'db:own',
