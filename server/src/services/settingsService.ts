@@ -1,6 +1,6 @@
 import { db } from '../db/database';
 import { decrypt_api_key, maybe_encrypt_api_key } from './apiKeyCrypto';
-import { normalizeAppearance } from '@trek/shared';
+import { commonCurrencyListSchema, normalizeAppearance } from '@trek/shared';
 
 const ENCRYPTED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key']);
 // Encrypted keys that are masked (••••••••) when returned to the client.
@@ -15,6 +15,7 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   // Instance-wide default currency for Costs (new users inherit it until they
   // pick their own). Free-form ISO code, validated on the client.
   'default_currency',
+  'common_currencies',
   'blur_booking_codes',
   'map_tile_url',
   // Instance-wide GL map defaults: admins can set Mapbox token/style or
@@ -89,6 +90,8 @@ export function setAdminUserDefaults(partial: Record<string, unknown>): void {
         continue;
       }
 
+      const normalizedValue = normalizeSettingValue(key, value);
+
       if (BOOLEAN_KEYS.has(typedKey) && typeof value !== 'boolean') {
         throw new Error(`Setting ${key} must be a boolean`);
       }
@@ -100,8 +103,8 @@ export function setAdminUserDefaults(partial: Record<string, unknown>): void {
       // Encrypt sensitive defaults (the shared Mapbox token) at rest, like the
       // per-user equivalents; everything else is stored as plain JSON.
       const stored = ENCRYPTED_SETTING_KEYS.has(key)
-        ? (maybe_encrypt_api_key(String(value)) ?? String(value))
-        : JSON.stringify(value);
+        ? (maybe_encrypt_api_key(String(normalizedValue)) ?? String(normalizedValue))
+        : JSON.stringify(normalizedValue);
       upsert.run(appKey, stored);
     }
     db.exec('COMMIT');
@@ -133,14 +136,20 @@ export function getUserSettings(userId: number): Record<string, unknown> {
   }
 
   // Admin defaults fill in only for keys the user hasn't explicitly set
-  return { ...adminDefaults, ...userSettings };
+  return { common_currencies: [], ...adminDefaults, ...userSettings };
+}
+
+function normalizeSettingValue(key: string, value: unknown): unknown {
+  if (key === 'common_currencies') return commonCurrencyListSchema.parse(value);
+  if (key === 'appearance') return normalizeAppearance(value);
+  return value;
 }
 
 function serializeValue(key: string, value: unknown): string {
   // The appearance blob drives the DOM on the client — normalize it on the way
   // in so a malformed/partial/future-versioned payload can never be stored (and
   // thus never reach the writer). Unknown/invalid fields collapse to the default.
-  if (key === 'appearance') value = normalizeAppearance(value);
+  value = normalizeSettingValue(key, value);
   const raw = typeof value === 'object' ? JSON.stringify(value) : String(value !== undefined ? value : '');
   if (ENCRYPTED_SETTING_KEYS.has(key)) return maybe_encrypt_api_key(raw) ?? raw;
   return raw;
@@ -151,6 +160,11 @@ export function upsertSetting(userId: number, key: string, value: unknown) {
     INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)
     ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value
   `).run(userId, key, serializeValue(key, value));
+}
+
+export function deleteSetting(userId: number, key: string): unknown {
+  db.prepare('DELETE FROM settings WHERE user_id = ? AND key = ?').run(userId, key);
+  return getUserSettings(userId)[key];
 }
 
 export function bulkUpsertSettings(userId: number, settings: Record<string, unknown>) {

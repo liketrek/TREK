@@ -8,6 +8,7 @@ import {
   mapsSearchResultSchema, mapsAutocompleteResultSchema, mapsPlaceDetailsResultSchema,
   mapsPlacePhotoResultSchema, mapsReverseResultSchema, mapsResolveUrlResultSchema,
   type NotificationRespondRequest,
+  settingResetResponseSchema, type SettingResetKey, type SettingResetResponse,
   type SettingUpsertRequest, type SettingsBulkRequest,
   type JourneyCreateRequest, type JourneyAddTripRequest,
   type JourneyReorderEntriesRequest, type JourneyProviderPhotosRequest,
@@ -923,6 +924,10 @@ export const settingsApi = {
     const body: SettingsBulkRequest = { settings }
     return apiClient.post('/settings/bulk', body).then(r => r.data)
   },
+  reset: (key: SettingResetKey): Promise<SettingResetResponse> =>
+    apiClient
+      .delete(`/settings/${key}`)
+      .then(r => parseInDev(settingResetResponseSchema, r.data, 'settings.reset')),
 }
 
 export const accommodationsApi = {
