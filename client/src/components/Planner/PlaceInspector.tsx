@@ -44,6 +44,49 @@ function setSessionCache(key, value) {
   try { sessionStorage.setItem(key, JSON.stringify(value)) } catch {}
 }
 
+const creditCache = new Map()
+
+/**
+ * Names whoever made the picture shown in the avatar.
+ *
+ * Only cached provider photos carry a credit, and their proxy URL embeds the
+ * cache key. Anything else (an uploaded image, a legacy remote URL) renders
+ * nothing. Commons pictures are largely CC BY-SA, so this is an obligation
+ * rather than a nicety — the picker credits them while choosing, this keeps the
+ * credit visible afterwards.
+ */
+function PhotoCredit({ imageUrl }) {
+  const [credit, setCredit] = useState(null)
+  const key = useMemo(() => {
+    const match = /^\/api\/maps\/place-photo\/(.+)\/bytes$/.exec(imageUrl || '')
+    return match ? decodeURIComponent(match[1]) : null
+  }, [imageUrl])
+
+  useEffect(() => {
+    if (!key) { setCredit(null); return }
+    if (creditCache.has(key)) { setCredit(creditCache.get(key)); return }
+    let alive = true
+    mapsApi.placePhotoCredit(key).then(data => {
+      creditCache.set(key, data.credit)
+      if (alive) setCredit(data.credit)
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [key])
+
+  if (!credit) return null
+  return (
+    <span
+      className="text-content-faint"
+      title={credit}
+      style={{
+        display: 'block', marginTop: 4, maxWidth: 72,
+        fontSize: 'calc(9px * var(--fs-scale-caption, 1))', lineHeight: 1.2,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
+      }}
+    >{credit}</span>
+  )
+}
+
 function usePlaceDetails(googlePlaceId, osmId, language) {
   const [details, setDetails] = useState(null)
   const detailId = googlePlaceId || osmId
@@ -684,6 +727,7 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
                     onRemove={() => onUpdatePlace(place.id, { image_url: null })} />
                 : <PlaceAvatar place={place} category={category} size={52} />}
             </div>
+            {openNow === null && <PhotoCredit imageUrl={place.image_url} />}
             {openNow !== null && (
               <span style={{
                 position: 'absolute', bottom: -7, left: '50%', transform: 'translateX(-50%)',
