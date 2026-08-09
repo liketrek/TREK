@@ -25,6 +25,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useTripStore } from '../../store/tripStore';
 import type { BudgetItem } from '../../types';
 import { currencyDecimals, currencyLocale, formatMoney } from '../../utils/formatters';
+import CurrencySelect from '../shared/CurrencySelect';
 import { CustomDatePicker } from '../shared/CustomDateTimePicker';
 import CustomSelect from '../shared/CustomSelect';
 import GuestBadge from '../shared/GuestBadge';
@@ -2434,16 +2435,13 @@ function TripRateSettings({
           {t('costs.exchangeRates.description')}
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 10 }}>
-          <CustomSelect
+          <CurrencySelect
             value={currency}
             onChange={(v) => {
-              setCurrency(String(v));
+              setCurrency(v);
               setPreview(null);
             }}
-            searchable
-            options={currenciesWith(currency)
-              .filter((c) => c !== tripCurrency)
-              .map((c) => ({ value: c, label: c }))}
+            availableCurrencies={currenciesWith(currency).filter((c) => c !== tripCurrency)}
           />
           <div
             className="border border-edge bg-surface-input"
@@ -2841,13 +2839,7 @@ function SettlementModal({
           </div>
           <div style={{ minWidth: 0 }}>
             <label className={labelCls}>{t('costs.currency')}</label>
-            <CustomSelect
-              value={cur}
-              onChange={(v) => setCur(String(v))}
-              searchable
-              options={currenciesWith(cur).map((c) => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
-              style={{ width: '100%' }}
-            />
+            <CurrencySelect value={cur} onChange={setCur} style={{ width: '100%' }} />
           </div>
         </div>
         {cur !== tripCurrency && (
@@ -3331,16 +3323,7 @@ export function ExpenseModal({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div style={{ minWidth: 0 }}>
             <label className={labelCls}>{t('costs.currency')}</label>
-            <CustomSelect
-              value={currency}
-              onChange={(v) => setCurrency(String(v))}
-              searchable
-              options={currenciesWith(currency).map((c) => ({
-                value: c,
-                label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c,
-              }))}
-              style={{ width: '100%' }}
-            />
+            <CurrencySelect value={currency} onChange={setCurrency} style={{ width: '100%' }} />
           </div>
           <div style={{ minWidth: 0 }}>
             <label className={labelCls}>{t('costs.day')}</label>

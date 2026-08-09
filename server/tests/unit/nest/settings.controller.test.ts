@@ -8,7 +8,7 @@ import type { User } from '../../../src/types';
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 
 function svc(o: Partial<SettingsService> = {}): SettingsService {
-  return { getUserSettings: vi.fn(), upsertSetting: vi.fn(), bulkUpsertSettings: vi.fn(), ...o } as unknown as SettingsService;
+  return { getUserSettings: vi.fn(), upsertSetting: vi.fn(), bulkUpsertSettings: vi.fn(), deleteSetting: vi.fn(), ...o } as unknown as SettingsService;
 }
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
@@ -43,6 +43,30 @@ describe('SettingsController', () => {
     const c = new SettingsController(svc({ upsertSetting } as Partial<SettingsService>));
     expect(c.upsert(user, { key: 'theme', value: 'dark' })).toEqual({ success: true, key: 'theme', value: 'dark' });
     expect(upsertSetting).toHaveBeenCalledWith(1, 'theme', 'dark');
+  });
+
+  it('normalizes common currencies and rejects invalid lists with 400', () => {
+    const upsertSetting = vi.fn();
+    const c = new SettingsController(svc({ upsertSetting } as Partial<SettingsService>));
+    expect(c.upsert(user, { key: 'common_currencies', value: ['usd'] })).toEqual({ success: true, key: 'common_currencies', value: ['USD'] });
+    expect(upsertSetting).toHaveBeenCalledWith(1, 'common_currencies', ['USD']);
+    expect(thrown(() => c.upsert(user, { key: 'common_currencies', value: ['ZZZ'] })).status).toBe(400);
+  });
+
+  it('DELETE only resets common currencies and returns the inherited value', () => {
+    const deleteSetting = vi.fn().mockReturnValue(['EUR']);
+    const c = new SettingsController(svc({ deleteSetting } as Partial<SettingsService>));
+    expect(c.delete(user, 'common_currencies')).toEqual({ success: true, key: 'common_currencies', value: ['EUR'] });
+    expect(deleteSetting).toHaveBeenCalledWith(1, 'common_currencies');
+    expect(thrown(() => c.delete(user, 'theme')).status).toBe(400);
+  });
+
+  it('DELETE rejects an invalid effective list returned by the service', () => {
+    const c = new SettingsController(
+      svc({ deleteSetting: vi.fn().mockReturnValue(['ZZZ']) } as Partial<SettingsService>),
+    );
+
+    expect(() => c.delete(user, 'common_currencies')).toThrow();
   });
 
   it('POST /bulk 400 without an object, 500 on a write error, else returns the count', () => {
