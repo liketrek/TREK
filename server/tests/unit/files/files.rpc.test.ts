@@ -207,7 +207,6 @@ describe('FilesRpc writes', () => {
     try {
       const f = build();
       // The demo guard resolves the uploader's email; user 9 is the demo account.
-      (f.files as unknown as { getFileById: unknown });
       const db = {
         canAccessTrip: vi.fn(() => ({ id: 1, user_id: 42 })),
         prepare: vi.fn(() => ({ get: (id: number) => (id === 9 ? { role: 'user', email: 'demo@trek.app' } : { role: 'user', email: 'real@example.test' }) })),
