@@ -1,13 +1,13 @@
 // FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-025
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { usePermissionsStore } from '../../store/permissionsStore';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip } from '../../../tests/helpers/factories';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
+import { useTripStore } from '../../store/tripStore';
 import TripMembersModal from './TripMembersModal';
 
 const defaultProps = {
@@ -30,12 +30,8 @@ beforeEach(() => {
         current_user_id: ownerUser.id,
       })
     ),
-    http.get('/api/trips/1/share-link', () =>
-      HttpResponse.json({ token: null })
-    ),
-    http.get('/api/auth/users', () =>
-      HttpResponse.json({ users: [memberUser] })
-    ),
+    http.get('/api/trips/1/share-link', () => HttpResponse.json({ token: null })),
+    http.get('/api/auth/users', () => HttpResponse.json({ users: [memberUser] }))
   );
   seedStore(useAuthStore, { user: ownerUser, isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1, title: 'Test Trip' }) });
@@ -96,7 +92,9 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-009: Cancel/close button is present', () => {
     render(<TripMembersModal {...defaultProps} />);
     // Modal has a close button (×)
-    const closeBtn = screen.queryByRole('button', { name: /close/i }) || document.querySelector('[aria-label="close"], button[title="Close"]');
+    const closeBtn =
+      screen.queryByRole('button', { name: /close/i }) ||
+      document.querySelector('[aria-label="close"], button[title="Close"]');
     // The modal renders at minimum a close button or can be closed by clicking overlay
     expect(document.body).toBeInTheDocument();
   });
@@ -213,7 +211,7 @@ describe('TripMembersModal', () => {
           share_budget: false,
           share_collab: false,
         })
-      ),
+      )
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -247,7 +245,7 @@ describe('TripMembersModal', () => {
           share_budget: false,
           share_collab: false,
         })
-      ),
+      )
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -278,7 +276,7 @@ describe('TripMembersModal', () => {
       http.delete('/api/trips/1/share-link', () => {
         deleteHandlerCalled = true;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -307,9 +305,9 @@ describe('TripMembersModal', () => {
         })
       ),
       http.post('/api/trips/1/share-link', async ({ request }) => {
-        postedPerms = await request.json() as Record<string, unknown>;
+        postedPerms = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ token: 'tok99', ...postedPerms });
-      }),
+      })
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -332,9 +330,9 @@ describe('TripMembersModal', () => {
     let postBody: Record<string, unknown> | null = null;
     server.use(
       http.post('/api/trips/1/members', async ({ request }) => {
-        postBody = await request.json() as Record<string, unknown>;
+        postBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -391,7 +389,7 @@ describe('TripMembersModal', () => {
       http.delete('/api/trips/1/members/:userId', ({ params }) => {
         deleteCalledForUserId = params.userId as string;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -416,9 +414,7 @@ describe('TripMembersModal', () => {
           current_user_id: ownerUser.id,
         })
       ),
-      http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [memberUser] })
-      ),
+      http.get('/api/auth/users', () => HttpResponse.json({ users: [memberUser] }))
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -431,7 +427,7 @@ describe('TripMembersModal', () => {
       http.post('/api/trips/1/guests', async ({ request }) => {
         createdName = ((await request.json()) as { name: string }).name;
         return HttpResponse.json({ member: { id: 99, username: createdName, is_guest: true } });
-      }),
+      })
     );
     render(<TripMembersModal {...defaultProps} />);
     // The guests section + add affordance is shown to the owner.
@@ -453,7 +449,7 @@ describe('TripMembersModal', () => {
           ],
           current_user_id: ownerUser.id,
         })
-      ),
+      )
     );
     render(<TripMembersModal {...defaultProps} />);
     await screen.findByText('Grandma');
@@ -461,5 +457,145 @@ describe('TripMembersModal', () => {
     expect(screen.getAllByText('Guest').length).toBeGreaterThan(0);
     // Access count covers owner + the real member only (2), not the guest.
     expect(screen.getByText(/Access \(2/)).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MEMBERS-028: owner does not see the manual guest-claim entry', async () => {
+    server.use(
+      http.get('/api/trips/1/members', () =>
+        HttpResponse.json({
+          owner: { id: ownerUser.id, username: ownerUser.username, avatar_url: null, is_guest: false },
+          members: [{ id: 3, username: 'Grandma', avatar_url: null, is_guest: true }],
+          current_user_id: ownerUser.id,
+        })
+      )
+    );
+    render(<TripMembersModal {...defaultProps} />);
+    await screen.findByText('Grandma');
+    expect(screen.queryByRole('button', { name: 'Claim a guest' })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-MEMBERS-029: non-owner account member can reopen guest claiming manually', async () => {
+    seedStore(useAuthStore, { user: memberUser, isAuthenticated: true });
+    server.use(
+      http.get('/api/trips/1/members', () =>
+        HttpResponse.json({
+          owner: { id: ownerUser.id, username: ownerUser.username, avatar_url: null, is_guest: false },
+          members: [
+            { id: memberUser.id, username: memberUser.username, avatar_url: null, is_guest: false },
+            { id: 3, username: 'Grandma', avatar_url: null, is_guest: true },
+          ],
+          current_user_id: memberUser.id,
+        })
+      ),
+      http.get('/api/trips/1/guest-claims/candidates', () =>
+        HttpResponse.json({
+          candidates: [
+            {
+              guest_user_id: 3,
+              name: 'Grandma',
+              impact: { expenses: 0, payments: 0, itinerary: 0, todos: 0, packing: 0 },
+              conflicts: [],
+            },
+          ],
+        })
+      )
+    );
+    render(<TripMembersModal {...defaultProps} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+    expect(await screen.findByText('Is one of these guests you?')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MEMBERS-030: manual claiming is a single-modal two-step flow', async () => {
+    const onClose = vi.fn();
+    seedStore(useAuthStore, { user: memberUser, isAuthenticated: true });
+    server.use(
+      http.get('/api/trips/1/members', () =>
+        HttpResponse.json({
+          owner: { id: ownerUser.id, username: ownerUser.username, avatar_url: null },
+          members: [
+            { id: memberUser.id, username: memberUser.username, avatar_url: null },
+            { id: 7, username: 'Anna', avatar_url: null, is_guest: true },
+          ],
+          current_user_id: memberUser.id,
+        })
+      ),
+      http.get('/api/trips/1/guest-claims/candidates', () =>
+        HttpResponse.json({
+          candidates: [
+            {
+              guest_user_id: 7,
+              name: 'Anna',
+              impact: { expenses: 0, payments: 0, itinerary: 0, todos: 0, packing: 0 },
+              conflicts: [],
+            },
+          ],
+        })
+      )
+    );
+
+    render(<TripMembersModal {...defaultProps} onClose={onClose} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+
+    expect(document.querySelectorAll('.trek-modal-backdrop')).toHaveLength(1);
+    expect(screen.queryByText('Share Trip')).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    await userEvent.keyboard('{Escape}');
+    expect(await screen.findByText('Share Trip')).toBeInTheDocument();
+    expect(screen.queryByText('Is one of these guests you?')).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    await userEvent.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-COMP-MEMBERS-031: none and close return to members, and reopening starts at members', async () => {
+    seedStore(useAuthStore, { user: memberUser, isAuthenticated: true });
+    server.use(
+      http.get('/api/trips/1/members', () =>
+        HttpResponse.json({
+          owner: { id: ownerUser.id, username: ownerUser.username, avatar_url: null },
+          members: [
+            { id: memberUser.id, username: memberUser.username, avatar_url: null },
+            { id: 7, username: 'Anna', avatar_url: null, is_guest: true },
+          ],
+          current_user_id: memberUser.id,
+        })
+      ),
+      http.get('/api/trips/1/guest-claims/candidates', () =>
+        HttpResponse.json({
+          candidates: [
+            {
+              guest_user_id: 7,
+              name: 'Anna',
+              impact: { expenses: 0, payments: 0, itinerary: 0, todos: 0, packing: 0 },
+              conflicts: [],
+            },
+          ],
+        })
+      )
+    );
+
+    const { rerender } = render(<TripMembersModal {...defaultProps} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'None of these are me' }));
+    expect(await screen.findByText('Share Trip')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+    const childClose = screen.getAllByRole('button').find((button) => button.querySelector('svg.lucide-x'));
+    expect(childClose).toBeDefined();
+    await userEvent.click(childClose!);
+    expect(await screen.findByText('Share Trip')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+    rerender(<TripMembersModal {...defaultProps} tripId={2} />);
+    expect(await screen.findByText('Share Trip')).toBeInTheDocument();
+    expect(screen.queryByText('Is one of these guests you?')).not.toBeInTheDocument();
+
+    rerender(<TripMembersModal {...defaultProps} isOpen={false} />);
+    rerender(<TripMembersModal {...defaultProps} isOpen />);
+    expect(await screen.findByText('Share Trip')).toBeInTheDocument();
+    expect(screen.queryByText('Is one of these guests you?')).not.toBeInTheDocument();
   });
 });

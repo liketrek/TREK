@@ -32,6 +32,9 @@ const { tripSvc } = vi.hoisted(() => ({
     createGuest: vi.fn(),
     renameGuest: vi.fn(),
     deleteGuest: vi.fn(),
+    listGuestClaimCandidates: vi.fn(),
+    consumeGuestClaimPrompt: vi.fn(),
+    claimGuest: vi.fn(),
     exportICS: vi.fn(),
     copyTripById: vi.fn(),
     TRIP_SELECT: 'SELECT * FROM trips t',
@@ -88,6 +91,12 @@ describe('TripsService (wrapper delegation + bundle/copy/notify helpers)', () =>
     expect(tripSvc.createGuest).toHaveBeenCalledWith('9', 'Anna', 1);
     s.renameGuest('9', 7, 'Bob');
     expect(tripSvc.renameGuest).toHaveBeenCalledWith('9', 7, 'Bob');
+    s.listGuestClaimCandidates('9', 1);
+    expect(tripSvc.listGuestClaimCandidates).toHaveBeenCalledWith('9', 1);
+    s.consumeGuestClaimPrompt('9', 1);
+    expect(tripSvc.consumeGuestClaimPrompt).toHaveBeenCalledWith('9', 1);
+    s.claimGuest('9', 7, 1);
+    expect(tripSvc.claimGuest).toHaveBeenCalledWith('9', 7, 1);
     s.deleteGuest('9', 7);
     expect(tripSvc.deleteGuest).toHaveBeenCalledWith('9', 7);
     s.exportICS('9');

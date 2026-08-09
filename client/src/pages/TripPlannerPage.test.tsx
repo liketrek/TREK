@@ -1,16 +1,46 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import React from 'react';
-import { render, screen, waitFor, act, fireEvent } from '../../tests/helpers/render';
-import { Routes, Route } from 'react-router-dom';
+import { Route, Routes, useNavigate } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildAssignment, buildDay, buildPlace, buildTrip, buildUser } from '../../tests/helpers/factories';
+import { server } from '../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
-import { useTripStore } from '../store/tripStore';
 import { usePluginStore } from '../store/pluginStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { useTripStore } from '../store/tripStore';
+import { setForcedOffline } from '../sync/networkMode';
 import TripPlannerPage from './TripPlannerPage';
-import { server } from '../../tests/helpers/msw/server';
-import { http, HttpResponse } from 'msw';
+
+const connectivityMock = vi.hoisted(() => {
+  let reachable = true;
+  const listeners = new Set<(value: boolean) => void>();
+  return {
+    isReachable: () => reachable,
+    onChange: (listener: (value: boolean) => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    setReachable: (value: boolean) => {
+      if (reachable === value) return;
+      reachable = value;
+      listeners.forEach((listener) => listener(value));
+    },
+    reset: () => {
+      reachable = true;
+      listeners.clear();
+    },
+  };
+});
+
+vi.mock('../sync/connectivity', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../sync/connectivity')>()),
+  isReachable: connectivityMock.isReachable,
+  onChange: connectivityMock.onChange,
+  probeNow: vi.fn().mockResolvedValue('offline'),
+}));
 
 // Mock Leaflet-dependent components
 const capturedMapViewProps: { current: Record<string, any> } = { current: {} };
@@ -220,8 +250,24 @@ function renderPlannerPage(tripId: number | string) {
     <Routes>
       <Route path="/trips/:id" element={<TripPlannerPage />} />
     </Routes>,
-    { initialEntries: [`/trips/${tripId}`] },
+    { initialEntries: [`/trips/${tripId}`] }
   );
+}
+
+function renderPlannerPageWithTripSwitch(tripId: number, nextTripId: number) {
+  function Harness() {
+    const navigate = useNavigate();
+    return (
+      <>
+        <button onClick={() => navigate(`/trips/${nextTripId}`)}>Switch trip</button>
+        <Routes>
+          <Route path="/trips/:id" element={<TripPlannerPage />} />
+        </Routes>
+      </>
+    );
+  }
+
+  return render(<Harness />, { initialEntries: [`/trips/${tripId}`] });
 }
 
 beforeEach(() => {
@@ -245,13 +291,232 @@ beforeEach(() => {
   capturedFileManagerProps.current = {};
   capturedPlaceInspectorProps.current = {};
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
+  setForcedOffline(false);
+  connectivityMock.reset();
+  server.use(
+    http.post('/api/trips/:tripId/guest-claims/prompt', () => HttpResponse.json({ prompted: false, candidates: [] }))
+  );
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('TripPlannerPage', () => {
+  describe('guest claim first-entry prompt', () => {
+    it('consumes the prompt once after initial loading and opens it when candidates exist', async () => {
+      let promptCalls = 0;
+      server.use(
+        http.post('/api/trips/42/guest-claims/prompt', () => {
+          promptCalls += 1;
+          return HttpResponse.json({
+            prompted: true,
+            candidates: [
+              {
+                guest_user_id: 7,
+                name: 'Anna',
+                impact: { expenses: 0, payments: 0, itinerary: 0, todos: 0, packing: 0 },
+                conflicts: [],
+              },
+            ],
+          });
+        })
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      await act(async () => {
+        vi.runAllTimers();
+      });
+      vi.useRealTimers();
+      expect(await screen.findByText('Is one of these guests you?')).toBeInTheDocument();
+      expect(promptCalls).toBe(1);
+    });
+
+    it('waits for effective connectivity and retries once when availability returns', async () => {
+      let online = false;
+      vi.spyOn(window.navigator, 'onLine', 'get').mockImplementation(() => online);
+      let promptCalls = 0;
+      server.use(
+        http.post('/api/trips/42/guest-claims/prompt', () => {
+          promptCalls += 1;
+          return HttpResponse.json({ prompted: false, candidates: [] });
+        })
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      await act(async () => vi.runAllTimers());
+      expect(promptCalls).toBe(0);
+
+      online = true;
+      await act(async () => window.dispatchEvent(new Event('online')));
+      vi.useRealTimers();
+      await waitFor(() => expect(promptCalls).toBe(1));
+    });
+
+    it('starts once after forced offline is lifted', async () => {
+      let promptCalls = 0;
+      setForcedOffline(true);
+      server.use(
+        http.post('/api/trips/42/guest-claims/prompt', () => {
+          promptCalls += 1;
+          return HttpResponse.json({ prompted: false, candidates: [] });
+        })
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      await act(async () => vi.runAllTimers());
+      expect(promptCalls).toBe(0);
+
+      await act(async () => setForcedOffline(false));
+      vi.useRealTimers();
+      await waitFor(() => expect(promptCalls).toBe(1));
+    });
+
+    it('starts once when the server becomes reachable', async () => {
+      let promptCalls = 0;
+      connectivityMock.setReachable(false);
+      server.use(
+        http.post('/api/trips/42/guest-claims/prompt', () => {
+          promptCalls += 1;
+          return HttpResponse.json({ prompted: false, candidates: [] });
+        })
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      await act(async () => vi.runAllTimers());
+      expect(promptCalls).toBe(0);
+
+      await act(async () => connectivityMock.setReachable(true));
+      vi.useRealTimers();
+      await waitFor(() => expect(promptCalls).toBe(1));
+    });
+
+    it('replays a lost response with the same idempotency key only after a real reconnect', async () => {
+      const keys: Array<string | null> = [];
+      let calls = 0;
+      server.use(
+        http.post('/api/trips/42/guest-claims/prompt', ({ request }) => {
+          keys.push(request.headers.get('X-Idempotency-Key'));
+          calls += 1;
+          if (calls === 1) return HttpResponse.error();
+          return HttpResponse.json({ prompted: false, candidates: [] });
+        })
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      await act(async () => vi.runAllTimers());
+      vi.useRealTimers();
+      await waitFor(() => expect(calls).toBe(1));
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      await act(async () => connectivityMock.setReachable(false));
+      await act(async () => connectivityMock.setReachable(true));
+      await waitFor(() => expect(calls).toBe(2));
+      expect(keys[0]).toBeTruthy();
+      expect(keys[1]).toBe(keys[0]);
+    });
+
+    it.each([400, 503])('classifies %s responses for reconnect-only retry', async (status) => {
+      let calls = 0;
+      server.use(
+        http.post('/api/trips/42/guest-claims/prompt', () => {
+          calls += 1;
+          return calls === 1
+            ? HttpResponse.json({ error: 'failed' }, { status })
+            : HttpResponse.json({ prompted: false, candidates: [] });
+        })
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      await act(async () => vi.runAllTimers());
+      vi.useRealTimers();
+      await waitFor(() => expect(calls).toBe(1));
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      await act(async () => connectivityMock.setReachable(false));
+      await act(async () => connectivityMock.setReachable(true));
+      if (status === 503) await waitFor(() => expect(calls).toBe(2));
+      else expect(calls).toBe(1);
+    });
+
+    it('aborts and ignores an older trip response after switching trips', async () => {
+      let resolveTripA: (() => void) | undefined;
+      server.use(
+        http.post('/api/trips/42/guest-claims/prompt', async () => {
+          await new Promise<void>((resolve) => {
+            resolveTripA = resolve;
+          });
+          return HttpResponse.json({
+            prompted: true,
+            candidates: [
+              {
+                guest_user_id: 7,
+                name: 'Trip A Anna',
+                impact: { expenses: 0, payments: 0, itinerary: 0, todos: 0, packing: 0 },
+                conflicts: [],
+              },
+            ],
+          });
+        }),
+        http.post('/api/trips/43/guest-claims/prompt', () => HttpResponse.json({ prompted: false, candidates: [] }))
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPageWithTripSwitch(42, 43);
+      await act(async () => vi.runAllTimers());
+      vi.useRealTimers();
+      await waitFor(() => expect(resolveTripA).toBeDefined());
+
+      await userEvent.click(screen.getByRole('button', { name: 'Switch trip' }));
+      await act(async () => resolveTripA?.());
+      await waitFor(() => expect(screen.queryByText('Trip A Anna')).not.toBeInTheDocument());
+      expect(screen.queryByText('Is one of these guests you?')).not.toBeInTheDocument();
+    });
+
+    it('hides an open prompt immediately when the active trip changes', async () => {
+      server.use(
+        http.post('/api/trips/42/guest-claims/prompt', () =>
+          HttpResponse.json({
+            prompted: true,
+            candidates: [
+              {
+                guest_user_id: 7,
+                name: 'Trip A Anna',
+                impact: { expenses: 0, payments: 0, itinerary: 0, todos: 0, packing: 0 },
+                conflicts: [],
+              },
+            ],
+          })
+        ),
+        http.post('/api/trips/43/guest-claims/prompt', () => HttpResponse.json({ prompted: false, candidates: [] }))
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPageWithTripSwitch(42, 43);
+      await act(async () => vi.runAllTimers());
+      vi.useRealTimers();
+      expect(await screen.findByText('Trip A Anna')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Switch trip' }));
+
+      expect(screen.queryByText('Trip A Anna')).not.toBeInTheDocument();
+      expect(screen.queryByText('Is one of these guests you?')).not.toBeInTheDocument();
+    });
+  });
+
   describe('FE-PAGE-PLANNER-001: Calls loadTrip with route param on mount', () => {
     it('calls loadTrip with the trip ID from URL params', async () => {
       const { mockLoadTrip } = seedTripStore({ id: 42 });
@@ -319,7 +584,9 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(7);
 
       // Run all pending timers (including the 1500ms splash timeout) synchronously
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -337,7 +604,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(3);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -355,7 +624,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(5);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -385,7 +656,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -403,7 +676,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -418,11 +693,7 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-011: Packing tab renders PackingListPanel', () => {
     it('shows PackingListPanel after clicking the Lists tab with packing addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })
-        )
-      );
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })));
 
       vi.useFakeTimers();
 
@@ -430,7 +701,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -445,11 +718,7 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-012: Costs tab renders CostsPanel', () => {
     it('shows CostsPanel after clicking the Costs tab with budget addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'budget', type: 'budget' }] })
-        )
-      );
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'budget', type: 'budget' }] })));
 
       vi.useFakeTimers();
 
@@ -457,7 +726,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -473,9 +744,7 @@ describe('TripPlannerPage', () => {
   describe('FE-PAGE-PLANNER-013: Files tab renders FileManager', () => {
     it('shows FileManager after clicking the Files tab with documents addon enabled', async () => {
       server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] })
-        )
+        http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] }))
       );
 
       vi.useFakeTimers();
@@ -484,7 +753,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -499,11 +770,7 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-014: Collab tab renders CollabPanel', () => {
     it('shows CollabPanel after clicking the Collab tab with collab addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })
-        )
-      );
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })));
 
       vi.useFakeTimers();
 
@@ -511,7 +778,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -532,7 +801,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -553,7 +824,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -590,7 +863,7 @@ describe('TripPlannerPage', () => {
           <Route path="/trips/:id" element={<TripPlannerPage />} />
           <Route path="/dashboard" element={<div data-testid="dashboard-page" />} />
         </Routes>,
-        { initialEntries: ['/trips/999'] },
+        { initialEntries: ['/trips/999'] }
       );
 
       await waitFor(() => {
@@ -603,11 +876,7 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-019: Todo subtab in ListsContainer', () => {
     it('shows TodoListPanel after switching to the Todo subtab inside Lists', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })
-        )
-      );
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })));
 
       vi.useFakeTimers();
 
@@ -615,7 +884,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -630,7 +901,9 @@ describe('TripPlannerPage', () => {
 
       // Click the Todo subtab
       const todoButtons = screen.getAllByRole('button');
-      const todoSubtab = todoButtons.find(btn => btn.textContent?.includes('Todo') || btn.textContent?.includes('todo'));
+      const todoSubtab = todoButtons.find(
+        (btn) => btn.textContent?.includes('Todo') || btn.textContent?.includes('todo')
+      );
       if (todoSubtab) {
         fireEvent.click(todoSubtab);
         await waitFor(() => {
@@ -648,7 +921,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -670,7 +945,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -693,7 +970,9 @@ describe('TripPlannerPage', () => {
       vi.useFakeTimers();
       seedTripStore({ id: 42 });
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -713,7 +992,9 @@ describe('TripPlannerPage', () => {
       const { trip } = seedTripStore({ id: 42 });
       seedStore(useTripStore, { trip: { ...trip, ...dates } } as any);
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
       await waitFor(() => {
         expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
@@ -741,7 +1022,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -770,7 +1053,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -794,7 +1079,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -823,7 +1110,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -850,7 +1139,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -874,7 +1165,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -896,7 +1189,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -918,7 +1213,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -943,7 +1240,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -973,7 +1272,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1006,7 +1307,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1016,7 +1319,11 @@ describe('TripPlannerPage', () => {
 
       // Call onSave with editingReservation=null (add path)
       await act(async () => {
-        await capturedReservationModalProps.current.onSave?.({ name: 'Test Booking', type: 'restaurant', status: 'confirmed' });
+        await capturedReservationModalProps.current.onSave?.({
+          name: 'Test Booking',
+          type: 'restaurant',
+          status: 'confirmed',
+        });
       });
     });
   });
@@ -1029,7 +1336,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1054,7 +1363,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1077,7 +1388,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1087,7 +1400,10 @@ describe('TripPlannerPage', () => {
 
       await act(async () => {
         capturedDayPlanSidebarProps.current.onRouteCalculated?.({
-          coordinates: [[1, 2], [3, 4]],
+          coordinates: [
+            [1, 2],
+            [3, 4],
+          ],
           distanceText: '1 km',
           durationText: '10 min',
           walkingText: '15 min',
@@ -1109,7 +1425,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1136,7 +1454,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1158,7 +1478,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1196,7 +1518,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1219,7 +1543,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1245,7 +1571,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1286,7 +1614,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1309,7 +1639,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1332,9 +1664,7 @@ describe('TripPlannerPage', () => {
   describe('FE-PAGE-PLANNER-044: FileManager callbacks cover file operation lambdas', () => {
     it('calls FileManager onUpload/onDelete/onUpdate to cover inline lambda bodies', async () => {
       server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] })
-        )
+        http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] }))
       );
 
       vi.useFakeTimers();
@@ -1343,7 +1673,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1378,7 +1710,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1416,7 +1750,15 @@ describe('TripPlannerPage', () => {
 
     it('hides the replaced core tab and splices the plugin tab at its position', async () => {
       usePluginStore.setState({
-        plugins: [{ id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['transports'], position: 1 } }],
+        plugins: [
+          {
+            id: 'transit-pro',
+            name: 'Transit Pro',
+            type: 'trip-page',
+            icon: null,
+            tripPage: { replaces: ['transports'], position: 1 },
+          },
+        ],
         loaded: true,
       });
       seedTripStore({ id: 42 });
@@ -1435,7 +1777,15 @@ describe('TripPlannerPage', () => {
     it('a saved session tab that a plugin replaced resets to plan once plugins load', async () => {
       sessionStorage.setItem('trip-tab-42', 'transports');
       usePluginStore.setState({
-        plugins: [{ id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['transports'] } }],
+        plugins: [
+          {
+            id: 'transit-pro',
+            name: 'Transit Pro',
+            type: 'trip-page',
+            icon: null,
+            tripPage: { replaces: ['transports'] },
+          },
+        ],
         loaded: true,
       });
       seedTripStore({ id: 42 });
@@ -1465,7 +1815,9 @@ describe('TripPlannerPage', () => {
       } as any);
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1494,7 +1846,9 @@ describe('TripPlannerPage', () => {
       seedStore(useTripStore, { places: [place] } as any);
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       // Mobile portal renders the PlaceInspector (lines 830-879)
@@ -1530,7 +1884,9 @@ describe('TripPlannerPage', () => {
       seedTripStore({ id: 42 });
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1550,7 +1906,9 @@ describe('TripPlannerPage', () => {
       seedTripStore({ id: 42 });
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1560,11 +1918,13 @@ describe('TripPlannerPage', () => {
       // The mobile portal buttons are rendered to document.body.
       // The "Plan" tab button has title="Plan"; the mobile portal button does not.
       const mobilePlanBtn = Array.from(document.body.querySelectorAll('button')).find(
-        b => b.textContent === 'Plan' && !b.getAttribute('title'),
+        (b) => b.textContent === 'Plan' && !b.getAttribute('title')
       );
 
       if (mobilePlanBtn) {
-        await act(async () => { fireEvent.click(mobilePlanBtn); });
+        await act(async () => {
+          fireEvent.click(mobilePlanBtn);
+        });
 
         // Mobile sidebar portal renders DayPlanSidebar — now two instances
         await waitFor(() => {
@@ -1573,10 +1933,12 @@ describe('TripPlannerPage', () => {
 
         // Close the mobile sidebar via the X button inside the portal header
         const closeButtons = Array.from(document.body.querySelectorAll('button')).filter(
-          b => !b.textContent || b.textContent.trim() === '',
+          (b) => !b.textContent || b.textContent.trim() === ''
         );
         if (closeButtons.length > 0) {
-          await act(async () => { fireEvent.click(closeButtons[0]); });
+          await act(async () => {
+            fireEvent.click(closeButtons[0]);
+          });
         }
       }
 
@@ -1593,7 +1955,9 @@ describe('TripPlannerPage', () => {
       seedTripStore({ id: 42 });
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1602,11 +1966,13 @@ describe('TripPlannerPage', () => {
 
       // "Places" tab doesn't exist; the mobile portal "Places" button has no title
       const mobilePlacesBtn = Array.from(document.body.querySelectorAll('button')).find(
-        b => b.textContent === 'Places' && !b.getAttribute('title'),
+        (b) => b.textContent === 'Places' && !b.getAttribute('title')
       );
 
       if (mobilePlacesBtn) {
-        await act(async () => { fireEvent.click(mobilePlacesBtn); });
+        await act(async () => {
+          fireEvent.click(mobilePlacesBtn);
+        });
 
         // PlacesSidebar renders in mobile sidebar portal
         await waitFor(() => {
@@ -1632,7 +1998,9 @@ describe('TripPlannerPage', () => {
       } as any);
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1641,10 +2009,12 @@ describe('TripPlannerPage', () => {
 
       // Open the mobile Plan portal via the bottom-nav Plan button (selector mirrors FE-PAGE-PLANNER-049).
       const mobilePlanBtn = Array.from(document.body.querySelectorAll('button')).find(
-        b => b.textContent === 'Plan' && !b.getAttribute('title'),
+        (b) => b.textContent === 'Plan' && !b.getAttribute('title')
       );
       expect(mobilePlanBtn).toBeTruthy();
-      await act(async () => { fireEvent.click(mobilePlanBtn!); });
+      await act(async () => {
+        fireEvent.click(mobilePlanBtn!);
+      });
 
       await waitFor(() => {
         expect(screen.getAllByTestId('day-plan-sidebar').length).toBe(2);
@@ -1682,7 +2052,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 

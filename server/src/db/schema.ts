@@ -229,6 +229,7 @@ function createTables(db: Database.Database): void {
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       invited_by INTEGER REFERENCES users(id),
       added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      guest_claim_prompted_at DATETIME,
       UNIQUE(trip_id, user_id)
     );
 

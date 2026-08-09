@@ -3848,6 +3848,18 @@ function runMigrations(db: Database.Database): void {
           ON exchange_rate_batch_previews (created_at);
       `);
     },
+    // Existing account members must not receive the one-time guest-claim prompt.
+    // Memberships created after this migration keep NULL until the prompt endpoint
+    // atomically consumes it. Guest rows and former-owner rows opt out at insertion.
+    () => {
+      try {
+        db.exec('ALTER TABLE trip_members ADD COLUMN guest_claim_prompted_at DATETIME');
+      } catch (err) {
+        if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err;
+      }
+      db.exec(`UPDATE trip_members SET guest_claim_prompted_at = CURRENT_TIMESTAMP
+               WHERE guest_claim_prompted_at IS NULL`);
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -43,3 +43,31 @@ _Avoid_: Quote, reserved rate
 **Rate provenance**:
 The server-recorded origin and version of a frozen exchange rate: identity, global, trip, explicit, or legacy. Explicit means the caller supplied the saved rate value.
 _Avoid_: Rate type, rate metadata
+
+**Trip participant**:
+A person represented in one trip who can hold assignments or financial participation, whether or not they can sign in.
+_Avoid_: User, traveler
+
+**Account member**:
+A trip participant linked to a TREK account with access to the trip.
+_Avoid_: Real member, registered guest
+
+**Guest**:
+A trip-scoped participant represented by name without a sign-in account.
+_Avoid_: Anonymous user, temporary account
+
+**Expense share**:
+The portion of an expense owed by one trip participant, either equal or custom.
+_Avoid_: Person count, payment
+
+**Payer**:
+A trip participant who paid some or all of an expense.
+_Avoid_: Expense owner, settlement sender
+
+**Settlement payment**:
+A recorded transfer from one trip participant to another that reduces their net trip balance.
+_Avoid_: Expense, reimbursement estimate
+
+**Guest claim**:
+An irreversible transfer of one Guest's trip participation to the Account member who represents the same person.
+_Avoid_: Guest merge, account upgrade
