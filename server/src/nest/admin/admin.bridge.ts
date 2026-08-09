@@ -44,14 +44,12 @@ const notifPrefs = new NotificationPreferencesService(dbs, mailer);
 const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup, mailer);
 const admin = new AdminService(
   dbs,
-  new SettingsService(dbs),
   new AddonsService(dbs),
   new PasskeyService(dbs, auth, webauthn),
   auth,
   permissions,
   new NotificationsService(dbs, realtime, mailer, new WebhookService(dbs), new NtfyService(dbs), notifPrefs),
   userCleanup,
-  notifPrefs,
 );
 
 export function checkAndNotifyVersion(): Promise<void> {

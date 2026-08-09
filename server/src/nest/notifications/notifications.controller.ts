@@ -22,6 +22,9 @@ import {
   NotificationRespondDto,
 } from './notifications.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../auth/admin.guard';
+import { NotificationPreferencesService } from './notification-preferences.service';
+import { AdminNotificationPreferencesDto } from '../admin/admin.dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 // The masked placeholder the client sends instead of a stored secret (8× U+2022).
@@ -197,5 +200,32 @@ export class NotificationsController {
       throw new HttpException({ error: 'Invalid id' }, 400);
     }
     return id;
+  }
+}
+
+/**
+ * /api/admin/notification-preferences — the admin-scope row of the preference matrix.
+ *
+ * Two routes that sat on AdminController and reached NotificationPreferencesService
+ * through a pair of pass-through methods on AdminService. The owner is here; the
+ * 'admin' scope argument they always passed is now written once, at the only place
+ * that uses it.
+ */
+@Controller('api/admin/notification-preferences')
+@UseGuards(JwtAuthGuard, AdminGuard)
+export class AdminNotificationPreferencesController {
+  constructor(private readonly prefs: NotificationPreferencesService) {}
+
+  @Get()
+  get(@CurrentUser() user: User) {
+    return this.prefs.getPreferencesMatrix(user.id, user.role, 'admin');
+  }
+
+  @Put()
+  set(@CurrentUser() user: User, @Body() body: AdminNotificationPreferencesDto) {
+    this.prefs.setAdminPreferences(user.id, body);
+    // Answer with the refreshed matrix rather than the raw write result — the admin
+    // panel renders straight from this response.
+    return this.prefs.getPreferencesMatrix(user.id, user.role, 'admin');
   }
 }

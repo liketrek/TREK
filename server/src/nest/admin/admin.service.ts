@@ -21,10 +21,8 @@ import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/
 import { getPhotoProviderConfig } from '../memories/memories.helpers';
 import { validatePassword } from '../common/passwordPolicy';
 import { UserCleanupService } from '../auth/user-cleanup.service';
-import { NotificationPreferencesService } from '../notifications/notification-preferences.service';
 import { DatabaseService } from '../database/database.service';
 import { AddonsService } from '../addons/addons.service';
-import { SettingsService } from '../settings/settings.service';
 import { PasskeyService } from '../auth/passkey.service';
 import { AuthService } from '../auth/auth.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -69,14 +67,12 @@ const VERSION_FAILURE_TTL = 60_000;
 export class AdminService {
   constructor(
     private readonly db: DatabaseService,
-    private readonly settings: SettingsService,
     private readonly addons: AddonsService,
     private readonly passkeys: PasskeyService,
     private readonly auth: AuthService,
     private readonly permissions: PermissionsService,
     private readonly notifications: NotificationsService,
     private readonly userCleanup: UserCleanupService,
-    private readonly notifPrefs: NotificationPreferencesService,
   ) {}
 
   // ── User CRUD ──────────────────────────────────────────────────────────────
@@ -318,50 +314,6 @@ export class AdminService {
     return { entries, total, limit, offset };
   }
 
-  // ── OIDC Settings ──────────────────────────────────────────────────────────
-
-  getOidcSettings() {
-    const get = (key: string) =>
-      this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', key)?.value || '';
-    const secret = decrypt_api_key(get('oidc_client_secret'));
-    return {
-      issuer: get('oidc_issuer'),
-      client_id: get('oidc_client_id'),
-      client_secret_set: !!secret,
-      display_name: get('oidc_display_name'),
-      oidc_only: get('oidc_only') === 'true',
-      discovery_url: get('oidc_discovery_url'),
-    };
-  }
-
-  updateOidcSettings(data: {
-    issuer?: string;
-    client_id?: string;
-    client_secret?: string;
-    display_name?: string;
-    discovery_url?: string;
-  }): { error?: string; status?: number; success?: boolean } {
-    // Lockout prevention: can't remove OIDC config when password login is disabled
-    if ((data.issuer === '' || data.client_id === '') && !this.auth.resolveAuthToggles().password_login) {
-      return {
-        error: 'Cannot remove SSO configuration while password login is disabled. Enable password login first.',
-        status: 400,
-      };
-    }
-
-    const set = (key: string, val: string) =>
-      this.db.run('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', key, val || '');
-    // All five writes are one SSO config — a partial apply would leave the
-    // instance with an issuer but no client id (or vice versa).
-    this.db.transaction(() => {
-      set('oidc_issuer', data.issuer ?? '');
-      set('oidc_client_id', data.client_id ?? '');
-      if (data.client_secret !== undefined) set('oidc_client_secret', maybe_encrypt_api_key(data.client_secret) ?? '');
-      set('oidc_display_name', data.display_name ?? '');
-      set('oidc_discovery_url', data.discovery_url ?? '');
-    });
-    return { success: true };
-  }
 
   // ── Demo Baseline ──────────────────────────────────────────────────────────
 
@@ -790,8 +742,4 @@ export class AdminService {
 
   // ── Settings + notification preference helpers (non-admin-service modules) ──
 
-  getAdminUserDefaults() { return this.settings.getAdminUserDefaults(); }
-  setAdminUserDefaults(body: Record<string, unknown>) { return this.settings.setAdminUserDefaults(body); }
-  getPreferencesMatrix(userId: number, role: string) { return this.notifPrefs.getPreferencesMatrix(userId, role, 'admin'); }
-  setAdminPreferences(userId: number, body: unknown) { return this.notifPrefs.setAdminPreferences(userId, body as Parameters<NotificationPreferencesService['setAdminPreferences']>[1]); }
 }

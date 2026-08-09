@@ -115,20 +115,6 @@ export class AdminController {
   @Get('audit-log')
   auditLog(@Query() query: { limit?: string; offset?: string }) { return this.admin.getAuditLog(query); }
 
-  // ── OIDC ──
-  @Get('oidc')
-  getOidc() { return this.admin.getOidcSettings(); }
-
-  @Put('oidc')
-  updateOidc(@CurrentUser() user: User, @Body() body: AdminOidcUpdateDto, @Req() req: Request) {
-    const result = this.admin.updateOidcSettings(body);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status || 400);
-    }
-    this.audit.writeAudit({ userId: user.id, action: 'admin.oidc_update', ip: getClientIp(req), details: { issuer_set: !!body.issuer } });
-    return { success: true };
-  }
-
   @Post('save-demo-baseline')
   @HttpCode(200)
   saveDemoBaseline(@CurrentUser() user: User, @Req() req: Request) {
@@ -148,16 +134,6 @@ export class AdminController {
 
   @Get('version-check')
   async versionCheck() { return this.admin.checkVersion(); }
-
-  // ── Admin notification preferences ──
-  @Get('notification-preferences')
-  getNotificationPrefs(@CurrentUser() user: User) { return this.admin.getPreferencesMatrix(user.id, user.role); }
-
-  @Put('notification-preferences')
-  setNotificationPrefs(@CurrentUser() user: User, @Body() body: AdminNotificationPreferencesDto) {
-    this.admin.setAdminPreferences(user.id, body);
-    return this.admin.getPreferencesMatrix(user.id, user.role);
-  }
 
   // ── Invites ──
   @Get('invites')
@@ -182,7 +158,6 @@ export class AdminController {
     return { success: true };
   }
 
-  // ── Feature toggles ──
   // ── Feature toggles ──
   // Straight to AddonsService, which owns every one of these flags. They used to go
   // through eleven-plus pass-through methods on AdminService, and the three places
@@ -300,20 +275,6 @@ export class AdminController {
   }
 
   // ── Default user settings ──
-  @Get('default-user-settings')
-  getDefaultUserSettings() { return this.admin.getAdminUserDefaults(); }
-
-  @Put('default-user-settings')
-  setDefaultUserSettings(@CurrentUser() user: User, @Body() body: AdminDefaultUserSettingsDto, @Req() req: Request) {
-    try {
-      this.admin.setAdminUserDefaults(body as unknown as Record<string, unknown>);
-      this.audit.writeAudit({ userId: user.id, action: 'admin.default_user_settings_update', ip: getClientIp(req), details: body as Record<string, unknown> });
-      return this.admin.getAdminUserDefaults();
-    } catch (err) {
-      throw new HttpException({ error: err instanceof Error ? err.message : String(err) }, 400);
-    }
-  }
-
   // ── Dev-only: test notification (404 outside development, mirroring the conditional mount) ──
   @Post('dev/test-notification')
   @HttpCode(200)

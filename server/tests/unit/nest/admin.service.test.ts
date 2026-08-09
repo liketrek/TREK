@@ -82,14 +82,12 @@ const userCleanup = new UserCleanupService(dbs);
 const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup);
 const svc = new AdminService(
   dbs,
-  new SettingsService(dbs),
   new AddonsService(dbs),
   new PasskeyService(dbs, auth, webauthn),
   auth,
   permissions,
   makeNotificationsService(dbs, realtime),
   userCleanup,
-  makeNotificationPreferencesService(dbs),
 );
 
 // Legacy free-function names bound to the service, so the moved cases below read
@@ -372,32 +370,6 @@ describe('getAuditLog — JSON details', () => {
 
 // ── OIDC Settings ─────────────────────────────────────────────────────────────
 
-describe('OIDC Settings', () => {
-  it('ADMIN-SVC-047 — getOidcSettings returns default empty values when no OIDC configured', () => {
-    const result = getOidcSettings() as any;
-    expect(result.issuer).toBe('');
-    expect(result.client_id).toBe('');
-    expect(result.oidc_only).toBe(false);
-    expect(result.client_secret_set).toBe(false);
-    expect(result.display_name).toBe('');
-    expect(result.discovery_url).toBe('');
-  });
-
-  it('ADMIN-SVC-048 — updateOidcSettings persists issuer and client_id, then getOidcSettings returns them', () => {
-    updateOidcSettings({ issuer: 'https://auth.example.com', client_id: 'my-client' });
-    const result = getOidcSettings() as any;
-    expect(result.issuer).toBe('https://auth.example.com');
-    expect(result.client_id).toBe('my-client');
-  });
-
-  it('ADMIN-SVC-049 — updateOidcSettings does not write oidc_only (replaced by granular toggles)', () => {
-    updateOidcSettings({ issuer: 'https://auth.example.com', client_id: 'my-client' });
-    const result = getOidcSettings() as any;
-    // oidc_only is no longer managed by updateOidcSettings; use password_login/oidc_login toggles
-    expect(result.oidc_only).toBe(false);
-  });
-});
-
 // ── saveDemoBaseline ──────────────────────────────────────────────────────────
 
 describe('saveDemoBaseline', () => {
@@ -622,12 +594,5 @@ describe('admin quirk fixes (post-fold)', () => {
     const sessions = svc.listOAuthSessions() as any[];
     expect(sessions).toHaveLength(1);
     expect(sessions[0].scopes).toBeNull();
-  });
-
-  it('ADMIN-SVC-075 — updateOidcSettings applies all five writes atomically', () => {
-    const result = svc.updateOidcSettings({ issuer: 'https://idp', client_id: 'cid', display_name: 'IdP' }) as any;
-    expect(result.success).toBe(true);
-    const settings = svc.getOidcSettings();
-    expect(settings).toMatchObject({ issuer: 'https://idp', client_id: 'cid', display_name: 'IdP' });
   });
 });

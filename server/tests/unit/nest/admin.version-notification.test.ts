@@ -65,14 +65,12 @@ const userCleanup = new UserCleanupService(dbs);
 const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup);
 const svc = new AdminService(
   dbs,
-  new SettingsService(dbs),
   new AddonsService(dbs),
   new PasskeyService(dbs, auth, webauthn),
   auth,
   permissions,
   makeNotificationsService(dbs, realtime),
   userCleanup,
-  makeNotificationPreferencesService(dbs),
 );
 const checkAndNotifyVersion = () => svc.checkAndNotifyVersion();
 

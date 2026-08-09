@@ -84,10 +84,6 @@ describe('AdminController permissions + oidc + misc', () => {
     expect(c.savePermissions(user, { permissions: {} }, req)).toEqual({ success: true, permissions: {}, skipped: ['bad'] });
   });
 
-  it('oidc update maps error, else audits', () => {
-    expect(thrown(() => adminCtl(svc({ updateOidcSettings: vi.fn().mockReturnValue({ error: 'bad issuer', status: 400 }) } as Partial<AdminService>)).updateOidc(user, {}, req))).toEqual({ status: 400, body: { error: 'bad issuer' } });
-    expect(adminCtl(svc({ updateOidcSettings: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).updateOidc(user, { issuer: 'https://idp' }, req)).toEqual({ success: true });
-  });
 
   it('save-demo-baseline maps error, else returns message', () => {
     expect(thrown(() => adminCtl(svc({ saveDemoBaseline: vi.fn().mockReturnValue({ error: 'not demo', status: 400 }) } as Partial<AdminService>)).saveDemoBaseline(user, req))).toEqual({ status: 400, body: { error: 'not demo' } });
@@ -138,12 +134,6 @@ describe('AdminController addons + sessions + jwt + defaults', () => {
     expect(adminCtl(svc({ rotateJwtSecret: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).rotateJwtSecret(user, req)).toEqual({ success: true });
   });
 
-  it('default-user-settings: sets + audits', () => {
-    const setAdminUserDefaults = vi.fn();
-    const c = adminCtl(svc({ setAdminUserDefaults, getAdminUserDefaults: vi.fn().mockReturnValue({ theme: 'dark' }) } as Partial<AdminService>));
-    expect(c.setDefaultUserSettings(user, { theme: 'dark' }, req)).toEqual({ theme: 'dark' });
-    expect(setAdminUserDefaults).toHaveBeenCalled();
-  });
 });
 
 describe('AdminController error envelope fallbacks', () => {
@@ -151,14 +141,7 @@ describe('AdminController error envelope fallbacks', () => {
     expect(thrown(() => adminCtl(svc({ createUser: vi.fn().mockReturnValue({ error: 'boom' }) } as Partial<AdminService>)).createUser(user, {}, req))).toEqual({ status: 400, body: { error: 'boom' } });
   });
 
-  it('updateOidc defaults to 400 when the service error omits a status', () => {
-    expect(thrown(() => adminCtl(svc({ updateOidcSettings: vi.fn().mockReturnValue({ error: 'nope' }) } as Partial<AdminService>)).updateOidc(user, {}, req))).toEqual({ status: 400, body: { error: 'nope' } });
-  });
 
-  it('updateOidc audits issuer_set=false when no issuer is supplied', () => {
-    expect(adminCtl(svc({ updateOidcSettings: vi.fn().mockReturnValue({}) } as Partial<AdminService>)).updateOidc(user, {}, req)).toEqual({ success: true });
-    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'admin.oidc_update', details: { issuer_set: false } }));
-  });
 });
 
 describe('AdminController read-only getters', () => {
@@ -167,22 +150,13 @@ describe('AdminController read-only getters', () => {
     expect(adminCtl(svc({ getStats: vi.fn().mockReturnValue({ users: 3 }) } as Partial<AdminService>)).stats()).toEqual({ users: 3 });
     expect(adminCtl(svc({ getPermissions: vi.fn().mockReturnValue({ a: 1 }) } as Partial<AdminService>)).permissions()).toEqual({ a: 1 });
     expect(adminCtl(svc({ getAuditLog: vi.fn().mockReturnValue({ entries: [] }) } as Partial<AdminService>)).auditLog({})).toEqual({ entries: [] });
-    expect(adminCtl(svc({ getOidcSettings: vi.fn().mockReturnValue({ issuer: 'x' }) } as Partial<AdminService>)).getOidc()).toEqual({ issuer: 'x' });
     expect(adminCtl(svc({ checkVersion: vi.fn().mockResolvedValue({ current: '1' }) } as Partial<AdminService>)).versionCheck()).resolves.toEqual({ current: '1' });
-    expect(adminCtl(svc({ getPreferencesMatrix: vi.fn().mockReturnValue({ rows: [] }) } as Partial<AdminService>)).getNotificationPrefs(user)).toEqual({ rows: [] });
     expect(adminCtl(svc({ listInvites: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listInvites()).toEqual({ invites: [{ id: 1 }] });
     expect(adminCtl(svc({ listAddons: vi.fn().mockReturnValue([{ id: 'mcp' }]) } as Partial<AdminService>)).listAddons()).toEqual({ addons: [{ id: 'mcp' }] });
     expect(adminCtl(svc({ listMcpTokens: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listMcpTokens()).toEqual({ tokens: [{ id: 1 }] });
     expect(adminCtl(svc({ listOAuthSessions: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<AdminService>)).listOAuthSessions()).toEqual({ sessions: [{ id: 1 }] });
-    expect(adminCtl(svc({ getAdminUserDefaults: vi.fn().mockReturnValue({ theme: 'dark' }) } as Partial<AdminService>)).getDefaultUserSettings()).toEqual({ theme: 'dark' });
   });
 
-  it('setNotificationPrefs persists then returns the refreshed matrix', () => {
-    const setAdminPreferences = vi.fn();
-    const c = adminCtl(svc({ setAdminPreferences, getPreferencesMatrix: vi.fn().mockReturnValue({ rows: [1] }) } as Partial<AdminService>));
-    expect(c.setNotificationPrefs(user, { x: 1 })).toEqual({ rows: [1] });
-    expect(setAdminPreferences).toHaveBeenCalledWith(user.id, { x: 1 });
-  });
 
   it('githubReleases falls back to default paging when no query is given', async () => {
     const getGithubReleases = vi.fn().mockResolvedValue([{ tag: 'v1' }]);
@@ -204,18 +178,6 @@ describe('AdminController tokens + sessions', () => {
   });
 });
 
-describe('AdminController default-user-settings error path', () => {
-  it('400 with an Error message when setAdminUserDefaults throws an Error', () => {
-    const c = adminCtl(svc({ setAdminUserDefaults: vi.fn(() => { throw new Error('bad default'); }) } as Partial<AdminService>));
-    expect(thrown(() => c.setDefaultUserSettings(user, { theme: 'x' }, req))).toEqual({ status: 400, body: { error: 'bad default' } });
-  });
-
-  it('400 stringifies a non-Error throw', () => {
-    const c = adminCtl(svc({ setAdminUserDefaults: vi.fn(() => { throw 'plain string'; }) } as Partial<AdminService>));
-    expect(thrown(() => c.setDefaultUserSettings(user, { theme: 'x' }, req))).toEqual({ status: 400, body: { error: 'plain string' } });
-  });
-
-});
 
 describe('AdminController dev test-notification', () => {
   it('404 outside development', async () => {

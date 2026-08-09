@@ -8,7 +8,7 @@ import type { Request, Response } from 'express';
 import { readEnv, getAppUrl } from '../../app-config';
 import { JWT_SECRET, SESSION_DURATION_SECONDS } from '../../config';
 import { User } from '../../types';
-import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { setAuthCookie } from '../common/cookie';
 import { AuthService } from '../auth/auth.service';
@@ -619,5 +619,54 @@ export class OidcService implements OnModuleDestroy {
 
   touchLastLogin(userId: number): void {
     this.db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?').run(userId);
+  }
+
+  // ── OIDC settings ──────────────────────────────────────────────────────────
+  // Moved here from AdminService, which held the SQL for a domain that already had a
+  // module of its own. The lockout guard below is the reason this cannot be a plain
+  // settings write: removing the SSO config while password login is off would lock
+  // every user out of the instance.
+
+  getOidcSettings() {
+    const get = (key: string) =>
+      this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', key)?.value || '';
+    const secret = decrypt_api_key(get('oidc_client_secret'));
+    return {
+      issuer: get('oidc_issuer'),
+      client_id: get('oidc_client_id'),
+      client_secret_set: !!secret,
+      display_name: get('oidc_display_name'),
+      oidc_only: get('oidc_only') === 'true',
+      discovery_url: get('oidc_discovery_url'),
+    };
+  }
+
+  updateOidcSettings(data: {
+    issuer?: string;
+    client_id?: string;
+    client_secret?: string;
+    display_name?: string;
+    discovery_url?: string;
+  }): { error?: string; status?: number; success?: boolean } {
+    // Lockout prevention: can't remove OIDC config when password login is disabled
+    if ((data.issuer === '' || data.client_id === '') && !this.auth.resolveAuthToggles().password_login) {
+      return {
+        error: 'Cannot remove SSO configuration while password login is disabled. Enable password login first.',
+        status: 400,
+      };
+    }
+
+    const set = (key: string, val: string) =>
+      this.db.run('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', key, val || '');
+    // All five writes are one SSO config — a partial apply would leave the
+    // instance with an issuer but no client id (or vice versa).
+    this.db.transaction(() => {
+      set('oidc_issuer', data.issuer ?? '');
+      set('oidc_client_id', data.client_id ?? '');
+      if (data.client_secret !== undefined) set('oidc_client_secret', maybe_encrypt_api_key(data.client_secret) ?? '');
+      set('oidc_display_name', data.display_name ?? '');
+      set('oidc_discovery_url', data.discovery_url ?? '');
+    });
+    return { success: true };
   }
 }

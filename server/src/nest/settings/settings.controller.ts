@@ -1,9 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpException, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, Post, Put, Req, UseGuards } from '@nestjs/common';
+import type { Request } from 'express';
 import { MASKED_SETTING_VALUE } from '@trek/shared';
 import type { User } from '../../types';
 import { SettingsService } from './settings.service';
 import { SettingUpsertDto, SettingsBulkDto } from './settings.dto';
+import { AdminDefaultUserSettingsDto } from '../admin/admin.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../auth/admin.guard';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 /**
@@ -43,6 +48,45 @@ export class SettingsController {
     } catch (err) {
       console.error('Error saving settings:', err);
       throw new HttpException({ error: 'Error saving settings' }, 500);
+    }
+  }
+}
+
+/**
+ * /api/admin/default-user-settings — the defaults a new account starts with.
+ *
+ * These two routes sat on AdminController and reached SettingsService through a pair
+ * of pass-through methods on AdminService that did nothing but forward. The owner is
+ * here, so the routes are too; the path and both response shapes are unchanged.
+ */
+@Controller('api/admin/default-user-settings')
+@UseGuards(JwtAuthGuard, AdminGuard)
+export class AdminDefaultUserSettingsController {
+  constructor(
+    private readonly settings: SettingsService,
+    private readonly audit: AuditService,
+  ) {}
+
+  @Get()
+  get() {
+    return this.settings.getAdminUserDefaults();
+  }
+
+  @Put()
+  update(@CurrentUser() user: User, @Body() body: AdminDefaultUserSettingsDto, @Req() req: Request) {
+    try {
+      this.settings.setAdminUserDefaults(body as unknown as Record<string, unknown>);
+      this.audit.writeAudit({
+        userId: user.id,
+        action: 'admin.default_user_settings_update',
+        ip: getClientIp(req),
+        details: body as Record<string, unknown>,
+      });
+      // Answer with the stored defaults, not the request body: the service normalises
+      // and drops unknown keys, and the admin panel renders straight from this.
+      return this.settings.getAdminUserDefaults();
+    } catch (err) {
+      throw new HttpException({ error: err instanceof Error ? err.message : String(err) }, 400);
     }
   }
 }
