@@ -123,52 +123,61 @@ export class PlaceEnrichmentService {
     placeId: string,
     req: MapsPlaceEnrichmentRequest,
   ): Promise<PlacePhotoCandidate[]> {
-    const out: PlacePhotoCandidate[] = [];
-
-    // Google first when it is available at all — its pictures are of the place
-    // itself, while Commons geosearch finds whatever was photographed nearby.
     const apiKey = this.maps.getMapsKey(userId);
-    if (apiKey && !this.maps.photosDisabled() && isGooglePlaceId(placeId)) {
-      const refs = await this.maps.fetchGooglePhotoRefs(placeId, apiKey, GOOGLE_CAP);
-      for (const ref of refs) {
-        const key = candidateKey(placeId, out.length);
-        const url = await this.storeCandidate(key, creditLine(ref.attribution, null), () =>
-          this.maps.fetchGooglePhotoBytes(ref.name, apiKey),
-        );
-        if (!url) continue;
-        out.push({
-          key,
-          url,
-          attribution: ref.attribution,
-          // Google grants no reusable licence for these; the author line it
-          // hands back is all we may show, so the rest stays honestly empty.
-          license: null,
-          licenseUrl: null,
-          sourceUrl: null,
-          source: 'google',
-        });
-      }
-    }
+    const wantsGoogle = !!apiKey && !this.maps.photosDisabled() && isGooglePlaceId(placeId);
 
-    const commons = await this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP);
-    for (const candidate of commons) {
-      const key = candidateKey(placeId, out.length);
-      const url = await this.storeCandidate(key, creditLine(candidate.attribution, candidate.license), () =>
-        this.fetchRemoteBytes(candidate.photoUrl),
-      );
-      if (!url) continue;
-      out.push({
-        key,
-        url,
+    // Ask both providers at once — one listing call each, and they know nothing
+    // about one another.
+    const [googleRefs, commons] = await Promise.all([
+      wantsGoogle ? this.maps.fetchGooglePhotoRefs(placeId, apiKey!, GOOGLE_CAP) : Promise.resolve([]),
+      this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP),
+    ]);
+
+    // Google first — its pictures are of the place itself, while Commons
+    // geosearch finds whatever happens to have been photographed nearby.
+    const pending: PlacePhotoCandidate[] = [
+      ...googleRefs.map((ref) => ({
+        key: '',
+        url: '',
+        attribution: ref.attribution,
+        // Google grants no reusable licence for these; the author line it hands
+        // back is all we may show, so the rest stays honestly empty.
+        license: null,
+        licenseUrl: null,
+        sourceUrl: null,
+        source: 'google' as const,
+      })),
+      ...commons.map((candidate) => ({
+        key: '',
+        url: '',
         attribution: candidate.attribution,
         license: candidate.license,
         licenseUrl: candidate.licenseUrl,
         sourceUrl: candidate.sourceUrl,
-        source: 'wikimedia',
-      });
-    }
+        source: 'wikimedia' as const,
+      })),
+    ];
 
-    return out;
+    // Download the bytes concurrently. Doing this in a loop meant a place with
+    // five Commons hits spent five round trips plus five decodes in sequence,
+    // which pushed the whole request past the client's request timeout. The
+    // shared slot limiter still caps how many run at once.
+    const results = await Promise.all(
+      pending.map(async (candidate, index) => {
+        const key = candidateKey(placeId, index);
+        const fetchBytes =
+          candidate.source === 'google'
+            ? () => this.maps.fetchGooglePhotoBytes(googleRefs[index].name, apiKey!)
+            : () => this.fetchRemoteBytes(commons[index - googleRefs.length].photoUrl);
+        const url = await this.storeCandidate(key, creditLine(candidate.attribution, candidate.license), fetchBytes);
+        // The index is fixed before any download, so a picture that fails to
+        // load leaves a gap rather than renumbering the ones after it — the key
+        // has to keep pointing at the same file across requests.
+        return url ? { ...candidate, key, url } : null;
+      }),
+    );
+
+    return results.filter((candidate): candidate is PlacePhotoCandidate => candidate !== null);
   }
 
   /**

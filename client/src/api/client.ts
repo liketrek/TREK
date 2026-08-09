@@ -931,11 +931,13 @@ export const mapsApi = {
   details: (placeId: string, lang?: string) => apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang } }).then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details')),
   // Pictures and a description for a place that is being looked at but not yet
   // saved. Fans out to several providers server-side, so it takes a signal and
-  // the caller is expected to abort it when the selection changes.
+  // the caller is expected to abort it when the selection changes, and a longer
+  // timeout than the global 8s — a cold Wikimedia connection alone can eat that.
   placeEnrichment: (
     body: { placeId?: string; lat: number; lng: number; name: string; lang?: string },
     signal?: AbortSignal,
-  ) => apiClient.post('/maps/enrichment', body, { signal }).then(r => checkInDev(mapsPlaceEnrichmentResultSchema, r.data, 'maps.placeEnrichment')),
+  ) => apiClient.post('/maps/enrichment', body, { signal, timeout: 25000 })
+      .then(r => checkInDev(mapsPlaceEnrichmentResultSchema, r.data, 'maps.placeEnrichment')),
   // Author + licence for a picture already stored in the photo cache, keyed by
   // the cache key embedded in its proxy URL. Local read, no provider call.
   placePhotoCredit: (key: string) =>

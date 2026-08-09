@@ -219,9 +219,11 @@ describe('collectPhotos', () => {
 
     const out = await make(maps, cacheStub()).enrich(1, REQ);
 
-    // The survivor takes index 0 — keys number the strip, not the source list.
+    // The survivor keeps index 1 — keys number the provider's list, so a picture
+    // that fails leaves a gap instead of renumbering the ones behind it. Keys
+    // have to point at the same file on the next request.
     expect(out.photos).toHaveLength(1);
-    expect(out.photos[0].key).toBe('ChIJmuseum~p0');
+    expect(out.photos[0].key).toBe('ChIJmuseum~p1');
   });
 
   it('ENRICH-010: treats an empty body and a throwing download as a miss', async () => {
@@ -274,7 +276,51 @@ describe('collectPhotos', () => {
     const out = await make(maps, cacheStub()).enrich(1, REQ);
 
     expect(out.photos).toHaveLength(1);
-    expect(out.photos[0]).toMatchObject({ key: 'ChIJmuseum~p0', attribution: 'Cara' });
+    expect(out.photos[0]).toMatchObject({ key: 'ChIJmuseum~p1', attribution: 'Cara' });
+  });
+
+  it('ENRICH-012c: downloads the pictures concurrently, not one after another', async () => {
+    // Five sequential round trips plus five decodes pushed the request past the
+    // client's timeout, which is what made the column show an error every time.
+    let active = 0;
+    let peak = 0;
+    const maps = mapsStub({
+      fetchCommonsCandidates: vi.fn(async () => [commonsCandidate(), commonsCandidate(), commonsCandidate()]),
+    });
+    mockSafeFetchFollow.mockImplementation(async () => {
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active--;
+      return { ok: true, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer };
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, REQ);
+
+    expect(out.photos).toHaveLength(3);
+    expect(peak).toBeGreaterThan(1);
+  });
+
+  it('ENRICH-012d: asks both providers at the same time', async () => {
+    const order: string[] = [];
+    const maps = mapsStub({
+      getMapsKey: vi.fn(() => 'key'),
+      fetchGooglePhotoRefs: vi.fn(async () => {
+        order.push('google:start');
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        order.push('google:end');
+        return [];
+      }),
+      fetchCommonsCandidates: vi.fn(async () => {
+        order.push('commons:start');
+        return [];
+      }),
+    });
+
+    await make(maps, cacheStub()).enrich(1, REQ);
+
+    // Commons starts before Google finishes; the listings do not queue.
+    expect(order.indexOf('commons:start')).toBeLessThan(order.indexOf('google:end'));
   });
 
   it('ENRICH-013: falls back to a coordinate pseudo-id when the place has none', async () => {

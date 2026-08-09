@@ -130,6 +130,11 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 // of places cannot monopolise the event loop or trigger external API rate limits.
 // Module-scoped ON PURPOSE (permissions-cache precedent): the bridge instance and
 // the DI singleton must share one limiter, one POI cache and one call counter.
+// Wikimedia is normally well under a second, but a cold TLS handshake from a
+// fresh container has been seen at eight. Enrichment answers a live dialog, so
+// a slow provider is dropped rather than waited out.
+const WIKI_TIMEOUT_MS = 6000;
+
 const MAX_CONCURRENT_PHOTO_FETCHES = 5;
 let photoFetchActive = 0;
 const photoFetchQueue: Array<() => void> = [];
@@ -624,7 +629,12 @@ export class MapsService {
       iiurlwidth: '400',
     });
     try {
-      const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { 'User-Agent': UA } });
+      const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        // A hanging provider must not hold the whole enrichment request open;
+        // no pictures is a fine answer, a request that never returns is not.
+        signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+      });
       if (!res.ok) return [];
       const data = (await res.json()) as { query?: { pages?: Record<string, WikiCommonsPage> } };
       const pages = data.query?.pages;
@@ -681,6 +691,7 @@ export class MapsService {
     try {
       const res = await fetch(`https://${parsed.lang}.wikipedia.org/w/api.php?${params}`, {
         headers: { 'User-Agent': UA },
+        signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
       });
       if (!res.ok) return null;
       const data = (await res.json()) as { query?: { pages?: Record<string, { title?: string; extract?: string }> } };
