@@ -333,8 +333,43 @@ export function buildOsmDetails(tags: Record<string, string>, osmType: string, o
     opening_periods,
     osm_url: `https://www.openstreetmap.org/${osmType}/${osmId}`,
     summary: tags.description || null,
+    // Kept so enrichment can resolve the right Wikipedia article instead of
+    // guessing one from the place name, which picks the wrong article whenever
+    // the name is ambiguous ("Bahnhofstraße", "Rathaus", any chain restaurant).
+    wikipedia: tags.wikipedia || null,
+    wikidata: tags.wikidata || null,
     source: 'openstreetmap' as const,
   };
+}
+
+// ── Wiki metadata ────────────────────────────────────────────────────────────
+
+/**
+ * Commons extmetadata values arrive as HTML fragments — an author is typically
+ * an <a> to the uploader's user page, a licence can carry <span> wrappers. We
+ * show these as plain text next to a thumbnail, so the markup has to go.
+ */
+export function stripWikiMarkup(value: string | undefined | null): string | null {
+  if (!value) return null;
+  const text = value
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text || null;
+}
+
+/**
+ * Splits an OSM `wikipedia` tag ("de:Museum Ludwig") into host language and
+ * article title. Returns null for the bare-title spelling, which has no language
+ * and would send us to the wrong wiki.
+ */
+export function parseWikipediaTag(tag: string | undefined | null): { lang: string; title: string } | null {
+  if (!tag) return null;
+  const match = /^([a-z-]{2,12}):(.+)$/i.exec(tag.trim());
+  if (!match) return null;
+  const title = match[2].trim();
+  return title ? { lang: match[1].toLowerCase(), title } : null;
 }
 
 // ── Place-id classification ──────────────────────────────────────────────────
@@ -342,10 +377,12 @@ export function buildOsmDetails(tags: Record<string, string>, osmType: string, o
 // Ids that can never resolve against the Google Places API: coordinate pseudo-ids
 // (right-click places, in both the coords: and the bare "lat,lng" spelling the
 // collection views send), OSM ids the client sends when a place has no
-// google_place_id, and the raw photo URLs legacy rows keep in image_url. Google
-// answers those with a billable 400 INVALID_ARGUMENT, so every lookup sorts them
-// out before the call and uses the OSM/Wikimedia path instead.
-const NON_GOOGLE_PLACE_ID = /^(?:coords|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$/i;
+// google_place_id, the raw photo URLs legacy rows keep in image_url, and photo
+// cache keys of the form "<placeId>~p3" that enrichment mints for the picker.
+// Google answers those with a billable 400 INVALID_ARGUMENT, so every lookup
+// sorts them out before the call and uses the OSM/Wikimedia path instead.
+const NON_GOOGLE_PLACE_ID =
+  /^(?:coords|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$|~p\d+$/i;
 // The subset that still has a provider behind it — Overpass for details,
 // Wikimedia for photos.
 export const OSM_PLACE_ID = /^(?:node|way|relation):/i;

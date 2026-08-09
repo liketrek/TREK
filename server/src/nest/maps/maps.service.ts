@@ -25,6 +25,8 @@ import {
   CATEGORY_OSM_FILTERS,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
+  stripWikiMarkup,
+  parseWikipediaTag,
   type GoogleOpeningHours,
   type OverpassPoi,
 } from './maps.helpers';
@@ -59,7 +61,33 @@ interface OverpassElement {
 }
 
 interface WikiCommonsPage {
-  imageinfo?: { url?: string; thumburl?: string; extmetadata?: { Artist?: { value?: string } } }[];
+  imageinfo?: {
+    url?: string;
+    thumburl?: string;
+    mime?: string;
+    /** The file description page — where the full licence terms live. */
+    descriptionurl?: string;
+    extmetadata?: {
+      Artist?: { value?: string };
+      LicenseShortName?: { value?: string };
+      LicenseUrl?: { value?: string };
+      UsageTerms?: { value?: string };
+    };
+  }[];
+}
+
+/**
+ * One Commons image with everything needed to credit it. Commons is mostly
+ * CC BY / CC BY-SA, so a candidate that cannot be attributed is not usable in a
+ * picker — the fields are nullable because Commons metadata is user-maintained
+ * and genuinely incomplete on some files, not because they are optional to show.
+ */
+export interface CommonsCandidate {
+  photoUrl: string;
+  attribution: string | null;
+  license: string | null;
+  licenseUrl: string | null;
+  sourceUrl: string | null;
 }
 
 interface GooglePlaceResult {
@@ -120,6 +148,21 @@ function releasePhotoFetchSlot(): void {
     next();
   } else {
     photoFetchActive--;
+  }
+}
+
+/**
+ * Runs an outbound photo fetch under the shared slot limit. Exported so the
+ * enrichment module queues behind the same five slots — a picker that grabs
+ * three images per selected place would otherwise sail past a cap the rest of
+ * the app respects.
+ */
+export async function withPhotoFetchSlot<T>(fn: () => Promise<T>): Promise<T> {
+  await acquirePhotoFetchSlot();
+  try {
+    return await fn();
+  } finally {
+    releasePhotoFetchSlot();
   }
 }
 
@@ -553,6 +596,20 @@ export class MapsService {
     }
 
     // Strategy 2: Wikimedia Commons geosearch by coordinates
+    const candidates = await this.fetchCommonsCandidates(lat, lng, 5);
+    const first = candidates[0];
+    return first ? { photoUrl: first.photoUrl, attribution: first.attribution } : null;
+  }
+
+  /**
+   * Commons images near a coordinate, licence metadata included.
+   *
+   * geosearch already returns up to `limit` files in a single request, so asking
+   * for a whole strip costs the same as asking for one picture. Callers that only
+   * want a single image (fetchWikimediaPhoto, and through it getPlacePhoto) take
+   * the first entry and get exactly the file they got before this existed.
+   */
+  async fetchCommonsCandidates(lat: number, lng: number, limit = 5): Promise<CommonsCandidate[]> {
     const params = new URLSearchParams({
       action: 'query',
       format: 'json',
@@ -561,31 +618,151 @@ export class MapsService {
       ggsnamespace: '6',
       ggsradius: '300',
       ggscoord: `${lat}|${lng}`,
-      ggslimit: '5',
+      ggslimit: String(Math.max(1, Math.min(limit, 20))),
       prop: 'imageinfo',
       iiprop: 'url|extmetadata|mime',
       iiurlwidth: '400',
     });
     try {
       const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { 'User-Agent': UA } });
-      if (!res.ok) return null;
-      const data = (await res.json()) as {
-        query?: { pages?: Record<string, WikiCommonsPage & { imageinfo?: { mime?: string }[] }> };
-      };
+      if (!res.ok) return [];
+      const data = (await res.json()) as { query?: { pages?: Record<string, WikiCommonsPage> } };
       const pages = data.query?.pages;
-      if (!pages) return null;
+      if (!pages) return [];
+
+      const out: CommonsCandidate[] = [];
       for (const page of Object.values(pages)) {
         const info = page.imageinfo?.[0];
         // Only use actual photos (JPEG/PNG), skip SVGs and PDFs
-        const mime = (info as { mime?: string })?.mime || '';
-        if (info?.url && (mime.startsWith('image/jpeg') || mime.startsWith('image/png'))) {
-          const attribution = info.extmetadata?.Artist?.value?.replace(/<[^>]+>/g, '').trim() || null;
+        const mime = info?.mime || '';
+        if (!info?.url || !(mime.startsWith('image/jpeg') || mime.startsWith('image/png'))) continue;
+        const meta = info.extmetadata;
+        out.push({
           // iiurlwidth=400 makes Commons also return a scaled thumburl. Prefer it —
           // info.url is the full-resolution original (multi-megapixel camera exports).
-          return { photoUrl: info.thumburl ?? info.url, attribution };
-        }
+          photoUrl: info.thumburl ?? info.url,
+          attribution: stripWikiMarkup(meta?.Artist?.value),
+          license: stripWikiMarkup(meta?.LicenseShortName?.value) ?? stripWikiMarkup(meta?.UsageTerms?.value),
+          licenseUrl: meta?.LicenseUrl?.value?.trim() || null,
+          sourceUrl: info.descriptionurl || null,
+        });
+        if (out.length >= limit) break;
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Lead paragraph of a Wikipedia article.
+   *
+   * Resolved from the place's OSM `wikipedia` tag when it has one, because
+   * guessing the article from the place name lands on the wrong article for
+   * every ambiguous name. Without a tag there is no reliable article, so this
+   * returns null rather than a plausible-looking description of somewhere else.
+   */
+  async fetchWikipediaExtract(
+    wikipediaTag: string | null | undefined,
+  ): Promise<{ text: string; sourceUrl: string } | null> {
+    const parsed = parseWikipediaTag(wikipediaTag);
+    if (!parsed) return null;
+
+    const params = new URLSearchParams({
+      action: 'query',
+      format: 'json',
+      titles: parsed.title,
+      prop: 'extracts',
+      exintro: '1',
+      explaintext: '1',
+      exsentences: '3',
+      redirects: '1',
+    });
+    try {
+      const res = await fetch(`https://${parsed.lang}.wikipedia.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { query?: { pages?: Record<string, { title?: string; extract?: string }> } };
+      const pages = data.query?.pages;
+      if (!pages) return null;
+      for (const page of Object.values(pages)) {
+        const text = page.extract?.trim();
+        // A missing article comes back as a page with no extract, not as a 404.
+        if (!text) continue;
+        const title = page.title ?? parsed.title;
+        return { text, sourceUrl: `https://${parsed.lang}.wikipedia.org/wiki/${encodeURIComponent(title)}` };
       }
       return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Photo references for a Google place, capped by the caller.
+   *
+   * Split out from the bytes download on purpose: this is one billed Details
+   * call for the whole strip, while every reference turned into an image is a
+   * separate billed /media call. Callers fetch bytes only for what they show.
+   */
+  async fetchGooglePhotoRefs(
+    placeId: string,
+    apiKey: string,
+    cap: number,
+  ): Promise<{ name: string; attribution: string | null }[]> {
+    if (!isGooglePlaceId(placeId) || cap < 1) return [];
+    try {
+      const res = await googleFetch(
+        `https://places.googleapis.com/v1/places/${placeId}`,
+        `fetchGooglePhotoRefs(${placeId})`,
+        { headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'photos' } },
+      );
+      if (!res.ok) return [];
+      const data = (await res.json()) as GooglePlaceDetails;
+      return (data.photos ?? []).slice(0, cap).map((photo) => ({
+        name: photo.name,
+        attribution: photo.authorAttributions?.[0]?.displayName || null,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /** Image bytes for one photo reference. Null on any miss; the caller skips it. */
+  async fetchGooglePhotoBytes(photoName: string, apiKey: string, maxHeightPx = 400): Promise<Buffer | null> {
+    try {
+      const res = await googleFetch(
+        `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=${maxHeightPx}`,
+        `fetchGooglePhotoBytes(${photoName})`,
+        { headers: { 'X-Goog-Api-Key': apiKey } },
+      );
+      if (!res.ok) return null;
+      const bytes = Buffer.from(await res.arrayBuffer());
+      return bytes.length ? bytes : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Google's editorial summary, on its own.
+   *
+   * getPlaceDetailsExpanded would also return this, but its field mask includes
+   * `reviews`, which moves the call into the Enterprise SKU. Enrichment only
+   * wants the sentence, so it asks for the sentence.
+   */
+  async fetchEditorialSummary(placeId: string, apiKey: string, lang?: string): Promise<string | null> {
+    if (!isGooglePlaceId(placeId)) return null;
+    try {
+      const res = await googleFetch(
+        `https://places.googleapis.com/v1/places/${placeId}?languageCode=${toApiLang(lang)}`,
+        `fetchEditorialSummary(${placeId})`,
+        { headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'editorialSummary' } },
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as GooglePlaceDetails;
+      return data.editorialSummary?.text?.trim() || null;
     } catch {
       return null;
     }
