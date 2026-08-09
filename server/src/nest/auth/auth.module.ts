@@ -12,7 +12,6 @@ import { AppConfigModule } from '../app-config/app-config.module';
 import { AuditModule } from '../audit/audit.module';
 import { MailerModule } from '../notifications/mailer/mailer.module';
 import { PermissionsModule } from '../permissions/permissions.module';
-import { AtlasModule } from '../atlas/atlas.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 /**
@@ -21,10 +20,14 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * is a separate, not-yet-migrated route, so the strangler lists the auth
  * sub-paths explicitly rather than claiming all of /api/auth.
  *
- * PermissionsModule feeds getAppConfig's permissions block; AtlasModule feeds
- * getTravelStats' hidden-countries subtraction; MailerModule sends the
- * password-reset mail. It is a leaf module of its own precisely so this import
- * does not become AuthModule -> NotificationsModule -> AuthModule. AuthService is
+ * PermissionsModule feeds getAppConfig's permissions block; MailerModule sends
+ * the password-reset mail. It is a leaf module of its own precisely so this
+ * import does not become AuthModule -> NotificationsModule -> AuthModule.
+ *
+ * AtlasModule is deliberately absent. getTravelStats was the only reason for it
+ * and now belongs to AtlasService; the direction is reversed, so AtlasModule
+ * imports AuthModule and atlas.mcp.ts can inject AuthService instead of routing
+ * through auth.bridge. AuthService is
  * exported for the in-container consumers (the domain *.mcp.ts demo guards,
  * OidcService, PasskeyEnabledGuard); PasskeyService for AdminService's passkey
  * reset; UserCleanupService for the two account-deletion paths (AdminService)
@@ -32,7 +35,7 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * through auth.bridge.ts.
  */
 @Module({
-  imports: [RateLimitModule, AuditModule, PermissionsModule, AtlasModule, TripMembershipModule, MailerModule, AppConfigModule],
+  imports: [RateLimitModule, AuditModule, PermissionsModule, TripMembershipModule, MailerModule, AppConfigModule],
   controllers: [AuthPublicController, AuthController, PasskeyController],
   providers: [AuthService, PasskeyService, UserCleanupService, WebauthnConfigService, AuthMcp],
   exports: [AuthService, PasskeyService, UserCleanupService],

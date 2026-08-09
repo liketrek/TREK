@@ -282,14 +282,14 @@ describe('AuthController (authenticated)', () => {
     expect(ac(asvc({ getSettings: vi.fn().mockReturnValue({ settings: { theme: 'dark' } }) } as Partial<AuthService>), rl()).getSettings(user)).toEqual({ settings: { theme: 'dark' } });
   });
 
-  it('delete-avatar + users + travel-stats delegate to the service', async () => {
+  // travel-stats left with getTravelStats; it is covered by
+  // atlas.controller.test.ts (TravelStatsController).
+  it('delete-avatar + users delegate to the service', async () => {
     const deleteAvatar = vi.fn().mockResolvedValue({ removed: true });
     expect(await ac(asvc({ deleteAvatar } as Partial<AuthService>), rl()).deleteAvatar(user)).toEqual({ removed: true });
     const listUsers = vi.fn().mockReturnValue([{ id: 1 }]);
     expect(ac(asvc({ listUsers } as Partial<AuthService>), rl()).users(user)).toEqual({ users: [{ id: 1 }] });
     expect(listUsers).toHaveBeenCalledWith(1);
-    const getTravelStats = vi.fn().mockReturnValue({ countries: 3 });
-    expect(ac(asvc({ getTravelStats } as Partial<AuthService>), rl()).travelStats(user)).toEqual({ countries: 3 });
   });
 
   it('validate-keys maps error, else returns the maps/weather payload', async () => {

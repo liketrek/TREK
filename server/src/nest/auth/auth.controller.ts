@@ -192,10 +192,9 @@ export class AuthController {
     return { success: true };
   }
 
-  @Get('travel-stats')
-  travelStats(@CurrentUser() user: User) {
-    return this.auth.getTravelStats(user.id);
-  }
+  // GET travel-stats moved to atlas/travel-stats.controller.ts. Same path, same
+  // guard, same response — only the owner changed, so AuthModule can drop its
+  // AtlasModule import.
 
   @Post('mfa/setup')
   @HttpCode(200)

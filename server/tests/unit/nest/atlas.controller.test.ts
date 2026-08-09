@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
+import { HttpException, RequestMethod } from '@nestjs/common';
 import type { Response } from 'express';
 import { AtlasController } from '../../../src/nest/atlas/atlas.controller';
+import { TravelStatsController } from '../../../src/nest/atlas/travel-stats.controller';
+import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { AtlasModule } from '../../../src/nest/atlas/atlas.module';
+import { expectRegisteredController } from '../../helpers/module-providers';
 import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import type { User } from '../../../src/types';
 
@@ -147,5 +151,50 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
       const deleteBucketItem = vi.fn().mockReturnValue(true);
       expect(makeController({ deleteBucketItem }).deleteBucketItem(user, '1')).toEqual({ success: true });
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TravelStatsController — GET /api/auth/travel-stats.
+//
+// The path lives under /api/auth on purpose (the client calls it there and
+// moving it would break); the code sits in atlas/ because getTravelStats reads
+// Atlas data. These cases pin both halves: the delegation, and the fact that
+// the controller keeps the auth prefix.
+// ---------------------------------------------------------------------------
+
+describe('TravelStatsController', () => {
+  it('ATLAS-TRAVEL-001: delegates to AtlasService.getTravelStats with the caller id', () => {
+    const getTravelStats = vi.fn().mockReturnValue({ countries: ['JP'], totalTrips: 2 });
+    const controller = new TravelStatsController({ getTravelStats } as unknown as AtlasService);
+
+    expect(controller.travelStats(user)).toEqual({ countries: ['JP'], totalTrips: 2 });
+    expect(getTravelStats).toHaveBeenCalledWith(8);
+  });
+
+  it('ATLAS-TRAVEL-002: passes the payload through untouched', () => {
+    const payload = { countries: [], cities: [], coords: [], totalTrips: 0, totalDays: 0, totalPlaces: 0, totalDistanceKm: 0 };
+    const controller = new TravelStatsController({ getTravelStats: () => payload } as unknown as AtlasService);
+
+    expect(controller.travelStats(user)).toBe(payload);
+  });
+
+  it('ATLAS-TRAVEL-003: still answers on /api/auth/travel-stats, so the move is not a breaking change', () => {
+    expect(Reflect.getMetadata('path', TravelStatsController)).toBe('api/auth');
+    expect(Reflect.getMetadata('path', TravelStatsController.prototype.travelStats)).toBe('travel-stats');
+    expect(Reflect.getMetadata('method', TravelStatsController.prototype.travelStats)).toBe(RequestMethod.GET);
+  });
+
+  it('ATLAS-TRAVEL-004: keeps the JwtAuthGuard the route had on AuthController', () => {
+    // Array shape asserted first on purpose: expect(undefined).toContain(SomeClass)
+    // passes in this vitest version, so the plain form would stop guarding the
+    // moment the decorator disappeared. Same reason module-providers.ts exists.
+    const guards = Reflect.getMetadata('__guards__', TravelStatsController) as unknown[] | undefined;
+    expect(Array.isArray(guards)).toBe(true);
+    expect(guards).toEqual(expect.arrayContaining([JwtAuthGuard]));
+  });
+
+  it('ATLAS-TRAVEL-005: AtlasModule registers the controller, so the route actually exists', () => {
+    expectRegisteredController(AtlasModule, TravelStatsController);
   });
 });

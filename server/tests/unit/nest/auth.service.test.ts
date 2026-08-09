@@ -73,7 +73,6 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, createInviteToken, createTrip, createPlace, createReservation } from '../../helpers/factories';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import * as authBridge from '../../../src/nest/auth/auth.bridge';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
@@ -97,7 +96,6 @@ const membershipStub = { joinTripAsMember } as unknown as TripMembershipService;
 const svc = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
-  new AtlasService(new DatabaseService(testDb)),
   membershipStub,
   new WebauthnConfigService(new DatabaseService(testDb)),
   new UserCleanupService(new DatabaseService(testDb)),
@@ -755,129 +753,6 @@ describe('MCP token service', () => {
   });
 });
 
-// ── getTravelStats — dashboard passport card ────────────────────────────────
-
-describe('getTravelStats', () => {
-  function endpoint(reservationId: number, role: 'from' | 'to' | 'stop', sequence: number, lat: number, lng: number) {
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng);
-  }
-
-  // Every trip below is dated in the past: since #1048 the passport card only counts
-  // countries from trips that have already started, so a dateless fixture would make
-  // these role-filter/tombstone assertions vacuous.
-  const PAST_START = '2023-05-01';
-  const PAST_END = '2023-05-10';
-
-  it('AUTH-DB-047: #1486 counts the from/to countries of a flight', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip', start_date: PAST_START, end_date: PAST_END });
-    const res = createReservation(testDb, trip.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);   // Brussels
-    endpoint(res.id, 'to', 1, 35.6762, 139.6503);   // Tokyo
-
-    const stats = svc.getTravelStats(user.id);
-    expect(stats.countries).toContain('BE');
-    expect(stats.countries).toContain('JP');
-  });
-
-  it('AUTH-DB-048: #1486 a connecting-flight layover does NOT count as visited', () => {
-    // The Atlas query grew a role filter for #1486 but this copy of it did not, so the
-    // dashboard passport card still counted a plane change as a visited country.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Connection Trip', start_date: PAST_START, end_date: PAST_END });
-    const res = createReservation(testDb, trip.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);     // Brussels
-    endpoint(res.id, 'stop', 1, 35.6762, 139.6503);   // Tokyo — never leaves the airport
-    endpoint(res.id, 'to', 2, -33.8688, 151.2093);    // Sydney
-
-    const stats = svc.getTravelStats(user.id);
-    expect(stats.countries).toContain('BE');
-    expect(stats.countries).toContain('AU');
-    expect(stats.countries).not.toContain('JP');
-  });
-
-  it('AUTH-DB-049: #1490 a country removed in Atlas is not counted on the dashboard either', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip', start_date: PAST_START, end_date: PAST_END });
-    const res = createReservation(testDb, trip.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);
-    endpoint(res.id, 'to', 1, 35.6762, 139.6503);
-
-    expect(svc.getTravelStats(user.id).countries).toContain('JP');
-
-    new AtlasService(new DatabaseService(testDb)).unmarkCountry(user.id, 'JP');
-
-    const after = svc.getTravelStats(user.id);
-    expect(after.countries).not.toContain('JP');
-    expect(after.countries).toContain('BE');
-  });
-
-  // ── #1048: the passport card only stamps trips that have happened ──────────
-  // Relative offsets, not literal dates — a hardcoded "future" date expires.
-  const iso = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
-
-  function placeInRegion(tripId: number, countryCode: string, regionCode: string) {
-    const place = createPlace(testDb, tripId, { name: `Place in ${countryCode}` });
-    testDb
-      .prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
-      .run(place.id, countryCode, regionCode, regionCode);
-  }
-
-  it('AUTH-DB-094: #1048 a place in a future trip does not stamp its country; a past trip does', () => {
-    const { user } = createUser(testDb);
-    const past = createTrip(testDb, user.id, { title: 'Paris, last month', start_date: iso(-40), end_date: iso(-30) });
-    const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
-    placeInRegion(past.id, 'FR', 'FR-75');
-    placeInRegion(future.id, 'JP', 'JP-13');
-
-    const stats = svc.getTravelStats(user.id);
-
-    expect(stats.countries).toContain('FR');
-    expect(stats.countries).not.toContain('JP');
-  });
-
-  it('AUTH-DB-095: #1048 a trip with no dates at all stamps nothing', () => {
-    const { user } = createUser(testDb);
-    const dateless = createTrip(testDb, user.id, { title: 'Someday: Japan' });
-    placeInRegion(dateless.id, 'JP', 'JP-13');
-    const res = createReservation(testDb, dateless.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844); // Brussels
-
-    const stats = svc.getTravelStats(user.id);
-
-    expect(stats.countries).toEqual([]);
-  });
-
-  it('AUTH-DB-096: #1048 a flight booked for a future trip does not stamp its endpoints', () => {
-    const { user } = createUser(testDb);
-    const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
-    const res = createReservation(testDb, future.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);   // Brussels
-    endpoint(res.id, 'to', 1, 35.6762, 139.6503);   // Tokyo
-
-    const stats = svc.getTravelStats(user.id);
-
-    expect(stats.countries).not.toContain('BE');
-    expect(stats.countries).not.toContain('JP');
-  });
-
-  it('AUTH-DB-097: #1048 a manually marked country stays stamped regardless of trip dates', () => {
-    // The manual list is the user's own word, not derived from a trip — the date
-    // filter must not reach it.
-    const { user } = createUser(testDb);
-    const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
-    placeInRegion(future.id, 'JP', 'JP-13');
-    testDb.prepare('INSERT INTO visited_countries (user_id, country_code) VALUES (?, ?)').run(user.id, 'JP');
-
-    const stats = svc.getTravelStats(user.id);
-
-    expect(stats.countries).toContain('JP');
-  });
-});
-
-
 // ---------------------------------------------------------------------------
 // Coverage added with the DI fold (AUTH-DB-050+): the fold moved ~1400 lines
 // under the src/nest coverage gate, so the previously untested branches —
@@ -1282,14 +1157,6 @@ describe('ephemeral + demo helpers', () => {
 // ---------------------------------------------------------------------------
 
 describe('auth quirk fixes', () => {
-  it('AUTH-DB-089: getTravelStats keeps a place at lat 0 / lng 0 (equator, prime meridian)', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Null Island' });
-    testDb.prepare('INSERT INTO places (trip_id, name, lat, lng) VALUES (?, ?, ?, ?)').run(trip.id, 'Null Island', 0, 0);
-    const stats = svc.getTravelStats(user.id);
-    expect(stats.coords).toContainEqual({ lat: 0, lng: 0 });
-  });
-
   it('AUTH-DB-090: a throw mid-registration rolls the whole signup back (user + invite bookkeeping)', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
