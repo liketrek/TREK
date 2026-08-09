@@ -96,6 +96,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Kosongkan dulu kolom deskripsi',
   'places.details.facts': 'Perlu diketahui',
   'places.details.nothing': 'Tidak ada yang ditemukan untuk tempat ini.',
+  'places.details.fact.rating': 'Peringkat',
   'places.details.fact.cuisine': 'Masakan',
   'places.details.fact.openingHours': 'Jam buka',
   'places.details.fact.menu': 'Menu',

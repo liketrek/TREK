@@ -13,6 +13,7 @@ import {
   ScrollText,
   ShoppingBag,
   Sprout,
+  Star,
   Sun,
   Wifi,
 } from 'lucide-react'
@@ -26,6 +27,8 @@ export interface PlaceDetailsSelection {
   lat: number
   lng: number
   name: string
+  /** The picked search result, so the server can skip its own details lookup. */
+  details?: Record<string, unknown>
 }
 
 interface PlaceDetailsColumnProps {
@@ -128,7 +131,14 @@ export default function PlaceDetailsColumn({
 
     mapsApi
       .placeEnrichment(
-        { placeId: selection.placeId, lat: selection.lat, lng: selection.lng, name: selection.name, lang: language },
+        {
+          placeId: selection.placeId,
+          lat: selection.lat,
+          lng: selection.lng,
+          name: selection.name,
+          lang: language,
+          details: selection.details,
+        },
         controller.signal,
       )
       .then((result) => {
@@ -204,11 +214,17 @@ export default function PlaceDetailsColumn({
 }
 
 /**
- * The picture strip: the first candidate wide, the rest as a row underneath.
+ * The picture strip.
  *
- * A plain two-column grid left a hole whenever an odd number of pictures came
- * back, which is most of the time. A lead image also gives the column something
- * to look at instead of a page of equal squares.
+ * A tight three-column grid rather than a lead image: this sits beside a form
+ * in a dialog, and pictures that take half the column push the facts and the
+ * description out of sight.
+ *
+ * Only the picture in play is credited in full. Crediting all of them at once
+ * cost two lines each and drowned the column, and the licence obligation
+ * attaches to the picture that gets used — which is the selected one, whose
+ * credit also stays visible in the inspector after saving. Every tile still
+ * carries the full credit as its tooltip and links to its source page.
  */
 function PhotoStrip({
   photos,
@@ -221,88 +237,95 @@ function PhotoStrip({
   onPickImage: (url: string | null) => void
   t: TranslationFn
 }): React.ReactElement | null {
+  const [hovered, setHovered] = useState<string | null>(null)
   if (photos.length === 0) return null
 
-  const [lead, ...rest] = photos
+  const shown = photos.find((p) => p.url === (hovered ?? selectedImageUrl)) ?? photos[0]
 
   return (
     <div className="space-y-2">
       <Overline>{t('places.details.pickImage')}</Overline>
-      <PhotoTile photo={lead} wide selected={selectedImageUrl === lead.url} onPick={onPickImage} t={t} />
-      {rest.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {rest.map((photo) => (
-            <PhotoTile
-              key={photo.key}
-              photo={photo}
-              selected={selectedImageUrl === photo.url}
-              onPick={onPickImage}
-              t={t}
-            />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-3 gap-1.5">
+        {photos.map((photo) => (
+          <PhotoTile
+            key={photo.key}
+            photo={photo}
+            selected={selectedImageUrl === photo.url}
+            onPick={onPickImage}
+            onHover={setHovered}
+            t={t}
+          />
+        ))}
+      </div>
+      <PhotoCredit photo={shown} />
     </div>
   )
 }
 
 function PhotoTile({
   photo,
-  wide = false,
   selected,
   onPick,
+  onHover,
   t,
 }: {
   photo: PlacePhotoCandidate
-  wide?: boolean
   selected: boolean
   onPick: (url: string | null) => void
+  onHover: (url: string | null) => void
   t: TranslationFn
 }): React.ReactElement {
+  const credit = photo.attribution || sourceLabelFor(photo.source)
+
   return (
-    <div className="space-y-1">
-      <button
-        type="button"
-        onClick={() => onPick(selected ? null : photo.url)}
-        aria-pressed={selected}
-        aria-label={photo.attribution ? `${t('places.details.pickImage')} — ${photo.attribution}` : t('places.details.pickImage')}
-        className={`group relative block w-full overflow-hidden rounded-lg transition-shadow ${
-          wide ? 'aspect-[16/10]' : 'aspect-square'
-        } ${selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-secondary' : 'ring-1 ring-edge hover:ring-content-muted'}`}
-      >
-        <img
-          src={photo.url}
-          alt=""
-          loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-        />
-        {selected && (
-          <span className="absolute top-1.5 right-1.5 rounded-full bg-accent p-1 shadow-card">
-            <Check className="w-3 h-3 text-accent-on" />
-          </span>
-        )}
-      </button>
-      <PhotoCredit photo={photo} />
-    </div>
+    <button
+      type="button"
+      onClick={() => onPick(selected ? null : photo.url)}
+      onMouseEnter={() => onHover(photo.url)}
+      onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(photo.url)}
+      onBlur={() => onHover(null)}
+      aria-pressed={selected}
+      aria-label={`${t('places.details.pickImage')} — ${credit}`}
+      title={`${credit}${photo.license ? ` · ${photo.license}` : ''}`}
+      className={`group relative block w-full aspect-square overflow-hidden rounded-lg transition-shadow ${
+        selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-secondary' : 'ring-1 ring-edge hover:ring-content-muted'
+      }`}
+    >
+      <img
+        src={photo.url}
+        alt=""
+        loading="lazy"
+        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+      />
+      {selected && (
+        <span className="absolute top-1 right-1 rounded-full bg-accent p-0.5 shadow-card">
+          <Check className="w-2.5 h-2.5 text-accent-on" />
+        </span>
+      )}
+    </button>
   )
 }
 
+function sourceLabelFor(source: PlacePhotoCandidate['source']): string {
+  if (source === 'google') return 'Google'
+  if (source === 'wikipedia') return 'Wikipedia'
+  return 'Wikimedia Commons'
+}
+
 /**
- * Author and licence under every thumbnail.
+ * Author and licence for the picture currently in play.
  *
  * Not decoration: Commons images are largely CC BY / CC BY-SA, and reusing one
- * without naming its author does not satisfy those terms. Wrapped over two
- * lines rather than truncated to one, because a cut-off name credits nobody.
- * When a source hands us no author (Google), we say where it came from rather
- * than inventing a credit.
+ * without naming its author does not satisfy those terms. When a source hands
+ * us no author (Google), we say where it came from rather than inventing one.
  */
 function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElement {
-  const sourceLabel = photo.source === 'google' ? 'Google' : photo.source === 'wikipedia' ? 'Wikipedia' : 'Wikimedia Commons'
-  const credit = photo.attribution || sourceLabel
+  const credit = photo.attribution || sourceLabelFor(photo.source)
   const full = `${credit}${photo.license ? ` · ${photo.license}` : ''}`
 
   return (
-    <p className="text-caption leading-tight text-content-faint line-clamp-2" title={full}>
+    <p className="text-caption leading-tight text-content-faint truncate" title={full}>
       {photo.sourceUrl ? (
         <a href={photo.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
           {credit}
@@ -327,6 +350,7 @@ function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElem
 }
 
 const FACT_ICONS: Record<PlaceFact['kind'], typeof ChefHat> = {
+  rating: Star,
   cuisine: ChefHat,
   openingHours: Clock,
   menu: ScrollText,

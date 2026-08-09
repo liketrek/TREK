@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Clear the description field first',
   'places.details.facts': 'Good to know',
   'places.details.nothing': 'Nothing found for this place.',
+  'places.details.fact.rating': 'Rating',
   'places.details.fact.cuisine': 'Cuisine',
   'places.details.fact.openingHours': 'Opening hours',
   'places.details.fact.menu': 'Menu',

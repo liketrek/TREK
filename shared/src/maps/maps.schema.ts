@@ -147,6 +147,7 @@ export type PlaceDescription = z.infer<typeof placeDescriptionSchema>;
  * `kind` is translated client-side; `value` is provider data and stays as-is.
  */
 export const placeFactKindSchema = z.enum([
+  'rating',
   'cuisine',
   'openingHours',
   'menu',
@@ -176,6 +177,16 @@ export const mapsPlaceEnrichmentRequestSchema = z.object({
   /** Used to resolve a Wikipedia article when the place carries no wiki tag. */
   name: z.string().min(1).max(300),
   lang: z.string().max(35).optional(),
+  /**
+   * The place record the client already holds from picking the search result.
+   *
+   * Enrichment needs the same OSM tags that lookup returned, and fetching them
+   * again is not cheap: an Overpass lookup for a large relation was measured at
+   * 12.8 seconds. Passing them along turns a second slow round trip into none.
+   * Only the tags are read, and the wiki tag is re-validated before use, so a
+   * doctored payload can at worst mislead the user who sent it.
+   */
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 export type MapsPlaceEnrichmentRequest = z.infer<typeof mapsPlaceEnrichmentRequestSchema>;
 

@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Спершу очистіть поле опису',
   'places.details.facts': 'Корисно знати',
   'places.details.nothing': 'Для цього місця нічого не знайдено.',
+  'places.details.fact.rating': 'Рейтинг',
   'places.details.fact.cuisine': 'Кухня',
   'places.details.fact.openingHours': 'Години роботи',
   'places.details.fact.menu': 'Меню',

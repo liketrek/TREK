@@ -471,8 +471,10 @@ describe('collectDescription', () => {
 // ── Result cache ─────────────────────────────────────────────────────────────
 
 describe('result cache', () => {
-  const cachedRow = (photos: unknown[], fetchedAt = Date.now()) => ({
-    payload_json: JSON.stringify({ photos, description: null }),
+  // v is the cache format version; an entry written before a release that
+  // changes the shape or the sources is discarded rather than served.
+  const cachedRow = (photos: unknown[], fetchedAt = Date.now(), v: number | undefined = 2) => ({
+    payload_json: JSON.stringify({ photos, description: null, facts: [], v }),
     fetched_at: fetchedAt,
   });
 
@@ -541,6 +543,18 @@ describe('result cache', () => {
 
     expect(out.photos).toHaveLength(1);
     expect(maps.fetchCommonsCandidates).not.toHaveBeenCalled();
+  });
+
+  it('ENRICH-023c: discards an entry written by an older format version', async () => {
+    // Otherwise a release that adds a field keeps serving last week's answers.
+    const maps = mapsStub({ fetchCommonsCandidates: vi.fn(async () => [commonsCandidate()]) });
+    mockDbGet.mockImplementation((sql: string) =>
+      String(sql).includes('place_details_cache') ? cachedRow([], Date.now(), 1) : undefined,
+    );
+
+    await make(maps, cacheStub()).enrich(1, REQ);
+
+    expect(maps.fetchCommonsCandidates).toHaveBeenCalled();
   });
 
   it('ENRICH-024: ignores an unreadable cache row and rebuilds', async () => {
@@ -630,9 +644,10 @@ describe('collectFacts', () => {
     );
 
     expect(facts).toEqual([
+      // Hours come from the block shared with Google, so they lead.
+      { kind: 'openingHours', value: 'Mo-Sa 17:30+', url: null },
       // Semicolons and underscores are OSM syntax, not something to show a reader.
       { kind: 'cuisine', value: 'regional, german', url: null },
-      { kind: 'openingHours', value: 'Mo-Sa 17:30+', url: null },
       { kind: 'menu', value: null, url: 'https://example.org/menu' },
       { kind: 'outdoorSeating', value: null, url: null },
       { kind: 'wheelchair', value: 'limited', url: null },
@@ -659,9 +674,20 @@ describe('collectFacts', () => {
     expect(facts.find((f) => f.kind === 'internetAccess')).toEqual({ kind: 'internetAccess', value: null, url: null });
   });
 
-  it('ENRICH-053: stays empty for a Google place and for no details at all', () => {
+  it('ENRICH-053: takes the rating and hours from a Google place, but not its OSM-only tags', () => {
     expect(collectFacts(null)).toEqual([]);
-    expect(collectFacts({ source: 'google', cuisine: 'italian' })).toEqual([]);
+    // cuisine/outdoor_seating are OSM tagging and never appear on a Google blob.
+    expect(collectFacts({ source: 'google', cuisine: 'italian', outdoor_seating: 'yes' })).toEqual([]);
+    expect(
+      collectFacts({ source: 'google', rating: 4.5, rating_count: 1234, opening_hours: ['Mo-Fr 09:00-18:00'] }),
+    ).toEqual([
+      { kind: 'rating', value: '4.5 (1234)', url: null },
+      { kind: 'openingHours', value: 'Mo-Fr 09:00-18:00', url: null },
+    ]);
+  });
+
+  it('ENRICH-053b: omits the review count when there is none', () => {
+    expect(collectFacts({ source: 'google', rating: 4 })).toEqual([{ kind: 'rating', value: '4', url: null }]);
   });
 
   it('ENRICH-054: joins multi-day opening hours into one readable line', () => {

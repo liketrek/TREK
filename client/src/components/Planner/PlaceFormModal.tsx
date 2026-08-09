@@ -138,6 +138,28 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     }
     setPendingFiles([])
     setDuplicateWarning(null)
+    // The column follows whatever the dialog was opened with, not only a search
+    // pick: a POI tapped on the map and a right-click place arrive as
+    // prefillCoords, and editing an existing place arrives as `place`. Without
+    // this the column kept showing the previous place's pictures and facts,
+    // because only handleSelectMapsResult ever set it.
+    if (place && place.lat != null && place.lng != null) {
+      setDetailsSelection({
+        placeId: place.google_place_id || place.osm_id || undefined,
+        lat: Number(place.lat),
+        lng: Number(place.lng),
+        name: place.name || '',
+      })
+    } else if (prefillCoords) {
+      setDetailsSelection({
+        placeId: prefillCoords.osm_id || undefined,
+        lat: prefillCoords.lat,
+        lng: prefillCoords.lng,
+        name: prefillCoords.name || '',
+      })
+    } else {
+      setDetailsSelection(null)
+    }
     // dayAssignments is a fresh array each render; read it at open-time only and
     // re-run on identity changes (place/assignmentId/open), not on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -280,6 +302,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         lat,
         lng,
         name: result.name || '',
+        // Hand the record along: the server needs the same OSM tags, and
+        // looking them up again costs an Overpass round trip it can skip.
+        details: result,
       })
       setForm(prev => ({ ...prev, image_url: undefined }))
     }

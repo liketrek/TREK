@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Maak eerst het beschrijvingsveld leeg',
   'places.details.facts': 'Goed om te weten',
   'places.details.nothing': 'Niets gevonden voor deze plaats.',
+  'places.details.fact.rating': 'Beoordeling',
   'places.details.fact.cuisine': 'Keuken',
   'places.details.fact.openingHours': 'Openingstijden',
   'places.details.fact.menu': 'Menukaart',

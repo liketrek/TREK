@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': '先に説明欄を空にしてください',
   'places.details.facts': '知っておくと便利',
   'places.details.nothing': 'この場所の情報は見つかりませんでした。',
+  'places.details.fact.rating': '評価',
   'places.details.fact.cuisine': '料理',
   'places.details.fact.openingHours': '営業時間',
   'places.details.fact.menu': 'メニュー',

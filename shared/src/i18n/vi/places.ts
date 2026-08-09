@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Hãy xóa trống ô mô tả trước',
   'places.details.facts': 'Thông tin hữu ích',
   'places.details.nothing': 'Không tìm thấy gì cho địa điểm này.',
+  'places.details.fact.rating': 'Đánh giá',
   'places.details.fact.cuisine': 'Ẩm thực',
   'places.details.fact.openingHours': 'Giờ mở cửa',
   'places.details.fact.menu': 'Thực đơn',

@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Előbb ürítsd ki a leírás mezőt',
   'places.details.facts': 'Jó tudni',
   'places.details.nothing': 'Ehhez a helyhez nem található semmi.',
+  'places.details.fact.rating': 'Értékelés',
   'places.details.fact.cuisine': 'Konyha',
   'places.details.fact.openingHours': 'Nyitvatartás',
   'places.details.fact.menu': 'Étlap',

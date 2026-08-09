@@ -31,6 +31,13 @@ const GOOGLE_CAP = 3;
  */
 const CACHE_KIND = 2;
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/**
+ * Bumped whenever the shape or the sources change. Without it a release that
+ * adds a field or swaps a provider keeps serving the previous week's answers
+ * from before the change — which is exactly what happened when the facts and
+ * Wikivoyage landed.
+ */
+const CACHE_VERSION = 2;
 
 /** Cache key for one candidate picture. Deliberately not a bare place id. */
 function candidateKey(placeId: string, index: number): string {
@@ -56,6 +63,10 @@ interface CachedEnrichment {
   facts: PlaceFact[];
 }
 
+interface CachePayload extends CachedEnrichment {
+  v?: number;
+}
+
 /** OSM yes/no tags; anything else (limited, only, designated) is shown verbatim. */
 function yesNo(value: unknown): 'yes' | 'no' | string | null {
   return typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : null;
@@ -73,18 +84,29 @@ function yesNo(value: unknown): 'yes' | 'no' | string | null {
  * and a deliberate `no` are indistinguishable to a reader either way.
  */
 export function collectFacts(details: Record<string, unknown> | null): PlaceFact[] {
-  if (!details || details.source !== 'openstreetmap') return [];
+  if (!details) return [];
 
   const facts: PlaceFact[] = [];
   const push = (kind: PlaceFact['kind'], value: string | null, url: string | null = null) =>
     facts.push({ kind, value, url });
 
-  const cuisine = typeof details.cuisine === 'string' ? details.cuisine : null;
-  // OSM writes several cuisines semicolon-separated and underscored.
-  if (cuisine) push('cuisine', cuisine.split(';').map((c) => c.replace(/_/g, ' ').trim()).filter(Boolean).join(', '));
+  // Google supplies a rating and hours as well; both come back from the same
+  // details lookup and were simply going unused.
+  const rating = typeof details.rating === 'number' ? details.rating : null;
+  if (rating) {
+    const count = typeof details.rating_count === 'number' ? details.rating_count : null;
+    push('rating', count ? `${rating} (${count})` : String(rating));
+  }
 
   const hours = Array.isArray(details.opening_hours) ? (details.opening_hours as string[]) : null;
   if (hours?.length) push('openingHours', hours.join(' · '));
+
+  // Everything below is OpenStreetMap tagging and has no Google equivalent.
+  if (details.source !== 'openstreetmap') return facts;
+
+  const cuisine = typeof details.cuisine === 'string' ? details.cuisine : null;
+  // OSM writes several cuisines semicolon-separated and underscored.
+  if (cuisine) push('cuisine', cuisine.split(';').map((c) => c.replace(/_/g, ' ').trim()).filter(Boolean).join(', '));
 
   const menu = typeof details.menu_url === 'string' ? details.menu_url : null;
   if (menu) push('menu', null, menu);
@@ -148,7 +170,10 @@ export class PlaceEnrichmentService {
     // category, the description needs its wiki tag, and the facts are its tags.
     // It is row-cached and the dialog just made the same call, so in practice
     // this is a cache read.
-    const details = await this.readDetails(userId, placeId, lang);
+    // The dialog already fetched this when the user picked the result, so it
+    // comes along with the request. Refetching cost 12.8 seconds on a large
+    // OSM relation, and it ran in parallel with the client's own lookup.
+    const details = req.details ?? (await this.readDetails(userId, placeId, lang));
 
     const [photos, description] = await Promise.all([
       this.collectPhotos(userId, placeId, req, details),
@@ -184,18 +209,28 @@ export class PlaceEnrichmentService {
 
     // Ask both providers at once — one listing call each, and they know nothing
     // about one another.
-    // A Commons category is pictures OF the place; the coordinate search is
-    // pictures NEAR it, which around a city centre means statues and passers-by.
-    // Prefer the category whenever the place carries one.
+    // Accuracy, best first. Wikidata's P18 is one picture somebody chose to
+    // represent this exact object. A Commons category is pictures of it. The
+    // coordinate search is only pictures NEAR it, which around a city centre
+    // means statues and passers-by — it is the last resort, not the plan.
     const category = typeof details?.wikimedia_commons === 'string' ? details.wikimedia_commons : null;
-    const [googleRefs, commons] = await Promise.all([
+    const wikidata = typeof details?.wikidata === 'string' ? details.wikidata : null;
+
+    const [googleRefs, wikidataImage, commons] = await Promise.all([
       wantsGoogle ? this.maps.fetchGooglePhotoRefs(placeId, apiKey!, GOOGLE_CAP) : Promise.resolve([]),
+      wikidata ? this.maps.fetchWikidataImage(wikidata) : Promise.resolve(null),
       category
         ? this.maps
             .fetchCommonsCategoryCandidates(category, COMMONS_CAP)
             .then((hits) => (hits.length ? hits : this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP)))
         : this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP),
     ]);
+
+    // The Wikidata picture leads, and is dropped from the rest of the list when
+    // a category happens to contain it too.
+    const commonsList = wikidataImage
+      ? [wikidataImage, ...commons.filter((c) => c.photoUrl !== wikidataImage.photoUrl)].slice(0, COMMONS_CAP)
+      : commons;
 
     // Google first — its pictures are of the place itself, while Commons
     // geosearch finds whatever happens to have been photographed nearby.
@@ -211,7 +246,7 @@ export class PlaceEnrichmentService {
         sourceUrl: null,
         source: 'google' as const,
       })),
-      ...commons.map((candidate) => ({
+      ...commonsList.map((candidate) => ({
         key: '',
         url: '',
         attribution: candidate.attribution,
@@ -232,7 +267,7 @@ export class PlaceEnrichmentService {
         const fetchBytes =
           candidate.source === 'google'
             ? () => this.maps.fetchGooglePhotoBytes(googleRefs[index].name, apiKey!)
-            : () => this.fetchRemoteBytes(commons[index - googleRefs.length].photoUrl);
+            : () => this.fetchRemoteBytes(commonsList[index - googleRefs.length].photoUrl);
         const url = await this.storeCandidate(key, creditLine(candidate.attribution, candidate.license), fetchBytes);
         // The index is fixed before any download, so a picture that fails to
         // load leaves a gap rather than renumbering the ones after it — the key
@@ -361,7 +396,8 @@ export class PlaceEnrichmentService {
         CACHE_KIND,
       );
       if (!row || Date.now() - row.fetched_at >= CACHE_TTL_MS) return null;
-      const parsed = JSON.parse(row.payload_json) as CachedEnrichment;
+      const parsed = JSON.parse(row.payload_json) as CachePayload;
+      if (parsed.v !== CACHE_VERSION) return null;
 
       // A cached candidate is only usable while its bytes are still on disk, and
       // the nightly sweep deletes every picture nobody picked — which is most of
@@ -383,7 +419,7 @@ export class PlaceEnrichmentService {
         placeId,
         lang ?? '',
         CACHE_KIND,
-        JSON.stringify(value),
+        JSON.stringify({ ...value, v: CACHE_VERSION } satisfies CachePayload),
         Date.now(),
       );
     } catch (err) {

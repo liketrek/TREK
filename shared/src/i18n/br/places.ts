@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Esvazie primeiro o campo de descrição',
   'places.details.facts': 'Bom saber',
   'places.details.nothing': 'Nada encontrado para este lugar.',
+  'places.details.fact.rating': 'Avaliação',
   'places.details.fact.cuisine': 'Cozinha',
   'places.details.fact.openingHours': 'Horário',
   'places.details.fact.menu': 'Cardápio',

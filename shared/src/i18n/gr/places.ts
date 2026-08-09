@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Άδειασε πρώτα το πεδίο περιγραφής',
   'places.details.facts': 'Καλό να ξέρεις',
   'places.details.nothing': 'Δεν βρέθηκε τίποτα για αυτήν την τοποθεσία.',
+  'places.details.fact.rating': 'Βαθμολογία',
   'places.details.fact.cuisine': 'Κουζίνα',
   'places.details.fact.openingHours': 'Ωράριο',
   'places.details.fact.menu': 'Μενού',

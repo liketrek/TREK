@@ -96,6 +96,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': '설명란을 먼저 비워 주세요',
   'places.details.facts': '알아두면 좋아요',
   'places.details.nothing': '이 장소에 대한 정보를 찾지 못했습니다.',
+  'places.details.fact.rating': '평점',
   'places.details.fact.cuisine': '요리',
   'places.details.fact.openingHours': '영업시간',
   'places.details.fact.menu': '메뉴',

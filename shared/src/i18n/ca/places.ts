@@ -95,6 +95,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Buida primer el camp de descripció',
   'places.details.facts': 'Bo saber',
   'places.details.nothing': "No s'ha trobat res per a aquest lloc.",
+  'places.details.fact.rating': 'Valoració',
   'places.details.fact.cuisine': 'Cuina',
   'places.details.fact.openingHours': 'Horari',
   'places.details.fact.menu': 'Carta',

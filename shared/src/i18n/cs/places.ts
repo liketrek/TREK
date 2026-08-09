@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Nejdřív vyprázdni pole popisu',
   'places.details.facts': 'Dobré vědět',
   'places.details.nothing': 'Pro toto místo se nic nenašlo.',
+  'places.details.fact.rating': 'Hodnocení',
   'places.details.fact.cuisine': 'Kuchyně',
   'places.details.fact.openingHours': 'Otevírací doba',
   'places.details.fact.menu': 'Menu',

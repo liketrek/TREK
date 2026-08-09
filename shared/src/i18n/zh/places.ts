@@ -95,6 +95,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': '请先清空描述字段',
   'places.details.facts': '值得一看',
   'places.details.nothing': '未找到该地点的信息。',
+  'places.details.fact.rating': '评分',
   'places.details.fact.cuisine': '菜系',
   'places.details.fact.openingHours': '营业时间',
   'places.details.fact.menu': '菜单',

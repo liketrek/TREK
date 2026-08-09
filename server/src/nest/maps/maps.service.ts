@@ -730,6 +730,51 @@ export class MapsService {
   }
 
   /**
+   * The one picture Wikidata records for a place (property P18).
+   *
+   * By far the most accurate source there is: someone chose this image to
+   * represent this exact object, where a coordinate search only knows what was
+   * photographed nearby. Restaurants and small venues carry a `wikidata` tag far
+   * more often than a Commons category, so this is also the source that reaches
+   * the places the others miss.
+   */
+  async fetchWikidataImage(wikidataId: string): Promise<CommonsCandidate | null> {
+    if (!/^Q\d+$/.test(wikidataId.trim())) return null;
+    try {
+      const claims = await fetch(
+        `https://www.wikidata.org/w/api.php?action=wbgetclaims&entity=${wikidataId.trim()}&property=P18&format=json`,
+        { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) },
+      );
+      if (!claims.ok) return null;
+      const data = (await claims.json()) as {
+        claims?: { P18?: { mainsnak?: { datavalue?: { value?: string } } }[] };
+      };
+      const fileName = data.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
+      if (!fileName) return null;
+
+      // Second hop for the URL and, more importantly, the licence — the claim
+      // itself carries only a file name.
+      const params = new URLSearchParams({
+        action: 'query',
+        format: 'json',
+        titles: `File:${fileName}`,
+        prop: 'imageinfo',
+        iiprop: 'url|extmetadata|mime',
+        iiurlwidth: '400',
+      });
+      const file = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+      });
+      if (!file.ok) return null;
+      const fileData = (await file.json()) as { query?: { pages?: Record<string, WikiCommonsPage> } };
+      return this.toCommonsCandidates(fileData.query?.pages, 1)[0] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Commons images from a category, which is the set of pictures OF a place.
    *
    * Preferred over the coordinate search wherever a place carries a

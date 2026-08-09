@@ -934,7 +934,7 @@ export const mapsApi = {
   // the caller is expected to abort it when the selection changes, and a longer
   // timeout than the global 8s — a cold Wikimedia connection alone can eat that.
   placeEnrichment: (
-    body: { placeId?: string; lat: number; lng: number; name: string; lang?: string },
+    body: { placeId?: string; lat: number; lng: number; name: string; lang?: string; details?: Record<string, unknown> },
     signal?: AbortSignal,
   ) => apiClient.post('/maps/enrichment', body, { signal, timeout: 25000 })
       .then(r => checkInDev(mapsPlaceEnrichmentResultSchema, r.data, 'maps.placeEnrichment')),

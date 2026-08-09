@@ -97,6 +97,7 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'أفرغ حقل الوصف أولًا',
   'places.details.facts': 'معلومات مفيدة',
   'places.details.nothing': 'لم يتم العثور على شيء لهذا المكان.',
+  'places.details.fact.rating': 'التقييم',
   'places.details.fact.cuisine': 'المطبخ',
   'places.details.fact.openingHours': 'ساعات العمل',
   'places.details.fact.menu': 'قائمة الطعام',

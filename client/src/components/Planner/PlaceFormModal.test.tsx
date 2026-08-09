@@ -1014,6 +1014,21 @@ describe('PlaceFormModal', () => {
     expect(screen.getByText('screenshot.png')).toBeInTheDocument();
   });
 
+  it('FE-PLANNER-PLACEFORM-057: a prefilled place drives the detail column, not the previous one', () => {
+    // A POI tapped on the map opens the dialog through prefillCoords, never
+    // through the search handler — the column used to keep the last place.
+    const { rerender } = render(
+      <PlaceFormModal {...defaultProps} prefillCoords={{ lat: 53.55, lng: 9.99, name: 'Helgas Kitchen', osm_id: 'node:1' }} />,
+    );
+    expect(screen.getByDisplayValue('Helgas Kitchen')).toBeInTheDocument();
+
+    rerender(
+      <PlaceFormModal {...defaultProps} prefillCoords={{ lat: 50.9, lng: 6.96, name: 'Museum Ludwig', osm_id: 'node:2' }} />,
+    );
+    expect(screen.getByDisplayValue('Museum Ludwig')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Helgas Kitchen')).not.toBeInTheDocument();
+  });
+
   it('FE-PLANNER-PLACEFORM-055: pasting plain text alone attaches nothing', () => {
     render(<PlaceFormModal {...defaultProps} />);
     const form = document.querySelector('form') as HTMLFormElement;
