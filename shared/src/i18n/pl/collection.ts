@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Najpierw utwórz listę, aby zapisywać miejsca.',
   'collections.removedFromAll': 'Usunięto z kolekcji',
   'collections.picker.title': 'Zapisane miejsca',
+  'collections.picker.showMore': 'Pokaż jeszcze {count}',
   'collections.picker.search': 'Przeszukaj zapisane miejsca',
   'collections.picker.empty': 'Brak zapisanych miejsc do dodania',
   'collections.picker.hint': 'Wybierz miejsce ze swoich kolekcji',

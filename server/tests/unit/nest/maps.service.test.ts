@@ -2426,61 +2426,131 @@ describe('fetchCommonsCandidates (fetch stubbed)', () => {
   });
 });
 
-describe('fetchWikipediaExtract (fetch stubbed)', () => {
-  it('MAPS-122: reads the lead paragraph from the wiki the tag names', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        query: { pages: { '123': { title: 'Museum Ludwig', extract: '  Das Museum Ludwig ist ein Museum.  ' } } },
-      }),
-    });
+describe('fetchWikiExtract (fetch stubbed)', () => {
+  const page = (title: string, extract: string) => ({
+    ok: true,
+    json: async () => ({ query: { pages: { '1': { title, extract } } } }),
+  });
+  const noArticle = { ok: true, json: async () => ({ query: { pages: { '-1': { title: 'X' } } } }) };
+
+  it('MAPS-122: asks Wikivoyage first, because it writes for travellers', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(page('Museum Ludwig', '  Ein Museum in Köln.  '));
     vi.stubGlobal('fetch', fetchMock);
 
-    const out = await svc.fetchWikipediaExtract('de:Museum Ludwig');
+    const out = await svc.fetchWikiExtract('de:Museum Ludwig');
     expect(out).toEqual({
-      text: 'Das Museum Ludwig ist ein Museum.',
-      sourceUrl: 'https://de.wikipedia.org/wiki/Museum%20Ludwig',
+      text: 'Ein Museum in Köln.',
+      sourceUrl: 'https://de.wikivoyage.org/wiki/Museum%20Ludwig',
+      source: 'wikivoyage',
     });
-    // The host follows the tag, not a hard-coded 'en'.
-    expect(String(fetchMock.mock.calls[0][0])).toContain('https://de.wikipedia.org/w/api.php');
+    // Host follows the tag, and Wikipedia is never asked once Wikivoyage answered.
+    expect(String(fetchMock.mock.calls[0][0])).toContain('https://de.wikivoyage.org/w/api.php');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('MAPS-122b: falls through to Wikipedia when Wikivoyage has no article', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(noArticle)
+      .mockResolvedValueOnce(page('Museum Ludwig', 'Das Museum Ludwig ist ein Museum.'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await svc.fetchWikiExtract('de:Museum Ludwig');
+    expect(out).toMatchObject({ source: 'wikipedia' });
+    expect(String(fetchMock.mock.calls[1][0])).toContain('https://de.wikipedia.org/w/api.php');
+  });
+
+  it('MAPS-122c: asks for two sentences, not a whole lead section', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(page('X', 'Kurz.'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.fetchWikiExtract('de:X');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('exsentences=2');
   });
 
   it('MAPS-123: prefers the resolved title so a redirect links to where it landed', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ query: { pages: { '9': { title: 'Eiffel Tower', extract: 'A tower.' } } } }),
-      }),
-    );
-    const out = await svc.fetchWikipediaExtract('en:Eiffelturm');
-    expect(out!.sourceUrl).toBe('https://en.wikipedia.org/wiki/Eiffel%20Tower');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(page('Eiffel Tower', 'A tower.')));
+    const out = await svc.fetchWikiExtract('en:Eiffelturm');
+    expect(out!.sourceUrl).toBe('https://en.wikivoyage.org/wiki/Eiffel%20Tower');
   });
 
   it('MAPS-124: returns null without calling out when the tag has no language', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    expect(await svc.fetchWikipediaExtract('Museum Ludwig')).toBeNull();
-    expect(await svc.fetchWikipediaExtract(null)).toBeNull();
+    expect(await svc.fetchWikiExtract('Museum Ludwig')).toBeNull();
+    expect(await svc.fetchWikiExtract(null)).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('MAPS-125: treats a missing article, a bad response and a throw as no description', async () => {
-    // A missing article comes back as a page with no extract, not as a 404.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: { pages: { '-1': { title: 'X' } } } }) }),
-    );
-    expect(await svc.fetchWikipediaExtract('de:X')).toBeNull();
+  it('MAPS-125: treats a miss on both wikis as no description', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(noArticle));
+    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
-    expect(await svc.fetchWikipediaExtract('de:X')).toBeNull();
+    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
-    expect(await svc.fetchWikipediaExtract('de:X')).toBeNull();
+    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svc.fetchWikipediaExtract('de:X')).toBeNull();
+    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
+  });
+
+  it('MAPS-125b: still tries Wikipedia after Wikivoyage threw', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce(page('X', 'Ein Ort.'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await svc.fetchWikiExtract('de:X')).toMatchObject({ source: 'wikipedia' });
+  });
+});
+
+describe('fetchCommonsCategoryCandidates (fetch stubbed)', () => {
+  it('MAPS-125c: reads a category, which is pictures OF a place rather than near it', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        query: {
+          pages: {
+            '1': {
+              imageinfo: [
+                {
+                  url: 'https://commons.org/o.jpg',
+                  thumburl: 'https://commons.org/t.jpg',
+                  mime: 'image/jpeg',
+                  descriptionurl: 'https://commons.wikimedia.org/wiki/File:T.jpg',
+                  extmetadata: { Artist: { value: 'Alice' }, LicenseShortName: { value: 'CC BY 4.0' } },
+                },
+              ],
+            },
+          },
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await svc.fetchCommonsCategoryCandidates('Category:Museum Ludwig', 3);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ photoUrl: 'https://commons.org/t.jpg', attribution: 'Alice', license: 'CC BY 4.0' });
+    expect(String(fetchMock.mock.calls[0][0])).toContain('gcmtitle=Category%3AMuseum+Ludwig');
+  });
+
+  it('MAPS-125d: adds the Category prefix when the tag omits it', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: { pages: {} } }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.fetchCommonsCategoryCandidates('Museum Ludwig');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('gcmtitle=Category%3AMuseum+Ludwig');
+  });
+
+  it('MAPS-125e: yields nothing on an error response or a throw', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
+    expect(await svc.fetchCommonsCategoryCandidates('Category:X')).toEqual([]);
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    expect(await svc.fetchCommonsCategoryCandidates('Category:X')).toEqual([]);
   });
 });
 

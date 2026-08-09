@@ -51,7 +51,7 @@ export class PlaceEnrichmentController {
       // A provider being unreachable must not break adding a place — the column
       // is an aid, not a step. Log it and answer with an empty result.
       console.error('Place enrichment error:', err);
-      return { photos: [], description: null };
+      return { photos: [], description: null, facts: [] };
     }
   }
 

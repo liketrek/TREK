@@ -3,6 +3,7 @@ import type {
   MapsPlaceEnrichmentRequest,
   MapsPlaceEnrichmentResult,
   PlaceDescription,
+  PlaceFact,
   PlacePhotoCandidate,
 } from '@trek/shared';
 import { safeFetchFollow } from '../../utils/ssrfGuard';
@@ -52,6 +53,56 @@ export function creditLine(attribution: string | null, license: string | null): 
 interface CachedEnrichment {
   photos: PlacePhotoCandidate[];
   description: PlaceDescription | null;
+  facts: PlaceFact[];
+}
+
+/** OSM yes/no tags; anything else (limited, only, designated) is shown verbatim. */
+function yesNo(value: unknown): 'yes' | 'no' | string | null {
+  return typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : null;
+}
+
+/**
+ * Turns the place's OpenStreetMap tags into the short facts the column shows.
+ *
+ * This is the part that makes the column useful for a restaurant. No wiki will
+ * ever describe one and Commons rarely has a picture of it, but its cuisine,
+ * its opening hours and a link to its menu are usually right there in the tags
+ * — and they arrive with a lookup that has already happened, so they are free.
+ *
+ * Only positive facts are listed. "No outdoor seating" is noise; a missing tag
+ * and a deliberate `no` are indistinguishable to a reader either way.
+ */
+export function collectFacts(details: Record<string, unknown> | null): PlaceFact[] {
+  if (!details || details.source !== 'openstreetmap') return [];
+
+  const facts: PlaceFact[] = [];
+  const push = (kind: PlaceFact['kind'], value: string | null, url: string | null = null) =>
+    facts.push({ kind, value, url });
+
+  const cuisine = typeof details.cuisine === 'string' ? details.cuisine : null;
+  // OSM writes several cuisines semicolon-separated and underscored.
+  if (cuisine) push('cuisine', cuisine.split(';').map((c) => c.replace(/_/g, ' ').trim()).filter(Boolean).join(', '));
+
+  const hours = Array.isArray(details.opening_hours) ? (details.opening_hours as string[]) : null;
+  if (hours?.length) push('openingHours', hours.join(' · '));
+
+  const menu = typeof details.menu_url === 'string' ? details.menu_url : null;
+  if (menu) push('menu', null, menu);
+
+  if (yesNo(details.outdoor_seating) === 'yes') push('outdoorSeating', null);
+  if (yesNo(details.takeaway) === 'yes') push('takeaway', null);
+  if (yesNo(details.delivery) === 'yes') push('delivery', null);
+
+  const wheelchair = yesNo(details.wheelchair);
+  if (wheelchair === 'yes' || wheelchair === 'limited') push('wheelchair', wheelchair);
+
+  if (yesNo(details.diet_vegetarian) === 'yes' || yesNo(details.diet_vegetarian) === 'only') push('vegetarian', null);
+  if (yesNo(details.diet_vegan) === 'yes' || yesNo(details.diet_vegan) === 'only') push('vegan', null);
+
+  const internet = yesNo(details.internet_access);
+  if (internet && internet !== 'no') push('internetAccess', null);
+
+  return facts;
 }
 
 /**
@@ -85,7 +136,7 @@ export class PlaceEnrichmentService {
   }
 
   async enrich(userId: number, req: MapsPlaceEnrichmentRequest): Promise<MapsPlaceEnrichmentResult> {
-    if (this.enrichDisabled()) return { photos: [], description: null, disabled: true };
+    if (this.enrichDisabled()) return { photos: [], description: null, facts: [], disabled: true };
 
     const placeId = req.placeId?.trim() || `coords:${req.lat}:${req.lng}`;
     const lang = req.lang;
@@ -93,14 +144,18 @@ export class PlaceEnrichmentService {
     const cached = this.readCache(placeId, lang);
     if (cached) return cached;
 
-    // Both halves are independent provider fan-outs; running them in sequence
-    // would make the column wait for the slower one twice over.
+    // One details lookup feeds all three halves: the pictures need its Commons
+    // category, the description needs its wiki tag, and the facts are its tags.
+    // It is row-cached and the dialog just made the same call, so in practice
+    // this is a cache read.
+    const details = await this.readDetails(userId, placeId, lang);
+
     const [photos, description] = await Promise.all([
-      this.collectPhotos(userId, placeId, req),
-      this.collectDescription(userId, placeId, req),
+      this.collectPhotos(userId, placeId, req, details),
+      this.collectDescription(userId, placeId, req, details),
     ]);
 
-    const result: CachedEnrichment = { photos, description };
+    const result: CachedEnrichment = { photos, description, facts: collectFacts(details) };
     this.writeCache(placeId, lang, result);
     return result;
   }
@@ -122,15 +177,24 @@ export class PlaceEnrichmentService {
     userId: number,
     placeId: string,
     req: MapsPlaceEnrichmentRequest,
+    details: Record<string, unknown> | null,
   ): Promise<PlacePhotoCandidate[]> {
     const apiKey = this.maps.getMapsKey(userId);
     const wantsGoogle = !!apiKey && !this.maps.photosDisabled() && isGooglePlaceId(placeId);
 
     // Ask both providers at once — one listing call each, and they know nothing
     // about one another.
+    // A Commons category is pictures OF the place; the coordinate search is
+    // pictures NEAR it, which around a city centre means statues and passers-by.
+    // Prefer the category whenever the place carries one.
+    const category = typeof details?.wikimedia_commons === 'string' ? details.wikimedia_commons : null;
     const [googleRefs, commons] = await Promise.all([
       wantsGoogle ? this.maps.fetchGooglePhotoRefs(placeId, apiKey!, GOOGLE_CAP) : Promise.resolve([]),
-      this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP),
+      category
+        ? this.maps
+            .fetchCommonsCategoryCandidates(category, COMMONS_CAP)
+            .then((hits) => (hits.length ? hits : this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP)))
+        : this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP),
     ]);
 
     // Google first — its pictures are of the place itself, while Commons
@@ -227,9 +291,8 @@ export class PlaceEnrichmentService {
     userId: number,
     placeId: string,
     req: MapsPlaceEnrichmentRequest,
+    details: Record<string, unknown> | null,
   ): Promise<PlaceDescription | null> {
-    const details = await this.readDetails(userId, placeId, req.lang);
-
     // OpenStreetMap first: it costs nothing, it is already fetched, and a
     // description someone wrote into the map data beats a generated blurb.
     const osmSummary = typeof details?.summary === 'string' ? details.summary.trim() : '';
@@ -259,9 +322,9 @@ export class PlaceEnrichmentService {
     // article up by name lands on the wrong one for anything ambiguous, and a
     // confident description of somewhere else is worse than none.
     const wikipediaTag = typeof details?.wikipedia === 'string' ? details.wikipedia : null;
-    const extract = await this.maps.fetchWikipediaExtract(wikipediaTag);
+    const extract = await this.maps.fetchWikiExtract(wikipediaTag);
     if (extract) {
-      return { text: extract.text, source: 'wikipedia', sourceUrl: extract.sourceUrl, license: 'CC BY-SA 4.0' };
+      return { text: extract.text, source: extract.source, sourceUrl: extract.sourceUrl, license: 'CC BY-SA 4.0' };
     }
 
     return null;
@@ -307,7 +370,7 @@ export class PlaceEnrichmentService {
       // of the week for a place that has pictures perfectly available.
       const photos = parsed.photos.filter((photo) => this.photoCache.get(photo.key));
       if (photos.length !== parsed.photos.length) return null;
-      return { photos, description: parsed.description ?? null };
+      return { photos, description: parsed.description ?? null, facts: parsed.facts ?? [] };
     } catch {
       return null;
     }

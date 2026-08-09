@@ -637,47 +637,57 @@ export class MapsService {
       });
       if (!res.ok) return [];
       const data = (await res.json()) as { query?: { pages?: Record<string, WikiCommonsPage> } };
-      const pages = data.query?.pages;
-      if (!pages) return [];
-
-      const out: CommonsCandidate[] = [];
-      for (const page of Object.values(pages)) {
-        const info = page.imageinfo?.[0];
-        // Only use actual photos (JPEG/PNG), skip SVGs and PDFs
-        const mime = info?.mime || '';
-        if (!info?.url || !(mime.startsWith('image/jpeg') || mime.startsWith('image/png'))) continue;
-        const meta = info.extmetadata;
-        out.push({
-          // iiurlwidth=400 makes Commons also return a scaled thumburl. Prefer it —
-          // info.url is the full-resolution original (multi-megapixel camera exports).
-          photoUrl: info.thumburl ?? info.url,
-          attribution: stripWikiMarkup(meta?.Artist?.value),
-          license: stripWikiMarkup(meta?.LicenseShortName?.value) ?? stripWikiMarkup(meta?.UsageTerms?.value),
-          licenseUrl: meta?.LicenseUrl?.value?.trim() || null,
-          sourceUrl: info.descriptionurl || null,
-        });
-        if (out.length >= limit) break;
-      }
-      return out;
+      return this.toCommonsCandidates(data.query?.pages, limit);
     } catch {
       return [];
     }
   }
 
+  /** Shared shaping for both Commons queries (by coordinate and by category). */
+  private toCommonsCandidates(
+    pages: Record<string, WikiCommonsPage> | undefined,
+    limit: number,
+  ): CommonsCandidate[] {
+    if (!pages) return [];
+    const out: CommonsCandidate[] = [];
+    for (const page of Object.values(pages)) {
+      const info = page.imageinfo?.[0];
+      // Only use actual photos (JPEG/PNG), skip SVGs and PDFs
+      const mime = info?.mime || '';
+      if (!info?.url || !(mime.startsWith('image/jpeg') || mime.startsWith('image/png'))) continue;
+      const meta = info.extmetadata;
+      out.push({
+        // iiurlwidth=400 makes Commons also return a scaled thumburl. Prefer it —
+        // info.url is the full-resolution original (multi-megapixel camera exports).
+        photoUrl: info.thumburl ?? info.url,
+        attribution: stripWikiMarkup(meta?.Artist?.value),
+        license: stripWikiMarkup(meta?.LicenseShortName?.value) ?? stripWikiMarkup(meta?.UsageTerms?.value),
+        licenseUrl: meta?.LicenseUrl?.value?.trim() || null,
+        sourceUrl: info.descriptionurl || null,
+      });
+      if (out.length >= limit) break;
+    }
+    return out;
+  }
+
   /**
-   * Lead paragraph of a Wikipedia article.
+   * Lead paragraph of a wiki article, from Wikivoyage first and Wikipedia after.
    *
-   * Resolved from the place's OSM `wikipedia` tag when it has one, because
-   * guessing the article from the place name lands on the wrong article for
-   * every ambiguous name. Without a tag there is no reliable article, so this
-   * returns null rather than a plausible-looking description of somewhere else.
+   * Wikivoyage is the travel sibling: same MediaWiki API, same CC BY-SA, but it
+   * describes a place for someone about to go there, where Wikipedia opens with
+   * area in square kilometres and pronunciation. Both are resolved from the OSM
+   * `wikipedia` tag — guessing the article from the place name lands on the
+   * wrong one for every ambiguous name, so no tag means no description rather
+   * than a confident description of somewhere else.
    */
-  async fetchWikipediaExtract(
+  async fetchWikiExtract(
     wikipediaTag: string | null | undefined,
-  ): Promise<{ text: string; sourceUrl: string } | null> {
+  ): Promise<{ text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null> {
     const parsed = parseWikipediaTag(wikipediaTag);
     if (!parsed) return null;
 
+    // Two sentences, not three: this sits next to a form, and a fourth line of
+    // prose pushes the pictures out of view.
     const params = new URLSearchParams({
       action: 'query',
       format: 'json',
@@ -685,28 +695,70 @@ export class MapsService {
       prop: 'extracts',
       exintro: '1',
       explaintext: '1',
-      exsentences: '3',
+      exsentences: '2',
       redirects: '1',
     });
+
+    for (const host of ['wikivoyage', 'wikipedia'] as const) {
+      try {
+        const res = await fetch(`https://${parsed.lang}.${host}.org/w/api.php?${params}`, {
+          headers: { 'User-Agent': UA },
+          signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+        });
+        if (!res.ok) continue;
+        const data = (await res.json()) as {
+          query?: { pages?: Record<string, { title?: string; extract?: string }> };
+        };
+        const pages = data.query?.pages;
+        if (!pages) continue;
+        for (const page of Object.values(pages)) {
+          const text = page.extract?.trim();
+          // A missing article comes back as a page with no extract, not a 404.
+          if (!text) continue;
+          const title = page.title ?? parsed.title;
+          return {
+            text,
+            sourceUrl: `https://${parsed.lang}.${host}.org/wiki/${encodeURIComponent(title)}`,
+            source: host,
+          };
+        }
+      } catch {
+        /* try the next wiki */
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Commons images from a category, which is the set of pictures OF a place.
+   *
+   * Preferred over the coordinate search wherever a place carries a
+   * `wikimedia_commons` tag: geosearch around a city centre returns statues and
+   * passers-by, while the category of a restaurant returns the restaurant.
+   */
+  async fetchCommonsCategoryCandidates(category: string, limit = 5): Promise<CommonsCandidate[]> {
+    const title = category.startsWith('Category:') ? category : `Category:${category}`;
+    const params = new URLSearchParams({
+      action: 'query',
+      format: 'json',
+      generator: 'categorymembers',
+      gcmtitle: title,
+      gcmtype: 'file',
+      gcmlimit: String(Math.max(1, Math.min(limit * 2, 20))),
+      prop: 'imageinfo',
+      iiprop: 'url|extmetadata|mime',
+      iiurlwidth: '400',
+    });
     try {
-      const res = await fetch(`https://${parsed.lang}.wikipedia.org/w/api.php?${params}`, {
+      const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
         headers: { 'User-Agent': UA },
         signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
       });
-      if (!res.ok) return null;
-      const data = (await res.json()) as { query?: { pages?: Record<string, { title?: string; extract?: string }> } };
-      const pages = data.query?.pages;
-      if (!pages) return null;
-      for (const page of Object.values(pages)) {
-        const text = page.extract?.trim();
-        // A missing article comes back as a page with no extract, not as a 404.
-        if (!text) continue;
-        const title = page.title ?? parsed.title;
-        return { text, sourceUrl: `https://${parsed.lang}.wikipedia.org/wiki/${encodeURIComponent(title)}` };
-      }
-      return null;
+      if (!res.ok) return [];
+      const data = (await res.json()) as { query?: { pages?: Record<string, WikiCommonsPage> } };
+      return this.toCommonsCandidates(data.query?.pages, limit);
     } catch {
-      return null;
+      return [];
     }
   }
 

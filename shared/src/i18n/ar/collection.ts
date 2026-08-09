@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'أنشئ قائمة أولًا لحفظ الأماكن.',
   'collections.removedFromAll': 'تمت الإزالة من المجموعة',
   'collections.picker.title': 'الأماكن المحفوظة',
+  'collections.picker.showMore': 'عرض {count} إضافية',
   'collections.picker.search': 'ابحث في أماكنك المحفوظة',
   'collections.picker.empty': 'لا توجد أماكن محفوظة لإضافتها',
   'collections.picker.hint': 'اختر مكانًا من مجموعاتك',

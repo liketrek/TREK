@@ -110,6 +110,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Skapa en lista först för att spara platser.',
   'collections.removedFromAll': 'Borttagen från samlingen',
   'collections.picker.title': 'Sparade platser',
+  'collections.picker.showMore': 'Visa {count} till',
   'collections.picker.search': 'Sök bland dina sparade platser',
   'collections.picker.empty': 'Inga sparade platser att lägga till',
   'collections.picker.hint': 'Välj en plats från dina samlingar',

@@ -14,7 +14,7 @@ import type { User } from '../../../src/types';
 const USER = { id: 7 } as User;
 const REQ = {} as Request;
 const BODY = { lat: 50.9, lng: 6.96, name: 'Museum Ludwig', placeId: 'ChIJmuseum' };
-const RESULT = { photos: [], description: null };
+const RESULT = { photos: [], description: null, facts: [] };
 
 function make(over: Partial<PlaceEnrichmentService> = {}, rl = new RateLimitService()) {
   const service = { enrich: vi.fn(async () => RESULT), ...over } as unknown as PlaceEnrichmentService;
@@ -62,13 +62,13 @@ describe('PlaceEnrichmentController', () => {
     const { controller } = make({ enrich: vi.fn(async () => { throw new Error('commons down'); }) });
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await expect(controller.enrich(USER, REQ, BODY)).resolves.toEqual({ photos: [], description: null });
+    await expect(controller.enrich(USER, REQ, BODY)).resolves.toEqual({ photos: [], description: null, facts: [] });
     expect(err).toHaveBeenCalled();
     err.mockRestore();
   });
 
   it('ENRICH-045: passes the disabled envelope through untouched', async () => {
-    const disabled = { photos: [], description: null, disabled: true };
+    const disabled = { photos: [], description: null, facts: [], disabled: true };
     const { controller } = make({ enrich: vi.fn(async () => disabled) });
 
     await expect(controller.enrich(USER, REQ, BODY)).resolves.toEqual(disabled);

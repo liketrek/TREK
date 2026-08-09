@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Créez d’abord une liste pour enregistrer des lieux.',
   'collections.removedFromAll': 'Retiré de la collection',
   'collections.picker.title': 'Lieux enregistrés',
+  'collections.picker.showMore': 'Afficher {count} de plus',
   'collections.picker.search': 'Rechercher dans vos lieux enregistrés',
   'collections.picker.empty': 'Aucun lieu enregistré à ajouter',
   'collections.picker.hint': 'Choisissez un lieu dans vos collections',

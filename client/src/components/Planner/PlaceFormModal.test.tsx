@@ -1018,7 +1018,14 @@ describe('PlaceFormModal', () => {
     render(<PlaceFormModal {...defaultProps} />);
     const form = document.querySelector('form') as HTMLFormElement;
     pasteItems(form, [{ type: 'text/plain', file: null }]);
-    expect(screen.getByText(/paste images from clipboard/i)).toBeInTheDocument();
+    // The list only renders once something is attached, so its absence is the
+    // assertion (this used to lean on the clipboard hint, which is gone).
+    expect(screen.queryByTestId('pending-files')).not.toBeInTheDocument();
+
+    // Counter-check, so the assertion above cannot pass on a missing testid:
+    // a real file does show up in that list.
+    pasteItems(form, [{ type: 'image/png', file: new File(['x'], 'shot.png', { type: 'image/png' }) }]);
+    expect(screen.getByTestId('pending-files')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-PLACEFORM-056: paste is ignored entirely without upload permission', () => {

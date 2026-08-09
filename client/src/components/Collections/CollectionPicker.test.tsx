@@ -53,6 +53,50 @@ describe('CollectionPicker', () => {
     vi.restoreAllMocks()
   })
 
+  it('FE-COMP-COLPICKER-017: shows the first ten and offers the rest behind a button', async () => {
+    // Saved places accumulate across every list, so the panel used to scroll
+    // without end.
+    const many = Array.from({ length: 23 }, (_, i) =>
+      place({ id: 100 + i, collection_id: 1, name: `Place ${String(i).padStart(2, '0')}` }),
+    )
+    vi.spyOn(collectionsApi, 'get').mockImplementation(async (id: number) =>
+      id === 1 ? detail(listA, many) : detail(listB, []),
+    )
+    setup()
+
+    expect(await screen.findByText('Place 00')).toBeInTheDocument()
+    expect(screen.getByText('Place 09')).toBeInTheDocument()
+    expect(screen.queryByText('Place 10')).not.toBeInTheDocument()
+
+    const more = () => screen.getByRole('button', { name: /show .* more/i })
+    fireEvent.click(more())
+    expect(screen.getByText('Place 19')).toBeInTheDocument()
+    expect(screen.queryByText('Place 20')).not.toBeInTheDocument()
+
+    fireEvent.click(more())
+    expect(screen.getByText('Place 22')).toBeInTheDocument()
+    // Nothing left to ask for.
+    expect(screen.queryByRole('button', { name: /more/i })).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-COLPICKER-018: searching resets the page and looks at every place, not just the visible ten', async () => {
+    const many = Array.from({ length: 23 }, (_, i) =>
+      place({ id: 100 + i, collection_id: 1, name: `Place ${String(i).padStart(2, '0')}` }),
+    )
+    vi.spyOn(collectionsApi, 'get').mockImplementation(async (id: number) =>
+      id === 1 ? detail(listA, many) : detail(listB, []),
+    )
+    setup()
+    await screen.findByText('Place 00')
+
+    // "Place 22" is well past the first page; the filter has to reach it.
+    fireEvent.change(screen.getByPlaceholderText(/search/i), { target: { value: 'Place 22' } })
+
+    expect(screen.getByText('Place 22')).toBeInTheDocument()
+    expect(screen.queryByText('Place 00')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /more/i })).not.toBeInTheDocument()
+  })
+
   it('FE-COMP-COLPICKER-001: shows a spinner until the lists have loaded', async () => {
     const { container } = setup()
     expect(container.querySelector('.animate-spin')).toBeTruthy()

@@ -130,6 +130,11 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
     [bias],
   )
 
+  // The list is every saved place across every collection, which grows without
+  // bound. Show a first page and let the rest be asked for.
+  const PAGE = 10
+  const [shown, setShown] = useState(PAGE)
+
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
     const list = places.filter(p => {
@@ -142,6 +147,13 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
     else list.sort((a, b) => a.name.localeCompare(b.name))
     return list
   }, [places, search, center, listFilter, statusFilter])
+
+  // Searching or filtering starts a new list; keeping the old offset would drop
+  // the user somewhere in the middle of it.
+  useEffect(() => { setShown(PAGE) }, [search, listFilter, statusFilter])
+
+  const page = visible.slice(0, shown)
+  const remaining = visible.length - page.length
 
   const listOpts: Opt[] = [
     { key: 'all', label: t('collections.picker.allLists'), icon: <Layers size={13} />, count: places.length },
@@ -192,7 +204,7 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
           <p className="text-center text-[12px] text-content-faint py-10 px-3">{t('collections.picker.empty')}</p>
         ) : (
           <div className="flex flex-col gap-1">
-            {visible.map(place => (
+            {page.map(place => (
               <button
                 key={place.id}
                 type="button"
@@ -207,6 +219,17 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
                 </span>
               </button>
             ))}
+            {remaining > 0 && (
+              <div className="pt-1 mt-1 border-t border-edge">
+                <button
+                  type="button"
+                  onClick={() => setShown(n => n + PAGE)}
+                  className="w-full px-2 py-1.5 rounded-lg text-[12px] font-medium text-content-secondary hover:bg-surface-hover transition-colors"
+                >
+                  {t('collections.picker.showMore', { count: remaining })}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -110,6 +110,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'まずリストを作成して場所を保存しましょう。',
   'collections.removedFromAll': 'コレクションから削除しました',
   'collections.picker.title': '保存済みの場所',
+  'collections.picker.showMore': 'さらに{count}件を表示',
   'collections.picker.search': '保存済みの場所を検索',
   'collections.picker.empty': '追加できる保存済みの場所がありません',
   'collections.picker.hint': 'コレクションから場所を選択',

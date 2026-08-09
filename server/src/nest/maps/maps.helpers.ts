@@ -338,6 +338,21 @@ export function buildOsmDetails(tags: Record<string, string>, osmType: string, o
     // the name is ambiguous ("Bahnhofstraße", "Rathaus", any chain restaurant).
     wikipedia: tags.wikipedia || null,
     wikidata: tags.wikidata || null,
+    // A Commons category is pictures OF this place, where a coordinate search
+    // only finds whatever was photographed near it.
+    wikimedia_commons: tags.wikimedia_commons || null,
+    // The tags that make the difference for a restaurant or a shop: no
+    // encyclopaedia will ever describe one, but its cuisine, its hours and a
+    // link to its menu are usually right here.
+    cuisine: tags.cuisine || null,
+    menu_url: tags['website:menu'] || tags.menu || null,
+    outdoor_seating: tags.outdoor_seating || null,
+    takeaway: tags.takeaway || null,
+    delivery: tags.delivery || null,
+    wheelchair: tags.wheelchair || null,
+    diet_vegetarian: tags['diet:vegetarian'] || null,
+    diet_vegan: tags['diet:vegan'] || null,
+    internet_access: tags.internet_access || null,
     source: 'openstreetmap' as const,
   };
 }

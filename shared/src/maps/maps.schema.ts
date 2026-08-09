@@ -124,7 +124,7 @@ export const placePhotoCandidateSchema = z.object({
 });
 export type PlacePhotoCandidate = z.infer<typeof placePhotoCandidateSchema>;
 
-export const placeDescriptionSourceSchema = z.enum(['google', 'osm', 'wikipedia']);
+export const placeDescriptionSourceSchema = z.enum(['google', 'osm', 'wikivoyage', 'wikipedia']);
 export type PlaceDescriptionSource = z.infer<typeof placeDescriptionSourceSchema>;
 
 export const placeDescriptionSchema = z.object({
@@ -134,6 +134,39 @@ export const placeDescriptionSchema = z.object({
   license: z.string().nullable(),
 });
 export type PlaceDescription = z.infer<typeof placeDescriptionSchema>;
+
+/**
+ * A practical fact about a place, taken from its OpenStreetMap tags.
+ *
+ * This is what makes the column worth opening for a restaurant: places like
+ * that have no encyclopaedia article and no photograph of their own, but they
+ * very often carry a cuisine, opening hours and a link to their menu. The tags
+ * arrive with the details lookup the dialog already makes, so none of this
+ * costs an extra request.
+ *
+ * `kind` is translated client-side; `value` is provider data and stays as-is.
+ */
+export const placeFactKindSchema = z.enum([
+  'cuisine',
+  'openingHours',
+  'menu',
+  'outdoorSeating',
+  'takeaway',
+  'delivery',
+  'wheelchair',
+  'vegetarian',
+  'vegan',
+  'internetAccess',
+]);
+export type PlaceFactKind = z.infer<typeof placeFactKindSchema>;
+
+export const placeFactSchema = z.object({
+  kind: placeFactKindSchema,
+  /** Free-text detail ("regional", "Mo-Sa 17:30+"); null for a plain yes. */
+  value: z.string().nullable(),
+  url: z.string().nullable(),
+});
+export type PlaceFact = z.infer<typeof placeFactSchema>;
 
 export const mapsPlaceEnrichmentRequestSchema = z.object({
   /** Google place id or `osm:<type>/<id>`; empty for a coordinate-only lookup. */
@@ -149,6 +182,7 @@ export type MapsPlaceEnrichmentRequest = z.infer<typeof mapsPlaceEnrichmentReque
 export const mapsPlaceEnrichmentResultSchema = z.object({
   photos: z.array(placePhotoCandidateSchema),
   description: placeDescriptionSchema.nullable(),
+  facts: z.array(placeFactSchema),
   /** True when the admin switched enrichment off; the column then stays quiet. */
   disabled: z.boolean().optional(),
 });

@@ -603,7 +603,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           t={t}
         />
       )}
-      <form onSubmit={handleSubmit} className={twoColumn || showDetails ? 'flex-1 min-w-0 space-y-4' : 'space-y-4'} onPaste={handlePaste}>
+      <form onSubmit={handleSubmit} className={twoColumn || showDetails ? 'flex-1 min-w-0 space-y-3' : 'space-y-3'} onPaste={handlePaste}>
         {/* Place Search */}
         <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
           {!hasMapsKey && (
@@ -717,7 +717,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           <textarea
             value={form.notes}
             onChange={e => handleChange('notes', e.target.value)}
-            rows={3}
+            rows={2}
             maxLength={2000}
             placeholder={t('places.formNotesPlaceholder')}
             className="form-input" style={{ resize: 'vertical' }}
@@ -851,7 +851,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             </div>
             <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileAdd} />
             {pendingFiles.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-1" data-testid="pending-files">
                 {pendingFiles.map((file, idx) => (
                   <div key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-slate-50 text-xs">
                     <Paperclip size={10} className="text-slate-400 shrink-0" />
@@ -862,9 +862,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                   </div>
                 ))}
               </div>
-            )}
-            {pendingFiles.length === 0 && (
-              <p className="text-xs text-slate-400">{t('files.pasteHint')}</p>
             )}
           </div>
         )}

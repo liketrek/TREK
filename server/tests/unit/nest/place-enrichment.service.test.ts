@@ -36,7 +36,7 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 
 import { db } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PlaceEnrichmentService, creditLine } from '../../../src/nest/place-enrichment/place-enrichment.service';
+import { PlaceEnrichmentService, creditLine, collectFacts } from '../../../src/nest/place-enrichment/place-enrichment.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
@@ -53,7 +53,8 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     fetchGooglePhotoBytes: vi.fn(async () => null as Buffer | null),
     fetchCommonsCandidates: vi.fn(async () => [] as any[]),
     fetchEditorialSummary: vi.fn(async () => null as string | null),
-    fetchWikipediaExtract: vi.fn(async () => null as { text: string; sourceUrl: string } | null),
+    fetchWikiExtract: vi.fn(async () => null as { text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null),
+    fetchCommonsCategoryCandidates: vi.fn(async () => [] as any[]),
     details: vi.fn(async () => ({ place: null })),
     ...over,
   } as unknown as MapsService;
@@ -114,7 +115,7 @@ describe('enrichDisabled', () => {
 
     const out = await make(maps, cacheStub()).enrich(1, REQ);
 
-    expect(out).toEqual({ photos: [], description: null, disabled: true });
+    expect(out).toEqual({ photos: [], description: null, facts: [], disabled: true });
     expect(maps.fetchCommonsCandidates).not.toHaveBeenCalled();
     expect(maps.details).not.toHaveBeenCalled();
   });
@@ -353,7 +354,17 @@ describe('collectDescription', () => {
       license: 'ODbL 1.0',
     });
     expect(maps.fetchEditorialSummary).not.toHaveBeenCalled();
-    expect(maps.fetchWikipediaExtract).not.toHaveBeenCalled();
+    expect(maps.fetchWikiExtract).not.toHaveBeenCalled();
+  });
+
+  it('ENRICH-014b: leaves the OSM link empty when the details carry no osm_url', async () => {
+    const maps = mapsStub({
+      details: vi.fn(async () => ({ place: { summary: 'Ein Museum.', source: 'openstreetmap' } })),
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
+
+    expect(out.description).toEqual({ text: 'Ein Museum.', source: 'osm', sourceUrl: null, license: 'ODbL 1.0' });
   });
 
   it('ENRICH-015: ignores a summary that came from Google on the OSM branch', async () => {
@@ -404,7 +415,7 @@ describe('collectDescription', () => {
 
     await make(maps, cacheStub()).enrich(1, OSM_REQ);
 
-    expect(maps.fetchWikipediaExtract).toHaveBeenCalledWith(null);
+    expect(maps.fetchWikiExtract).toHaveBeenCalledWith(null);
   });
 
   it('ENRICH-017: honours the details kill switch and the missing key', async () => {
@@ -420,15 +431,16 @@ describe('collectDescription', () => {
   it('ENRICH-018: falls back to Wikipedia, resolved from the wiki tag', async () => {
     const maps = mapsStub({
       details: vi.fn(async () => ({ place: { wikipedia: 'de:Museum Ludwig' } })),
-      fetchWikipediaExtract: vi.fn(async () => ({
+      fetchWikiExtract: vi.fn(async () => ({
         text: 'Das Museum Ludwig ist ein Museum.',
         sourceUrl: 'https://de.wikipedia.org/wiki/Museum%20Ludwig',
+        source: 'wikipedia' as const,
       })),
     });
 
     const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
 
-    expect(maps.fetchWikipediaExtract).toHaveBeenCalledWith('de:Museum Ludwig');
+    expect(maps.fetchWikiExtract).toHaveBeenCalledWith('de:Museum Ludwig');
     expect(out.description).toEqual({
       text: 'Das Museum Ludwig ist ein Museum.',
       source: 'wikipedia',
@@ -442,7 +454,7 @@ describe('collectDescription', () => {
 
     const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
 
-    expect(maps.fetchWikipediaExtract).toHaveBeenCalledWith(null);
+    expect(maps.fetchWikiExtract).toHaveBeenCalledWith(null);
     expect(out.description).toBeNull();
   });
 
@@ -598,5 +610,107 @@ describe('creditLine', () => {
     expect(svc.credit('ChIJmuseum~p0')).toEqual({ credit: 'Alice · CC BY-SA 4.0' });
     // An uploaded image or a key that was swept has nothing to name.
     expect(svc.credit('unknown')).toEqual({ credit: null });
+  });
+});
+
+// ── OpenStreetMap facts (ENRICH-050..) ───────────────────────────────────────
+
+describe('collectFacts', () => {
+  const osm = (tags: Record<string, unknown>) => ({ source: 'openstreetmap', ...tags });
+
+  it('ENRICH-050: turns the tags a restaurant actually carries into chips', () => {
+    const facts = collectFacts(
+      osm({
+        cuisine: 'regional;german',
+        opening_hours: ['Mo-Sa 17:30+'],
+        menu_url: 'https://example.org/menu',
+        outdoor_seating: 'yes',
+        wheelchair: 'limited',
+      }),
+    );
+
+    expect(facts).toEqual([
+      // Semicolons and underscores are OSM syntax, not something to show a reader.
+      { kind: 'cuisine', value: 'regional, german', url: null },
+      { kind: 'openingHours', value: 'Mo-Sa 17:30+', url: null },
+      { kind: 'menu', value: null, url: 'https://example.org/menu' },
+      { kind: 'outdoorSeating', value: null, url: null },
+      { kind: 'wheelchair', value: 'limited', url: null },
+    ]);
+  });
+
+  it('ENRICH-051: lists only positive facts', () => {
+    // "No outdoor seating" is noise, and a missing tag reads the same to a user.
+    const facts = collectFacts(
+      osm({ outdoor_seating: 'no', takeaway: 'no', wheelchair: 'no', internet_access: 'no', diet_vegan: 'no' }),
+    );
+    expect(facts).toEqual([]);
+  });
+
+  it('ENRICH-052: accepts the "only" spelling for diets', () => {
+    const kinds = collectFacts(osm({ diet_vegetarian: 'only', diet_vegan: 'yes' })).map((f) => f.kind);
+    expect(kinds).toEqual(['vegetarian', 'vegan']);
+  });
+
+  it('ENRICH-052b: covers the remaining yes-tags and a non-string osm_url', () => {
+    const facts = collectFacts(osm({ takeaway: 'yes', delivery: 'yes', internet_access: 'wlan', wheelchair: 'yes' }));
+    expect(facts.map((f) => f.kind)).toEqual(['takeaway', 'delivery', 'wheelchair', 'internetAccess']);
+    // Any internet_access value other than "no" counts as available.
+    expect(facts.find((f) => f.kind === 'internetAccess')).toEqual({ kind: 'internetAccess', value: null, url: null });
+  });
+
+  it('ENRICH-053: stays empty for a Google place and for no details at all', () => {
+    expect(collectFacts(null)).toEqual([]);
+    expect(collectFacts({ source: 'google', cuisine: 'italian' })).toEqual([]);
+  });
+
+  it('ENRICH-054: joins multi-day opening hours into one readable line', () => {
+    const facts = collectFacts(osm({ opening_hours: ['Mo-Fr 09:00-18:00', 'Sa 10:00-14:00'] }));
+    expect(facts[0]).toEqual({ kind: 'openingHours', value: 'Mo-Fr 09:00-18:00 · Sa 10:00-14:00', url: null });
+  });
+});
+
+describe('picture source selection', () => {
+  it('ENRICH-055: prefers the Commons category over the coordinate search', async () => {
+    // geosearch around a city centre returns statues and passers-by; the
+    // category of a place returns the place.
+    const maps = mapsStub({
+      details: vi.fn(async () => ({ place: { source: 'openstreetmap', wikimedia_commons: 'Category:Museum Ludwig' } })),
+      fetchCommonsCategoryCandidates: vi.fn(async () => [commonsCandidate()]),
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
+
+    expect(maps.fetchCommonsCategoryCandidates).toHaveBeenCalledWith('Category:Museum Ludwig', 5);
+    expect(maps.fetchCommonsCandidates).not.toHaveBeenCalled();
+    expect(out.photos).toHaveLength(1);
+  });
+
+  it('ENRICH-056: falls back to the coordinate search when the category is empty', async () => {
+    const maps = mapsStub({
+      details: vi.fn(async () => ({ place: { source: 'openstreetmap', wikimedia_commons: 'Category:Empty' } })),
+      fetchCommonsCategoryCandidates: vi.fn(async () => []),
+      fetchCommonsCandidates: vi.fn(async () => [commonsCandidate()]),
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
+
+    expect(maps.fetchCommonsCandidates).toHaveBeenCalled();
+    expect(out.photos).toHaveLength(1);
+  });
+
+  it('ENRICH-057: reports Wikivoyage as the description source when it answered', async () => {
+    const maps = mapsStub({
+      details: vi.fn(async () => ({ place: { source: 'openstreetmap', wikipedia: 'de:Berlin' } })),
+      fetchWikiExtract: vi.fn(async () => ({
+        text: 'Berlin ist das politische Zentrum Deutschlands.',
+        sourceUrl: 'https://de.wikivoyage.org/wiki/Berlin',
+        source: 'wikivoyage' as const,
+      })),
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
+
+    expect(out.description).toMatchObject({ source: 'wikivoyage', license: 'CC BY-SA 4.0' });
   });
 });

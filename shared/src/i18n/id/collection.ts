@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Buat daftar dulu untuk menyimpan tempat.',
   'collections.removedFromAll': 'Dihapus dari koleksi',
   'collections.picker.title': 'Tempat tersimpan',
+  'collections.picker.showMore': 'Tampilkan {count} lagi',
   'collections.picker.search': 'Cari tempat tersimpanmu',
   'collections.picker.empty': 'Tidak ada tempat tersimpan untuk ditambahkan',
   'collections.picker.hint': 'Pilih tempat dari koleksimu',

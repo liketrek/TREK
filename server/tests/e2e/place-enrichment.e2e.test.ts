@@ -82,7 +82,8 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
     // spyOn hands back the same spy on a second call, so the call counts carry
     // over between tests unless they are cleared explicitly.
     vi.spyOn(maps, 'fetchCommonsCandidates').mockClear().mockResolvedValue([]);
-    vi.spyOn(maps, 'fetchWikipediaExtract').mockClear().mockResolvedValue(null);
+    vi.spyOn(maps, 'fetchWikiExtract').mockClear().mockResolvedValue(null);
+    vi.spyOn(maps, 'fetchCommonsCategoryCandidates').mockClear().mockResolvedValue([]);
     vi.spyOn(maps, 'details').mockClear().mockResolvedValue({ place: null });
   });
 
@@ -111,7 +112,7 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
   it('200 with an empty result when no provider has anything (POST stays 200)', async () => {
     const res = await request(server).post('/api/maps/enrichment').set('Cookie', sessionCookie(1)).send(BODY);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ photos: [], description: null });
+    expect(res.body).toEqual({ photos: [], description: null, facts: [] });
   });
 
   it('200 with a Commons candidate carrying its licence', async () => {
@@ -146,7 +147,7 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
     const res = await request(server).post('/api/maps/enrichment').set('Cookie', sessionCookie(1)).send(BODY);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ photos: [], description: null, disabled: true });
+    expect(res.body).toEqual({ photos: [], description: null, facts: [], disabled: true });
     expect(maps.fetchCommonsCandidates).not.toHaveBeenCalled();
   });
 

@@ -1,6 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Check, ImageOff, Loader2, ExternalLink } from 'lucide-react'
-import type { MapsPlaceEnrichmentResult, PlacePhotoCandidate } from '@trek/shared'
+import {
+  Accessibility,
+  Bike,
+  Check,
+  ChefHat,
+  Clock,
+  ExternalLink,
+  ImageOff,
+  Landmark,
+  Leaf,
+  Loader2,
+  ScrollText,
+  ShoppingBag,
+  Sprout,
+  Sun,
+  Wifi,
+} from 'lucide-react'
+import type { MapsPlaceEnrichmentResult, PlaceFact, PlacePhotoCandidate } from '@trek/shared'
 import { mapsApi } from '../../api/client'
 import type { TranslationFn } from '../../types'
 
@@ -59,6 +75,16 @@ function cacheKeyFor(selection: PlaceDetailsSelection, language: string): string
 }
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error'
+
+/**
+ * Overline label, the section heading Vacay and the dashboard widgets share.
+ * Uppercase with wide tracking, muted, no rule underneath.
+ */
+function Overline({ children }: { children: React.ReactNode }): React.ReactElement {
+  return (
+    <p className="text-caption font-semibold uppercase tracking-[0.14em] text-content-faint">{children}</p>
+  )
+}
 
 export default function PlaceDetailsColumn({
   selection,
@@ -127,10 +153,14 @@ export default function PlaceDetailsColumn({
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
+  const isEmpty =
+    state === 'ready' && !data?.disabled && !data?.photos.length && !data?.description && !data?.facts.length
+
   return (
     <aside className="w-full sm:w-72 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
-      <div className="px-3 py-2 border-b border-edge">
-        <p className="text-caption font-medium text-content">{t('places.details.title')}</p>
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
+        <Landmark size={15} className="text-accent" />
+        <span className="text-[13px] font-semibold text-content">{t('places.details.title')}</span>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
@@ -149,14 +179,17 @@ export default function PlaceDetailsColumn({
           <p className="text-caption text-content-muted">{t('places.details.disabled')}</p>
         )}
 
-        {selection && state === 'ready' && !data?.disabled && (
+        {isEmpty && (
+          <div className="flex items-center gap-2 text-caption text-content-muted">
+            <ImageOff className="w-4 h-4 shrink-0" />
+            {t('places.details.nothing')}
+          </div>
+        )}
+
+        {selection && state === 'ready' && !data?.disabled && !isEmpty && (
           <>
-            <PhotoStrip
-              photos={data?.photos ?? []}
-              selectedImageUrl={selectedImageUrl}
-              onPickImage={onPickImage}
-              t={t}
-            />
+            <PhotoStrip photos={data?.photos ?? []} selectedImageUrl={selectedImageUrl} onPickImage={onPickImage} t={t} />
+            <FactList facts={data?.facts ?? []} t={t} />
             <DescriptionBlock
               description={data?.description ?? null}
               hasDescription={hasDescription}
@@ -170,6 +203,13 @@ export default function PlaceDetailsColumn({
   )
 }
 
+/**
+ * The picture strip: the first candidate wide, the rest as a row underneath.
+ *
+ * A plain two-column grid left a hole whenever an odd number of pictures came
+ * back, which is most of the time. A lead image also gives the column something
+ * to look at instead of a page of equal squares.
+ */
 function PhotoStrip({
   photos,
   selectedImageUrl,
@@ -180,45 +220,69 @@ function PhotoStrip({
   selectedImageUrl?: string
   onPickImage: (url: string | null) => void
   t: TranslationFn
-}): React.ReactElement {
-  if (photos.length === 0) {
-    return (
-      <div className="flex items-center gap-2 text-caption text-content-muted">
-        <ImageOff className="w-4 h-4" />
-        {t('places.details.noPhotos')}
-      </div>
-    )
-  }
+}): React.ReactElement | null {
+  if (photos.length === 0) return null
+
+  const [lead, ...rest] = photos
 
   return (
     <div className="space-y-2">
-      <p className="text-caption text-content-muted">{t('places.details.pickImage')}</p>
-      <div className="grid grid-cols-2 gap-2">
-        {photos.map((photo) => {
-          const picked = selectedImageUrl === photo.url
-          return (
-            <div key={photo.key} className="space-y-1">
-              <button
-                type="button"
-                onClick={() => onPickImage(picked ? null : photo.url)}
-                aria-pressed={picked}
-                aria-label={photo.attribution ? `${t('places.details.pickImage')} — ${photo.attribution}` : t('places.details.pickImage')}
-                className={`relative block w-full aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
-                  picked ? 'border-accent' : 'border-edge hover:border-content-muted'
-                }`}
-              >
-                <img src={photo.url} alt="" loading="lazy" className="w-full h-full object-cover" />
-                {picked && (
-                  <span className="absolute top-1 right-1 rounded-full bg-accent p-0.5">
-                    <Check className="w-3 h-3 text-white" />
-                  </span>
-                )}
-              </button>
-              <PhotoCredit photo={photo} />
-            </div>
-          )
-        })}
-      </div>
+      <Overline>{t('places.details.pickImage')}</Overline>
+      <PhotoTile photo={lead} wide selected={selectedImageUrl === lead.url} onPick={onPickImage} t={t} />
+      {rest.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {rest.map((photo) => (
+            <PhotoTile
+              key={photo.key}
+              photo={photo}
+              selected={selectedImageUrl === photo.url}
+              onPick={onPickImage}
+              t={t}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PhotoTile({
+  photo,
+  wide = false,
+  selected,
+  onPick,
+  t,
+}: {
+  photo: PlacePhotoCandidate
+  wide?: boolean
+  selected: boolean
+  onPick: (url: string | null) => void
+  t: TranslationFn
+}): React.ReactElement {
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={() => onPick(selected ? null : photo.url)}
+        aria-pressed={selected}
+        aria-label={photo.attribution ? `${t('places.details.pickImage')} — ${photo.attribution}` : t('places.details.pickImage')}
+        className={`group relative block w-full overflow-hidden rounded-lg transition-shadow ${
+          wide ? 'aspect-[16/10]' : 'aspect-square'
+        } ${selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-secondary' : 'ring-1 ring-edge hover:ring-content-muted'}`}
+      >
+        <img
+          src={photo.url}
+          alt=""
+          loading="lazy"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+        />
+        {selected && (
+          <span className="absolute top-1.5 right-1.5 rounded-full bg-accent p-1 shadow-card">
+            <Check className="w-3 h-3 text-accent-on" />
+          </span>
+        )}
+      </button>
+      <PhotoCredit photo={photo} />
     </div>
   )
 }
@@ -227,16 +291,18 @@ function PhotoStrip({
  * Author and licence under every thumbnail.
  *
  * Not decoration: Commons images are largely CC BY / CC BY-SA, and reusing one
- * without naming its author and licence does not satisfy those terms. When a
- * source hands us no author (Google), we say where it came from rather than
- * inventing a credit.
+ * without naming its author does not satisfy those terms. Wrapped over two
+ * lines rather than truncated to one, because a cut-off name credits nobody.
+ * When a source hands us no author (Google), we say where it came from rather
+ * than inventing a credit.
  */
 function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElement {
   const sourceLabel = photo.source === 'google' ? 'Google' : photo.source === 'wikipedia' ? 'Wikipedia' : 'Wikimedia Commons'
   const credit = photo.attribution || sourceLabel
+  const full = `${credit}${photo.license ? ` · ${photo.license}` : ''}`
 
   return (
-    <p className="text-caption leading-tight text-content-muted truncate" title={`${credit}${photo.license ? ` · ${photo.license}` : ''}`}>
+    <p className="text-caption leading-tight text-content-faint line-clamp-2" title={full}>
       {photo.sourceUrl ? (
         <a href={photo.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
           {credit}
@@ -260,6 +326,67 @@ function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElem
   )
 }
 
+const FACT_ICONS: Record<PlaceFact['kind'], typeof ChefHat> = {
+  cuisine: ChefHat,
+  openingHours: Clock,
+  menu: ScrollText,
+  outdoorSeating: Sun,
+  takeaway: ShoppingBag,
+  delivery: Bike,
+  wheelchair: Accessibility,
+  vegetarian: Leaf,
+  vegan: Sprout,
+  internetAccess: Wifi,
+}
+
+/**
+ * The OpenStreetMap facts, as chips.
+ *
+ * For a restaurant this is the whole point of the column: nothing will ever
+ * write an encyclopaedia entry about it, but its cuisine, its hours and a link
+ * to its menu are in the map data, and they came along with a lookup that had
+ * already happened.
+ */
+function FactList({ facts, t }: { facts: PlaceFact[]; t: TranslationFn }): React.ReactElement | null {
+  if (facts.length === 0) return null
+
+  return (
+    <div className="space-y-2">
+      <Overline>{t('places.details.facts')}</Overline>
+      <div className="flex flex-wrap gap-1.5">
+        {facts.map((fact) => {
+          const Icon = FACT_ICONS[fact.kind]
+          const label = fact.value || t(`places.details.fact.${fact.kind}`)
+          const body = (
+            <>
+              <Icon className="w-3 h-3 shrink-0" />
+              <span className="truncate">{label}</span>
+            </>
+          )
+          const shared = 'inline-flex items-center gap-1.5 max-w-full rounded-full border border-edge bg-surface px-2 py-1 text-caption text-content-secondary'
+
+          return fact.url ? (
+            <a
+              key={fact.kind}
+              href={fact.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={label}
+              className={`${shared} hover:border-accent hover:text-content transition-colors`}
+            >
+              {body}
+            </a>
+          ) : (
+            <span key={fact.kind} title={label} className={shared}>
+              {body}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function DescriptionBlock({
   description,
   hasDescription,
@@ -274,32 +401,40 @@ function DescriptionBlock({
   if (!description) return null
 
   const sourceLabel =
-    description.source === 'google' ? 'Google' : description.source === 'osm' ? 'OpenStreetMap' : 'Wikipedia'
+    description.source === 'google'
+      ? 'Google'
+      : description.source === 'osm'
+        ? 'OpenStreetMap'
+        : description.source === 'wikivoyage'
+          ? 'Wikivoyage'
+          : 'Wikipedia'
 
   return (
     <div className="space-y-2">
-      <p className="text-caption text-content-muted">{t('places.details.description')}</p>
-      <p className="text-caption text-content whitespace-pre-line">{description.text}</p>
-      <p className="text-caption leading-tight text-content-muted">
-        {description.sourceUrl ? (
-          <a
-            href={description.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-0.5 hover:underline"
-          >
-            {sourceLabel}
-            <ExternalLink className="w-2.5 h-2.5" />
-          </a>
-        ) : (
-          sourceLabel
-        )}
-        {description.license && ` · ${description.license}`}
-      </p>
+      <Overline>{t('places.details.description')}</Overline>
+      <div className="rounded-lg border border-edge bg-surface p-2.5 space-y-2">
+        <p className="text-caption leading-relaxed text-content whitespace-pre-line">{description.text}</p>
+        <p className="text-caption leading-tight text-content-faint">
+          {description.sourceUrl ? (
+            <a
+              href={description.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 hover:underline"
+            >
+              {sourceLabel}
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          ) : (
+            sourceLabel
+          )}
+          {description.license && ` · ${description.license}`}
+        </p>
+      </div>
       <button
         type="button"
         onClick={() => onAdoptDescription(description.text)}
-        className="text-caption px-2 py-1 rounded-lg border border-edge text-content hover:bg-surface disabled:opacity-50"
+        className="w-full text-caption px-2 py-1.5 rounded-lg border border-edge text-content hover:bg-surface-hover disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
         disabled={hasDescription}
         title={hasDescription ? t('places.details.adoptBlocked') : undefined}
       >

@@ -41,6 +41,7 @@ const GOOGLE_PHOTO = {
 
 const RESULT: MapsPlaceEnrichmentResult = {
   photos: [COMMONS_PHOTO],
+  facts: [],
   description: {
     text: 'Ein Museum in Köln.',
     source: 'wikipedia',
@@ -120,7 +121,7 @@ describe('PlaceDetailsColumn', () => {
   })
 
   it('FE-PDC-005: names the source when a picture has no author, instead of inventing one', async () => {
-    placeEnrichment.mockResolvedValue({ photos: [GOOGLE_PHOTO], description: null })
+    placeEnrichment.mockResolvedValue({ photos: [GOOGLE_PHOTO], description: null, facts: [] })
     renderColumn()
 
     expect(await screen.findByText('Google')).toBeInTheDocument()
@@ -169,17 +170,69 @@ describe('PlaceDetailsColumn', () => {
   })
 
   it('FE-PDC-011: says so when the admin switched enrichment off', async () => {
-    placeEnrichment.mockResolvedValue({ photos: [], description: null, disabled: true })
+    placeEnrichment.mockResolvedValue({ photos: [], description: null, facts: [], disabled: true })
     renderColumn()
 
     expect(await screen.findByText('places.details.disabled')).toBeInTheDocument()
   })
 
-  it('FE-PDC-012: says so when a place has no pictures', async () => {
-    placeEnrichment.mockResolvedValue({ photos: [], description: null })
+  it('FE-PDC-012: says so when a place yields nothing at all', async () => {
+    placeEnrichment.mockResolvedValue({ photos: [], description: null, facts: [] })
     renderColumn()
 
-    expect(await screen.findByText('places.details.noPhotos')).toBeInTheDocument()
+    expect(await screen.findByText('places.details.nothing')).toBeInTheDocument()
+  })
+
+  it('FE-PDC-016: shows the OpenStreetMap facts, which is all a restaurant gets', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      description: null,
+      facts: [
+        { kind: 'cuisine', value: 'regional', url: null },
+        { kind: 'openingHours', value: 'Mo-Sa 17:30+', url: null },
+        { kind: 'menu', value: null, url: 'https://example.org/menu' },
+        { kind: 'outdoorSeating', value: null, url: null },
+      ],
+    })
+    renderColumn()
+
+    // A value is shown verbatim; a plain yes falls back to the translated label.
+    expect(await screen.findByText('regional')).toBeInTheDocument()
+    expect(screen.getByText('Mo-Sa 17:30+')).toBeInTheDocument()
+    expect(screen.getByText('places.details.fact.outdoorSeating')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /places.details.fact.menu/ })).toHaveAttribute(
+      'href',
+      'https://example.org/menu',
+    )
+  })
+
+  it('FE-PDC-017: renders facts even when there is neither a picture nor a description', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      description: null,
+      facts: [{ kind: 'cuisine', value: 'pizza', url: null }],
+    })
+    renderColumn()
+
+    expect(await screen.findByText('pizza')).toBeInTheDocument()
+    expect(screen.queryByText('places.details.nothing')).not.toBeInTheDocument()
+  })
+
+  it('FE-PDC-018: names Wikivoyage as the source when the text came from there', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: {
+        text: 'Berlin ist das politische Zentrum Deutschlands.',
+        source: 'wikivoyage',
+        sourceUrl: 'https://de.wikivoyage.org/wiki/Berlin',
+        license: 'CC BY-SA 4.0',
+      },
+    })
+    renderColumn()
+
+    const link = await screen.findByRole('link', { name: /Wikivoyage/ })
+    expect(link).toHaveAttribute('href', 'https://de.wikivoyage.org/wiki/Berlin')
   })
 
   it('FE-PDC-013: shows an error state when the request fails', async () => {

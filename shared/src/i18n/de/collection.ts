@@ -112,6 +112,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Erstelle zuerst eine Liste, um Orte zu speichern.',
   'collections.removedFromAll': 'Aus Sammlung entfernt',
   'collections.picker.title': 'Gespeicherte Orte',
+  'collections.picker.showMore': '{count} weitere anzeigen',
   'collections.picker.search': 'Gespeicherte Orte durchsuchen',
   'collections.picker.empty': 'Keine gespeicherten Orte zum Hinzufügen',
   'collections.picker.hint': 'Wähle einen Ort aus deinen Sammlungen',
