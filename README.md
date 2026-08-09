@@ -171,6 +171,15 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 <br />
 
+## AI usage
+
+We use LLM-assisted coding tools across parts of this codebase. Every change goes
+through a pull request and is tested before it ships. See
+[**How we use AI in TREK**](https://github.com/liketrek/TREK/discussions/1851) for the
+details.
+
+<br />
+
 ## Get started in 30 seconds
 
 ```bash
@@ -475,15 +484,6 @@ The Atlas map's country and sub-national (province/county) boundaries come from
 [**geoBoundaries**](https://www.geoboundaries.org/) (Runfola et al., 2020), licensed
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
 for full third-party attributions.
-
-## AI usage
-
-We use LLM-assisted coding tools across parts of this codebase, from translations and
-tests to entire features. Every change goes through a pull request and is tested before
-it ships, and someone here is responsible for it either way.
-
-See [**How we use AI in TREK**](https://github.com/liketrek/TREK/discussions/1851) for
-the details.
 
 ## License
 
