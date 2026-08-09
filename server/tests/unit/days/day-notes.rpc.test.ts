@@ -5,6 +5,7 @@
  * no room for.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
@@ -114,6 +115,6 @@ describe('DayNotesRpc through the router', () => {
   });
 
   it('DAYNOTES-RPC-009 the class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', DaysModule) as unknown[]).toContain(DayNotesRpc);
+    expectRegisteredProvider(DaysModule, DayNotesRpc);
   });
 });

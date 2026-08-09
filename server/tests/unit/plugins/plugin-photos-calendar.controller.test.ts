@@ -9,8 +9,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { pluginsEnabled } = vi.hoisted(() => ({ pluginsEnabled: vi.fn(() => true) }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { PluginPhotosController } from '../../../src/nest/plugins/plugin-photos.controller';
-import { PluginCalendarController } from '../../../src/nest/plugins/plugin-calendar.controller';
+import { PluginPhotosController } from '../../../src/nest/plugins/contributions/plugin-photos.controller';
+import { PluginCalendarController } from '../../../src/nest/plugins/contributions/plugin-calendar.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

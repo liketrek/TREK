@@ -22,7 +22,7 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { JournalEntryRowsController } from '../../../src/nest/plugins/journal-entry-rows.controller';
+import { JournalEntryRowsController } from '../../../src/nest/plugins/contributions/journal-entry-rows.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 

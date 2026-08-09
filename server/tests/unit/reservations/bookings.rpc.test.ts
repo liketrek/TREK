@@ -9,6 +9,7 @@
  * relies on, so they are asserted by event name and order.
  */
 import { describe, it, expect, vi } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
@@ -170,7 +171,7 @@ describe('ReservationsRpc', () => {
   });
 
   it('BOOK-RPC-009 the class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', ReservationsModule) as unknown[]).toContain(ReservationsRpc);
+    expectRegisteredProvider(ReservationsModule, ReservationsRpc);
   });
 });
 
@@ -242,6 +243,6 @@ describe('AccommodationsRpc', () => {
   });
 
   it('BOOK-RPC-016 the class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', DaysModule) as unknown[]).toContain(AccommodationsRpc);
+    expectRegisteredProvider(DaysModule, AccommodationsRpc);
   });
 });

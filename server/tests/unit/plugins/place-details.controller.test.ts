@@ -13,7 +13,7 @@ import { db as dbConn } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { PlaceDetailsController } from '../../../src/nest/plugins/place-details.controller';
+import { PlaceDetailsController } from '../../../src/nest/plugins/contributions/place-details.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

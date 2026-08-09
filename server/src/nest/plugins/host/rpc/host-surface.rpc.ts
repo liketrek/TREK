@@ -9,7 +9,7 @@ import { RealtimeService } from '../../../realtime/realtime.service';
 import { NotificationsService } from '../../../notifications/notifications.service';
 import { LlmConfigResolver } from '../../../llm-parse/llm-config.resolver';
 import { createLlmClient } from '../../../llm-parse/llm-client.factory';
-import { PluginOAuthService } from '../../plugin-oauth.service';
+import { PluginOAuthService } from '../../oauth/plugin-oauth.service';
 import { stripEmoji } from '../../text-sanitize';
 
 /** Caps on the persistent scheduler, bounding the abuse surface. */
@@ -102,7 +102,7 @@ export class HostSurfaceRpc {
       throw new ForbiddenResource('the acting user is not a member of that trip');
     }
     const link = this.safeLink(input.link);
-    if (!budgetFor(ctx.pluginId).take('notify', Date.now())) {
+    if (!budgetFor(ctx.pluginId, this.db.connection).take('notify', Date.now())) {
       throw new BadParams('daily notification budget exhausted (resets at UTC midnight)');
     }
     await this.notifications.send({
@@ -225,7 +225,7 @@ export class HostSurfaceRpc {
   }
 
   private takeAiBudget(ctx: PluginRpcContext): void {
-    if (!budgetFor(ctx.pluginId).take('ai', Date.now())) {
+    if (!budgetFor(ctx.pluginId, this.db.connection).take('ai', Date.now())) {
       throw new BadParams('daily AI budget exhausted (resets at UTC midnight)');
     }
   }

@@ -7,6 +7,7 @@
  * its own permission rather than one shared domain action.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -253,6 +254,6 @@ describe('FilesRpc writes', () => {
   });
 
   it('FILES-RPC-017 the class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', FilesModule) as unknown[]).toContain(FilesRpc);
+    expectRegisteredProvider(FilesModule, FilesRpc);
   });
 });

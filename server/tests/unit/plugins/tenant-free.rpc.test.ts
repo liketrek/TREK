@@ -6,6 +6,7 @@
  * with NO acting user. Everything else in the plugin surface refuses that.
  */
 import { describe, it, expect, vi } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { CategoriesRpc } from '../../../src/nest/categories/categories.rpc';
@@ -75,8 +76,8 @@ describe('tenant-free plugin methods', () => {
   });
 
   it('TENANTFREE-007 each class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', CategoriesModule) as unknown[]).toContain(CategoriesRpc);
-    expect(Reflect.getMetadata('providers', WeatherModule) as unknown[]).toContain(WeatherRpc);
-    expect(Reflect.getMetadata('providers', BudgetModule) as unknown[]).toContain(ExchangeRatesRpc);
+    expectRegisteredProvider(CategoriesModule, CategoriesRpc);
+    expectRegisteredProvider(WeatherModule, WeatherRpc);
+    expectRegisteredProvider(BudgetModule, ExchangeRatesRpc);
   });
 });

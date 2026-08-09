@@ -6,7 +6,7 @@ import { setPluginEventSink } from '../../plugin-event-sink';
 import { setUserDeletedSink } from '../../plugin-user-lifecycle';
 import { setPluginChannelSource, pluginChannelId } from '../notifications/channel-registry';
 import type { ChannelMessage, ExternalChannel } from '../notifications/notification-events';
-import { readUserSettingsDecrypted, hasRequiredUserSettings } from './plugins.service';
+import { PluginUserSettingsService } from './plugin-user-settings.service';
 import { PLUGIN_CHANNEL_EVENTS } from './install/manifest';
 import { stripEmoji } from './text-sanitize';
 import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
@@ -168,6 +168,10 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     private readonly dbs: DatabaseService,
     private readonly audit: AuditService,
     private readonly addons: AddonsService,
+    // Required, and therefore ahead of the two optionals: the notification-channel
+    // registry reads a recipient's own settings on every dispatch, so an absent one
+    // would be a TypeError at send time rather than a missing-provider error at boot.
+    private readonly userSettings: PluginUserSettingsService,
     private readonly registry?: PluginRegistryService,
     private readonly hostFactory?: PluginRpcHostFactory,
   ) {}
@@ -1047,7 +1051,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
         // Admin-scoped events never reach a plugin channel — PLUGIN_CHANNEL_EVENTS
         // excludes them, and a manifest can only narrow that set, never widen it.
         supportsEvent: (event: string) => allowed.has(event),
-        isConfiguredFor: (userId: number) => hasRequiredUserSettings(id, userId),
+        isConfiguredFor: (userId: number) => this.userSettings.hasRequired(id, userId),
         // Declared as a contract on PluginHooks.sendNotification, like every other
         // hook. It is invoked here rather than through that class because PluginHooks
         // injects this service, and going back the other way would close a DI cycle.
@@ -1056,7 +1060,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
             id,
             'notificationChannel',
             'send',
-            [{ event: msg.event, title: msg.title, body: msg.body, url: msg.url, tripName: msg.tripName }, readUserSettingsDecrypted(id, userId)],
+            [{ event: msg.event, title: msg.title, body: msg.body, url: msg.url, tripName: msg.tripName }, this.userSettings.readAll(id, userId)],
             // No acting user: a notification is host-initiated for an arbitrary
             // recipient, so the hook gets the recipient's config as an argument
             // rather than the right to read anything AS them.
@@ -1065,7 +1069,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
           ),
         test: async (userId: number) => {
           try {
-            await this.invokeHook(id, 'notificationChannel', 'test', [readUserSettingsDecrypted(id, userId)], undefined, 8000);
+            await this.invokeHook(id, 'notificationChannel', 'test', [this.userSettings.readAll(id, userId)], undefined, 8000);
             return { success: true };
           } catch (e) {
             return { success: false, error: e instanceof Error ? e.message : String(e) };

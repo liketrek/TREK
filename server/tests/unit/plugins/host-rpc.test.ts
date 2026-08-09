@@ -53,17 +53,12 @@ const { llmExtract } = vi.hoisted(() => ({
   llmExtract: vi.fn(async (input: { text?: string }) => [{ text: `answer:${input.text ?? ''}` }]),
 }));
 vi.mock('../../../src/nest/llm-parse/llm-client.factory', () => ({ createLlmClient: vi.fn(() => ({ extract: llmExtract })) }));
-// readUserSettingDecrypted is a bare function export, not an injected service, so it
-// stays a path mock.
-vi.mock('../../../src/nest/plugins/plugins.service', () => ({
-  readUserSettingDecrypted: vi.fn((_pid: string, uid: number, key: string) => (uid === 5 && key === 'apiKey' ? 'k-5' : undefined)),
-}));
-
 import { PluginRpcHostFactory, type PluginCallRouter } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
 import { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
 import { MetaRpc } from '../../../src/nest/plugins/host/rpc/meta.rpc';
 import { HostSurfaceRpc } from '../../../src/nest/plugins/host/rpc/host-surface.rpc';
 import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
@@ -74,7 +69,7 @@ import type { PermissionsService } from '../../../src/nest/permissions/permissio
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import type { LlmConfigResolver } from '../../../src/nest/llm-parse/llm-config.resolver';
-import type { PluginOAuthService } from '../../../src/nest/plugins/plugin-oauth.service';
+import type { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
 import type { RpcError, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
 
 const checkPermission = vi.fn(() => true as boolean);
@@ -91,10 +86,16 @@ const oauth = {
   },
 } as unknown as PluginOAuthService;
 
+// The per-user settings reads are stubbed rather than seeded: this suite is about the
+// RPC surface, and plugin-user-settings.test.ts already covers the encryption round-trip.
+const userSettings = {
+  readOne: vi.fn((_pid: string, uid: number, key: string) => (uid === 5 && key === 'apiKey' ? 'k-5' : undefined)),
+} as unknown as PluginUserSettingsService;
+
 const dbs = new DatabaseService(mockDb);
 const guards = new PluginGuards(dbs, permissions, addons);
 const registry = createTestPluginRegistry([
-  new DbRpc(),
+  new DbRpc(userSettings),
   new MetaRpc(dbs, guards),
   new HostSurfaceRpc(dbs, new RealtimeService(), notifications, llmConfig, oauth, guards),
 ]);

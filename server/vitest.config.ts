@@ -29,7 +29,10 @@ export default defineConfig({
       // though every test passes). `istanbul` instruments the source directly, so
       // coverage is measured independently of the transform pipeline.
       provider: 'istanbul',
-      reporter: ['lcov', 'text'],
+      // json-summary is what the per-domain ratchet below is derived from: the text
+      // reporter prints one row per DIRECTORY, not a recursive total, so reading the
+      // thresholds off it silently understates any domain with subdirectories.
+      reporter: ['lcov', 'text', 'json-summary'],
       reportsDirectory: './coverage',
       include: ['src/**/*.ts'],
       // The plugin child bootstrap runs in a forked subprocess via tsx, so the
@@ -37,10 +40,74 @@ export default defineConfig({
       // the supervisor integration test instead. Everything else in the plugin
       // module runs in-process and is unit-tested.
       exclude: ['src/nest/plugins/runtime/plugin-host-entry.ts'],
-      // Coverage gate scoped to the new NestJS code only — the legacy codebase
-      // is intentionally ungated. Raised to the DoD's >=80% bar once the first
-      // module (weather) landed; ratchet further as more modules are migrated.
+      // Coverage gate scoped to the new NestJS code only — the legacy codebase is
+      // intentionally ungated.
+      //
+      // The bar is PER DOMAIN and works as a ratchet: each entry is that domain's
+      // measured coverage at the time it was set, minus one point of slack. Regenerate
+      // with `node scripts/coverage-thresholds.mjs` after a run that RAISED coverage. A single
+      // repo-wide 80% let a well-covered domain subsidise a thin one, so a domain could
+      // lose ten points and the build stayed green. Now it cannot: the only way past a
+      // number here is to raise it, which makes the ratchet visible in the diff.
+      //
+      // Raise an entry when you improve a domain. Never lower one to make a build pass —
+      // that is the whole point of the mechanism.
+      //
+      // A file matched by a glob below is EXCLUDED from the catch-all, so the last entry
+      // only covers what sits directly under src/nest (app.module.ts and the like).
       thresholds: {
+        'src/nest/addons/**/*.ts': { statements: 99, branches: 87, functions: 99, lines: 99 },
+        'src/nest/admin/**/*.ts': { statements: 86, branches: 70, functions: 89, lines: 88 },
+        'src/nest/airports/**/*.ts': { statements: 68, branches: 60, functions: 93, lines: 73 },
+        'src/nest/app-config/**/*.ts': { statements: 79, branches: 100, functions: 65, lines: 71 },
+        'src/nest/assignments/**/*.ts': { statements: 90, branches: 81, functions: 97, lines: 95 },
+        'src/nest/atlas/**/*.ts': { statements: 91, branches: 78, functions: 96, lines: 93 },
+        'src/nest/audit/**/*.ts': { statements: 92, branches: 79, functions: 99, lines: 96 },
+        'src/nest/auth/**/*.ts': { statements: 93, branches: 84, functions: 95, lines: 96 },
+        'src/nest/backup/**/*.ts': { statements: 97, branches: 91, functions: 99, lines: 97 },
+        'src/nest/booking-import/**/*.ts': { statements: 49, branches: 28, functions: 58, lines: 52 },
+        'src/nest/budget/**/*.ts': { statements: 91, branches: 77, functions: 97, lines: 95 },
+        'src/nest/categories/**/*.ts': { statements: 99, branches: 80, functions: 99, lines: 99 },
+        'src/nest/collab/**/*.ts': { statements: 93, branches: 86, functions: 96, lines: 98 },
+        'src/nest/collections/**/*.ts': { statements: 83, branches: 70, functions: 91, lines: 92 },
+        'src/nest/common/**/*.ts': { statements: 95, branches: 89, functions: 99, lines: 97 },
+        'src/nest/config/**/*.ts': { statements: 99, branches: 100, functions: 99, lines: 99 },
+        'src/nest/database/**/*.ts': { statements: 99, branches: 100, functions: 99, lines: 99 },
+        'src/nest/days/**/*.ts': { statements: 93, branches: 82, functions: 98, lines: 97 },
+        'src/nest/feeds/**/*.ts': { statements: 91, branches: 83, functions: 83, lines: 91 },
+        'src/nest/files/**/*.ts': { statements: 97, branches: 95, functions: 99, lines: 98 },
+        'src/nest/health/**/*.ts': { statements: 99, branches: 65, functions: 99, lines: 99 },
+        'src/nest/help/**/*.ts': { statements: 81, branches: 70, functions: 99, lines: 86 },
+        'src/nest/integrations/**/*.ts': { statements: 19, branches: 0, functions: 10, lines: 19 },
+        'src/nest/journey/**/*.ts': { statements: 90, branches: 84, functions: 83, lines: 91 },
+        'src/nest/llm-parse/**/*.ts': { statements: 91, branches: 85, functions: 85, lines: 94 },
+        'src/nest/maps/**/*.ts': { statements: 92, branches: 85, functions: 95, lines: 95 },
+        'src/nest/memories/**/*.ts': { statements: 88, branches: 80, functions: 95, lines: 90 },
+        'src/nest/notifications/**/*.ts': { statements: 83, branches: 71, functions: 84, lines: 86 },
+        'src/nest/oauth/**/*.ts': { statements: 96, branches: 95, functions: 97, lines: 97 },
+        'src/nest/oidc/**/*.ts': { statements: 88, branches: 83, functions: 91, lines: 92 },
+        'src/nest/packing/**/*.ts': { statements: 92, branches: 83, functions: 98, lines: 97 },
+        'src/nest/permissions/**/*.ts': { statements: 97, branches: 90, functions: 99, lines: 97 },
+        'src/nest/photos/**/*.ts': { statements: 95, branches: 92, functions: 89, lines: 95 },
+        'src/nest/place-photos/**/*.ts': { statements: 79, branches: 70, functions: 72, lines: 80 },
+        'src/nest/places/**/*.ts': { statements: 90, branches: 80, functions: 96, lines: 94 },
+        'src/nest/platform/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
+        'src/nest/plugins/**/*.ts': { statements: 86, branches: 81, functions: 78, lines: 89 },
+        'src/nest/query-helpers/**/*.ts': { statements: 90, branches: 75, functions: 99, lines: 92 },
+        'src/nest/realtime/**/*.ts': { statements: 99, branches: 100, functions: 99, lines: 99 },
+        'src/nest/reservations/**/*.ts': { statements: 93, branches: 83, functions: 96, lines: 96 },
+        'src/nest/settings/**/*.ts': { statements: 85, branches: 68, functions: 99, lines: 87 },
+        'src/nest/share/**/*.ts': { statements: 97, branches: 87, functions: 99, lines: 99 },
+        'src/nest/system-notices/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
+        'src/nest/tags/**/*.ts': { statements: 97, branches: 89, functions: 99, lines: 99 },
+        'src/nest/todo/**/*.ts': { statements: 91, branches: 83, functions: 99, lines: 99 },
+        'src/nest/transit/**/*.ts': { statements: 92, branches: 83, functions: 97, lines: 94 },
+        'src/nest/trip-invite/**/*.ts': { statements: 91, branches: 93, functions: 93, lines: 89 },
+        'src/nest/trip-membership/**/*.ts': { statements: 99, branches: 86, functions: 99, lines: 99 },
+        'src/nest/trips/**/*.ts': { statements: 92, branches: 82, functions: 91, lines: 94 },
+        'src/nest/unsplash/**/*.ts': { statements: 97, branches: 82, functions: 99, lines: 96 },
+        'src/nest/vacay/**/*.ts': { statements: 82, branches: 66, functions: 89, lines: 86 },
+        'src/nest/weather/**/*.ts': { statements: 93, branches: 78, functions: 91, lines: 97 },
         'src/nest/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
       },
     },

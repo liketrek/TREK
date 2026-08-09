@@ -13,7 +13,7 @@ const { canAccessTrip, pluginsEnabled } = vi.hoisted(() => ({
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: () => undefined }) }, canAccessTrip }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { MapMarkersController } from '../../../src/nest/plugins/map-markers.controller';
+import { MapMarkersController } from '../../../src/nest/plugins/contributions/map-markers.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 

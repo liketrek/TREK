@@ -80,7 +80,7 @@ export function allRpcControllers(): object[] {
     new VacayRpc(anyService(), anyService()),
     new JournalRpc(anyService(), anyService()),
     new CollectionsRpc(anyService(), anyService()),
-    new DbRpc(),
+    new DbRpc(anyService()),
     new MetaRpc(anyService(), anyService()),
     new HostSurfaceRpc(anyService(), anyService(), anyService(), anyService(), anyService(), anyService()),
     // Owns no wire method, but declares all 18 hook contracts, which requireTotalCoverage checks too.

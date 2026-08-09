@@ -1,10 +1,10 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { DatabaseService } from '../database/database.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { pluginsEnabled } from './kill-switch';
-import { PluginHooks } from './plugin-hooks.service';
-import { stripEmoji } from './text-sanitize';
+import { DatabaseService } from '../../database/database.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { pluginsEnabled } from '../kill-switch';
+import { PluginHooks } from '../plugin-hooks.service';
+import { stripEmoji } from '../text-sanitize';
 
 /**
  * GET /api/trip-card-contributions?tripIds=1,2,3 — host-rendered badges that plugins

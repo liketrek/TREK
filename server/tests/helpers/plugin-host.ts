@@ -1,5 +1,6 @@
 import { DatabaseService } from '../../src/nest/database/database.service';
 import { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.service';
+import { PluginUserSettingsService } from '../../src/nest/plugins/plugin-user-settings.service';
 import type { PluginRegistryService } from '../../src/nest/plugins/registry/registry.service';
 import { PluginRpcHostFactory } from '../../src/nest/plugins/host/plugin-rpc-host.factory';
 import { PluginRpcRegistryService } from '../../src/nest/plugins/host/rpc-kit/registry.service';
@@ -9,7 +10,7 @@ import { DbRpc } from '../../src/nest/plugins/host/rpc/db.rpc';
 import { MetaRpc } from '../../src/nest/plugins/host/rpc/meta.rpc';
 import { HostSurfaceRpc } from '../../src/nest/plugins/host/rpc/host-surface.rpc';
 import { PluginHooks } from '../../src/nest/plugins/plugin-hooks.service';
-import { PluginOAuthService } from '../../src/nest/plugins/plugin-oauth.service';
+import { PluginOAuthService } from '../../src/nest/plugins/oauth/plugin-oauth.service';
 import { BudgetService } from '../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../src/nest/budget/exchange-rates.service';
 import { ReservationsService } from '../../src/nest/reservations/reservations.service';
@@ -118,7 +119,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
     new VacayRpc(vacay, guards),
     new JournalRpc(journey, guards),
     new CollectionsRpc(collections, guards),
-    new DbRpc(),
+    new DbRpc(new PluginUserSettingsService(dbs)),
     new MetaRpc(dbs, guards),
     new HostSurfaceRpc(dbs, realtime, notifications, llmConfig, oauth, guards),
     new PluginHooks(undefined as never),
@@ -128,5 +129,5 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
 
 /** A PluginRuntimeService constructed the way Nest would: with a real host factory. */
 export function createPluginRuntime(dbs: DatabaseService, registry?: PluginRegistryService): PluginRuntimeService {
-  return new PluginRuntimeService(dbs, new AuditService(dbs), new AddonsService(dbs), registry, createPluginRpcHostFactory(dbs));
+  return new PluginRuntimeService(dbs, new AuditService(dbs), new AddonsService(dbs), new PluginUserSettingsService(dbs), registry, createPluginRpcHostFactory(dbs));
 }

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { db } from '../../db/database';
 import { DatabaseService } from '../database/database.service';
 import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
@@ -7,6 +6,7 @@ import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyC
 import { readAudit } from './host/plugin-audit';
 import { keyFingerprint } from './signature-status';
 import { pluginBudgetUsage } from './host/plugin-host-state';
+import { safeParseConfig as safeParse } from './plugin-config-parse';
 import { AddonsService } from '../addons/addons.service';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
 import { hostSatisfies, hostVersion } from './install/host-compat';
@@ -295,7 +295,7 @@ export class PluginsService {
 
   /** A plugin's broker budget usage for today (AI + notification counts vs caps). */
   budget(id: string): ReturnType<typeof pluginBudgetUsage> {
-    return pluginBudgetUsage(id);
+    return pluginBudgetUsage(id, this.db);
   }
 
   /** Read the instance config with secret fields masked. */
@@ -313,30 +313,6 @@ export class PluginsService {
   }
 }
 
-/**
- * Parse a stored plugin config blob into a NULL-PROTOTYPE object.
- *
- * The prototype matters: a settings key of `__proto__` or `constructor` would otherwise
- * resolve off Object.prototype on read, so `config[key]` comes back truthy for a user who
- * has configured nothing — and a *required* field with such a name would report as
- * configured for everyone. The manifest now rejects those keys at install
- * (SETTING_KEY_RE); this makes it impossible regardless, including for a plugin that was
- * installed before that check existed.
- */
-function safeParse(json: string): Record<string, unknown> {
-  const empty = () => Object.create(null) as Record<string, unknown>;
-  try {
-    const v = JSON.parse(json || '{}');
-    if (!v || typeof v !== 'object' || Array.isArray(v)) return empty();
-    const out = empty();
-    // JSON.parse creates `__proto__` as an OWN property (it never invokes the setter), so
-    // copy own keys across onto the null-prototype object rather than trusting the parse.
-    for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = val;
-    return out;
-  } catch {
-    return empty();
-  }
-}
 function safeArray(json: string): unknown[] | undefined {
   try {
     const v = JSON.parse(json);
@@ -344,62 +320,6 @@ function safeArray(json: string): unknown[] | undefined {
   } catch {
     return undefined;
   }
-}
-
-/** Host-only: one decrypted per-user setting for a plugin (for runtime `ctx.settings`).
- * Standalone (no Nest DI) so the RPC host wiring can call it directly. */
-export function readUserSettingDecrypted(pluginId: string, userId: number, key: string): unknown {
-  const isSecret =
-    (db.prepare("SELECT secret FROM plugin_settings_fields WHERE plugin_id = ? AND field_key = ? AND scope = 'user'").get(pluginId, key) as
-      | { secret: number }
-      | undefined)?.secret === 1;
-  const row = db.prepare('SELECT config FROM plugin_user_config WHERE plugin_id = ? AND user_id = ?').get(pluginId, userId) as
-    | { config: string }
-    | undefined;
-  const v = safeParse(row?.config ?? '{}')[key];
-  if (v == null) return undefined;
-  return isSecret ? decrypt_api_key(v) : v;
-}
-/** Host-only: ALL of a plugin's per-user settings for one user, decrypted.
- * This is how a notification-channel hook reaches the recipient's credentials —
- * that dispatch is host-initiated with no acting user, so `ctx.settings.get()`
- * (which resolves against the acting user) would return undefined there. Never
- * send this to a client. */
-export function readUserSettingsDecrypted(pluginId: string, userId: number): Record<string, unknown> {
-  const fields = db
-    .prepare("SELECT field_key, secret FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'user'")
-    .all(pluginId) as Array<{ field_key: string; secret: number }>;
-  const row = db.prepare('SELECT config FROM plugin_user_config WHERE plugin_id = ? AND user_id = ?').get(pluginId, userId) as
-    | { config: string }
-    | undefined;
-  const stored = safeParse(row?.config ?? '{}');
-  // Null-prototype for the same reason as safeParse: never let a field key write through
-  // to Object.prototype on the way out to the plugin.
-  const out: Record<string, unknown> = Object.create(null);
-  for (const f of fields) {
-    const v = stored[f.field_key];
-    if (v == null) continue;
-    out[f.field_key] = f.secret === 1 ? decrypt_api_key(v) : v;
-  }
-  return out;
-}
-
-/** Has this user filled in every `required`, `scope:'user'` field the plugin declares?
- * A plugin with no required user fields is configured for everyone (an instance-wide
- * channel, e.g. a shared workspace webhook). */
-export function hasRequiredUserSettings(pluginId: string, userId: number): boolean {
-  const required = db
-    .prepare("SELECT field_key FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'user' AND required = 1")
-    .all(pluginId) as Array<{ field_key: string }>;
-  if (required.length === 0) return true;
-  const row = db.prepare('SELECT config FROM plugin_user_config WHERE plugin_id = ? AND user_id = ?').get(pluginId, userId) as
-    | { config: string }
-    | undefined;
-  const stored = safeParse(row?.config ?? '{}');
-  return required.every(f => {
-    const v = stored[f.field_key];
-    return v != null && String(v) !== '';
-  });
 }
 
 function maskSecrets(config: Record<string, unknown>, secretKeys: Set<string>): Record<string, unknown> {

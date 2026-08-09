@@ -1,4 +1,4 @@
-import { db } from '../../db/database';
+import type Database from 'better-sqlite3';
 
 /**
  * Signature/trust status shared between the registry installer, the read-side
@@ -67,9 +67,9 @@ export function keyFingerprint(pubkey: string | null | undefined): string | null
  * old code. A blocked update is not a broken runtime, and conflating them would
  * make the isolation-health dot lie.
  */
-export function setUpdateBlock(id: string, code: SignatureCode, detail: string, version: string | null): void {
+export function setUpdateBlock(conn: Database.Database, id: string, code: SignatureCode, detail: string, version: string | null): void {
   try {
-    db.prepare('UPDATE plugins SET update_block_code = ?, update_block_detail = ?, update_block_version = ? WHERE id = ?').run(
+    conn.prepare('UPDATE plugins SET update_block_code = ?, update_block_detail = ?, update_block_version = ? WHERE id = ?').run(
       code,
       detail,
       version,
@@ -84,9 +84,9 @@ export function setUpdateBlock(id: string, code: SignatureCode, detail: string, 
  * activating the plugin at its OLD version resolves nothing, and letting an off/on
  * toggle erase the warning is exactly the silent-stops-updating failure this exists
  * to prevent. (Uninstall drops the row entirely, so it needs no explicit clear.) */
-export function clearUpdateBlock(id: string): void {
+export function clearUpdateBlock(conn: Database.Database, id: string): void {
   try {
-    db.prepare('UPDATE plugins SET update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL WHERE id = ?').run(id);
+    conn.prepare('UPDATE plugins SET update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL WHERE id = ?').run(id);
   } catch {
     // See setUpdateBlock.
   }

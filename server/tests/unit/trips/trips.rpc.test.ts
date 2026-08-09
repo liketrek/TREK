@@ -8,6 +8,7 @@
  * ACCESS, which is why it sits behind its own permission rather than any other write.
  */
 import { describe, it, expect, vi } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
@@ -203,6 +204,6 @@ describe('TripsRpc membership', () => {
   });
 
   it('TRIPS-RPC-019 the class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', TripsModule) as unknown[]).toContain(TripsRpc);
+    expectRegisteredProvider(TripsModule, TripsRpc);
   });
 });

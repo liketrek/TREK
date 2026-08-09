@@ -6,6 +6,7 @@
  * permission of its own, and both halves scope their rows to the trip before writing.
  */
 import { describe, it, expect, vi } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
@@ -84,7 +85,7 @@ describe('DaysRpc', () => {
   });
 
   it('DAYS-RPC-004 the class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', DaysModule) as unknown[]).toContain(DaysRpc);
+    expectRegisteredProvider(DaysModule, DaysRpc);
   });
 });
 
@@ -140,6 +141,6 @@ describe('ItineraryRpc', () => {
   });
 
   it('ITIN-RPC-008 the class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', AssignmentsModule) as unknown[]).toContain(ItineraryRpc);
+    expectRegisteredProvider(AssignmentsModule, ItineraryRpc);
   });
 });

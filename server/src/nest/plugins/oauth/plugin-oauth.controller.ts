@@ -1,9 +1,9 @@
 import { Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { pluginsEnabled } from './kill-switch';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { pluginsEnabled } from '../kill-switch';
 import { PluginOAuthService } from './plugin-oauth.service';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService } from '../../database/database.service';
 
 /**
  * Host-brokered outbound OAuth endpoints (#plugins). All are gated by JwtAuthGuard —

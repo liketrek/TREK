@@ -8,6 +8,7 @@
  * particular the ownership re-check on the two writes.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { BadParams, ForbiddenResource } from '../../../src/nest/plugins/host/rpc-errors';
@@ -116,8 +117,7 @@ describe('TagsRpc is reachable at all', () => {
     // The one failure the compiler cannot see: a decorated class that no module
     // registers is invisible to discovery, and every tags.* call then comes back
     // PERMISSION_DENIED with no other symptom. Cheapest possible guard against it.
-    const providers = Reflect.getMetadata('providers', TagsModule) as unknown[] | undefined;
-    expect(providers).toContain(TagsRpc);
+    expectRegisteredProvider(TagsModule, TagsRpc);
   });
 });
 

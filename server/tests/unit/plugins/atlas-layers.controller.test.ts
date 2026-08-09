@@ -14,7 +14,7 @@ const { pluginsEnabled } = vi.hoisted(() => ({
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: () => undefined }) }, canAccessTrip: vi.fn() }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { AtlasLayersController } from '../../../src/nest/plugins/atlas-layers.controller';
+import { AtlasLayersController } from '../../../src/nest/plugins/contributions/atlas-layers.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

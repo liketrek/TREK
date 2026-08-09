@@ -487,6 +487,15 @@ describe('reverseGeocodeCountry', () => {
 // These read the committed geoBoundaries bundle (server/assets/atlas/admin1.geojson.gz),
 // so they double as a guard that the bundle ships current sub-national data (#1119).
 describe('getRegionGeo', () => {
+  // The first call streams the multi-MB admin1.geojson.gz through the brace-depth
+  // splitter and caches the result for the process. That build alone takes ~2.5s on a
+  // quiet machine and more when every vitest worker is busy, so whichever test called
+  // getRegionGeo first used to pay for it and blow the 5s default. Warm the store here
+  // with a budget that fits the build; the tests below then measure only the lookup.
+  beforeAll(async () => {
+    await getRegionGeo(['ZZ']);
+  }, 60_000);
+
   it('ATLAS-SVC-017: returns an empty FeatureCollection for a country with no admin-1 features', async () => {
     const result = await getRegionGeo(['ZZ']);
     expect(result).toEqual({ type: 'FeatureCollection', features: [] });

@@ -1,7 +1,7 @@
 import { PluginController, PluginMethod, PluginOpenMethod } from '../rpc-kit/decorators';
 import { asArgs, asTxOps, str } from '../rpc-params';
 import type { PluginRpcContext } from '../rpc-kit/types';
-import { readUserSettingDecrypted } from '../../plugins.service';
+import { PluginUserSettingsService } from '../../plugin-user-settings.service';
 
 /**
  * A plugin's OWN sqlite, plus the three methods the router registers unconditionally.
@@ -14,6 +14,8 @@ import { readUserSettingDecrypted } from '../../plugins.service';
  */
 @PluginController()
 export class DbRpc {
+  constructor(private readonly settings: PluginUserSettingsService) {}
+
   @PluginMethod('db.query', { permission: 'db:own' })
   query(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
     return ctx.data.query(str(params.sql, 'sql'), asArgs(params.args));
@@ -60,6 +62,6 @@ export class DbRpc {
   @PluginOpenMethod('settings.get')
   getSetting(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
     if (ctx.actingUserId === undefined) return { value: undefined };
-    return { value: readUserSettingDecrypted(ctx.pluginId, ctx.actingUserId, str(params.key, 'key')) };
+    return { value: this.settings.readOne(ctx.pluginId, ctx.actingUserId, str(params.key, 'key')) };
   }
 }

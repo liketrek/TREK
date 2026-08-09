@@ -1,13 +1,13 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { DatabaseService } from '../database/database.service';
-import { JourneyDomainService } from '../journey/journey-domain.service';
-import { AddonsService } from '../addons/addons.service';
-import { ADDON_IDS } from '../../addons';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { pluginsEnabled } from './kill-switch';
-import { PluginHooks } from './plugin-hooks.service';
-import { stripEmoji } from './text-sanitize';
+import { DatabaseService } from '../../database/database.service';
+import { JourneyDomainService } from '../../journey/journey-domain.service';
+import { AddonsService } from '../../addons/addons.service';
+import { ADDON_IDS } from '../../../addons';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { pluginsEnabled } from '../kill-switch';
+import { PluginHooks } from '../plugin-hooks.service';
+import { stripEmoji } from '../text-sanitize';
 
 /**
  * GET /api/journal-entry-rows/:entryId — extra rows for a journal entry,

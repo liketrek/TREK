@@ -1,11 +1,11 @@
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import type Database from 'better-sqlite3';
-import { DatabaseService } from '../database/database.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { pluginsEnabled } from './kill-switch';
-import { PluginHooks } from './plugin-hooks.service';
-import { stripEmoji } from './text-sanitize';
+import { DatabaseService } from '../../database/database.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { pluginsEnabled } from '../kill-switch';
+import { PluginHooks } from '../plugin-hooks.service';
+import { stripEmoji } from '../text-sanitize';
 
 /**
  * POST /api/plugin-routes/:pluginId/:profileId — ask ONE routeProvider plugin to

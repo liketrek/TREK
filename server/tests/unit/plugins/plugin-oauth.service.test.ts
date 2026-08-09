@@ -30,7 +30,7 @@ vi.mock('node:dns/promises', () => {
 });
 
 import Database from 'better-sqlite3';
-import { PluginOAuthService } from '../../../src/nest/plugins/plugin-oauth.service';
+import { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
 
 const CFG = {
   oauth_authorize_url: 'https://provider.example/authorize',

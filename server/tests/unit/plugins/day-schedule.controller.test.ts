@@ -20,7 +20,7 @@ import { db as dbConn } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { DayScheduleController } from '../../../src/nest/plugins/day-schedule.controller';
+import { DayScheduleController } from '../../../src/nest/plugins/contributions/day-schedule.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

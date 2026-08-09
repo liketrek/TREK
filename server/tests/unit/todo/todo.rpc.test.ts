@@ -4,6 +4,7 @@
  * easy to lose in a move and is asserted here explicitly.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
@@ -109,6 +110,6 @@ describe('TodoRpc through the router', () => {
   });
 
   it('TODO-RPC-010 the class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', TodoModule) as unknown[]).toContain(TodoRpc);
+    expectRegisteredProvider(TodoModule, TodoRpc);
   });
 });

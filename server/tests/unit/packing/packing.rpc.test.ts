@@ -7,6 +7,7 @@
  * instead of three times over.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
@@ -153,7 +154,7 @@ describe('PackingRpc through the router', () => {
   });
 
   it('PACKING-RPC-008 the class is listed in its module providers', () => {
-    expect(Reflect.getMetadata('providers', PackingModule) as unknown[]).toContain(PackingRpc);
+    expectRegisteredProvider(PackingModule, PackingRpc);
   });
 });
 

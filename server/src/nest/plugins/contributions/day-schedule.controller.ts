@@ -1,10 +1,10 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { DatabaseService } from '../database/database.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { pluginsEnabled } from './kill-switch';
-import { PluginHooks } from './plugin-hooks.service';
-import { stripEmoji } from './text-sanitize';
+import { DatabaseService } from '../../database/database.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { pluginsEnabled } from '../kill-switch';
+import { PluginHooks } from '../plugin-hooks.service';
+import { stripEmoji } from '../text-sanitize';
 
 /**
  * GET /api/day-schedule/:tripId — bounded time contributions plugins attach to the

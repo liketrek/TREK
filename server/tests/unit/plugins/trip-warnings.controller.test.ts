@@ -7,7 +7,7 @@ const { canAccessTrip, pluginsEnabled } = vi.hoisted(() => ({
 vi.mock('../../../src/db/database', () => ({ db: {}, canAccessTrip }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { TripWarningsController } from '../../../src/nest/plugins/trip-warnings.controller';
+import { TripWarningsController } from '../../../src/nest/plugins/contributions/trip-warnings.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 
