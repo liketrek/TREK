@@ -15,6 +15,7 @@ import { DayNotesService } from './day-notes.service';
 import { DayNoteCreateDto, DayNoteUpdateDto } from './day-notes.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 /**
  * /api/trips/:tripId/days/:dayId/notes — free-text annotations on a day.
@@ -27,30 +28,21 @@ import { CurrentUser } from '../auth/current-user.decorator';
  * forwarded X-Socket-Id.
  */
 @Controller('api/trips/:tripId/days/:dayId/notes')
-@UseGuards(JwtAuthGuard)
+// TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
+// add @RequirePermission('day_edit'), the same action string the service's canEdit
+// passes, so the HTTP and MCP paths cannot demand different rights.
+@UseGuards(JwtAuthGuard, TripAccessGuard)
 export class DayNotesController {
   constructor(private readonly notes: DayNotesService) {}
 
-  private requireTrip(tripId: string, user: User) {
-    const trip = this.notes.verifyTripAccess(tripId, user.id);
-    if (!trip) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    return trip;
-  }
 
-  private requireEdit(trip: NonNullable<ReturnType<DayNotesService['verifyTripAccess']>>, user: User): void {
-    if (!this.notes.canEdit(trip, user)) {
-      throw new HttpException({ error: 'No permission' }, 403);
-    }
-  }
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('dayId') dayId: string) {
-    this.requireTrip(tripId, user);
     return { notes: this.notes.list(dayId, tripId) };
   }
 
+  @RequirePermission('day_edit')
   @Post()
   create(
     @CurrentUser() user: User,
@@ -59,8 +51,6 @@ export class DayNotesController {
     @Body() body: DayNoteCreateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     if (!this.notes.dayExists(dayId, tripId)) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
@@ -72,6 +62,7 @@ export class DayNotesController {
     return { note };
   }
 
+  @RequirePermission('day_edit')
   @Put(':id')
   update(
     @CurrentUser() user: User,
@@ -81,8 +72,6 @@ export class DayNotesController {
     @Body() body: DayNoteUpdateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const current = this.notes.getNote(id, dayId, tripId);
     if (!current) {
       throw new HttpException({ error: 'Note not found' }, 404);
@@ -92,6 +81,7 @@ export class DayNotesController {
     return { note };
   }
 
+  @RequirePermission('day_edit')
   @Delete(':id')
   remove(
     @CurrentUser() user: User,
@@ -100,8 +90,6 @@ export class DayNotesController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     if (!this.notes.getNote(id, dayId, tripId)) {
       throw new HttpException({ error: 'Note not found' }, 404);
     }

@@ -223,3 +223,29 @@ describe('remove', () => {
     expect(testDb.prepare('SELECT * FROM day_notes WHERE id = ?').get(note.id)).toBeUndefined();
   });
 });
+
+/**
+ * canEdit is MCP-only now: the HTTP path checks the same right through
+ * TripAccessGuard's @RequirePermission('day_edit'), so nothing in a controller test
+ * reaches this method any more. It stays because the *.mcp.ts tools never pass through
+ * an HTTP guard, and it is tested directly here for the same reason.
+ */
+describe('DayNotesService.canEdit', () => {
+  it('DAYNOTE-SVC-090 asks for day_edit and flags a non-owner as shared', () => {
+    const checkPermission = vi.fn(() => true);
+    const permissions = { checkPermission } as unknown as PermissionsService;
+    const withStub = new DayNotesService(new DatabaseService(testDb), permissions, new RealtimeService());
+    const trip = { id: 1, user_id: 1 } as never;
+
+    expect(withStub.canEdit(trip, { id: 1, role: 'user' } as never)).toBe(true);
+    expect(checkPermission).toHaveBeenLastCalledWith('day_edit', 'user', 1, 1, false);
+
+    withStub.canEdit(trip, { id: 2, role: 'user' } as never);
+    // The shared flag is what the guard has to reproduce; getting it wrong would give a
+    // member the owner's rights on somebody else's trip.
+    expect(checkPermission).toHaveBeenLastCalledWith('day_edit', 'user', 1, 2, true);
+
+    checkPermission.mockReturnValue(false);
+    expect(withStub.canEdit(trip, { id: 2, role: 'user' } as never)).toBe(false);
+  });
+});

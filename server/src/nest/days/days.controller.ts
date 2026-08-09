@@ -15,6 +15,7 @@ import { DaysService, DayReorderError } from './days.service';
 import { DayCreateDto, DayReorderDto, DayTransportDto, DayUpdateDto } from './days.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 /**
  * /api/trips/:tripId/days — trip itinerary days.
@@ -25,30 +26,20 @@ import { CurrentUser } from '../auth/current-user.decorator';
  * broadcasts with the forwarded X-Socket-Id.
  */
 @Controller('api/trips/:tripId/days')
-@UseGuards(JwtAuthGuard)
+// TripAccessGuard resolves :tripId and 404s a trip the user cannot reach, so every
+// handler below is already scoped. Mutations add @RequirePermission('day_edit'),
+// which is the same action string days.service.canEdit passes — the MCP tools still
+// go through that method, and this keeps the two from drifting.
+@UseGuards(JwtAuthGuard, TripAccessGuard)
 export class DaysController {
   constructor(private readonly days: DaysService) {}
 
-  private requireTrip(tripId: string, user: User) {
-    const trip = this.days.verifyTripAccess(tripId, user.id);
-    if (!trip) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    return trip;
-  }
-
-  private requireEdit(trip: NonNullable<ReturnType<DaysService['verifyTripAccess']>>, user: User): void {
-    if (!this.days.canEdit(trip, user)) {
-      throw new HttpException({ error: 'No permission' }, 403);
-    }
-  }
-
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.requireTrip(tripId, user);
     return this.days.list(tripId);
   }
 
+  @RequirePermission('day_edit')
   @Post()
   create(
     @CurrentUser() user: User,
@@ -56,8 +47,6 @@ export class DaysController {
     @Body() body: DayCreateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     // A `position` means "insert a new empty day here" (which on a dated trip
     // extends the trip and re-pins dates); without it, the legacy append.
     const day = body.position !== undefined
@@ -70,6 +59,7 @@ export class DaysController {
     return { day };
   }
 
+  @RequirePermission('day_edit')
   @Put('reorder')
   reorder(
     @CurrentUser() user: User,
@@ -77,8 +67,6 @@ export class DaysController {
     @Body() body: DayReorderDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     if (!Array.isArray(body.orderedIds)) {
       throw new HttpException({ error: 'orderedIds must be an array' }, 400);
     }
@@ -94,6 +82,7 @@ export class DaysController {
     return { success: true };
   }
 
+  @RequirePermission('day_edit')
   @Put(':id')
   update(
     @CurrentUser() user: User,
@@ -102,8 +91,6 @@ export class DaysController {
     @Body() body: DayUpdateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const current = this.days.getDay(id, tripId);
     if (!current) {
       throw new HttpException({ error: 'Day not found' }, 404);
@@ -116,6 +103,7 @@ export class DaysController {
     return { day };
   }
 
+  @RequirePermission('day_edit')
   @Put(':id/transport')
   transport(
     @CurrentUser() user: User,
@@ -124,8 +112,6 @@ export class DaysController {
     @Body() body: DayTransportDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     if (!this.days.getDay(id, tripId)) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
@@ -134,6 +120,7 @@ export class DaysController {
     return { day };
   }
 
+  @RequirePermission('day_edit')
   @Delete(':id')
   remove(
     @CurrentUser() user: User,
@@ -141,8 +128,6 @@ export class DaysController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     if (!this.days.getDay(id, tripId)) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }

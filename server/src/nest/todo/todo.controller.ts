@@ -15,6 +15,7 @@ import { TodoService } from './todo.service';
 import { TodoCreateItemDto, TodoUpdateItemDto, TodoReorderDto, TodoCategoryAssigneesDto } from './todo.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 /**
  * /api/trips/:tripId/todo — trip-scoped task list.
@@ -28,30 +29,21 @@ import { CurrentUser } from '../auth/current-user.decorator';
  * bespoke 'Item name is required' check).
  */
 @Controller('api/trips/:tripId/todo')
-@UseGuards(JwtAuthGuard)
+// TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
+// add @RequirePermission('packing_edit'), the same action string the service's canEdit
+// passes, so the HTTP and MCP paths cannot demand different rights.
+@UseGuards(JwtAuthGuard, TripAccessGuard)
 export class TodoController {
   constructor(private readonly todo: TodoService) {}
 
-  private requireTrip(tripId: string, user: User) {
-    const trip = this.todo.verifyTripAccess(tripId, user.id);
-    if (!trip) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    return trip;
-  }
 
-  private requireEdit(trip: ReturnType<TodoService['verifyTripAccess']>, user: User): void {
-    if (!this.todo.canEdit(trip!, user)) {
-      throw new HttpException({ error: 'No permission' }, 403);
-    }
-  }
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.requireTrip(tripId, user);
     return { items: this.todo.listItems(tripId) };
   }
 
+  @RequirePermission('packing_edit')
   @Post()
   create(
     @CurrentUser() user: User,
@@ -59,26 +51,24 @@ export class TodoController {
     @Body() body: TodoCreateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const { name, category, due_date, description, assigned_user_id, priority } = body;
     const item = this.todo.createItem(tripId, { name, category, due_date, description, assigned_user_id, priority });
     this.todo.broadcast(tripId, 'todo:created', { item }, socketId);
     return { item };
   }
 
+  @RequirePermission('packing_edit')
   @Put('reorder')
   reorder(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Body() body: TodoReorderDto,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     this.todo.reorderItems(tripId, body.orderedIds);
     return { success: true };
   }
 
+  @RequirePermission('packing_edit')
   @Put(':id')
   update(
     @CurrentUser() user: User,
@@ -87,8 +77,6 @@ export class TodoController {
     @Body() body: TodoUpdateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const { name, checked, category, due_date, description, assigned_user_id, priority } = body;
     // bodyKeys carries which keys the request actually provided (the null-clear
     // protocol); the parsed body only ever holds known schema keys.
@@ -106,6 +94,7 @@ export class TodoController {
     return { item: updated };
   }
 
+  @RequirePermission('packing_edit')
   @Delete(':id')
   remove(
     @CurrentUser() user: User,
@@ -113,8 +102,6 @@ export class TodoController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     if (!this.todo.deleteItem(tripId, id)) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
@@ -124,10 +111,10 @@ export class TodoController {
 
   @Get('category-assignees')
   categoryAssignees(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.requireTrip(tripId, user);
     return { assignees: this.todo.getCategoryAssignees(tripId) };
   }
 
+  @RequirePermission('packing_edit')
   @Put('category-assignees/:categoryName')
   updateCategoryAssignees(
     @CurrentUser() user: User,
@@ -136,8 +123,6 @@ export class TodoController {
     @Body() body: TodoCategoryAssigneesDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const category = decodeURIComponent(categoryName);
     const rows = this.todo.updateCategoryAssignees(tripId, category, body.user_ids);
     this.todo.broadcast(tripId, 'todo:assignees', { category, assignees: rows }, socketId);

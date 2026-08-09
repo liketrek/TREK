@@ -53,6 +53,11 @@ export default defineConfig({
       // Raise an entry when you improve a domain. Never lower one to make a build pass —
       // that is the whole point of the mechanism.
       //
+      // Regenerate from a LINUX run if you can: CI runs on Linux, and a few branches are
+      // platform-specific (the drive-letter half of the backup zip-slip guard is only
+      // reachable on win32). Numbers taken on Windows can therefore sit a hair above what
+      // CI measures, which shows up as a threshold failure that reproduces nowhere local.
+      //
       // A file matched by a glob below is EXCLUDED from the catch-all, so the last entry
       // only covers what sits directly under src/nest (app.module.ts and the like).
       thresholds: {

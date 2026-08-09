@@ -786,7 +786,12 @@ describe('BACKUP-061 restoreFromZip extraction', () => {
     expect(fsMock.createWriteStream).not.toHaveBeenCalled();
   });
 
-  it('BACKUP-061b — an absolute entry path is refused the same way', async () => {
+  // The `path.isAbsolute(rel)` half of the guard is only reachable where drive letters
+  // exist: on POSIX, path.join always keeps an entry under extractDir, so a leading
+  // slash is normalised away and only the `..` check above can fire. Asserting it
+  // unconditionally passed locally on Windows and failed on the Linux CI runner, which
+  // is the wrong way round for a security test to be discovered.
+  it.runIf(process.platform === 'win32')('BACKUP-061b — a drive-letter entry path is refused the same way', async () => {
     unzipperMock.Open.file.mockResolvedValueOnce({ files: [zipEntry('C:/Windows/system32/evil.dll')] });
 
     const result = await restoreFromZip('/data/tmp/abs.zip');
