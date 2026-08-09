@@ -47,7 +47,6 @@ const admin = new AdminService(
   new SettingsService(dbs),
   new AddonsService(dbs),
   new PasskeyService(dbs, auth, webauthn),
-  new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
   new NotificationsService(dbs, realtime, mailer, new WebhookService(dbs), new NtfyService(dbs), notifPrefs),

@@ -68,7 +68,6 @@ const svc = new AdminService(
   new SettingsService(dbs),
   new AddonsService(dbs),
   new PasskeyService(dbs, auth, webauthn),
-  new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
   makeNotificationsService(dbs, realtime),

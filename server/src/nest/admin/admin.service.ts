@@ -27,7 +27,6 @@ import { AddonsService } from '../addons/addons.service';
 import { SettingsService } from '../settings/settings.service';
 import { PasskeyService } from '../auth/passkey.service';
 import { AuthService } from '../auth/auth.service';
-import { PackingService } from '../packing/packing.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PERMISSION_ACTIONS } from '../permissions/permissions.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -73,7 +72,6 @@ export class AdminService {
     private readonly settings: SettingsService,
     private readonly addons: AddonsService,
     private readonly passkeys: PasskeyService,
-    private readonly packing: PackingService,
     private readonly auth: AuthService,
     private readonly permissions: PermissionsService,
     private readonly notifications: NotificationsService,
@@ -570,64 +568,6 @@ export class AdminService {
     this.db.run('DELETE FROM invite_tokens WHERE id = ?', id);
     return {};
   }
-
-  // ── Feature toggles ────────────────────────────────────────────────────────
-  // Bag-tracking and the collab features are owned by AddonsService (finding
-  // `admin-1`). The three places flags read `=== 'true'` — fail-closed, matching
-  // AddonsService.getBagTracking(). They read `!== 'false'` (fail-open) before
-  // the 2026-08 quirk fix; a migration backfills 'true' for installs that never
-  // touched the switches, so nobody loses a feature on upgrade.
-
-  getBagTracking() { return this.addons.getBagTracking(); }
-  updateBagTracking(enabled: unknown) { return this.addons.updateBagTracking(enabled as boolean); }
-  getCollabFeatures() { return this.addons.getCollabFeatures(); }
-  updateCollabFeatures(body: unknown) { return this.addons.updateCollabFeatures(body as Parameters<AddonsService['updateCollabFeatures']>[0]); }
-
-  getPlacesPhotos() {
-    const row = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_photos_enabled'");
-    return { enabled: row?.value === 'true' };
-  }
-
-  updatePlacesPhotos(enabled: boolean) {
-    this.db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_photos_enabled', ?)", enabled ? 'true' : 'false');
-    return { enabled: !!enabled };
-  }
-
-  getPlacesAutocomplete() {
-    const row = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_autocomplete_enabled'");
-    return { enabled: row?.value === 'true' };
-  }
-
-  updatePlacesAutocomplete(enabled: boolean) {
-    this.db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_autocomplete_enabled', ?)", enabled ? 'true' : 'false');
-    return { enabled: !!enabled };
-  }
-
-  getPlacesDetails() {
-    const row = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_details_enabled'");
-    return { enabled: row?.value === 'true' };
-  }
-
-  updatePlacesDetails(enabled: boolean) {
-    this.db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_details_enabled', ?)", enabled ? 'true' : 'false');
-    return { enabled: !!enabled };
-  }
-
-  // ── Packing templates ──────────────────────────────────────────────────────
-  // The SQL lives in PackingService, which owns all three template tables (see
-  // its "Admin Template CRUD" block).
-
-  listPackingTemplates() { return this.packing.listPackingTemplates(); }
-  getPackingTemplate(id: string) { return this.packing.getPackingTemplate(id); }
-  createPackingTemplate(name: unknown, userId: number) { return this.packing.createPackingTemplate(name as string, userId); }
-  updatePackingTemplate(id: string, body: unknown) { return this.packing.updatePackingTemplate(id, body as Parameters<PackingService['updatePackingTemplate']>[1]); }
-  deletePackingTemplate(id: string) { return this.packing.deletePackingTemplate(id); }
-  createTemplateCategory(templateId: string, name: unknown) { return this.packing.createTemplateCategory(templateId, name as string); }
-  updateTemplateCategory(templateId: string, catId: string, body: unknown) { return this.packing.updateTemplateCategory(templateId, catId, body as Parameters<PackingService['updateTemplateCategory']>[2]); }
-  deleteTemplateCategory(templateId: string, catId: string) { return this.packing.deleteTemplateCategory(templateId, catId); }
-  createTemplateItem(templateId: string, catId: string, name: unknown) { return this.packing.createTemplateItem(templateId, catId, name as string); }
-  updateTemplateItem(templateId: string, itemId: string, body: unknown) { return this.packing.updateTemplateItem(templateId, itemId, body as Parameters<PackingService['updateTemplateItem']>[2]); }
-  deleteTemplateItem(templateId: string, itemId: string) { return this.packing.deleteTemplateItem(templateId, itemId); }
 
   // ── Addons ─────────────────────────────────────────────────────────────────
 

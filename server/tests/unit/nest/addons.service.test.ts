@@ -296,3 +296,50 @@ describe('AddonsService addon/feature flags', () => {
     expect(dbMock._stmt.run).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * The three places flags moved here from AdminService, where they were raw
+ * app_settings SQL sitting next to flags that already delegated to this service.
+ * They are fail-CLOSED (`=== 'true'`), matching getBagTracking: unset used to read as
+ * ON (`!== 'false'`), and a migration backfills 'true' for existing installs so
+ * nobody loses a feature on upgrade.
+ */
+describe('AddonsService places flags', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const cases = [
+    ['getPlacesPhotos', 'updatePlacesPhotos', 'places_photos_enabled'],
+    ['getPlacesAutocomplete', 'updatePlacesAutocomplete', 'places_autocomplete_enabled'],
+    ['getPlacesDetails', 'updatePlacesDetails', 'places_details_enabled'],
+  ] as const;
+
+  it('ADDONS-SVC-080 an unset flag reads as OFF, and anything but the literal true does too', () => {
+    for (const [getter, , key] of cases) {
+      dbMock._stmt.get.mockReturnValueOnce(undefined);
+      expect(svc()[getter]()).toEqual({ enabled: false });
+      expect(dbMock.prepare).toHaveBeenLastCalledWith('SELECT value FROM app_settings WHERE key = ?');
+      expect(dbMock._stmt.get).toHaveBeenLastCalledWith(key);
+
+      dbMock._stmt.get.mockReturnValueOnce({ value: 'garbage' });
+      expect(svc()[getter]()).toEqual({ enabled: false });
+    }
+  });
+
+  it('ADDONS-SVC-081 a stored "true" reads as ON', () => {
+    for (const [getter] of cases) {
+      dbMock._stmt.get.mockReturnValueOnce({ value: 'true' });
+      expect(svc()[getter]()).toEqual({ enabled: true });
+    }
+  });
+
+  it('ADDONS-SVC-082 the setters persist the literal string and echo the boolean back', () => {
+    for (const [, setter, key] of cases) {
+      expect(svc()[setter](true)).toEqual({ enabled: true });
+      expect(dbMock._stmt.run).toHaveBeenLastCalledWith(key, 'true');
+      expect(svc()[setter](false)).toEqual({ enabled: false });
+      expect(dbMock._stmt.run).toHaveBeenLastCalledWith(key, 'false');
+    }
+  });
+});

@@ -17,6 +17,7 @@ import {
   AdminTestNotificationDto,
 } from './admin.dto';
 import { PluginRuntimeService } from '../plugins/plugin-runtime.service';
+import { AddonsService } from '../addons/addons.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -56,6 +57,7 @@ function ok<T>(result: T): Exclude<T, { error: string }> {
 export class AdminController {
   constructor(
     private readonly admin: AdminService,
+    private readonly addons: AddonsService,
     private readonly pluginRuntime: PluginRuntimeService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
@@ -181,114 +183,66 @@ export class AdminController {
   }
 
   // ── Feature toggles ──
+  // ── Feature toggles ──
+  // Straight to AddonsService, which owns every one of these flags. They used to go
+  // through eleven-plus pass-through methods on AdminService, and the three places
+  // flags were raw app_settings SQL there even though the other flags lived in the
+  // addons domain. The routes stay HERE rather than moving next to the service: an
+  // admin-gated controller in AddonsModule would make that module import AuthModule,
+  // and PluginGuardsModule imports AddonsModule precisely because it is a leaf — the
+  // edge would close a cycle.
+
   @Get('bag-tracking')
-  getBagTracking() { return this.admin.getBagTracking(); }
+  getBagTracking() { return this.addons.getBagTracking(); }
 
   @Put('bag-tracking')
   updateBagTracking(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
-    const result = this.admin.updateBagTracking(body.enabled);
+    const result = this.addons.updateBagTracking(body.enabled);
     this.audit.writeAudit({ userId: user.id, action: 'admin.bag_tracking', ip: getClientIp(req), details: { enabled: result.enabled } });
     return result;
   }
 
   @Get('places-photos')
-  getPlacesPhotos() { return this.admin.getPlacesPhotos(); }
+  getPlacesPhotos() { return this.addons.getPlacesPhotos(); }
 
   @Put('places-photos')
   updatePlacesPhotos(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
-    const result = this.admin.updatePlacesPhotos(body.enabled);
+    const result = this.addons.updatePlacesPhotos(body.enabled);
     this.audit.writeAudit({ userId: user.id, action: 'admin.places_photos', ip: getClientIp(req), details: { enabled: result.enabled } });
     return result;
   }
 
   @Get('places-autocomplete')
-  getPlacesAutocomplete() { return this.admin.getPlacesAutocomplete(); }
+  getPlacesAutocomplete() { return this.addons.getPlacesAutocomplete(); }
 
   @Put('places-autocomplete')
   updatePlacesAutocomplete(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
-    const result = this.admin.updatePlacesAutocomplete(body.enabled);
+    const result = this.addons.updatePlacesAutocomplete(body.enabled);
     this.audit.writeAudit({ userId: user.id, action: 'admin.places_autocomplete', ip: getClientIp(req), details: { enabled: result.enabled } });
     return result;
   }
 
   @Get('places-details')
-  getPlacesDetails() { return this.admin.getPlacesDetails(); }
+  getPlacesDetails() { return this.addons.getPlacesDetails(); }
 
   @Put('places-details')
   updatePlacesDetails(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
-    const result = this.admin.updatePlacesDetails(body.enabled);
+    const result = this.addons.updatePlacesDetails(body.enabled);
     this.audit.writeAudit({ userId: user.id, action: 'admin.places_details', ip: getClientIp(req), details: { enabled: result.enabled } });
     return result;
   }
 
   @Get('collab-features')
-  getCollabFeatures() { return this.admin.getCollabFeatures(); }
+  getCollabFeatures() { return this.addons.getCollabFeatures(); }
 
   @Put('collab-features')
   updateCollabFeatures(@CurrentUser() user: User, @Body() body: AdminCollabFeaturesDto, @Req() req: Request) {
-    const { features, changed } = this.admin.updateCollabFeatures(body);
+    const { features, changed } = this.addons.updateCollabFeatures(body);
     // Collab flags gate MCP registration, but a no-op save must not tear down
     // every live MCP session (#1414).
     if (changed) this.admin.invalidateMcpSessions();
     this.audit.writeAudit({ userId: user.id, action: 'admin.collab_features', ip: getClientIp(req), details: features });
     return features;
-  }
-
-  // ── Packing templates ──
-  @Get('packing-templates')
-  listPackingTemplates() { return { templates: this.admin.listPackingTemplates() }; }
-
-  @Get('packing-templates/:id')
-  getPackingTemplate(@Param('id') id: string) { return ok(this.admin.getPackingTemplate(id)); }
-
-  @Post('packing-templates')
-  @HttpCode(201)
-  createPackingTemplate(@CurrentUser() user: User, @Body() body: AdminTemplateNameDto, @Req() req: Request) {
-    const result = ok(this.admin.createPackingTemplate(body.name, user.id));
-    this.audit.writeAudit({ userId: user.id, action: 'admin.packing_template_create', resource: String((result.template as { id?: number } | undefined)?.id ?? ''), ip: getClientIp(req), details: { name: body.name } });
-    return result;
-  }
-
-  @Put('packing-templates/:id')
-  updatePackingTemplate(@Param('id') id: string, @Body() body: AdminTemplateNameDto) { return ok(this.admin.updatePackingTemplate(id, body)); }
-
-  @Delete('packing-templates/:id')
-  deletePackingTemplate(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    const result = ok(this.admin.deletePackingTemplate(id));
-    this.audit.writeAudit({ userId: user.id, action: 'admin.packing_template_delete', resource: String(id), ip: getClientIp(req), details: { name: result.name } });
-    return { success: true };
-  }
-
-  @Post('packing-templates/:id/categories')
-  @HttpCode(201)
-  createTemplateCategory(@Param('id') id: string, @Body() body: AdminTemplateNameDto) {
-    return ok(this.admin.createTemplateCategory(id, body.name));
-  }
-
-  @Put('packing-templates/:templateId/categories/:catId')
-  updateTemplateCategory(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: AdminTemplateNameDto) {
-    return ok(this.admin.updateTemplateCategory(templateId, catId, body));
-  }
-
-  @Delete('packing-templates/:templateId/categories/:catId')
-  deleteTemplateCategory(@Param('templateId') templateId: string, @Param('catId') catId: string) {
-    ok(this.admin.deleteTemplateCategory(templateId, catId));
-    return { success: true };
-  }
-
-  @Post('packing-templates/:templateId/categories/:catId/items')
-  @HttpCode(201)
-  createTemplateItem(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: AdminTemplateNameDto) {
-    return ok(this.admin.createTemplateItem(templateId, catId, body.name));
-  }
-
-  @Put('packing-templates/:templateId/items/:itemId')
-  updateTemplateItem(@Param('templateId') templateId: string, @Param('itemId') itemId: string, @Body() body: AdminTemplateNameDto) { return ok(this.admin.updateTemplateItem(templateId, itemId, body)); }
-
-  @Delete('packing-templates/:templateId/items/:itemId')
-  deleteTemplateItem(@Param('templateId') templateId: string, @Param('itemId') itemId: string) {
-    ok(this.admin.deleteTemplateItem(templateId, itemId));
-    return { success: true };
   }
 
   // ── Addons ──

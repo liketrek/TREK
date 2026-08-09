@@ -149,4 +149,29 @@ export class AddonsService {
       ],
     };
   }
+
+  // ── Places provider flags ──────────────────────────────────────────────────
+  // These three sat as raw app_settings SQL on AdminService, next to the
+  // bag-tracking and collab flags it already delegated here. They read
+  // `=== 'true'` — fail-closed, matching getBagTracking(). They read
+  // `!== 'false'` (fail-open) before the 2026-08 quirk fix; a migration
+  // backfills 'true' for installs that never touched the switches, so nobody
+  // loses a feature on upgrade.
+
+  private readFlag(key: string) {
+    const row = this.db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
+    return { enabled: row?.value === 'true' };
+  }
+
+  private writeFlag(key: string, enabled: boolean) {
+    this.db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, enabled ? 'true' : 'false');
+    return { enabled: !!enabled };
+  }
+
+  getPlacesPhotos() { return this.readFlag('places_photos_enabled'); }
+  updatePlacesPhotos(enabled: boolean) { return this.writeFlag('places_photos_enabled', enabled); }
+  getPlacesAutocomplete() { return this.readFlag('places_autocomplete_enabled'); }
+  updatePlacesAutocomplete(enabled: boolean) { return this.writeFlag('places_autocomplete_enabled', enabled); }
+  getPlacesDetails() { return this.readFlag('places_details_enabled'); }
+  updatePlacesDetails(enabled: boolean) { return this.writeFlag('places_details_enabled', enabled); }
 }

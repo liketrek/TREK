@@ -85,7 +85,6 @@ const svc = new AdminService(
   new SettingsService(dbs),
   new AddonsService(dbs),
   new PasskeyService(dbs, auth, webauthn),
-  new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
   makeNotificationsService(dbs, realtime),
@@ -592,19 +591,6 @@ describe('admin.bridge', () => {
 // ── Quirk fixes landed after the 2026-08 fold ─────────────────────────────────
 
 describe('admin quirk fixes (post-fold)', () => {
-  it('ADMIN-SVC-071 — the three places toggles are fail-closed (=== true), matching bag-tracking', () => {
-    // Unset used to read as ON (`!== 'false'`); a migration backfills 'true' for
-    // existing installs so nobody loses a feature on upgrade.
-    expect(svc.getPlacesPhotos()).toEqual({ enabled: false });
-    expect(svc.getPlacesAutocomplete()).toEqual({ enabled: false });
-    expect(svc.getPlacesDetails()).toEqual({ enabled: false });
-
-    svc.updatePlacesPhotos(true);
-    expect(svc.getPlacesPhotos()).toEqual({ enabled: true });
-
-    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_details_enabled', 'garbage')").run();
-    expect(svc.getPlacesDetails()).toEqual({ enabled: false });
-  });
 
   it('ADMIN-SVC-072 — updateUser rejects an empty username/email instead of silently no-opping', () => {
     const { user } = createUser(testDb);
