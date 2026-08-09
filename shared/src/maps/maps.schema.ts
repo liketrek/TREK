@@ -3,12 +3,12 @@ import { z } from 'zod';
 /**
  * Maps / geo API contract — single source of truth for the /api/maps endpoints.
  *
- * The legacy Express route (server/src/routes/maps.ts) is a thin layer over
- * services/mapsService.ts, which talks to Nominatim/Overpass (and optionally
- * Google Places when a key is configured) and applies the SSRF guard on every
- * outbound URL. The place objects these return are provider-shaped and vary by
- * source, so the response schemas keep them as open records — the contract pins
- * down the request shapes and the stable envelope fields, not the provider blobs.
+ * server/src/nest/maps/maps.service.ts talks to Nominatim/Overpass (and
+ * optionally Google Places when a key is configured) and applies the SSRF guard
+ * on every outbound URL. The place objects these return are provider-shaped and
+ * vary by source, so the response schemas keep them as open records — the
+ * contract pins down the request shapes and the stable envelope fields, not the
+ * provider blobs.
  *
  * Since the maps body-contract ratchet, the request schemas below are enforced
  * on the server via createZodDto wrappers (maps.dto.ts) and the global
@@ -94,3 +94,62 @@ export const mapsResolveUrlResultSchema = z.object({
   google_ftid: z.string().nullable().optional(),
 });
 export type MapsResolveUrlResult = z.infer<typeof mapsResolveUrlResultSchema>;
+
+/**
+ * Place enrichment — the photo candidates and description shown next to the
+ * search field while adding a place.
+ *
+ * Unlike the endpoints above this one is not provider-shaped: the whole point
+ * is that a Commons image and a Google photo arrive in the same shape, so the
+ * column renders one strip regardless of which sources the instance has.
+ * Everything nullable is genuinely optional per source — Commons gives us a
+ * licence and an author, Google gives us neither in a form we may reproduce.
+ */
+export const placePhotoSourceSchema = z.enum(['google', 'wikimedia', 'wikipedia', 'cached']);
+export type PlacePhotoSource = z.infer<typeof placePhotoSourceSchema>;
+
+export const placePhotoCandidateSchema = z.object({
+  /** Cache key, also the React key. Candidates use `<placeId>~p<n>`. */
+  key: z.string(),
+  /** Proxy URL (/api/maps/place-photo/<key>/bytes) — never a provider URL. */
+  url: z.string(),
+  /** Author/creator as the provider names them, not the provider itself. */
+  attribution: z.string().nullable(),
+  /** Short licence name, e.g. "CC BY-SA 4.0". */
+  license: z.string().nullable(),
+  licenseUrl: z.string().nullable(),
+  /** The file description page, where the full terms live. */
+  sourceUrl: z.string().nullable(),
+  source: placePhotoSourceSchema,
+});
+export type PlacePhotoCandidate = z.infer<typeof placePhotoCandidateSchema>;
+
+export const placeDescriptionSourceSchema = z.enum(['google', 'osm', 'wikipedia']);
+export type PlaceDescriptionSource = z.infer<typeof placeDescriptionSourceSchema>;
+
+export const placeDescriptionSchema = z.object({
+  text: z.string(),
+  source: placeDescriptionSourceSchema,
+  sourceUrl: z.string().nullable(),
+  license: z.string().nullable(),
+});
+export type PlaceDescription = z.infer<typeof placeDescriptionSchema>;
+
+export const mapsPlaceEnrichmentRequestSchema = z.object({
+  /** Google place id or `osm:<type>/<id>`; empty for a coordinate-only lookup. */
+  placeId: z.string().max(300).optional(),
+  lat: z.number(),
+  lng: z.number(),
+  /** Used to resolve a Wikipedia article when the place carries no wiki tag. */
+  name: z.string().min(1).max(300),
+  lang: z.string().max(35).optional(),
+});
+export type MapsPlaceEnrichmentRequest = z.infer<typeof mapsPlaceEnrichmentRequestSchema>;
+
+export const mapsPlaceEnrichmentResultSchema = z.object({
+  photos: z.array(placePhotoCandidateSchema),
+  description: placeDescriptionSchema.nullable(),
+  /** True when the admin switched enrichment off; the column then stays quiet. */
+  disabled: z.boolean().optional(),
+});
+export type MapsPlaceEnrichmentResult = z.infer<typeof mapsPlaceEnrichmentResultSchema>;
