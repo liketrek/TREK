@@ -34,6 +34,7 @@ import { TripCardBadges, useTripCardBadges } from '../components/Plugins/TripCar
 import TripFormModal from '../components/Trips/TripFormModal';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import CopyTripDialog from '../components/shared/CopyTripDialog';
+import CurrencySelect from '../components/shared/CurrencySelect';
 import CustomSelect from '../components/shared/CustomSelect';
 import PlaceAvatar from '../components/shared/PlaceAvatar';
 import { useTranslation } from '../i18n';
@@ -975,7 +976,6 @@ function CurrencyTool(): React.ReactElement {
   }, [isLoaded, updateSetting]);
 
   const currencies = rates ? Object.keys(rates).sort() : CURRENCIES;
-  const ccyOptions = currencies.map((c) => ({ value: c, label: c }));
   const rate = rates?.[to] ?? null;
   const converted = rate != null ? (parseFloat(amount.replace(',', '.')) || 0) * rate : null;
 
@@ -998,11 +998,10 @@ function CurrencyTool(): React.ReactElement {
         <div className="fx-field">
           <div className="lbl">{t('dashboard.fx.from')}</div>
           <input className="amt mono" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
-          <CustomSelect
+          <CurrencySelect
             value={from}
-            onChange={(v) => setFrom(String(v))}
-            options={ccyOptions}
-            searchable
+            onChange={setFrom}
+            availableCurrencies={currencies}
             size="sm"
             style={{ marginTop: 6 }}
           />
@@ -1013,11 +1012,10 @@ function CurrencyTool(): React.ReactElement {
         <div className="fx-field">
           <div className="lbl">{t('dashboard.fx.to')}</div>
           <input className="amt mono" value={converted != null ? converted.toFixed(2) : '—'} readOnly />
-          <CustomSelect
+          <CurrencySelect
             value={to}
-            onChange={(v) => setTo(String(v))}
-            options={ccyOptions}
-            searchable
+            onChange={setTo}
+            availableCurrencies={currencies}
             size="sm"
             style={{ marginTop: 6 }}
           />

@@ -7,6 +7,7 @@ import {
   mapsResolveUrlResultSchema,
   mapsReverseResultSchema,
   mapsSearchResultSchema,
+  settingResetResponseSchema,
   unreadCountResultSchema,
   weatherResultSchema,
   type AccommodationCreateRequest,
@@ -74,6 +75,8 @@ import {
   type ReservationCreateRequest,
   type ReservationUpdateRequest,
   type ResetPasswordRequest,
+  type SettingResetKey,
+  type SettingResetResponse,
   type SettingUpsertRequest,
   type SettingsBulkRequest,
   type TodoCategoryAssigneesRequest,
@@ -1375,6 +1378,8 @@ export const settingsApi = {
     const body: SettingsBulkRequest = { settings };
     return apiClient.post('/settings/bulk', body).then((r) => r.data);
   },
+  reset: (key: SettingResetKey): Promise<SettingResetResponse> =>
+    apiClient.delete(`/settings/${key}`).then((r) => parseInDev(settingResetResponseSchema, r.data, 'settings.reset')),
 };
 
 export const accommodationsApi = {

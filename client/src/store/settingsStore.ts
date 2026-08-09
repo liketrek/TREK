@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { settingsApi } from '../api/client'
 import type { Settings } from '../types'
-import { DEFAULT_APPEARANCE } from '@trek/shared'
+import { DEFAULT_APPEARANCE, type CommonCurrencyList, type SettingResetKey } from '@trek/shared'
 import { getApiErrorMessage } from '../types'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
 
@@ -11,6 +11,7 @@ interface SettingsState {
 
   loadSettings: () => Promise<void>
   updateSetting: (key: keyof Settings, value: Settings[keyof Settings]) => Promise<void>
+  resetSetting: (key: SettingResetKey) => Promise<CommonCurrencyList>
   setLanguageLocal: (lang: string) => void
   setLanguageTransient: (lang: string) => void
   updateSettings: (settingsObj: Partial<Settings>) => Promise<void>
@@ -32,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dark_mode: false,
   // Empty = no personal display currency, so Costs falls back to the trip's own.
   default_currency: '',
+  common_currencies: [],
   language: localStorage.getItem('app_language') || 'en',
   temperature_unit: 'celsius',
   distance_unit: 'metric',
@@ -70,6 +72,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   updateSetting: async (key: keyof Settings, value: Settings[keyof Settings]) => {
+    const previous = get().settings[key]
+    const previousLanguage = key === 'language' ? localStorage.getItem('app_language') : null
     set((state) => ({
       settings: { ...state.settings, [key]: value },
     }))
@@ -77,8 +81,31 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     try {
       await settingsApi.set(key, value)
     } catch (err: unknown) {
+      const shouldRollback = Object.is(get().settings[key], value)
+      if (shouldRollback) {
+        set((state) => ({ settings: { ...state.settings, [key]: previous } }))
+        if (key === 'language') {
+          if (previousLanguage === null) localStorage.removeItem('app_language')
+          else localStorage.setItem('app_language', previousLanguage)
+        }
+      }
       console.error('Failed to save setting:', err)
       throw new Error(getApiErrorMessage(err, 'Error saving setting'))
+    }
+  },
+
+  resetSetting: async (key) => {
+    const startingValue = get().settings[key]
+    try {
+      const result = await settingsApi.reset(key)
+      const value = result.value
+      if (Object.is(get().settings[key], startingValue)) {
+        set((state) => ({ settings: { ...state.settings, [key]: value } }))
+        return value
+      }
+      return get().settings[key]
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, 'Error resetting setting'))
     }
   },
 

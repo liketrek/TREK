@@ -27,6 +27,14 @@ Your **display currency** — the currency you want to *read* amounts in on the 
 
 An administrator can set the instance-wide default for new users in Admin → Default User Settings. Choosing **Trip currency** yourself overrides it.
 
+## Common currencies
+
+The **common currency list** is an ordered set of up to 10 shortcuts. When it is not empty, every currency menu is split into **Common currencies** and **Other currencies**. Common currencies keep the order you choose; the remaining currencies are sorted by ISO code. Currency names follow your selected language and are searchable along with their ISO codes.
+
+Use the search menu to add a currency, then move entries up or down, remove individual entries, or clear the list. Each change saves immediately. Clearing saves an explicit empty list and returns currency menus to their ungrouped layout. **Reset** removes your personal override and resumes using the administrator's current instance default; if no administrator default exists, the list is empty.
+
+This list only changes menu organization. It is separate from the **display currency** above and never changes a trip, expense, or payment currency. **Trip currency** remains a special display-currency option above the groups and cannot be added to the common list.
+
 ## Language
 
 Select your preferred language from the button grid (desktop) or dropdown (mobile). The change takes effect immediately without a page reload. See [Languages](Languages) for the full list of supported languages.

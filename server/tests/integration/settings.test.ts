@@ -66,7 +66,7 @@ afterAll(async () => {
 });
 
 describe('Settings', () => {
-  it('SET-001: GET /api/settings returns empty object for new user', async () => {
+  it('SET-001: GET /api/settings returns built-in common currencies for new user', async () => {
     const { user } = createUser(testDb);
     const res = await request(app)
       .get('/api/settings')
@@ -74,8 +74,7 @@ describe('Settings', () => {
     expect(res.status).toBe(200);
     expect(res.body.settings).toBeDefined();
     expect(typeof res.body.settings).toBe('object');
-    // New user has no custom settings
-    expect(Object.keys(res.body.settings)).toHaveLength(0);
+    expect(res.body.settings).toEqual({ common_currencies: [] });
   });
 
   it('SET-002: PUT /api/settings sets a key/value pair', async () => {
@@ -193,5 +192,32 @@ describe('Settings', () => {
       .set('Cookie', authCookie(userB.id));
     expect(res.status).toBe(200);
     expect(res.body.settings.secret_setting).toBeUndefined();
+  });
+
+  it('validates and normalizes common currencies for single and bulk writes', async () => {
+    const { user } = createUser(testDb);
+    const single = await request(app).put('/api/settings').set('Cookie', authCookie(user.id))
+      .send({ key: 'common_currencies', value: [' usd ', 'eur'] });
+    expect(single.status).toBe(200);
+    expect(single.body.value).toEqual(['USD', 'EUR']);
+    for (const value of [['ZZZ'], ['usd', 'USD'], Array(11).fill('USD'), 'USD']) {
+      const invalid = await request(app).post('/api/settings/bulk').set('Cookie', authCookie(user.id))
+        .send({ settings: { common_currencies: value } });
+      expect(invalid.status).toBe(400);
+    }
+  });
+
+  it('inherits the admin common list, supports explicit empty, and restores inheritance when deleted', async () => {
+    const { user } = createUser(testDb);
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('default_user_setting_common_currencies', ?)").run('["USD","JPY"]');
+    let res = await request(app).get('/api/settings').set('Cookie', authCookie(user.id));
+    expect(res.body.settings.common_currencies).toEqual(['USD', 'JPY']);
+    await request(app).put('/api/settings').set('Cookie', authCookie(user.id))
+      .send({ key: 'common_currencies', value: [] });
+    res = await request(app).get('/api/settings').set('Cookie', authCookie(user.id));
+    expect(res.body.settings.common_currencies).toEqual([]);
+    const reset = await request(app).delete('/api/settings/common_currencies').set('Cookie', authCookie(user.id));
+    expect(reset.status).toBe(200);
+    expect(reset.body).toEqual({ success: true, key: 'common_currencies', value: ['USD', 'JPY'] });
   });
 });
