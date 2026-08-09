@@ -5,6 +5,7 @@
 import { runMigrations } from '../../../src/db/migrations';
 import { createTables } from '../../../src/db/schema';
 import {
+  BudgetTicketValidationError,
   createBudgetItem,
   updateBudgetItem,
   updateMembers,
@@ -169,6 +170,105 @@ describe('deleting a member re-splits their expenses (#1553)', () => {
 
     expect(result!.members.map((m) => m.user_id)).toEqual([owner.id]);
     expect(personsOf(item.id)).toBe(1);
+  });
+});
+
+describe('ticket identity invariants', () => {
+  function ticketNote(parts: number[]): string {
+    return `TICKETJSON:${JSON.stringify({ items: [{ name: 'Museum', price: '12.50', parts }] })}`;
+  }
+
+  it('rejects malformed ticket JSON before creating any expense', () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+
+    expect(() =>
+      createBudgetItem(trip.id, { name: 'Broken', note: 'TICKETJSON:{broken', member_ids: [owner.id] }),
+    ).toThrow(
+      expect.objectContaining({
+        code: 'INVALID_TICKET_DATA',
+        reason: 'MALFORMED_TICKET_JSON',
+      }),
+    );
+    expect(
+      (testDb.prepare('SELECT COUNT(*) AS count FROM budget_items WHERE trip_id = ?').get(trip.id) as { count: number })
+        .count,
+    ).toBe(0);
+    expect(
+      (
+        testDb.prepare('SELECT COUNT(*) AS count FROM budget_category_order WHERE trip_id = ?').get(trip.id) as {
+          count: number;
+        }
+      ).count,
+    ).toBe(0);
+  });
+
+  it('rejects ticket participants outside the trip or the expense split', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: outsider } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const guest = createGuest(trip.id, 'Guest', owner.id).member;
+
+    for (const data of [
+      { note: ticketNote(guest.id === outsider.id ? [owner.id] : [outsider.id]), member_ids: [outsider.id] },
+      { note: ticketNote([guest.id]), member_ids: [owner.id] },
+    ]) {
+      expect(() => createBudgetItem(trip.id, { name: 'Invalid', ...data })).toThrow(
+        expect.objectContaining({
+          code: 'INVALID_TICKET_DATA',
+          reason: 'TICKET_PARTICIPANT_NOT_MEMBER',
+        }),
+      );
+    }
+  });
+
+  it('validates inline note/member updates atomically while allowing unrelated legacy repairs', () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const guest = createGuest(trip.id, 'Guest', owner.id).member;
+    const item = createBudgetItem(trip.id, {
+      name: 'Ticket',
+      note: ticketNote([owner.id, guest.id]),
+      member_ids: [owner.id, guest.id],
+    });
+
+    expect(() => updateBudgetItem(item.id, trip.id, { member_ids: [owner.id] })).toThrow(BudgetTicketValidationError);
+    expect(
+      (
+        testDb.prepare('SELECT COUNT(*) AS count FROM budget_item_members WHERE budget_item_id = ?').get(item.id) as {
+          count: number;
+        }
+      ).count,
+    ).toBe(2);
+
+    testDb.prepare("UPDATE budget_items SET note = 'TICKETJSON:{broken' WHERE id = ?").run(item.id);
+    expect(updateBudgetItem(item.id, trip.id, { name: 'Recovered name', category: 'food' })).toMatchObject({
+      name: 'Recovered name',
+      category: 'food',
+    });
+    expect(() => updateBudgetItem(item.id, trip.id, { member_ids: [owner.id] })).toThrow(
+      expect.objectContaining({ reason: 'MALFORMED_TICKET_JSON' }),
+    );
+  });
+
+  it('validates the dedicated members update and leaves ordinary notes unaffected', () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const guest = createGuest(trip.id, 'Guest', owner.id).member;
+    const ticket = createBudgetItem(trip.id, {
+      name: 'Ticket',
+      note: ticketNote([owner.id, guest.id]),
+      member_ids: [owner.id, guest.id],
+    });
+
+    expect(() => updateMembers(ticket.id, trip.id, [owner.id])).toThrow(
+      expect.objectContaining({ reason: 'TICKET_PARTICIPANT_NOT_MEMBER' }),
+    );
+    expect(updateMembers(ticket.id, trip.id, [owner.id, guest.id])!.members).toHaveLength(2);
+
+    expect(
+      createBudgetItem(trip.id, { name: 'Room 7', note: 'Room 7 costs 17.70', member_ids: [owner.id] }),
+    ).toMatchObject({ name: 'Room 7', note: 'Room 7 costs 17.70' });
   });
 });
 
