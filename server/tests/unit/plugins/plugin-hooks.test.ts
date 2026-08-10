@@ -51,7 +51,10 @@ describe('PluginHooks contracts', () => {
   const registry = createTestPluginRegistry([new PluginHooks({} as never)]);
 
   it('PLUGHOOK-001 every hook the consent screen offers has a host-side consumer', () => {
-    const covered = new Set([...registry.hookContracts().values()].map((c) => c.hook));
+    // A plain string set on purpose: the keys probed against it come from
+    // HOOK_PERMISSION, and whether each one is a hook the host consumes is the
+    // very thing under test, not something to assert into the element type.
+    const covered = new Set<string>([...registry.hookContracts().values()].map((c) => c.hook));
     expect([...Object.keys(HOOK_PERMISSION)].filter((h) => !covered.has(h))).toEqual([]);
   });
 

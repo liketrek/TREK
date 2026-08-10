@@ -43,9 +43,13 @@ vi.mock('../../../src/config', () => ({
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-// Stub checkSsrf so linkPreview tests can control SSRF behaviour
+// Stub checkSsrf so linkPreview tests can control SSRF behaviour. Typed from the real
+// checkSsrf rather than from the default implementation below, so the stubbed results
+// stay full SsrfResult objects instead of whatever shape the first fixture happened to have.
 const { mockCheckSsrf, mockCreatePinnedDispatcher } = vi.hoisted(() => ({
-  mockCheckSsrf: vi.fn(async () => ({ allowed: true, resolvedIp: '93.184.216.34' })),
+  mockCheckSsrf: vi.fn<typeof import('../../../src/utils/ssrfGuard').checkSsrf>(
+    async () => ({ allowed: true, isPrivate: false, resolvedIp: '93.184.216.34' }),
+  ),
   mockCreatePinnedDispatcher: vi.fn(() => ({})),
 }));
 vi.mock('../../../src/utils/ssrfGuard', () => ({
@@ -73,7 +77,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   resetTestDb(testDb);
-  mockCheckSsrf.mockResolvedValue({ allowed: true, resolvedIp: '93.184.216.34' });
+  mockCheckSsrf.mockResolvedValue({ allowed: true, isPrivate: false, resolvedIp: '93.184.216.34' });
 });
 
 afterAll(() => {
@@ -83,7 +87,7 @@ afterAll(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   mockCheckSsrf.mockReset();
-  mockCheckSsrf.mockResolvedValue({ allowed: true, resolvedIp: '93.184.216.34' });
+  mockCheckSsrf.mockResolvedValue({ allowed: true, isPrivate: false, resolvedIp: '93.184.216.34' });
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -377,7 +381,8 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-028: returns fallback when SSRF check blocks the URL', async () => {
-    mockCheckSsrf.mockResolvedValue({ allowed: false, error: 'SSRF blocked' });
+    // 169.254.x is link-local, which the real guard reports as private and blocked.
+    mockCheckSsrf.mockResolvedValue({ allowed: false, isPrivate: true, error: 'SSRF blocked' });
 
     const result = await svc.linkPreview('https://169.254.169.254/');
     expect(result.title).toBeNull();

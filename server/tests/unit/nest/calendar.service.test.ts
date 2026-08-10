@@ -704,18 +704,18 @@ describe('serialised output', () => {
       end_date: '2026-05-01',
     });
     const day = createDay(testDb, trip.id, { date: '2026-05-01' });
-    const place = createPlace(testDb, trip.id, { name: 'Tokyo Tower', address: 'Minato', lat: 35.6586, lng: 139.7454 });
+    // The factories insert only the columns they model; every other column is set
+    // afterwards with an explicit UPDATE, the way the cases above do it. This case
+    // sets none, so the place has no address and the flight no reservation_time,
+    // and the snapshot was recorded from exactly that data: the assignment carries
+    // no LOCATION, and the flight is dropped from the export for having no
+    // placeable time.
+    const place = createPlace(testDb, trip.id, { name: 'Tokyo Tower', lat: 35.6586, lng: 139.7454 });
     const assignment = createDayAssignment(testDb, day.id, place.id);
     testDb.prepare('UPDATE day_assignments SET assignment_time=?, assignment_end_time=? WHERE id=?')
       .run('09:00', '10:30', assignment.id);
     createDayNote(testDb, day.id, trip.id, { text: 'Bring the tickets', time: '08:00' });
-    createReservation(testDb, trip.id, {
-      title: 'NH 203',
-      type: 'flight',
-      reservation_time: '2026-05-01T06:15',
-      confirmation_number: 'ABC123',
-      location: 'HND',
-    });
+    createReservation(testDb, trip.id, { title: 'NH 203', type: 'flight' });
 
     // DTSTAMP is the wall clock and the UID numbers are autoincrement state shared
     // with every case above, so both are normalised: this pins the document, not

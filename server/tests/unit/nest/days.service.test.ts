@@ -60,6 +60,7 @@ import { getDay as bridgeGetDay, listDays as bridgeListDays } from '../../../src
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
+import type { Day } from '../../../src/types';
 
 const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new QueryHelpersService(new DatabaseService(testDb)));
 const accommodations = new AccommodationsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
@@ -322,14 +323,16 @@ describe('quirk fixes', () => {
   it('DAY-SVC-033 — update preserves the omitted column (title-only keeps notes, notes-only keeps title)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    let day = createDay(testDb, trip.id);
-    day = svc.update(day.id, day, { notes: 'Walking day' }) as never;
-    day = svc.update(day.id, day, { title: 'Arrival' }) as never;
+    // Typed as the domain Day, not as the factory's row shape: the variable is
+    // rebound to what update() returns, and only Day carries `notes`.
+    let day: Day = createDay(testDb, trip.id);
+    day = svc.update(day.id, day, { notes: 'Walking day' });
+    day = svc.update(day.id, day, { title: 'Arrival' });
     expect(day).toMatchObject({ title: 'Arrival', notes: 'Walking day' });
-    day = svc.update(day.id, day, { notes: 'Museum day' }) as never;
+    day = svc.update(day.id, day, { notes: 'Museum day' });
     expect(day).toMatchObject({ title: 'Arrival', notes: 'Museum day' });
     // A present key still clears via the legacy falsy coercion.
-    day = svc.update(day.id, day, { notes: '' }) as never;
+    day = svc.update(day.id, day, { notes: '' });
     expect(day.notes).toBeNull();
     expect(day.title).toBe('Arrival');
   });

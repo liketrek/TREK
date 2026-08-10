@@ -11,9 +11,9 @@ import {
   pluginChannelId,
   isPluginChannelId,
   __resetChannelsForTest,
-  type ChannelMessage,
-  type ExternalChannel,
 } from '../../../src/nest/notifications/channel-registry';
+// The channel contract lives in notification-events; channel-registry only consumes it.
+import type { ChannelMessage, ExternalChannel } from '../../../src/nest/notifications/notification-events';
 import { registerBuiltinChannels } from '../../../src/nest/notifications/channels/builtins';
 import type { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 import type { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';

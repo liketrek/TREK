@@ -17,6 +17,7 @@ const { getDb } = vi.hoisted(() => ({ getDb: { current: null as unknown } }));
 vi.mock('../../../src/db/database', () => ({ get db() { return getDb.current; } }));
 import { db as dbConn } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
 
 import Database from 'better-sqlite3';
 import { PluginsService } from '../../../src/nest/plugins/plugins.service';
@@ -40,7 +41,13 @@ function freshDb() {
 
 describe('per-user plugin settings', () => {
   let svc: PluginsService;
-  beforeEach(() => { getDb.current = freshDb(); svc = new PluginsService(new DatabaseService(dbConn)); });
+  // AddonsService only feeds PluginsService.list(), which no case here calls, but it is a
+  // real collaborator on the same connection rather than a stand-in.
+  beforeEach(() => {
+    getDb.current = freshDb();
+    const dbs = new DatabaseService(dbConn);
+    svc = new PluginsService(dbs, new AddonsService(dbs));
+  });
 
   it('lists only the user-scope fields, in order', () => {
     const fields = svc.userSettingsFields('p');

@@ -72,7 +72,9 @@ import type { LlmConfigResolver } from '../../../src/nest/llm-parse/llm-config.r
 import type { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
 import type { RpcError, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
 
-const checkPermission = vi.fn(() => true as boolean);
+// Typed from the real method rather than from the always-true body below, so a case that
+// swaps in an implementation reading the action key (HOSTRPC-015) still type-checks.
+const checkPermission = vi.fn<PermissionsService['checkPermission']>(() => true);
 const permissions = { checkPermission } as unknown as PermissionsService;
 const addons = { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService;
 const notifications = { send: notifySend } as unknown as NotificationsService;
@@ -310,8 +312,8 @@ describe('MetaRpc — namespaced entity metadata', () => {
   it('HOSTRPC-015 every entity type resolves its own edit action, and a read-only member is refused a write', async () => {
     const host = makeHost('meta', 'db:meta');
     const seen: string[] = [];
-    checkPermission.mockImplementation((action: unknown) => {
-      seen.push(String(action));
+    checkPermission.mockImplementation((action) => {
+      seen.push(action);
       return true;
     });
     for (const [entityType, entityId] of [['trip', 1], ['place', 7], ['day', 3], ['reservation', 40], ['accommodation', 11]] as const) {

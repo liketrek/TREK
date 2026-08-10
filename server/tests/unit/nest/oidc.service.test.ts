@@ -89,9 +89,11 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 import { OidcService } from '../../../src/nest/oidc/oidc.service';
 import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 
@@ -100,14 +102,18 @@ import { MailerService } from '../../../src/nest/notifications/mailer/mailer.ser
 const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerService;
 
 const membership = new TripMembershipService(new DatabaseService(testDb));
+// Positional, and previously shifted by one: an AtlasService sat in the membership
+// slot, which AuthService no longer takes at all, so webauthn/userCleanup/mailer
+// each landed one place too late and the EphemeralTokenService was missing
+// entirely. Nothing failed, because no case below reaches those collaborators.
 const auth = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
-  new AtlasService(new DatabaseService(testDb)),
   membership,
-  undefined as never, // webauthn — not reached from the OIDC paths
-  undefined as never, // userCleanup — not reached from the OIDC paths
+  new WebauthnConfigService(new DatabaseService(testDb)),
+  new UserCleanupService(new DatabaseService(testDb)),
   mailerStub,
+  new EphemeralTokenService(),
 );
 const svc = new OidcService(new DatabaseService(testDb), auth, membership);
 

@@ -4,6 +4,7 @@ import { DaysController } from '../../../src/nest/days/days.controller';
 import { DayNotesController } from '../../../src/nest/day-notes/day-notes.controller';
 import { DayNoteCreateDto, DayNoteUpdateDto } from '../../../src/nest/day-notes/day-notes.dto';
 import { DayReorderError } from '../../../src/nest/days/days.service';
+import type { DayReorderDto } from '../../../src/nest/days/days.dto';
 import type { DaysService } from '../../../src/nest/days/days.service';
 import type { DayNotesService } from '../../../src/nest/day-notes/day-notes.service';
 import type { User } from '../../../src/types';
@@ -25,6 +26,14 @@ function daysSvc(o: Partial<DaysService> = {}): DaysService {
 }
 function notesSvc(o: Partial<DayNotesService> = {}): DayNotesService {
   return { verifyTripAccess: vi.fn().mockReturnValue(trip), canEdit: vi.fn().mockReturnValue(true), broadcast: vi.fn(), ...o } as unknown as DayNotesService;
+}
+
+// reorder() keeps the legacy raw-body guard on orderedIds, which DayReorderDto's type
+// says can never fire: over HTTP the ZodValidationPipe rejects such a body first. These
+// unit tests call the handler directly, so they can still reach the guard, and the
+// payload is cast instead of being made to satisfy the DTO.
+function rawReorderBody(body: Record<string, unknown>): DayReorderDto {
+  return body as unknown as DayReorderDto;
 }
 
 describe('DaysController (parity with the legacy /api/trips/:tripId/days route)', () => {
@@ -59,11 +68,11 @@ describe('DaysController (parity with the legacy /api/trips/:tripId/days route)'
 
 
     it('400 when orderedIds is missing', () => {
-      expect(thrown(() => new DaysController(daysSvc()).reorder(user, '5', {}))).toEqual({ status: 400, body: { error: 'orderedIds must be an array' } });
+      expect(thrown(() => new DaysController(daysSvc()).reorder(user, '5', rawReorderBody({})))).toEqual({ status: 400, body: { error: 'orderedIds must be an array' } });
     });
 
     it('400 when orderedIds is not an array', () => {
-      expect(thrown(() => new DaysController(daysSvc()).reorder(user, '5', { orderedIds: 'nope' as never }))).toEqual({ status: 400, body: { error: 'orderedIds must be an array' } });
+      expect(thrown(() => new DaysController(daysSvc()).reorder(user, '5', rawReorderBody({ orderedIds: 'nope' })))).toEqual({ status: 400, body: { error: 'orderedIds must be an array' } });
     });
 
     it('maps a DayReorderError to 400 with its message', () => {

@@ -118,7 +118,11 @@ describe('PluginsService.list', () => {
 
     it('never leaks the raw pinned key into the list response (only the fingerprint)', () => {
       insert('signed-one', 'acme/signed-one', 'RWTvBn0aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcd');
-      const p = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list().plugins[0] as Record<string, unknown>;
+      // PluginListItem is an interface, so it has no implicit index signature and cannot
+      // be narrowed to a record directly. Widening through unknown is what lets this case
+      // probe for a key the contract deliberately does not declare.
+      const p = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list()
+        .plugins[0] as unknown as Record<string, unknown>;
       expect(p.author_pubkey).toBeUndefined();
     });
   });
