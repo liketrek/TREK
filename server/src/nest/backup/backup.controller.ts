@@ -23,6 +23,7 @@ import { BackupService } from './backup.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AutoBackupSettingsDto } from './backup.dto';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import { getUploadTmpDir, MAX_BACKUP_UPLOAD_SIZE } from './backup.impl';
@@ -142,7 +143,7 @@ export class BackupController {
   }
 
   @Put('auto-settings')
-  updateAutoSettings(@CurrentUser() user: User, @Body() body: Record<string, unknown>, @Req() req: Request) {
+  updateAutoSettings(@CurrentUser() user: User, @Body() body: AutoBackupSettingsDto, @Req() req: Request) {
     try {
       const settings = this.backup.updateAutoSettings(body || {});
       this.audit.writeAudit({ userId: user.id, action: 'backup.auto_settings', ip: getClientIp(req), details: { enabled: settings.enabled, interval: settings.interval, keep_days: settings.keep_days } });
