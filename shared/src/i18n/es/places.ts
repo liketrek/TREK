@@ -99,6 +99,8 @@ const places: TranslationStrings = {
   'places.details.nothing': 'No se encontró nada para este lugar.',
   'places.details.noKeyTitle': 'Hay más detalles disponibles',
   'places.details.noKeyHint': 'Sin una clave de API de Google, esta instancia solo usa fuentes libres. Pide a tu administrador de TREK que añada una para valoraciones, horarios y fotos.',
+  'places.details.aboutBrand': 'Sobre la cadena',
+  'places.details.aboutBrandNote': 'Describe la cadena, no este local.',
   'places.details.fact.rating': 'Valoración',
   'places.details.fact.cuisine': 'Cocina',
   'places.details.fact.openingHours': 'Horario',

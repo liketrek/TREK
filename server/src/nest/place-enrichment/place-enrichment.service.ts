@@ -11,7 +11,14 @@ import type {
 } from '@trek/shared';
 import { safeFetchFollow } from '../../utils/ssrfGuard';
 import { DatabaseService } from '../database/database.service';
-import { MapsService, readWikiIdentity, withPhotoFetchSlot, type CommonsCandidate, type WikiIdentity } from '../maps/maps.service';
+import {
+  MapsService,
+  readBrandIdentity,
+  readWikiIdentity,
+  withPhotoFetchSlot,
+  type CommonsCandidate,
+  type WikiIdentity,
+} from '../maps/maps.service';
 import { buildOsmDetails, isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 
@@ -83,6 +90,12 @@ export function candidateKey(placeId: string, identity: string): string {
 interface PlaceIdentity extends WikiIdentity {
   /** Full OSM tag set, when the identity came from a Nominatim lookup. */
   osmTags: Record<string, string> | null;
+  /**
+   * The chain this place belongs to. Kept apart from the fields above on
+   * purpose — it describes something else, and only the description is allowed
+   * to fall back to it. The picture ladder never reads it.
+   */
+  brand: { wikidata: string | null; wikipedia: string | null };
 }
 
 /** A ranked Commons pick, tagged with the rung of the ladder it came from. */
@@ -317,12 +330,17 @@ export class PlaceEnrichmentService {
       wikidata: fromPayload('wikidata'),
       wikimedia_commons: fromPayload('wikimedia_commons'),
       osmTags: null,
+      brand: { wikidata: null, wikipedia: null },
     };
     if (carried.wikipedia || carried.wikidata || carried.wikimedia_commons) return carried;
 
     const resolved = await this.maps.resolveOsmIdentity(req.name, req.lat, req.lng, { lang: req.lang });
     if (!resolved) return carried;
-    return { ...readWikiIdentity(resolved.tags), osmTags: resolved.tags };
+    return {
+      ...readWikiIdentity(resolved.tags),
+      osmTags: resolved.tags,
+      brand: readBrandIdentity(resolved.tags),
+    };
   }
 
   // ── Photos ─────────────────────────────────────────────────────────────────
@@ -524,6 +542,31 @@ export class PlaceEnrichmentService {
           license: null,
         };
       }
+    }
+
+    // Last, and about something else: the chain this place belongs to.
+    //
+    // A branch of a chain has no article of its own and never will, and Google
+    // keeps no editorial summary for one either — L'Osteria Rostock came back
+    // empty from every source above. The company does have an article, and
+    // "L'Osteria is a German restaurant chain serving pizza and pasta" is worth
+    // more than nothing as long as nobody mistakes it for a description of this
+    // particular branch. The `aboutBrand` flag is what stops that: the column
+    // heads the block differently, and it is the only reason this is allowed to
+    // run at all. Note the pictures do NOT get the same treatment — a chain's
+    // logo passed off as a photo of the restaurant would be a plain lie.
+    const brand = await this.fetchWikiDescription(
+      { ...identity, wikipedia: identity.brand.wikipedia, wikidata: identity.brand.wikidata },
+      req.lang,
+    );
+    if (brand) {
+      return {
+        text: brand.text,
+        source: brand.source,
+        sourceUrl: brand.sourceUrl,
+        license: 'CC BY-SA 4.0',
+        aboutBrand: true,
+      };
     }
 
     return null;

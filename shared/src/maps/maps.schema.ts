@@ -132,6 +132,17 @@ export const placeDescriptionSchema = z.object({
   source: placeDescriptionSourceSchema,
   sourceUrl: z.string().nullable(),
   license: z.string().nullable(),
+  /**
+   * True when the text describes the CHAIN this place belongs to, not the place
+   * itself — an article about L'Osteria the company, reached through the OSM
+   * `brand:wikidata` tag, shown for a branch that nothing else describes.
+   *
+   * A flag rather than a source of its own: it is still a Wikipedia article
+   * under the same licence, and the distinction the reader needs is "this is
+   * about the brand", which the client says in the heading. Optional so a
+   * payload written before this landed still parses.
+   */
+  aboutBrand: z.boolean().optional(),
 });
 export type PlaceDescription = z.infer<typeof placeDescriptionSchema>;
 

@@ -440,3 +440,41 @@ describe('PlaceDetailsColumn — no Google key', () => {
     expect(screen.queryByText('places.details.noKeyTitle')).not.toBeInTheDocument()
   })
 })
+/**
+ * FE-PDC-030..031 — a description that is about the chain, not the place.
+ *
+ * The whole safety argument for showing it rests on the heading saying so.
+ */
+describe('PlaceDetailsColumn — chain description', () => {
+  it('FE-PDC-030: heads a brand text differently and says what it describes', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: {
+        text: 'L’Osteria ist eine deutsche Restaurantkette.',
+        source: 'wikipedia',
+        sourceUrl: 'https://de.wikipedia.org/wiki/L%E2%80%99Osteria',
+        license: 'CC BY-SA 4.0',
+        aboutBrand: true,
+      },
+    })
+    renderColumn()
+
+    expect(await screen.findByText('places.details.aboutBrand')).toBeInTheDocument()
+    expect(screen.getByText('places.details.aboutBrandNote')).toBeInTheDocument()
+    expect(screen.queryByText('places.details.description')).not.toBeInTheDocument()
+  })
+
+  it('FE-PDC-031: a description of the place itself keeps the plain heading', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: { text: 'Ein Museum.', source: 'wikipedia', sourceUrl: null, license: 'CC BY-SA 4.0' },
+    })
+    renderColumn()
+
+    expect(await screen.findByText('places.details.description')).toBeInTheDocument()
+    expect(screen.queryByText('places.details.aboutBrand')).not.toBeInTheDocument()
+    expect(screen.queryByText('places.details.aboutBrandNote')).not.toBeInTheDocument()
+  })
+})

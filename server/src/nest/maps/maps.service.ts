@@ -166,6 +166,29 @@ function normalizeCategoryName(raw: string): string | null {
   return value.replace(/^(category|kategorie|categorie|categoría|categoria)\s*:/i, '').trim() || null;
 }
 
+/**
+ * The chain a place belongs to, when it belongs to one.
+ *
+ * Read separately from `readWikiIdentity` and never mixed into it. Following
+ * `brand:wikidata` as if it described the place is how "L'Osteria Rostock"
+ * ends up illustrated with the company logo and described as a franchise
+ * operator — which is why the picture ladder never sees these. For a
+ * description they are still worth something: a branch of a chain has no
+ * article of its own and never will, and "L'Osteria is a German restaurant
+ * chain serving pizza and pasta" beats an empty column, as long as the reader
+ * is told that is what they are looking at.
+ */
+export function readBrandIdentity(extratags: Record<string, string> | null | undefined): {
+  wikidata: string | null;
+  wikipedia: string | null;
+} {
+  const read = (key: string): string | null => {
+    const value = extratags?.[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  };
+  return { wikidata: read('brand:wikidata'), wikipedia: read('brand:wikipedia') };
+}
+
 /** Picks the three identity tags out of a Nominatim `extratags` blob. */
 export function readWikiIdentity(extratags: Record<string, string> | null | undefined): WikiIdentity {
   const out: WikiIdentity = { wikipedia: null, wikidata: null, wikimedia_commons: null };

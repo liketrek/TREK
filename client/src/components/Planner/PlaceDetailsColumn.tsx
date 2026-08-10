@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import {
   Accessibility,
   Bike,
+  Building2,
   Check,
   ChefHat,
   ChevronDown,
@@ -631,10 +632,22 @@ function DescriptionBlock({
           ? 'Wikivoyage'
           : 'Wikipedia'
 
+  // A description of the chain is not a description of this place, and the
+  // heading is where that gets said. Without it the reader has no way to tell
+  // that "a German restaurant chain serving pizza and pasta" is about the
+  // company rather than the branch they are about to add to their trip.
+  const aboutBrand = !!description.aboutBrand
+
   return (
     <div className="space-y-2">
-      <Overline>{t('places.details.description')}</Overline>
+      <Overline>{aboutBrand ? t('places.details.aboutBrand') : t('places.details.description')}</Overline>
       <div className="rounded-lg border border-edge bg-surface p-2.5 space-y-2">
+        {aboutBrand && (
+          <p className="flex items-start gap-1.5 text-caption leading-tight text-content-faint">
+            <Building2 className="mt-px h-3 w-3 shrink-0" />
+            <span>{t('places.details.aboutBrandNote')}</span>
+          </p>
+        )}
         <p className="text-caption leading-relaxed text-content whitespace-pre-line">{description.text}</p>
         <p className="text-caption leading-tight text-content-faint">
           {description.sourceUrl ? (
