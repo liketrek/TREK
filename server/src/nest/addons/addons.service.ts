@@ -174,4 +174,26 @@ export class AddonsService {
   updatePlacesAutocomplete(enabled: boolean) { return this.writeFlag('places_autocomplete_enabled', enabled); }
   getPlacesDetails() { return this.readFlag('places_details_enabled'); }
   updatePlacesDetails(enabled: boolean) { return this.writeFlag('places_details_enabled', enabled); }
+
+  /**
+   * Enrichment reads fail-OPEN, unlike the three switches above.
+   *
+   * Those needed migration 185 to backfill 'true' precisely because they read
+   * `=== 'true'`: without a row, an install that had been happily using the
+   * feature would have lost it on upgrade. This switch is new, so there is no
+   * row to backfill anywhere and no migration worth writing for one boolean —
+   * reading it the other way round gets the same outcome for free.
+   *
+   * It has to agree with PlaceEnrichmentService.enrichDisabled(), which reads
+   * the same key the same way. If these two ever disagree the admin panel shows
+   * "off" while the feature runs, which is worse than either default.
+   */
+  getPlacesEnrich() {
+    const row = this.db.prepare("SELECT value FROM app_settings WHERE key = 'places_enrich_enabled'").get() as
+      | { value: string }
+      | undefined;
+    return { enabled: row?.value !== 'false' };
+  }
+
+  updatePlacesEnrich(enabled: boolean) { return this.writeFlag('places_enrich_enabled', enabled); }
 }

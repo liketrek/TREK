@@ -41,6 +41,9 @@ const addonsStub = () => ({
   updatePlacesAutocomplete: vi.fn((enabled: boolean) => ({ enabled })),
   getPlacesDetails: vi.fn(() => ({ enabled: false })),
   updatePlacesDetails: vi.fn((enabled: boolean) => ({ enabled })),
+  // Fail-open, unlike its three neighbours — see AddonsService.getPlacesEnrich.
+  getPlacesEnrich: vi.fn(() => ({ enabled: true })),
+  updatePlacesEnrich: vi.fn((enabled: boolean) => ({ enabled })),
   getCollabFeatures: vi.fn(() => ({ chat: false })),
   updateCollabFeatures: vi.fn(() => ({ features: { chat: true }, changed: true })),
 }) as unknown as AddonsService;
@@ -242,7 +245,14 @@ describe('AdminController feature toggles', () => {
     expect(c.getPlacesPhotos()).toEqual({ enabled: false });
     expect(c.getPlacesAutocomplete()).toEqual({ enabled: false });
     expect(c.getPlacesDetails()).toEqual({ enabled: false });
+    expect(c.getPlacesEnrich()).toEqual({ enabled: true });
     expect(c.getCollabFeatures()).toEqual({ chat: false });
+  });
+
+  it('ADMIN-TOGGLE-002b places-enrich updates through the addons domain and is audited', () => {
+    const c = adminCtl(svc());
+    expect(c.updatePlacesEnrich(user, { enabled: false }, req)).toEqual({ enabled: false });
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'admin.places_enrich' }));
   });
 
   it('ADMIN-TOGGLE-003 collab-features invalidates MCP sessions only when a flag flipped (#1414)', () => {

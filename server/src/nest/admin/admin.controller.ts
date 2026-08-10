@@ -214,11 +214,11 @@ export class AdminController {
   }
 
   @Get('places-enrich')
-  getPlacesEnrich() { return this.admin.getPlacesEnrich(); }
+  getPlacesEnrich() { return this.addons.getPlacesEnrich(); }
 
   @Put('places-enrich')
   updatePlacesEnrich(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
-    const result = this.admin.updatePlacesEnrich(body.enabled);
+    const result = this.addons.updatePlacesEnrich(body.enabled);
     this.audit.writeAudit({ userId: user.id, action: 'admin.places_enrich', ip: getClientIp(req), details: { enabled: result.enabled } });
     return result;
   }

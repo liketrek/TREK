@@ -343,3 +343,41 @@ describe('AddonsService places flags', () => {
     }
   });
 });
+
+/**
+ * Enrichment sits beside the three above and reads the opposite way round.
+ *
+ * They are fail-closed because a migration backfilled a row for every install
+ * that predates the change. This one is new: there is nothing to backfill, so
+ * fail-open reaches the same place without a migration for one boolean. What
+ * matters is that it agrees with PlaceEnrichmentService.enrichDisabled(), which
+ * reads the same key — if the two ever diverge the panel shows "off" while the
+ * feature runs.
+ */
+describe('AddonsService places enrichment flag', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('ADDONS-SVC-083 an unset flag reads as ON', () => {
+    dbMock._stmt.get.mockReturnValueOnce(undefined);
+    expect(svc().getPlacesEnrich()).toEqual({ enabled: true });
+  });
+
+  it('ADDONS-SVC-084 only the literal "false" switches it off', () => {
+    dbMock._stmt.get.mockReturnValueOnce({ value: 'false' });
+    expect(svc().getPlacesEnrich()).toEqual({ enabled: false });
+
+    for (const value of ['true', 'garbage', '']) {
+      dbMock._stmt.get.mockReturnValueOnce({ value });
+      expect(svc().getPlacesEnrich()).toEqual({ enabled: true });
+    }
+  });
+
+  it('ADDONS-SVC-085 the setter persists the literal string and echoes the boolean back', () => {
+    expect(svc().updatePlacesEnrich(false)).toEqual({ enabled: false });
+    expect(dbMock._stmt.run).toHaveBeenLastCalledWith('places_enrich_enabled', 'false');
+    expect(svc().updatePlacesEnrich(true)).toEqual({ enabled: true });
+    expect(dbMock._stmt.run).toHaveBeenLastCalledWith('places_enrich_enabled', 'true');
+  });
+});
