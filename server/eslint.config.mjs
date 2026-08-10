@@ -83,6 +83,30 @@ export default tseslint.config(
     },
   },
   {
+    // src/services/ is gone. It was the legacy layer this migration existed to
+    // empty, and the last of it (airtrail) folded into src/nest/integrations/.
+    //
+    // The wall matters more than the deletion: the directory disappearing is not
+    // what stops it coming back, because the way it grew was one file at a time,
+    // each one reasonable on its own. A new domain goes to src/nest/<domain>/
+    // with a service, a controller and a module.
+    files: ['src/**/*.ts', 'tests/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/services/*', '**/services/**/*'],
+              message:
+                'src/services/ is deleted. New backend code goes to src/nest/<domain>/ (service + controller + module, registered in app.module.ts). See src/nest/README.md.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // The plugin RPC decorator kit is written to stay extractable into its own
     // package, so its dependencies are pinned to Nest plus the two host modules it
     // genuinely needs. See src/nest/plugins/host/rpc-kit/README.md for what an

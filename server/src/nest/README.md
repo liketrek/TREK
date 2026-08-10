@@ -79,17 +79,21 @@ remains as the platform underneath `@nestjs/platform-express`.
   whole anonymous surface of the server, in one reviewable place. Stale entries
   fail too.
 
-`src/services/` is down to the `airtrail/` directory, which waits on the credential
-decision. Backup has moved in: `services/backupService.ts` is now
-`nest/backup/backup.impl.ts`, imported only by its own domain. It stays a module of
-free functions rather than becoming methods, because the restore path closes and
-reinitializes the core DB handle and rewriting that shape in the same step as the move
-would make a regression there impossible to bisect — the db-lifecycle question is the
-LAST step of that fold, not part of it. Note that the trip-access and
-`canEdit` methods on the domain services are **not** dead weight waiting for a
-guard: their callers are overwhelmingly the `*.mcp.ts` tools, which never pass
-through an HTTP guard. In the five domains piloted for `TripAccessGuard`, 40 of
-the 46 callers are MCP; only 6 sit in controllers.
+**`src/services/` is gone.** It was the legacy layer this whole migration existed
+to empty, and the last of it — `airtrail/`, 1305 lines of plain functions over the
+better-sqlite3 singleton — folded into `integrations/`. An ESLint
+`no-restricted-imports` rule now refuses any import of a `services/` path, because
+the directory disappearing is not what keeps it gone: it grew one reasonable file
+at a time. Backup made the same trip earlier: `services/backupService.ts` is
+`nest/backup/backup.impl.ts`, imported only by its own domain, and it stays a
+module of free functions rather than becoming methods because the restore path
+closes and reinitializes the core DB handle — rewriting that shape in the same
+step as the move would make a regression there impossible to bisect.
+
+Note that the trip-access and `canEdit` methods on the domain services are **not**
+dead weight waiting for a guard: their callers are overwhelmingly the `*.mcp.ts`
+tools, which never pass through an HTTP guard. In the five domains piloted for
+`TripAccessGuard`, 40 of the 46 callers are MCP; only 6 sit in controllers.
 
 ## Cross-cutting Foundation pieces
 
