@@ -17,6 +17,7 @@ import type { User } from '../../types';
 import { TripMembersService } from './trip-members.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequireTripOwner, TripOwnerGuard } from '../permissions/trip-owner.guard';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
@@ -34,6 +35,11 @@ import { TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRen
  * here would answer the trip 404 before the body pipe could answer its 400, and
  * the e2e cases pin that order. The inline canAccessTrip checks are the ones
  * that moved, unchanged.
+ *
+ * The four owner-only routes are the exception: they carry TripOwnerGuard, which
+ * replaces the hand-written `access.user_id !== user.id` each of them had. Their
+ * bodies are ids and names, so the 400-before-404 ordering does not arise —
+ * transfer is the one with a DTO, and its own e2e asserts the 404 first.
  */
 @Controller('api/trips')
 @UseGuards(JwtAuthGuard)
@@ -87,6 +93,8 @@ export class TripMembersController {
   }
 
   @Post(':id/transfer')
+  @UseGuards(TripOwnerGuard)
+  @RequireTripOwner('Only the owner can transfer ownership', { param: 'id' })
   transferOwnership(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -95,15 +103,6 @@ export class TripMembersController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const { newOwnerId } = body;
-    const access = this.roster.canAccessTrip(id, user.id);
-    if (!access) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    // Owner-only: handing over a trip is reserved for its actual owner, not just
-    // anyone who can manage members.
-    if (access.user_id !== user.id) {
-      throw new HttpException({ error: 'Only the owner can transfer ownership' }, 403);
-    }
     try {
       const result = this.roster.transferOwnership(id, newOwnerId, user.id);
       this.audit.writeAudit({ userId: user.id, action: 'trip.transfer_ownership', ip: getClientIp(req), details: { tripId: Number(id), trip: result.tripTitle, from: result.fromEmail, to: result.toEmail } });
@@ -119,21 +118,11 @@ export class TripMembersController {
     }
   }
 
-  /** Loads the trip or throws 404, then asserts the caller is its owner (guest CRUD, #1362). */
-  private requireOwner(id: string, user: User): void {
-    const access = this.roster.canAccessTrip(id, user.id);
-    if (!access) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    if (access.user_id !== user.id) {
-      throw new HttpException({ error: 'Only the owner can manage guests' }, 403);
-    }
-  }
-
   @Post(':id/guests')
   @HttpCode(201)
+  @UseGuards(TripOwnerGuard)
+  @RequireTripOwner('Only the owner can manage guests', { param: 'id' })
   createGuest(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripCreateGuestDto) {
-    this.requireOwner(id, user);
     // Whitespace-only names still 400 with the legacy body — the service throws
     // ValidationError('Guest name is required') after trimming.
     try {
@@ -146,8 +135,9 @@ export class TripMembersController {
   }
 
   @Put(':id/guests/:userId')
+  @UseGuards(TripOwnerGuard)
+  @RequireTripOwner('Only the owner can manage guests', { param: 'id' })
   renameGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: TripRenameGuestDto) {
-    this.requireOwner(id, user);
     try {
       if (!this.roster.renameGuest(id, parseInt(userId), body.name)) {
         throw new HttpException({ error: 'Guest not found' }, 404);
@@ -161,8 +151,9 @@ export class TripMembersController {
   }
 
   @Delete(':id/guests/:userId')
+  @UseGuards(TripOwnerGuard)
+  @RequireTripOwner('Only the owner can manage guests', { param: 'id' })
   deleteGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string) {
-    this.requireOwner(id, user);
     if (!this.roster.deleteGuest(id, parseInt(userId))) {
       throw new HttpException({ error: 'Guest not found' }, 404);
     }

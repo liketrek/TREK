@@ -94,16 +94,11 @@ describe('members', () => {
 });
 
 describe('POST /:id/transfer (#973)', () => {
-  it('404 without trip access', () => {
-    const s = svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) });
-    expect(thrown(() => tc(s).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-  });
 
-  it('403 when the requester is not the owner', () => {
-    // access.user_id (5) differs from the requesting user (1)
-    const s = svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) });
-    expect(thrown(() => tc(s).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 403, body: { error: 'Only the owner can transfer ownership' } });
-  });
+  // The 404-without-access and 403-for-a-non-owner cases moved to
+  // trip-owner.guard.test.ts (OWNER-001..010) with the check itself: the route
+  // carries @RequireTripOwner('Only the owner can transfer ownership') now, and
+  // a guard runs before the handler this file constructs by hand.
 
   it('a non-numeric newOwnerId 400s in the ZodValidationPipe', () => {
     // The hand-rolled 'newOwnerId is required' 400 moved into the global
@@ -131,10 +126,8 @@ describe('POST /:id/transfer (#973)', () => {
 });
 
 describe('guests (#1362)', () => {
-  it('404 without access, 403 for a non-owner, 400 without a name; else creates', () => {
-    expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) })).createGuest(user, '9', { name: 'Anna' }))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-    // access.user_id (5) ≠ requester (1) → not the owner
-    expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).createGuest(user, '9', { name: 'Anna' }))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
+  // Ownership is TripOwnerGuard's job now (OWNER-002 pins the exact message).
+  it('400 without a name; else creates', () => {
     // A whitespace-only name still 400s with the legacy body — the service
     // throws after trimming (the schema only enforces 1..50 chars).
     const wsGuest = svc({ createGuest: vi.fn().mockImplementation(() => { throw new ValidationError('Guest name is required'); }) } as Partial<TripMembersService>);
@@ -145,16 +138,14 @@ describe('guests (#1362)', () => {
     expect(createGuest).toHaveBeenCalledWith('9', 'Anna', user.id);
   });
 
-  it('rename: 403 non-owner, 404 when the guest is missing, else success', () => {
-    expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).renameGuest(user, '9', '7', { name: 'Bob' }))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
+  it('rename: 404 when the guest is missing, else success', () => {
     const miss = svc({ renameGuest: vi.fn().mockReturnValue(false) } as Partial<TripMembersService>);
     expect(thrown(() => tc(miss).renameGuest(user, '9', '7', { name: 'Bob' }))).toEqual({ status: 404, body: { error: 'Guest not found' } });
     const ok = svc({ renameGuest: vi.fn().mockReturnValue(true) } as Partial<TripMembersService>);
     expect(tc(ok).renameGuest(user, '9', '7', { name: 'Bob' })).toEqual({ success: true });
   });
 
-  it('delete: 403 non-owner, 404 when the guest is missing, else success', () => {
-    expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).deleteGuest(user, '9', '7'))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
+  it('delete: 404 when the guest is missing, else success', () => {
     const miss = svc({ deleteGuest: vi.fn().mockReturnValue(false) } as Partial<TripMembersService>);
     expect(thrown(() => tc(miss).deleteGuest(user, '9', '7'))).toEqual({ status: 404, body: { error: 'Guest not found' } });
     const ok = svc({ deleteGuest: vi.fn().mockReturnValue(true) } as Partial<TripMembersService>);
