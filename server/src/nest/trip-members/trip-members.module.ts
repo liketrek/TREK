@@ -7,6 +7,7 @@ import { RealtimeModule } from '../realtime/realtime.module';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { BudgetModule } from '../budget/budget.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 /**
  * The member/guest roster of a trip.
@@ -18,7 +19,7 @@ import { BudgetModule } from '../budget/budget.module';
  * it these dependencies would close the cycle.
  */
 @Module({
-  imports: [DatabaseModule, PermissionsModule, RealtimeModule, AuditModule, AuthModule, BudgetModule],
+  imports: [NotificationsModule, DatabaseModule, PermissionsModule, RealtimeModule, AuditModule, AuthModule, BudgetModule],
   controllers: [TripMembersController],
   providers: [TripMembersService],
   exports: [TripMembersService],

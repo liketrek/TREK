@@ -46,8 +46,9 @@ import { MapsService } from '../../../src/nest/maps/maps.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { notificationsStub } from '../../helpers/notifications';
 
-const packing = new PackingService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const packing = new PackingService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub());
 const places = new PlacesService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new MapsService(new DatabaseService(testDb)), new QueryHelpersService(new DatabaseService(testDb)));
 
 beforeAll(() => {

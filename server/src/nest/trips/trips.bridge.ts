@@ -24,6 +24,7 @@ import { UserCleanupService } from '../auth/user-cleanup.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
+import { notificationsInstance } from '../notifications/notifications.instance';
 
 /**
  * Non-Nest entry point for the trip domain — for the two consumers that cannot
@@ -50,7 +51,7 @@ const permissions = new PermissionsService(dbs());
 const realtime = new RealtimeService();
 const days = new DaysService(dbs(), permissions, realtime, new QueryHelpersService(dbs()));
 const accommodations = new AccommodationsService(dbs(), permissions, realtime);
-const reservations = new ReservationsService(dbs(), permissions, budget, realtime);
+const reservations = new ReservationsService(dbs(), permissions, budget, realtime, notificationsInstance());
 const places = new PlacesService(dbs(), permissions, realtime, new MapsService(dbs(), photoCache), new QueryHelpersService(dbs()), new UnsplashService(dbs(), new RuntimeEnvService()), photoCache, journeyDomain);
 const trips = new TripsService(
   dbs(),
@@ -58,20 +59,20 @@ const trips = new TripsService(
   days,
   permissions,
   budget,
-  new VacayService(dbs(), realtime),
+  new VacayService(dbs(), realtime, notificationsInstance()),
   realtime,
   new UnsplashService(dbs(), new RuntimeEnvService()),
 );
-const members = new TripMembersService(dbs(), budget, new UserCleanupService(dbs()), permissions, realtime);
+const members = new TripMembersService(dbs(), budget, new UserCleanupService(dbs()), permissions, realtime, notificationsInstance());
 const readModel = new TripReadModelService(
   dbs(),
   members,
   days,
   accommodations,
   budget,
-  new PackingService(dbs(), permissions, realtime),
+  new PackingService(dbs(), permissions, realtime, notificationsInstance()),
   reservations,
-  new CollabService(dbs(), permissions, realtime),
+  new CollabService(dbs(), permissions, realtime, notificationsInstance()),
   places,
   new TodoService(dbs(), permissions, realtime),
   new FilesService(dbs(), permissions, realtime),

@@ -8,12 +8,13 @@ import { CollectionsMcp } from './collections.mcp';
 import { AddonsModule } from '../addons/addons.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 /** Collections domain (saved-places library). Registered in AppModule.
  *  Exports CollectionsService for in-container consumers (PluginsModule's
  *  RPC host deps factory). */
 @Module({
-  imports: [AddonsModule, PermissionsModule, AuthModule, AppConfigModule, PluginGuardsModule],
+  imports: [NotificationsModule, AddonsModule, PermissionsModule, AuthModule, AppConfigModule, PluginGuardsModule],
   controllers: [CollectionsController],
   providers: [CollectionsService, CollectionsMcp, CollectionsRpc],
   exports: [CollectionsService],

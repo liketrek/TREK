@@ -66,6 +66,7 @@ import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-rea
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { notificationsStub } from '../../helpers/notifications';
 
 // Real sibling services over the same in-memory DB — the aggregation runs the
 // actual SQL of every domain it fans out to, so a shape change downstream shows
@@ -75,14 +76,14 @@ const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new Ex
 const daysSvc = new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs()));
 const placesSvc = new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs()), new QueryHelpersService(dbs()));
 const accommodationsSvc = new AccommodationsService(dbs(), new PermissionsService(dbs()), new RealtimeService());
-const membersSvc = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService());
+const membersSvc = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService(), notificationsStub());
 
 const buildReadModel = (database: DatabaseService, roster: TripMembersService = membersSvc) =>
   new TripReadModelService(
     database, roster, daysSvc, accommodationsSvc, budgetSvc,
-    new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-    new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
-    new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+    new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
+    new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub()),
+    new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
     placesSvc,
     new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
     new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),

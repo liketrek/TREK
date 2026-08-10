@@ -36,6 +36,7 @@ import { createUser } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { notificationsStub } from '../../helpers/notifications';
 
 // VACAY-SVC-001 through VACAY-SVC-066 moved 1:1 from the legacy
 // tests/unit/services/vacayService.test.ts (the named-function imports became
@@ -43,7 +44,7 @@ import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 // updateUserYearSettings is the class's updateYearSettings).
 // VACAY-SVC-067 (vacay.bridge delegation) died with the bridge — its only
 // consumer, the legacy tripService, folded into the DI-native TripsService.
-const svc = new VacayService(new DatabaseService(testDb), new RealtimeService());
+const svc = new VacayService(new DatabaseService(testDb), new RealtimeService(), notificationsStub());
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -1378,7 +1379,7 @@ describe('quirk fixes', () => {
       if (sql.includes(match)) throw new Error('boom');
       return realRun(sql, ...params);
     });
-    return new VacayService(failingDb, new RealtimeService());
+    return new VacayService(failingDb, new RealtimeService(), notificationsStub());
   }
 
   it('VACAY-SVC-068: acceptInvite is atomic — a failure mid-flow rolls the status flip back', () => {
@@ -1409,7 +1410,7 @@ describe('quirk fixes', () => {
   it('VACAY-SVC-070: getCountries surfaces an upstream non-2xx as the fetch error and caches nothing', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 502, json: async () => ({}) });
     vi.stubGlobal('fetch', fetchMock);
-    const fresh = new VacayService(new DatabaseService(testDb), new RealtimeService());
+    const fresh = new VacayService(new DatabaseService(testDb), new RealtimeService(), notificationsStub());
 
     expect(await fresh.getCountries()).toEqual({ error: 'Failed to fetch countries' });
     // Nothing cached: a retry hits the network again.
@@ -1424,7 +1425,7 @@ describe('quirk fixes', () => {
     testDb.prepare("INSERT INTO vacay_holiday_calendars (plan_id, region) VALUES (?, 'DE')").run(plan.id);
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
     vi.stubGlobal('fetch', fetchMock);
-    const fresh = new VacayService(new DatabaseService(testDb), new RealtimeService());
+    const fresh = new VacayService(new DatabaseService(testDb), new RealtimeService(), notificationsStub());
 
     await fresh.applyHolidayCalendars(plan.id);
     const afterFirst = fetchMock.mock.calls.length;

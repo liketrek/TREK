@@ -72,6 +72,7 @@ import { DaysService } from '../../../src/nest/days/days.service';
 import { CollabService } from '../../../src/nest/collab/collab.service';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { notificationsStub } from '../../helpers/notifications';
 
 const budget = new BudgetService(
   new DatabaseService(testDb),
@@ -91,6 +92,7 @@ const membersSvc = new TripMembersService(
   new UserCleanupService(dbs()),
   new PermissionsService(dbs()),
   new RealtimeService(),
+  notificationsStub(),
 );
 const createGuest = membersSvc.createGuest.bind(membersSvc);
 const deleteGuest = membersSvc.deleteGuest.bind(membersSvc);

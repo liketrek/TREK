@@ -20,6 +20,7 @@ import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.se
 import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
 import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
 import type { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
+import { notificationsStub } from '../../helpers/notifications';
 
 // The client and the per-user credentials are the only stubs; the reservation
 // writes go through the real service against the real test DB, as before. They
@@ -39,6 +40,7 @@ function makeImportService(): AirtrailImportService {
       permissions,
       new BudgetService(dbs(), permissions, new ExchangeRatesService(), realtime),
       realtime,
+      notificationsStub(),
     ),
     { listFlights } as unknown as AirtrailClient,
     {

@@ -62,6 +62,7 @@ import { VacayRpc } from '../../src/nest/vacay/vacay.rpc';
 import { JournalRpc } from '../../src/nest/journey/journal.rpc';
 import { CollectionsRpc } from '../../src/nest/collections/collections.rpc';
 import { makeNotificationsService } from './notifications';
+import { notificationsStub } from './notifications';
 
 /**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
@@ -81,14 +82,14 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const addons = new AddonsService(dbs);
   const queryHelpers = new QueryHelpersService(dbs);
   const todos = new TodoService(dbs, permissions, realtime);
-  const packing = new PackingService(dbs, permissions, realtime);
+  const packing = new PackingService(dbs, permissions, realtime, notificationsStub());
   const files = new FilesService(dbs, permissions, realtime);
-  const reservations = new ReservationsService(dbs, permissions, budget, realtime);
-  const collab = new CollabService(dbs, permissions, realtime);
-  const vacay = new VacayService(dbs, realtime);
+  const reservations = new ReservationsService(dbs, permissions, budget, realtime, notificationsStub());
+  const collab = new CollabService(dbs, permissions, realtime, notificationsStub());
+  const vacay = new VacayService(dbs, realtime, notificationsStub());
   const days = new DaysService(dbs, permissions, realtime, queryHelpers);
   const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs), queryHelpers);
-  const collections = new CollectionsService(dbs, permissions, realtime);
+  const collections = new CollectionsService(dbs, permissions, realtime, notificationsStub());
   const atlas = new AtlasService(dbs);
   const dayNotes = new DayNotesService(dbs, permissions, realtime);
   const assignments = new AssignmentsService(dbs, permissions, realtime, queryHelpers);
@@ -101,7 +102,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   // Was 12 arguments for a 14-parameter constructor; unsplash and userCleanup were
   // undefined here and tsconfig only typechecks src, so nothing said so.
   const trips = new TripsService(dbs, reservations, days, permissions, budget, vacay, realtime, undefined as never);
-  const members = new TripMembersService(dbs, budget, undefined as never, permissions, realtime);
+  const members = new TripMembersService(dbs, budget, undefined as never, permissions, realtime, notificationsStub());
   const guards = new PluginGuards(dbs, permissions, addons);
 
   const registry = createTestPluginRegistry([

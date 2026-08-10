@@ -216,12 +216,26 @@ Four in-container uses are left, each for a reason that injection does not fix:
   interceptor options are module-scope literals evaluated before any container
   exists. The fix is `MulterModule.registerAsync`, not a different import.
 
-The lazy `import('../notifications/notifications.bridge')` senders in six
-services are resolvable by injection — nothing cycles — but the sweep is its own
-change: those services have ~41 hand-wired `new` sites across the suites, and
-`tests/` is outside `tsconfig`'s `include`, so a missed argument would not fail
-to compile. It would land as `undefined` inside a fire-and-forget send whose
-`.catch(() => {})` swallows the TypeError.
+The nine fire-and-forget notification senders inject too. They were lazy
+`import('../notifications/notifications.bridge').then(({ send }) => …)` calls
+working around a cycle that no longer exists, and the laziness hid the edge
+while handing each send a NotificationsService built outside the container.
+
+That sweep needed a method, because `tests/` sits outside `tsconfig`'s `include`:
+a missed constructor argument does not fail to compile, it arrives as
+`undefined`. Adding `tests` to a throwaway `tsconfig` and diffing the errors
+before and after named all **46** hand-wired `new` sites exactly; a grep would
+have been a guess. Worth repeating for any change that widens a service
+constructor — and worth knowing that such a config reports **288 pre-existing
+errors** in the suites, almost all deliberate partial constructions in the
+harnesses (`new AuthService(db, permissions, atlas)` where the class takes six).
+That is why `tests/` is not in the build's `include`, and cleaning it up is its
+own piece of work.
+
+`notifications.instance.ts` holds the out-of-container instance, deliberately
+apart from `notifications.bridge.ts`: several suites replace the bridge wholesale
+with `vi.mock(…, () => ({ send }))`, and a sibling bridge importing the instance
+from there would break under those mocks.
 - `app-config/` — the `@nestjs/config` binding (`AppConfigModule`, global). Never
   read `process.env` in a module (ESLint enforces this): inject a boot-stable
   namespace via its `registerAs` token (`@Inject(mcpConfig.KEY) … ConfigType<…>`)

@@ -77,6 +77,7 @@ import { MapsService } from '../../../src/nest/maps/maps.service';
 import { getTripOwner, listMembers as bridgeListMembers } from '../../../src/nest/trips/trips.bridge';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import fs from 'fs';
+import { notificationsStub } from '../../helpers/notifications';
 
 // Real sibling services over the same in-memory DB — updateTrip's date-shift
 // resyncs and the summary/bundle aggregation run their actual SQL.
@@ -89,20 +90,20 @@ const createAccommodation = accommodationsSvc.createAccommodation.bind(accommoda
 
 const svc = new TripsService(
   dbs(),
-  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub()),
   daysSvc,
   new PermissionsService(dbs()),
   budgetSvc,
-  new VacayService(dbs(), new RealtimeService()),
+  new VacayService(dbs(), new RealtimeService(), notificationsStub()),
   new RealtimeService(),
   undefined as never, // unsplash — not exercised here
 );
-const membersSvc = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService());
+const membersSvc = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService(), notificationsStub());
 const readModelSvc = new TripReadModelService(
   dbs(), membersSvc, daysSvc, accommodationsSvc, budgetSvc,
-  new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
-  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub()),
+  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
   placesSvc,
   new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
@@ -917,11 +918,11 @@ describe('quirk fixes', () => {
     const fdbs = failingConnection(match);
     return new TripsService(
       fdbs,
-      new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
+      new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub()),
       daysSvc,
       new PermissionsService(dbs()),
       budgetSvc,
-      new VacayService(dbs(), new RealtimeService()),
+      new VacayService(dbs(), new RealtimeService(), notificationsStub()),
       new RealtimeService(),
       undefined as never,
     );
@@ -932,6 +933,7 @@ describe('quirk fixes', () => {
     return new TripMembersService(
       failingConnection(match), budgetSvc, new UserCleanupService(dbs()),
       new PermissionsService(dbs()), new RealtimeService(),
+      notificationsStub(),
     );
   }
 

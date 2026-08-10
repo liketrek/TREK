@@ -6,6 +6,7 @@ import { avatarUrl } from '../common/avatarUrl';
 import type { UpdateConflict } from '../common/conflictResult';
 import type { User } from '../../types';
 import { DatabaseService, type TripAccess } from '../database/database.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /** Privacy fields stamped on a packing item (#858). */
 type PrivacyFields = { is_private?: number; owner_id?: number | null };
@@ -43,6 +44,7 @@ export class PackingService {
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -780,15 +782,17 @@ export class PackingService {
   /** Fire-and-forget tag notification, mirroring the legacy dynamic import. */
   notifyTagged(tripId: string, actor: User, category: string, userIds: unknown): void {
     if (!Array.isArray(userIds) || userIds.length === 0) return;
-    import('../notifications/notifications.bridge').then(({ send }) => {
-      const tripInfo = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
-      send({
-        event: 'packing_tagged',
-        actorId: actor.id,
-        scope: 'trip',
-        targetId: Number(tripId),
-        params: { trip: tripInfo?.title || 'Untitled', actor: actor.email, category, tripId: String(tripId) },
-      }).catch(() => {});
-    });
+    // Injected, not a lazy import of notifications.bridge. The laziness bought
+    // nothing the module graph does not already give — NotificationsModule
+    // reaches nothing in this direction — and it hid the edge while handing the
+    // send a second NotificationsService built outside the container.
+    const tripInfo = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
+    this.notifications.send({
+      event: 'packing_tagged',
+      actorId: actor.id,
+      scope: 'trip',
+      targetId: Number(tripId),
+      params: { trip: tripInfo?.title || 'Untitled', actor: actor.email, category, tripId: String(tripId) },
+    }).catch(() => {});
   }
 }

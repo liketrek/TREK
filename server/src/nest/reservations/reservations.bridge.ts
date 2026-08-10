@@ -5,6 +5,7 @@ import { ReservationsService } from './reservations.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { BudgetService } from '../budget/budget.service';
 import { ExchangeRatesService } from '../budget/exchange-rates.service';
+import { notificationsInstance } from '../notifications/notifications.instance';
 
 export type { EndpointInput, ReservationEndpoint, ReservationTraveler } from './reservations.service';
 
@@ -28,6 +29,7 @@ const reservations = new ReservationsService(
   new PermissionsService(new DatabaseService(db)),
   new BudgetService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new ExchangeRatesService(), new RealtimeService()),
   new RealtimeService(),
+  notificationsInstance(),
 );
 
 export function listReservations(tripId: string | number) {

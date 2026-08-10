@@ -56,8 +56,9 @@ import { CollectionsService } from '../../../src/nest/collections/collections.se
 import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { PLACE_IMAGES_DIR } from '../../../src/nest/places/place-image';
+import { notificationsStub } from '../../helpers/notifications';
 
-const svc = new CollectionsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const svc = new CollectionsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub(notifSend));
 // The real cache: these cases assert what removeIfUnreferenced actually does
 // about collection_places (#1081), so a stub would assert nothing.
 const photoCache = new PlacePhotoCacheService(new DatabaseService(testDb), new RuntimeEnvService());

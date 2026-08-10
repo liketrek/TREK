@@ -82,6 +82,7 @@ import type { TripsService } from '../../../src/nest/trips/trips.service';
 import type { TodoService } from '../../../src/nest/todo/todo.service';
 import type { CollabService } from '../../../src/nest/collab/collab.service';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { notificationsStub } from '../../helpers/notifications';
 
 // The trip-summary prompt moved to the DI-discovered TripsMcp — its cases below
 // exercise it through a hand-built registry over a stub TripsService whose
@@ -111,7 +112,7 @@ const tripsMcp = new TripsMcp(
 const promptDbs = () => new DatabaseService(testDb);
 const authStub = { isDemoUser: () => false } as unknown as AuthService;
 const packingMcp = new PackingMcp(
-  new PackingService(promptDbs(), new PermissionsService(promptDbs()), new RealtimeService()),
+  new PackingService(promptDbs(), new PermissionsService(promptDbs()), new RealtimeService(), notificationsStub()),
   authStub,
   addonsStub,
 );

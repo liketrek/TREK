@@ -10,6 +10,7 @@ import { ReservationsService } from '../reservations/reservations.service';
 import { AirtrailClient } from './airtrail.client';
 import { AirtrailService } from './airtrail.service';
 import { AirtrailSyncService } from './airtrail-sync.service';
+import { notificationsInstance } from '../notifications/notifications.instance';
 
 /**
  * The ONE airtrail edge that cannot be an injection, and why.
@@ -38,6 +39,7 @@ const reservations = new ReservationsService(
   permissions,
   new BudgetService(dbs(), permissions, new ExchangeRatesService(), realtime),
   realtime,
+  notificationsInstance(),
 );
 const sync = new AirtrailSyncService(
   dbs(),

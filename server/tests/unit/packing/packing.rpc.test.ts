@@ -20,6 +20,7 @@ import type { PermissionsService } from '../../../src/nest/permissions/permissio
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
+import { notificationsStub } from '../../helpers/notifications';
 
 const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
 
@@ -31,7 +32,7 @@ type Item = { id: number; name?: string; is_private?: number; owner_id?: number 
  */
 function build(opts: { canEdit?: boolean; before?: Item | undefined; updated?: Item | null } = {}) {
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
-  const packing = new PackingService({} as never, {} as never, realtime);
+  const packing = new PackingService({} as never, {} as never, realtime, notificationsStub());
   const data = {
     listItems: vi.fn(() => [{ id: 70, name: 'Socks' }]),
     createItem: vi.fn((_t: string, i: Record<string, unknown>) => ({ id: 70, ...i })),

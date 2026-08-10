@@ -8,6 +8,7 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
 import { checkSsrf, createPinnedDispatcher } from '../../utils/ssrfGuard';
 import type { CollabNote, CollabPoll, CollabMessage, TripFile, User } from '../../types';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type Trip = TripAccess;
 
@@ -67,6 +68,7 @@ export class CollabService {
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -494,11 +496,13 @@ export class CollabService {
 
   /** Fire-and-forget collab notification (mirrors the legacy route's dynamic import). */
   notifyCollab(tripId: string, actor: User, preview?: string): void {
-    import('../notifications/notifications.bridge').then(({ send }) => {
-      const tripInfo = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
-      const params: Record<string, string> = { trip: tripInfo?.title || 'Untitled', actor: actor.email, tripId: String(tripId) };
-      if (preview !== undefined) params.preview = preview;
-      send({ event: 'collab_message', actorId: actor.id, scope: 'trip', targetId: Number(tripId), params }).catch(() => {});
-    }).catch(() => {});
+    // Injected, not a lazy import of notifications.bridge. The laziness bought
+    // nothing the module graph does not already give — NotificationsModule
+    // reaches nothing in this direction — and it hid the edge while handing the
+    // send a second NotificationsService built outside the container.
+    const tripInfo = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
+    const params: Record<string, string> = { trip: tripInfo?.title || 'Untitled', actor: actor.email, tripId: String(tripId) };
+    if (preview !== undefined) params.preview = preview;
+    this.notifications.send({ event: 'collab_message', actorId: actor.id, scope: 'trip', targetId: Number(tripId), params }).catch(() => {});
   }
 }

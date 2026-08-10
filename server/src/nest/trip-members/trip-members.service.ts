@@ -11,6 +11,7 @@ import { TRIP_SELECT } from '../trips/trips.service';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface AddMemberResult {
   member: { id: number; username: string; email: string; avatar?: string | null; role: string; avatar_url: string | null };
@@ -64,6 +65,7 @@ export class TripMembersService {
     private readonly userCleanup: UserCleanupService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private get db() {
@@ -90,15 +92,17 @@ export class TripMembersService {
 
   /** Fire-and-forget trip-invite notification (mirrors the route's dynamic import). */
   notifyInvite(tripId: string, actor: User, targetUserId: number, tripTitle: string, inviteeEmail: string): void {
-    import('../notifications/notifications.bridge').then(({ send }) => {
-      send({
-        event: 'trip_invite',
-        actorId: actor.id,
-        scope: 'user',
-        targetId: targetUserId,
-        params: { trip: tripTitle, actor: actor.email, invitee: inviteeEmail, tripId: String(tripId) },
-      }).catch(() => {});
-    });
+    // Injected, not a lazy import of notifications.bridge. The laziness bought
+    // nothing the module graph does not already give — NotificationsModule
+    // reaches nothing in this direction — and it hid the edge while handing the
+    // send a second NotificationsService built outside the container.
+    this.notifications.send({
+      event: 'trip_invite',
+      actorId: actor.id,
+      scope: 'user',
+      targetId: targetUserId,
+      params: { trip: tripTitle, actor: actor.email, invitee: inviteeEmail, tripId: String(tripId) },
+    }).catch(() => {});
   }
 
   // ── Members ───────────────────────────────────────────────────────────────

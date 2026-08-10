@@ -3,6 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PackingService } from './packing.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { notificationsInstance } from '../notifications/notifications.instance';
 
 /**
  * Non-Nest entry point for the packing domain — for code running OUTSIDE the
@@ -19,7 +20,7 @@ import { PermissionsService } from '../permissions/permissions.service';
  * Module-level construction is safe: `db` is the reinitialize-proof Proxy onto
  * the shared better-sqlite3 singleton.
  */
-const packing = new PackingService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new RealtimeService());
+const packing = new PackingService(new DatabaseService(db), new PermissionsService(new DatabaseService(db)), new RealtimeService(), notificationsInstance());
 
 export function listItems(tripId: string | number, userId?: number) {
   return packing.listItems(tripId, userId);

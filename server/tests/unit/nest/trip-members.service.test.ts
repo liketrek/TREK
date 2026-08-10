@@ -65,10 +65,11 @@ import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service'
 import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
 import { NotFoundError, ValidationError } from '../../../src/nest/common/domain-errors';
 import type { User } from '../../../src/types';
+import { notificationsStub } from '../../helpers/notifications';
 
 const dbs = () => new DatabaseService(testDb);
 const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
-const roster = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService());
+const roster = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(notifySend));
 
 /**
  * A roster whose connection reports "no such row" for the first result of every
@@ -98,7 +99,7 @@ function rosterWithMissingRow(match: string) {
     },
   });
   const frozen = { connection: conn, canAccessTrip: dbMock.canAccessTrip, isOwner: dbMock.isOwner } as unknown as DatabaseService;
-  return new TripMembersService(frozen, budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService());
+  return new TripMembersService(frozen, budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(notifySend));
 }
 
 beforeAll(() => {

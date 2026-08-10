@@ -62,8 +62,9 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { CollabService } from '../../../src/nest/collab/collab.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { notificationsStub } from '../../helpers/notifications';
 
-const svc = new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const svc = new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub());
 
 beforeAll(() => {
   createTables(testDb);
@@ -415,7 +416,7 @@ describe('hardening', () => {
   it('COLLAB-SVC-034: votePoll switch is atomic — prior vote survives a failed INSERT', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService());
+    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub());
     const poll = failing.createPoll(trip.id, user1.id, { question: 'Q?', options: ['A', 'B'] });
     failing.votePoll(trip.id, poll!.id, user1.id, 0);
 
@@ -436,7 +437,7 @@ describe('hardening', () => {
   it('COLLAB-SVC-035: deleteNote is atomic — trip_files rows survive a failed note DELETE', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService());
+    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub());
     const note = failing.createNote(trip.id, user1.id, { title: 'With file' });
     testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'files/a.pdf', 'a.pdf');

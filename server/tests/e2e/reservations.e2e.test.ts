@@ -42,6 +42,13 @@ vi.mock('../../src/db/database', () => ({
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 const { notificationSend } = vi.hoisted(() => ({ notificationSend: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: notificationSend }));
+// ReservationsService injects NotificationsService now instead of reaching the
+// bridge through a lazy import, so the e2e app resolves the real provider out of
+// its own container — the module mock above never sees the send. The override
+// below is what intercepts it.
+vi.mock('../../src/nest/notifications/notifications.instance', () => ({
+  notificationsInstance: () => ({ send: notificationSend }),
+}));
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
@@ -54,6 +61,7 @@ let checkPermission: MockInstance;
 
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
+import { NotificationsService } from '../../src/nest/notifications/notifications.service';
 
 describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real reservation SQL)', () => {
   let server: Server;
@@ -61,7 +69,10 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, ReservationsModule, AccommodationsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, ReservationsModule, AccommodationsModule] })
+      .overrideProvider(NotificationsService)
+      .useValue({ send: notificationSend })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
