@@ -86,6 +86,15 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
     vi.spyOn(maps, 'fetchWikiExtract').mockClear().mockResolvedValue(null);
     vi.spyOn(maps, 'fetchCommonsCategoryCandidates').mockClear().mockResolvedValue([]);
     vi.spyOn(maps, 'details').mockClear().mockResolvedValue({ place: null });
+    // Every provider the service can reach has to be stubbed here, not just the
+    // ones a given case cares about: anything left open goes out over the real
+    // network from CI, which is both slow and rude to the provider.
+    vi.spyOn(maps, 'resolveOsmIdentity').mockClear().mockResolvedValue(null);
+    vi.spyOn(maps, 'fetchWikidataSitelinks').mockClear().mockResolvedValue({});
+    vi.spyOn(maps, 'fetchWikiExtractFor').mockClear().mockResolvedValue(null);
+    vi.spyOn(maps, 'fetchWikidataCandidates').mockClear().mockResolvedValue({ candidates: [], commonsCategory: null });
+    vi.spyOn(maps, 'fetchWikiLeadImageName').mockClear().mockResolvedValue(null);
+    vi.spyOn(maps, 'fetchCommonsFilesByName').mockClear().mockResolvedValue(new Map());
   });
 
   it('401 without a session cookie', async () => {

@@ -40,6 +40,73 @@ export function toApiLang(lang: string | undefined, fallback = 'en'): string {
   return API_LANG_OVERRIDES[code] ?? code;
 }
 
+/**
+ * A wiki subdomain out of a TREK language code.
+ *
+ * Not the same normalisation as `toApiLang`, and the difference bites: TREK
+ * calls Brazilian Portuguese `br`, but `br.wikipedia.org` exists and is the
+ * BRETON Wikipedia. Passing the raw code through would not fail — it would
+ * quietly return Breton articles. `pt-br.wikipedia.org` does not resolve at
+ * all, so the region subtag has to go as well.
+ */
+const WIKI_LANG_OVERRIDES: Record<string, string> = {
+  br: 'pt',
+  gr: 'el',
+};
+export function toWikiLang(lang: string | undefined, fallback = 'en'): string {
+  const raw = (lang || '').trim();
+  if (!raw) return fallback;
+  const mapped = WIKI_LANG_OVERRIDES[raw] ?? raw;
+  const base = mapped.split('-')[0].toLowerCase();
+  return /^[a-z]{2,3}$/.test(base) ? base : fallback;
+}
+
+/** Metres between two coordinates. Spherical earth is plenty at this scale. */
+export function haversineMetres(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/**
+ * Whether two place names plausibly refer to the same thing.
+ *
+ * The gate that keeps a coordinate-based lookup from confidently describing the
+ * wrong building. "Hamburg Airport" and "Flughafen Hamburg" pass on "hamburg";
+ * "Hamburg Airport" and "Bahnhof Ohlsdorf" do not.
+ *
+ * One shared word is enough only when it carries some weight — four letters or
+ * more. Otherwise two have to match. A single short word is almost always an
+ * article or a generic noun, and TREK speaks 23 languages, so "Der Kiosk" and
+ * "Der Bahnhof" would sail through a plain word-overlap test while a stopword
+ * list for all of them is its own maintenance problem. Anything the pair rule
+ * lets through has already survived the distance check.
+ */
+export function namesOverlap(a: string, b: string): boolean {
+  const words = (value: string): Set<string> =>
+    new Set(
+      value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .split(/[^a-z0-9]+/)
+        .filter((word) => word.length > 2),
+    );
+  const left = words(a);
+  if (left.size === 0) return false;
+
+  let shared = 0;
+  for (const word of words(b)) {
+    if (!left.has(word)) continue;
+    if (word.length >= 4) return true;
+    if (++shared >= 2) return true;
+  }
+  return false;
+}
+
 const GOOGLE_FTID_RE = /^0x[0-9a-f]+:0x[0-9a-f]+$/i;
 
 // Extracts a Google Maps feature id (ftid, 0x..:0x..) from a URL's ?ftid= param.

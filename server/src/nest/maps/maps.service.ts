@@ -27,6 +27,9 @@ import {
   resolveOverpassTimeoutMs,
   stripWikiMarkup,
   parseWikipediaTag,
+  toWikiLang,
+  haversineMetres,
+  namesOverlap,
   type GoogleOpeningHours,
   type OverpassPoi,
 } from './maps.helpers';
@@ -274,6 +277,12 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 // fresh container has been seen at eight. Enrichment answers a live dialog, so
 // a slow provider is dropped rather than waited out.
 const WIKI_TIMEOUT_MS = 6000;
+
+// Tighter than the wiki calls, because this one sits at the FRONT of a chain:
+// identity, then sitelinks, then the extract. Nominatim answers a bounded
+// search in 0.2-0.7s in practice, so anything past a couple of seconds is a bad
+// day at the provider rather than a slow answer worth waiting for.
+const IDENTITY_TIMEOUT_MS = 2500;
 
 const MAX_CONCURRENT_PHOTO_FETCHES = 5;
 let photoFetchActive = 0;
@@ -550,6 +559,91 @@ export class MapsService {
         ...readWikiIdentity(item.extratags),
       };
     });
+  }
+
+  /**
+   * Finds the OpenStreetMap record for a place we only know by name and
+   * coordinate, and hands back its tags.
+   *
+   * This is what gives a Google place a free identity. Google's payload has no
+   * `wikidata`, no `wikipedia` and no `wikimedia_commons` — it never had — so
+   * without this the entire free half of the enrichment column is unreachable
+   * for anyone who configured a Google key, which is the opposite of how this
+   * feature is meant to work. OSM knows these places perfectly well; nobody was
+   * asking it.
+   *
+   * Two gates keep it from describing the wrong building, because a confident
+   * description of somewhere else is worse than none:
+   *   - the match has to be within `maxDistanceM` of where we are looking, and
+   *   - it has to share a substantial word with the name we are looking for.
+   * Among what survives, Nominatim's own `importance` decides — that is what
+   * separates the Brandenburg Gate from the underground station named after it.
+   */
+  async resolveOsmIdentity(
+    name: string,
+    lat: number,
+    lng: number,
+    opts: { lang?: string; maxDistanceM?: number; signal?: AbortSignal } = {},
+  ): Promise<{ tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null> {
+    const query = (name || '').trim();
+    if (!query || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const maxDistanceM = opts.maxDistanceM ?? 2000;
+
+    // ~2km box around the point, so Nominatim ranks locally instead of handing
+    // back the most famous place on earth with this name.
+    const d = 0.02;
+    const params = new URLSearchParams({
+      q: query,
+      format: 'jsonv2',
+      extratags: '1',
+      limit: '5',
+      bounded: '1',
+      viewbox: `${lng - d},${lat - d},${lng + d},${lat + d}`,
+      'accept-language': toApiLang(opts.lang),
+    });
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: opts.signal ?? AbortSignal.timeout(IDENTITY_TIMEOUT_MS),
+      });
+      if (!res.ok) return null;
+      // Nominatim answers rate limiting in plain text, not JSON.
+      const data = (await res.json()) as (NominatimResult & { importance?: number })[];
+      if (!Array.isArray(data)) return null;
+
+      const best = data
+        .map((item) => ({
+          item,
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+        }))
+        .filter(({ item, lat: hitLat, lng: hitLng }) => {
+          if (!Number.isFinite(hitLat) || !Number.isFinite(hitLng)) return false;
+          if (haversineMetres(lat, lng, hitLat, hitLng) > maxDistanceM) return false;
+          const label = item.name || item.display_name?.split(',')[0] || '';
+          return namesOverlap(query, label);
+        })
+        .sort((a, b) => {
+          const byImportance = (b.item.importance ?? 0) - (a.item.importance ?? 0);
+          if (byImportance !== 0) return byImportance;
+          return (
+            haversineMetres(lat, lng, a.lat, a.lng) - haversineMetres(lat, lng, b.lat, b.lng)
+          );
+        })[0];
+
+      if (!best) return null;
+      return {
+        tags: best.item.extratags ?? {},
+        osmUrl:
+          best.item.osm_type && best.item.osm_id
+            ? `https://www.openstreetmap.org/${best.item.osm_type}/${best.item.osm_id}`
+            : null,
+        matchedName: best.item.name || best.item.display_name?.split(',')[0] || query,
+      };
+    } catch {
+      return null;
+    }
   }
 
   // ── Nominatim lookup (by OSM ID) ───────────────────────────────────────────
@@ -871,33 +965,103 @@ export class MapsService {
     });
 
     for (const host of ['wikivoyage', 'wikipedia'] as const) {
-      try {
-        const res = await fetch(`https://${parsed.lang}.${host}.org/w/api.php?${params}`, {
-          headers: { 'User-Agent': UA },
-          signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
-        });
-        if (!res.ok) continue;
-        const data = (await res.json()) as {
-          query?: { pages?: Record<string, { title?: string; extract?: string }> };
-        };
-        const pages = data.query?.pages;
-        if (!pages) continue;
-        for (const page of Object.values(pages)) {
-          const text = page.extract?.trim();
-          // A missing article comes back as a page with no extract, not a 404.
-          if (!text) continue;
-          const title = page.title ?? parsed.title;
-          return {
-            text,
-            sourceUrl: `https://${parsed.lang}.${host}.org/wiki/${encodeURIComponent(title)}`,
-            source: host,
-          };
-        }
-      } catch {
-        /* try the next wiki */
-      }
+      const hit = await this.fetchWikiExtractFor(host, parsed.lang, parsed.title);
+      if (hit) return hit;
     }
     return null;
+  }
+
+  /**
+   * The lead paragraph of one named article on one named wiki.
+   *
+   * Split out from `fetchWikiExtract` because the article is not always found
+   * through an OSM tag: a place can carry a Wikidata id and no `wikipedia` tag
+   * at all (Berlin Hauptbahnhof is exactly that), and then the title comes from
+   * the item's sitelinks instead.
+   */
+  async fetchWikiExtractFor(
+    host: 'wikivoyage' | 'wikipedia',
+    lang: string,
+    title: string,
+    signal?: AbortSignal,
+  ): Promise<{ text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null> {
+    if (!lang || !title) return null;
+    // Two sentences, not three: this sits next to a form, and a fourth line of
+    // prose pushes the pictures out of view.
+    const params = new URLSearchParams({
+      action: 'query',
+      format: 'json',
+      titles: title,
+      prop: 'extracts',
+      exintro: '1',
+      explaintext: '1',
+      exsentences: '2',
+      redirects: '1',
+    });
+    try {
+      const res = await fetch(`https://${lang}.${host}.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: signal ?? AbortSignal.timeout(WIKI_TIMEOUT_MS),
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        query?: { pages?: Record<string, { title?: string; extract?: string }> };
+      };
+      for (const page of Object.values(data.query?.pages ?? {})) {
+        const text = page.extract?.trim();
+        // A missing article comes back as a page with no extract, not a 404.
+        if (!text) continue;
+        const resolved = page.title ?? title;
+        return {
+          text,
+          sourceUrl: `https://${lang}.${host}.org/wiki/${encodeURIComponent(resolved)}`,
+          source: host,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Which articles a Wikidata item is linked to, for the wikis we care about.
+   *
+   * The way to an article when a place has a Wikidata id but no `wikipedia`
+   * tag — which is most of them, because mappers add one or the other. One
+   * request, a few hundred bytes.
+   */
+  async fetchWikidataSitelinks(
+    wikidataId: string,
+    sites: string[],
+    signal?: AbortSignal,
+  ): Promise<Record<string, string>> {
+    const qid = wikidataId.trim();
+    if (!/^Q\d+$/.test(qid) || sites.length === 0) return {};
+    const params = new URLSearchParams({
+      action: 'wbgetentities',
+      props: 'sitelinks',
+      ids: qid,
+      sitefilter: sites.join('|'),
+      format: 'json',
+    });
+    try {
+      const res = await fetch(`https://www.wikidata.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: signal ?? AbortSignal.timeout(IDENTITY_TIMEOUT_MS),
+      });
+      if (!res.ok) return {};
+      const data = (await res.json()) as {
+        entities?: Record<string, { sitelinks?: Record<string, { title?: string }> }>;
+      };
+      const out: Record<string, string> = {};
+      for (const [site, link] of Object.entries(data.entities?.[qid]?.sitelinks ?? {})) {
+        if (link?.title) out[site] = link.title;
+      }
+      return out;
+    } catch {
+      return {};
+    }
   }
 
   /**

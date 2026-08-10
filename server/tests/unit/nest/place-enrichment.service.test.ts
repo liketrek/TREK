@@ -58,6 +58,9 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     fetchWikidataCandidates: vi.fn(async () => ({ candidates: [] as any[], commonsCategory: null as string | null })),
     fetchCommonsFilesByName: vi.fn(async () => new Map<string, any>()),
     fetchWikiLeadImageName: vi.fn(async () => null as string | null),
+    resolveOsmIdentity: vi.fn(async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null),
+    fetchWikidataSitelinks: vi.fn(async () => ({}) as Record<string, string>),
+    fetchWikiExtractFor: vi.fn(async () => null as { text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null),
     details: vi.fn(async () => ({ place: null })),
     ...over,
   } as unknown as MapsService;
@@ -443,7 +446,10 @@ describe('collectDescription', () => {
 
     await make(maps, cacheStub()).enrich(1, OSM_REQ);
 
-    expect(maps.fetchWikiExtract).toHaveBeenCalledWith(null);
+    // Not a usable tag, so it counts as no identity at all: the lookup that
+    // finds one is tried instead, and the wiki itself is never asked.
+    expect(maps.resolveOsmIdentity).toHaveBeenCalled();
+    expect(maps.fetchWikiExtract).not.toHaveBeenCalled();
   });
 
   it('ENRICH-017: honours the details kill switch and the missing key', async () => {
@@ -477,12 +483,16 @@ describe('collectDescription', () => {
     });
   });
 
-  it('ENRICH-019: passes null on when the place carries no wiki tag', async () => {
+  it('ENRICH-019: looks the place up when it carries no wiki tag, and gives up quietly when that finds nothing', async () => {
+    // The kiosk case. A place with no tag and no OSM match genuinely has no
+    // description, and inventing one from a name search is how you confidently
+    // describe a different building.
     const maps = mapsStub({ details: vi.fn(async () => ({ place: { name: 'Kiosk' } })) });
 
     const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
 
-    expect(maps.fetchWikiExtract).toHaveBeenCalledWith(null);
+    expect(maps.resolveOsmIdentity).toHaveBeenCalledWith('Museum Ludwig', 50.9, 6.96, { lang: undefined });
+    expect(maps.fetchWikiExtract).not.toHaveBeenCalled();
     expect(out.description).toBeNull();
   });
 

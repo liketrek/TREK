@@ -9,8 +9,8 @@ import type {
 } from '@trek/shared';
 import { safeFetchFollow } from '../../utils/ssrfGuard';
 import { DatabaseService } from '../database/database.service';
-import { MapsService, withPhotoFetchSlot, type CommonsCandidate } from '../maps/maps.service';
-import { isGooglePlaceId, rankCommonsCandidates } from '../maps/maps.helpers';
+import { MapsService, readWikiIdentity, withPhotoFetchSlot, type CommonsCandidate, type WikiIdentity } from '../maps/maps.service';
+import { isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 
 /**
@@ -57,6 +57,15 @@ const CACHE_VERSION = 3;
 export function candidateKey(placeId: string, identity: string): string {
   const digest = createHash('sha1').update(identity).digest('hex').slice(0, 12);
   return `${placeId}~p${digest}`;
+}
+
+/**
+ * What the free sources need to know about a place, kept apart from whatever
+ * the maps provider returned. See `resolveIdentity` for why they do not merge.
+ */
+interface PlaceIdentity extends WikiIdentity {
+  /** Full OSM tag set, when the identity came from a Nominatim lookup. */
+  osmTags: Record<string, string> | null;
 }
 
 /** A ranked Commons pick, tagged with the rung of the ladder it came from. */
@@ -204,10 +213,11 @@ export class PlaceEnrichmentService {
     // comes along with the request. Refetching cost 12.8 seconds on a large
     // OSM relation, and it ran in parallel with the client's own lookup.
     const details = req.details ?? (await this.readDetails(userId, placeId, lang));
+    const identity = await this.resolveIdentity(req, details);
 
     const [photos, description] = await Promise.all([
-      this.collectPhotos(userId, placeId, req, details),
-      this.collectDescription(userId, placeId, req, details),
+      this.collectPhotos(userId, placeId, req, identity),
+      this.collectDescription(userId, placeId, req, details, identity),
     ]);
 
     const result: CachedEnrichment = { photos, description, facts: collectFacts(details) };
@@ -226,20 +236,53 @@ export class PlaceEnrichmentService {
     return { credit: this.photoCache.get(key)?.attribution ?? null };
   }
 
+  /**
+   * Which encyclopaedia entry, Wikidata item and Commons category describe this
+   * place.
+   *
+   * Kept beside the provider payload rather than merged into it, and that is
+   * not tidiness. `collectFacts` and the OSM branch of `collectDescription`
+   * both gate on `details.source`, so OSM tags folded into a Google payload
+   * would be carried around and never read — or, worse, would make a Google
+   * place start claiming to be an OpenStreetMap one.
+   *
+   * The lookup only runs when the payload brought nothing, which is every
+   * Google place: Google's response has no wiki tags and never had, so before
+   * this a configured API key silently switched the free half of this feature
+   * off.
+   */
+  private async resolveIdentity(
+    req: MapsPlaceEnrichmentRequest,
+    details: Record<string, unknown> | null,
+  ): Promise<PlaceIdentity> {
+    const fromPayload = (key: string): string | null =>
+      typeof details?.[key] === 'string' && (details[key] as string).trim() ? (details[key] as string).trim() : null;
+
+    const carried: PlaceIdentity = {
+      wikipedia: fromPayload('wikipedia'),
+      wikidata: fromPayload('wikidata'),
+      wikimedia_commons: fromPayload('wikimedia_commons'),
+      osmTags: null,
+    };
+    if (carried.wikipedia || carried.wikidata || carried.wikimedia_commons) return carried;
+
+    const resolved = await this.maps.resolveOsmIdentity(req.name, req.lat, req.lng, { lang: req.lang });
+    if (!resolved) return carried;
+    return { ...readWikiIdentity(resolved.tags), osmTags: resolved.tags };
+  }
+
   // ── Photos ─────────────────────────────────────────────────────────────────
 
   private async collectPhotos(
     userId: number,
     placeId: string,
     req: MapsPlaceEnrichmentRequest,
-    details: Record<string, unknown> | null,
+    identity: PlaceIdentity,
   ): Promise<PlacePhotoCandidate[]> {
     const apiKey = this.maps.getMapsKey(userId);
     const wantsGoogle = !!apiKey && !this.maps.photosDisabled() && isGooglePlaceId(placeId);
 
-    const tag = (key: string): string | null => (typeof details?.[key] === 'string' ? (details[key] as string) : null);
-    const wikidata = tag('wikidata');
-    const wikipedia = tag('wikipedia');
+    const { wikidata, wikipedia } = identity;
 
     // Google's listing is one call for the whole strip and knows nothing about
     // the free sources, so it runs alongside them rather than in the ladder.
@@ -258,7 +301,7 @@ export class PlaceEnrichmentService {
     // gate by the underground station beneath it. It is the fallback, and it
     // only runs when the ladder above came up short.
     const commonsPool: CommonsPick[] = [];
-    let categoryName = tag('wikimedia_commons');
+    let categoryName = identity.wikimedia_commons;
 
     if (wikidata) {
       const fromWikidata = await this.maps.fetchWikidataCandidates(wikidata, COMMONS_CAP);
@@ -392,6 +435,7 @@ export class PlaceEnrichmentService {
     placeId: string,
     req: MapsPlaceEnrichmentRequest,
     details: Record<string, unknown> | null,
+    identity: PlaceIdentity,
   ): Promise<PlaceDescription | null> {
     // OpenStreetMap first: it costs nothing, it is already fetched, and a
     // description someone wrote into the map data beats a generated blurb.
@@ -403,6 +447,16 @@ export class PlaceEnrichmentService {
         sourceUrl: typeof details.osm_url === 'string' ? details.osm_url : null,
         license: 'ODbL 1.0',
       };
+    }
+
+    // Then the encyclopaedias. This used to sit BELOW Google, which read as a
+    // detail and was in fact the whole problem: an instance with a key asked
+    // Google, got nothing back for most places, and stopped — while a perfectly
+    // good Wikivoyage article sat one call away. Free sources are the normal
+    // case here and Google is the addition, so the order says so.
+    const extract = await this.fetchWikiDescription(identity, req.lang);
+    if (extract) {
+      return { text: extract.text, source: extract.source, sourceUrl: extract.sourceUrl, license: 'CC BY-SA 4.0' };
     }
 
     const apiKey = this.maps.getMapsKey(userId);
@@ -418,16 +472,56 @@ export class PlaceEnrichmentService {
       }
     }
 
-    // Wikipedia last, and only when the place carries a wiki tag. Looking the
-    // article up by name lands on the wrong one for anything ambiguous, and a
-    // confident description of somewhere else is worse than none.
-    const wikipediaTag = typeof details?.wikipedia === 'string' ? details.wikipedia : null;
-    const extract = await this.maps.fetchWikiExtract(wikipediaTag);
-    if (extract) {
-      return { text: extract.text, source: extract.source, sourceUrl: extract.sourceUrl, license: 'CC BY-SA 4.0' };
+    return null;
+  }
+
+  /**
+   * The article about this place, in the reader's language where one exists.
+   *
+   * Two ways in, and a place usually has only one of them: mappers tag either
+   * `wikipedia` or `wikidata`, rarely both. The Wikidata route goes through
+   * sitelinks, which is also what makes the language choice honest — asking
+   * `<userlang>.wikipedia.org` for a title taken from the German tag returns
+   * nothing, so without sitelinks a German article is all a Korean reader could
+   * ever get.
+   *
+   * Wikivoyage before Wikipedia at every step: it describes a place for someone
+   * about to go there, where Wikipedia opens with area in square kilometres.
+   */
+  private async fetchWikiDescription(
+    identity: PlaceIdentity,
+    lang: string | undefined,
+  ): Promise<{ text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null> {
+    const userLang = toWikiLang(lang);
+    const tag = parseWikipediaTag(identity.wikipedia);
+
+    if (identity.wikidata) {
+      // The tag's own language is in the list because the place named that
+      // article specifically; it beats falling through to English.
+      const wanted: { site: string; host: 'wikivoyage' | 'wikipedia'; lang: string }[] = [
+        { site: `${userLang}wikivoyage`, host: 'wikivoyage', lang: userLang },
+        { site: `${userLang}wiki`, host: 'wikipedia', lang: userLang },
+        ...(tag && tag.lang !== userLang
+          ? [{ site: `${tag.lang}wiki`, host: 'wikipedia' as const, lang: tag.lang }]
+          : []),
+        { site: 'enwikivoyage', host: 'wikivoyage', lang: 'en' },
+        { site: 'enwiki', host: 'wikipedia', lang: 'en' },
+      ];
+      const sitelinks = await this.maps.fetchWikidataSitelinks(
+        identity.wikidata,
+        wanted.map((w) => w.site),
+      );
+      for (const { site, host, lang: hostLang } of wanted) {
+        const title = sitelinks[site];
+        if (!title) continue;
+        const hit = await this.maps.fetchWikiExtractFor(host, hostLang, title);
+        if (hit) return hit;
+      }
     }
 
-    return null;
+    // No Wikidata id, or its sitelinks led nowhere: fall back to the tag, which
+    // names an article directly.
+    return identity.wikipedia ? this.maps.fetchWikiExtract(identity.wikipedia) : null;
   }
 
   /**
