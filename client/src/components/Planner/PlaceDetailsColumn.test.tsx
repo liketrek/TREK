@@ -480,11 +480,11 @@ describe('PlaceDetailsColumn — chain description', () => {
 })
 
 /**
- * FE-PDC-032..037 — the lead image and its rail.
+ * FE-PDC-032..037 — the picture grid.
  *
- * The grid was three 84px squares in a 288px column, which is too small to tell
- * a facade from a foyer — the one thing the picker exists for. What must NOT
- * change: picking a picture still takes one click.
+ * A lead image plus a thumbnail rail was tried and dropped: it took too much of
+ * a column that also has to show facts, hours and a description. What must hold
+ * either way is that picking a picture stays one click.
  */
 describe('PlaceDetailsColumn — picture layout', () => {
   const photo = (n: number, over: Record<string, unknown> = {}) => ({
@@ -508,19 +508,16 @@ describe('PlaceDetailsColumn — picture layout', () => {
   // alt="" makes an image presentational, so it carries no `img` role — these
   // read the DOM directly, the way the strip cases above already do.
   const shownImages = () => Array.from(document.querySelectorAll('img'))
-  const leadSrc = () => shownImages()[0]?.getAttribute('src')
 
-  it('FE-PDC-032: shows the first picture large and the rest as a rail', async () => {
+  it('FE-PDC-032: shows one tile per picture and nothing else', async () => {
     withPhotos(4)
     renderColumn()
 
     await screen.findByText('places.details.pickImage')
-    // One lead plus one thumbnail per picture.
-    expect(shownImages()).toHaveLength(5)
-    expect(leadSrc()).toBe('/api/maps/place-photo/p0/bytes')
+    expect(shownImages()).toHaveLength(4)
   })
 
-  it('FE-PDC-033: leaves the rail off when there is only one picture', async () => {
+  it('FE-PDC-033: a single picture is a single tile', async () => {
     withPhotos(1)
     renderColumn()
 
@@ -528,50 +525,45 @@ describe('PlaceDetailsColumn — picture layout', () => {
     expect(shownImages()).toHaveLength(1)
   })
 
-  it('FE-PDC-034: picking a picture is still one click', async () => {
+  it('FE-PDC-034: picking a picture is one click', async () => {
     withPhotos(3)
     const { onPickImage } = renderColumn()
 
     await screen.findByText('places.details.pickImage')
-    // Buttons: lead first, then one per thumbnail.
-    const buttons = screen.getAllByRole('button', { name: /places.details.pickImage/ })
-    fireEvent.click(buttons[2])
+    const tiles = screen.getAllByRole('button', { name: /places.details.pickImage/ })
+    fireEvent.click(tiles[1])
 
     expect(onPickImage).toHaveBeenCalledWith('/api/maps/place-photo/p1/bytes')
     expect(onPickImage).toHaveBeenCalledTimes(1)
   })
 
-  it('FE-PDC-035: hovering a thumbnail previews it without picking it', async () => {
-    withPhotos(3)
-    const { onPickImage } = renderColumn()
-
-    await screen.findByText('places.details.pickImage')
-    const buttons = screen.getAllByRole('button', { name: /places.details.pickImage/ })
-    fireEvent.mouseEnter(buttons[3])
-
-    expect(leadSrc()).toBe('/api/maps/place-photo/p2/bytes')
-    expect(onPickImage).not.toHaveBeenCalled()
-  })
-
-  it('FE-PDC-036: clicking the lead picks the picture it is showing, and unpicks it again', async () => {
+  it('FE-PDC-035: clicking the picked tile again clears the choice', async () => {
     withPhotos(2)
     const { onPickImage } = renderColumn({ selectedImageUrl: '/api/maps/place-photo/p1/bytes' })
 
     await screen.findByText('places.details.pickImage')
-    const lead = screen.getAllByRole('button', { name: /places.details.pickImage/ })[0]
-    // The picked one is what the lead slot shows.
-    expect(leadSrc()).toBe('/api/maps/place-photo/p1/bytes')
+    const tiles = screen.getAllByRole('button', { name: /places.details.pickImage/ })
+    fireEvent.click(tiles[1])
 
-    fireEvent.click(lead)
     expect(onPickImage).toHaveBeenCalledWith(null)
   })
 
-  it('FE-PDC-037: credits the picture in the lead slot, licence included', async () => {
+  it('FE-PDC-036: hovering a tile moves the credit to it without picking it', async () => {
+    withPhotos(3)
+    const { onPickImage } = renderColumn()
+
+    await screen.findByText('Author 0')
+    const tiles = screen.getAllByRole('button', { name: /places.details.pickImage/ })
+    fireEvent.mouseEnter(tiles[2])
+
+    expect(screen.getByText('Author 2')).toBeInTheDocument()
+    expect(onPickImage).not.toHaveBeenCalled()
+  })
+
+  it('FE-PDC-037: credits the picture in play, licence included', async () => {
     withPhotos(2)
     renderColumn()
 
-    // The credit rides on the picture rather than sitting in its own line, which
-    // used to change text on every hover.
     expect(await screen.findByText('Author 0')).toBeInTheDocument()
     expect(screen.getByText('Author 0').closest('a')).toHaveAttribute(
       'href',

@@ -283,17 +283,17 @@ function creditOf(photo: PlacePhotoCandidate): string {
 }
 
 /**
- * The pictures: one large, the rest as a thumbnail rail.
+ * The picture grid.
  *
- * This was a three-column square grid, which in a 288px column worked out to
- * 84px tiles — too small to tell a facade from a foyer, and the whole reason
- * for choosing one over another. A lead image at 4:3 shows what the picture
- * actually is; the rail below it says how many others there are.
+ * A grid rather than one large image: this sits beside a form in a dialog, and
+ * a picture that takes half the column pushes the facts and the description out
+ * of sight. Three columns at 320px gives ~96px tiles, which is enough to tell
+ * the pictures apart while leaving the rest of the column visible.
  *
- * The click count is unchanged: a thumbnail picks that picture, exactly as the
- * tiles did. Hovering one only previews it in the lead slot, and clicking the
- * lead toggles the picture currently shown — so nothing that worked before
- * takes an extra step now.
+ * Only the picture in play is credited in full — crediting all of them at once
+ * cost two lines each and drowned the column, and the licence obligation
+ * attaches to the one that gets used. Every tile still carries the full credit
+ * as its tooltip and links to its source page.
  */
 function PhotoStrip({
   photos,
@@ -309,53 +309,26 @@ function PhotoStrip({
   const [hovered, setHovered] = useState<string | null>(null)
   if (photos.length === 0) return null
 
-  const lead = photos.find((p) => p.url === (hovered ?? selectedImageUrl)) ?? photos[0]
-  const leadPicked = !!selectedImageUrl && lead.url === selectedImageUrl
+  const shown = photos.find((p) => p.url === (hovered ?? selectedImageUrl)) ?? photos[0]
 
   return (
     <div className="space-y-2">
       <Overline>{t('places.details.pickImage')}</Overline>
-      <button
-        type="button"
-        onClick={() => onPickImage(leadPicked ? null : lead.url)}
-        aria-pressed={leadPicked}
-        aria-label={`${t('places.details.pickImage')} — ${creditOf(lead)}`}
-        className={`group relative block w-full aspect-[4/3] overflow-hidden rounded-lg bg-surface transition-shadow ${
-          leadPicked
-            ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-secondary'
-            : 'ring-1 ring-edge hover:ring-content-muted'
-        }`}
-      >
-        <img src={lead.url} alt="" className="w-full h-full object-cover" />
-        {/* The credit rides on the picture it belongs to. As its own line below
-            the grid it changed text on every hover, which read as flicker and
-            left the licence attached to nothing in particular. */}
-        <span className="absolute inset-x-0 bottom-0 bg-[var(--tooltip-bg)] px-2 py-1 backdrop-blur-[2px]">
-          <span className="block truncate text-caption leading-tight text-content-secondary">
-            <PhotoCredit photo={lead} />
-          </span>
-        </span>
-        {leadPicked && (
-          <span className="absolute top-1.5 right-1.5 rounded-full bg-accent p-1 shadow-card">
-            <Check className="w-3 h-3 text-accent-text" />
-          </span>
-        )}
-      </button>
-      {photos.length > 1 && (
-        <div className="grid grid-cols-4 gap-1.5">
-          {photos.map((photo) => (
-            <PhotoTile
-              key={photo.key}
-              photo={photo}
-              selected={selectedImageUrl === photo.url}
-              showing={lead.url === photo.url}
-              onPick={onPickImage}
-              onHover={setHovered}
-              t={t}
-            />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-3 gap-1.5">
+        {photos.map((photo) => (
+          <PhotoTile
+            key={photo.key}
+            photo={photo}
+            selected={selectedImageUrl === photo.url}
+            onPick={onPickImage}
+            onHover={setHovered}
+            t={t}
+          />
+        ))}
+      </div>
+      <p className="text-caption leading-tight text-content-faint truncate">
+        <PhotoCredit photo={shown} />
+      </p>
     </div>
   )
 }
@@ -363,15 +336,12 @@ function PhotoStrip({
 function PhotoTile({
   photo,
   selected,
-  showing,
   onPick,
   onHover,
   t,
 }: {
   photo: PlacePhotoCandidate
   selected: boolean
-  /** Currently in the lead slot, whether by hover or by being the picked one. */
-  showing: boolean
   onPick: (url: string | null) => void
   onHover: (url: string | null) => void
   t: TranslationFn
@@ -389,23 +359,19 @@ function PhotoTile({
       aria-pressed={selected}
       aria-label={`${t('places.details.pickImage')} — ${credit}`}
       title={`${credit}${photo.license ? ` · ${photo.license}` : ''}`}
-      className={`group relative block w-full aspect-square overflow-hidden rounded-md transition-shadow ${
-        selected
-          ? 'ring-2 ring-accent'
-          : showing
-            ? 'ring-1 ring-content-muted'
-            : 'ring-1 ring-edge hover:ring-content-muted'
+      className={`group relative block w-full aspect-square overflow-hidden rounded-lg transition-shadow ${
+        selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-secondary' : 'ring-1 ring-edge hover:ring-content-muted'
       }`}
     >
       <img
         src={photo.url}
         alt=""
         loading="lazy"
-        className={`w-full h-full object-cover transition-opacity ${showing || selected ? '' : 'opacity-70 group-hover:opacity-100'}`}
+        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
       />
       {selected && (
-        <span className="absolute bottom-0.5 right-0.5 rounded-full bg-accent p-0.5 shadow-card">
-          <Check className="w-2 h-2 text-accent-text" />
+        <span className="absolute top-1 right-1 rounded-full bg-accent p-0.5 shadow-card">
+          <Check className="w-2.5 h-2.5 text-accent-on" />
         </span>
       )}
     </button>
@@ -419,7 +385,7 @@ function sourceLabelFor(source: PlacePhotoCandidate['source']): string {
 }
 
 /**
- * Author and licence for the picture in the lead slot.
+ * Author and licence for the picture currently in play.
  *
  * Not decoration: Commons images are largely CC BY / CC BY-SA, and reusing one
  * without naming its author does not satisfy those terms. When a source hands
