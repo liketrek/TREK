@@ -5,11 +5,11 @@ import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
 import { num, schemaMessage } from '../plugins/host/rpc-params';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
 import { RealtimeService } from '../realtime/realtime.service';
-import { DaysService } from './days.service';
+import { AccommodationsService } from './accommodations.service';
 
 /**
  * Accommodations hold db:write:accommodations but are gated on 'day_edit', NOT on
- * reservation_edit. The blocks live in the day service and the REST path guards them
+ * reservation_edit. The blocks live in the accommodation service and the REST path guards them
  * the same way; the decorator makes the mismatch visible instead of burying it.
  */
 const ACCOMMODATION_EDIT_ACTION = 'day_edit';
@@ -28,14 +28,14 @@ type AccommodationInput = {
 /**
  * The lodging-block surface a plugin may reach (#plugins).
  *
- * Everything delegates to DaysService, so the auto-created partner hotel reservation,
+ * Everything delegates to AccommodationsService, so the auto-created partner hotel reservation,
  * the metadata sync on update and the delete cascade behave exactly like the
  * accommodations REST controller, cascade broadcasts included.
  */
 @PluginController()
 export class AccommodationsRpc {
   constructor(
-    private readonly days: DaysService,
+    private readonly days: AccommodationsService,
     private readonly realtime: RealtimeService,
     private readonly guards: PluginGuards,
   ) {}

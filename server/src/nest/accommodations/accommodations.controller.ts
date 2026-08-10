@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import type { User } from '../../types';
 import { AccommodationsService } from './accommodations.service';
-import { AccommodationCreateDto, AccommodationUpdateDto } from './reservations.dto';
+import { AccommodationCreateDto, AccommodationUpdateDto } from './accommodations.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';

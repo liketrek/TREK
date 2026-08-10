@@ -8,6 +8,7 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService } from '../database/database.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { DaysService } from '../days/days.service';
+import { AccommodationsService } from '../accommodations/accommodations.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
 
@@ -37,6 +38,8 @@ export class TripsRpc {
     private readonly db: DatabaseService,
     private readonly realtime: RealtimeService,
     private readonly guards: PluginGuards,
+    // Appended: the hand-wired plugin-host harnesses build this positionally.
+    private readonly accommodations: AccommodationsService,
   ) {}
 
   @PluginMethod('trips.getById', { permission: 'db:read:trips' })
@@ -76,7 +79,7 @@ export class TripsRpc {
 
   @PluginMethod('trips.getAccommodations', { permission: 'db:read:trips' })
   getAccommodations(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, () => this.days.listAccommodations(num(params.tripId, 'tripId')) as unknown[]);
+    return this.guards.tripRead(params, ctx, () => this.accommodations.list(num(params.tripId, 'tripId')) as unknown[]);
   }
 
   @PluginMethod('trips.listMine', { permission: 'db:read:trips' })

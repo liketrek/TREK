@@ -61,6 +61,7 @@ export default defineConfig({
       // A file matched by a glob below is EXCLUDED from the catch-all, so the last entry
       // only covers what sits directly under src/nest (app.module.ts and the like).
       thresholds: {
+        'src/nest/accommodations/**/*.ts': { statements: 92, branches: 82, functions: 98, lines: 97 },
         'src/nest/addons/**/*.ts': { statements: 99, branches: 87, functions: 99, lines: 99 },
         'src/nest/admin/**/*.ts': { statements: 86, branches: 70, functions: 89, lines: 88 },
         'src/nest/airports/**/*.ts': { statements: 68, branches: 60, functions: 93, lines: 73 },

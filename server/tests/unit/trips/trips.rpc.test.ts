@@ -18,6 +18,7 @@ import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.se
 import type { TripsService } from '../../../src/nest/trips/trips.service';
 import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
 import type { DaysService } from '../../../src/nest/days/days.service';
+import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import type { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
@@ -44,8 +45,11 @@ export function build(opts: { allow?: (action: string) => boolean; updateThrows?
   const reservations = { list: vi.fn(() => [{ id: 5 }]) } as unknown as ReservationsService & Record<string, ReturnType<typeof vi.fn>>;
   const days = {
     list: vi.fn(() => ({ days: [{ id: 3 }] })),
-    listAccommodations: vi.fn(() => [{ id: 11 }]),
   } as unknown as DaysService & Record<string, ReturnType<typeof vi.fn>>;
+  // The stays left the day service when accommodations became their own domain.
+  const accommodations = {
+    list: vi.fn(() => [{ id: 11 }]),
+  } as unknown as AccommodationsService & Record<string, ReturnType<typeof vi.fn>>;
   const membership = { joinTripAsMember: vi.fn(() => ({ joined: true })) } as unknown as TripMembershipService & Record<string, ReturnType<typeof vi.fn>>;
   const db = {
     canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined)),
@@ -61,10 +65,10 @@ export function build(opts: { allow?: (action: string) => boolean; updateThrows?
   const permissions = { checkPermission: vi.fn((a: string) => (opts.allow ? opts.allow(a) : true)) } as unknown as PermissionsService;
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
   const guards = new PluginGuards(db, permissions, { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService);
-  const rpc = new TripsRpc(trips, reservations, days, membership, db, realtime, guards);
+  const rpc = new TripsRpc(trips, reservations, days, membership, db, realtime, guards, accommodations);
   const host = (...grants: string[]) =>
     new PluginRpcHost('p', new Set(grants.length ? grants : ALL_TRIP_GRANTS), makeDeps(), createTestPluginRegistry([rpc]));
-  return { trips, reservations, days, membership, realtime, permissions, host };
+  return { trips, reservations, days, accommodations, membership, realtime, permissions, host };
 }
 
 describe('TripsRpc reads', () => {

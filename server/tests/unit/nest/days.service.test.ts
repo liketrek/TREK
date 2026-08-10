@@ -231,174 +231,13 @@ describe('remove', () => {
 
 // ── validateAccommodationRefs ─────────────────────────────────────────────────
 
-describe('validateAccommodationRefs', () => {
-  it('DAY-SVC-016 — returns no errors when all refs are valid', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
-    const errors = svc.validateAccommodationRefs(trip.id, place.id, day.id, day.id);
-    expect(errors).toHaveLength(0);
-  });
-
-  it('DAY-SVC-017 — returns error when place does not exist in trip', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const errors = svc.validateAccommodationRefs(trip.id, 99999, day.id, day.id);
-    expect(errors.some((e: any) => e.field === 'place_id')).toBe(true);
-  });
-
-  it('DAY-SVC-018 — returns error when start_day_id is invalid', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
-    const errors = svc.validateAccommodationRefs(trip.id, place.id, 99999, day.id);
-    expect(errors.some((e: any) => e.field === 'start_day_id')).toBe(true);
-  });
-});
-
 // ── createAccommodation ───────────────────────────────────────────────────────
-
-describe('createAccommodation', () => {
-  it('DAY-SVC-019 — creates accommodation and returns it with place info', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const place = createPlace(testDb, trip.id, { name: 'Grand Hotel' }) as any;
-
-    const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id,
-      start_day_id: day.id,
-      end_day_id: day.id,
-      check_in: '15:00',
-      check_out: '11:00',
-    }) as any;
-
-    expect(accom).toBeDefined();
-    expect(accom.place_name).toBe('Grand Hotel');
-  });
-
-  it('DAY-SVC-020 — auto-creates a linked reservation', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const place = createPlace(testDb, trip.id, { name: 'City Hotel' }) as any;
-
-    const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
-    }) as any;
-
-    const reservation = testDb.prepare('SELECT * FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
-    expect(reservation).toBeDefined();
-    expect(reservation.type).toBe('hotel');
-    expect(reservation.status).toBe('confirmed');
-  });
-});
 
 // ── getAccommodation ──────────────────────────────────────────────────────────
 
-describe('getAccommodation', () => {
-  it('DAY-SVC-021 — returns accommodation for valid id and trip', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
-    const accom = createDayAccommodation(testDb, trip.id, place.id, day.id, day.id) as any;
-    const found = svc.getAccommodation(accom.id, trip.id) as any;
-    expect(found).toBeDefined();
-    expect(found.id).toBe(accom.id);
-  });
-
-  it('DAY-SVC-022 — returns undefined for non-existent accommodation', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    expect(svc.getAccommodation(99999, trip.id)).toBeUndefined();
-  });
-});
-
 // ── updateAccommodation ───────────────────────────────────────────────────────
 
-describe('updateAccommodation', () => {
-  it('DAY-SVC-023 — updates check-in and check-out times', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
-    const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
-    }) as any;
-
-    const existing = svc.getAccommodation(accom.id, trip.id)!;
-    const updated = svc.updateAccommodation(accom.id, existing as any, { check_in: '16:00', check_out: '12:00' }) as any;
-    expect(updated).toBeDefined();
-
-    // Verify linked reservation metadata was synced
-    const reservation = testDb.prepare('SELECT * FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
-    expect(reservation).toBeDefined();
-    const meta = JSON.parse(reservation.metadata || '{}');
-    expect(meta.check_in_time).toBe('16:00');
-    expect(meta.check_out_time).toBe('12:00');
-  });
-
-  it('DAY-SVC-024 — preserves existing fields when not updated', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
-    const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
-      confirmation: 'ABC123',
-    }) as any;
-
-    const existing = svc.getAccommodation(accom.id, trip.id)!;
-    svc.updateAccommodation(accom.id, existing as any, { check_in: '14:00' });
-
-    const row = svc.getAccommodation(accom.id, trip.id) as any;
-    expect(row.confirmation).toBe('ABC123');
-  });
-});
-
 // ── deleteAccommodation ───────────────────────────────────────────────────────
-
-describe('deleteAccommodation', () => {
-  it('DAY-SVC-025 — deletes accommodation and its linked reservation', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
-    const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
-    }) as any;
-
-    const reservation = testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
-
-    const result = svc.deleteAccommodation(accom.id);
-    expect(result.linkedReservationId).toBe(reservation.id);
-
-    // Accommodation is gone
-    expect(svc.getAccommodation(accom.id, trip.id)).toBeUndefined();
-
-    // Reservation is gone
-    const deletedRes = testDb.prepare('SELECT id FROM reservations WHERE id = ?').get(reservation.id);
-    expect(deletedRes).toBeUndefined();
-  });
-
-  it('DAY-SVC-026 — returns null linkedReservationId when no reservation was linked', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
-    const accom = createDayAccommodation(testDb, trip.id, place.id, day.id, day.id) as any;
-
-    // Remove the auto-created reservation so there's no linked one
-    testDb.prepare('DELETE FROM reservations WHERE accommodation_id = ?').run(accom.id);
-
-    const result = svc.deleteAccommodation(accom.id);
-    expect(result.linkedReservationId).toBeNull();
-  });
-});
 
 // ── days.bridge delegation (out-of-container consumers) ───────────────────────
 // The listAccommodations / restampReservationDates / resyncAccommodationDays /
@@ -422,17 +261,6 @@ describe('days.bridge', () => {
     const result = bridgeListDays(trip.id);
     expect(result.days).toHaveLength(1);
     expect(Array.isArray(result.days[0].assignments)).toBe(true);
-  });
-
-  it('DAY-SVC-029 — listAccommodations returns the hydrated stays', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id, { name: 'Ryokan' });
-    createDayAccommodation(testDb, trip.id, place.id, day.id, day.id);
-    const rows = svc.listAccommodations(trip.id) as { place_name: string }[];
-    expect(rows).toHaveLength(1);
-    expect(rows[0].place_name).toBe('Ryokan');
   });
 
   it('DAY-SVC-030 — addDays stays UTC-only across month and year rollovers', () => {
@@ -511,24 +339,6 @@ describe('quirk fixes', () => {
         place_id: place.id, start_day_id: day.id, end_day_id: day.id,
       })).toThrow();
       expect(testDb.prepare('SELECT COUNT(*) as n FROM day_accommodations WHERE trip_id = ?').get(trip.id)).toMatchObject({ n: 0 });
-    } finally {
-      testDb.exec('DROP TRIGGER boom');
-    }
-  });
-
-  it('DAY-SVC-035 — deleteAccommodation is atomic: a failed stay delete keeps the linked reservation', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' });
-    const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
-    }) as { id: number };
-    testDb.exec("CREATE TRIGGER boom BEFORE DELETE ON day_accommodations BEGIN SELECT RAISE(ABORT, 'boom'); END");
-    try {
-      expect(() => svc.deleteAccommodation(accom.id)).toThrow();
-      // The earlier reservation delete inside the transaction rolled back.
-      expect(testDb.prepare('SELECT COUNT(*) as n FROM reservations WHERE accommodation_id = ?').get(accom.id)).toMatchObject({ n: 1 });
     } finally {
       testDb.exec('DROP TRIGGER boom');
     }

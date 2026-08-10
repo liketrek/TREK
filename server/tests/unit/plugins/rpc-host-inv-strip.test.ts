@@ -32,7 +32,7 @@ const tripsRegistry = () => {
   } as unknown as DatabaseService;
   const guards = new PluginGuards(db, {} as never, {} as never);
   return createTestPluginRegistry([
-    new TripsRpc({} as never, {} as never, {} as never, {} as never, db, {} as never, guards),
+    new TripsRpc({} as never, {} as never, {} as never, {} as never, db, {} as never, guards, {} as never),
   ]);
 };
 

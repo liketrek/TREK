@@ -65,6 +65,7 @@ import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { TripsService } from '../../../src/nest/trips/trips.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { getTripOwner, listMembers as bridgeListMembers } from '../../../src/nest/trips/trips.bridge';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
@@ -76,7 +77,8 @@ const dbs = () => new DatabaseService(testDb);
 const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
 const daysSvc = new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs()));
 const placesSvc = new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs()), new QueryHelpersService(dbs()));
-const createAccommodation = daysSvc.createAccommodation.bind(daysSvc);
+const accommodationsSvc = new AccommodationsService(dbs(), new PermissionsService(dbs()), new RealtimeService());
+const createAccommodation = accommodationsSvc.createAccommodation.bind(accommodationsSvc);
 
 const svc = new TripsService(
   dbs(),
@@ -93,6 +95,7 @@ const svc = new TripsService(
   placesSvc,
   undefined as never, // unsplash — not exercised here
   new UserCleanupService(dbs()),
+  accommodationsSvc,
 );
 
 beforeAll(() => {
@@ -912,6 +915,7 @@ describe('quirk fixes', () => {
       placesSvc,
       undefined as never, // unsplash — not exercised here
       new UserCleanupService(dbs()),
+      new AccommodationsService(fdbs, new PermissionsService(dbs()), new RealtimeService()),
     );
   }
 

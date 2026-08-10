@@ -21,6 +21,7 @@ import { VacayService } from '../vacay/vacay.service';
 import { PlacesService } from '../places/places.service';
 import { MapsService } from '../maps/maps.service';
 import { UserCleanupService } from '../auth/user-cleanup.service';
+import { AccommodationsService } from '../accommodations/accommodations.service';
 
 /**
  * Non-Nest entry point for the trip domain — for the two consumers that cannot
@@ -58,6 +59,7 @@ const trips = new TripsService(
   new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs(), photoCache), new QueryHelpersService(dbs()), new UnsplashService(dbs(), new RuntimeEnvService()), photoCache, journeyDomain),
   new UnsplashService(dbs(), new RuntimeEnvService()),
   new UserCleanupService(dbs()),
+  new AccommodationsService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
 );
 
 export function getTripOwner(tripId: string | number) {

@@ -12,6 +12,7 @@ import { UserCleanupService } from '../auth/user-cleanup.service';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { PlacesService } from '../places/places.service';
 import { DaysService } from '../days/days.service';
+import { AccommodationsService } from '../accommodations/accommodations.service';
 import { PackingService } from '../packing/packing.service';
 import { TodoService } from '../todo/todo.service';
 import { BudgetService } from '../budget/budget.service';
@@ -139,6 +140,8 @@ export class TripsService {
     private readonly places: PlacesService,
     private readonly unsplash: UnsplashService,
     private readonly userCleanup: UserCleanupService,
+    // Appended: the hand-wired construction sites stay positional.
+    private readonly accommodations: AccommodationsService,
   ) {}
 
   private get db() {
@@ -867,7 +870,7 @@ export class TripsService {
     const { days: rawDays } = this.days.list(tripId);
     const days = rawDays.map(({ notes_items, ...day }) => ({ ...day, notes: notes_items }));
 
-    const accommodations = this.days.listAccommodations(tripId);
+    const accommodations = this.accommodations.list(tripId);
 
     const budgetItems = this.budget.listBudgetItems(tripId);
     const budget = {
@@ -918,7 +921,7 @@ export class TripsService {
       budgetItems: this.budget.listBudgetItems(tripId),
       reservations: this.reservations.list(tripId),
       files: this.files.listFiles(tripId, false),
-      accommodations: this.days.listAccommodations(tripId),
+      accommodations: this.accommodations.list(tripId),
       members: [owner, ...(members || [])].filter(Boolean),
     };
   }

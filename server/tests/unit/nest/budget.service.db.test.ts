@@ -99,6 +99,7 @@ const tripsSvc = new TripsService(
   undefined as never, // places — not exercised here
   undefined as never, // unsplash — not exercised here
   new UserCleanupService(dbs()),
+  undefined as never, // accommodations — not exercised here
 );
 const createGuest = tripsSvc.createGuest.bind(tripsSvc);
 const deleteGuest = tripsSvc.deleteGuest.bind(tripsSvc);

@@ -15,8 +15,8 @@ import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import { ReservationsRpc } from '../../../src/nest/reservations/reservations.rpc';
 import { ReservationsModule } from '../../../src/nest/reservations/reservations.module';
-import { AccommodationsRpc } from '../../../src/nest/days/accommodations.rpc';
-import { DaysModule } from '../../../src/nest/days/days.module';
+import { AccommodationsRpc } from '../../../src/nest/accommodations/accommodations.rpc';
+import { AccommodationsModule } from '../../../src/nest/accommodations/accommodations.module';
 import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
 import type { DaysService } from '../../../src/nest/days/days.service';
 import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
@@ -243,6 +243,6 @@ describe('AccommodationsRpc', () => {
   });
 
   it('BOOK-RPC-016 the class is listed in its module providers', () => {
-    expectRegisteredProvider(DaysModule, AccommodationsRpc);
+    expectRegisteredProvider(AccommodationsModule, AccommodationsRpc);
   });
 });

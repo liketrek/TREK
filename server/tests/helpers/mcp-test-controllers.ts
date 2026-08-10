@@ -58,6 +58,8 @@ import { TrekPhotosRepository } from '../../src/nest/photos/trek-photos.reposito
 import { UnsplashService } from '../../src/nest/unsplash/unsplash.service';
 import { UserCleanupService } from '../../src/nest/auth/user-cleanup.service';
 import { CalendarService } from '../../src/nest/calendar/calendar.service';
+import { AccommodationsService } from '../../src/nest/accommodations/accommodations.service';
+import { AccommodationsMcp } from '../../src/nest/accommodations/accommodations.mcp';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
 import { makeNotificationsService, makeNotificationPreferencesService } from './notifications';
@@ -94,6 +96,7 @@ export function createMcpTestRegistry(): McpRegistry {
     journeyDomain,
   );
   const reservationsService = new ReservationsService(dbService, permissionsService, budgetService, realtimeService);
+  const accommodationsService = new AccommodationsService(dbService, permissionsService, realtimeService);
   const tripsService = new TripsService(
     dbService,
     todoService,
@@ -112,6 +115,7 @@ export function createMcpTestRegistry(): McpRegistry {
     // has include:['src'], so tsc never saw it.
     new UnsplashService(dbService, new RuntimeEnvService()),
     new UserCleanupService(dbService),
+    accommodationsService,
   );
   const calendarService = new CalendarService(dbService, reservationsService);
   return createTestRegistry(
@@ -127,7 +131,8 @@ export function createMcpTestRegistry(): McpRegistry {
       new BudgetMcp(budgetService, exchangeRatesService, dbService, authService),
       new ReservationsMcp(reservationsService, daysService, budgetService, authService),
       new DayNotesMcp(new DayNotesService(dbService, permissionsService, realtimeService), authService),
-      new DaysMcp(daysService, dbService, placesService, authService),
+      new DaysMcp(daysService, authService),
+      new AccommodationsMcp(accommodationsService, dbService, placesService, authService),
       new AssignmentsMcp(new AssignmentsService(dbService, permissionsService, realtimeService, queryHelpersService, journeyDomain), daysService, authService),
       new CollabMcp(collabService, authService),
       new VacayMcp(new VacayService(dbService, realtimeService), authService),

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
-import { AccommodationsController } from '../../../src/nest/reservations/accommodations.controller';
-import type { AccommodationsService } from '../../../src/nest/reservations/accommodations.service';
+import { AccommodationsController } from '../../../src/nest/accommodations/accommodations.controller';
+import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;

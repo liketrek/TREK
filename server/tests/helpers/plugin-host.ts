@@ -49,7 +49,8 @@ import { PackingRpc } from '../../src/nest/packing/packing.rpc';
 import { FilesRpc } from '../../src/nest/files/files.rpc';
 import { PlacesRpc } from '../../src/nest/places/places.rpc';
 import { DaysRpc } from '../../src/nest/days/days.rpc';
-import { AccommodationsRpc } from '../../src/nest/days/accommodations.rpc';
+import { AccommodationsRpc } from '../../src/nest/accommodations/accommodations.rpc';
+import { AccommodationsService } from '../../src/nest/accommodations/accommodations.service';
 import { ItineraryRpc } from '../../src/nest/assignments/itinerary.rpc';
 import { TripsRpc } from '../../src/nest/trips/trips.rpc';
 import { CostsRpc } from '../../src/nest/budget/costs.rpc';
@@ -95,7 +96,10 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const notifications = makeNotificationsService(dbs, realtime);
   const llmConfig = new LlmConfigResolver(new SettingsService(dbs), dbs, addons);
   const oauth = new PluginOAuthService(dbs);
-  const trips = new TripsService(dbs, todos, packing, files, reservations, days, permissions, budget, collab, vacay, realtime, places);
+  const accommodations = new AccommodationsService(dbs, permissions, realtime);
+  // Was 12 arguments for a 14-parameter constructor; unsplash and userCleanup were
+  // undefined here and tsconfig only typechecks src, so nothing said so.
+  const trips = new TripsService(dbs, todos, packing, files, reservations, days, permissions, budget, collab, vacay, realtime, places, undefined as never, undefined as never, accommodations);
   const guards = new PluginGuards(dbs, permissions, addons);
 
   const registry = createTestPluginRegistry([
@@ -109,9 +113,9 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
     new FilesRpc(files, realtime, dbs, guards),
     new PlacesRpc(places, journey, realtime, guards),
     new DaysRpc(days, realtime, guards),
-    new AccommodationsRpc(days, realtime, guards),
+    new AccommodationsRpc(accommodations, realtime, guards),
     new ItineraryRpc(assignments, realtime, guards),
-    new TripsRpc(trips, reservations, days, membership, dbs, realtime, guards),
+    new TripsRpc(trips, reservations, days, membership, dbs, realtime, guards, accommodations),
     new CostsRpc(budget, dbs, realtime, guards),
     new ReservationsRpc(reservations, realtime, guards),
     new CollabRpc(collab, realtime, guards),

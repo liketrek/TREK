@@ -8,8 +8,6 @@ import { ReservationsRpc } from './reservations.rpc';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { ReservationsMcp } from './reservations.mcp';
-import { AccommodationsController } from './accommodations.controller';
-import { AccommodationsService } from './accommodations.service';
 import { UpcomingReservationsController } from './upcoming-reservations.controller';
 import { AuthModule } from '../auth/auth.module';
 
@@ -20,11 +18,11 @@ import { AuthModule } from '../auth/auth.module';
  * decorator-registered MCP tools + resource for the domain.
  */
 @Module({
-  // DaysModule: AccommodationsService + ReservationsMcp inject DaysService.
+  // DaysModule: ReservationsMcp injects DaysService for its nine getDay calls.
   // BudgetModule: ReservationsService + ReservationsMcp inject BudgetService (budget-sync seam).
   imports: [DaysModule, PermissionsModule, BudgetModule, AuthModule, RealtimeModule, PluginGuardsModule],
-  controllers: [ReservationsController, AccommodationsController, UpcomingReservationsController],
-  providers: [ReservationsService, AccommodationsService, ReservationsMcp, ReservationsRpc],
+  controllers: [ReservationsController, UpcomingReservationsController],
+  providers: [ReservationsService, ReservationsMcp, ReservationsRpc],
   // For in-container consumers (ReservationsRpc, TripsService, BookingImportService).
   exports: [ReservationsService],
 })

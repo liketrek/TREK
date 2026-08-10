@@ -3,7 +3,6 @@ import { DaysController } from './days.controller';
 import { DaysService } from './days.service';
 import { DaysMcp } from './days.mcp';
 import { DaysRpc } from './days.rpc';
-import { AccommodationsRpc } from './accommodations.rpc';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
@@ -23,7 +22,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [PermissionsModule, QueryHelpersModule, PlacesModule, AuthModule, RealtimeModule, PluginGuardsModule],
   controllers: [DaysController],
-  providers: [DaysService, DaysMcp, DaysRpc, AccommodationsRpc],
+  providers: [DaysService, DaysMcp, DaysRpc],
   exports: [DaysService],
 })
 export class DaysModule {}
