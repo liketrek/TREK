@@ -1,5 +1,5 @@
 import {
-  McpController, Tool, ResourceTemplate, type McpContext,
+  McpController, Prompt, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   demoDenied, errorResult, ok,
@@ -10,6 +10,10 @@ import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied, isAdminUser, adminRequired } from '../../mcp/tools/_shared';
 import { PackingService } from './packing.service';
+// trips.bridge, not an injected TripsService: TripsModule imports PackingModule,
+// so injecting it here would close a module cycle. Same documented in-container
+// exception as atlas.mcp.ts, and the legacy registrar reached for it the same way.
+import { getTripSummary } from '../trips/trips.bridge';
 
 /** Legacy registrar gate: the whole packing surface rides the packing addon. */
 const packingAddonOn = () => isAddonEnabled(ADDON_IDS.PACKING);
@@ -461,6 +465,45 @@ export class PackingMcp {
         mimeType: 'application/json',
         text: JSON.stringify(bags, null, 2),
       }],
+    };
+  }
+
+  /**
+   * Moved 1:1 from the legacy registrar src/mcp/tools/prompts.ts. The
+   * registration-time `if (isAddonEnabled(PACKING))` became the same `when`
+   * gate the tools above use.
+   */
+  @Prompt({
+    name: 'packing-list',
+    title: 'Packing List',
+    description: 'Get a formatted packing checklist for a trip',
+    argsSchema: {
+      tripId: z.number().int().positive().describe('Trip ID'),
+    },
+    when: packingAddonOn,
+  })
+  async packingListPrompt({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (!this.packing.verifyTripAccess(tripId, ctx.userId)) {
+      return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } }] };
+    }
+    // Hide other members' private items (#858) from the requesting user.
+    const items = this.packing.listItems(tripId, ctx.userId);
+    if (!items.length) {
+      return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'No packing items found for this trip.' } }] };
+    }
+    const grouped = items.reduce((acc: Record<string, unknown[]>, item: { category?: string }) => {
+      const cat = item.category || 'General';
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(item);
+      return acc;
+    }, {});
+    const lines = Object.entries(grouped).map(([cat, catItems]) =>
+      `## ${cat}\n${(catItems as { checked?: unknown; name?: string }[]).map((i) => `- [${i.checked ? 'x' : ' '}] ${i.name}`).join('\n')}`
+    ).join('\n\n');
+    const { trip } = getTripSummary(tripId, ctx.userId) || {};
+    return {
+      description: `Packing list for "${trip?.title || tripId}"`,
+      messages: [{ role: 'user' as const, content: { type: 'text' as const, text: `# Packing List: ${trip?.title || 'Trip'}\n\n${lines}\n\n_${items.length} items across ${Object.keys(grouped).length} categories_` } }],
     };
   }
 }

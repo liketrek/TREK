@@ -48,8 +48,8 @@ vi.mock('../../src/config', () => ({
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
 // Mock filesystem-dependent service functions to avoid real disk I/O in tests
-vi.mock('../../src/services/backupService', async () => {
-  const actual = await vi.importActual<typeof import('../../src/services/backupService')>('../../src/services/backupService');
+vi.mock('../../src/nest/backup/backup.impl', async () => {
+  const actual = await vi.importActual<typeof import('../../src/nest/backup/backup.impl')>('../../src/nest/backup/backup.impl');
   return {
     ...actual,
     createBackup: vi.fn().mockResolvedValue({
@@ -81,7 +81,7 @@ import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createAdmin, createUser } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import * as backupService from '../../src/services/backupService';
+import * as backupService from '../../src/nest/backup/backup.impl';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';

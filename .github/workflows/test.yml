@@ -11,9 +11,33 @@ on:
       - 'client/**'
       - 'shared/**'
       - 'nest-mcp/**'
+      - 'plugin-sdk/**'
       - '.github/workflows/test.yml'
 
 jobs:
+  plugin-facts:
+    name: Plugin Permission Facts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --workspace server
+
+      # The plugin permission facts live once, in
+      # server/src/nest/plugins/protocol/envelope.ts. Every other copy - the SDK's
+      # generated/host-facts.ts and shared's plugin-permissions.ts - is generated from it
+      # and checked in, because publish-plugin-sdk builds from a standalone checkout with
+      # no server present. This fails the PR if a copy drifts, if a new permission has no
+      # admin.plugins.perm.* translation, or if the CLI has no hint for it.
+      - name: Check the generated plugin facts are in sync
+        run: cd server && npm run check:plugin-facts
+
   i18n-parity:
     name: i18n Key Parity
     runs-on: ubuntu-latest

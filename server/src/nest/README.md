@@ -30,23 +30,62 @@ remains as the platform underneath `@nestjs/platform-express`.
   collab, vacay, reservations, day, permissions, audit, budget, trip, maps,
   transit, place, transit-itinerary, collections, atlas, auth, oidc, passkey,
   notifications, admin, webauthn-config, user-cleanup, oauth, wiki, mailer,
-  notification transports, notification preferences — see the migration recipe
-  below.
+  notification transports, notification preferences, memories (immich, synology,
+  unified, photo-resolver, thumbnails, trek-photo cache), journey, journeyShare
+  — see the migration recipe below.
 - **Foundation (BE-Phase 1, complete):** the eight stateless helpers moved to
   `common/`; every trip-access check routes through `DatabaseService`
   (`services/tripAccess.ts` and the dead `middleware/tripAccess.ts` are gone);
   `queryHelpers` and `tripMembership` are providers; the scheduler takes its
   dependencies from the container.
-- **Guards (BE-Phase 2, in progress):** the JWT verify lives in `auth/`, and
-  `middleware/auth.ts`, `validate.ts` and `idempotency.ts` are deleted; the three
-  addon guards are one `AddonGuard` + `@RequireAddon`; the demo-mode block is one
-  condition. Still open: `TripAccessGuard`, default-deny, the MFA policy.
+- **Plugin RPC surface (BE-7, complete):** all 113 wire methods are
+  `@PluginMethod` / `@PluginOpenMethod` handlers on `@PluginController()` providers
+  in their own domains (`<domain>/<domain>.rpc.ts`; the three that belong to no
+  domain live in `plugins/host/rpc/`), and all 18 host-to-plugin hook contracts are
+  `@PluginHook` declarations on `PluginHooks`. `PluginRpcHost` no longer holds a
+  handler: it builds the granted subset of the dispatch map from the registry,
+  dispatches, audits and maps errors. `PluginHostDepsFactory` — the 26-argument
+  wiring sheet named throughout the log below — is now
+  `PluginRpcHostFactory` and injects two things. See
+  `plugins/host/rpc-kit/README.md`.
+- **Plugin module split (complete):** `PluginsModule` was 21 controllers, 24 domain
+  imports and 10 providers in one class, so `AdminModule` importing it for one
+  cascade-disable call inherited the whole graph. It is now `PluginsRuntimeModule`
+  (supervisor, capability router, hook contracts — the half with the domain imports),
+  `PluginContributionsModule` (the 14 read-only hook controllers, in
+  `plugins/contributions/`), `PluginOAuthModule` (`plugins/oauth/`) and a composition
+  root holding the install and delivery controllers. `AdminModule` imports the runtime
+  alone. Note the invariant the boot-time coverage check now depends on: importing
+  `PluginsRuntimeModule` must pull in EVERY domain that owns part of the wire surface,
+  which is why `WeatherModule` sits in its import list.
+- **Guards (BE-Phase 2, done):** the JWT verify lives in `auth/`, and
+  `middleware/auth.ts`, `validate.ts`, `idempotency.ts` and `mfaPolicy.ts` are
+  deleted; the three addon guards are one `AddonGuard` + `@RequireAddon`; the
+  demo-mode block is one condition. `TripAccessGuard` and `TripOwnerGuard` cover
+  the trip-scoped and owner-only routes.
 
-`src/services/` is down to three top-level files (journey, journeyShare, backup)
-plus the `airtrail/` and `memories/` directories. What is left each waits on an
-open decision: memories on its Zod contracts, journey on memories, backup on the
-plugins module split and the db-lifecycle question, airtrail on the credential
-handling. Note that the trip-access and
+  **Authentication is default-deny.** `GlobalAuthGuard` is an `APP_GUARD`: a route
+  is authenticated unless it carries `@Public(reason)` or `@OptionalAuth(reason)`,
+  or declares its own `@UseGuards` chain. A controller that declares a chain keeps
+  it — global guards run before route guards, so an addon-gated controller has to
+  stay in charge of answering 404 before anything answers 401, or the response
+  leaks which addons are installed. The global guard still *resolves* the user in
+  that case, without refusing, because `MfaPolicyGuard` runs behind it and reads
+  `req.user`.
+
+  Adding a `@Public()` route is not a local decision: `validateRouteGuards` runs in
+  `buildApp()` and refuses to boot unless the route is also in
+  `PUBLIC_ROUTE_ALLOW_LIST` in `common/validate-route-guards.ts`. That list is the
+  whole anonymous surface of the server, in one reviewable place. Stale entries
+  fail too.
+
+`src/services/` is down to the `airtrail/` directory, which waits on the credential
+decision. Backup has moved in: `services/backupService.ts` is now
+`nest/backup/backup.impl.ts`, imported only by its own domain. It stays a module of
+free functions rather than becoming methods, because the restore path closes and
+reinitializes the core DB handle and rewriting that shape in the same step as the move
+would make a regression there impossible to bisect — the db-lifecycle question is the
+LAST step of that fold, not part of it. Note that the trip-access and
 `canEdit` methods on the domain services are **not** dead weight waiting for a
 guard: their callers are overwhelmingly the `*.mcp.ts` tools, which never pass
 through an HTTP guard. In the five domains piloted for `TripAccessGuard`, 40 of
@@ -59,11 +98,11 @@ the 46 callers are MCP; only 6 sit in controllers.
   middleware, which is deleted; this is the only implementation.
 - `common/` — the stateless helpers (`avatarUrl`, `conflictResult`, `demo`,
   `passwordPolicy`, `timezoneService`, `cookie`, `rowShape`, `crypto/`). Free
-  functions, not providers: `db/migrations.ts` and `middleware/mfaPolicy.ts`
-  import them from outside the container and could not inject one.
+  functions, not providers: `db/migrations.ts` imports them from outside the
+  container and could not inject one.
 - `auth/jwt-verify.ts` — `extractToken` + `verifyJwtAndLoadUser`, the canonical
-  session check behind the three guards, the MCP bearer path, the file-download
-  query token and the global MFA policy. Free functions for the same reason.
+  session check behind the four guards, the MCP bearer path and the file-download
+  query token. Free functions for the same reason.
   `JWT_SECRET` stays a live binding from `src/config` and must NOT move to
   `app-config`: the admin panel rotates it at runtime, and a `registerAs` token
   would freeze the boot value.
@@ -86,7 +125,7 @@ Two shapes, and the choice is settled:
 from the app after `buildApp()` — the way `bootstrap.ts` hands the `/mcp`
 handler its registry. The declaration is **structural** (`{ backups: {
 createBackup } }`), never the provider class: importing `BackupService` would
-pull in `src/nest/backup` → `src/services/backupService` → `src/scheduler` and
+pull in `src/nest/backup` → `nest/backup/backup.impl` → `src/scheduler` and
 close a cycle.
 
 **`<domain>.bridge.ts` is the older shape** and still correct for the MCP
@@ -136,6 +175,12 @@ singleton rather than a second instance.
   webhook and ntfy without a failure. They are built from injected transports and
   registered in `NotificationsService`'s constructor now, so every path that can
   dispatch has them.
+- **The coverage gate reads `src/nest/**` and nothing else.** Moving code in from
+  `src/mcp/` or `src/services/` does not just relocate it — it starts being
+  measured. PR #1844 landed `airports.mcp.ts` at 0% branches because
+  `search_airports`/`get_airport` had never had a test in either world, and the
+  aggregate fell to 79.86% with every suite green. Before pushing anything that
+  moves files into this tree, run `npm run test:coverage`, not just `npm test`.
 - A guard with a constructor dependency has to be a registered provider
   everywhere it is used. The three auth guards are dependency-free on purpose —
   38 directories apply them and 21 do not import `AuthModule`, so giving them a
@@ -148,6 +193,58 @@ query/body, HTTP status, `Set-Cookie`, and JSON body — including bespoke error
 strings. Where the legacy route returns a hand-written error (e.g. weather's
 `{ error: 'Latitude and longitude are required' }`), reproduce that exact body in
 the controller rather than relying on the generic `ZodValidationPipe` envelope.
+
+## TripAccessGuard and TripOwnerGuard, and where they do not fit
+
+`permissions/trip-access.guard.ts` resolves `:tripId` once per request, answers 404
+"Trip not found" for anything the user cannot reach (never 403 — that would confirm the
+id exists), and hands the row to the handler through `@Trip()`. `@RequirePermission`
+carries the same action string the domain services pass to `checkPermission`.
+
+Two limits are worth knowing before rolling it onto another controller, because both
+were found the expensive way:
+
+- **A guard runs before the body pipe.** Any route whose DTO validation is expected to
+  answer 400 *ahead of* the trip 404 cannot use it. `places` is exactly that case — its
+  e2e suite documents the pipe-first ordering as a deliberate parity shift — so its
+  create/update/import routes keep their in-handler `requireTrip`, and that is not an
+  oversight. Its five body-free routes (list, get, unrate, image, delete) do carry
+  the guard; the split runs along "does this handler take a DTO-typed body", not
+  along the domain.
+- **A guard also runs before interceptors.** On a multipart upload route, a 404 sent
+  while the client is still streaming destroys the socket, so the caller sees
+  ECONNRESET instead of the 404. The three upload routes (files, collab note files,
+  places) keep their own check for that reason; their controllers apply the guard per
+  handler instead of on the class.
+
+`permissions/trip-owner.guard.ts` is the stricter sibling: `@RequireTripOwner(message)`
+demands that the caller *owns* the trip, not merely that they may edit it. Handing a
+trip over and creating or deleting guests are the two things a collaborator must never
+do however generous the trip's permission settings are.
+
+It deliberately does **not** inject `PermissionsService`. `checkPermission` returns true
+for every admin, and the trip actions are admin-lowerable, so routing ownership through
+it would quietly hand any admin the ability to transfer other people's trips. The check
+is the literal one the routes did by hand: `trip.user_id === user.id`. The message
+travels in the metadata because the two call sites answer with different strings and
+both are asserted.
+
+The services keep `verifyTripAccess`/`canEdit` regardless: most of their callers are
+`*.mcp.ts` tools, which never pass through an HTTP guard.
+
+## Coverage is gated per domain, as a ratchet
+
+`server/vitest.config.ts` carries one threshold entry per `src/nest/<domain>/`, set at
+that domain's measured coverage minus one point. The single repo-wide 80% it replaced
+let a well-covered domain subsidise a thin one — `booking-import` sits at 50% and
+`integrations` at 20%, and the aggregate still cleared the bar, so either could have
+lost another ten points with the build staying green.
+
+Regenerate the block with `node scripts/coverage-thresholds.mjs` after a run that
+RAISED coverage. Raise an entry when you improve a domain; never lower one to make a
+build pass. The script reads `coverage/coverage-summary.json` rather than the text
+reporter on purpose: the text reporter prints one row per DIRECTORY, so a domain with
+subdirectories reads several points higher there than it actually is.
 
 ## How to write the tests
 
@@ -567,7 +664,7 @@ three `'enabled must be a boolean'` checks plus `'permissions object required'`
 and `'Object body required'` for the pipe envelope; the schemas are
 deliberately permissive wherever the service owns a bespoke 400 of its own.)
 Repeat these steps per
-service (next up: **journeyService** / **oauthService** —
+service (next up: **backupService** / **airtrail** —
 per the dependency-honest order in
 `migration-graph.md`). This is a
 **pure relocation** — byte-identical
@@ -596,7 +693,14 @@ bridges.
    markers are typed against the scope-derived `ScopeGroup` union and
    boot-validated by `trekMcpValidateAccess` (`src/mcp/nest-mcp-policy.ts`) —
    an unknown group, or `mode: 'write'` on a read-only group (`geo`,
-   `weather`), fails app boot. *(Design decision, settled with the tags pilot:
+   `weather`), fails app boot. **`mode` is typed the same way**: it is the mode
+   half of `Scope` (`read | write | delete | share`), augmented into
+   `@trek/nest-mcp` through `McpAccessModeRegistry` exactly like the group
+   registry. A scope that is neither read nor write — `journey:share` is the
+   one today — gets a real marker, *not* a `(ctx) => canX(ctx.scopes)`
+   predicate: predicates bypass the policy entirely and are invisible to the
+   boot gate, so a scope typo in one would ship as a silent full-access tool.
+   Reach for a predicate only when the gate genuinely is not a scope. *(Design decision, settled with the tags pilot:
    MCP tools stay outside the container and use the bridge. The alternative — handing the Nest app to the
    MCP layer via `app.get(XService)` — was rejected: it would thread the container
    through `mcpHandler` + every tool registrar and force a Nest bootstrap into the

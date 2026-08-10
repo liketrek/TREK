@@ -33,12 +33,31 @@ export type McpAccessGroup = keyof McpAccessGroupRegistry extends never
   : keyof McpAccessGroupRegistry & string;
 
 /**
+ * Host augmentation point for the access *mode*, mirroring
+ * `McpAccessGroupRegistry`:
+ *
+ *   declare module '@trek/nest-mcp' {
+ *     interface McpAccessModeRegistry extends Record<MyModeUnion, true> {}
+ *   }
+ *
+ * Unaugmented, `McpAccessMode` falls back to `'read' | 'write'` — the two
+ * modes every host had before this was augmentable, so leaving the registry
+ * empty keeps the previous contract exactly.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface McpAccessModeRegistry {}
+
+export type McpAccessMode = keyof McpAccessModeRegistry extends never
+  ? 'read' | 'write'
+  : keyof McpAccessModeRegistry & string;
+
+/**
  * Declarative access marker resolved by the host-supplied `accessPolicy`.
  * The package attaches no semantics to `group`/`mode` — the policy does.
  */
 export interface McpDeclarativeAccess {
   group: McpAccessGroup;
-  mode: 'read' | 'write';
+  mode: McpAccessMode;
 }
 
 /** Predicate escape hatch — bypasses the policy entirely. */

@@ -85,6 +85,12 @@ vi.mock('../../src/nest/notifications/notification-preferences.service', async (
 vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
 
 import { AdminModule } from '../../src/nest/admin/admin.module';
+// The admin surface is no longer one module: oidc, the account defaults and the admin
+// preference matrix moved to the domains that own them, so the app has to assemble
+// them too or those routes 404 here while working in production.
+import { OidcModule } from '../../src/nest/oidc/oidc.module';
+import { SettingsModule } from '../../src/nest/settings/settings.module';
+import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
@@ -93,7 +99,7 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, AdminModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, AdminModule, OidcModule, SettingsModule, NotificationsModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     // Mirror the production APP_PIPE (app.module.ts): DTO-typed bodies validate

@@ -10,7 +10,7 @@ const trip = { id: 5, user_id: 1 };
 
 /** Service mock with trip access granted + edit allowed by default. */
 function makeService(overrides: Partial<PackingService> = {}): PackingService {
-  return {
+  const base = {
     verifyTripAccess: vi.fn().mockReturnValue(trip),
     canEdit: vi.fn().mockReturnValue(true),
     broadcast: vi.fn(),
@@ -23,6 +23,30 @@ function makeService(overrides: Partial<PackingService> = {}): PackingService {
     notifyTagged: vi.fn(),
     ...overrides,
   } as unknown as PackingService;
+  // emitToViewers and broadcastUpdate moved from the controller into the service, so
+  // the mock reproduces their routing on top of whatever broadcast stubs a test
+  // supplied. That keeps every #858 assertion below pointed at the same three
+  // primitives it always was.
+  const svc = base as unknown as PackingService & Record<string, (...a: never[]) => unknown>;
+  svc.emitToViewers = ((tripId, event, payload, item, socketId) => {
+    const viewers = svc.viewersOf(item);
+    if (viewers === null) svc.broadcast(tripId, event, payload, socketId);
+    else svc.broadcastToViewers(tripId, event, payload, viewers, socketId);
+  }) as PackingService['emitToViewers'];
+  svc.broadcastUpdate = ((tripId, id, item, wasPrivate, socketId) => {
+    if (item.is_private) {
+      if (wasPrivate) {
+        svc.broadcastItem(tripId, 'packing:updated', { item }, item, socketId);
+      } else {
+        svc.broadcast(tripId, 'packing:deleted', { itemId: Number(id) }, socketId);
+        svc.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
+      }
+    } else {
+      if (wasPrivate) svc.broadcast(tripId, 'packing:created', { item }, socketId);
+      svc.broadcast(tripId, 'packing:updated', { item }, socketId);
+    }
+  }) as PackingService['broadcastUpdate'];
+  return svc;
 }
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
@@ -36,13 +60,9 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
   throw new Error('expected the handler to throw');
 }
 
+// The 404 "Trip not found" and 403 "No permission" cases moved to
+// trip-access.guard.test.ts with the check itself.
 describe('PackingController (parity with the legacy /api/trips/:tripId/packing route)', () => {
-  it('404 when the trip is not accessible', () => {
-    const svc = makeService({ verifyTripAccess: vi.fn().mockReturnValue(undefined) });
-    expect(thrown(() => new PackingController(svc).list(user, '5'))).toEqual({
-      status: 404, body: { error: 'Trip not found' },
-    });
-  });
 
   it('GET / returns items for an accessible trip', () => {
     const svc = makeService({ listItems: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<PackingService>);
@@ -50,12 +70,6 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
   });
 
   describe('POST / (create)', () => {
-    it('403 without packing_edit permission', () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(thrown(() => new PackingController(svc).create(user, '5', { name: 'Socks' }))).toEqual({
-        status: 403, body: { error: 'No permission' },
-      });
-    });
 
     // The missing-name 400 moved from a bespoke controller check into the
     // ZodValidationPipe (packingCreateItemRequestSchema) — direct method calls
@@ -102,12 +116,6 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
     // requires an array) — direct method calls bypass parameter pipes, so that
     // path is covered by the e2e suite and the schema spec in @trek/shared.
 
-    it('403 without packing_edit permission', () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(thrown(() => new PackingController(svc).importItems(user, '5', { items: [{ name: 'a' }] }))).toEqual({
-        status: 403, body: { error: 'No permission' },
-      });
-    });
 
     it('imports (owned by the importer) and broadcasts per item', () => {
       const bulkImport = vi.fn().mockReturnValue([{ id: 1 }, { id: 2 }]);
@@ -196,12 +204,6 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       expect(reorderItems).toHaveBeenCalledWith('5', [3, 1, 2]);
     });
 
-    it('403 without packing_edit permission', () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(thrown(() => new PackingController(svc).reorder(user, '5', { orderedIds: [1] }))).toEqual({
-        status: 403, body: { error: 'No permission' },
-      });
-    });
   });
 
   describe('DELETE /:id (remove)', () => {

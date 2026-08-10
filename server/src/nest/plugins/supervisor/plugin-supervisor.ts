@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { readEnv } from '../../../app-config';
 import { resolveChildEntry, pluginCodeDir, pluginRealCodeDir, pluginPermissionArgs, ensurePluginModuleType } from '../paths';
-import type { Envelope, RpcError, RpcRequest } from '../protocol/envelope';
+import { HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, type Envelope, type RpcError, type RpcRequest } from '../protocol/envelope';
 import type { PluginRpcHost } from '../host/rpc-host';
 import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
 import { SNAPSHOT_GRANT, type PluginEventMeta } from '../../../plugin-event-sink';
@@ -93,28 +93,6 @@ const DEFAULTS: Required<SupervisorTuning> = {
   maxRssBytes: readEnv().plugins.maxRssMb * 1024 * 1024,
 };
 
-// A plugin may only act as a provider for a hook it BOTH implements (reported by
-// the child at load) AND was granted the matching hook:* permission for. The child
-// reports Object.keys(def.hooks) with no knowledge of grants, so the grant check
-// must happen host-side here — otherwise the hook:* consent is never enforced.
-const HOOK_PERMISSION: Readonly<Record<string, string>> = {
-  photoProvider: 'hook:photo-provider',
-  calendarSource: 'hook:calendar-source',
-  placeDetailProvider: 'hook:place-detail-provider',
-  warningProvider: 'hook:trip-warning-provider',
-  tableContributor: 'hook:table-contributor',
-  mapMarkerProvider: 'hook:map-marker-provider',
-  mapLayerProvider: 'hook:map-layer-provider',
-  routeProvider: 'hook:route-provider',
-  dayScheduleProvider: 'hook:day-schedule-provider',
-  dayTintProvider: 'hook:day-tint-provider',
-  pdfSectionProvider: 'hook:pdf-section-provider',
-  atlasLayerProvider: 'hook:atlas-layer-provider',
-  journalEntryProvider: 'hook:journal-entry-provider',
-  tripCardProvider: 'hook:trip-card-provider',
-  notificationChannel: 'hook:notification-channel',
-  poiCategoryProvider: 'hook:poi-category-provider',
-};
 
 export class PluginSupervisor {
   private running = new Map<string, Supervised>();
@@ -262,7 +240,9 @@ export class PluginSupervisor {
    * An unknown hook, or one with no permission mapping, resolves to nobody.
    */
   providersOf(hook: string): string[] {
-    const perm = HOOK_PERMISSION[hook];
+    // Cast: `hook` is a plain string off the child's report, and HOOK_PERMISSION is
+    // now a literal object, so indexing it needs the same widening envelope.ts uses.
+    const perm = (HOOK_PERMISSION as Readonly<Record<string, string | undefined>>)[hook];
     if (!perm) return [];
     const out: string[] = [];
     for (const [id, sup] of this.running) {
@@ -288,7 +268,7 @@ export class PluginSupervisor {
 
   /**
    * Announce a core event to every plugin that subscribed to it (or to '*') AND holds
-   * the 'events:subscribe' grant. Fire-and-forget: the invoke is NOT awaited (a core
+   * the EVENTS_PERMISSION grant. Fire-and-forget: the invoke is NOT awaited (a core
    * broadcast must never block on a plugin) and carries no user (trip reads refused).
    * The event name + tripId + a { entity, entityId } hint are sent, plus — ONLY for
    * a plugin whose granted set includes the family's db:read:* permission — the
@@ -299,7 +279,7 @@ export class PluginSupervisor {
    */
   deliverEvent(tripId: number, event: string, meta?: PluginEventMeta): void {
     for (const [id, sup] of this.running) {
-      if (!sup.granted.has('events:subscribe')) continue;
+      if (!sup.granted.has(EVENTS_PERMISSION)) continue;
       if (!sup.events.includes(event) && !sup.events.includes('*')) continue;
       if (sup.status === 'active') {
         this.sendEvent(sup, tripId, event, meta);
@@ -337,7 +317,7 @@ export class PluginSupervisor {
     const q = this.pendingEvents.get(sup.id);
     if (!q) return;
     this.pendingEvents.delete(sup.id);
-    if (!sup.granted.has('events:subscribe')) return;
+    if (!sup.granted.has(EVENTS_PERMISSION)) return;
     const now = Date.now();
     for (const item of q) {
       if (item.expiresAt <= now) continue;
@@ -389,7 +369,7 @@ export class PluginSupervisor {
    */
   async collectUserExport(id: string, userId: number): Promise<{ ok: true; data: unknown } | { ok: false } | undefined> {
     const sup = this.running.get(id);
-    if (!sup || sup.status !== 'active' || !sup.granted.has('hook:user-data')) return undefined; // not applicable
+    if (!sup || sup.status !== 'active' || !sup.granted.has(USER_DATA_PERMISSION)) return undefined; // not applicable
     try {
       const res = (await this.invoke(id, 'invoke.exportUserData', { userId }, { actingUserId: undefined, timeoutMs: 30_000 })) as { data?: unknown } | undefined;
       return { ok: true, data: res?.data };

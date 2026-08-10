@@ -3,7 +3,7 @@
  * the code/data path resolution (both the env-override and default branches).
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { isKnownPermission, METHOD_PERMISSION, KNOWN_METHODS } from '../../../src/nest/plugins/protocol/envelope';
+import { isKnownPermission, METHOD_PERMISSION, KNOWN_METHODS, HOOK_PERMISSION } from '../../../src/nest/plugins/protocol/envelope';
 import path from 'node:path';
 import { pluginsCodeRoot, pluginsDataRoot, pluginCodeDir, pluginDbFile, resolveChildEntry, serverCodeRoot, pluginPermissionArgs, pluginRealCodeDir, ensurePluginModuleType } from '../../../src/nest/plugins/paths';
 
@@ -21,9 +21,19 @@ describe('envelope helpers', () => {
     expect(isKnownPermission('')).toBe(false);
   });
 
-  it('every known method maps to a permission', () => {
+  // The compile side of this is `as const satisfies Record<KnownMethod, KnownPermission>`
+  // on METHOD_PERMISSION. These are the runtime mirror, and they also cover what the type
+  // system cannot: isKnownPermission's http:outbound: prefix branch.
+  it('every known method maps to a permission the host actually knows', () => {
     for (const m of KNOWN_METHODS) {
-      expect(METHOD_PERMISSION[m]).toBeTruthy();
+      const perm = METHOD_PERMISSION[m];
+      expect(isKnownPermission(perm), `${m} -> ${perm}`).toBe(true);
+    }
+  });
+
+  it('every hook permission is a known permission', () => {
+    for (const [hook, perm] of Object.entries(HOOK_PERMISSION)) {
+      expect(isKnownPermission(perm), `${hook} -> ${perm}`).toBe(true);
     }
   });
 });

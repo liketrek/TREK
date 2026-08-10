@@ -70,6 +70,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [coverSearchResults, setCoverSearchResults] = useState<CoverSearchPhoto[]>([])
   const [coverSearchError, setCoverSearchError] = useState('')
   const [searchingCover, setSearchingCover] = useState(false)
+  // Drives the drop zone's hover look. Used to be four handlers writing
+  // element.style directly, which is how the indigo dragover colour survived
+  // the move to a configurable accent.
+  const [coverDragActive, setCoverDragActive] = useState(false)
   const [allUsers, setAllUsers] = useState<{ id: number; username: string }[]>([])
   const [selectedMembers, setSelectedMembers] = useState<number[]>([])
   const [existingMembers, setExistingMembers] = useState<{ id: number; username: string }[]>([])
@@ -335,39 +339,51 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     return next
   })
 
-  const inputCls = "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent text-sm"
+  /* The dashboard's shapes, in the app's own tokens.
+     `.trek-dash` deliberately scopes its palette to that page, so none of its
+     variables are reachable from here — what carries over is the geometry:
+     generous radii, grouped panels instead of a single stack of labelled
+     fields, and overline captions rather than sentence-case labels. */
+  const inputCls = "w-full px-3.5 py-2.5 border border-edge rounded-xl bg-surface-input text-content placeholder:text-content-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent text-body transition-shadow"
+  const labelCls = "flex items-center gap-1 text-caption font-semibold uppercase tracking-[0.14em] text-content-faint mb-2"
+  const ghostBtnCls = "px-4 py-2.5 text-body font-medium text-content-secondary hover:text-content border border-edge rounded-xl hover:bg-surface-hover transition-colors"
+  const primaryBtnCls = "px-5 py-2.5 text-body font-medium bg-accent hover:bg-accent-hover disabled:opacity-50 text-accent-text rounded-xl shadow-card transition-colors flex items-center gap-2"
+  /* Two columns once there is room for them: the form had grown to eight stacked
+     blocks and the create button sat a full screen below the title. Left is what
+     the trip looks like, right is when and with whom. One column below md. */
+  const columnCls = "flex flex-col gap-4"
+  const panelCls = "rounded-2xl border border-edge bg-surface-secondary p-4 space-y-3.5"
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={pendingDateShift ? t('dashboard.dateShiftTitle') : isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
-      size="md"
+      /* The date-shift step is two radio buttons and a sentence — it would look
+         lost across the width the form itself needs. */
+      size={pendingDateShift ? 'md' : '2xl'}
       footer={
         <div className="flex gap-3 justify-end">
           {pendingDateShift ? (
             <>
-              <button type="button" onClick={() => setPendingDateShift(null)} disabled={isLoading}
-                className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+              <button type="button" onClick={() => setPendingDateShift(null)} disabled={isLoading} className={ghostBtnCls}>
                 {t('common.back')}
               </button>
               <button onClick={() => performSave({ ...pendingDateShift, date_shift_mode: dateShiftMode })} disabled={isLoading}
-                className="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-700 disabled:bg-slate-400 text-white rounded-lg transition-colors flex items-center gap-2">
+                className={primaryBtnCls}>
                 {isLoading
-                  ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t('common.saving')}</>
+                  ? <><div className="w-4 h-4 border-2 border-accent-text/30 border-t-accent-text rounded-full animate-spin" />{t('common.saving')}</>
                   : t('common.update')}
               </button>
             </>
           ) : (
             <>
-              <button type="button" onClick={onClose}
-                className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+              <button type="button" onClick={onClose} className={ghostBtnCls}>
                 {t('common.cancel')}
               </button>
-              <button onClick={handleSubmit} disabled={isLoading}
-                className="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-700 disabled:bg-slate-400 text-white rounded-lg transition-colors flex items-center gap-2">
+              <button onClick={handleSubmit} disabled={isLoading} className={primaryBtnCls}>
                 {isLoading
-                  ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t('common.saving')}</>
+                  ? <><div className="w-4 h-4 border-2 border-accent-text/30 border-t-accent-text rounded-full animate-spin" />{t('common.saving')}</>
                   : isEditing ? t('common.update') : t('dashboard.createTrip')}
               </button>
             </>
@@ -378,57 +394,66 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       {pendingDateShift && (
         <div className="space-y-3">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
+            <div className="p-3 bg-danger-soft border border-danger/30 rounded-xl text-body text-danger">{error}</div>
           )}
-          <p className="text-sm text-slate-600">{t('dashboard.dateShiftIntro')}</p>
+          <p className="text-body text-content-secondary">{t('dashboard.dateShiftIntro')}</p>
           {([
             { mode: 'keep_bookings' as DateShiftMode, label: t('dashboard.dateShiftKeepBookings'), desc: t('dashboard.dateShiftKeepBookingsDesc') },
             { mode: 'shift_all' as DateShiftMode, label: t('dashboard.dateShiftAll'), desc: t('dashboard.dateShiftAllDesc') },
           ]).map(({ mode, label, desc }) => (
             <label key={mode}
-              className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${dateShiftMode === mode ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${dateShiftMode === mode ? 'border-accent bg-surface-selected' : 'border-edge hover:bg-surface-hover'}`}>
               <input type="radio" name="date_shift_mode" value={mode} checked={dateShiftMode === mode}
-                onChange={() => setDateShiftMode(mode)} className="mt-1 accent-slate-900" />
+                onChange={() => setDateShiftMode(mode)} className="mt-1 accent-[var(--accent)]" />
               <span>
-                <span className="block text-sm font-medium text-slate-800">{label}</span>
-                <span className="block text-sm text-slate-500 mt-0.5">{desc}</span>
+                <span className="block text-body font-medium text-content">{label}</span>
+                <span className="block text-body text-content-muted mt-0.5">{desc}</span>
               </span>
             </label>
           ))}
-          <p className="text-xs text-slate-400">{t('dashboard.dateShiftHint')}</p>
+          <p className="text-caption text-content-faint">{t('dashboard.dateShiftHint')}</p>
         </div>
       )}
       <form onSubmit={handleSubmit} className={pendingDateShift ? 'hidden' : 'space-y-4'} onPaste={handlePaste}>
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
+          <div className="p-3 bg-danger-soft border border-danger/30 rounded-xl text-body text-danger">{error}</div>
         )}
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-start">
+
+        {/* Left column — what the trip is: its picture, its name, what it is about. */}
+        <div className={columnCls}>
+
         {/* Cover image — gated by trip_cover_upload permission */}
-        {canUploadCover && <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('dashboard.coverImage')}</label>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverChange} />
+        {canUploadCover && <div className={panelCls}>
+          <label className={labelCls}>{t('dashboard.coverImage')}</label>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
           {coverPreview ? (
-            <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', height: 130 }}>
-              <img src={coverPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 6 }}>
+            <div className="relative h-[130px] rounded-xl overflow-hidden">
+              <img src={coverPreview} alt="" className="w-full h-full object-cover" />
+              <div className="absolute bottom-2 right-2 flex gap-1.5">
+                {/* Chrome sitting on top of a photo, so it is deliberately dark in
+                    both themes rather than following the surface tokens. */}
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8, background: 'rgba(0,0,0,0.55)', border: 'none', color: 'white', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                  className="flex items-center gap-1 px-2.5 py-[5px] rounded-lg bg-black/55 backdrop-blur-sm text-white text-caption font-semibold">
                   <Camera size={12} /> {uploadingCover ? t('common.uploading') : t('common.change')}
                 </button>
-                <button type="button" onClick={handleRemoveCover}
-                  style={{ display: 'flex', alignItems: 'center', padding: '5px 8px', borderRadius: 8, background: 'rgba(0,0,0,0.55)', border: 'none', color: 'white', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                <button type="button" onClick={handleRemoveCover} aria-label={t('common.remove')}
+                  className="flex items-center px-2 py-[5px] rounded-lg bg-black/55 backdrop-blur-sm text-white">
                   <X size={12} />
                 </button>
               </div>
             </div>
           ) : (
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
-              onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = 'rgba(99,102,241,0.04)' }}
-              onDragLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = 'none' }}
-              onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = 'none'; const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) handleCoverSelect(file) }}
-              style={{ width: '100%', padding: '18px', border: '2px dashed #e5e7eb', borderRadius: 10, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: '#9ca3af', fontFamily: 'inherit', transition: 'all 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#6b7280' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#9ca3af' }}>
+              onDragOver={e => { e.preventDefault(); setCoverDragActive(true) }}
+              onDragLeave={() => setCoverDragActive(false)}
+              onDrop={e => { e.preventDefault(); setCoverDragActive(false); const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) handleCoverSelect(file) }}
+              className={`w-full h-[130px] px-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-1.5 text-body transition-colors ${
+                coverDragActive
+                  ? 'border-accent bg-accent-subtle text-content'
+                  : 'border-edge text-content-faint hover:border-edge-secondary hover:text-content-muted'
+              }`}>
               <Camera size={15} /> {uploadingCover ? t('common.uploading') : t('dashboard.addCoverImage')}
             </button>
           )}
@@ -442,12 +467,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               className={inputCls}
             />
             <button type="button" onClick={handleCoverSearch} disabled={searchingCover || (!coverSearchQuery.trim() && !formData.title.trim())}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap">
-              {searchingCover ? <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" /> : <Search size={14} />}
+              className="px-3 py-2 text-body text-content-secondary border border-edge rounded-xl hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap">
+              {searchingCover ? <div className="w-4 h-4 border-2 border-edge border-t-content-muted rounded-full animate-spin" /> : <Search size={14} />}
               {t('dashboard.searchUnsplash')}
             </button>
           </div>
-          {coverSearchError && <p className="text-xs text-red-500 mt-1.5">{coverSearchError}</p>}
+          {coverSearchError && <p className="text-caption text-danger mt-1.5">{coverSearchError}</p>}
           {coverSearchResults.length > 0 && (
             <div className="grid grid-cols-3 gap-2 mt-2">
               {coverSearchResults.map(photo => (
@@ -456,11 +481,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                   key={photo.id}
                   onClick={() => handleUnsplashSelect(photo)}
                   aria-label={t('dashboard.useUnsplashPhoto', { photographer: photo.photographer || 'Unsplash' })}
-                  className={`relative h-20 overflow-hidden rounded-lg border transition-colors ${coverPreview === photo.url ? 'border-slate-900 ring-2 ring-slate-900/20' : 'border-slate-200 hover:border-slate-400'}`}
+                  className={`relative h-20 overflow-hidden rounded-xl border transition-colors ${coverPreview === photo.url ? 'border-accent ring-2 ring-accent/20' : 'border-edge hover:border-content-faint'}`}
                 >
                   <img src={photo.thumb} alt={photo.description || ''} loading="lazy" className="w-full h-full object-cover" />
                   {photo.photographer && (
-                    <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1.5 py-1 text-[10px] text-white">
+                    <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1.5 py-1 text-caption text-white">
                       {photo.photographer}
                     </span>
                   )}
@@ -470,31 +495,40 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           )}
         </div>}
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            {t('dashboard.tripTitle')} <span className="text-red-500">*</span>
-          </label>
-          <input type="text" value={formData.title} onChange={e => canEditTrip && update('title', e.target.value)}
-            required readOnly={!canEditTrip} placeholder={t('dashboard.tripTitlePlaceholder')} className={inputCls} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('dashboard.tripDescription')}</label>
-          <textarea value={formData.description} onChange={e => canEditTrip && update('description', e.target.value)}
-            readOnly={!canEditTrip} placeholder={t('dashboard.tripDescriptionPlaceholder')} rows={3}
-            className={`${inputCls} resize-none`} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+        <div className={`${panelCls} flex-1`}>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              <Calendar className="inline w-4 h-4 mr-1" />{t('dashboard.startDate')}
+            <label className={labelCls}>
+              {t('dashboard.tripTitle')} <span className="text-danger">*</span>
+            </label>
+            <input type="text" value={formData.title} onChange={e => canEditTrip && update('title', e.target.value)}
+              required readOnly={!canEditTrip} placeholder={t('dashboard.tripTitlePlaceholder')} className={inputCls} />
+          </div>
+
+          <div>
+            <label className={labelCls}>{t('dashboard.tripDescription')}</label>
+            <textarea value={formData.description} onChange={e => canEditTrip && update('description', e.target.value)}
+              readOnly={!canEditTrip} placeholder={t('dashboard.tripDescriptionPlaceholder')} rows={3}
+              className={`${inputCls} resize-none`} />
+          </div>
+        </div>
+
+        </div>{/* /left column */}
+
+        {/* Right column — when it happens, in what currency, with whom. */}
+        <div className={columnCls}>
+
+        <div className={panelCls}>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>
+              <Calendar className="w-3.5 h-3.5" />{t('dashboard.startDate')}
             </label>
             <CustomDatePicker value={formData.start_date} onChange={v => update('start_date', v)} placeholder={t('dashboard.startDate')} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              <Calendar className="inline w-4 h-4 mr-1" />{t('dashboard.endDate')}
+            <label className={labelCls}>
+              <Calendar className="w-3.5 h-3.5" />{t('dashboard.endDate')}
             </label>
             <CustomDatePicker value={formData.end_date} onChange={v => update('end_date', v)} placeholder={t('dashboard.endDate')} />
           </div>
@@ -502,7 +536,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
 
         {!formData.start_date && !formData.end_date && (
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className={labelCls}>
               {t('dashboard.dayCount')}
             </label>
             <NumericInput min={1} max={365} value={formData.day_count}
@@ -512,12 +546,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                 if (Number.isFinite(n)) update('day_count', Math.min(365, Math.max(1, n)))
               }}
               className={inputCls} />
-            <p className="text-xs text-slate-400 mt-1.5">{t('dashboard.dayCountHint')}</p>
+            <p className="text-caption text-content-faint mt-1.5">{t('dashboard.dayCountHint')}</p>
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('dashboard.currency')}</label>
+          <label className={labelCls}>{t('dashboard.currency')}</label>
           <CustomSelect
             value={formData.currency}
             onChange={v => canEditTrip && update('currency', v)}
@@ -530,11 +564,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         {/* Reminder — only visible to owner (or when creating) */}
         {(!isEditing || trip?.user_id === currentUser?.id || currentUser?.role === 'admin') && (
         <div className={!tripRemindersEnabled ? 'opacity-50' : ''}>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            <Bell className="inline w-4 h-4 mr-1" />{t('trips.reminder')}
+          <label className={labelCls}>
+            <Bell className="w-3.5 h-3.5" />{t('trips.reminder')}
           </label>
           {!tripRemindersEnabled ? (
-            <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-3">
+            <p className="text-caption text-content-faint bg-surface rounded-xl p-3">
               {t('trips.reminderDisabledHint')}
             </p>
           ) : (
@@ -548,20 +582,20 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                 ].map(opt => (
                   <button key={opt.value} type="button"
                     onClick={() => { update('reminder_days', opt.value); setCustomReminder(false) }}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                    className={`px-3 py-1.5 text-caption font-medium rounded-full border transition-colors ${
                       !customReminder && formData.reminder_days === opt.value
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                        ? 'bg-accent text-accent-text border-accent'
+                        : 'bg-surface text-content-secondary border-edge hover:border-content-faint'
                     }`}>
                     {opt.label}
                   </button>
                 ))}
                 <button type="button"
                   onClick={() => { setCustomReminder(true); if ([0, 1, 3, 9].includes(formData.reminder_days)) update('reminder_days', 7) }}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  className={`px-3 py-1.5 text-caption font-medium rounded-full border transition-colors ${
                     customReminder
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                      ? 'bg-accent text-accent-text border-accent'
+                      : 'bg-surface text-content-secondary border-edge hover:border-content-faint'
                   }`}>
                   {t('trips.reminderCustom')}
                 </button>
@@ -571,8 +605,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                   <NumericInput min={1} max={30}
                     value={formData.reminder_days}
                     onValueChange={raw => update('reminder_days', Math.max(1, Math.min(30, Number(raw) || 1)))}
-                    className="w-20 px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300" />
-                  <span className="text-xs text-slate-500">{t('trips.reminderDaysBefore')}</span>
+                    className="w-20 px-3 py-1.5 border border-edge rounded-xl bg-surface-input text-body text-content focus:outline-none focus:ring-2 focus:ring-accent/40" />
+                  <span className="text-caption text-content-muted">{t('trips.reminderDaysBefore')}</span>
                 </div>
               )}
             </>
@@ -583,15 +617,15 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         {/* Members */}
         {allUsers.filter(u => u.id !== currentUser?.id).length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              <UserPlus className="inline w-4 h-4 mr-1" />{isEditing ? t('dashboard.addMembers') : t('dashboard.addMembers')}
+            <label className={labelCls}>
+              <UserPlus className="w-3.5 h-3.5" />{isEditing ? t('dashboard.addMembers') : t('dashboard.addMembers')}
             </label>
             {/* Existing members (editing mode) */}
             {isEditing && existingMembers.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              <div className="flex flex-wrap gap-1.5 mb-2">
                 {existingMembers.map(m => (
                   <span key={m.id}
-                    className="bg-surface-secondary text-content border border-edge"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-body font-medium bg-surface text-content border border-edge"
                     onClick={async () => {
                       if (m.id === currentUser?.id) return
                       try {
@@ -600,11 +634,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                         toast.success(t('trips.memberRemoved', { username: m.username }))
                       } catch { toast.error(t('trips.memberRemoveError')) }
                     }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99,
-                      fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
-                      cursor: m.id === currentUser?.id ? 'default' : 'pointer',
-                    }}>
+                    style={{ cursor: m.id === currentUser?.id ? 'default' : 'pointer' }}>
                     {m.username}
                     {m.id !== currentUser?.id && <X size={11} className="text-content-faint" />}
                   </span>
@@ -613,16 +643,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             )}
             {/* Newly selected members (both modes) */}
             {selectedMembers.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              <div className="flex flex-wrap gap-1.5 mb-2">
                 {selectedMembers.map(uid => {
                   const user = allUsers.find(u => u.id === uid)!
                   return (
                     <span key={uid} onClick={() => setSelectedMembers(prev => prev.filter(id => id !== uid))}
-                      className="bg-surface-secondary text-content border border-edge cursor-pointer"
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99,
-                        fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
-                      }}>
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-body font-medium bg-surface text-content border border-edge cursor-pointer">
                       {user.username}
                       <X size={11} className="text-content-faint" />
                     </span>
@@ -657,6 +683,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           </div>
         )}
 
+        </div>{/* /right panel */}
+
+        </div>{/* /right column */}
+
+        </div>{/* /two-column grid */}
       </form>
     </Modal>
   )

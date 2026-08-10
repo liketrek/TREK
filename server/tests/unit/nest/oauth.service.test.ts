@@ -1181,3 +1181,25 @@ describe('OauthModule', () => {
     expect(providers).toEqual([Svc]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Admin view of live sessions — moved here from admin.service.test.ts with the
+// method. Named apart from the user-facing listOAuthSessions because the two
+// are different queries: this one spans users and carries the owner username.
+// ---------------------------------------------------------------------------
+
+describe('admin OAuth sessions', () => {
+  it('ADMIN-SVC-074 — listAllOAuthSessions survives a row with malformed scopes JSON', () => {
+    const { user } = createUser(testDb);
+    testDb.prepare("INSERT INTO oauth_clients (client_id, client_secret_hash, name) VALUES ('c1', 'hash', 'Client')").run();
+    testDb.prepare(`
+      INSERT INTO oauth_tokens (client_id, user_id, access_token_hash, refresh_token_hash, scopes,
+                                access_token_expires_at, refresh_token_expires_at)
+      VALUES ('c1', ?, 'ahash', 'rhash', 'not-json{', datetime('now', '+1 hour'), datetime('now', '+1 day'))
+    `).run(user.id);
+
+    const sessions = svc.listAllOAuthSessions() as any[];
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].scopes).toBeNull();
+  });
+});

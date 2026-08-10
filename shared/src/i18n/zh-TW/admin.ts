@@ -158,6 +158,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': '地點詳情',
   'admin.placesDetails.subtitle':
     '從 Google Places API 獲取地點詳細資訊（營業時間、評分、網站）。停用可節省 API 配額。',
+  'admin.placesEnrich.title': '地點資訊補充',
+  'admin.placesEnrich.subtitle':
+    '新增地點時顯示圖片與描述。一律使用維基百科與 OpenStreetMap；開啟「地點照片」或「地點詳細資料」時會額外使用 Google。',
   'admin.bagTracking.title': '行李追蹤',
   'admin.bagTracking.subtitle': '為打包物品啟用重量和行李分配',
   'admin.collab.chat.title': '聊天',

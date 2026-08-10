@@ -103,6 +103,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Crea una llista primer per poder desar llocs.',
   'collections.removedFromAll': 'Eliminat de la col·lecció',
   'collections.picker.title': 'Llocs desats',
+  'collections.picker.showMore': "Mostra'n {count} més",
   'collections.picker.search': 'Cerca entre els teus llocs desats',
   'collections.picker.empty': 'No hi ha llocs desats per afegir',
   'collections.picker.hint': 'Tria un lloc de les teves col·leccions',

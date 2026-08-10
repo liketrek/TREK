@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Δημιούργησε πρώτα μια λίστα για να αποθηκεύεις μέρη.',
   'collections.removedFromAll': 'Αφαιρέθηκε από τη συλλογή',
   'collections.picker.title': 'Αποθηκευμένα μέρη',
+  'collections.picker.showMore': 'Εμφάνιση {count} ακόμη',
   'collections.picker.search': 'Αναζήτηση στα αποθηκευμένα μέρη σου',
   'collections.picker.empty': 'Δεν υπάρχουν αποθηκευμένα μέρη για προσθήκη',
   'collections.picker.hint': 'Διάλεξε ένα μέρος από τις συλλογές σου',

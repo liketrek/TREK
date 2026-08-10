@@ -25,6 +25,11 @@ import {
   CATEGORY_OSM_FILTERS,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
+  stripWikiMarkup,
+  parseWikipediaTag,
+  toWikiLang,
+  haversineMetres,
+  namesOverlap,
   type GoogleOpeningHours,
   type OverpassPoi,
 } from './maps.helpers';
@@ -52,6 +57,147 @@ interface NominatimResult {
   display_name?: string;
   lat: string;
   lon: string;
+  extratags?: Record<string, string> | null;
+}
+
+/**
+ * The keys that say which encyclopaedia entry, Wikidata item and Commons
+ * category describe a place. Everything the enrichment column shows beyond
+ * coordinates hangs off one of these.
+ *
+ * Bare keys only. OSM also carries `brand:wikidata` / `brand:wikipedia`, and
+ * following those means a branch of a chain gets the chain's article and the
+ * chain's logo — for "L'Osteria Rostock" you would confidently describe
+ * L'Osteria the company. That is the exact failure the tag-only rule was
+ * written to avoid, so do not "improve" this by falling back to brand:*.
+ */
+const WIKI_IDENTITY_TAGS = ['wikipedia', 'wikidata', 'wikimedia_commons'] as const;
+
+export interface WikiIdentity {
+  wikipedia: string | null;
+  wikidata: string | null;
+  wikimedia_commons: string | null;
+}
+
+interface WikidataSnak {
+  mainsnak?: { datavalue?: { value?: string } };
+  rank?: 'preferred' | 'normal' | 'deprecated';
+}
+type WikidataClaims = Record<string, WikidataSnak[] | undefined>;
+
+/**
+ * Wikidata properties that name a picture of a place, in the order we want them.
+ *
+ * P18 is the representative image. The rest exist because a station or a
+ * monument is not one view: asking for the interior, the night shot, the
+ * panorama and the aerial gives a picker four genuinely different pictures
+ * instead of four frames of the same façade.
+ */
+const WIKIDATA_IMAGE_PROPERTIES = [
+  'P18', // image
+  'P5775', // interior view
+  'P3451', // night view
+  'P8592', // aerial view
+  'P4291', // panoramic view
+  'P5252', // winter view
+  'P948', // Wikivoyage banner
+] as const;
+
+/** First non-empty string value of a claim list. */
+function claimValue(snaks: WikidataSnak[] | undefined): string | null {
+  for (const snak of snaks ?? []) {
+    const value = snak.mainsnak?.datavalue?.value;
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+/**
+ * File names from an item's picture properties, best first.
+ *
+ * Within P18 the statement rank decides: an item with several images marks one
+ * `preferred`, and that is the one an editor considers representative. The API
+ * returns statements in edit order, not rank order, so taking `[0]` picks
+ * whichever was added first — for the Brandenburg Gate that is a coin toss
+ * between the morning shot and a wide overview.
+ */
+function wikidataImageClaims(claims: WikidataClaims, limit: number): string[] {
+  const rankOrder = { preferred: 0, normal: 1, deprecated: 2 } as const;
+  const names: string[] = [];
+  const seen = new Set<string>();
+
+  for (const property of WIKIDATA_IMAGE_PROPERTIES) {
+    const snaks = [...(claims[property] ?? [])]
+      .filter((snak) => snak.rank !== 'deprecated')
+      .sort((a, b) => (rankOrder[a.rank ?? 'normal'] ?? 1) - (rankOrder[b.rank ?? 'normal'] ?? 1));
+    for (const snak of snaks) {
+      const value = snak.mainsnak?.datavalue?.value;
+      if (typeof value !== 'string' || !value.trim()) continue;
+      const key = normalizeFileTitle(value);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      names.push(value.trim());
+      if (names.length >= limit) return names;
+    }
+  }
+  return names;
+}
+
+/** `File:` prefix off, underscores and case normalised — Commons treats these as one title. */
+function normalizeFileTitle(title: string): string {
+  return title.replace(/^File:/i, '').replace(/_/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * A bare Commons category name out of whatever an OSM `wikimedia_commons` tag
+ * holds.
+ *
+ * The tag is free text and mappers put three different things in it: a bare
+ * name, a prefixed `Category:…`, or — against the wiki's own advice — a single
+ * `File:…`. Prefixing blindly turned the last one into `Category:File:X.jpg`,
+ * which matches nothing and fell through to the coordinate search without a
+ * word. Localised prefixes (`Kategorie:`) appear too.
+ */
+function normalizeCategoryName(raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return null;
+  // A file name is not a category, and there is nothing sensible to derive.
+  if (/^(file|datei|image|bild)\s*:/i.test(value)) return null;
+  return value.replace(/^(category|kategorie|categorie|categoría|categoria)\s*:/i, '').trim() || null;
+}
+
+/**
+ * The chain a place belongs to, when it belongs to one.
+ *
+ * Read separately from `readWikiIdentity` and never mixed into it. Following
+ * `brand:wikidata` as if it described the place is how "L'Osteria Rostock"
+ * ends up illustrated with the company logo and described as a franchise
+ * operator — which is why the picture ladder never sees these. For a
+ * description they are still worth something: a branch of a chain has no
+ * article of its own and never will, and "L'Osteria is a German restaurant
+ * chain serving pizza and pasta" beats an empty column, as long as the reader
+ * is told that is what they are looking at.
+ */
+export function readBrandIdentity(extratags: Record<string, string> | null | undefined): {
+  wikidata: string | null;
+  wikipedia: string | null;
+} {
+  const read = (key: string): string | null => {
+    const value = extratags?.[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  };
+  return { wikidata: read('brand:wikidata'), wikipedia: read('brand:wikipedia') };
+}
+
+/** Picks the three identity tags out of a Nominatim `extratags` blob. */
+export function readWikiIdentity(extratags: Record<string, string> | null | undefined): WikiIdentity {
+  const out: WikiIdentity = { wikipedia: null, wikidata: null, wikimedia_commons: null };
+  if (!extratags) return out;
+  for (const tag of WIKI_IDENTITY_TAGS) {
+    const value = extratags[tag];
+    if (typeof value === 'string' && value.trim()) out[tag] = value.trim();
+  }
+  return out;
 }
 
 interface OverpassElement {
@@ -59,7 +205,55 @@ interface OverpassElement {
 }
 
 interface WikiCommonsPage {
-  imageinfo?: { url?: string; thumburl?: string; extmetadata?: { Artist?: { value?: string } } }[];
+  pageid?: number;
+  title?: string;
+  imageinfo?: {
+    url?: string;
+    thumburl?: string;
+    mime?: string;
+    width?: number;
+    height?: number;
+    /** The file description page — where the full licence terms live. */
+    descriptionurl?: string;
+    extmetadata?: {
+      Artist?: { value?: string };
+      LicenseShortName?: { value?: string };
+      LicenseUrl?: { value?: string };
+      UsageTerms?: { value?: string };
+      /** Used to spot survey imagery and diagrams, which are not pictures of a place. */
+      Categories?: { value?: string };
+      ObjectName?: { value?: string };
+      ImageDescription?: { value?: string };
+    };
+  }[];
+}
+
+/**
+ * One Commons image with everything needed to credit it. Commons is mostly
+ * CC BY / CC BY-SA, so a candidate that cannot be attributed is not usable in a
+ * picker — the fields are nullable because Commons metadata is user-maintained
+ * and genuinely incomplete on some files, not because they are optional to show.
+ */
+export interface CommonsCandidate {
+  photoUrl: string;
+  attribution: string | null;
+  license: string | null;
+  licenseUrl: string | null;
+  sourceUrl: string | null;
+  /**
+   * Commons page id — the only stable identity a file has across the four ways
+   * we reach it. The thumbnail URL is not: the same file comes back from
+   * commons.wikimedia.org and from a language Wikipedia with different query
+   * strings, so deduplicating on the URL silently lets the same picture through
+   * twice. It is also what keys the cached bytes, so it must survive.
+   */
+  pageId: number | null;
+  /** File page title, e.g. `File:Brandenburger Tor morgens.jpg`. */
+  title: string | null;
+  width: number | null;
+  height: number | null;
+  /** Free text used to reject survey imagery, floor plans and logos. */
+  descriptors: string | null;
 }
 
 interface GooglePlaceResult {
@@ -102,6 +296,17 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 // of places cannot monopolise the event loop or trigger external API rate limits.
 // Module-scoped ON PURPOSE (permissions-cache precedent): the bridge instance and
 // the DI singleton must share one limiter, one POI cache and one call counter.
+// Wikimedia is normally well under a second, but a cold TLS handshake from a
+// fresh container has been seen at eight. Enrichment answers a live dialog, so
+// a slow provider is dropped rather than waited out.
+const WIKI_TIMEOUT_MS = 6000;
+
+// Tighter than the wiki calls, because this one sits at the FRONT of a chain:
+// identity, then sitelinks, then the extract. Nominatim answers a bounded
+// search in 0.2-0.7s in practice, so anything past a couple of seconds is a bad
+// day at the provider rather than a slow answer worth waiting for.
+const IDENTITY_TIMEOUT_MS = 2500;
+
 const MAX_CONCURRENT_PHOTO_FETCHES = 5;
 let photoFetchActive = 0;
 const photoFetchQueue: Array<() => void> = [];
@@ -120,6 +325,21 @@ function releasePhotoFetchSlot(): void {
     next();
   } else {
     photoFetchActive--;
+  }
+}
+
+/**
+ * Runs an outbound photo fetch under the shared slot limit. Exported so the
+ * enrichment module queues behind the same five slots — a picker that grabs
+ * three images per selected place would otherwise sail past a cap the rest of
+ * the app respects.
+ */
+export async function withPhotoFetchSlot<T>(fn: () => Promise<T>): Promise<T> {
+  await acquirePhotoFetchSlot();
+  try {
+    return await fn();
+  } finally {
+    releasePhotoFetchSlot();
   }
 }
 
@@ -324,6 +544,11 @@ export class MapsService {
       q: query,
       format: 'json',
       addressdetails: '1',
+      // Free, same request: this is where a place's wikidata/wikipedia/commons
+      // tags live. Without them the enrichment column can only fall back to
+      // "photos taken within 300m", which around a city centre is passers-by
+      // and the neighbouring building.
+      extratags: '1',
       limit: '10',
       'accept-language': toApiLang(lang),
     });
@@ -354,8 +579,94 @@ export class MapsService {
         website: null,
         phone: null,
         source: 'openstreetmap',
+        ...readWikiIdentity(item.extratags),
       };
     });
+  }
+
+  /**
+   * Finds the OpenStreetMap record for a place we only know by name and
+   * coordinate, and hands back its tags.
+   *
+   * This is what gives a Google place a free identity. Google's payload has no
+   * `wikidata`, no `wikipedia` and no `wikimedia_commons` — it never had — so
+   * without this the entire free half of the enrichment column is unreachable
+   * for anyone who configured a Google key, which is the opposite of how this
+   * feature is meant to work. OSM knows these places perfectly well; nobody was
+   * asking it.
+   *
+   * Two gates keep it from describing the wrong building, because a confident
+   * description of somewhere else is worse than none:
+   *   - the match has to be within `maxDistanceM` of where we are looking, and
+   *   - it has to share a substantial word with the name we are looking for.
+   * Among what survives, Nominatim's own `importance` decides — that is what
+   * separates the Brandenburg Gate from the underground station named after it.
+   */
+  async resolveOsmIdentity(
+    name: string,
+    lat: number,
+    lng: number,
+    opts: { lang?: string; maxDistanceM?: number; signal?: AbortSignal } = {},
+  ): Promise<{ tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null> {
+    const query = (name || '').trim();
+    if (!query || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const maxDistanceM = opts.maxDistanceM ?? 2000;
+
+    // ~2km box around the point, so Nominatim ranks locally instead of handing
+    // back the most famous place on earth with this name.
+    const d = 0.02;
+    const params = new URLSearchParams({
+      q: query,
+      format: 'jsonv2',
+      extratags: '1',
+      limit: '5',
+      bounded: '1',
+      viewbox: `${lng - d},${lat - d},${lng + d},${lat + d}`,
+      'accept-language': toApiLang(opts.lang),
+    });
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: opts.signal ?? AbortSignal.timeout(IDENTITY_TIMEOUT_MS),
+      });
+      if (!res.ok) return null;
+      // Nominatim answers rate limiting in plain text, not JSON.
+      const data = (await res.json()) as (NominatimResult & { importance?: number })[];
+      if (!Array.isArray(data)) return null;
+
+      const best = data
+        .map((item) => ({
+          item,
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+        }))
+        .filter(({ item, lat: hitLat, lng: hitLng }) => {
+          if (!Number.isFinite(hitLat) || !Number.isFinite(hitLng)) return false;
+          if (haversineMetres(lat, lng, hitLat, hitLng) > maxDistanceM) return false;
+          const label = item.name || item.display_name?.split(',')[0] || '';
+          return namesOverlap(query, label);
+        })
+        .sort((a, b) => {
+          const byImportance = (b.item.importance ?? 0) - (a.item.importance ?? 0);
+          if (byImportance !== 0) return byImportance;
+          return (
+            haversineMetres(lat, lng, a.lat, a.lng) - haversineMetres(lat, lng, b.lat, b.lng)
+          );
+        })[0];
+
+      if (!best) return null;
+      return {
+        tags: best.item.extratags ?? {},
+        osmUrl:
+          best.item.osm_type && best.item.osm_id
+            ? `https://www.openstreetmap.org/${best.item.osm_type}/${best.item.osm_id}`
+            : null,
+        matchedName: best.item.name || best.item.display_name?.split(',')[0] || query,
+      };
+    } catch {
+      return null;
+    }
   }
 
   // ── Nominatim lookup (by OSM ID) ───────────────────────────────────────────
@@ -369,11 +680,15 @@ export class MapsService {
     address: string;
     lat: number | null;
     lng: number | null;
+    extratags: Record<string, string> | null;
   } | null> {
     const typePrefix = osmType.charAt(0).toUpperCase(); // N, W, R
     const params = new URLSearchParams({
       osm_ids: `${typePrefix}${osmId}`,
       format: 'json',
+      // Overpass is the richer source but it is also the one that times out;
+      // whatever Nominatim already knows costs nothing extra here.
+      extratags: '1',
       'accept-language': toApiLang(lang),
     });
     try {
@@ -391,6 +706,7 @@ export class MapsService {
         address: item.display_name || '',
         lat: Number.isFinite(lat) ? lat : null,
         lng: Number.isFinite(lng) ? lng : null,
+        extratags: item.extratags ?? null,
       };
     } catch {
       return null;
@@ -553,6 +869,20 @@ export class MapsService {
     }
 
     // Strategy 2: Wikimedia Commons geosearch by coordinates
+    const candidates = await this.fetchCommonsCandidates(lat, lng, 5);
+    const first = candidates[0];
+    return first ? { photoUrl: first.photoUrl, attribution: first.attribution } : null;
+  }
+
+  /**
+   * Commons images near a coordinate, licence metadata included.
+   *
+   * geosearch already returns up to `limit` files in a single request, so asking
+   * for a whole strip costs the same as asking for one picture. Callers that only
+   * want a single image (fetchWikimediaPhoto, and through it getPlacePhoto) take
+   * the first entry and get exactly the file they got before this existed.
+   */
+  async fetchCommonsCandidates(lat: number, lng: number, limit = 5): Promise<CommonsCandidate[]> {
     const params = new URLSearchParams({
       action: 'query',
       format: 'json',
@@ -561,31 +891,471 @@ export class MapsService {
       ggsnamespace: '6',
       ggsradius: '300',
       ggscoord: `${lat}|${lng}`,
-      ggslimit: '5',
+      // Deliberately more than the caller asked for. Around anything worth
+      // visiting the first few hits are survey tiles, passers-by and the
+      // building next door; the ranker needs a pool to reject from, and
+      // geosearch charges the same for one result as for twenty.
+      ggslimit: String(Math.max(1, Math.min(Math.max(limit * 4, 8), 20))),
       prop: 'imageinfo',
-      iiprop: 'url|extmetadata|mime',
+      iiprop: 'url|extmetadata|mime|size',
       iiurlwidth: '400',
     });
     try {
-      const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { 'User-Agent': UA } });
+      const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        // A hanging provider must not hold the whole enrichment request open;
+        // no pictures is a fine answer, a request that never returns is not.
+        signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+      });
+      if (!res.ok) return [];
+      const data = (await res.json()) as { query?: { pages?: Record<string, WikiCommonsPage> } };
+      // Hand back the whole pool. fetchWikimediaPhoto still takes [0] and gets
+      // what it always got; the enrichment column ranks before it cuts.
+      return this.toCommonsCandidates(data.query?.pages, Number(params.get('ggslimit')));
+    } catch {
+      return [];
+    }
+  }
+
+  /** Shared shaping for every Commons query (coordinate, category, Wikidata, batch). */
+  private toCommonsCandidates(
+    pages: Record<string, WikiCommonsPage> | undefined,
+    limit: number,
+  ): CommonsCandidate[] {
+    if (!pages) return [];
+    const out: CommonsCandidate[] = [];
+    // entries(), not values(): the map key is the page id, and for the queries
+    // that reach a file by title it is the only place the id appears.
+    for (const [key, page] of Object.entries(pages)) {
+      const info = page.imageinfo?.[0];
+      // Only use actual photos (JPEG/PNG), skip SVGs and PDFs
+      const mime = info?.mime || '';
+      if (!info?.url || !(mime.startsWith('image/jpeg') || mime.startsWith('image/png'))) continue;
+      const meta = info.extmetadata;
+      const pageId = page.pageid ?? (Number.isInteger(Number(key)) ? Number(key) : null);
+      out.push({
+        // iiurlwidth=400 makes Commons also return a scaled thumburl. Prefer it —
+        // info.url is the full-resolution original (multi-megapixel camera exports).
+        photoUrl: info.thumburl ?? info.url,
+        attribution: stripWikiMarkup(meta?.Artist?.value),
+        license: stripWikiMarkup(meta?.LicenseShortName?.value) ?? stripWikiMarkup(meta?.UsageTerms?.value),
+        licenseUrl: meta?.LicenseUrl?.value?.trim() || null,
+        sourceUrl: info.descriptionurl || null,
+        pageId: pageId && pageId > 0 ? pageId : null,
+        title: page.title ?? null,
+        width: info.width ?? null,
+        height: info.height ?? null,
+        descriptors: [
+          stripWikiMarkup(meta?.ObjectName?.value),
+          stripWikiMarkup(meta?.ImageDescription?.value),
+          stripWikiMarkup(meta?.Categories?.value),
+        ]
+          .filter(Boolean)
+          .join(' | ') || null,
+      });
+      if (out.length >= limit) break;
+    }
+    return out;
+  }
+
+  /**
+   * Lead paragraph of a wiki article, from Wikivoyage first and Wikipedia after.
+   *
+   * Wikivoyage is the travel sibling: same MediaWiki API, same CC BY-SA, but it
+   * describes a place for someone about to go there, where Wikipedia opens with
+   * area in square kilometres and pronunciation. Both are resolved from the OSM
+   * `wikipedia` tag — guessing the article from the place name lands on the
+   * wrong one for every ambiguous name, so no tag means no description rather
+   * than a confident description of somewhere else.
+   */
+  async fetchWikiExtract(
+    wikipediaTag: string | null | undefined,
+  ): Promise<{ text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null> {
+    const parsed = parseWikipediaTag(wikipediaTag);
+    if (!parsed) return null;
+
+    // Two sentences, not three: this sits next to a form, and a fourth line of
+    // prose pushes the pictures out of view.
+    const params = new URLSearchParams({
+      action: 'query',
+      format: 'json',
+      titles: parsed.title,
+      prop: 'extracts',
+      exintro: '1',
+      explaintext: '1',
+      exsentences: '2',
+      redirects: '1',
+    });
+
+    for (const host of ['wikivoyage', 'wikipedia'] as const) {
+      const hit = await this.fetchWikiExtractFor(host, parsed.lang, parsed.title);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  /**
+   * The lead paragraph of one named article on one named wiki.
+   *
+   * Split out from `fetchWikiExtract` because the article is not always found
+   * through an OSM tag: a place can carry a Wikidata id and no `wikipedia` tag
+   * at all (Berlin Hauptbahnhof is exactly that), and then the title comes from
+   * the item's sitelinks instead.
+   */
+  async fetchWikiExtractFor(
+    host: 'wikivoyage' | 'wikipedia',
+    lang: string,
+    title: string,
+    signal?: AbortSignal,
+  ): Promise<{ text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null> {
+    if (!lang || !title) return null;
+    // Two sentences, not three: this sits next to a form, and a fourth line of
+    // prose pushes the pictures out of view.
+    const params = new URLSearchParams({
+      action: 'query',
+      format: 'json',
+      titles: title,
+      prop: 'extracts',
+      exintro: '1',
+      explaintext: '1',
+      exsentences: '2',
+      redirects: '1',
+    });
+    try {
+      const res = await fetch(`https://${lang}.${host}.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: signal ?? AbortSignal.timeout(WIKI_TIMEOUT_MS),
+      });
       if (!res.ok) return null;
       const data = (await res.json()) as {
-        query?: { pages?: Record<string, WikiCommonsPage & { imageinfo?: { mime?: string }[] }> };
+        query?: { pages?: Record<string, { title?: string; extract?: string }> };
       };
-      const pages = data.query?.pages;
-      if (!pages) return null;
-      for (const page of Object.values(pages)) {
-        const info = page.imageinfo?.[0];
-        // Only use actual photos (JPEG/PNG), skip SVGs and PDFs
-        const mime = (info as { mime?: string })?.mime || '';
-        if (info?.url && (mime.startsWith('image/jpeg') || mime.startsWith('image/png'))) {
-          const attribution = info.extmetadata?.Artist?.value?.replace(/<[^>]+>/g, '').trim() || null;
-          // iiurlwidth=400 makes Commons also return a scaled thumburl. Prefer it —
-          // info.url is the full-resolution original (multi-megapixel camera exports).
-          return { photoUrl: info.thumburl ?? info.url, attribution };
-        }
+      for (const page of Object.values(data.query?.pages ?? {})) {
+        const text = page.extract?.trim();
+        // A missing article comes back as a page with no extract, not a 404.
+        if (!text) continue;
+        const resolved = page.title ?? title;
+        return {
+          text,
+          sourceUrl: `https://${lang}.${host}.org/wiki/${encodeURIComponent(resolved)}`,
+          source: host,
+        };
       }
       return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Which articles a Wikidata item is linked to, for the wikis we care about.
+   *
+   * The way to an article when a place has a Wikidata id but no `wikipedia`
+   * tag — which is most of them, because mappers add one or the other. One
+   * request, a few hundred bytes.
+   */
+  async fetchWikidataSitelinks(
+    wikidataId: string,
+    sites: string[],
+    signal?: AbortSignal,
+  ): Promise<Record<string, string>> {
+    const qid = wikidataId.trim();
+    if (!/^Q\d+$/.test(qid) || sites.length === 0) return {};
+    const params = new URLSearchParams({
+      action: 'wbgetentities',
+      props: 'sitelinks',
+      ids: qid,
+      sitefilter: sites.join('|'),
+      format: 'json',
+    });
+    try {
+      const res = await fetch(`https://www.wikidata.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: signal ?? AbortSignal.timeout(IDENTITY_TIMEOUT_MS),
+      });
+      if (!res.ok) return {};
+      const data = (await res.json()) as {
+        entities?: Record<string, { sitelinks?: Record<string, { title?: string }> }>;
+      };
+      const out: Record<string, string> = {};
+      for (const [site, link] of Object.entries(data.entities?.[qid]?.sitelinks ?? {})) {
+        if (link?.title) out[site] = link.title;
+      }
+      return out;
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * The pictures Wikidata records for a place, best first.
+   *
+   * By far the most accurate source there is: a person chose each of these to
+   * represent this exact object, where a coordinate search only knows what was
+   * photographed nearby. Wikidata also keeps them apart by what they show, so
+   * asking for more than P18 buys genuine variety rather than another frame of
+   * the same burst — Berlin Hauptbahnhof has an exterior, two interiors, a
+   * night shot, a panorama and a winter view, all curated.
+   *
+   * Two calls total whatever the item holds: one for the claims, one batch for
+   * the file metadata.
+   */
+  async fetchWikidataCandidates(
+    wikidataId: string,
+    limit = 5,
+  ): Promise<{ candidates: CommonsCandidate[]; commonsCategory: string | null }> {
+    const empty = { candidates: [], commonsCategory: null };
+    const qid = wikidataId.trim();
+    if (!/^Q\d+$/.test(qid)) return empty;
+    try {
+      const res = await fetch(
+        `https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims&ids=${qid}&format=json`,
+        { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) },
+      );
+      if (!res.ok) return empty;
+      const data = (await res.json()) as { entities?: Record<string, { claims?: WikidataClaims }> };
+      const claims = data.entities?.[qid]?.claims;
+      if (!claims) return empty;
+
+      const fileNames = wikidataImageClaims(claims, limit);
+      const commonsCategory = claimValue(claims.P373) ?? null;
+      if (fileNames.length === 0) return { candidates: [], commonsCategory };
+
+      const byTitle = await this.fetchCommonsFilesByName(fileNames);
+      // Back into the order Wikidata implied, which the batch response loses.
+      const candidates = fileNames.map((name) => byTitle.get(normalizeFileTitle(name))).filter((c): c is CommonsCandidate => !!c);
+      return { candidates, commonsCategory };
+    } catch {
+      return empty;
+    }
+  }
+
+  /**
+   * Metadata for a list of Commons files, in one request.
+   *
+   * `redirects=1` matters more than it looks: a Wikidata claim or a Wikipedia
+   * lead image often names a file that has since been renamed, and without it
+   * the API answers with a `missing` page and the picture disappears silently.
+   * Keyed by normalised title so callers can restore their own ordering.
+   */
+  async fetchCommonsFilesByName(fileNames: string[]): Promise<Map<string, CommonsCandidate>> {
+    const out = new Map<string, CommonsCandidate>();
+    const titles = fileNames.map((name) => (/^File:/i.test(name) ? name : `File:${name}`));
+    if (titles.length === 0) return out;
+
+    const params = new URLSearchParams({
+      action: 'query',
+      format: 'json',
+      titles: titles.join('|'),
+      redirects: '1',
+      prop: 'imageinfo',
+      iiprop: 'url|extmetadata|mime|size',
+      iiurlwidth: '400',
+    });
+    try {
+      const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+      });
+      if (!res.ok) return out;
+      const data = (await res.json()) as {
+        query?: {
+          pages?: Record<string, WikiCommonsPage>;
+          normalized?: { from: string; to: string }[];
+          redirects?: { from: string; to: string }[];
+        };
+      };
+      // The API renames titles twice on the way in (normalisation, then
+      // redirects), so walk the chain back to what the caller asked for.
+      const aliases = new Map<string, string>();
+      for (const hop of [...(data.query?.normalized ?? []), ...(data.query?.redirects ?? [])]) {
+        aliases.set(normalizeFileTitle(hop.to), normalizeFileTitle(hop.from));
+      }
+      const resolveOriginal = (title: string): string => {
+        let key = normalizeFileTitle(title);
+        for (let hop = 0; hop < 4; hop++) {
+          const previous = aliases.get(key);
+          if (!previous || previous === key) break;
+          key = previous;
+        }
+        return key;
+      };
+
+      for (const candidate of this.toCommonsCandidates(data.query?.pages, titles.length)) {
+        if (!candidate.title) continue;
+        out.set(resolveOriginal(candidate.title), candidate);
+        // Also reachable under its own name, for callers that already resolved.
+        out.set(normalizeFileTitle(candidate.title), candidate);
+      }
+      return out;
+    } catch {
+      return out;
+    }
+  }
+
+  /**
+   * The lead image a wiki article picked for a place.
+   *
+   * Only the file NAME is taken from here; the bytes and the licence come from
+   * the same Commons batch as everything else. The thumbnail URL the API offers
+   * alongside it carries no attribution, and a picture we cannot credit is a
+   * picture we cannot show.
+   */
+  async fetchWikiLeadImageName(wikipediaTag: string | null | undefined): Promise<string | null> {
+    const parsed = parseWikipediaTag(wikipediaTag);
+    if (!parsed) return null;
+    const params = new URLSearchParams({
+      action: 'query',
+      format: 'json',
+      titles: parsed.title,
+      prop: 'pageimages',
+      piprop: 'name',
+      redirects: '1',
+    });
+    for (const host of ['wikivoyage', 'wikipedia'] as const) {
+      try {
+        const res = await fetch(`https://${parsed.lang}.${host}.org/w/api.php?${params}`, {
+          headers: { 'User-Agent': UA },
+          signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+        });
+        if (!res.ok) continue;
+        const data = (await res.json()) as {
+          query?: { pages?: Record<string, { pageimage?: string }> };
+        };
+        for (const page of Object.values(data.query?.pages ?? {})) {
+          if (page.pageimage) return page.pageimage;
+        }
+      } catch {
+        /* try the next wiki */
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Commons images from a category, which is the set of pictures OF a place.
+   *
+   * Preferred over the coordinate search wherever a place carries a
+   * `wikimedia_commons` tag: geosearch around a city centre returns statues and
+   * passers-by, while the category of a restaurant returns the restaurant.
+   */
+  async fetchCommonsCategoryCandidates(category: string, limit = 5): Promise<CommonsCandidate[]> {
+    const name = normalizeCategoryName(category);
+    if (!name) return [];
+    // Overfetch: the ranker throws away survey imagery, diagrams and repeats,
+    // and it can only do that from a pool bigger than the strip.
+    const poolSize = String(Math.max(1, Math.min(limit * 3, 20)));
+
+    // `generator=search` first. `categorymembers` orders by sort key, i.e.
+    // alphabetically by file name, which is not a quality signal in any
+    // direction: "Category:Brandenburg Gate" opens with an .ogg pronunciation,
+    // a marathon photo and six near-identical press shots, and
+    // "Category:Hamburg Airport" with a noise map and a terminal layout. The
+    // search index at least ranks by how well a file matches its category.
+    const search = new URLSearchParams({
+      action: 'query',
+      format: 'json',
+      generator: 'search',
+      gsrsearch: `incategory:"${name}" filetype:bitmap`,
+      gsrnamespace: '6',
+      gsrlimit: poolSize,
+      prop: 'imageinfo',
+      iiprop: 'url|extmetadata|mime|size',
+      iiurlwidth: '400',
+    });
+    const members = new URLSearchParams({
+      action: 'query',
+      format: 'json',
+      generator: 'categorymembers',
+      gcmtitle: `Category:${name}`,
+      gcmtype: 'file',
+      gcmlimit: poolSize,
+      prop: 'imageinfo',
+      iiprop: 'url|extmetadata|mime|size',
+      iiurlwidth: '400',
+    });
+
+    for (const params of [search, members]) {
+      try {
+        const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
+          headers: { 'User-Agent': UA },
+          signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+        });
+        if (!res.ok) continue;
+        const data = (await res.json()) as { query?: { pages?: Record<string, WikiCommonsPage> } };
+        const hits = this.toCommonsCandidates(data.query?.pages, Number(poolSize));
+        if (hits.length) return hits;
+      } catch {
+        /* fall through to the second strategy */
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Photo references for a Google place, capped by the caller.
+   *
+   * Split out from the bytes download on purpose: this is one billed Details
+   * call for the whole strip, while every reference turned into an image is a
+   * separate billed /media call. Callers fetch bytes only for what they show.
+   */
+  async fetchGooglePhotoRefs(
+    placeId: string,
+    apiKey: string,
+    cap: number,
+  ): Promise<{ name: string; attribution: string | null }[]> {
+    if (!isGooglePlaceId(placeId) || cap < 1) return [];
+    try {
+      const res = await googleFetch(
+        `https://places.googleapis.com/v1/places/${placeId}`,
+        `fetchGooglePhotoRefs(${placeId})`,
+        { headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'photos' } },
+      );
+      if (!res.ok) return [];
+      const data = (await res.json()) as GooglePlaceDetails;
+      return (data.photos ?? []).slice(0, cap).map((photo) => ({
+        name: photo.name,
+        attribution: photo.authorAttributions?.[0]?.displayName || null,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /** Image bytes for one photo reference. Null on any miss; the caller skips it. */
+  async fetchGooglePhotoBytes(photoName: string, apiKey: string, maxHeightPx = 400): Promise<Buffer | null> {
+    try {
+      const res = await googleFetch(
+        `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=${maxHeightPx}`,
+        `fetchGooglePhotoBytes(${photoName})`,
+        { headers: { 'X-Goog-Api-Key': apiKey } },
+      );
+      if (!res.ok) return null;
+      const bytes = Buffer.from(await res.arrayBuffer());
+      return bytes.length ? bytes : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Google's editorial summary, on its own.
+   *
+   * getPlaceDetailsExpanded would also return this, but its field mask includes
+   * `reviews`, which moves the call into the Enterprise SKU. Enrichment only
+   * wants the sentence, so it asks for the sentence.
+   */
+  async fetchEditorialSummary(placeId: string, apiKey: string, lang?: string): Promise<string | null> {
+    if (!isGooglePlaceId(placeId)) return null;
+    try {
+      const res = await googleFetch(
+        `https://places.googleapis.com/v1/places/${placeId}?languageCode=${toApiLang(lang)}`,
+        `fetchEditorialSummary(${placeId})`,
+        { headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'editorialSummary' } },
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as GooglePlaceDetails;
+      return data.editorialSummary?.text?.trim() || null;
     } catch {
       return null;
     }
@@ -748,12 +1518,22 @@ export class MapsService {
     // OSM details: placeId is "node:123456" or "way:123456" etc.
     if (placeId.includes(':')) {
       const [osmType, osmId] = placeId.split(':');
-      const element = await this.fetchOverpassDetails(osmType, osmId);
-      const details = buildOsmDetails(element?.tags || {}, osmType, osmId);
-
       // buildOsmDetails never yields name/address/coordinates — Nominatim is
       // always the source for those (Overpass contributes the tag-derived rest).
-      const nominatim = await this.lookupNominatim(osmType, osmId, lang);
+      const [element, nominatim] = await Promise.all([
+        this.fetchOverpassDetails(osmType, osmId),
+        this.lookupNominatim(osmType, osmId, lang),
+      ]);
+      // Overpass has the fuller tag set and wins where both answer, but it is
+      // also the one that goes down — overpass-api.de is regularly overloaded.
+      // Nominatim's extratags carry the wikidata/wikipedia/commons tags too, so
+      // a place keeps its pictures and its description when Overpass times out
+      // instead of falling back to "photographed within 300m".
+      const details = buildOsmDetails(
+        { ...(nominatim?.extratags ?? {}), ...(element?.tags ?? {}) },
+        osmType,
+        osmId,
+      );
 
       return {
         place: {

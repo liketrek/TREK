@@ -23,7 +23,7 @@ vi.mock('../../../src/config', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { createUser } from '../../helpers/factories';
-import { getOrCreateLocalTrekPhoto, getOrCreateTrekPhoto, resolveTrekPhoto } from '../../../src/services/memories/photoResolverService';
+import { getOrCreateLocalTrekPhoto, getOrCreateTrekPhoto, resolveTrekPhoto } from '../../../src/nest/photos/photos.bridge';
 
 beforeAll(() => {
   createTables(testDb);

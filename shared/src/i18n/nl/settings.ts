@@ -447,6 +447,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Verborgen',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Opstarten',
+  'settings.startPage': 'Startpagina',
+  'settings.startPageDashboard': 'Dashboard',
+  'settings.startPageActiveTrip': 'Actieve reis',
+  'settings.startPageHint':
+    'TREK opent direct de reis die nu loopt, of anders de eerstvolgende. Dat is dezelfde reis die het dashboard uitlicht.',
+  'settings.startTripTab': 'Starttabblad',
+  'settings.startTripTabHint':
+    'Het tabblad waarmee de reis opent. Hoort het bij een uitgeschakelde add-on, dan opent het plan in plaats daarvan.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Offline cache',

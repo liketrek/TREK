@@ -82,4 +82,61 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // The plugin RPC decorator kit is written to stay extractable into its own
+    // package, so its dependencies are pinned to Nest plus the two host modules it
+    // genuinely needs. See src/nest/plugins/host/rpc-kit/README.md for what an
+    // extraction would cost, and why the envelope import is the deliberate exception.
+    files: ['src/nest/plugins/host/rpc-kit/**/*.ts'],
+    rules: {
+      // Written as a deny list rather than an allow list on purpose: these patterns
+      // are gitignore-style, and a leading '**' would exclude the parent directory of
+      // every allowed path, which makes the '!' re-includes silently ineffective.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                // The host modules next door.
+                '../rpc-host',
+                '../rpc-errors',
+                '../rpc-params',
+                '../rate-limit',
+                '../daily-budget',
+                '../plugin-audit',
+                '../plugin-jobs',
+                '../plugin-guards.service',
+                '../plugin-host-*',
+                // Everything one level up, in plugins/ itself.
+                '../../*.service',
+                '../../*.module',
+                '../../*.controller',
+                '../../dependencies',
+                '../../dev-link',
+                '../../kill-switch',
+                '../../paths',
+                '../../plugin-backup',
+                '../../signature-status',
+                '../../text-sanitize',
+                '../../install/**',
+                '../../registry/**',
+                '../../runtime/**',
+                '../../supervisor/**',
+                // The wire protocol, except the one file the kit validates against.
+                '../../protocol/*',
+                '!../../protocol/envelope',
+                // Anything outside the plugin subtree, and the rest of the app.
+                '../../../**',
+                '@trek/**',
+                'node:*',
+              ],
+              message:
+                'rpc-kit stays extractable: it may import @nestjs/common, @nestjs/core, its own files, and type-only from ../../protocol/envelope and ../plugin-data.service. See rpc-kit/README.md.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

@@ -63,7 +63,7 @@ vi.mock('../../src/config', () => ({
 
 import path from 'node:path';
 import { start, setSchedulerDeps } from '../../src/scheduler';
-import { createBackup } from '../../src/services/backupService';
+import { createBackup } from '../../src/nest/backup/backup.impl';
 
 const liveDb = path.join(__dirname, '../../data', 'travel.db');
 

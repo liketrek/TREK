@@ -299,7 +299,7 @@ function shouldSendToUser(
  * Non-Nest consumers (scheduler, legacy adminService/memories, the lazy
  * fire-and-forget sends in migrated Nest services) go through
  * `notifications.bridge.ts`; the plugin RPC host injects this service via
- * `PluginHostDepsFactory`.
+ * `HostSurfaceRpc`.
  */
 @Injectable()
 export class NotificationsService {

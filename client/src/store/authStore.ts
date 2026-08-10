@@ -11,6 +11,7 @@ import { unregisterSyncTriggers } from '../sync/syncTriggers'
 import { useSystemNoticeStore } from './systemNoticeStore.js'
 import { clearAppearanceSnapshot } from '../theme/applyAppearance'
 import { clearAllPluginSessions } from './pluginStore'
+import { forgetStartDestination } from '../utils/startDestination'
 
 interface AuthResponse {
   user: User
@@ -32,6 +33,10 @@ interface AuthState {
    *  outage doesn't render as a blank, error-free page that looks like lost data.
    *  Transient, never persisted. #1283 */
   authCheckFailed: boolean
+  /** The user pressed "log out" — as opposed to a session that simply ended.
+   *  Read by ProtectedRoute: a deliberate sign-out should not leave a
+   *  ?redirect= pointing back at the page they just left. Transient. */
+  loggingOut: boolean
   error: string | null
   demoMode: boolean
   devMode: boolean
@@ -45,6 +50,7 @@ interface AuthState {
   placesPhotosEnabled: boolean
   placesAutocompleteEnabled: boolean
   placesDetailsEnabled: boolean
+  placesEnrichEnabled: boolean
 
   login: (email: string, password: string, rememberMe?: boolean) => Promise<LoginResult>
   completeMfaLogin: (mfaToken: string, code: string, rememberMe?: boolean) => Promise<AuthResponse>
@@ -68,6 +74,7 @@ interface AuthState {
   setPlacesPhotosEnabled: (val: boolean) => void
   setPlacesAutocompleteEnabled: (val: boolean) => void
   setPlacesDetailsEnabled: (val: boolean) => void
+  setPlacesEnrichEnabled: (val: boolean) => void
   demoLogin: () => Promise<AuthResponse>
 }
 
@@ -94,6 +101,7 @@ export const useAuthStore = create<AuthState>()(
   isAuthenticated: false,
   isLoading: true,
   authCheckFailed: false,
+  loggingOut: false,
   error: null,
   demoMode: localStorage.getItem('demo_mode') === 'true',
   devMode: false,
@@ -106,6 +114,7 @@ export const useAuthStore = create<AuthState>()(
   placesPhotosEnabled: true,
   placesAutocompleteEnabled: true,
   placesDetailsEnabled: true,
+  placesEnrichEnabled: true,
 
   login: async (email: string, password: string, rememberMe?: boolean) => {
     authSequence++
@@ -119,6 +128,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         error: null,
       })
@@ -144,6 +154,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         error: null,
       })
@@ -169,6 +180,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         error: null,
       })
@@ -187,7 +199,11 @@ export const useAuthStore = create<AuthState>()(
   logout: async () => {
     // 1. Gate first so any in-flight flush/syncAll bails before we wipe the DB.
     setAuthed(false)
-    set({ isAuthenticated: false })
+    // Flagged in the same update that drops the session: clearing isAuthenticated
+    // re-renders ProtectedRoute for whatever page is still on screen, and without
+    // this it would stamp a ?redirect= back to it — which then beats the user's
+    // startup destination on the next login.
+    set({ isAuthenticated: false, loggingOut: true })
     // 2. Stop background sync triggers (30s interval, WS pre-reconnect hook, listeners).
     unregisterSyncTriggers()
     // 3. Tear down the live connection.
@@ -199,6 +215,9 @@ export const useAuthStore = create<AuthState>()(
     // Same reason for the brokered plugin session state: it is keyed by user id,
     // but sessionStorage outlives a logout within the tab.
     clearAllPluginSessions()
+    // And the startup-destination mirror, or the next account on this browser
+    // gets bounced into a trip it may not even be able to see.
+    forgetStartDestination()
     // 4. Tell server to clear the httpOnly cookie (best-effort).
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {})
     // 5. Clear service worker caches containing sensitive data.
@@ -229,6 +248,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         authCheckFailed: false,
       })
@@ -323,6 +343,7 @@ export const useAuthStore = create<AuthState>()(
   setPlacesPhotosEnabled: (val: boolean) => set({ placesPhotosEnabled: val }),
   setPlacesAutocompleteEnabled: (val: boolean) => set({ placesAutocompleteEnabled: val }),
   setPlacesDetailsEnabled: (val: boolean) => set({ placesDetailsEnabled: val }),
+  setPlacesEnrichEnabled: (val: boolean) => set({ placesEnrichEnabled: val }),
 
   demoLogin: async () => {
     authSequence++
@@ -332,6 +353,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         user: data.user,
         isAuthenticated: true,
+        loggingOut: false,
         isLoading: false,
         demoMode: true,
         error: null,

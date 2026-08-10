@@ -118,3 +118,28 @@ export const tripTransferOwnershipRequestSchema = z.object({
   newOwnerId: z.number().int().positive(),
 });
 export type TripTransferOwnershipRequest = z.infer<typeof tripTransferOwnershipRequestSchema>;
+
+/**
+ * The one trip TREK opens on for a user who wants to land in their trip instead
+ * of on the dashboard (GET /api/trips/active). Deliberately narrow: it is read
+ * on the very first paint to decide where to navigate, so it carries the id plus
+ * enough to label the destination — nothing that would make it as wide (or as
+ * slow) as the trip list it replaces there.
+ *
+ * Relevance order matches the dashboard hero (client sortTrips): the trip
+ * running today, else the next one starting, else the most recently started.
+ */
+export const activeTripSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  start_date: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
+});
+export type ActiveTrip = z.infer<typeof activeTripSchema>;
+
+// null when the user has no unarchived trip at all — the caller falls back to
+// the dashboard rather than navigating into nothing.
+export const activeTripResponseSchema = z.object({
+  trip: activeTripSchema.nullable(),
+});
+export type ActiveTripResponse = z.infer<typeof activeTripResponseSchema>;

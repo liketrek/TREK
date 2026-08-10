@@ -20,6 +20,8 @@ export {
   type McpAccess,
   type McpAccessGroup,
   type McpAccessGroupRegistry,
+  type McpAccessMode,
+  type McpAccessModeRegistry,
   type McpAccessPolicy,
   type McpAccessPredicate,
   type McpAccessValidator,

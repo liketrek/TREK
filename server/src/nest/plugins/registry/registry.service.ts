@@ -414,7 +414,7 @@ export class PluginRegistryService {
     try {
       this.verifySignatureAndTofu(id, bytes, entry, ver, opts?.retrustKey);
     } catch (e) {
-      if (e instanceof RegistryError && isSignatureCode(e.code)) setUpdateBlock(id, e.code, e.message, ver.version);
+      if (e instanceof RegistryError && isSignatureCode(e.code)) setUpdateBlock(this.dbs.connection, id, e.code, e.message, ver.version);
       throw e;
     }
 
@@ -463,7 +463,7 @@ export class PluginRegistryService {
       }
       // The plugin is now on new code that passed every check — whatever refusal was
       // recorded before no longer describes reality.
-      clearUpdateBlock(id);
+      clearUpdateBlock(this.dbs.connection, id);
       return { id, version: ver.version };
     } finally {
       fs.rmSync(staging, { recursive: true, force: true });

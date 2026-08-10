@@ -5,7 +5,7 @@ import { applyGlobalMiddleware } from '../../../src/middleware/globalMiddleware'
 
 async function connectSrcSources(): Promise<string[]> {
   const app = express();
-  applyGlobalMiddleware(app, { bodyParser: false });
+  applyGlobalMiddleware(app);
   app.get('/probe', (_req, res) => res.json({ ok: true }));
 
   const res = await request(app).get('/probe');

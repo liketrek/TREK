@@ -446,6 +446,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Rejtett',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Indítás',
+  'settings.startPage': 'Kezdőoldal',
+  'settings.startPageDashboard': 'Irányítópult',
+  'settings.startPageActiveTrip': 'Aktív utazás',
+  'settings.startPageHint':
+    'A TREK egyből a most zajló utazást nyitja meg, vagy a következőt, amelyik indul. Ugyanaz az utazás, amelyet az irányítópult is kiemel.',
+  'settings.startTripTab': 'Kezdő fül',
+  'settings.startTripTabHint':
+    'Az a fül, amellyel az utazás megnyílik. Ha kikapcsolt bővítményhez tartozik, helyette a terv nézet nyílik meg.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Offline gyorsítótár',

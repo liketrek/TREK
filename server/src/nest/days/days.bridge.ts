@@ -11,7 +11,7 @@ import { QueryHelpersService } from '../query-helpers/query-helpers.service';
  * the day MCP tools and resources moved to the DI-discovered days.mcp.ts,
  * the transit tools to the DI-discovered transit.mcp.ts (which injects
  * DaysService), the plugin RPC host injects DaysService via
- * PluginHostDepsFactory, and the trip domain folded into the DI-native
+ * DaysRpc / AccommodationsRpc, and the trip domain folded into the DI-native
  * TripsService, which injects DaysService — its bridge exports were pruned
  * with it). Exports only the legacy services/dayService names still consumed
  * outside the container, 1:1, so repointing a consumer is an import-path-only

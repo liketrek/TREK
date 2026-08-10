@@ -446,6 +446,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Ukryte',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Uruchamianie',
+  'settings.startPage': 'Strona startowa',
+  'settings.startPageDashboard': 'Panel',
+  'settings.startPageActiveTrip': 'Aktywna podróż',
+  'settings.startPageHint':
+    'TREK otwiera się od razu na podróży, która właśnie trwa, albo na najbliższej nadchodzącej. To ta sama podróż, którą wyróżnia panel.',
+  'settings.startTripTab': 'Karta startowa',
+  'settings.startTripTabHint':
+    'Karta, na której otwiera się podróż. Jeśli należy do wyłączonego dodatku, otworzy się widok planu.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Pamięć podręczna offline',

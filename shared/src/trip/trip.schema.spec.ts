@@ -1,4 +1,9 @@
-import { tripCreateRequestSchema, tripUpdateRequestSchema, tripAddMemberRequestSchema } from './trip.schema';
+import {
+  tripCreateRequestSchema,
+  tripUpdateRequestSchema,
+  tripAddMemberRequestSchema,
+  activeTripResponseSchema,
+} from './trip.schema';
 
 import { describe, it, expect } from 'vitest';
 
@@ -27,5 +32,20 @@ describe('tripAddMemberRequestSchema', () => {
   it('requires an identifier', () => {
     expect(tripAddMemberRequestSchema.safeParse({ identifier: 'bob@x.y' }).success).toBe(true);
     expect(tripAddMemberRequestSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('activeTripResponseSchema', () => {
+  it('accepts a trip with or without dates, and an explicit null', () => {
+    expect(activeTripResponseSchema.safeParse({ trip: { id: 1, title: 'Japan' } }).success).toBe(true);
+    expect(
+      activeTripResponseSchema.safeParse({ trip: { id: 1, title: 'Japan', start_date: null, end_date: null } }).success,
+    ).toBe(true);
+    expect(activeTripResponseSchema.safeParse({ trip: null }).success).toBe(true);
+  });
+
+  it('rejects a missing trip key — "no trip" is null, not absent', () => {
+    expect(activeTripResponseSchema.safeParse({}).success).toBe(false);
+    expect(activeTripResponseSchema.safeParse({ trip: { title: 'Japan' } }).success).toBe(false);
   });
 });

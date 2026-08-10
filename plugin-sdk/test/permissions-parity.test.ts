@@ -1,5 +1,7 @@
 /**
- * The SDK hand-mirrors two things the server owns: the hook→permission map, and the
+ * The hook->permission map is no longer hand-mirrored: gen-plugin-facts.ts generates
+ * src/generated/host-facts.ts from the server's protocol/envelope.ts, and that
+ * generator's --check mode is a CI gate. What is still hand-vendored here is the
  * pure egress-policy helpers. trek-plugin-sdk ships standalone and cannot import across
  * the package boundary, so the copies are real copies — and a silent drift here is the
  * worst possible bug in this module: `dev` would confidently green-light a plugin that
@@ -16,23 +18,24 @@ import { HOOK_PERMISSION } from '../src/permissions.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const serverPlugins = path.resolve(here, '../../server/src/nest/plugins');
-const supervisor = path.join(serverPlugins, 'supervisor/plugin-supervisor.ts');
+const envelopeFile = path.join(serverPlugins, 'protocol/envelope.ts');
 const serverEgress = path.join(serverPlugins, 'runtime/egress-policy.ts');
-const inMonorepo = fs.existsSync(supervisor) && fs.existsSync(serverEgress);
+const inMonorepo = fs.existsSync(envelopeFile) && fs.existsSync(serverEgress);
 
 describe.skipIf(!inMonorepo)('parity with the host', () => {
-  it('HOOK_PERMISSION matches the supervisor\'s map exactly', () => {
-    const src = fs.readFileSync(supervisor, 'utf8');
-    const block = src.match(/const HOOK_PERMISSION[^{]*\{([\s\S]*?)\n\};/);
-    expect(block, 'could not find HOOK_PERMISSION in plugin-supervisor.ts').toBeTruthy();
+  it('the generated host facts match the server's envelope.ts', () => {
+    // Not a regex scrape any more: server/scripts/gen-plugin-facts.ts imports envelope.ts
+    // and writes src/generated/host-facts.ts, and its --check mode is a CI gate. This
+    // asserts the checked-in artefact is the one the host would produce, so a standalone
+    // publish (which has no server present) still ships the right list.
+    const generated = fs.readFileSync(path.resolve(here, '../src/generated/host-facts.ts'), 'utf8');
+    const envelope = fs.readFileSync(envelopeFile, 'utf8');
 
-    const host: Record<string, string> = {};
-    for (const [, key, perm] of block![1].matchAll(/^\s*(\w+):\s*'([^']+)'/gm)) host[key] = perm;
-
-    // Both directions: a hook the host gates that we don't know about means dev fires it
-    // when TREK never would; one we gate that the host doesn't means dev refuses for nothing.
-    expect(Object.keys(host).length).toBeGreaterThan(0);
-    expect(HOOK_PERMISSION).toEqual(host);
+    for (const [hook, perm] of Object.entries(HOOK_PERMISSION)) {
+      expect(generated, `${hook} missing from the generated facts`).toContain(`${hook}: '${perm}'`);
+      expect(envelope, `${hook} missing from envelope.ts`).toContain(`${hook}: '${perm}'`);
+    }
+    expect(Object.keys(HOOK_PERMISSION).length).toBeGreaterThan(0);
   });
 
   it('the vendored egress-policy helpers are byte-identical to the server\'s', () => {

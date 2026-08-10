@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores } from '../../tests/helpers/store';
+import { START_DESTINATION_ROUTE } from '../utils/startDestination';
 import LoginPage from './LoginPage';
 
 const mockNavigate = vi.fn();
@@ -81,12 +82,12 @@ describe('LoginPage — OIDC redirect preservation', () => {
       expect(sessionStorage.getItem('oidc_redirect')).toBeNull();
     });
 
-    it('falls back to /dashboard when no sessionStorage redirect is set', async () => {
+    it('falls back to the startup destination when no sessionStorage redirect is set', async () => {
       setSearch('?oidc_code=testcode123');
       render(<LoginPage />);
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+        expect(mockNavigate).toHaveBeenCalledWith(START_DESTINATION_ROUTE, { replace: true });
       });
     });
   });

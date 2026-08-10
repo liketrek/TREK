@@ -20,6 +20,10 @@ import {
   buildUserAgent,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
+  stripWikiMarkup,
+  parseWikipediaTag,
+  rankCommonsCandidates,
+  type RankableCommonsCandidate,
 } from '../../../src/nest/maps/maps.helpers';
 
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
@@ -102,7 +106,7 @@ const photoCacheStub = {
 
 import { db } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
+import { MapsService, withPhotoFetchSlot, readWikiIdentity } from '../../../src/nest/maps/maps.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
 // The service under test, constructed over the mocked db stub — DatabaseService
@@ -137,6 +141,23 @@ afterEach(() => {
 
 // ── parseOpeningHours ─────────────────────────────────────────────────────────
 
+/**
+ * CPU milliseconds burned by `fn`.
+ *
+ * The ReDoS budgets below used to measure wall-clock time, which on a loaded
+ * machine reports how long the test waited for a core rather than how long the
+ * regex ran — MAPS-024 has gone red at 523 ms on an unchanged file for exactly
+ * that reason. Catastrophic backtracking burns CPU, so CPU time is both the
+ * honest signal and a STRICTER one: cpu <= wall always, so no budget here got
+ * looser. vitest.config.ts uses pool:'forks', so this counts only this file.
+ */
+function cpuMillis(fn: () => void): number {
+  const before = process.cpuUsage();
+  fn();
+  const d = process.cpuUsage(before);
+  return (d.user + d.system) / 1000;
+}
+
 describe('parseOpeningHours', () => {
   it('MAPS-001: returns 7 weekday descriptions and openNow', () => {
     const result = parseOpeningHours('Mo-Fr 09:00-18:00');
@@ -156,14 +177,50 @@ describe('parseOpeningHours', () => {
     expect(result.weekdayDescriptions[0]).toContain('Monday: 09:00-18:00');
   });
 
-  it('MAPS-004: handles 24/7 string gracefully (no crash)', () => {
+  it('MAPS-004: reads 24/7 as open around the clock, every day', () => {
+    // This case used to assert only that nothing crashed, and nothing did: all
+    // seven lines came back as "?", buildOsmDetails then dropped the hours
+    // entirely, and airports, main stations and petrol stations — the places
+    // most likely to be tagged this way — showed no opening hours at all.
     const result = parseOpeningHours('24/7');
+
     expect(result.weekdayDescriptions).toHaveLength(7);
+    expect(result.weekdayDescriptions[0]).toBe('Monday: 00:00-24:00');
+    expect(result.weekdayDescriptions[6]).toBe('Sunday: 00:00-24:00');
+    expect(result.openNow).toBe(true);
+    // A single period with no close is how "never closes" is spelled.
+    expect(result.periods).toEqual([{ open: { day: 0, hour: 0, minute: 0 }, close: null }]);
+  });
+
+  it('MAPS-004b: reads a bare "open" the same way, and leaves other strings alone', () => {
+    expect(parseOpeningHours('open').openNow).toBe(true);
+    // Only a bare "24/7" short-circuits. Anything with weekdays in front of it
+    // is an ordinary segment and keeps going through the normal parser.
+    expect(parseOpeningHours('Mo-Fr 24/7').weekdayDescriptions[0]).toBe('Monday: 24/7');
+    expect(parseOpeningHours('Mo-Fr 24/7').weekdayDescriptions[6]).toBe('Sunday: ?');
   });
 
   it('MAPS-005: returns openNow null for unparseable format', () => {
     const result = parseOpeningHours('invalid-hours-string');
     expect(result.openNow).toBeNull();
+  });
+
+  it('MAPS-005b: a weekday range that wraps the whole week covers all seven days', () => {
+    // "Mo-Su" is how a place open daily is usually tagged, and it produced
+    // exactly ONE day: the loop's exit condition was already true on entry, so
+    // the body never ran and only the closing day was added.
+    const daily = parseOpeningHours('Mo-Su 11:30-23:00');
+    expect(daily.weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(7);
+    expect(daily.weekdayDescriptions[0]).toBe('Monday: 11:30-23:00');
+    expect(daily.weekdayDescriptions[6]).toBe('Sunday: 11:30-23:00');
+
+    // Same shape starting anywhere else in the week.
+    expect(parseOpeningHours('Tu-Mo 08:00-20:00').weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(7);
+
+    // Ranges that do not wrap are unchanged.
+    expect(parseOpeningHours('Mo-Fr 09:00-18:00').weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(5);
+    expect(parseOpeningHours('Sa-Su 10:00-14:00').weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(2);
+    expect(parseOpeningHours('Mo 09:00-12:00').weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(1);
   });
 
   it('MAPS-006: handles comma-separated days', () => {
@@ -174,12 +231,9 @@ describe('parseOpeningHours', () => {
     expect(result.weekdayDescriptions[1]).toContain('?');
   });
 
-  it('MAPS-007 (ReDoS): opening hours regex on adversarial input < 100ms', () => {
+  it('MAPS-007 (ReDoS): opening hours regex on adversarial input < 100ms of CPU', () => {
     const adversarial = 'Mo' + ',Mo'.repeat(500) + ' closed';
-    const start = Date.now();
-    parseOpeningHours(adversarial);
-    const elapsed = Date.now() - start;
-    expect(elapsed).toBeLessThan(100);
+    expect(cpuMillis(() => { parseOpeningHours(adversarial); })).toBeLessThan(100);
   });
 
   it('MAPS-007b: emits machine-readable periods in Google day numbering (Sunday = 0)', () => {
@@ -505,32 +559,24 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
     expect(result.lng).toBeCloseTo(-74.0445, 3);
   });
 
-  it('MAPS-024 (ReDoS): /@(-?\\d+\\.?\\d*),(-?\\d+\\.?\\d*)/ on adversarial input < 500ms', () => {
+  it('MAPS-024 (ReDoS): /@(-?\\d+\\.?\\d*),(-?\\d+\\.?\\d*)/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '/@' + '1'.repeat(10000) + '.';
-    const start = Date.now();
-    adversarial.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-    expect(Date.now() - start).toBeLessThan(500);
+    expect(cpuMillis(() => { adversarial.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/); })).toBeLessThan(500);
   });
 
-  it('MAPS-025 (ReDoS): /!3d(-?\\d+\\.?\\d*)!4d/ on adversarial input < 500ms', () => {
+  it('MAPS-025 (ReDoS): /!3d(-?\\d+\\.?\\d*)!4d/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '!3d' + '1'.repeat(10000) + '.';
-    const start = Date.now();
-    adversarial.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
-    expect(Date.now() - start).toBeLessThan(500);
+    expect(cpuMillis(() => { adversarial.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/); })).toBeLessThan(500);
   });
 
-  it('MAPS-026 (ReDoS): /[?&]q=(-?\\d+\\.?\\d*)/ on adversarial input < 500ms', () => {
+  it('MAPS-026 (ReDoS): /[?&]q=(-?\\d+\\.?\\d*)/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '?q=' + '1'.repeat(10000) + '.';
-    const start = Date.now();
-    adversarial.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-    expect(Date.now() - start).toBeLessThan(500);
+    expect(cpuMillis(() => { adversarial.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/); })).toBeLessThan(500);
   });
 
-  it('MAPS-027 (ReDoS): /<[^>]+>/ HTML strip on adversarial input < 100ms', () => {
+  it('MAPS-027 (ReDoS): /<[^>]+>/ HTML strip on adversarial input < 100ms of CPU', () => {
     const adversarial = '<' + 'a'.repeat(10000);
-    const start = Date.now();
-    adversarial.replace(/<[^>]+>/g, '');
-    expect(Date.now() - start).toBeLessThan(100);
+    expect(cpuMillis(() => { adversarial.replace(/<[^>]+>/g, ''); })).toBeLessThan(100);
   });
 
   it('MAPS-028: throws when no coordinates found in URL', async () => {
@@ -2254,3 +2300,621 @@ describe('controller-facing wrappers delegate to the folded methods', () => {
 // its last two consumers — the legacy placeEnrichment helper and the places MCP
 // registrar — both folded into the DI-native places domain, which injects
 // MapsService directly.
+
+// ── Enrichment primitives (MAPS-111..) ───────────────────────────────────────
+
+describe('stripWikiMarkup', () => {
+  it('MAPS-111: reduces a Commons author fragment to plain text', () => {
+    expect(stripWikiMarkup('<a href="/wiki/User:Alice" title="User:Alice">Alice</a>')).toBe('Alice');
+    expect(stripWikiMarkup('<span class="fn">Bob</span>&nbsp;/&nbsp;<i>Studio</i>')).toBe('Bob / Studio');
+  });
+
+  it('MAPS-112: turns empty, absent and markup-only values into null', () => {
+    expect(stripWikiMarkup(undefined)).toBeNull();
+    expect(stripWikiMarkup(null)).toBeNull();
+    expect(stripWikiMarkup('')).toBeNull();
+    expect(stripWikiMarkup('  ')).toBeNull();
+    expect(stripWikiMarkup('<span></span>')).toBeNull();
+  });
+});
+
+describe('parseWikipediaTag', () => {
+  it('MAPS-113: splits the "lang:Title" spelling', () => {
+    expect(parseWikipediaTag('de:Museum Ludwig')).toEqual({ lang: 'de', title: 'Museum Ludwig' });
+    expect(parseWikipediaTag('  en:Eiffel Tower  ')).toEqual({ lang: 'en', title: 'Eiffel Tower' });
+    // Article titles may themselves contain a colon ("de:Portal:Köln").
+    expect(parseWikipediaTag('de:Portal:Köln')).toEqual({ lang: 'de', title: 'Portal:Köln' });
+    expect(parseWikipediaTag('zh-yue:香港')).toEqual({ lang: 'zh-yue', title: '香港' });
+  });
+
+  it('MAPS-114: refuses spellings that would send us to the wrong wiki', () => {
+    // A bare title has no language, and guessing one picks an article at random.
+    expect(parseWikipediaTag('Museum Ludwig')).toBeNull();
+    expect(parseWikipediaTag('de:')).toBeNull();
+    expect(parseWikipediaTag('')).toBeNull();
+    expect(parseWikipediaTag(undefined)).toBeNull();
+  });
+});
+
+describe('buildOsmDetails wiki tags', () => {
+  it('MAPS-115: carries wikipedia/wikidata through instead of dropping them', () => {
+    const withTags = buildOsmDetails({ wikipedia: 'de:Museum Ludwig', wikidata: 'Q160236' }, 'way', '42');
+    expect(withTags.wikipedia).toBe('de:Museum Ludwig');
+    expect(withTags.wikidata).toBe('Q160236');
+
+    const without = buildOsmDetails({ name: 'Kiosk' }, 'node', '7');
+    expect(without.wikipedia).toBeNull();
+    expect(without.wikidata).toBeNull();
+  });
+});
+
+describe('isGooglePlaceId with enrichment candidate keys', () => {
+  it('MAPS-116: rejects "<placeId>~pN" keys so a candidate never reaches Google', () => {
+    // Google bills the 400 it answers these with — see NON_GOOGLE_PLACE_ID.
+    expect(isGooglePlaceId('ChIJN1t_tDeuEmsRUsoyG83frY4~p0')).toBe(false);
+    expect(isGooglePlaceId('ChIJN1t_tDeuEmsRUsoyG83frY4~p12')).toBe(false);
+    // The bare id still resolves, and a tilde that is not a candidate suffix does not disarm it.
+    expect(isGooglePlaceId('ChIJN1t_tDeuEmsRUsoyG83frY4')).toBe(true);
+    expect(isGooglePlaceId('ChIJabc~photo')).toBe(true);
+  });
+});
+
+describe('fetchCommonsCandidates (fetch stubbed)', () => {
+  const page = (over: Record<string, unknown> = {}) => ({
+    imageinfo: [
+      {
+        url: 'https://commons.org/original.jpg',
+        thumburl: 'https://commons.org/thumb.jpg',
+        mime: 'image/jpeg',
+        descriptionurl: 'https://commons.wikimedia.org/wiki/File:X.jpg',
+        extmetadata: {
+          Artist: { value: '<a href="/wiki/User:Alice">Alice</a>' },
+          LicenseShortName: { value: 'CC BY-SA 4.0' },
+          LicenseUrl: { value: 'https://creativecommons.org/licenses/by-sa/4.0/' },
+        },
+        ...over,
+      },
+    ],
+  });
+
+  it('MAPS-117: returns every usable image with its licence metadata', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ query: { pages: { '1': page(), '2': page({ thumburl: 'https://commons.org/t2.jpg' }) } } }),
+      }),
+    );
+    const out = await svc.fetchCommonsCandidates(48.8, 2.3, 5);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({
+      photoUrl: 'https://commons.org/thumb.jpg',
+      attribution: 'Alice',
+      license: 'CC BY-SA 4.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:X.jpg',
+    });
+    // The page id travels with the candidate: it is what identifies the file
+    // across the four routes that can reach it, and what keys its cached bytes.
+    expect(out[0].pageId).toBe(1);
+  });
+
+  it('MAPS-118: falls back to UsageTerms when there is no short licence name', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          query: {
+            pages: {
+              '1': page({
+                extmetadata: { UsageTerms: { value: '<b>Public domain</b>' } },
+              }),
+            },
+          },
+        }),
+      }),
+    );
+    const out = await svc.fetchCommonsCandidates(48.8, 2.3);
+    expect(out[0].license).toBe('Public domain');
+    expect(out[0].attribution).toBeNull();
+    expect(out[0].licenseUrl).toBeNull();
+  });
+
+  it('MAPS-119: skips SVGs, PDFs and entries without a URL', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          query: {
+            pages: {
+              '1': page({ mime: 'image/svg+xml' }),
+              '2': page({ mime: 'application/pdf' }),
+              '3': { imageinfo: [{ mime: 'image/jpeg' }] },
+              '4': {},
+              '5': page({ mime: 'image/png', thumburl: undefined }),
+            },
+          },
+        }),
+      }),
+    );
+    const out = await svc.fetchCommonsCandidates(48.8, 2.3);
+    expect(out).toHaveLength(1);
+    expect(out[0].photoUrl).toBe('https://commons.org/original.jpg');
+  });
+
+  it('MAPS-120: asks for more than the strip needs and clamps to what Commons accepts', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ query: { pages: { '1': page(), '2': page(), '3': page() } } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // Overfetch on purpose: the first hits around anything worth visiting are
+    // survey tiles and the building next door, and the ranker can only reject
+    // from a pool. Geosearch bills the same for one result as for twenty, so
+    // the whole pool comes back and gets cut after ranking, not before.
+    expect(await svc.fetchCommonsCandidates(48.8, 2.3, 2)).toHaveLength(3);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('ggslimit=8');
+
+    await svc.fetchCommonsCandidates(48.8, 2.3, 0);
+    expect(String(fetchMock.mock.calls[1][0])).toContain('ggslimit=8');
+
+    await svc.fetchCommonsCandidates(48.8, 2.3, 99);
+    expect(String(fetchMock.mock.calls[2][0])).toContain('ggslimit=20');
+  });
+
+  it('MAPS-121: returns an empty list on a bad response, missing pages or a throw', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
+    expect(await svc.fetchCommonsCandidates(1, 2)).toEqual([]);
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: {} }) }));
+    expect(await svc.fetchCommonsCandidates(1, 2)).toEqual([]);
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    expect(await svc.fetchCommonsCandidates(1, 2)).toEqual([]);
+  });
+});
+
+describe('fetchWikiExtract (fetch stubbed)', () => {
+  const page = (title: string, extract: string) => ({
+    ok: true,
+    json: async () => ({ query: { pages: { '1': { title, extract } } } }),
+  });
+  const noArticle = { ok: true, json: async () => ({ query: { pages: { '-1': { title: 'X' } } } }) };
+
+  it('MAPS-122: asks Wikivoyage first, because it writes for travellers', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(page('Museum Ludwig', '  Ein Museum in Köln.  '));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await svc.fetchWikiExtract('de:Museum Ludwig');
+    expect(out).toEqual({
+      text: 'Ein Museum in Köln.',
+      sourceUrl: 'https://de.wikivoyage.org/wiki/Museum%20Ludwig',
+      source: 'wikivoyage',
+    });
+    // Host follows the tag, and Wikipedia is never asked once Wikivoyage answered.
+    expect(String(fetchMock.mock.calls[0][0])).toContain('https://de.wikivoyage.org/w/api.php');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('MAPS-122b: falls through to Wikipedia when Wikivoyage has no article', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(noArticle)
+      .mockResolvedValueOnce(page('Museum Ludwig', 'Das Museum Ludwig ist ein Museum.'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await svc.fetchWikiExtract('de:Museum Ludwig');
+    expect(out).toMatchObject({ source: 'wikipedia' });
+    expect(String(fetchMock.mock.calls[1][0])).toContain('https://de.wikipedia.org/w/api.php');
+  });
+
+  it('MAPS-122c: asks for two sentences, not a whole lead section', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(page('X', 'Kurz.'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.fetchWikiExtract('de:X');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('exsentences=2');
+  });
+
+  it('MAPS-123: prefers the resolved title so a redirect links to where it landed', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(page('Eiffel Tower', 'A tower.')));
+    const out = await svc.fetchWikiExtract('en:Eiffelturm');
+    expect(out!.sourceUrl).toBe('https://en.wikivoyage.org/wiki/Eiffel%20Tower');
+  });
+
+  it('MAPS-124: returns null without calling out when the tag has no language', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await svc.fetchWikiExtract('Museum Ludwig')).toBeNull();
+    expect(await svc.fetchWikiExtract(null)).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-125: treats a miss on both wikis as no description', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(noArticle));
+    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
+    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
+    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
+  });
+
+  it('MAPS-125b: still tries Wikipedia after Wikivoyage threw', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce(page('X', 'Ein Ort.'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await svc.fetchWikiExtract('de:X')).toMatchObject({ source: 'wikipedia' });
+  });
+});
+
+describe('fetchCommonsCategoryCandidates (fetch stubbed)', () => {
+  it('MAPS-125c: reads a category, which is pictures OF a place rather than near it', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        query: {
+          pages: {
+            '1': {
+              imageinfo: [
+                {
+                  url: 'https://commons.org/o.jpg',
+                  thumburl: 'https://commons.org/t.jpg',
+                  mime: 'image/jpeg',
+                  descriptionurl: 'https://commons.wikimedia.org/wiki/File:T.jpg',
+                  extmetadata: { Artist: { value: 'Alice' }, LicenseShortName: { value: 'CC BY 4.0' } },
+                },
+              ],
+            },
+          },
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await svc.fetchCommonsCategoryCandidates('Category:Museum Ludwig', 3);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ photoUrl: 'https://commons.org/t.jpg', attribution: 'Alice', license: 'CC BY 4.0' });
+    // Ranked search, not the category listing: `categorymembers` orders by sort
+    // key, i.e. alphabetically by file name, and that put an .ogg pronunciation
+    // and six near-identical press shots at the head of the Brandenburg Gate
+    // category. The search index at least ranks by how well a file matches.
+    expect(String(fetchMock.mock.calls[0][0])).toContain('gsrsearch=incategory%3A%22Museum+Ludwig%22');
+  });
+
+  it('MAPS-125d: takes the bare category name whether or not the tag is prefixed', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: { pages: {} } }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.fetchCommonsCategoryCandidates('Museum Ludwig');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('incategory%3A%22Museum+Ludwig%22');
+    // Empty search falls through to the category listing as a second chance.
+    expect(String(fetchMock.mock.calls[1][0])).toContain('gcmtitle=Category%3AMuseum+Ludwig');
+  });
+
+  it('MAPS-125f: refuses a tag that names a file rather than a category', async () => {
+    // Mappers do put `File:…` in wikimedia_commons. Prefixing it blindly asked
+    // Commons for `Category:File:X.jpg`, which matches nothing and fell through
+    // to the coordinate search without a word.
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await svc.fetchCommonsCategoryCandidates('File:Museum Ludwig.jpg')).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-125g: strips a localised category prefix', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: { pages: {} } }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.fetchCommonsCategoryCandidates('Kategorie:Museum Ludwig');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('incategory%3A%22Museum+Ludwig%22');
+  });
+
+  it('MAPS-125e: yields nothing on an error response or a throw', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
+    expect(await svc.fetchCommonsCategoryCandidates('Category:X')).toEqual([]);
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    expect(await svc.fetchCommonsCategoryCandidates('Category:X')).toEqual([]);
+  });
+});
+
+describe('fetchGooglePhotoRefs (fetch stubbed)', () => {
+  it('MAPS-126: returns capped references with their author attribution', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        photos: [
+          { name: 'places/p/photos/a', authorAttributions: [{ displayName: 'Alice' }] },
+          { name: 'places/p/photos/b', authorAttributions: [] },
+          { name: 'places/p/photos/c' },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 2);
+    expect(out).toEqual([
+      { name: 'places/p/photos/a', attribution: 'Alice' },
+      { name: 'places/p/photos/b', attribution: null },
+    ]);
+    // One billed Details call for the whole strip, and only the photos field.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][1].headers['X-Goog-FieldMask']).toBe('photos');
+  });
+
+  it('MAPS-127: never calls Google for an id Google cannot resolve', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await svc.fetchGooglePhotoRefs('node:123', 'key', 3)).toEqual([]);
+    expect(await svc.fetchGooglePhotoRefs('ChIJabc~p1', 'key', 3)).toEqual([]);
+    expect(await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 0)).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-128: yields nothing on an error response, a photo-less place or a throw', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
+    expect(await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 3)).toEqual([]);
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
+    expect(await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 3)).toEqual([]);
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    expect(await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 3)).toEqual([]);
+  });
+});
+
+describe('fetchGooglePhotoBytes (fetch stubbed)', () => {
+  it('MAPS-129: downloads the media for one reference at the requested height', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const bytes = await svc.fetchGooglePhotoBytes('places/p/photos/a', 'key', 600);
+    expect(bytes).toBeInstanceOf(Buffer);
+    expect(bytes!.length).toBe(3);
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      'https://places.googleapis.com/v1/places/p/photos/a/media?maxHeightPx=600',
+    );
+  });
+
+  it('MAPS-130: returns null for an error response, an empty body or a throw', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, arrayBuffer: async () => new ArrayBuffer(0) }));
+    expect(await svc.fetchGooglePhotoBytes('places/p/photos/a', 'key')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(0) }));
+    expect(await svc.fetchGooglePhotoBytes('places/p/photos/a', 'key')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    expect(await svc.fetchGooglePhotoBytes('places/p/photos/a', 'key')).toBeNull();
+  });
+});
+
+describe('fetchEditorialSummary (fetch stubbed)', () => {
+  it('MAPS-131: asks only for the summary, not for reviews', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ editorialSummary: { text: '  A museum in Cologne.  ' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await svc.fetchEditorialSummary('ChIJabc', 'key', 'de')).toBe('A museum in Cologne.');
+    // reviews would move this into the Enterprise SKU — see the method comment.
+    expect(fetchMock.mock.calls[0][1].headers['X-Goog-FieldMask']).toBe('editorialSummary');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('languageCode=de');
+  });
+
+  it('MAPS-132: skips non-Google ids and swallows every miss', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await svc.fetchEditorialSummary('node:1', 'key')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
+    expect(await svc.fetchEditorialSummary('ChIJabc', 'key')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
+    expect(await svc.fetchEditorialSummary('ChIJabc', 'key')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    expect(await svc.fetchEditorialSummary('ChIJabc', 'key')).toBeNull();
+  });
+});
+
+describe('withPhotoFetchSlot', () => {
+  it('MAPS-133: caps concurrent fetches at five and lets queued work through', async () => {
+    // Settling a release hands the slot to a queued run, which then parks on its
+    // own barrier — several microtasks later. Draining needs a real turn of the
+    // loop between waves, not a bare `await Promise.resolve()`.
+    const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    let active = 0;
+    let peak = 0;
+    let started = 0;
+    const release: Array<() => void> = [];
+
+    const runs = Array.from({ length: 8 }, () =>
+      withPhotoFetchSlot(async () => {
+        started++;
+        active++;
+        peak = Math.max(peak, active);
+        await new Promise<void>((resolve) => release.push(resolve));
+        active--;
+        return 'ok';
+      }),
+    );
+
+    await tick();
+    expect(started).toBe(5);
+    expect(peak).toBe(5);
+
+    while (release.length) {
+      release.shift()!();
+      await tick();
+    }
+
+    expect(await Promise.all(runs)).toEqual(Array(8).fill('ok'));
+    expect(started).toBe(8);
+    // The cap held across the whole run, not just the first wave.
+    expect(peak).toBe(5);
+  });
+
+  it('MAPS-134: releases the slot when the work throws', async () => {
+    await expect(
+      withPhotoFetchSlot(async () => {
+        throw new Error('boom');
+      }),
+    ).rejects.toThrow('boom');
+    // The slot came back, so the next caller runs immediately.
+    await expect(withPhotoFetchSlot(async () => 'free')).resolves.toBe('free');
+  });
+});
+
+/**
+ * MAPS-135..146 — the Commons ranker and the identity tags.
+ *
+ * Every fixture here is a real payload recorded while working out why the
+ * picker showed runways and train front-ends for Hamburg Airport, Berlin
+ * Hauptbahnhof and the Brandenburg Gate.
+ */
+describe('rankCommonsCandidates', () => {
+  const pic = (over: Partial<RankableCommonsCandidate> & { pageId: number }): RankableCommonsCandidate => ({
+    title: `File:pic ${over.pageId}.jpg`,
+    attribution: 'Someone',
+    width: 1600,
+    height: 1200,
+    descriptors: null,
+    photoUrl: `https://commons/thumb/${over.pageId}.jpg`,
+    ...over,
+  });
+
+  it('MAPS-135: drops a file that reached us twice under different thumbnail urls', () => {
+    const first = pic({ pageId: 47529341, photoUrl: 'https://commons/x.jpg?utm_source=commons.wikimedia.org' });
+    const again = { ...first, photoUrl: 'https://commons/x.jpg?utm_source=de.wikipedia.org' };
+    expect(rankCommonsCandidates([first, again], 5)).toHaveLength(1);
+  });
+
+  it('MAPS-136: rejects the aerial survey tiles that fill an airport geosearch', () => {
+    const tiles = [2013, 2015, 2016, 2019].map((year, i) =>
+      pic({
+        pageId: 100 + i,
+        title: `File:Dop20rgb 32565 5943 ${year}.jpg`,
+        attribution: 'Landesbetrieb Geoinformation Hamburg',
+        width: 5000,
+        height: 5000,
+        descriptors: `Orthophoto Sommerbefliegung ${year}`,
+      }),
+    );
+    expect(rankCommonsCandidates(tiles, 5)).toEqual([]);
+  });
+
+  it('MAPS-137: rejects noise maps and terminal layouts from a category', () => {
+    const docs = [
+      pic({ pageId: 200, title: 'File:Lärmkarte Flughafen Hamburg.png' }),
+      pic({ pageId: 201, title: 'File:EDDH HAM Layout.png' }),
+      pic({ pageId: 202, title: 'File:Grundriss Terminal 1.jpg' }),
+    ];
+    expect(rankCommonsCandidates(docs, 5)).toEqual([]);
+  });
+
+  it('MAPS-138: keeps one frame of a camera burst, not four', () => {
+    // The four shots that filled the Brandenburg Gate picker were one person
+    // walking through a station concourse.
+    const burst = [807, 808, 809, 810].map((n) =>
+      pic({ pageId: 300 + n, title: `File:Hauptbahnhof Berlin interior 0${n}.jpg`, attribution: 'Dosseman' }),
+    );
+    const kept = rankCommonsCandidates(burst, 5);
+    expect(kept).toHaveLength(1);
+    expect(kept[0].title).toBe('File:Hauptbahnhof Berlin interior 0807.jpg');
+  });
+
+  it('MAPS-139: collapses a press set numbered with trailing counters', () => {
+    const set = [16, 17, 18, 19, 20, 21].map((n) =>
+      pic({ pageId: 400 + n, title: `File:Alexander Schallenberg in Berlin on 7 June 2024 - ${n}.jpg` }),
+    );
+    expect(rankCommonsCandidates(set, 5)).toHaveLength(1);
+  });
+
+  it('MAPS-140: caps how much of the strip one author may supply', () => {
+    // Unrelated titles, same photographer — the series rule cannot see these,
+    // only the author cap can. On the coordinate rung nothing vouches that the
+    // pictures are even of the right subject, so variety is the only defence
+    // and one contributor gets one slot; a curated rung gets two.
+    const same = ['Rear entrance', 'Platform at dusk', 'Ticket hall'].map((subject, i) =>
+      pic({ pageId: 500 + i, title: `File:${subject}.jpg`, attribution: 'Bahnthaler' }),
+    );
+    expect(rankCommonsCandidates(same, 5, { perAuthor: 1 })).toHaveLength(1);
+    expect(rankCommonsCandidates(same, 5, { perAuthor: 2 })).toHaveLength(2);
+  });
+
+  it('MAPS-140b: the series rule catches a numbered pair before the author cap does', () => {
+    // "Berlin-Hamburg-Express 1/2.JPG", both by Bahnthaler — two files, one
+    // subject. This is the pair that filled the Berlin Hauptbahnhof picker.
+    const pair = [1, 2].map((n) =>
+      pic({ pageId: 510 + n, title: `File:Berlin-Hamburg-Express ${n}.JPG`, attribution: 'Bahnthaler' }),
+    );
+    expect(rankCommonsCandidates(pair, 5, { perAuthor: 2 })).toHaveLength(1);
+  });
+
+  it('MAPS-141: rejects panorama strips that would crop to nothing in a square tile', () => {
+    expect(rankCommonsCandidates([pic({ pageId: 600, width: 9000, height: 1200 })], 5)).toEqual([]);
+  });
+
+  it('MAPS-142: keeps a large square photo that is not a survey tile', () => {
+    const square = pic({ pageId: 601, width: 1200, height: 1200 });
+    expect(rankCommonsCandidates([square], 5)).toHaveLength(1);
+  });
+
+  it('MAPS-143: falls back to the url when a candidate carries no page id', () => {
+    const noId = { ...pic({ pageId: 0 }), pageId: null };
+    expect(rankCommonsCandidates([noId, { ...noId }], 5)).toHaveLength(1);
+  });
+
+  it('MAPS-144: stops at the limit', () => {
+    const many = Array.from({ length: 9 }, (_, i) =>
+      pic({ pageId: 700 + i, title: `File:Distinct subject ${String.fromCharCode(97 + i)}.jpg`, attribution: `Author ${i}` }),
+    );
+    expect(rankCommonsCandidates(many, 3)).toHaveLength(3);
+  });
+});
+
+describe('readWikiIdentity', () => {
+  it('MAPS-145: reads the three identity tags and nothing else', () => {
+    expect(
+      readWikiIdentity({
+        wikidata: 'Q82425',
+        wikipedia: 'de:Brandenburger Tor',
+        wikimedia_commons: 'Category:Brandenburg Gate',
+        cuisine: 'italian',
+      }),
+    ).toEqual({
+      wikidata: 'Q82425',
+      wikipedia: 'de:Brandenburger Tor',
+      wikimedia_commons: 'Category:Brandenburg Gate',
+    });
+  });
+
+  it('MAPS-146: ignores brand tags, which describe the chain and not the branch', () => {
+    // Real payload for "L'Osteria Rostock": following brand:wikidata would
+    // describe (and illustrate) L'Osteria the company.
+    const identity = readWikiIdentity({
+      'brand:wikidata': 'Q17323478',
+      'brand:wikipedia': 'de:L’Osteria',
+      cuisine: 'pizza',
+    });
+    expect(identity).toEqual({ wikidata: null, wikipedia: null, wikimedia_commons: null });
+  });
+});

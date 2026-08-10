@@ -6,7 +6,7 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { formatAssignmentWithPlace } from '../common/rowShape';
 import type { AssignmentRow, DayAssignment, User } from '../../types';
-import { reconcileTripSkeletons } from '../../services/journeyService';
+import { JourneyDomainService } from '../journey/journey-domain.service';
 
 type Trip = TripAccess;
 
@@ -30,6 +30,7 @@ export class AssignmentsService {
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
     private readonly queryHelpers: QueryHelpersService,
+    private readonly journey: JourneyDomainService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -50,7 +51,7 @@ export class AssignmentsService {
    * the journey stays in sync. Non-fatal, like the route's try/catch.
    */
   reconcile(tripId: string | number, socketId?: string): void {
-    try { reconcileTripSkeletons(Number(tripId), socketId); } catch { /* non-fatal */ }
+    try { this.journey.reconcileTripSkeletons(Number(tripId), socketId); } catch { /* non-fatal */ }
   }
 
   private getAssignmentWithPlace(assignmentId: number | bigint) {

@@ -1,26 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import path from 'path';
 import fs from 'fs';
-import { randomUUID } from 'crypto';
 import { DatabaseService } from '../database/database.service';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import type { ActiveTrip, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import type { Trip, User } from '../../types';
-import { avatarUrl } from '../common/avatarUrl';
-import { UserCleanupService } from '../auth/user-cleanup.service';
-import { emitUserDeleted } from '../../plugin-user-lifecycle';
-import { resolveTimeZone } from '../common/timezoneService';
-import { PlacesService } from '../places/places.service';
-import { DaysService, addDays } from '../days/days.service';
-import { PackingService } from '../packing/packing.service';
-import { TodoService } from '../todo/todo.service';
+import { DaysService } from '../days/days.service';
 import { BudgetService } from '../budget/budget.service';
 import { ReservationsService } from '../reservations/reservations.service';
-import { FilesService } from '../files/files.service';
-import { CollabService } from '../collab/collab.service';
 import { VacayService } from '../vacay/vacay.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
+import { NotFoundError, ValidationError } from '../common/domain-errors';
 
 export const MS_PER_DAY = 86400000;
 export const MAX_TRIP_DAYS = 365;
@@ -109,98 +100,11 @@ export interface GuestMember {
   avatar_url: null;
 }
 
-// ── ICS folding ─────────────────────────────────────────────────────────────
-
-// RFC 5545 §3.1: content lines longer than 75 octets must be folded with a CRLF
-// followed by a single leading space. We fold on UTF-8 *octet* boundaries and
-// never split a multi-byte codepoint, so non-ASCII titles/notes (accents, CJK,
-// emoji) stay intact. Applied to the whole calendar, so both the one-time
-// download and the subscribable feed emit spec-compliant output.
-function foldICS(ics: string): string {
-  const foldLine = (line: string): string => {
-    const bytes = Buffer.from(line, 'utf8');
-    if (bytes.length <= 75) return line;
-    const parts: Buffer[] = [];
-    let start = 0;
-    let limit = 75; // first physical line may use 75 octets
-    while (start < bytes.length) {
-      let end = Math.min(start + limit, bytes.length);
-      // Back off so we never cut a multi-byte UTF-8 sequence (0x80–0xBF = continuation byte).
-      while (end < bytes.length && (bytes[end] & 0xc0) === 0x80) end--;
-      parts.push(bytes.subarray(start, end));
-      start = end;
-      limit = 74; // continuation lines spend one octet on the leading space
-    }
-    return parts.map((b, i) => (i === 0 ? '' : ' ') + b.toString('utf8')).join('\r\n');
-  };
-  return ics.split('\r\n').map(foldLine).join('\r\n');
-}
-
-// ── ICS time-zone helpers ────────────────────────────────────────────────────
-// Timed events must carry an explicit IANA zone; a bare "YYYYMMDDTHHMMSS" is an
-// RFC 5545 "floating" time that clients render in the *subscriber's* zone (#1453).
-
-// A stored/plugin-provided timezone (e.g. a transport endpoint's `timezone`) is a
-// free string that need not be a real IANA zone. Intl.DateTimeFormat throws a
-// RangeError on an unknown zone, which — via buildVTimezone → tzOffsetString —
-// would crash the whole ICS export (and drop the trip from the all-trips feed).
-// Validate once so an invalid zone degrades to a floating local time instead.
-// Module-scoped on purpose (like the permissions/FX caches): the bridge instance
-// and the DI singleton share one cache.
-const _tzValidCache = new Map<string, boolean>();
-function isValidTimeZone(zone: string): boolean {
-  const cached = _tzValidCache.get(zone);
-  if (cached !== undefined) return cached;
-  let ok = false;
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: zone });
-    ok = true;
-  } catch {
-    // Unknown/invalid zone → ok stays false.
-  }
-  // Bound the cache — the key is a free-form (plugin/importer-written) zone string,
-  // so cap distinct entries rather than growing for the process lifetime.
-  if (_tzValidCache.size >= 1000) _tzValidCache.clear();
-  _tzValidCache.set(zone, ok);
-  return ok;
-}
-
-// UTC offset ("+0200") the zone uses on the given YYYYMMDD date. Only feeds the
-// fallback VTIMEZONE offset; iOS/Google resolve the named zone from their own
-// IANA database, so a single representative offset is sufficient.
-function tzOffsetString(zone: string, yyyymmdd: string): string {
-  const iso = `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}T12:00:00Z`;
-  const probe = new Date(iso);
-  if (Number.isNaN(probe.getTime())) return '+0000';
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: zone,
-    timeZoneName: 'longOffset',
-  }).formatToParts(probe);
-  const raw = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
-  const m = raw.match(/GMT([+-])(\d{2}):?(\d{2})?/);
-  if (!m) return '+0000'; // "GMT" (UTC) has no offset digits
-  return `${m[1]}${m[2]}${m[3] ?? '00'}`;
-}
-
-// Minimal but RFC-valid VTIMEZONE. Smart clients override it with their own tz
-// rules; dumb clients fall back to this fixed offset.
-function buildVTimezone(zone: string, yyyymmdd: string): string {
-  const off = tzOffsetString(zone, yyyymmdd);
-  return (
-    'BEGIN:VTIMEZONE\r\n' +
-    `TZID:${zone}\r\n` +
-    'BEGIN:STANDARD\r\n' +
-    'DTSTART:19700101T000000\r\n' +
-    `TZOFFSETFROM:${off}\r\n` +
-    `TZOFFSETTO:${off}\r\n` +
-    `TZNAME:${zone}\r\n` +
-    'END:STANDARD\r\n' +
-    'END:VTIMEZONE\r\n'
-  );
-}
-
 /**
- * Trip aggregate root, DI-native. The SQL moved 1:1 from the legacy
+ * Trip aggregate root, DI-native. Membership, the calendar export and the two
+ * read aggregates live in their own domains now; what is left is the write core
+ * plus day generation, which is why the constructor is eight parameters instead
+ * of fourteen. The SQL moved 1:1 from the legacy
  * services/tripService.ts: identical statements, the `||` falsy-coercion
  * defaults, the post-write TRIP_SELECT re-selects and the mixed
  * named/positional parameter styles are all preserved byte-for-byte.
@@ -216,19 +120,13 @@ function buildVTimezone(zone: string, yyyymmdd: string): string {
 export class TripsService {
   constructor(
     private readonly dbs: DatabaseService,
-    private readonly todo: TodoService,
-    private readonly packing: PackingService,
-    private readonly files: FilesService,
     private readonly reservations: ReservationsService,
     private readonly days: DaysService,
     private readonly permissions: PermissionsService,
     private readonly budget: BudgetService,
-    private readonly collab: CollabService,
     private readonly vacay: VacayService,
     private readonly realtime: RealtimeService,
-    private readonly places: PlacesService,
     private readonly unsplash: UnsplashService,
-    private readonly userCleanup: UserCleanupService,
   ) {}
 
   private get db() {
@@ -414,6 +312,35 @@ export class TripsService {
       LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
       WHERE t.id = :tripId AND (t.user_id = :userId OR m.user_id IS NOT NULL)
     `).get({ userId, tripId }) as Trip | undefined;
+  }
+
+  /**
+   * The trip a user most likely means by "my trip" right now: the one running
+   * today, else the next one starting, else the one that started most recently.
+   * Archived trips never qualify. Same order the dashboard hero picks its
+   * spotlight with (client sortTrips) — the two must agree, or "open my trip on
+   * startup" would land somewhere other than the trip the dashboard features.
+   *
+   * Kept separate from list() on purpose: this runs on the very first paint of
+   * a startup redirect, so it reads four columns of one row instead of every
+   * trip with its per-trip day/place counts.
+   */
+  activeTrip(userId: number, today = new Date().toISOString().slice(0, 10)) {
+    return this.db.prepare(`
+      SELECT t.id, t.title, t.start_date, t.end_date,
+        CASE
+          WHEN t.start_date IS NOT NULL AND t.end_date IS NOT NULL AND t.start_date <= :today AND t.end_date >= :today THEN 0
+          WHEN t.start_date IS NOT NULL AND t.start_date >= :today THEN 1
+          ELSE 2
+        END AS relevance
+      FROM trips t
+      LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
+      WHERE (t.user_id = :userId OR m.user_id IS NOT NULL) AND t.is_archived = 0
+      ORDER BY relevance ASC,
+        CASE WHEN relevance < 2 THEN t.start_date END ASC,
+        CASE WHEN relevance = 2 THEN t.start_date END DESC
+      LIMIT 1
+    `).get({ userId, today }) as ActiveTrip & { relevance: number } | undefined;
   }
 
   getRaw(tripId: string | number): Trip | undefined {
@@ -749,508 +676,9 @@ export class TripsService {
     return this.db.prepare(`${TRIP_SELECT} WHERE t.id = :tripId`).get({ userId, tripId: newTripId });
   }
 
-  // ── Members ───────────────────────────────────────────────────────────────
-
-  listMembers(tripId: string | number, tripOwnerId: number) {
-    // u.is_guest rides along (#1362) so guests stay assignable everywhere a member is,
-    // while the UI can badge them and suppress owner-only actions. The owner is never a guest.
-    const members = this.db.prepare(`
-      SELECT u.id, COALESCE(u.display_name, u.username) AS username, u.email, u.avatar, u.is_guest,
-        CASE WHEN u.id = ? THEN 'owner' ELSE 'member' END as role,
-        m.added_at,
-        COALESCE(ib.display_name, ib.username) as invited_by_username
-      FROM trip_members m
-      JOIN users u ON u.id = m.user_id
-      LEFT JOIN users ib ON ib.id = m.invited_by
-      WHERE m.trip_id = ?
-      ORDER BY m.added_at ASC
-    `).all(tripOwnerId, tripId) as { id: number; username: string; email: string; avatar: string | null; is_guest: number; role: string; added_at: string; invited_by_username: string | null }[];
-
-    // Quirk fix on top of the 1:1 move: the owner row prefers display_name like
-    // every member row does (the legacy query read the raw username only).
-    const owner = this.db.prepare('SELECT id, COALESCE(display_name, username) AS username, email, avatar FROM users WHERE id = ?').get(tripOwnerId) as Pick<User, 'id' | 'username' | 'email' | 'avatar'>;
-
-    return {
-      owner: { ...owner, role: 'owner', is_guest: false, avatar_url: avatarUrl(owner) },
-      members: members.map(m => ({ ...m, is_guest: !!m.is_guest, avatar_url: avatarUrl(m) })),
-    };
-  }
-
-  addMember(tripId: string | number, identifier: string, tripOwnerId: number, invitedByUserId: number): AddMemberResult {
-    if (!identifier) throw new ValidationError('Email or username required');
-
-    // Guests (#1362) are not invitable accounts — exclude them so a trip-scoped guest
-    // can never be resolved (and re-attached to another trip) through the invite box.
-    const target = this.db.prepare(
-      'SELECT id, username, email, avatar FROM users WHERE (email = ? OR username = ?) AND COALESCE(is_guest, 0) = 0'
-    ).get(identifier.trim(), identifier.trim()) as Pick<User, 'id' | 'username' | 'email' | 'avatar'> | undefined;
-
-    if (!target) throw new NotFoundError('User not found');
-
-    if (target.id === tripOwnerId)
-      throw new ValidationError('Trip owner is already a member');
-
-    const existing = this.db.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(tripId, target.id);
-    if (existing) throw new ValidationError('User already has access');
-
-    this.db.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, target.id, invitedByUserId);
-
-    const tripInfo = this.db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
-
-    return {
-      member: { ...target, role: 'member', avatar_url: avatarUrl(target) },
-      targetUserId: target.id,
-      tripTitle: tripInfo?.title || 'Untitled',
-    };
-  }
-
-  removeMember(tripId: string | number, targetUserId: number): void {
-    this.db.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, targetUserId);
-  }
-
-  /**
-   * Hand a trip over to one of its existing members (#973). The new owner must
-   * already be a member; afterwards they hold `trips.user_id` and the former owner
-   * becomes a regular member, so nobody loses access. Runs in a transaction so the
-   * owner pointer and the membership rows never diverge.
-   */
-  transferOwnership(
-    tripId: string | number,
-    newOwnerId: number,
-    currentOwnerId: number,
-  ): TransferOwnershipResult {
-    const trip = this.db.prepare('SELECT id, title, user_id FROM trips WHERE id = ?').get(tripId) as { id: number; title: string; user_id: number } | undefined;
-    if (!trip) throw new NotFoundError('Trip not found');
-    if (trip.user_id !== currentOwnerId) throw new ValidationError('Only the owner can transfer ownership');
-    if (newOwnerId === currentOwnerId) throw new ValidationError('You already own this trip');
-
-    const newOwner = this.db.prepare('SELECT id, email, is_guest FROM users WHERE id = ?').get(newOwnerId) as { id: number; email: string; is_guest?: number } | undefined;
-    if (!newOwner) throw new NotFoundError('User not found');
-    // A guest (#1362) can never log in, so it must never become the owner of a trip.
-    if (newOwner.is_guest) throw new ValidationError('Cannot transfer ownership to a guest');
-
-    const isMember = this.db.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(tripId, newOwnerId);
-    if (!isMember) throw new ValidationError('New owner must be a trip member');
-
-    const fromEmail = (this.db.prepare('SELECT email FROM users WHERE id = ?').get(currentOwnerId) as { email: string } | undefined)?.email || '';
-
-    const run = this.db.transaction(() => {
-      this.db.prepare('UPDATE trips SET user_id = ? WHERE id = ?').run(newOwnerId, tripId);
-      // The new owner is no longer a plain member…
-      this.db.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, newOwnerId);
-      // …and the former owner keeps access as a member.
-      this.db.prepare('INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, currentOwnerId, newOwnerId);
-    });
-    run();
-
-    return { tripTitle: trip.title, fromEmail, toEmail: newOwner.email };
-  }
-
-  // ── Guest members (#1362) ───────────────────────────────────────────────────
-
-  /** username is UNIQUE across all users — keep the typed name but disambiguate guests
-   *  that happen to share it (e.g. two "Anna"s) with a numeric suffix. */
-  createGuest(tripId: string | number, name: string, invitedByUserId: number): { member: GuestMember } {
-    const display = (name || '').trim();
-    if (!display) throw new ValidationError('Guest name is required');
-    if (display.length > 50) throw new ValidationError('Guest name must be 50 characters or fewer');
-
-    // The human name lives in display_name (not unique — two trips can each have a
-    // "Jake", #1446); username is a uuid handle only for the UNIQUE constraint and is
-    // never shown (member views COALESCE display_name over it).
-    const email = `guest-${randomUUID()}@guests.invalid`;
-    const username = `guest-${randomUUID()}`;
-
-    const create = this.db.transaction(() => {
-      const res = this.db.prepare(
-        "INSERT INTO users (username, email, password_hash, role, is_guest, display_name) VALUES (?, ?, '', 'user', 1, ?)"
-      ).run(username, email, display);
-      const guestId = Number(res.lastInsertRowid);
-      this.db.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, guestId, invitedByUserId);
-      return guestId;
-    });
-    const guestId = create();
-
-    return { member: { id: guestId, username: display, email, role: 'member', is_guest: true, avatar_url: null } };
-  }
-
-  /** Confirms a user id is a guest of THIS trip, so guest mutations stay trip-scoped. */
-  private guestOfTrip(tripId: string | number, guestUserId: number): boolean {
-    return !!this.db.prepare(
-      'SELECT u.id FROM users u JOIN trip_members m ON m.user_id = u.id WHERE u.id = ? AND m.trip_id = ? AND u.is_guest = 1'
-    ).get(guestUserId, tripId);
-  }
-
-  renameGuest(tripId: string | number, guestUserId: number, name: string): boolean {
-    const display = (name || '').trim();
-    if (!display) throw new ValidationError('Guest name is required');
-    if (display.length > 50) throw new ValidationError('Guest name must be 50 characters or fewer');
-    if (!this.guestOfTrip(tripId, guestUserId)) return false;
-
-    // Rename only the display name — no global-uniqueness dedup, so a rename to a name
-    // another trip's guest already uses no longer produces "Name 2" (#1446).
-    this.db.prepare('UPDATE users SET display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_guest = 1').run(display, guestUserId);
-    return true;
-  }
-
-  deleteGuest(tripId: string | number, guestUserId: number): boolean {
-    if (!this.guestOfTrip(tripId, guestUserId)) return false;
-    // A guest is still a user id a plugin may hold data for, so erase that too — the
-    // host-side per-user tables + a durable own-db erasure per granted plugin — exactly
-    // like a full account deletion (otherwise a deleted guest's plugin data lingers).
-    this.userCleanup.erasePluginUserData(guestUserId);
-    // Quirk fix on top of the 1:1 move: the budget re-split and the user delete
-    // run in one transaction, so a failure mid-flow can't leave the expense
-    // divisors re-derived for a guest that still exists (or vice versa). The
-    // plugin-side erasure/notification keep their order around it.
-    this.db.transaction(() => {
-      // Re-split the expenses they were part of before the cascade takes their member
-      // rows away — the divisor is denormalized and cannot follow a foreign key (#1553).
-      this.budget.removeUserFromBudgetItems(guestUserId);
-      // Deleting the guest's users row cascades its membership and every assignment join
-      // (trip_members, budget/packing/assignment links) via the ON DELETE foreign keys.
-      this.db.prepare('DELETE FROM users WHERE id = ? AND is_guest = 1').run(guestUserId);
-    })();
-    emitUserDeleted(guestUserId); // deliver the erasure to any active plugin now
-    return true;
-  }
-
-  // ── ICS export ────────────────────────────────────────────────────────────
-
-  exportICS(tripId: string | number): { ics: string; filename: string } {
-    const trip = this.db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as any;
-    if (!trip) throw new NotFoundError('Trip not found');
-
-    const reservations = this.db
-      .prepare(
-        `SELECT r.*, pl.lat AS place_lat, pl.lng AS place_lng
-         FROM reservations r
-         LEFT JOIN places pl ON r.place_id = pl.id
-         WHERE r.trip_id = ?`,
-      )
-      .all(tripId) as any[];
-
-    const esc = (s: string) => s
-      .replace(/\\/g, '\\\\')
-      .replace(/;/g, '\\;')
-      .replace(/,/g, '\\,')
-      .replace(/\r?\n/g, '\\n')
-      .replace(/\r/g, '');
-    const fmtDate = (d: string) => d.replace(/-/g, '');
-    const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const uid = (id: number, type: string) => `trek-${type}-${id}@trek`;
-
-    // Format datetime: handles full ISO "2026-03-30T09:00" and time-only "10:00"
-    // iCal requires exactly YYYYMMDDTHHMMSS format
-    const fmtDateTime = (d: string, refDate?: string) => {
-      if (d.includes('T')) {
-        const raw = d.replace(/[-:]/g, '').split('.')[0];
-        // Pad to 15 chars (YYYYMMDDTHHMMSS) — add missing seconds
-        return raw.length === 13 ? raw + '00' : raw;
-      }
-      // Time-only: combine with reference date
-      if (refDate && d.match(/^\d{2}:\d{2}/)) {
-        const datePart = refDate.split('T')[0];
-        return `${datePart}T${d.replace(/:/g, '')}00`.replace(/-/g, '');
-      }
-      return d.replace(/[-:]/g, '');
-    };
-
-    // Zones referenced by timed events → representative YYYYMMDD (for the fallback
-    // VTIMEZONE offset). Populated by dtLine; emitted once as VTIMEZONE blocks.
-    const usedZones = new Map<string, string>();
-
-    // Emit a DTSTART/DTEND line, attaching TZID when the event's zone is known so
-    // subscribers see the time in TREK's zone. Falls back to a floating local time
-    // (unchanged behavior) when no zone resolves or the value is not a date-time.
-    const dtLine = (
-      prop: 'DTSTART' | 'DTEND',
-      wallClock: string,
-      zone: string | null,
-      refDate?: string,
-    ): string => {
-      const val = fmtDateTime(wallClock, refDate);
-      if (zone && isValidTimeZone(zone) && /^\d{8}T\d{6}$/.test(val)) {
-        if (!usedZones.has(zone)) usedZones.set(zone, val.slice(0, 8));
-        return `${prop};TZID=${zone}:${val}\r\n`;
-      }
-      return `${prop}:${val}\r\n`;
-    };
-
-    let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
-    ics += `X-WR-CALNAME:${esc(trip.title || 'TREK Trip')}\r\n`;
-
-    // Trip as all-day event. DTEND is exclusive, so it must be the day *after* the last
-    // day. addDays() stays in UTC — building a local-time Date here dropped the trip's
-    // last day on any server east of Greenwich (#1453).
-    if (trip.start_date && trip.end_date) {
-      const endStr = fmtDate(addDays(trip.end_date, 1));
-      ics += `BEGIN:VEVENT\r\nUID:${uid(trip.id, 'trip')}\r\nDTSTAMP:${now}\r\nDTSTART;VALUE=DATE:${fmtDate(trip.start_date)}\r\nDTEND;VALUE=DATE:${endStr}\r\nSUMMARY:${esc(trip.title || 'Trip')}\r\n`;
-      if (trip.description) ics += `DESCRIPTION:${esc(trip.description)}\r\n`;
-      ics += `END:VEVENT\r\n`;
-    }
-
-    // Days with assignments and notes
-    const days = this.db.prepare('SELECT * FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(tripId) as any[];
-    for (const day of days) {
-      if (!day.date) continue;
-
-      const assignments = this.db.prepare(`
-        SELECT da.*, p.name as place_name, p.address as place_address,
-          p.lat as place_lat, p.lng as place_lng,
-          COALESCE(da.assignment_time, p.place_time) as effective_time,
-          COALESCE(da.assignment_end_time, p.end_time) as effective_end_time
-        FROM day_assignments da
-        JOIN places p ON da.place_id = p.id
-        WHERE da.day_id = ?
-        ORDER BY da.order_index ASC, da.created_at ASC
-      `).all(day.id) as any[];
-
-      const notes = this.db.prepare(
-        'SELECT * FROM day_notes WHERE day_id = ? ORDER BY sort_order ASC, created_at ASC'
-      ).all(day.id) as any[];
-
-      const timed = assignments.filter(a => a.effective_time);
-      const untimed = assignments.filter(a => !a.effective_time);
-
-      // Timed assignments → individual events
-      for (const a of timed) {
-        const zone = resolveTimeZone(a.place_lat, a.place_lng);
-        ics += `BEGIN:VEVENT\r\nUID:${uid(a.id, 'assign')}\r\nDTSTAMP:${now}\r\n`;
-        ics += dtLine('DTSTART', a.effective_time, zone, day.date + 'T00:00');
-        if (a.effective_end_time) {
-          ics += dtLine('DTEND', a.effective_end_time, zone, day.date + 'T00:00');
-        }
-        ics += `SUMMARY:${esc(a.place_name)}\r\n`;
-        let desc = '';
-        if (a.notes) desc += a.notes;
-        if (a.place_address) desc += (desc ? '\n' : '') + a.place_address;
-        if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;
-        if (a.place_address) ics += `LOCATION:${esc(a.place_address)}\r\n`;
-        ics += `END:VEVENT\r\n`;
-      }
-
-      // Build all-day summary event if there are untimed activities or notes
-      if (untimed.length > 0 || notes.length > 0) {
-        const dayTitle = day.title || `Day ${day.day_number}`;
-        const endStr = fmtDate(addDays(day.date, 1));
-
-        ics += `BEGIN:VEVENT\r\nUID:${uid(day.id, 'day')}\r\nDTSTAMP:${now}\r\n`;
-        ics += `DTSTART;VALUE=DATE:${fmtDate(day.date)}\r\nDTEND;VALUE=DATE:${endStr}\r\n`;
-        ics += `SUMMARY:${esc(dayTitle)}\r\n`;
-
-        let desc = '';
-        if (untimed.length > 0) {
-          desc += untimed.map(a => {
-            let line = `• ${a.place_name}`;
-            if (a.place_address) line += ` (${a.place_address})`;
-            if (a.notes) line += ` — ${a.notes}`;
-            return line;
-          }).join('\n');
-        }
-        if (notes.length > 0) {
-          if (desc) desc += '\n\n';
-          desc += 'Notes:\n' + notes.map(n => {
-            const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
-            return line;
-          }).join('\n');
-        }
-        if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;
-        ics += `END:VEVENT\r\n`;
-      }
-    }
-
-    // Transport/flight reservations carry no top-level reservation_time; their
-    // times live per endpoint (local_date + local_time) in reservation_endpoints.
-    const endpointsMap = this.reservations.loadEndpointsByTrip(tripId);
-    const isDate = (s: string | null | undefined) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
-    const isTime = (s: string | null | undefined) => !!s && /^\d{2}:\d{2}/.test(s);
-
-    // Build the DTSTART/DTEND lines for a reservation, or null when it has no
-    // calendar-placeable time. Hotels/restaurants use reservation_time; flights
-    // fall back to their first/last endpoint.
-    const buildReservationTimeLines = (r: any): string | null => {
-      if (r.reservation_time) {
-        const datePart = r.reservation_time.includes('T') ? r.reservation_time.split('T')[0] : r.reservation_time;
-        if (!isDate(datePart)) return null; // time-only (relative "Day N" trips)
-        if (r.reservation_time.includes('T')) {
-          // Hotels/restaurants: derive the zone from the linked place, if any.
-          const zone = resolveTimeZone(r.place_lat, r.place_lng);
-          let out = dtLine('DTSTART', r.reservation_time, zone);
-          if (r.reservation_end_time) {
-            const endDt = fmtDateTime(r.reservation_end_time, r.reservation_time);
-            if (endDt.length >= 15) out += dtLine('DTEND', r.reservation_end_time, zone, r.reservation_time);
-          }
-          return out;
-        }
-        return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
-      }
-
-      const eps = endpointsMap.get(r.id);
-      if (!eps || eps.length === 0) return null;
-      const ordered = [...eps].sort((a, b) => a.sequence - b.sequence);
-      const first = ordered[0];
-      const last = ordered[ordered.length - 1];
-      if (!isDate(first.local_date)) return null;
-      if (isTime(first.local_time)) {
-        // Transport: departure endpoint zone drives DTSTART, arrival drives DTEND.
-        // Prefer the stored IANA zone; fall back to the endpoint's coordinates.
-        const startZone = first.timezone || resolveTimeZone(first.lat, first.lng);
-        let out = dtLine('DTSTART', `${first.local_date}T${first.local_time}`, startZone);
-        if (last !== first && isDate(last.local_date) && isTime(last.local_time)) {
-          const endZone = last.timezone || resolveTimeZone(last.lat, last.lng);
-          out += dtLine('DTEND', `${last.local_date}T${last.local_time}`, endZone);
-        }
-        return out;
-      }
-      return `DTSTART;VALUE=DATE:${fmtDate(first.local_date)}\r\n`;
-    };
-
-    // Reservations as events
-    for (const r of reservations) {
-      const timeLines = buildReservationTimeLines(r);
-      if (!timeLines) continue;
-      const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
-
-      ics += `BEGIN:VEVENT\r\nUID:${uid(r.id, 'res')}\r\nDTSTAMP:${now}\r\n`;
-      ics += timeLines;
-      ics += `SUMMARY:${esc(r.title)}\r\n`;
-
-      let desc = r.type ? `Type: ${r.type}` : '';
-      if (r.confirmation_number) desc += `\nConfirmation: ${r.confirmation_number}`;
-      if (meta.airline) desc += `\nAirline: ${meta.airline}`;
-      if (meta.flight_number) desc += `\nFlight: ${meta.flight_number}`;
-      if (Array.isArray(meta.legs) && meta.legs.length > 1) {
-        // Multi-leg flight: show the whole route (FRA → BER → HND) on one event.
-        const stops = [meta.legs[0]?.from, ...meta.legs.map((l: { to?: string }) => l.to)].filter(Boolean);
-        if (stops.length) desc += `\nRoute: ${stops.join(' → ')}`;
-      } else if (meta.departure_airport || meta.arrival_airport) {
-        if (meta.departure_airport) desc += `\nFrom: ${meta.departure_airport}`;
-        if (meta.arrival_airport) desc += `\nTo: ${meta.arrival_airport}`;
-      } else {
-        // Endpoint-based transport without route metadata: derive it from endpoints.
-        const eps = endpointsMap.get(r.id);
-        if (eps && eps.length > 1) {
-          const stops = [...eps].sort((a, b) => a.sequence - b.sequence).map(e => e.code || e.name).filter(Boolean);
-          if (stops.length > 1) desc += `\nRoute: ${stops.join(' → ')}`;
-        }
-      }
-      if (meta.train_number) desc += `\nTrain: ${meta.train_number}`;
-      if (r.notes) desc += `\n${r.notes}`;
-      if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;
-      if (r.location) ics += `LOCATION:${esc(r.location)}\r\n`;
-      ics += `END:VEVENT\r\n`;
-    }
-
-    ics += 'END:VCALENDAR\r\n';
-
-    // Define every referenced zone with a VTIMEZONE, inserted before the first
-    // event so TZID references resolve. No-op when no timed event carried a zone.
-    if (usedZones.size > 0) {
-      let vtz = '';
-      for (const [zone, yyyymmdd] of usedZones) vtz += buildVTimezone(zone, yyyymmdd);
-      ics = ics.replace('BEGIN:VEVENT', vtz + 'BEGIN:VEVENT');
-    }
-
-    const safeFilename = (trip.title || 'trek-trip').replace(/["\r\n]/g, '').replace(/[^\w\s.-]/g, '_');
-    return { ics: foldICS(ics), filename: `${safeFilename}.ics` };
-  }
-
-  // ── Trip summary (used by MCP get_trip_summary tool) ──────────────────────
-
-  getTripSummary(tripId: number, viewerUserId?: number) {
-    const trip = this.db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Record<string, unknown> | undefined;
-    if (!trip) return null;
-
-    const ownerRow = this.getOwner(tripId);
-    if (!ownerRow) return null;
-    const { owner, members } = this.listMembers(tripId, ownerRow.user_id);
-
-    const { days: rawDays } = this.days.list(tripId);
-    const days = rawDays.map(({ notes_items, ...day }) => ({ ...day, notes: notes_items }));
-
-    const accommodations = this.days.listAccommodations(tripId);
-
-    const budgetItems = this.budget.listBudgetItems(tripId);
-    const budget = {
-      items: budgetItems,
-      item_count: budgetItems.length,
-      total: budgetItems.reduce((sum, i) => sum + (i.total_price || 0), 0),
-      currency: trip.currency,
-    };
-
-    // Thread the viewer so another member's private/personal packing items (#858)
-    // stay hidden — without it listItems returns the UNFILTERED list.
-    const packingItems = this.packing.listItems(tripId, viewerUserId);
-    const packing = {
-      items: packingItems,
-      total: packingItems.length,
-      checked: (packingItems as { checked: number }[]).filter(i => i.checked).length,
-    };
-
-    const reservations = this.reservations.list(tripId);
-    const collab_notes = this.collab.listNotes(tripId);
-
-    return {
-      trip,
-      members: { owner, collaborators: members },
-      days,
-      accommodations,
-      budget,
-      packing,
-      reservations,
-      collab_notes,
-    };
-  }
-
-  // ── Bundle / notifications (route helpers) ────────────────────────────────
-
-  /** Aggregates every trip sub-collection for offline caching (legacy /:id/bundle). */
-  bundle(tripId: string, trip: { user_id: number }, viewerId: number) {
-    const { days } = this.days.list(tripId);
-    const { owner, members } = this.listMembers(tripId, trip.user_id);
-    return {
-      trip,
-      days,
-      places: this.places.list(String(tripId), {}),
-      // Scope to the requesting member so other members' private packing items
-      // (#858) never land in this viewer's offline cache.
-      packingItems: this.packing.listItems(tripId, viewerId),
-      todoItems: this.todo.listItems(tripId),
-      budgetItems: this.budget.listBudgetItems(tripId),
-      reservations: this.reservations.list(tripId),
-      files: this.files.listFiles(tripId, false),
-      accommodations: this.days.listAccommodations(tripId),
-      members: [owner, ...(members || [])].filter(Boolean),
-    };
-  }
-
-  /** Fire-and-forget trip-invite notification (mirrors the route's dynamic import). */
-  notifyInvite(tripId: string, actor: User, targetUserId: number, tripTitle: string, inviteeEmail: string): void {
-    import('../notifications/notifications.bridge').then(({ send }) => {
-      send({
-        event: 'trip_invite',
-        actorId: actor.id,
-        scope: 'user',
-        targetId: targetUserId,
-        params: { trip: tripTitle, actor: actor.email, invitee: inviteeEmail, tripId: String(tripId) },
-      }).catch(() => {});
-    });
-  }
 }
 
-// ── Custom error types ────────────────────────────────────────────────────
-
-export class NotFoundError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'NotFoundError';
-  }
-}
-
-export class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
+// Defined in common/ so calendar and maps can raise them without importing the
+// trip aggregate; re-exported here because nine files already import them from
+// this module.
+export { NotFoundError, ValidationError };

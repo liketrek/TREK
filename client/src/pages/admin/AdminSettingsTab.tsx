@@ -2,6 +2,7 @@ import React from 'react'
 import { adminApi, authApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import { Eye, EyeOff, Save, CheckCircle, XCircle, Loader2, Sun, RefreshCw, AlertTriangle } from 'lucide-react'
+import ToggleSwitch from '../../components/Settings/ToggleSwitch'
 import type { TranslationFn } from '../../types'
 import type { useAdmin } from './useAdmin'
 
@@ -15,10 +16,11 @@ interface AdminSettingsTabProps {
 export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): React.ReactElement {
   const {
     toast,
-    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled,
+    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled,
     placesPhotosEnabled, setPlacesPhotosEnabledState,
     placesAutocompleteEnabled, setPlacesAutocompleteEnabledState,
     placesDetailsEnabled, setPlacesDetailsEnabledState,
+    placesEnrichEnabled, setPlacesEnrichEnabledState,
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
@@ -334,17 +336,16 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               <p className="text-sm font-medium text-slate-700">{t('admin.placesPhotos.title')}</p>
               <p className="text-xs text-slate-400 mt-0.5">{t('admin.placesPhotos.subtitle')}</p>
             </div>
-            <button
-              onClick={async () => {
+            <ToggleSwitch
+              on={placesPhotosEnabled}
+              label={t('admin.placesPhotos.title')}
+              onToggle={async () => {
                 const next = !placesPhotosEnabled
                 setPlacesPhotosEnabledState(next)
                 setPlacesPhotosEnabled(next)
                 try { await adminApi.updatePlacesPhotos(next) } catch { setPlacesPhotosEnabledState(!next); setPlacesPhotosEnabled(!next) }
               }}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${placesPhotosEnabled ? 'bg-content' : 'bg-edge'}`}
-            >
-              <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: placesPhotosEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
-            </button>
+            />
           </div>
 
           {/* Place Autocomplete Toggle */}
@@ -353,17 +354,16 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               <p className="text-sm font-medium text-slate-700">{t('admin.placesAutocomplete.title')}</p>
               <p className="text-xs text-slate-400 mt-0.5">{t('admin.placesAutocomplete.subtitle')}</p>
             </div>
-            <button
-              onClick={async () => {
+            <ToggleSwitch
+              on={placesAutocompleteEnabled}
+              label={t('admin.placesAutocomplete.title')}
+              onToggle={async () => {
                 const next = !placesAutocompleteEnabled
                 setPlacesAutocompleteEnabledState(next)
                 setPlacesAutocompleteEnabled(next)
                 try { await adminApi.updatePlacesAutocomplete(next) } catch { setPlacesAutocompleteEnabledState(!next); setPlacesAutocompleteEnabled(!next) }
               }}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${placesAutocompleteEnabled ? 'bg-content' : 'bg-edge'}`}
-            >
-              <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: placesAutocompleteEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
-            </button>
+            />
           </div>
 
           {/* Place Details Toggle */}
@@ -372,17 +372,34 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               <p className="text-sm font-medium text-slate-700">{t('admin.placesDetails.title')}</p>
               <p className="text-xs text-slate-400 mt-0.5">{t('admin.placesDetails.subtitle')}</p>
             </div>
-            <button
-              onClick={async () => {
+            <ToggleSwitch
+              on={placesDetailsEnabled}
+              label={t('admin.placesDetails.title')}
+              onToggle={async () => {
                 const next = !placesDetailsEnabled
                 setPlacesDetailsEnabledState(next)
                 setPlacesDetailsEnabled(next)
                 try { await adminApi.updatePlacesDetails(next) } catch { setPlacesDetailsEnabledState(!next); setPlacesDetailsEnabled(!next) }
               }}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${placesDetailsEnabled ? 'bg-content' : 'bg-edge'}`}
-            >
-              <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: placesDetailsEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
-            </button>
+            />
+          </div>
+
+          {/* Place Enrichment Toggle */}
+          <div className="flex items-center justify-between gap-4 py-3 border-t border-slate-100">
+            <div>
+              <p className="text-sm font-medium text-slate-700">{t('admin.placesEnrich.title')}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{t('admin.placesEnrich.subtitle')}</p>
+            </div>
+            <ToggleSwitch
+              on={placesEnrichEnabled}
+              label={t('admin.placesEnrich.title')}
+              onToggle={async () => {
+                const next = !placesEnrichEnabled
+                setPlacesEnrichEnabledState(next)
+                setPlacesEnrichEnabled(next)
+                try { await adminApi.updatePlacesEnrich(next) } catch { setPlacesEnrichEnabledState(!next); setPlacesEnrichEnabled(!next) }
+              }}
+            />
           </div>
 
           {/* Open-Meteo Weather Info */}

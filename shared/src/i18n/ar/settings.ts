@@ -431,6 +431,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'مخفي',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'البدء',
+  'settings.startPage': 'صفحة البدء',
+  'settings.startPageDashboard': 'لوحة التحكم',
+  'settings.startPageActiveTrip': 'الرحلة النشطة',
+  'settings.startPageHint':
+    'يفتح TREK مباشرةً على الرحلة الجارية، وإن لم توجد فعلى الرحلة القادمة التالية. وهي نفس الرحلة التي تبرزها لوحة التحكم.',
+  'settings.startTripTab': 'علامة تبويب البدء',
+  'settings.startTripTabHint':
+    'علامة التبويب التي تفتح بها الرحلة. إذا كانت تابعة لإضافة أوقفت تشغيلها، تُفتح الخطة بدلاً منها.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'ذاكرة التخزين المؤقت دون اتصال',

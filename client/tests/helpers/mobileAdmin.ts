@@ -44,6 +44,7 @@ export function buildAdminHook(overrides: Record<string, unknown> = {}): AdminHo
     setPlacesPhotosEnabled: vi.fn(),
     setPlacesAutocompleteEnabled: vi.fn(),
     setPlacesDetailsEnabled: vi.fn(),
+    setPlacesEnrichEnabled: vi.fn(),
     logout: vi.fn(async () => undefined),
     navigate: vi.fn(),
     toast: buildAdminToast(),
@@ -73,6 +74,8 @@ export function buildAdminHook(overrides: Record<string, unknown> = {}): AdminHo
     setPlacesAutocompleteEnabledState: vi.fn(),
     placesDetailsEnabled: false,
     setPlacesDetailsEnabledState: vi.fn(),
+    placesEnrichEnabled: true,
+    setPlacesEnrichEnabledState: vi.fn(),
     collabFeatures: { chat: true, notes: true, polls: true, whatsnext: true },
     setCollabFeatures: vi.fn(),
 

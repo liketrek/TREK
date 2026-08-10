@@ -7,7 +7,7 @@ import {
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { createAssignment, dayExists } from '../assignments/assignments.bridge';
-import { onPlaceDeleted, reconcileTripSkeletons } from '../../services/journeyService';
+import { JourneyDomainService } from '../journey/journey-domain.service';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { DatabaseService } from '../database/database.service';
 import { MapsService } from '../maps/maps.service';
@@ -43,6 +43,7 @@ export class PlacesMcp {
     private readonly maps: MapsService,
     private readonly db: DatabaseService,
     private readonly auth: AuthService,
+    private readonly journey: JourneyDomainService,
   ) {}
 
   @Tool({
@@ -130,7 +131,7 @@ export class PlacesMcp {
       });
       safeBroadcast(tripId, 'place:created', { place: result.place });
       safeBroadcast(tripId, 'assignment:created', { assignment: result.assignment });
-      try { reconcileTripSkeletons(tripId); } catch { /* non-fatal */ }
+      try { this.journey.reconcileTripSkeletons(tripId); } catch { /* non-fatal */ }
       return ok(result);
     } catch {
       return { content: [{ type: 'text' as const, text: 'Failed to create place and assignment.' }], isError: true };
@@ -228,7 +229,7 @@ export class PlacesMcp {
     if (!this.places.get(String(tripId), String(placeId))) {
       return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     }
-    try { onPlaceDeleted(placeId); } catch { /* non-fatal */ } // sync journeys before the row is gone
+    try { this.journey.onPlaceDeleted(placeId); } catch { /* non-fatal */ } // sync journeys before the row is gone
     const deleted = this.places.remove(String(tripId), String(placeId));
     if (!deleted) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     safeBroadcast(tripId, 'place:deleted', { placeId });
@@ -335,7 +336,7 @@ export class PlacesMcp {
     // ON DELETE SET NULL, so a hook that ran afterwards found nothing left to
     // detach and left the entries as orphans.
     for (const id of this.places.scopedIds(String(tripId), placeIds)) {
-      try { onPlaceDeleted(id); } catch { /* non-fatal */ }
+      try { this.journey.onPlaceDeleted(id); } catch { /* non-fatal */ }
     }
     const deleted = this.places.removeMany(String(tripId), placeIds);
     for (const id of deleted) safeBroadcast(tripId, 'place:deleted', { placeId: id });

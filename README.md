@@ -171,6 +171,18 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 <br />
 
+## AI usage
+
+We use LLM-assisted coding tools across parts of this codebase. Nothing ships that a
+maintainer has not read and understood: every change goes through a pull request, is
+reviewed and tested, and has a human who can answer for it. "The AI wrote that" is not
+an answer any of us would accept from ourselves.
+
+See [**How we use AI in TREK**](https://github.com/liketrek/TREK/discussions/1851) for
+the details.
+
+<br />
+
 ## Get started in 30 seconds
 
 ```bash

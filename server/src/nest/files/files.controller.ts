@@ -26,6 +26,9 @@ import type { User } from '../../types';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { TripAccessGuard } from '../permissions/trip-access.guard';
+import type { TripAccess } from '../database/database.service';
+import { Trip } from '../permissions/trip.decorator';
 import { MAX_FILE_SIZE, MAX_VIDEO_SIZE, BLOCKED_EXTENSIONS, filesDir, isVideoExtension } from './files.constants';
 import { getAllowedExtensions } from './files.bridge';
 import { FileUploadDto, FileUpdateDto, FileLinkDto } from './files.dto';
@@ -67,6 +70,17 @@ const UPLOAD = {
  * the WebSocket broadcasts with the forwarded X-Socket-Id.
  */
 @Controller('api/trips/:tripId/files')
+// TripAccessGuard carries the trip access check, applied PER HANDLER rather than on
+// the class. The per-handler RIGHT stays inline because files use three different ones
+// (file_upload, file_edit, file_delete), which one class-level @RequirePermission could
+// not express.
+//
+// `upload` is deliberately left off the guard and keeps its own check. Guards run
+// before interceptors, so a class-level guard would answer 404 before multer had read
+// the multipart body — and a response sent while the client is still streaming gets the
+// socket destroyed, so the caller sees ECONNRESET instead of the 404. Refusing after
+// the body has been read costs the bandwidth but keeps the answer readable, which is
+// the behaviour every client already handles.
 @UseGuards(JwtAuthGuard)
 export class FilesController {
   constructor(
@@ -74,13 +88,6 @@ export class FilesController {
     private readonly env: RuntimeEnvService,
   ) {}
 
-  private requireTrip(tripId: string, user: User) {
-    const trip = this.files.verifyTripAccess(tripId, user.id);
-    if (!trip) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    return trip;
-  }
 
   // A file may only point at reservations/assignments/places from its own trip.
   // Reject cross-trip ids before they are stored — the reservation JOIN would
@@ -91,9 +98,9 @@ export class FilesController {
     }
   }
 
+  @UseGuards(TripAccessGuard)
   @Get()
-  list(@CurrentUser() user: User, @Param('tripId') tripId: string, @Query('trash') trash?: string) {
-    this.requireTrip(tripId, user);
+  list(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Query('trash') trash?: string) {
     return { files: this.files.listFiles(tripId, trash === 'true') };
   }
 
@@ -111,9 +118,12 @@ export class FilesController {
     // leaves up to the 500 MB video cap on disk (#823).
     const cleanup = () => { if (file?.path) { try { fs.unlinkSync(file.path); } catch { /* best-effort */ } } };
     try {
-      const trip = this.requireTrip(tripId, user);
-      // Inline rather than DemoWriteGuard: requireTrip above answers 404 for a
-      // trip the caller cannot reach, and a guard would run before it.
+      const trip = this.files.verifyTripAccess(tripId, user.id);
+      if (!trip) {
+        throw new HttpException({ error: 'Trip not found' }, 404);
+      }
+      // Inline rather than DemoWriteGuard: the 404 above has to come first, so a demo
+      // user still cannot learn which trips exist.
       if (isDemoWriteBlocked(this.env, user.email)) {
         throw new HttpException(DEMO_WRITE_ERROR, 403);
       }
@@ -150,9 +160,9 @@ export class FilesController {
     return { file: created };
   }
 
+  @UseGuards(TripAccessGuard)
   @Put(':id')
-  update(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: FileUpdateDto, @Headers('x-socket-id') socketId?: string) {
-    const trip = this.requireTrip(tripId, user);
+  update(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: FileUpdateDto, @Headers('x-socket-id') socketId?: string) {
     if (!this.files.can('file_edit', trip, user)) {
       throw new HttpException({ error: 'No permission to edit files' }, 403);
     }
@@ -166,9 +176,9 @@ export class FilesController {
     return { file: updated };
   }
 
+  @UseGuards(TripAccessGuard)
   @Patch(':id/star')
-  star(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
-    const trip = this.requireTrip(tripId, user);
+  star(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     if (!this.files.can('file_edit', trip, user)) {
       throw new HttpException({ error: 'No permission' }, 403);
     }
@@ -181,9 +191,9 @@ export class FilesController {
     return { file: updated };
   }
 
+  @UseGuards(TripAccessGuard)
   @Delete('trash/empty')
-  async emptyTrash(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    const trip = this.requireTrip(tripId, user);
+  async emptyTrash(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string) {
     if (!this.files.can('file_delete', trip, user)) {
       throw new HttpException({ error: 'No permission' }, 403);
     }
@@ -191,9 +201,9 @@ export class FilesController {
     return { success: true, deleted };
   }
 
+  @UseGuards(TripAccessGuard)
   @Delete(':id/permanent')
-  async permanent(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
-    const trip = this.requireTrip(tripId, user);
+  async permanent(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     if (!this.files.can('file_delete', trip, user)) {
       throw new HttpException({ error: 'No permission' }, 403);
     }
@@ -206,9 +216,9 @@ export class FilesController {
     return { success: true };
   }
 
+  @UseGuards(TripAccessGuard)
   @Delete(':id')
-  remove(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
-    const trip = this.requireTrip(tripId, user);
+  remove(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     if (!this.files.can('file_delete', trip, user)) {
       throw new HttpException({ error: 'No permission to delete files' }, 403);
     }
@@ -221,10 +231,10 @@ export class FilesController {
     return { success: true };
   }
 
+  @UseGuards(TripAccessGuard)
   @Post(':id/restore')
   @HttpCode(200) // Express answers restore with res.json (200), not the POST-default 201.
-  restore(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
-    const trip = this.requireTrip(tripId, user);
+  restore(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     if (!this.files.can('file_delete', trip, user)) {
       throw new HttpException({ error: 'No permission' }, 403);
     }
@@ -237,10 +247,10 @@ export class FilesController {
     return { file: restored };
   }
 
+  @UseGuards(TripAccessGuard)
   @Post(':id/link')
   @HttpCode(200) // Express answers link with res.json (200).
-  link(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: FileLinkDto) {
-    const trip = this.requireTrip(tripId, user);
+  link(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: FileLinkDto) {
     if (!this.files.can('file_edit', trip, user)) {
       throw new HttpException({ error: 'No permission' }, 403);
     }
@@ -253,9 +263,9 @@ export class FilesController {
     return { success: true, links };
   }
 
+  @UseGuards(TripAccessGuard)
   @Delete(':id/link/:linkId')
-  unlink(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Param('linkId') linkId: string) {
-    const trip = this.requireTrip(tripId, user);
+  unlink(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Param('id') id: string, @Param('linkId') linkId: string) {
     if (!this.files.can('file_edit', trip, user)) {
       throw new HttpException({ error: 'No permission' }, 403);
     }
@@ -263,9 +273,9 @@ export class FilesController {
     return { success: true };
   }
 
+  @UseGuards(TripAccessGuard)
   @Get(':id/links')
-  links(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string) {
-    this.requireTrip(tripId, user);
+  links(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Param('id') id: string) {
     return { links: this.files.getFileLinks(id) };
   }
 }

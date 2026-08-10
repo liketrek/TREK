@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { extractToken, verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
+import { Public } from '../auth/public.decorator';
 
 /**
  * Proxies a plugin's own HTTP routes at /api/plugins/:id/* (#plugins, M2).
@@ -70,6 +71,7 @@ function toRelativeLocation(loc: unknown): string | null {
   }
 }
 
+@Public('auth is data-driven per plugin route (route.auth in the manifest), asserted in the handler')
 @Controller('api/plugins/:pluginId')
 export class PluginsProxyController {
   constructor(private readonly runtime: PluginRuntimeService) {}

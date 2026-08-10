@@ -1,0 +1,259 @@
+/**
+ * The file plugin surface after it moved onto @PluginMethod.
+ *
+ * Files are the only plugin surface that touches disk and the only one that uses
+ * three separate rights, so the cases here lean on the upload path: the extension
+ * blocklist, the size cap, the demo-mode refusal, and that each operation asks for
+ * its own permission rather than one shared domain action.
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
+import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
+import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { FilesRpc } from '../../../src/nest/files/files.rpc';
+import { FilesModule } from '../../../src/nest/files/files.module';
+import type { FilesService } from '../../../src/nest/files/files.service';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { RpcRequest, RpcError, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
+import { makeDeps } from '../../helpers/rpc-host-deps';
+
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+
+const b64 = (s: string) => Buffer.from(s).toString('base64');
+
+let tmpDir: string;
+
+/** File 2 sits on trip 1, which belongs to user 42. */
+function build(opts: { file?: Record<string, unknown> | undefined; foreign?: string | null; allow?: (a: string) => boolean } = {}) {
+  const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
+  const files = {
+    listFiles: vi.fn(() => [{ id: 2, filename: 'visa.pdf' }]),
+    getFileById: vi.fn((id: number) =>
+      id === 2 ? (opts.file ?? { filename: 'visa.pdf', original_name: 'visa.pdf', mime_type: 'application/pdf', file_size: 2, deleted_at: null }) : undefined,
+    ),
+    resolveFilePath: vi.fn((name: string) => ({ resolved: path.join(tmpDir, name), safe: true })),
+    findForeignLinkTarget: vi.fn(() => opts.foreign ?? null),
+    createFile: vi.fn((_t: number, meta: Record<string, unknown>) => ({ id: 130, ...meta })),
+    createFileLink: vi.fn(() => [{ file_id: 2 }]),
+    updateFile: vi.fn((id: number) => ({ id })),
+    softDeleteFile: vi.fn(),
+  } as unknown as FilesService & Record<string, ReturnType<typeof vi.fn>>;
+  const db = {
+    canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined)),
+    prepare: vi.fn(() => ({ get: () => ({ role: 'user', email: 'real@example.test' }) })),
+  } as unknown as DatabaseService;
+  const permissions = {
+    checkPermission: vi.fn((action: string) => (opts.allow ? opts.allow(action) : true)),
+  } as unknown as PermissionsService;
+  const guards = new PluginGuards(db, permissions, { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService);
+  const rpc = new FilesRpc(files, realtime, db, guards);
+  const host = (...grants: string[]) => new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
+  return { files, realtime, permissions, host };
+}
+
+beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-files-rpc-'));
+  fs.writeFileSync(path.join(tmpDir, 'visa.pdf'), 'hi');
+});
+afterEach(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+
+describe('FilesRpc reads', () => {
+  it('FILES-RPC-001 files.list is membership-checked and excludes the trash', async () => {
+    const f = build();
+    const host = f.host('db:read:files');
+    expect((await host.dispatch(req('files.list', { tripId: 1 }), 42)).ok).toBe(true);
+    expect(f.files.listFiles).toHaveBeenCalledWith(1, false);
+    expect(((await host.dispatch(req('files.list', { tripId: 2 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  it('FILES-RPC-002 reading BYTES is a separate grant from reading metadata', async () => {
+    const f = build();
+    // db:read:files alone must not unlock the content.
+    const denied = (await f.host('db:read:files').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
+    expect(denied.error.code).toBe('PERMISSION_DENIED');
+    const ok = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcResponse;
+    expect(ok.ok).toBe(true);
+    expect(ok.result).toMatchObject({ name: 'visa.pdf', mimetype: 'application/pdf', content_base64: b64('hi') });
+  });
+
+  it('FILES-RPC-003 a trashed file is refused like the download path', async () => {
+    const f = build({ file: { filename: 'visa.pdf', original_name: 'visa.pdf', mime_type: null, file_size: 2, deleted_at: '2027-01-01' } });
+    const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
+    expect(res.error.message).toBe('no file 2 on trip 1');
+  });
+
+  it('FILES-RPC-004 the size is capped BEFORE the read, not after', async () => {
+    const f = build({ file: { filename: 'visa.pdf', original_name: 'visa.pdf', mime_type: null, file_size: 400 * 1024 * 1024, deleted_at: null } });
+    const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
+    expect(res.error.code).toBe('BAD_PARAMS');
+    // The path is never even resolved for an oversized file.
+    expect(f.files.resolveFilePath).not.toHaveBeenCalled();
+  });
+
+  it('FILES-RPC-005 a path outside the uploads root is refused', async () => {
+    const f = build();
+    (f.files.resolveFilePath as ReturnType<typeof vi.fn>).mockReturnValueOnce({ resolved: '/etc/passwd', safe: false });
+    const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
+    expect(res.error.message).toBe('file path is not accessible');
+  });
+});
+
+describe('FilesRpc writes', () => {
+  it('FILES-RPC-006 each operation asks for its own right', async () => {
+    const seen: string[] = [];
+    const f = build({ allow: (a) => { seen.push(a); return true; } });
+    const host = f.host('db:write:files');
+    await host.dispatch(req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x') } }), 42);
+    await host.dispatch(req('files.update', { tripId: 1, fileId: 2, input: {} }), 42);
+    await host.dispatch(req('files.softDelete', { tripId: 1, fileId: 2 }), 42);
+    expect(seen).toEqual(['file_upload', 'file_edit', 'file_delete']);
+  });
+
+  it('FILES-RPC-007 a blocked extension never reaches disk', async () => {
+    const f = build();
+    const res = (await f.host('db:write:files').dispatch(req('files.create', { tripId: 1, input: { name: 'evil.exe', content_base64: b64('MZ') } }), 42)) as RpcError;
+    expect(res.error.code).toBe('BAD_PARAMS');
+    expect(res.error.message).toBe("file extension '.exe' is not allowed");
+    expect(f.files.createFile).not.toHaveBeenCalled();
+  });
+
+  it('FILES-RPC-008 a file with no extension at all is refused', async () => {
+    const f = build();
+    const res = (await f.host('db:write:files').dispatch(req('files.create', { tripId: 1, input: { name: 'README', content_base64: b64('x') } }), 42)) as RpcError;
+    expect(res.error.message).toBe("file extension '(none)' is not allowed");
+  });
+
+  it('FILES-RPC-009 name and content are required, and the name is length-capped', async () => {
+    const f = build();
+    const host = f.host('db:write:files');
+    const bad = async (input: Record<string, unknown>) => ((await host.dispatch(req('files.create', { tripId: 1, input }), 42)) as RpcError).error.message;
+    expect(await bad({ content_base64: b64('x') })).toBe('file name is required (max 255 chars)');
+    expect(await bad({ name: 'x'.repeat(256), content_base64: b64('x') })).toBe('file name is required (max 255 chars)');
+    expect(await bad({ name: 'a.pdf' })).toBe('content_base64 is required');
+    expect(await bad({ name: 'a.pdf', content_base64: '' })).toBe('content_base64 is required');
+  });
+
+  it('FILES-RPC-010 an oversized payload is rejected on its ENCODED length', async () => {
+    const f = build();
+    const res = (await f.host('db:write:files').dispatch(
+      req('files.create', { tripId: 1, input: { name: 'big.pdf', content_base64: 'A'.repeat(15 * 1024 * 1024) } }), 42,
+    )) as RpcError;
+    expect(res.error.message).toBe('file exceeds the 10MB plugin upload cap');
+  });
+
+  it('FILES-RPC-011 empty decoded content is refused', async () => {
+    const f = build();
+    const res = (await f.host('db:write:files').dispatch(req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: '====' } }), 42)) as RpcError;
+    expect(res.error.message).toBe('file content is empty');
+  });
+
+  it('FILES-RPC-012 a link target on another trip is refused, for create and update alike', async () => {
+    const f = build({ foreign: 'reservation 9' });
+    const host = f.host('db:write:files');
+    const created = (await host.dispatch(req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x'), reservation_id: 9 } }), 42)) as RpcError;
+    expect(created.error.message).toBe('reservation 9 does not belong to trip 1');
+    const updated = (await host.dispatch(req('files.update', { tripId: 1, fileId: 2, input: { reservation_id: 9 } }), 42)) as RpcError;
+    expect(updated.error.message).toBe('reservation 9 does not belong to trip 1');
+  });
+
+  it('FILES-RPC-013 update tells null from undefined, so a link can be cleared', async () => {
+    const f = build();
+    const host = f.host('db:write:files');
+    await host.dispatch(req('files.update', { tripId: 1, fileId: 2, input: { place_id: null } }), 42);
+    expect(f.files.updateFile).toHaveBeenLastCalledWith(2, expect.anything(), expect.objectContaining({ place_id: null }));
+    await host.dispatch(req('files.update', { tripId: 1, fileId: 2, input: { description: 'x' } }), 42);
+    expect(f.files.updateFile).toHaveBeenLastCalledWith(2, expect.anything(), expect.objectContaining({ place_id: undefined }));
+  });
+
+  it('FILES-RPC-014 a missing file is RESOURCE_FORBIDDEN across every write', async () => {
+    const f = build();
+    const host = f.host('db:write:files');
+    for (const [method, params] of [
+      ['files.createLink', { tripId: 1, fileId: 404, opts: {} }],
+      ['files.update', { tripId: 1, fileId: 404, input: {} }],
+      ['files.softDelete', { tripId: 1, fileId: 404 }],
+    ] as const) {
+      const res = (await host.dispatch(req(method, params), 42)) as RpcError;
+      expect(res.error.message).toBe('no file 404 on trip 1');
+    }
+  });
+
+  it('FILES-RPC-015 a userless write is refused before anything else happens', async () => {
+    const f = build();
+    const res = (await f.host('db:write:files').dispatch(req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x') } }), undefined)) as RpcError;
+    expect(res.error.message).toBe('file writes require an authenticated user context');
+    expect(f.files.createFile).not.toHaveBeenCalled();
+  });
+
+  it('FILES-RPC-016 a successful write broadcasts, a refused one does not', async () => {
+    const f = build();
+    const host = f.host('db:write:files');
+    await host.dispatch(req('files.softDelete', { tripId: 1, fileId: 2 }), 42);
+    expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'file:deleted', { fileId: 2 }, undefined);
+    f.realtime.broadcast.mockClear();
+    await host.dispatch(req('files.softDelete', { tripId: 1, fileId: 404 }), 42);
+    expect(f.realtime.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('FILES-RPC-016b a demo account cannot upload while demo mode is on, other members can', async () => {
+    const prev = process.env.DEMO_MODE;
+    process.env.DEMO_MODE = 'true';
+    try {
+      const f = build();
+      // The demo guard resolves the uploader's email; user 9 is the demo account.
+      const db = {
+        canAccessTrip: vi.fn(() => ({ id: 1, user_id: 42 })),
+        prepare: vi.fn(() => ({ get: (id: number) => (id === 9 ? { role: 'user', email: 'demo@trek.app' } : { role: 'user', email: 'real@example.test' }) })),
+      } as unknown as DatabaseService;
+      const guards = new PluginGuards(
+        db,
+        { checkPermission: vi.fn(() => true) } as unknown as PermissionsService,
+        { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
+      );
+      const files = {
+        findForeignLinkTarget: vi.fn(() => null),
+        createFile: vi.fn(() => ({ id: 130 })),
+      } as unknown as FilesService;
+      const rpc = new FilesRpc(files, { broadcast: vi.fn() } as unknown as RealtimeService, db, guards);
+      const host = new PluginRpcHost('p', new Set(['db:write:files']), makeDeps(), createTestPluginRegistry([rpc]));
+      const input = { name: 'a.pdf', content_base64: b64('x') };
+      const denied = (await host.dispatch(req('files.create', { tripId: 1, input }), 9)) as RpcError;
+      expect(denied.error.message).toBe('Uploads are disabled in demo mode.');
+      expect((await host.dispatch(req('files.create', { tripId: 1, input }), 42)).ok).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.DEMO_MODE;
+      else process.env.DEMO_MODE = prev;
+    }
+  });
+
+  it('FILES-RPC-016c link ids are stringified, and absent ones become null', async () => {
+    const f = build();
+    await f.host('db:write:files').dispatch(req('files.createLink', { tripId: 1, fileId: 2, opts: { reservation_id: 9, assignment_id: 3 } }), 42);
+    expect(f.files.createFileLink).toHaveBeenCalledWith(2, { reservation_id: '9', assignment_id: '3', place_id: null });
+  });
+
+  it('FILES-RPC-016d create stores its optional link ids as strings', async () => {
+    const f = build();
+    await f.host('db:write:files').dispatch(
+      req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x'), place_id: 7, reservation_id: 9, description: 'd' } }), 42,
+    );
+    expect(f.files.createFile).toHaveBeenCalledWith(1, expect.anything(), 42, { place_id: '7', reservation_id: '9', description: 'd' });
+  });
+
+  it('FILES-RPC-016e a file with no recorded size or mimetype still reads', async () => {
+    const f = build({ file: { filename: 'visa.pdf', original_name: 'visa.pdf', mime_type: null, file_size: null, deleted_at: null } });
+    const res = await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42);
+    expect((res as { result: { mimetype: string } }).result.mimetype).toBe('application/octet-stream');
+  });
+
+  it('FILES-RPC-017 the class is listed in its module providers', () => {
+    expectRegisteredProvider(FilesModule, FilesRpc);
+  });
+});

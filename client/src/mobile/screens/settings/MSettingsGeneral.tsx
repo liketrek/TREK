@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { ChevronDown, Languages, Map } from 'lucide-react'
+import { ChevronDown, Languages, Map, Rocket } from 'lucide-react'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useToast } from '../../../components/shared/Toast'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
+import { TRIP_TAB_IDS, TRIP_TAB_LABEL_KEYS, isTripTabId } from '../../../constants/tripTabs'
+import { DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB, type StartPage } from '../../../utils/startDestination'
 import type { Settings, DistanceUnit } from '../../../types'
 import { MSetCard, MSetEyebrow, MSetSelectRow, MSetSegments, MSetRow } from './MSettingsUi'
 import MToggle from '../../components/MToggle'
@@ -19,6 +21,7 @@ export default function MSettingsGeneral() {
   const { settings, updateSetting } = useSettingsStore()
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const [startTabOpen, setStartTabOpen] = useState(false)
 
   const save = async (key: keyof Settings, value: Settings[keyof Settings]) => {
     try {
@@ -28,6 +31,8 @@ export default function MSettingsGeneral() {
     }
   }
 
+  const startPage: StartPage = settings.start_page === 'active_trip' ? 'active_trip' : DEFAULT_START_PAGE
+  const startTripTab = isTripTabId(settings.start_trip_tab) ? settings.start_trip_tab : DEFAULT_START_TRIP_TAB
   const currency = settings.default_currency || ''
   const currencyLabel = currency ? `${currency} — ${SYMBOLS[currency] || currency}` : t('settings.currencyTrip')
   const language = SUPPORTED_LANGUAGES.find((l) => l.value === settings.language) || SUPPORTED_LANGUAGES[0]
@@ -73,7 +78,29 @@ export default function MSettingsGeneral() {
 
   return (
     <>
-      <MSetCard title={t('settings.general.languageRegion')} icon={Languages}>
+      <MSetCard title={t('settings.general.startup')} icon={Rocket}>
+        <MSetEyebrow className="mb-[6px]">{t('settings.startPage')}</MSetEyebrow>
+        <MSetSegments<StartPage>
+          value={startPage}
+          onChange={(v) => save('start_page', v)}
+          options={[
+            { value: 'dashboard', label: t('settings.startPageDashboard') },
+            { value: 'active_trip', label: t('settings.startPageActiveTrip') },
+          ]}
+        />
+        {startPage === 'active_trip' && (
+          <>
+            <MSetEyebrow className="mb-[5px] mt-[14px]">{t('settings.startTripTab')}</MSetEyebrow>
+            <MSetSelectRow
+              label={t(TRIP_TAB_LABEL_KEYS[startTripTab])}
+              trailing={chevron}
+              onClick={() => setStartTabOpen(true)}
+            />
+          </>
+        )}
+      </MSetCard>
+
+      <MSetCard title={t('settings.general.languageRegion')} icon={Languages} className="mt-3">
         <MSetEyebrow className="mb-[5px]">{t('settings.currency')}</MSetEyebrow>
         <MSetSelectRow label={currencyLabel} trailing={chevron} onClick={() => setCurrencyOpen(true)} />
 
@@ -149,6 +176,15 @@ export default function MSettingsGeneral() {
         value={settings.language}
         onSelect={(v) => save('language', v)}
         options={SUPPORTED_LANGUAGES.map((l) => ({ value: l.value, label: l.label }))}
+      />
+
+      <MSetPickerSheet
+        open={startTabOpen}
+        onClose={() => setStartTabOpen(false)}
+        title={t('settings.startTripTab')}
+        value={startTripTab}
+        onSelect={(v) => save('start_trip_tab', v)}
+        options={TRIP_TAB_IDS.map((id) => ({ value: id, label: t(TRIP_TAB_LABEL_KEYS[id]) }))}
       />
     </>
   )

@@ -1,6 +1,6 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { render, screen, waitFor, act } from '@testing-library/react'
+import { MemoryRouter, useLocation } from 'react-router'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../tests/helpers/msw/server'
@@ -8,6 +8,7 @@ import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { resetAllStores } from '../tests/helpers/store'
 import { buildUser, buildSettings } from '../tests/helpers/factories'
+import { SETTINGS_WAIT_MS } from './utils/startDestination'
 import App from './App'
 
 // ── Mock page components ───────────────────────────────────────────────────────
@@ -29,10 +30,19 @@ vi.mock('./hooks/useInAppNotificationListener.ts', () => ({
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+/** Reports the router's current location, so a test can assert where App sent it. */
+function LocationProbe() {
+  const loc = useLocation()
+  return <span data-testid="loc">{loc.pathname + loc.search}</span>
+}
+
+const currentPath = () => screen.getByTestId('loc').textContent
+
 function renderApp(initialPath = '/') {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
       <App />
+      <LocationProbe />
     </MemoryRouter>
   )
 }
@@ -81,6 +91,81 @@ describe('RootRedirect', () => {
   })
 })
 
+// ── RootRedirect — startup destination ────────────────────────────────────────
+
+describe('RootRedirect — startup destination', () => {
+  /** Serves GET /api/trips/active and reports whether it was asked at all. */
+  function stubActiveTrip(trip: { id: number; title: string } | null) {
+    const calls: string[] = []
+    server.use(
+      http.get('/api/trips/active', ({ request }) => {
+        calls.push(request.url)
+        return HttpResponse.json({ trip })
+      }),
+    )
+    return calls
+  }
+
+  it('FE-COMP-APP-026: opens the active trip on the chosen tab', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({
+      isLoaded: true,
+      settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'finanzplan' }),
+    })
+    stubActiveTrip({ id: 42, title: 'Japan' })
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
+  })
+
+  it('FE-COMP-APP-027: falls back to the dashboard when the user has no trip', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({
+      isLoaded: true,
+      settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'finanzplan' }),
+    })
+    stubActiveTrip(null)
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+  })
+
+  it('FE-COMP-APP-028: falls back to the dashboard when the lookup fails', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({
+      isLoaded: true,
+      settings: buildSettings({ start_page: 'active_trip' }),
+    })
+    server.use(http.get('/api/trips/active', () => HttpResponse.error()))
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+  })
+
+  // The whole point of the localStorage mirror: the default launch must not pay
+  // for a lookup it doesn't need.
+  it('FE-COMP-APP-029: never asks for the active trip when starting on the dashboard', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({ isLoaded: true, settings: buildSettings({ start_page: 'dashboard' }) })
+    const calls = stubActiveTrip({ id: 42, title: 'Japan' })
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+    expect(calls).toHaveLength(0)
+  })
+
+  it('FE-COMP-APP-030: reads the preference from localStorage before settings have loaded', async () => {
+    localStorage.setItem('trek_start_page', 'active_trip')
+    localStorage.setItem('trek_start_trip_tab', 'finanzplan')
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({ isLoaded: false })
+    stubActiveTrip({ id: 42, title: 'Japan' })
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
+  })
+})
+
 // ── ProtectedRoute — unauthenticated ──────────────────────────────────────────
 
 describe('ProtectedRoute — unauthenticated', () => {
@@ -88,6 +173,22 @@ describe('ProtectedRoute — unauthenticated', () => {
     seedAuth({ isAuthenticated: false })
     renderApp('/dashboard')
     await waitFor(() => expect(screen.getByText('Login')).toBeInTheDocument())
+  })
+
+  // A session that ran out should return you to the page you were on. Pressing
+  // "log out" should not: clearing isAuthenticated re-renders this route for the
+  // page still on screen, and the ?redirect= it stamped there beat the user's
+  // startup destination on every login after the first.
+  it('FE-COMP-APP-034: keeps the return ticket when the session merely ended', async () => {
+    seedAuth({ isAuthenticated: false, loggingOut: false })
+    renderApp('/trips/1/files')
+    await waitFor(() => expect(currentPath()).toBe('/login?redirect=%2Ftrips%2F1%2Ffiles'))
+  })
+
+  it('FE-COMP-APP-035: drops it on a deliberate sign-out, so the startup destination decides', async () => {
+    seedAuth({ isAuthenticated: false, loggingOut: true })
+    renderApp('/dashboard')
+    await waitFor(() => expect(currentPath()).toBe('/login'))
   })
 
   it('FE-COMP-APP-005: /trips/42 redirects to /login when not authenticated', async () => {
@@ -320,5 +421,58 @@ describe('Version cache-busting', () => {
     seedAuth()
     renderApp('/')
     await waitFor(() => expect(reload).toHaveBeenCalled())
+  })
+})
+
+// Regression: a device that has never mirrored the preference must not treat
+// "nothing mirrored" as "user wants the dashboard".
+describe('RootRedirect — preference not mirrored on this device', () => {
+  it('FE-COMP-APP-031: honours the server setting when localStorage is empty', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    // Cold start: settings are still in flight when RootRedirect first runs.
+    useSettingsStore.setState({ isLoaded: false })
+    server.use(http.get('/api/trips/active', () => HttpResponse.json({ trip: { id: 42, title: 'Japan' } })))
+
+    renderApp('/')
+
+    // ...and land a moment later, exactly as loadSettings() does.
+    await act(async () => {
+      useSettingsStore.setState({
+        isLoaded: true,
+        settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'finanzplan' }),
+      })
+    })
+
+    await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
+  })
+
+  // Waiting for someone else's effect to fetch the settings made the decision
+  // ride on where that request landed in the queue — behind ~380 others on a
+  // cold start, which is how the redirect silently lost the race and fell
+  // through to the dashboard. It now asks for them itself.
+  it('FE-COMP-APP-033: asks for the settings itself instead of waiting to be told', async () => {
+    const loadSettings = vi.fn().mockResolvedValue(undefined)
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({ isLoaded: false, loadSettings })
+
+    renderApp('/')
+
+    await waitFor(() => expect(loadSettings).toHaveBeenCalled())
+  })
+
+  // loadSettings leaves isLoaded false on a failed request so it can retry, so
+  // the wait above needs a floor or a launch with no backend never resolves.
+  it('FE-COMP-APP-032: gives up on the settings after the timeout and opens the dashboard', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({ isLoaded: false })
+
+    renderApp('/')
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
+
+    await act(async () => { vi.advanceTimersByTime(SETTINGS_WAIT_MS + 100) })
+
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+    vi.useRealTimers()
   })
 })

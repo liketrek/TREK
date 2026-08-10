@@ -121,6 +121,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Detalhes do Local',
   'admin.placesDetails.subtitle':
     'Busca informações detalhadas do local (horários, avaliação, site) da Google Places API. Desative para economizar cota da API.',
+  'admin.placesEnrich.title': 'Enriquecimento de lugares',
+  'admin.placesEnrich.subtitle':
+    'Mostra imagens e uma descrição ao adicionar um lugar. Wikipédia e OpenStreetMap são sempre usados; o Google entra quando Fotos de lugares ou Detalhes de lugares estão ativos.',
   'admin.bagTracking.title': 'Rastreamento de malas',
   'admin.bagTracking.subtitle': 'Ativar peso e atribuição de mala para itens da lista',
   'admin.collab.chat.title': 'Chat',

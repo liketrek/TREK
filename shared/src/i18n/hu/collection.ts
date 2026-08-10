@@ -112,6 +112,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Előbb hozz létre egy listát a helyek mentéséhez.',
   'collections.removedFromAll': 'Eltávolítva a gyűjteményből',
   'collections.picker.title': 'Mentett helyek',
+  'collections.picker.showMore': 'További {count} megjelenítése',
   'collections.picker.search': 'Mentett helyek keresése',
   'collections.picker.empty': 'Nincs hozzáadható mentett hely',
   'collections.picker.hint': 'Válassz egy helyet a gyűjteményeidből',

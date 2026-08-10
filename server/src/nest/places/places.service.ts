@@ -23,7 +23,7 @@ import { UnsplashService } from '../unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
 import { reclaimPlaceImage } from './place-image';
-import { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } from '../../services/journeyService';
+import { JourneyDomainService } from '../journey/journey-domain.service';
 import {
   COORD_DEDUP_TOLERANCE,
   ENRICH_CONCURRENCY,
@@ -96,7 +96,7 @@ export interface PlaceUpdateInput {
  * places.helpers.ts. Nothing outside the Nest container consumes this domain
  * any more, so there is no places.bridge.ts: the MCP surface is the
  * DI-discovered places.mcp.ts, and TripsService / DaysMcp /
- * BookingImportService / PluginHostDepsFactory all inject this class.
+ * BookingImportService / PlacesRpc all inject this class.
  */
 @Injectable()
 export class PlacesService {
@@ -108,6 +108,7 @@ export class PlacesService {
     private readonly queryHelpers: QueryHelpersService,
     private readonly unsplash: UnsplashService,
     private readonly photoCache: PlacePhotoCacheService,
+    private readonly journey: JourneyDomainService,
   ) {}
 
   verifyTripAccess(tripId: string, userId: number) {
@@ -1144,7 +1145,7 @@ export class PlacesService {
   }
 
   // Journey hooks — non-fatal, mirroring the route's try/catch wrappers.
-  onCreated(tripId: string, placeId: number): void { try { onPlaceCreated(Number(tripId), placeId); } catch { /* non-fatal */ } }
-  onUpdated(placeId: number): void { try { onPlaceUpdated(placeId); } catch { /* non-fatal */ } }
-  onDeleted(placeId: number): void { try { onPlaceDeleted(placeId); } catch { /* non-fatal */ } }
+  onCreated(tripId: string, placeId: number): void { try { this.journey.onPlaceCreated(Number(tripId), placeId); } catch { /* non-fatal */ } }
+  onUpdated(placeId: number): void { try { this.journey.onPlaceUpdated(placeId); } catch { /* non-fatal */ } }
+  onDeleted(placeId: number): void { try { this.journey.onPlaceDeleted(placeId); } catch { /* non-fatal */ } }
 }

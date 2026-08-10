@@ -199,3 +199,231 @@ describe('Tool: update_transport', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Guards, the budget link and delete
+//
+// These paths were never covered: the tools lived in src/mcp/, which the
+// coverage gate does not measure. Moving them into reservations.mcp.ts put them
+// inside src/nest/** and made the gap visible.
+// ---------------------------------------------------------------------------
+
+describe('Transport tools: access and validation', () => {
+  it('create_transport refuses a trip the caller cannot see', async () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb, { username: 'stranger' });
+    const trip = createTrip(testDb, stranger.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'flight', title: 'ZRH → CDG' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toContain('Trip not found');
+    });
+  });
+
+  it('create_transport rejects a start_day_id from another trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const foreignDay = Number(testDb.prepare("INSERT INTO days (trip_id, date, day_number) VALUES (?, '2026-07-01', 1)").run(otherTrip.id).lastInsertRowid);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'train', title: 'ICE', start_day_id: foreignDay },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('start_day_id does not belong to this trip.');
+    });
+  });
+
+  it('create_transport rejects an end_day_id from another trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const foreignDay = Number(testDb.prepare("INSERT INTO days (trip_id, date, day_number) VALUES (?, '2026-07-02', 1)").run(otherTrip.id).lastInsertRowid);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'train', title: 'ICE', end_day_id: foreignDay },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('end_day_id does not belong to this trip.');
+    });
+  });
+});
+
+describe('Transport tools: the price link', () => {
+  it('create_transport with a price creates the budget item and broadcasts it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'flight', title: 'ZRH → CDG', price: 240, budget_category: 'Flights' },
+      });
+      const data = parseToolResult(result) as { reservation: { id: number } };
+
+      const item = testDb.prepare('SELECT name, category, total_price FROM budget_items WHERE reservation_id = ?').get(data.reservation.id) as { name: string; category: string; total_price: number };
+      expect(item).toMatchObject({ name: 'ZRH → CDG', category: 'Flights', total_price: 240 });
+      // The price also rides along in the reservation metadata, as the REST path does.
+      expect(broadcastMock.mock.calls.some(c => c[1] === 'budget:created')).toBe(true);
+    });
+  });
+
+  it('create_transport falls back to the transport type as the budget category', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'train', title: 'ICE 599', price: 89 },
+      });
+      const data = parseToolResult(result) as { reservation: { id: number } };
+      const item = testDb.prepare('SELECT category FROM budget_items WHERE reservation_id = ?').get(data.reservation.id) as { category: string };
+      expect(item.category).toBe('train');
+    });
+  });
+
+  it('create_transport with price 0 records no budget item', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'car', title: 'Rental', price: 0 },
+      });
+      const data = parseToolResult(result) as { reservation: { id: number } };
+      expect(testDb.prepare('SELECT id FROM budget_items WHERE reservation_id = ?').get(data.reservation.id)).toBeUndefined();
+    });
+  });
+});
+
+describe('Tool: update_transport (guards)', () => {
+  it('404s an unknown reservation id', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: { tripId: trip.id, reservationId: 999999, title: 'nope' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('Transport not found.');
+    });
+  });
+
+  it('refuses a reservation that is not a transport type', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: { tripId: trip.id, type: 'restaurant', title: 'Dinner' },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: { tripId: trip.id, reservationId: reservation.id, title: 'still dinner' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('Reservation is not a transport type. Use update_reservation instead.');
+    });
+  });
+
+  it('rejects a start_day_id from another trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const foreignDay = Number(testDb.prepare("INSERT INTO days (trip_id, date, day_number) VALUES (?, '2026-08-01', 1)").run(otherTrip.id).lastInsertRowid);
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'flight', title: 'ZRH → CDG', endpoints: flightEndpoints },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: { tripId: trip.id, reservationId: reservation.id, start_day_id: foreignDay },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('start_day_id does not belong to this trip.');
+    });
+  });
+
+  it('errors on an unresolvable airport code when replacing endpoints', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'flight', title: 'ZRH → CDG', endpoints: flightEndpoints },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id,
+          reservationId: reservation.id,
+          endpoints: [{ role: 'from', sequence: 0, name: 'Nowhere', code: 'QQQ' }],
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toContain('Could not resolve airport code');
+    });
+  });
+});
+
+describe('Tool: delete_transport', () => {
+  it('deletes the booking and broadcasts it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'flight', title: 'ZRH → CDG', endpoints: flightEndpoints },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+      broadcastMock.mockClear();
+
+      const result = await h.client.callTool({
+        name: 'delete_transport',
+        arguments: { tripId: trip.id, reservationId: reservation.id },
+      });
+      expect(parseToolResult(result)).toEqual({ success: true });
+      expect(testDb.prepare('SELECT id FROM reservations WHERE id = ?').get(reservation.id)).toBeUndefined();
+      expect(broadcastMock.mock.calls.some(c => c[1] === 'reservation:deleted')).toBe(true);
+    });
+  });
+
+  it('404s an unknown reservation id', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'delete_transport',
+        arguments: { tripId: trip.id, reservationId: 999999 },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('Transport not found.');
+    });
+  });
+
+  it('refuses a trip the caller cannot see', async () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb, { username: 'stranger2' });
+    const trip = createTrip(testDb, stranger.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'delete_transport',
+        arguments: { tripId: trip.id, reservationId: 1 },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toContain('Trip not found');
+    });
+  });
+});

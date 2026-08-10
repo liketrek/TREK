@@ -1,5 +1,5 @@
 /**
- * Unit tests for the DI-native TripsService — TRIP-SVC-001 through TRIP-SVC-053
+ * Unit tests for the DI-native TripsService — TRIP-SVC-001 through TRIP-SVC-058
  * (001–038 moved 1:1 from the legacy tests/unit/services/tripService.test.ts;
  * the exportICS cases that duplicated the generateDays 010–012 numbering were
  * renumbered to 024–026 with the post-fold quirk-fix commit; 040–041 pin the
@@ -7,6 +7,11 @@
  * summary/list/create/delete/copy SQL; 051–053 pin the post-fold quirk fixes
  * (transactional deletes, owner display_name)). Uses a real in-memory SQLite
  * DB so SQL logic is exercised faithfully.
+ *
+ * The membership and read-aggregate cases now drive TripMembersService and
+ * TripReadModelService, which is where that code went when the aggregate root
+ * was split. They stayed in this file, over the same in-memory DB, so the diff
+ * shows the move rather than a rewrite.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -65,6 +70,9 @@ import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { TripsService } from '../../../src/nest/trips/trips.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
+import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
+import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { getTripOwner, listMembers as bridgeListMembers } from '../../../src/nest/trips/trips.bridge';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
@@ -76,24 +84,30 @@ const dbs = () => new DatabaseService(testDb);
 const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
 const daysSvc = new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs()));
 const placesSvc = new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs()), new QueryHelpersService(dbs()));
-const createAccommodation = daysSvc.createAccommodation.bind(daysSvc);
+const accommodationsSvc = new AccommodationsService(dbs(), new PermissionsService(dbs()), new RealtimeService());
+const createAccommodation = accommodationsSvc.createAccommodation.bind(accommodationsSvc);
 
 const svc = new TripsService(
   dbs(),
-  new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
   daysSvc,
   new PermissionsService(dbs()),
   budgetSvc,
-  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new VacayService(dbs(), new RealtimeService()),
   new RealtimeService(),
-  placesSvc,
   undefined as never, // unsplash — not exercised here
-  new UserCleanupService(dbs()),
 );
+const membersSvc = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService());
+const readModelSvc = new TripReadModelService(
+  dbs(), membersSvc, daysSvc, accommodationsSvc, budgetSvc,
+  new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
+  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  placesSvc,
+  new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+);
+
 
 beforeAll(() => {
   createTables(testDb);
@@ -330,262 +344,6 @@ describe('generateDays', () => {
   });
 });
 
-describe('exportICS', () => {
-  it('TRIP-SVC-001: returns VCALENDAR wrapper', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, {
-      title: 'My Vacation',
-      start_date: '2025-06-01',
-      end_date: '2025-06-07',
-    });
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).toContain('BEGIN:VCALENDAR');
-    expect(ics).toContain('END:VCALENDAR');
-  });
-
-  it('TRIP-SVC-002: trip with start_date + end_date includes all-day VEVENT', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, {
-      title: 'Summer Holiday',
-      start_date: '2025-06-01',
-      end_date: '2025-06-07',
-    });
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).toContain('DTSTART;VALUE=DATE:20250601');
-    // DTEND is exclusive — the day *after* the last day, or the trip loses a day.
-    expect(ics).toContain('DTEND;VALUE=DATE:20250608');
-    expect(ics).toContain('SUMMARY:Summer Holiday');
-  });
-
-  describe('#1453 all-day DTEND is timezone-independent', () => {
-    const originalTz = process.env.TZ;
-
-    afterAll(() => {
-      process.env.TZ = originalTz;
-    });
-
-    // The old code did `new Date(date + 'T00:00:00')` — no Z, so parsed as *server-local*
-    // midnight — then setDate(+1) and .toISOString(). East of Greenwich that round-trip
-    // lands a day early, and since DTEND is exclusive the trip's last day was dropped.
-    // Only invisible in CI because containers default to TZ=UTC.
-    for (const tz of ['Europe/Berlin', 'Asia/Tokyo', 'Pacific/Kiritimati', 'America/New_York', 'UTC']) {
-      it(`TRIP-SVC-002b: DTEND is the day after the last day under TZ=${tz}`, () => {
-        process.env.TZ = tz;
-        const { user } = createUser(testDb);
-        const trip = createTrip(testDb, user.id, {
-          title: 'TZ Trip',
-          start_date: '2026-03-28',
-          end_date: '2026-03-30',
-        });
-
-        const { ics } = svc.exportICS(trip.id);
-
-        expect(ics).toContain('DTSTART;VALUE=DATE:20260328');
-        expect(ics).toContain('DTEND;VALUE=DATE:20260331');
-      });
-    }
-
-    it('TRIP-SVC-002c: a per-day all-day summary event has the same exclusive DTEND', () => {
-      process.env.TZ = 'Asia/Tokyo';
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id, { title: 'Day Note Trip' });
-      const day = createDay(testDb, trip.id, { date: '2026-03-30', day_number: 1 });
-      createDayNote(testDb, day.id, trip.id, { text: 'Pack the bags' });
-
-      const { ics } = svc.exportICS(trip.id);
-
-      expect(ics).toContain('DTSTART;VALUE=DATE:20260330');
-      expect(ics).toContain('DTEND;VALUE=DATE:20260331');
-    });
-  });
-
-  it('TRIP-SVC-003: reservation with full datetime (includes T) → DTSTART without VALUE=DATE', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
-    const reservation = createReservation(testDb, trip.id, {
-      title: 'Morning Flight',
-      type: 'flight',
-    });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
-      .run('2025-06-02T09:00', reservation.id);
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).toContain('DTSTART:20250602T090000');
-    expect(ics).not.toContain('DTSTART;VALUE=DATE');
-  });
-
-  it('TRIP-SVC-004: reservation with date-only → DTSTART;VALUE=DATE', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
-    const reservation = createReservation(testDb, trip.id, {
-      title: 'Hotel Check-in',
-      type: 'hotel',
-    });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
-      .run('2025-06-02', reservation.id);
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).toContain('DTSTART;VALUE=DATE:20250602');
-  });
-
-  it('TRIP-SVC-005: reservation metadata with flight info appears in DESCRIPTION', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
-    const reservation = createReservation(testDb, trip.id, {
-      title: 'CDG to JFK',
-      type: 'flight',
-    });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
-      .run(
-        '2025-06-02T09:00',
-        JSON.stringify({
-          airline: 'Air Test',
-          flight_number: 'AT100',
-          departure_airport: 'CDG',
-          arrival_airport: 'JFK',
-        }),
-        reservation.id
-      );
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).toContain('Airline: Air Test');
-    expect(ics).toContain('Flight: AT100');
-  });
-
-  it('TRIP-SVC-006: special characters in title are escaped', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip; First, Best' });
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).toContain('Trip\\; First\\, Best');
-  });
-
-  it('TRIP-SVC-007: throws NotFoundError for non-existent trip', () => {
-    expect(() => svc.exportICS(99999)).toThrow();
-  });
-
-  it('TRIP-SVC-008: returns a filename derived from trip title', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'My Trip 2025' });
-
-    const { filename } = svc.exportICS(trip.id);
-
-    expect(filename).toMatch(/My.Trip.2025\.ics/);
-  });
-
-  it('TRIP-SVC-009: reservation with end time includes DTEND', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
-    const reservation = createReservation(testDb, trip.id, {
-      title: 'Afternoon Tour',
-      type: 'activity',
-    });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
-      .run('2025-06-02T14:00', '2025-06-02T16:00', reservation.id);
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).toContain('DTEND:20250602T160000');
-  });
-
-  it('TRIP-SVC-024: flight with endpoint times but no reservation_time is included', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
-    const reservation = createReservation(testDb, trip.id, {
-      title: 'CDG → JFK',
-      type: 'flight',
-    });
-    // Confirmed flights store times per endpoint, never as reservation_time.
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
-    const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    );
-    insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Europe/Paris', '09:00', '2025-06-02');
-    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'America/New_York', '12:00', '2025-06-02');
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).toContain('SUMMARY:CDG → JFK');
-    // Departure endpoint zone drives DTSTART, arrival zone drives DTEND, so the
-    // subscriber sees TREK's zones instead of their own (#1453).
-    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20250602T090000');
-    expect(ics).toContain('DTEND;TZID=America/New_York:20250602T120000');
-    expect(ics).not.toContain('DTSTART:20250602T090000');
-    // Each referenced zone gets a VTIMEZONE definition.
-    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Paris');
-    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:America/New_York');
-    expect(ics).toContain('Route: CDG → JFK');
-  });
-
-  it('TRIP-SVC-024b: an invalid endpoint timezone degrades to floating time instead of crashing the export', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Bad TZ Trip' });
-    const reservation = createReservation(testDb, trip.id, { title: 'CDG → JFK', type: 'flight' });
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
-    const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    );
-    // A stored/plugin-written timezone can be any string; it must never reach Intl.
-    // The bogus zone takes precedence over the coordinates (first.timezone || resolveZone).
-    insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Not/AZone', '09:00', '2025-06-02');
-    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'garbage', '12:00', '2025-06-02');
-
-    let ics = '';
-    expect(() => { ics = svc.exportICS(trip.id).ics; }).not.toThrow();
-    // Falls back to a floating local time (no TZID) and never emits a bogus VTIMEZONE.
-    expect(ics).toContain('DTSTART:20250602T090000');
-    expect(ics).not.toContain('TZID=Not/AZone');
-    expect(ics).not.toContain('garbage');
-  });
-
-  it('TRIP-SVC-025: flight endpoint with no local_date is skipped (relative Day-N trips)', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Relative Trip' });
-    const reservation = createReservation(testDb, trip.id, {
-      title: 'Timeless Flight',
-      type: 'flight',
-    });
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(reservation.id);
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(reservation.id, 'from', 0, 'Origin', 'AAA', 1.0, 1.0, null, '09:00', null);
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).not.toContain('SUMMARY:Timeless Flight');
-  });
-
-  it('TRIP-SVC-026: timed assignment gets a TZID derived from the place coordinates', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip' });
-    const day = createDay(testDb, trip.id, { date: '2025-06-02' });
-    // Tokyo coordinates → Asia/Tokyo via tz-lookup.
-    const place = createPlace(testDb, trip.id, { name: 'Senso-ji', lat: 35.7148, lng: 139.7967 });
-    const assignment = createDayAssignment(testDb, day.id, place.id);
-    testDb
-      .prepare('UPDATE day_assignments SET assignment_time=? WHERE id=?')
-      .run('09:00', assignment.id);
-
-    const { ics } = svc.exportICS(trip.id);
-
-    expect(ics).toContain('DTSTART;TZID=Asia/Tokyo:20250602T090000');
-    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Asia/Tokyo');
-    expect(ics).not.toContain('DTSTART:20250602T090000');
-  });
-});
-
 // ── deleteOldCover — path containment ──────────────────────────────────────────
 
 describe('deleteOldCover', () => {
@@ -745,7 +503,7 @@ describe('transferOwnership (#973)', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
 
-    const result = svc.transferOwnership(trip.id, member.id, owner.id);
+    const result = membersSvc.transferOwnership(trip.id, member.id, owner.id);
     expect(result.toEmail).toBe(member.email);
 
     const updated = testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number };
@@ -763,20 +521,20 @@ describe('transferOwnership (#973)', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
     // member (not the owner) attempts the transfer
-    expect(() => svc.transferOwnership(trip.id, member.id, member.id)).toThrow();
+    expect(() => membersSvc.transferOwnership(trip.id, member.id, member.id)).toThrow();
   });
 
   it('TRIP-SVC-022: rejects a transfer to someone who is not a member', () => {
     const { user: owner } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    expect(() => svc.transferOwnership(trip.id, stranger.id, owner.id)).toThrow('New owner must be a trip member');
+    expect(() => membersSvc.transferOwnership(trip.id, stranger.id, owner.id)).toThrow('New owner must be a trip member');
   });
 
   it('TRIP-SVC-023: rejects transferring to yourself', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    expect(() => svc.transferOwnership(trip.id, owner.id, owner.id)).toThrow('You already own this trip');
+    expect(() => membersSvc.transferOwnership(trip.id, owner.id, owner.id)).toThrow('You already own this trip');
   });
 });
 
@@ -785,7 +543,7 @@ describe('guest members (#1362)', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const { member } = svc.createGuest(trip.id, '  Anna  ', owner.id);
+    const { member } = membersSvc.createGuest(trip.id, '  Anna  ', owner.id);
     expect(member.username).toBe('Anna');
     expect(member.is_guest).toBe(true);
 
@@ -800,7 +558,7 @@ describe('guest members (#1362)', () => {
     expect(m).toBeTruthy();
 
     // Surfaces in listMembers with is_guest=true and the typed display name.
-    const { members } = svc.listMembers(trip.id, owner.id) as any;
+    const { members } = membersSvc.listMembers(trip.id, owner.id) as any;
     const guest = members.find((x: any) => x.id === member.id);
     expect(guest.username).toBe('Anna');
     expect(guest.is_guest).toBe(true);
@@ -809,8 +567,8 @@ describe('guest members (#1362)', () => {
   it('TRIP-SVC-031: the same guest name is allowed, not suffixed (#1446)', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const a = svc.createGuest(trip.id, 'Sam', owner.id);
-    const b = svc.createGuest(trip.id, 'Sam', owner.id);
+    const a = membersSvc.createGuest(trip.id, 'Sam', owner.id);
+    const b = membersSvc.createGuest(trip.id, 'Sam', owner.id);
     // both keep the plain display name; only the internal (uuid) username differs
     expect(a.member.username).toBe('Sam');
     expect(b.member.username).toBe('Sam');
@@ -824,26 +582,26 @@ describe('guest members (#1362)', () => {
     const { user: other } = createUser(testDb);
     const otherTrip = createTrip(testDb, other.id);
     const trip = createTrip(testDb, owner.id);
-    const { member } = svc.createGuest(trip.id, 'Bob', owner.id);
+    const { member } = membersSvc.createGuest(trip.id, 'Bob', owner.id);
 
-    expect(svc.renameGuest(trip.id, member.id, 'Robert')).toBe(true);
+    expect(membersSvc.renameGuest(trip.id, member.id, 'Robert')).toBe(true);
     expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(member.id) as any).display_name).toBe('Robert');
 
     // A real user cannot be renamed through the guest path…
-    expect(svc.renameGuest(trip.id, owner.id, 'Hacked')).toBe(false);
+    expect(membersSvc.renameGuest(trip.id, owner.id, 'Hacked')).toBe(false);
     // …and a guest cannot be renamed from a different trip.
-    expect(svc.renameGuest(otherTrip.id, member.id, 'Nope')).toBe(false);
+    expect(membersSvc.renameGuest(otherTrip.id, member.id, 'Nope')).toBe(false);
   });
 
   it('TRIP-SVC-033: deleteGuest removes the user (cascading membership), guest-only + trip-scoped', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const { member } = svc.createGuest(trip.id, 'Carol', owner.id);
+    const { member } = membersSvc.createGuest(trip.id, 'Carol', owner.id);
 
     // Real members are not deletable via the guest path.
-    expect(svc.deleteGuest(trip.id, owner.id)).toBe(false);
+    expect(membersSvc.deleteGuest(trip.id, owner.id)).toBe(false);
 
-    expect(svc.deleteGuest(trip.id, member.id)).toBe(true);
+    expect(membersSvc.deleteGuest(trip.id, member.id)).toBe(true);
     expect(testDb.prepare('SELECT id FROM users WHERE id = ?').get(member.id)).toBeUndefined();
     expect(testDb.prepare('SELECT id FROM trip_members WHERE user_id = ?').get(member.id)).toBeUndefined();
   });
@@ -851,12 +609,12 @@ describe('guest members (#1362)', () => {
   it('TRIP-SVC-034: a guest is never invitable (addMember) nor a transfer target', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const { member } = svc.createGuest(trip.id, 'Dora', owner.id);
+    const { member } = membersSvc.createGuest(trip.id, 'Dora', owner.id);
 
     // The synthetic username/email must not resolve through the invite box.
-    expect(() => svc.addMember(trip.id, 'Dora', owner.id, owner.id)).toThrow('User not found');
+    expect(() => membersSvc.addMember(trip.id, 'Dora', owner.id, owner.id)).toThrow('User not found');
     // Ownership can never be handed to a guest.
-    expect(() => svc.transferOwnership(trip.id, member.id, owner.id)).toThrow('Cannot transfer ownership to a guest');
+    expect(() => membersSvc.transferOwnership(trip.id, member.id, owner.id)).toThrow('Cannot transfer ownership to a guest');
   });
 });
 
@@ -892,7 +650,7 @@ describe('folded trip CRUD', () => {
     testDb.prepare("INSERT INTO budget_items (trip_id, category, name, total_price) VALUES (?, 'food', 'Dinner', 40)").run(trip.id);
     testDb.prepare("INSERT INTO packing_items (trip_id, name, checked) VALUES (?, 'Socks', 1)").run(trip.id);
 
-    const summary = svc.getTripSummary(trip.id, owner.id)!;
+    const summary = readModelSvc.getTripSummary(trip.id, owner.id)!;
     expect(summary).toBeTruthy();
     expect((summary.trip as any).id).toBe(trip.id);
     expect(summary.members.owner.id).toBe(owner.id);
@@ -906,7 +664,7 @@ describe('folded trip CRUD', () => {
     expect(summary.collab_notes).toEqual([]);
 
     // Missing trips return null instead of throwing.
-    expect(svc.getTripSummary(99999)).toBeNull();
+    expect(readModelSvc.getTripSummary(99999)).toBeNull();
   });
 
   it('TRIP-SVC-043: list returns owned + shared trips with is_owner, honoring the archived filter', () => {
@@ -1034,14 +792,14 @@ describe('TripsService wrapper helpers', () => {
     testDb.prepare("INSERT INTO packing_items (trip_id, name, is_private, owner_id) VALUES (?, 'Secret', 1, ?)").run(trip.id, owner.id);
     testDb.prepare("INSERT INTO packing_items (trip_id, name) VALUES (?, 'Shared')").run(trip.id);
 
-    const result = svc.bundle(String(trip.id), { user_id: owner.id }, viewer.id) as any;
+    const result = readModelSvc.bundle(String(trip.id), { user_id: owner.id }, viewer.id) as any;
     expect(result.days).toHaveLength(2);
     expect(result.members.map((m: any) => m.id).sort()).toEqual([owner.id, viewer.id].sort());
     expect(result.packingItems.map((p: any) => p.name)).toEqual(['Shared']);
   });
 
   it('notifyInvite is fire-and-forget (no throw)', () => {
-    expect(() => svc.notifyInvite('9', { id: 1, email: 'a@b.c' } as never, 2, 'T', 'b@x.y')).not.toThrow();
+    expect(() => membersSvc.notifyInvite('9', { id: 1, email: 'a@b.c' } as never, 2, 'T', 'b@x.y')).not.toThrow();
   });
 });
 
@@ -1068,65 +826,22 @@ describe('folded quirk branches', () => {
     expect(() => svc.updateTrip(trip.id, owner.id, { start_date: '2025-06-10', end_date: '2025-06-01' }, 'user')).toThrow('End date must be after start date');
   });
 
-  it('TRIP-SVC-048: exportICS renders untimed/notes all-day summaries, multi-leg routes, endpoint routes and train/location fields', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Branchy' });
-    const day = createDay(testDb, trip.id, { date: '2025-06-02' });
-    const place = createPlace(testDb, trip.id, { name: 'Untimed Spot' });
-    testDb.prepare("UPDATE places SET address = '1 Rue Test' WHERE id = ?").run(place.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
-    testDb.prepare("UPDATE day_assignments SET notes = 'bring hat' WHERE id = ?").run(assignment.id);
-    createDayNote(testDb, day.id, trip.id, { text: 'timed note', time: '10:00' });
-    createDayNote(testDb, day.id, trip.id, { text: 'plain note' });
-
-    // Multi-leg flight metadata → Route: A → B → C, plus train + notes + location.
-    const flight = createReservation(testDb, trip.id, { title: 'Legs', type: 'flight' });
-    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=?, notes=?, location=?, confirmation_number=? WHERE id=?').run(
-      '2025-06-02T09:00',
-      JSON.stringify({ legs: [{ from: 'FRA', to: 'BER' }, { to: 'HND' }], train_number: 'ICE 100' }),
-      'window seat', 'Gate 4', 'ABC123', flight.id,
-    );
-    // Endpoint-derived route (no route metadata) with a date-only endpoint fallback.
-    const transport = createReservation(testDb, trip.id, { title: 'Ferry', type: 'transport' });
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(transport.id);
-    const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    );
-    insertEp.run(transport.id, 'from', 0, 'Pier A', null, 1.0, 1.0, null, null, '2025-06-03');
-    insertEp.run(transport.id, 'to', 1, 'Pier B', 'PB', 1.1, 1.1, null, null, '2025-06-03');
-
-    // Unfold the RFC 5545 75-octet folding so substring assertions see whole lines.
-    const ics = svc.exportICS(trip.id).ics.replace(/\r\n /g, '');
-
-    expect(ics).toContain('SUMMARY:Day 1');
-    expect(ics).toContain('• Untimed Spot (1 Rue Test) — bring hat');
-    expect(ics).toContain('Notes:\\n10:00 — timed note\\n• plain note');
-    expect(ics).toContain('Route: FRA → BER → HND');
-    expect(ics).toContain('Train: ICE 100');
-    expect(ics).toContain('Confirmation: ABC123');
-    expect(ics).toContain('window seat');
-    expect(ics).toContain('LOCATION:Gate 4');
-    // Date-only endpoint → all-day DTSTART for the transport.
-    expect(ics).toContain('SUMMARY:Ferry');
-    expect(ics).toContain('DTSTART;VALUE=DATE:20250603');
-  });
-
   it('TRIP-SVC-049: addMember inserts the membership and reports the trip title; removeMember deletes it', () => {
     const { user: owner } = createUser(testDb);
     const { user: invitee } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: 'Joinable' });
 
-    const result = svc.addMember(trip.id, invitee.email, owner.id, owner.id);
+    const result = membersSvc.addMember(trip.id, invitee.email, owner.id, owner.id);
     expect(result.member.id).toBe(invitee.id);
     expect(result.tripTitle).toBe('Joinable');
     expect(result.targetUserId).toBe(invitee.id);
 
     // Duplicate + owner + missing identifier reject with the byte-identical errors.
-    expect(() => svc.addMember(trip.id, invitee.email, owner.id, owner.id)).toThrow('User already has access');
-    expect(() => svc.addMember(trip.id, owner.email, owner.id, owner.id)).toThrow('Trip owner is already a member');
-    expect(() => svc.addMember(trip.id, '', owner.id, owner.id)).toThrow('Email or username required');
+    expect(() => membersSvc.addMember(trip.id, invitee.email, owner.id, owner.id)).toThrow('User already has access');
+    expect(() => membersSvc.addMember(trip.id, owner.email, owner.id, owner.id)).toThrow('Trip owner is already a member');
+    expect(() => membersSvc.addMember(trip.id, '', owner.id, owner.id)).toThrow('Email or username required');
 
-    svc.removeMember(trip.id, invitee.id);
+    membersSvc.removeMember(trip.id, invitee.id);
     expect(testDb.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, invitee.id)).toBeUndefined();
   });
 
@@ -1182,7 +897,7 @@ describe('folded quirk branches', () => {
 
 describe('quirk fixes', () => {
   /** A TripsService whose connection throws when preparing SQL matching `match`. */
-  function failingTrips(match: string) {
+  function failingConnection(match: string) {
     const conn = new Proxy(testDb, {
       get(target, prop) {
         if (prop === 'prepare') {
@@ -1195,22 +910,28 @@ describe('quirk fixes', () => {
         return typeof v === 'function' ? v.bind(target) : v;
       },
     });
-    const fdbs = { connection: conn, canAccessTrip: dbMock.canAccessTrip, isOwner: dbMock.isOwner } as unknown as import('../../../src/nest/database/database.service').DatabaseService;
+    return { connection: conn, canAccessTrip: dbMock.canAccessTrip, isOwner: dbMock.isOwner } as unknown as import('../../../src/nest/database/database.service').DatabaseService;
+  }
+
+  function failingTrips(match: string) {
+    const fdbs = failingConnection(match);
     return new TripsService(
       fdbs,
-      new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-      new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-      new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
       new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
       daysSvc,
       new PermissionsService(dbs()),
       budgetSvc,
-      new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
       new VacayService(dbs(), new RealtimeService()),
       new RealtimeService(),
-      placesSvc,
-      undefined as never, // unsplash — not exercised here
-      new UserCleanupService(dbs()),
+      undefined as never,
+    );
+  }
+
+  /** Same frozen connection, for the guest deletion that now lives on the roster. */
+  function failingMembers(match: string) {
+    return new TripMembersService(
+      failingConnection(match), budgetSvc, new UserCleanupService(dbs()),
+      new PermissionsService(dbs()), new RealtimeService(),
     );
   }
 
@@ -1235,10 +956,10 @@ describe('quirk fixes', () => {
   it('TRIP-SVC-052: deleteGuest is atomic — a failed user DELETE rolls the budget re-split back', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const { member: guest } = svc.createGuest(trip.id, 'Gia', owner.id);
+    const { member: guest } = membersSvc.createGuest(trip.id, 'Gia', owner.id);
     const item = budgetSvc.createBudgetItem(trip.id, { name: 'Dinner', total_price: 80, member_ids: [owner.id, guest.id] });
 
-    const broken = failingTrips('DELETE FROM users WHERE id = ? AND is_guest = 1');
+    const broken = failingMembers('DELETE FROM users WHERE id = ? AND is_guest = 1');
     expect(() => broken.deleteGuest(trip.id, guest.id)).toThrow('boom');
 
     // Neither the guest nor their split membership was touched.
@@ -1251,7 +972,55 @@ describe('quirk fixes', () => {
     const { user: owner } = createUser(testDb, { username: 'owner-handle' });
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('Olive Displayed', owner.id);
     const trip = createTrip(testDb, owner.id);
-    const { owner: row } = svc.listMembers(trip.id, owner.id);
+    const { owner: row } = membersSvc.listMembers(trip.id, owner.id);
     expect(row.username).toBe('Olive Displayed');
+  });
+});
+
+/**
+ * activeTrip powers the startup redirect, so its order has to stay identical to
+ * the dashboard's sortTrips (client/src/pages/dashboard/dashboardModel.ts):
+ * running today → next one starting (earliest first) → most recently started →
+ * undated last. If these drift, "open my trip" and the hero show different trips.
+ */
+describe('activeTrip (startup destination)', () => {
+  const TODAY = '2026-08-08';
+
+  it('TRIP-SVC-054: prefers the trip running today over anything upcoming', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'soon', start_date: '2026-08-20', end_date: '2026-08-25' });
+    createTrip(testDb, user.id, { title: 'running', start_date: '2026-08-05', end_date: '2026-08-12' });
+    expect(svc.activeTrip(user.id, TODAY)?.title).toBe('running');
+  });
+
+  it('TRIP-SVC-055: without a running trip it takes the next one starting, earliest first', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'late', start_date: '2026-12-01', end_date: '2026-12-10' });
+    createTrip(testDb, user.id, { title: 'soon', start_date: '2026-09-01', end_date: '2026-09-10' });
+    expect(svc.activeTrip(user.id, TODAY)?.title).toBe('soon');
+  });
+
+  it('TRIP-SVC-056: falls back to the most recently started trip, undated ones last', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'undated' });
+    createTrip(testDb, user.id, { title: 'old', start_date: '2020-01-01', end_date: '2020-01-10' });
+    createTrip(testDb, user.id, { title: 'recent', start_date: '2026-07-01', end_date: '2026-07-10' });
+    expect(svc.activeTrip(user.id, TODAY)?.title).toBe('recent');
+  });
+
+  it('TRIP-SVC-057: skips archived trips and returns undefined when nothing is left', () => {
+    const { user } = createUser(testDb);
+    const archived = createTrip(testDb, user.id, { title: 'archived', start_date: '2026-08-05', end_date: '2026-08-12' });
+    testDb.prepare('UPDATE trips SET is_archived = 1 WHERE id = ?').run(archived.id);
+    expect(svc.activeTrip(user.id, TODAY)).toBeUndefined();
+  });
+
+  it('TRIP-SVC-058: sees shared trips but never another user\'s private ones', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: guest } = createUser(testDb);
+    createTrip(testDb, owner.id, { title: 'private', start_date: '2026-08-05', end_date: '2026-08-12' });
+    const shared = createTrip(testDb, owner.id, { title: 'shared', start_date: '2026-09-01', end_date: '2026-09-10' });
+    addTripMember(testDb, shared.id, guest.id);
+    expect(svc.activeTrip(guest.id, TODAY)?.title).toBe('shared');
   });
 });

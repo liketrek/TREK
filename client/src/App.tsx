@@ -1,4 +1,4 @@
-import React, { useEffect, ReactNode, Suspense } from 'react'
+import React, { useEffect, useState, ReactNode, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
@@ -19,7 +19,8 @@ import ErrorBoundary from './components/shared/ErrorBoundary'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useIsPhone } from './mobile/useIsPhone'
 import { TranslationProvider, useTranslation } from './i18n'
-import { authApi } from './api/client'
+import { authApi, tripsApi } from './api/client'
+import { readStartDestination, tripStartPath, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB, SETTINGS_WAIT_MS } from './utils/startDestination'
 import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
 import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts'
 import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
@@ -81,6 +82,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   const user = useAuthStore((s) => s.user)
   const isLoading = useAuthStore((s) => s.isLoading)
   const appRequireMfa = useAuthStore((s) => s.appRequireMfa)
+  const loggingOut = useAuthStore((s) => s.loggingOut)
   const addonStore = useAddonStore()
   const { t } = useTranslation()
   const location = useLocation()
@@ -98,6 +100,10 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   }
 
   if (!isAuthenticated) {
+    // A session that ended on its own should come back to where it left off; a
+    // deliberate sign-out is a fresh start and gets no return ticket, so the
+    // startup destination decides where the next login lands.
+    if (loggingOut) return <Navigate to="/login" replace />
     const redirectParam = encodeURIComponent(location.pathname + location.search + location.hash)
     return <Navigate to={`/login?redirect=${redirectParam}`} replace />
   }
@@ -172,10 +178,60 @@ function ViewportRoute({ phone: Phone, desktop: Desktop }: {
   return isPhone ? <Phone /> : <Desktop />
 }
 
+/**
+ * The entry point every shortcut, bookmark and the installed PWA share
+ * (manifest start_url is '/'), which is why the startup destination is decided
+ * here rather than on /dashboard — landing on the dashboard directly has to keep
+ * working, or there would be no way back to it.
+ *
+ * Once this device has seen the preference it comes from the localStorage
+ * mirror, so the common launch waits for nothing. A device that has never seen
+ * it waits for the settings instead of assuming the default — the preference
+ * lives on the server, and guessing here would ignore it on every browser that
+ * didn't set it. Only 'active_trip' costs the one lookup that finds the trip,
+ * and any failure along the way lands on the dashboard.
+ */
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuthStore()
+  const settingsLoaded = useSettingsStore((s) => s.isLoaded)
+  const settings = useSettingsStore((s) => s.settings)
+  const loadSettings = useSettingsStore((s) => s.loadSettings)
+  const [target, setTarget] = useState<string | null>(null)
+  // Bounds the wait below: loadSettings deliberately leaves isLoaded false on a
+  // failed request so it can retry, which would otherwise strand a launch that
+  // started offline on the spinner.
+  const [settingsGaveUp, setSettingsGaveUp] = useState(false)
 
-  if (isLoading) {
+  useEffect(() => {
+    if (settingsLoaded) return
+    const timer = setTimeout(() => setSettingsGaveUp(true), SETTINGS_WAIT_MS)
+    return () => clearTimeout(timer)
+  }, [settingsLoaded])
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || target) return
+    const mirrored = readStartDestination()
+    if (!mirrored && !settingsLoaded && !settingsGaveUp) {
+      // Ask for the settings instead of waiting for whoever else might. The
+      // store de-dupes concurrent loads, so this is free when one is already in
+      // flight — and it stops the decision from riding on where that request
+      // happens to land in the queue behind everything else a launch fires off.
+      loadSettings()
+      return
+    }
+    // Loaded settings are the truth; the mirror is what we knew last time.
+    const { page, tab } = settingsLoaded
+      ? { page: settings.start_page ?? DEFAULT_START_PAGE, tab: settings.start_trip_tab ?? DEFAULT_START_TRIP_TAB }
+      : (mirrored ?? { page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB })
+    if (page !== 'active_trip') { setTarget('/dashboard'); return }
+    let cancelled = false
+    tripsApi.active()
+      .then(({ trip }) => { if (!cancelled) setTarget(trip ? tripStartPath(trip.id, tab) : '/dashboard') })
+      .catch(() => { if (!cancelled) setTarget('/dashboard') })
+    return () => { cancelled = true }
+  }, [isLoading, isAuthenticated, settingsLoaded, settingsGaveUp, settings, target])
+
+  if (isLoading || (isAuthenticated && !target)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
@@ -183,7 +239,7 @@ function RootRedirect() {
     )
   }
 
-  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
+  return <Navigate to={isAuthenticated ? (target ?? '/dashboard') : '/login'} replace />
 }
 
 /**
@@ -205,7 +261,7 @@ function RouteFallback() {
 }
 
 export default function App() {
-  const { loadUser, isAuthenticated, demoMode, setDemoMode, setDevMode, setIsPrerelease, setAppVersion, setHasMapsKey, setServerTimezone, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled } = useAuthStore()
+  const { loadUser, isAuthenticated, demoMode, setDemoMode, setDevMode, setIsPrerelease, setAppVersion, setHasMapsKey, setServerTimezone, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled } = useAuthStore()
   const { loadSettings } = useSettingsStore()
   const { loadAddons } = useAddonStore()
   const { loadPlugins } = usePluginStore()
@@ -222,7 +278,7 @@ export default function App() {
         loadUser()
       }
     }
-    authApi.getAppConfig().then(async (config: { demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; permissions?: Record<string, PermissionLevel> }) => {
+    authApi.getAppConfig().then(async (config: { demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; places_enrich_enabled?: boolean; permissions?: Record<string, PermissionLevel> }) => {
       setDemoMode(!!config?.demo_mode)
       if (config?.dev_mode) setDevMode(true)
       if (config?.is_prerelease !== undefined) setIsPrerelease(config.is_prerelease)
@@ -234,6 +290,7 @@ export default function App() {
       if (config?.places_photos_enabled !== undefined) setPlacesPhotosEnabled(config.places_photos_enabled)
       if (config?.places_autocomplete_enabled !== undefined) setPlacesAutocompleteEnabled(config.places_autocomplete_enabled)
       if (config?.places_details_enabled !== undefined) setPlacesDetailsEnabled(config.places_details_enabled)
+      if (config?.places_enrich_enabled !== undefined) setPlacesEnrichEnabled(config.places_enrich_enabled)
       if (config?.permissions) usePermissionsStore.getState().setPermissions(config.permissions)
 
       if (config?.version) {

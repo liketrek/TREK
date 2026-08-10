@@ -7,7 +7,7 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error',
 // The controller imports the tmp-dir + size cap at module load. The thin
 // BackupService wrapper forwards every call straight into this module, so the
 // mock also stubs the delegated functions for the wrapper tests below.
-vi.mock('../../../src/services/backupService', () => ({
+vi.mock('../../../src/nest/backup/backup.impl', () => ({
   getUploadTmpDir: () => '/tmp',
   MAX_BACKUP_UPLOAD_SIZE: 1024,
   BACKUP_RATE_WINDOW: 3600000,
@@ -28,7 +28,7 @@ import { BackupService as RealBackupService } from '../../../src/nest/backup/bac
 import { AdminGuard } from '../../../src/nest/auth/admin.guard';
 import type { BackupService } from '../../../src/nest/backup/backup.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
-import * as backupSvc from '../../../src/services/backupService';
+import * as backupSvc from '../../../src/nest/backup/backup.impl';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, role: 'admin', email: 'a@example.test' } as User;

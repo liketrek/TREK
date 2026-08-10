@@ -46,6 +46,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { getWeather, getDetailedWeather } from '../../../src/nest/weather/weather.impl';
 
 // The geo tools live on the DI-discovered maps.mcp.ts since the maps fold; the
 // test registry builds a real MapsService over the mocked db proxy, so stub the
@@ -391,6 +392,118 @@ describe('Tool: get_detailed_weather', () => {
       const data = parseToolResult(result) as any;
       expect(data.weather).toBeDefined();
       expect(Array.isArray(data.weather.hourly)).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Weather failure path
+//
+// Both weather tools swallow a provider failure and answer with isError plus
+// the upstream message, rather than letting it surface as a transport-level
+// error. That branch never had a case: the tools lived in src/mcp/, which the
+// coverage gate does not measure, and the move into src/nest/ exposed it.
+// ---------------------------------------------------------------------------
+
+describe('Weather tools: provider failure', () => {
+  it('get_weather answers isError with the upstream message', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(getWeather).mockRejectedValueOnce(new Error('Open-Meteo unreachable'));
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_weather',
+        arguments: { lat: 48.8566, lng: 2.3522, date: '2025-07-01' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('Open-Meteo unreachable');
+    });
+  });
+
+  it('get_weather falls back to a generic message when the rejection is not an Error', async () => {
+    const { user } = createUser(testDb);
+    // A non-Error rejection has no .message, which is the only way the ?? fallback
+    // fires — `new Error('')` still carries an (empty) message and passes through.
+    vi.mocked(getWeather).mockRejectedValueOnce('boom' as unknown as Error);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_weather',
+        arguments: { lat: 48.8566, lng: 2.3522, date: '2025-07-01' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('Weather service not available.');
+    });
+  });
+
+  it('get_detailed_weather answers isError with the upstream message', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(getDetailedWeather).mockRejectedValueOnce(new Error('rate limited'));
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_detailed_weather',
+        arguments: { lat: 48.8566, lng: 2.3522, date: '2025-07-01' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('rate limited');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Airports
+//
+// The airport lookups had no coverage at all before they moved out of the
+// legacy registrar — the same blind spot as the weather catch above.
+// ---------------------------------------------------------------------------
+
+describe('Tool: search_airports', () => {
+  it('returns matches for a city name, capped by limit', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_airports', arguments: { query: 'zurich', limit: 5 } });
+      const data = parseToolResult(result) as { airports: { iata: string }[] };
+      expect(Array.isArray(data.airports)).toBe(true);
+      expect(data.airports.length).toBeGreaterThan(0);
+      expect(data.airports.length).toBeLessThanOrEqual(5);
+      expect(data.airports.some(a => a.iata === 'ZRH')).toBe(true);
+    });
+  });
+
+  it('applies the default limit of 10 when none is given', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_airports', arguments: { query: 'a' } });
+      const data = parseToolResult(result) as { airports: unknown[] };
+      expect(data.airports.length).toBeLessThanOrEqual(10);
+    });
+  });
+
+  it('returns an empty list for a query that matches nothing', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_airports', arguments: { query: 'zzzzzznotanairport' } });
+      const data = parseToolResult(result) as { airports: unknown[] };
+      expect(data.airports).toEqual([]);
+    });
+  });
+});
+
+describe('Tool: get_airport', () => {
+  it('returns the airport for a known IATA code, lowercase input included', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_airport', arguments: { iata: 'zrh' } });
+      const data = parseToolResult(result) as { airport: { iata: string; tz: string } };
+      expect(data.airport.iata).toBe('ZRH');
+      expect(typeof data.airport.tz).toBe('string');
+    });
+  });
+
+  it('answers isError for an unknown code rather than a null airport', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_airport', arguments: { iata: 'QQQ' } });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('Airport not found.');
     });
   });
 });

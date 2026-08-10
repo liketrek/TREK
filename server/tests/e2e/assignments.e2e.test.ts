@@ -48,7 +48,7 @@ vi.mock('../../src/db/database', () => ({
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 const { reconcileTripSkeletons } = vi.hoisted(() => ({ reconcileTripSkeletons: vi.fn() }));
-vi.mock('../../src/services/journeyService', () => ({ reconcileTripSkeletons }));
+import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
@@ -65,7 +65,10 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, AssignmentsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, AssignmentsModule] })
+      .overrideProvider(JourneyDomainService)
+      .useValue({ reconcileTripSkeletons })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalPipes(new ZodValidationPipe());

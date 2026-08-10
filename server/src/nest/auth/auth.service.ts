@@ -11,8 +11,6 @@ import { readEnv } from '../../app-config';
 import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS } from '../../config';
 import { DatabaseService } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { AtlasService } from '../atlas/atlas.service';
-import { getCountryFromCoords } from '../atlas/atlas-geo';
 import { validatePassword } from '../common/passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
 import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
@@ -24,7 +22,6 @@ import { revokeUserSessions } from '../../mcp/sessionManager';
 import { startTripReminders } from '../../scheduler';
 import { UserCleanupService } from './user-cleanup.service';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
-import { haversineKm } from '../common/geo';
 import { verifyJwtAndLoadUser } from './jwt-verify';
 import { User } from '../../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from '../common/demo';
@@ -39,7 +36,6 @@ import {
   BCRYPT_COST,
   DUMMY_PASSWORD_HASH,
   EMAIL_REGEX,
-  KNOWN_COUNTRIES,
   avatarDir,
   generateBackupCodes,
   hashBackupCodeBcrypt,
@@ -111,12 +107,15 @@ export interface ResetPasswordOutcome {
  * DI-native auth domain service. The SQL moved 1:1 from the legacy
  * src/services/authService.ts (same statements, same `||` falsy-coercion
  * defaults, same post-write re-selects, same error strings); the pure
- * password/backup-code crypto lives in auth.helpers.ts. PermissionsService
- * and AtlasService are injected (they replaced the permissions.bridge and
- * atlas.bridge imports); the JWT cookie set/clear, the reset-email delivery
- * and the remaining legacy helpers keep their plain imports. Non-Nest
- * consumers (legacy MCP registrars, legacy adminService/oidcService/
- * passkeyService) go through auth.bridge.ts.
+ * password/backup-code crypto lives in auth.helpers.ts. PermissionsService is
+ * injected (it replaced the permissions.bridge import); the JWT cookie
+ * set/clear, the reset-email delivery and the remaining legacy helpers keep
+ * their plain imports. Non-Nest consumers (legacy MCP registrars, legacy
+ * adminService/oidcService/passkeyService) go through auth.bridge.ts.
+ *
+ * AtlasService is deliberately NOT injected any more: getTravelStats, its only
+ * reader, now lives on AtlasService itself. Dropping that edge is what lets
+ * AtlasModule import AuthModule instead of going the other way around.
  */
 @Injectable()
 export class AuthService implements OnModuleInit, OnModuleDestroy {
@@ -136,7 +135,6 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
-    private readonly atlas: AtlasService,
     private readonly membership: TripMembershipService,
     private readonly webauthn: WebauthnConfigService,
     private readonly userCleanup: UserCleanupService,
@@ -266,6 +264,8 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     const placesAutocompleteEnabled = placesAutocompleteSetting !== 'false';
     const placesDetailsSetting = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_details_enabled'")?.value;
     const placesDetailsEnabled = placesDetailsSetting !== 'false';
+    const placesEnrichSetting = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_enrich_enabled'")?.value;
+    const placesEnrichEnabled = placesEnrichSetting !== 'false';
     const setupComplete = userCount > 0 && !this.db.get("SELECT id FROM users WHERE role = 'admin' AND must_change_password = 1 LIMIT 1");
 
     return {
@@ -304,6 +304,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       places_photos_enabled: placesPhotosEnabled,
       places_autocomplete_enabled: placesAutocompleteEnabled,
       places_details_enabled: placesDetailsEnabled,
+      places_enrich_enabled: placesEnrichEnabled,
       permissions: authenticatedUser ? this.permissions.getAllPermissions() : undefined,
       // Case-sensitive on purpose (legacy parity).
       dev_mode: readEnv().app.nodeEnv === 'development',
@@ -575,244 +576,17 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
   }
 
   // -------------------------------------------------------------------------
-  // API keys
-  // -------------------------------------------------------------------------
-
-  updateMapsKey(userId: number, key: unknown) {
-    const maps_api_key = key as string | null | undefined;
-    this.db.run(
-      'UPDATE users SET maps_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      maybe_encrypt_api_key(maps_api_key), userId
-    );
-    return { success: true, maps_api_key: mask_stored_api_key(maps_api_key) };
-  }
-
-  updateApiKeys(userId: number, rawBody: unknown) {
-    const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string };
-    const current = this.db.get<Pick<User, 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key'>>('SELECT maps_api_key, openweather_api_key, unsplash_api_key FROM users WHERE id = ?', userId);
-
-    // `?? null` instead of the former non-null assertions: a user row deleted
-    // mid-request must degrade to a 0-row UPDATE, not a TypeError/500.
-    this.db.run(
-      'UPDATE users SET maps_api_key = ?, openweather_api_key = ?, unsplash_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      body.maps_api_key !== undefined ? maybe_encrypt_api_key(body.maps_api_key) : current?.maps_api_key ?? null,
-      body.openweather_api_key !== undefined ? maybe_encrypt_api_key(body.openweather_api_key) : current?.openweather_api_key ?? null,
-      body.unsplash_api_key !== undefined ? maybe_encrypt_api_key(body.unsplash_api_key) : current?.unsplash_api_key ?? null,
-      userId
-    );
-
-    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'avatar' | 'mfa_enabled'>>(
-      'SELECT id, username, email, role, maps_api_key, openweather_api_key, unsplash_api_key, avatar, mfa_enabled FROM users WHERE id = ?',
-      userId
-    );
-
-    const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) } : undefined;
-    return {
-      success: true,
-      user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), avatar_url: avatarUrl(updated || {}) },
-    };
-  }
-
-  updateSettings(
-    userId: number,
-    rawBody: unknown
-  ): { error?: string; status?: number; success?: boolean; user?: Record<string, unknown> } {
-    const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string; username?: string; email?: string };
-    const { maps_api_key, openweather_api_key, unsplash_api_key, username, email } = body;
-
-    if (username !== undefined) {
-      const trimmed = username.trim();
-      if (!trimmed || trimmed.length < 2 || trimmed.length > 50) {
-        return { error: 'Username must be between 2 and 50 characters', status: 400 };
-      }
-      if (!/^[a-zA-Z0-9_.-]+$/.test(trimmed)) {
-        return { error: 'Username can only contain letters, numbers, underscores, dots and hyphens', status: 400 };
-      }
-      const conflict = this.db.get('SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ? AND COALESCE(is_guest, 0) = 0', trimmed, userId);
-      if (conflict) return { error: 'Username already taken', status: 409 };
-    }
-
-    if (email !== undefined) {
-      const trimmed = email.trim();
-      if (!trimmed || !EMAIL_REGEX.test(trimmed)) {
-        return { error: 'Invalid email format', status: 400 };
-      }
-      const conflict = this.db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ? AND COALESCE(is_guest, 0) = 0', trimmed, userId);
-      if (conflict) return { error: 'Email already taken', status: 409 };
-    }
-
-    const updates: string[] = [];
-    const params: (string | number | null)[] = [];
-
-    if (maps_api_key !== undefined) { updates.push('maps_api_key = ?'); params.push(maybe_encrypt_api_key(maps_api_key)); }
-    if (openweather_api_key !== undefined) { updates.push('openweather_api_key = ?'); params.push(maybe_encrypt_api_key(openweather_api_key)); }
-    if (unsplash_api_key !== undefined) { updates.push('unsplash_api_key = ?'); params.push(maybe_encrypt_api_key(unsplash_api_key)); }
-    if (username !== undefined) { updates.push('username = ?'); params.push(username.trim()); }
-    if (email !== undefined) { updates.push('email = ?'); params.push(email.trim()); }
-
-    if (updates.length > 0) {
-      updates.push('updated_at = CURRENT_TIMESTAMP');
-      params.push(userId);
-      this.db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, ...params);
-    }
-
-    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'avatar' | 'mfa_enabled'>>(
-      'SELECT id, username, email, role, maps_api_key, openweather_api_key, unsplash_api_key, avatar, mfa_enabled FROM users WHERE id = ?',
-      userId
-    );
-
-    const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) } : undefined;
-    return {
-      success: true,
-      user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), avatar_url: avatarUrl(updated || {}) },
-    };
-  }
-
-  getSettings(userId: number): { error?: string; status?: number; settings?: Record<string, unknown> } {
-    const user = this.db.get<Pick<User, 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key'>>(
-      'SELECT role, maps_api_key, openweather_api_key, unsplash_api_key FROM users WHERE id = ?',
-      userId
-    );
-    if (user?.role !== 'admin') return { error: 'Admin access required', status: 403 };
-
-    return {
-      settings: {
-        maps_api_key: decrypt_api_key(user.maps_api_key),
-        openweather_api_key: decrypt_api_key(user.openweather_api_key),
-        unsplash_api_key: decrypt_api_key(user.unsplash_api_key),
-      },
-    };
-  }
-
-  // -------------------------------------------------------------------------
-  // Avatar
-  // -------------------------------------------------------------------------
-
-  async saveAvatar(userId: number, filename: string) {
-    const current = this.db.get<{ avatar: string | null }>('SELECT avatar FROM users WHERE id = ?', userId);
-    // Only a locally uploaded file has something to clean up. An OIDC picture URL
-    // (#1399) has no file on disk, so skip the rm — path.join on a URL is meaningless.
-    if (current?.avatar && !/^https:\/\//i.test(current.avatar)) {
-      // Fire-and-forget: leftover files are harmless; the DB update is
-      // the source of truth for which avatar is current.
-      const oldPath = path.join(avatarDir, current.avatar);
-      await fs.promises.rm(oldPath, { force: true }).catch(() => {});
-    }
-
-    this.db.run('UPDATE users SET avatar = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', filename, userId);
-
-    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'avatar'>>('SELECT id, username, email, role, avatar FROM users WHERE id = ?', userId);
-    return { success: true, avatar_url: avatarUrl(updated || {}) };
-  }
-
-  async deleteAvatar(userId: number) {
-    const current = this.db.get<{ avatar: string | null }>('SELECT avatar FROM users WHERE id = ?', userId);
-    // An OIDC picture URL (#1399) has no local file — only rm an uploaded one.
-    if (current?.avatar && !/^https:\/\//i.test(current.avatar)) {
-      const filePath = path.join(avatarDir, current.avatar);
-      await fs.promises.rm(filePath, { force: true }).catch(() => {});
-    }
-    this.db.run('UPDATE users SET avatar = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', userId);
-    return { success: true };
-  }
-
-  // -------------------------------------------------------------------------
-  // User directory
-  // -------------------------------------------------------------------------
-
-  listUsers(excludeUserId: number) {
-    // The global user directory feeds the trip member-add / contributor pickers —
-    // guests (#1362) are trip-scoped and must never be selectable here.
-    const users = this.db.all<Pick<User, 'id' | 'username' | 'avatar'>>(
-      'SELECT id, username, avatar FROM users WHERE id != ? AND COALESCE(is_guest, 0) = 0 ORDER BY username ASC',
-      excludeUserId
-    );
-    return users.map(u => ({ ...u, avatar_url: avatarUrl(u) }));
-  }
-
-  // -------------------------------------------------------------------------
-  // Key validation
-  // -------------------------------------------------------------------------
-
-  async validateKeys(userId: number): Promise<{ error?: string; status?: number; maps: boolean; weather: boolean; maps_details: null | { ok: boolean; status: number | null; status_text: string | null; error_message: string | null; error_status: string | null; error_raw: string | null } }> {
-    const user = this.db.get<Pick<User, 'role' | 'maps_api_key' | 'openweather_api_key'>>('SELECT role, maps_api_key, openweather_api_key FROM users WHERE id = ?', userId);
-    if (user?.role !== 'admin') return { error: 'Admin access required', status: 403, maps: false, weather: false, maps_details: null };
-
-    const result: {
-      maps: boolean;
-      weather: boolean;
-      maps_details: null | {
-        ok: boolean;
-        status: number | null;
-        status_text: string | null;
-        error_message: string | null;
-        error_status: string | null;
-        error_raw: string | null;
-      };
-    } = { maps: false, weather: false, maps_details: null };
-
-    const maps_api_key = decrypt_api_key(user.maps_api_key);
-    if (maps_api_key) {
-      try {
-        const mapsRes = await fetch(
-          `https://places.googleapis.com/v1/places:searchText`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Goog-Api-Key': maps_api_key,
-              'X-Goog-FieldMask': 'places.displayName',
-            },
-            body: JSON.stringify({ textQuery: 'test' }),
-          }
-        );
-        result.maps = mapsRes.status === 200;
-        let error_text: string | null = null;
-        let error_json: any = null;
-        if (!result.maps) {
-          try {
-            error_text = await mapsRes.text();
-            try { error_json = JSON.parse(error_text); } catch { error_json = null; }
-          } catch { error_text = null; error_json = null; }
-        }
-        result.maps_details = {
-          ok: result.maps,
-          status: mapsRes.status,
-          status_text: mapsRes.statusText || null,
-          error_message: error_json?.error?.message || null,
-          error_status: error_json?.error?.status || null,
-          error_raw: error_text,
-        };
-      } catch (err: unknown) {
-        result.maps = false;
-        result.maps_details = {
-          ok: false,
-          status: null,
-          status_text: null,
-          error_message: err instanceof Error ? err.message : 'Request failed',
-          error_status: 'FETCH_ERROR',
-          error_raw: null,
-        };
-      }
-    }
-
-    const openweather_api_key = decrypt_api_key(user.openweather_api_key);
-    if (openweather_api_key) {
-      try {
-        const weatherRes = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?q=London&appid=${openweather_api_key}`
-        );
-        result.weather = weatherRes.status === 200;
-      } catch {
-        result.weather = false;
-      }
-    }
-
-    return result;
-  }
-
-  // -------------------------------------------------------------------------
   // Admin settings
+  //
+  // These stay here, against the first instinct to file them under settings/
+  // with the other app_settings readers. updateAppSettings runs the lockout
+  // guard that stops an admin disabling every login method at once, and that
+  // guard is resolveAuthToggles — auth's own view of which methods exist.
+  // Moving the pair would put an AuthModule import inside SettingsModule, a
+  // leaf that half the container pulls in, to buy nothing but a tidier
+  // directory. The role check below is likewise left as written: swapping it
+  // for AdminGuard changes the response body, so it belongs with the guard
+  // work, not with a move.
   // -------------------------------------------------------------------------
 
   getAppSettings(userId: number): { error?: string; status?: number; data?: Record<string, string> } {
@@ -910,136 +684,6 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     }
 
     return { success: true, auditSummary: summary, auditDebugDetails: debugDetails, shouldRestartScheduler };
-  }
-
-  // -------------------------------------------------------------------------
-  // Travel stats
-  // -------------------------------------------------------------------------
-
-  getTravelStats(userId: number) {
-    const places = this.db.all<{ address: string | null; lat: number | null; lng: number | null }>(`
-    SELECT DISTINCT p.address, p.lat, p.lng
-    FROM places p
-    JOIN trips t ON p.trip_id = t.id
-    LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE t.user_id = ? OR tm.user_id = ?
-  `, userId, userId);
-
-    // Archived trips still count here, matching the places, countries and flight
-    // distance widgets (which never filtered on is_archived) so the dashboard stats
-    // stay consistent — archiving a trip no longer zeroes out trips/days.
-    const tripStats = this.db.get<{ trips: number; days: number }>(`
-    SELECT COUNT(DISTINCT t.id) as trips,
-           COUNT(DISTINCT d.id) as days
-    FROM trips t
-    LEFT JOIN days d ON d.trip_id = t.id
-    LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE (t.user_id = ? OR tm.user_id = ?)
-  `, userId, userId);
-
-    const cities = new Set<string>();
-    const coords: { lat: number; lng: number }[] = [];
-
-    places.forEach(p => {
-      // Explicit null checks: lat/lng of exactly 0 (equator / prime meridian)
-      // are valid coordinates the former falsy check silently dropped.
-      if (p.lat != null && p.lng != null) coords.push({ lat: p.lat, lng: p.lng });
-      if (p.address) {
-        const parts = p.address.split(',').map(s => s.trim().replace(/\d{3,}/g, '').trim());
-        const cityPart = parts.find(s => !KNOWN_COUNTRIES.has(s) && /^[A-Za-z\u00C0-\u00FF\s-]{2,}$/.test(s));
-        if (cityPart) cities.add(cityPart);
-      }
-    });
-
-    // Visited countries \u2014 same source the Atlas page uses: ISO-2 codes from
-    // auto-resolved place regions plus countries the user marked manually.
-    const countryCodes = new Set<string>();
-    const manualCountries = this.db.all<{ country_code: string }>(
-      'SELECT country_code FROM visited_countries WHERE user_id = ?',
-      userId
-    );
-    manualCountries.forEach(m => { if (m.country_code) countryCodes.add(m.country_code.toUpperCase()); });
-
-    // Only trips that have already started count as visited — a country you have merely
-    // booked a trip to isn't stamped in the passport yet, and one you jotted down without
-    // any dates even less so (#1048). date('now') is UTC, matching tripVisitStatus.
-    const placeRegionCodes = this.db.all<{ country_code: string }>(`
-    SELECT DISTINCT pr.country_code
-    FROM place_regions pr
-    JOIN places p ON p.id = pr.place_id
-    JOIN trips t ON p.trip_id = t.id
-    LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE (t.user_id = ? OR tm.user_id = ?) AND pr.country_code IS NOT NULL
-      AND COALESCE(t.start_date, t.end_date) IS NOT NULL
-      AND COALESCE(t.start_date, t.end_date) <= date('now')
-  `, userId, userId);
-    placeRegionCodes.forEach(r => { if (r.country_code) countryCodes.add(r.country_code.toUpperCase()); });
-
-    // Transport bookings don't create a place row, so their geocoded endpoints never
-    // reached place_regions — a country reached only by a flight/train (no lodging or
-    // planned place there) was never counted as visited (#1366). Resolve each endpoint
-    // coordinate to a country and fold it in too.
-    // Only 'from'/'to' legs count as actually reached — a 'stop' is an intermediate
-    // connection/layover (e.g. a plane change) the traveler never really visited (#1486).
-    const endpoints = this.db.all<{ lat: number; lng: number }>(`
-    SELECT DISTINCT e.lat, e.lng
-    FROM reservation_endpoints e
-    JOIN reservations r ON e.reservation_id = r.id
-    JOIN trips t ON r.trip_id = t.id
-    LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE (t.user_id = ? OR tm.user_id = ?) AND e.role IN ('from', 'to')
-      AND COALESCE(t.start_date, t.end_date) IS NOT NULL
-      AND COALESCE(t.start_date, t.end_date) <= date('now')
-  `, userId, userId);
-    for (const e of endpoints) {
-      const code = getCountryFromCoords(e.lat, e.lng);
-      if (code) countryCodes.add(code.toUpperCase());
-    }
-
-    // Countries the user removed in Atlas stay removed on the dashboard too, so the
-    // passport card and the Atlas map agree (#1490).
-    for (const code of this.atlas.getHiddenCountries(userId)) countryCodes.delete(code.toUpperCase());
-
-    return {
-      countries: [...countryCodes],
-      cities: [...cities],
-      coords,
-      totalTrips: tripStats?.trips || 0,
-      totalDays: tripStats?.days || 0,
-      totalPlaces: places.length,
-      totalDistanceKm: this.flightDistanceKm(userId),
-    };
-  }
-
-  /**
-   * Total flight distance a user has covered, summed across every non-cancelled
-   * flight reservation in their trips. Each flight stores its waypoints in
-   * reservation_endpoints (from → stops → to, ordered by sequence); the legs
-   * between consecutive points are added up so multi-stop flights count
-   * correctly.
-   */
-  private flightDistanceKm(userId: number): number {
-    const rows = this.db.all<{ reservation_id: number; lat: number; lng: number }>(`
-      SELECT re.reservation_id, re.lat, re.lng
-      FROM reservation_endpoints re
-      JOIN reservations r ON r.id = re.reservation_id
-      JOIN trips t ON t.id = r.trip_id
-      LEFT JOIN trip_members tm ON tm.trip_id = t.id AND tm.user_id = ?
-      WHERE (t.user_id = ? OR tm.user_id IS NOT NULL)
-        AND r.type = 'flight'
-        AND r.status != 'cancelled'
-      ORDER BY re.reservation_id, re.sequence
-    `, userId, userId);
-
-    let total = 0;
-    let prev: { id: number; lat: number; lng: number } | null = null;
-    for (const point of rows) {
-      if (prev && prev.id === point.reservation_id) {
-        total += haversineKm(prev.lat, prev.lng, point.lat, point.lng);
-      }
-      prev = { id: point.reservation_id, lat: point.lat, lng: point.lng };
-    }
-    return Math.round(total);
   }
 
   // -------------------------------------------------------------------------
@@ -1363,97 +1007,17 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
   }
 
   // -------------------------------------------------------------------------
-  // MCP tokens
-  // -------------------------------------------------------------------------
-
-  listMcpTokens(userId: number) {
-    return this.db.all(
-      'SELECT id, name, token_prefix, created_at, last_used_at FROM mcp_tokens WHERE user_id = ? ORDER BY created_at DESC',
-      userId
-    );
-  }
-
-  createMcpToken(userId: number, rawName: unknown): { error?: string; status?: number; token?: Record<string, unknown> } {
-    const name = rawName as string | undefined;
-    if (!name?.trim()) return { error: 'Token name is required', status: 400 };
-    if (name.trim().length > 100) return { error: 'Token name must be 100 characters or less', status: 400 };
-
-    const tokenCount = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM mcp_tokens WHERE user_id = ?', userId)!.count;
-    if (tokenCount >= 10) return { error: 'Maximum of 10 tokens per user reached', status: 400 };
-
-    const rawToken = 'trek_' + randomBytes(24).toString('hex');
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
-    const tokenPrefix = rawToken.slice(0, 13);
-
-    const result = this.db.run(
-      'INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix) VALUES (?, ?, ?, ?)',
-      userId, name.trim(), tokenHash, tokenPrefix
-    );
-
-    const token = this.db.get(
-      'SELECT id, name, token_prefix, created_at, last_used_at FROM mcp_tokens WHERE id = ?',
-      result.lastInsertRowid
-    );
-
-    return { token: { ...(token as object), raw_token: rawToken } };
-  }
-
-  deleteMcpToken(userId: number, tokenId: string): { error?: string; status?: number; success?: boolean } {
-    const token = this.db.get('SELECT id FROM mcp_tokens WHERE id = ? AND user_id = ?', tokenId, userId);
-    if (!token) return { error: 'Token not found', status: 404 };
-    this.db.run('DELETE FROM mcp_tokens WHERE id = ?', tokenId);
-    // Best-effort, like the changePassword/resetPassword revocations: a session
-    // sweep failure must not turn a successful token delete into a 500.
-    try { revokeUserSessions?.(userId); } catch { /* best-effort */ }
-    return { success: true };
-  }
-
-  // -------------------------------------------------------------------------
-  // Ephemeral tokens
-  // -------------------------------------------------------------------------
-
-  createWsToken(userId: number): { error?: string; status?: number; token?: string } {
-    // Bind the ws-token to the user's current password_version so a token minted
-    // before a password reset is rejected on connect (defence-in-depth session gate).
-    const pv = this.db.get<{ password_version?: number }>('SELECT password_version FROM users WHERE id = ?', userId)?.password_version ?? 0;
-    const token = createEphemeralToken(userId, 'ws', { pv });
-    if (!token) return { error: 'Service unavailable', status: 503 };
-    return { token };
-  }
-
-  createResourceToken(userId: number, rawPurpose: unknown): { error?: string; status?: number; token?: string } {
-    const purpose = rawPurpose as string | undefined;
-    if (purpose !== 'download') {
-      return { error: 'Invalid purpose', status: 400 };
-    }
-    const token = createEphemeralToken(userId, purpose);
-    if (!token) return { error: 'Service unavailable', status: 503 };
-    return { token };
-  }
-
-  // -------------------------------------------------------------------------
-  // MCP auth helpers
+  // Demo gate + JWT verification
+  //
+  // The MCP token half of this section moved to tokens/token.service.ts. What
+  // stays is login identity (verifyJwtToken) and the demo check, neither of
+  // which is about minting a token.
   // -------------------------------------------------------------------------
 
   isDemoUser(userId: number): boolean {
     if (!readEnv().demo.enabled) return false;
     const user = this.db.get<{ email: string }>('SELECT email FROM users WHERE id = ?', userId);
     return isDemoEmail(user?.email);
-  }
-
-  verifyMcpToken(rawToken: string): User | null {
-    const hash = createHash('sha256').update(rawToken).digest('hex');
-    const row = this.db.get<User>(`
-    SELECT u.id, u.username, u.email, u.role
-    FROM mcp_tokens mt
-    JOIN users u ON mt.user_id = u.id
-    WHERE mt.token_hash = ?
-  `, hash);
-    if (row) {
-      this.db.run('UPDATE mcp_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE token_hash = ?', hash);
-      return row;
-    }
-    return null;
   }
 
   /**

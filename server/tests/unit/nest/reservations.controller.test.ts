@@ -29,10 +29,6 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
 }
 
 describe('ReservationsController (parity with the legacy /api/trips/:tripId/reservations route)', () => {
-  it('404 when trip not accessible', () => {
-    const svc = makeService({ verifyTripAccess: vi.fn().mockReturnValue(undefined) });
-    expect(thrown(() => new ReservationsController(svc).list(user, '5'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-  });
 
   it('GET / returns reservations', () => {
     const svc = makeService({ list: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<ReservationsService>);
@@ -40,10 +36,6 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
   });
 
   describe('POST /', () => {
-    it('403 without permission', () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(thrown(() => new ReservationsController(svc).create(user, '5', { title: 'Hotel' }))).toEqual({ status: 403, body: { error: 'No permission' } });
-    });
 
     // The bespoke 'Title is required' 400 moved to the global ZodValidationPipe
     // (ReservationCreateDto) — covered by the e2e suite.

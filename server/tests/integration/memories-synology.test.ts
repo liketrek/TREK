@@ -1186,7 +1186,7 @@ describe('Synology SSRF blocked error handling', () => {
 
 // ── Passphrase persistence fixes ─────────────────────────────────────────────
 
-import { getOrCreateTrekPhoto, deleteTrekPhotoIfOrphan } from '../../src/services/memories/photoResolverService';
+import { getOrCreateTrekPhoto, deleteTrekPhotoIfOrphan } from '../../src/nest/photos/photos.bridge';
 import { decrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
 
 describe('trek_photos passphrase healing (SYNO-090)', () => {

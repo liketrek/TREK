@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Maak eerst een lijst om plekken op te slaan.',
   'collections.removedFromAll': 'Uit collectie verwijderd',
   'collections.picker.title': 'Opgeslagen plekken',
+  'collections.picker.showMore': 'Nog {count} tonen',
   'collections.picker.search': 'Zoek in je opgeslagen plekken',
   'collections.picker.empty': 'Geen opgeslagen plekken om toe te voegen',
   'collections.picker.hint': 'Kies een plek uit je collecties',

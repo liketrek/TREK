@@ -5,9 +5,14 @@ import {
   demoDenied, ok,
 } from '@trek/nest-mcp';
 import { z } from 'zod';
-// auth.bridge, not an injected AuthService: AuthService injects AtlasService
-// (getTravelStats), so AtlasModule importing AuthModule would close a module
-// cycle — same documented trade-off as places.mcp.ts keeping assignments.bridge.
+// auth.bridge, not an injected AuthService. The module cycle that used to force
+// this is gone (getTravelStats moved to AtlasService, so AuthModule no longer
+// imports AtlasModule), but swapping one call site for a direct AuthModule
+// import would pull the whole auth chain into every graph that touches Atlas,
+// to reach a single isDemoUser. Eight other *.mcp.ts have the same shape with
+// addons.bridge; they get resolved together once the nest-mcp registry can
+// resolve a `when:` predicate lazily, at registry.attach instead of at module
+// load. Same documented trade-off as places.mcp.ts keeping assignments.bridge.
 import { isDemoUser } from '../auth/auth.bridge';
 import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { PLUGIN_PERMISSIONS } from '@trek/shared'
 import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
@@ -179,22 +180,9 @@ const HEALTH: Record<string, string> = {
 }
 
 // Known permissions → human-readable i18n key; unknown ones render as raw code.
-const PERM_KEYS = [
-  'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:read:packing', 'db:read:files', 'db:read:files:content',
-  'db:read:collab', 'db:read:journal', 'db:read:atlas', 'db:read:vacay', 'db:read:daynotes', 'db:read:collections',
-  'db:read:categories', 'db:read:tags', 'db:read:todos', 'weather:read', 'rates:read', 'db:write:costs',
-  'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips', 'db:write:reservations', 'db:write:accommodations', 'db:write:daynotes', 'db:write:packing',
-  'db:write:tags', 'db:write:todos', 'db:write:atlas', 'db:write:vacay', 'db:write:journal', 'db:write:collections',
-  'db:write:files', 'db:write:collab', 'db:write:members',
-  'db:create:trips',
-  'db:meta',
-  'notify:send', 'ai:invoke', 'oauth:client',
-  'events:subscribe', 'jobs:run',
-  'ws:broadcast:trip', 'ws:broadcast:user',
-  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'hook:map-marker-provider', 'hook:poi-category-provider',
-  'hook:map-layer-provider', 'hook:route-provider', 'hook:day-schedule-provider', 'hook:day-tint-provider', 'geolocation:read',
-  'hook:pdf-section-provider', 'hook:atlas-layer-provider', 'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data', 'http:outbound',
-]
+// Generated from the host's protocol/envelope.ts by
+// server/scripts/gen-plugin-facts.ts - this used to be a hand-kept fourth copy.
+const PERM_KEYS = PLUGIN_PERMISSIONS
 
 const KNOWN_TYPES = ['widget', 'page', 'integration', 'trip-page']
 

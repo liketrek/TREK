@@ -1,5 +1,8 @@
-import type { McpAccessGroup, McpAccessPolicy, McpAccessValidator } from '@trek/nest-mcp';
-import { ALL_SCOPES, canRead, canWrite, type ScopeGroup } from './scopes';
+import type { McpAccessGroup, McpAccessMode, McpAccessPolicy, McpAccessValidator } from '@trek/nest-mcp';
+import { ALL_SCOPES, canRead, canWrite, type Scope, type ScopeGroup } from './scopes';
+
+/** The mode half of every scope: 'read' | 'write' | 'delete' | 'share'. */
+export type ScopeMode = Scope extends `${string}:${infer M}` ? M : never;
 
 /**
  * TREK's context shape for @trek/nest-mcp handlers, predicates and the
@@ -24,6 +27,11 @@ declare module '@trek/nest-mcp' {
   // same false positive (and same disable) as McpContext in @trek/nest-mcp.
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface McpAccessGroupRegistry extends Record<ScopeGroup, true> {}
+  // Same augmentation, for the mode half. Without it `mode` is 'read' |
+  // 'write' and journey's share tools could only be expressed as opaque
+  // predicates, which the boot gate below cannot check.
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  interface McpAccessModeRegistry extends Record<ScopeMode, true> {}
 }
 
 type AssertExact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
@@ -36,15 +44,23 @@ type AssertExact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : ne
  */
 export const MCP_ACCESS_GROUPS_MATCH_SCOPE_GROUPS: AssertExact<McpAccessGroup, ScopeGroup> = true;
 
+/** Same lockstep for the mode half. */
+export const MCP_ACCESS_MODES_MATCH_SCOPE_MODES: AssertExact<McpAccessMode, ScopeMode> = true;
+
 /**
  * Resolves declarative `access: { group, mode }` markers with the exact
  * scopes.ts semantics the legacy registrars used at registration time:
  * null scopes ⇒ full access; read ⇒ `group:read` OR `group:write`;
- * write ⇒ `group:write`. Single source for production (AppModule) and the
- * MCP test harness.
+ * write ⇒ `group:write`. Any other mode (`share`, `delete`) is its own scope
+ * and is not implied by `:write` — matching canShareJourneys, which the
+ * journey registrar used for its three share-link tools. Single source for
+ * production (AppModule) and the MCP test harness.
  */
-export const trekMcpAccessPolicy: McpAccessPolicy = ({ group, mode }, ctx) =>
-  mode === 'write' ? canWrite(ctx.scopes, group) : canRead(ctx.scopes, group);
+export const trekMcpAccessPolicy: McpAccessPolicy = ({ group, mode }, ctx) => {
+  if (mode === 'read') return canRead(ctx.scopes, group);
+  if (mode === 'write') return canWrite(ctx.scopes, group);
+  return ctx.scopes === null || ctx.scopes.includes(`${group}:${mode}`);
+};
 
 const VALID_GROUP_MODES: ReadonlySet<string> = new Set(ALL_SCOPES);
 

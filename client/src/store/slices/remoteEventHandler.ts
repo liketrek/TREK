@@ -477,8 +477,24 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
   // Snapshot before set(): the trip:updated case below replaces state.trip, so a
   // date-change check made after it would compare the new trip against itself.
   const prevTrip = get().trip
+  // Same reason, for the image check below — the applier overwrites the row.
+  const prevPlaceImage =
+    type === 'place:updated'
+      ? get().places.find(p => p.id === (payload.place as Place | undefined)?.id)?.image_url
+      : undefined
 
   set(state => STATE_APPLIERS[type as TrekWsTripEventName]?.(payload, state) ?? {})
+
+  // Accommodation cards read their thumbnail from a page-local copy of the
+  // place, not from this store, so a new hero image would only appear there
+  // after a reload. Narrow to an actual image change: every other place edit
+  // (renaming, recategorising) must not trigger a refetch.
+  if (type === 'place:updated') {
+    const nextImage = (payload.place as Place | undefined)?.image_url
+    if (nextImage !== prevPlaceImage) {
+      window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+    }
+  }
 
   // A reorder/insert re-pins dates and re-stamps booking times server-side, so
   // pull the authoritative days + reservations for collaborators.

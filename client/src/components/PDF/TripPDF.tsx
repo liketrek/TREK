@@ -93,7 +93,9 @@ function safeImg(url) {
   // (it ends in …/bytes), so the extension check below would wrongly reject it —
   // which is why persisted place photos showed as category icons in the PDF.
   if (url.startsWith('/api/maps/place-photo/')) return absUrl(url)
-  return /\.(jpe?g|png|webp|bmp|tiff?)(\?.*)?$/i.test(url) ? absUrl(url) : null
+  // gif is in the list because place-image-upload.ts accepts it; without it an
+  // uploaded GIF hero silently fell back to the category icon in the PDF.
+  return /\.(jpe?g|png|gif|webp|bmp|tiff?)(\?.*)?$/i.test(url) ? absUrl(url) : null
 }
 
 // Generate SVG string from Lucide icon name (for category thumbnails)

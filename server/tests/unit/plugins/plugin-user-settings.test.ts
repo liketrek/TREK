@@ -19,7 +19,10 @@ import { db as dbConn } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 
 import Database from 'better-sqlite3';
-import { PluginsService, readUserSettingDecrypted } from '../../../src/nest/plugins/plugins.service';
+import { PluginsService } from '../../../src/nest/plugins/plugins.service';
+import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+/** The host-side settings reads, over the same connection the test seeded. */
+const userSettings = () => new PluginUserSettingsService(new DatabaseService(dbConn));
 
 function freshDb() {
   const d = new Database(':memory:');
@@ -50,14 +53,14 @@ describe('per-user plugin settings', () => {
     expect(masked.apiKey).toBe('••••••••');       // never echoed
     expect(masked.units).toBe('metric');
     // decrypted runtime read returns the real value; the stored form is ciphertext
-    expect(readUserSettingDecrypted('p', 42, 'apiKey')).toBe('sk-123');
+    expect(userSettings().readOne('p', 42, 'apiKey')).toBe('sk-123');
     expect(svc.getUserConfig('p', 42).apiKey).toBe('••••••••');
   });
 
   it('an unchanged secret (the mask) keeps the stored ciphertext', () => {
     svc.updateUserConfig('p', 42, { apiKey: 'sk-123' });
     svc.updateUserConfig('p', 42, { apiKey: '••••••••', units: 'imperial' }); // mask = untouched
-    expect(readUserSettingDecrypted('p', 42, 'apiKey')).toBe('sk-123'); // still the original
+    expect(userSettings().readOne('p', 42, 'apiKey')).toBe('sk-123'); // still the original
     expect(svc.getUserConfig('p', 42).units).toBe('imperial');
   });
 
@@ -72,6 +75,6 @@ describe('per-user plugin settings', () => {
   it('is per-user — one user cannot see another\'s value', () => {
     svc.updateUserConfig('p', 42, { units: 'metric' });
     expect(svc.getUserConfig('p', 99).units).toBeUndefined();
-    expect(readUserSettingDecrypted('p', 99, 'apiKey')).toBeUndefined();
+    expect(userSettings().readOne('p', 99, 'apiKey')).toBeUndefined();
   });
 });

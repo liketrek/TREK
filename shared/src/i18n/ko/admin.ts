@@ -161,6 +161,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': '장소 상세 정보',
   'admin.placesDetails.subtitle':
     'Google Places API에서 상세 장소 정보 (영업 시간, 평점, 웹사이트)를 가져옵니다. API 할당량 절약을 위해 비활성화할 수 있습니다.',
+  'admin.placesEnrich.title': '장소 정보 보강',
+  'admin.placesEnrich.subtitle':
+    '장소를 추가할 때 사진과 설명을 표시합니다. Wikipedia와 OpenStreetMap은 항상 사용되며, 장소 사진 또는 장소 세부정보가 켜져 있으면 Google도 함께 사용됩니다.',
   'admin.bagTracking.title': '가방 추적',
   'admin.bagTracking.subtitle': '짐 항목에 무게 및 가방 배정을 활성화합니다',
   'admin.collab.chat.title': '채팅',

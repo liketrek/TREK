@@ -30,6 +30,7 @@ import { formatDistance, formatElevation } from '../../utils/units'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 import { getOpenStreetMapUrlForPlace } from './placeOpenStreetMap'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
+import { convertHoursLine } from './placeHoursFormat'
 
 const detailsCache = new Map()
 
@@ -42,6 +43,49 @@ function getSessionCache(key) {
 
 function setSessionCache(key, value) {
   try { sessionStorage.setItem(key, JSON.stringify(value)) } catch {}
+}
+
+const creditCache = new Map()
+
+/**
+ * Names whoever made the picture shown in the avatar.
+ *
+ * Only cached provider photos carry a credit, and their proxy URL embeds the
+ * cache key. Anything else (an uploaded image, a legacy remote URL) renders
+ * nothing. Commons pictures are largely CC BY-SA, so this is an obligation
+ * rather than a nicety — the picker credits them while choosing, this keeps the
+ * credit visible afterwards.
+ */
+function PhotoCredit({ imageUrl }) {
+  const [credit, setCredit] = useState(null)
+  const key = useMemo(() => {
+    const match = /^\/api\/maps\/place-photo\/(.+)\/bytes$/.exec(imageUrl || '')
+    return match ? decodeURIComponent(match[1]) : null
+  }, [imageUrl])
+
+  useEffect(() => {
+    if (!key) { setCredit(null); return }
+    if (creditCache.has(key)) { setCredit(creditCache.get(key)); return }
+    let alive = true
+    mapsApi.placePhotoCredit(key).then(data => {
+      creditCache.set(key, data.credit)
+      if (alive) setCredit(data.credit)
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [key])
+
+  if (!credit) return null
+  return (
+    <span
+      className="text-content-faint"
+      title={credit}
+      style={{
+        display: 'block', marginTop: 4, maxWidth: 72,
+        fontSize: 'calc(9px * var(--fs-scale-caption, 1))', lineHeight: 1.2,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
+      }}
+    >{credit}</span>
+  )
 }
 
 function usePlaceDetails(googlePlaceId, osmId, language) {
@@ -67,32 +111,6 @@ function getWeekdayIndex(dateStr, timeZone) {
   if (!dateStr) return placeWeekdayIndex(new Date(), timeZone)
   const jsDay = new Date(dateStr + 'T12:00:00').getDay()
   return jsDay === 0 ? 6 : jsDay - 1
-}
-
-function convertHoursLine(line, timeFormat) {
-  if (!line) return ''
-  const hasAmPm = /\d{1,2}:\d{2}\s*(AM|PM)/i.test(line)
-
-  if (timeFormat === '12h' && !hasAmPm) {
-    // 24h → 12h: "10:00" → "10:00 AM", "21:00" → "9:00 PM", "Uhr" entfernen
-    return line.replace(/\s*Uhr/g, '').replace(/(\d{1,2}):(\d{2})/g, (match, h, m) => {
-      const hour = parseInt(h)
-      if (isNaN(hour)) return match
-      const period = hour >= 12 ? 'PM' : 'AM'
-      const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
-      return `${h12}:${m} ${period}`
-    })
-  }
-  if (timeFormat !== '12h' && hasAmPm) {
-    // 12h → 24h: "10:00 AM" → "10:00", "9:00 PM" → "21:00"
-    return line.replace(/(\d{1,2}):(\d{2})\s*(AM|PM)/gi, (_, h, m, p) => {
-      let hour = parseInt(h)
-      if (p.toUpperCase() === 'PM' && hour !== 12) hour += 12
-      if (p.toUpperCase() === 'AM' && hour === 12) hour = 0
-      return `${String(hour).padStart(2, '0')}:${m}`
-    })
-  }
-  return line
 }
 
 function formatFileSize(bytes) {
@@ -684,6 +702,7 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
                     onRemove={() => onUpdatePlace(place.id, { image_url: null })} />
                 : <PlaceAvatar place={place} category={category} size={52} />}
             </div>
+            {openNow === null && <PhotoCredit imageUrl={place.image_url} />}
             {openNow !== null && (
               <span style={{
                 position: 'absolute', bottom: -7, left: '50%', transform: 'translateX(-50%)',

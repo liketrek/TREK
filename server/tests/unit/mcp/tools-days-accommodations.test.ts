@@ -108,6 +108,27 @@ describe('Tool: create_day', () => {
     });
   });
 
+  it('reports every bad reference in one message rather than the first', async () => {
+    // The validator returns a list and the tool joins it. Without a case that
+    // produces more than zero errors, that join is never executed, and a tool
+    // that silently created a stay against a foreign place would look fine.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id, { date: '2025-06-15' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_accommodation',
+        arguments: { tripId: trip.id, place_id: 999999, start_day_id: 999998, end_day_id: day.id },
+      });
+      expect(result.isError).toBe(true);
+      const text = (result.content as { text: string }[])[0].text;
+      expect(text).toContain('Place not found');
+      expect(text).toContain('Start day not found');
+      expect(text).toContain(', ');
+    });
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM day_accommodations').get()).toEqual({ n: 0 });
+  });
+
   it('returns access denied for non-member', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);

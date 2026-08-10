@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
+import { ExpressAdapter, type NestExpressApplication } from '@nestjs/platform-express';
 import type { INestApplication } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { AppModule } from './nest/app.module';
@@ -11,6 +11,7 @@ import { setupApiDocs } from './nest/platform/api-docs';
 import { McpRegistryService } from '@trek/nest-mcp';
 import { setMcpRegistry } from './mcp/registry-handoff';
 import { validateBodyContracts } from './nest/common/validate-body-contracts';
+import { validateRouteGuards } from './nest/common/validate-route-guards';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -53,10 +54,20 @@ export async function buildApp(): Promise<INestApplication> {
   // the one bridge that lets the pre-init Express layer consume the validated
   // config instead of reading process.env itself.
   const http = app.get<ConfigType<typeof httpConfig>>(httpConfig.KEY);
-  applyGlobalMiddleware(instance, { bodyParser: false, http });
+  applyGlobalMiddleware(instance, { http });
   applyPlatformUploads(instance);
   applyPlatformTransport(instance);
   applyPlatformStatic(instance);
+  // Pin the request-body ceiling explicitly. The Express shell used to set
+  // '100kb' and stopped doing it when the Nest instance took over parsing, which
+  // left the limit implicit — the same number, but nowhere anybody would find
+  // it, and one NestFactory default away from silently becoming something else.
+  // Configured through Nest rather than a second express.json(): its parser
+  // carries the verify hook that keeps req.rawBody, which the plugin webhook
+  // routes need to check a provider's HMAC over the exact payload.
+  const express = app as unknown as NestExpressApplication;
+  express.useBodyParser('json', { limit: '100kb' });
+  express.useBodyParser('urlencoded', { limit: '100kb', extended: true });
   if (apiDocsEnabled()) setupApiDocs(app);
   await app.init();
   // The /mcp handler is mounted pre-init (step 3) and has no DI access — hand
@@ -66,5 +77,9 @@ export async function buildApp(): Promise<INestApplication> {
   // must carry a createZodDto class (validated by the global ZodValidationPipe)
   // or sit on the ratchet-only legacy allow-list — otherwise refuse to boot.
   validateBodyContracts(app);
+  // Fail closed on the anonymous surface too: a route that answers without a
+  // session must carry @Public() with a reason AND be on the reviewed list.
+  // Default-deny protects what exists; this is what keeps the exemptions honest.
+  validateRouteGuards(app);
   return app;
 }

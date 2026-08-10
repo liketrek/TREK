@@ -10,6 +10,61 @@ import { placeExists, getAssignmentForTrip } from '../assignments/assignments.br
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { ReservationsService } from './reservations.service';
 import { DaysService } from '../days/days.service';
+import { findByIata } from '../airports/airports.data';
+import type { EndpointInput } from './reservations.service';
+
+const TRANSPORT_TYPES = ['flight', 'train', 'car', 'cruise'] as const;
+
+const endpointObjectSchema = z.object({
+  role: z.enum(['from', 'to', 'stop']).describe('Endpoint role: "from" (origin), "to" (destination), or "stop" (intermediate)'),
+  sequence: z.number().int().min(0).describe('Order within the route (0-based)'),
+  name: z.string().min(1).describe('Location name (e.g. "Paris Gare de Lyon", "ZRH Terminal 2")'),
+  code: z.string().optional().describe('IATA airport code for flights (e.g. "ZRH"). Leave empty for other transport types.'),
+  lat: z.number().optional().describe('Latitude. For flights, leave empty and set code instead — coordinates are filled from the airport.'),
+  lng: z.number().optional().describe('Longitude. For flights, leave empty and set code instead — coordinates are filled from the airport.'),
+  timezone: z.string().optional().describe('IANA timezone (e.g. "Europe/Zurich"). Use airport tz for flights.'),
+  local_time: z.string().optional().describe('Local departure/arrival time at this endpoint, e.g. "14:35"'),
+  local_date: z.string().optional().describe('Local date at this endpoint, YYYY-MM-DD'),
+});
+const endpointSchema = z.array(endpointObjectSchema).optional();
+
+type TransportEndpoint = z.infer<typeof endpointObjectSchema>;
+
+/**
+ * Endpoint coordinates are stored NOT NULL. Callers may supply a flight endpoint
+ * with only an IATA `code` (the tool description encourages this), so fill missing
+ * lat/lng/timezone from the airport database. Returns an error string for the first
+ * endpoint that can't be resolved rather than letting the NOT NULL bind throw.
+ *
+ * Normalizes to the service's EndpointInput shape (nullable fields coerced from the
+ * schema's optionals), so lat/lng are guaranteed present before the insert.
+ */
+function resolveEndpointCoords(endpoints: TransportEndpoint[] | undefined): { endpoints: EndpointInput[] } | { error: string } {
+  if (!endpoints) return { endpoints: [] };
+  const out: EndpointInput[] = [];
+  for (const e of endpoints) {
+    const base = {
+      role: e.role,
+      sequence: e.sequence,
+      name: e.name,
+      code: e.code ?? null,
+      timezone: e.timezone ?? null,
+      local_time: e.local_time ?? null,
+      local_date: e.local_date ?? null,
+    };
+    if (e.lat != null && e.lng != null) { out.push({ ...base, lat: e.lat, lng: e.lng }); continue; }
+    if (e.code) {
+      const airport = findByIata(e.code);
+      if (airport) {
+        out.push({ ...base, lat: airport.lat, lng: airport.lng, timezone: e.timezone ?? airport.tz });
+        continue;
+      }
+      return { error: `Could not resolve airport code "${e.code}". Use search_airports to find a valid IATA code, or supply lat/lng directly.` };
+    }
+    return { error: `Endpoint "${e.name}" is missing coordinates. For flights set "code" to the IATA airport code; for other transport types supply lat/lng.` };
+  }
+  return { endpoints: out };
+}
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -286,5 +341,186 @@ export class ReservationsMcp {
         text: JSON.stringify(reservations, null, 2),
       }],
     };
+  }
+
+  // -------------------------------------------------------------------------
+  // Transports
+  //
+  // Ported 1:1 from the legacy registrar src/mcp/tools/transports.ts. They live
+  // here rather than in a domain of their own because a transport IS a
+  // reservation — same table, same service, same 'reservation_edit' permission
+  // — and this class already injects everything they need. The registration-time
+  // `if (!canWrite(scopes, 'reservations')) return;` that guarded the whole
+  // registrar became the per-tool access marker.
+  // -------------------------------------------------------------------------
+
+  @Tool({
+    name: 'create_transport',
+    description: 'Create a transport booking (flight, train, car, or cruise) for a trip. Use endpoints[] to record origin/destination and intermediate stops — for flights, set code to the IATA airport code (use search_airports first). Created as pending — confirm with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      type: z.enum(['flight', 'train', 'car', 'cruise']),
+      title: z.string().min(1).max(200),
+      status: z.enum(['pending', 'confirmed', 'cancelled']).optional().default('pending'),
+      start_day_id: z.number().int().positive().optional().describe('Departure day'),
+      end_day_id: z.number().int().positive().optional().describe('Arrival day (if different from departure)'),
+      reservation_time: z.string().optional().describe('ISO 8601 datetime or time string for departure'),
+      reservation_end_time: z.string().optional().describe('ISO 8601 datetime or time string for arrival'),
+      confirmation_number: z.string().max(100).optional(),
+      notes: z.string().max(1000).optional(),
+      metadata: z.record(z.string(), z.string()).optional().describe('Type-specific metadata: flights → { airline, flight_number, departure_airport, arrival_airport }; trains → { train_number, platform, seat }'),
+      endpoints: endpointSchema,
+      needs_review: z.boolean().optional(),
+      price: z.number().nonnegative().optional().describe('Transport cost — shown on the booking and linked in the Budget tab'),
+      budget_category: z.string().max(100).optional().describe('Budget category for the price entry (defaults to transport type)'),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    access: { group: 'reservations', mode: 'write' },
+  })
+  async createTransport(
+    { tripId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, needs_review, price, budget_category }: {
+      tripId: number; type: 'flight' | 'train' | 'car' | 'cruise'; title: string;
+      status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
+      reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; notes?: string;
+      metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; needs_review?: boolean;
+      price?: number; budget_category?: string;
+    },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+
+    if (start_day_id && !this.days.getDay(start_day_id, tripId))
+      return errorResult('start_day_id does not belong to this trip.');
+    if (end_day_id && !this.days.getDay(end_day_id, tripId))
+      return errorResult('end_day_id does not belong to this trip.');
+
+    const resolved = resolveEndpointCoords(endpoints);
+    if ('error' in resolved) return errorResult(resolved.error);
+
+    const meta: Record<string, string> = { ...(metadata ?? {}) };
+    if (price != null) meta.price = String(price);
+
+    const { reservation } = this.reservations.create(tripId, {
+      title,
+      type,
+      reservation_time,
+      reservation_end_time,
+      location: undefined,
+      confirmation_number,
+      notes,
+      day_id: start_day_id,
+      end_day_id: end_day_id ?? start_day_id,
+      status: status ?? 'pending',
+      metadata: Object.keys(meta).length > 0 ? meta : undefined,
+      endpoints: resolved.endpoints,
+      needs_review,
+    });
+
+    if (price != null && price > 0) {
+      const item = this.budget.linkBudgetItemToReservation(tripId, reservation.id, {
+        name: title,
+        category: budget_category || type,
+        total_price: price,
+      });
+      safeBroadcast(tripId, 'budget:created', { item });
+    }
+
+    safeBroadcast(tripId, 'reservation:created', { reservation });
+    return ok({ reservation });
+  }
+
+  @Tool({
+    name: 'update_transport',
+    description: 'Update an existing transport booking. Pass endpoints[] to replace the full list of stops (origin, destination, intermediates). Use status "confirmed" to confirm.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      reservationId: z.number().int().positive(),
+      type: z.enum(['flight', 'train', 'car', 'cruise']).optional(),
+      title: z.string().min(1).max(200).optional(),
+      status: z.enum(['pending', 'confirmed', 'cancelled']).optional(),
+      start_day_id: z.number().int().positive().optional().describe('Departure day'),
+      end_day_id: z.number().int().positive().optional().describe('Arrival day (if different from departure)'),
+      reservation_time: z.string().optional().describe('ISO 8601 datetime or time string for departure'),
+      reservation_end_time: z.string().optional().describe('ISO 8601 datetime or time string for arrival'),
+      confirmation_number: z.string().max(100).optional(),
+      notes: z.string().max(1000).optional(),
+      metadata: z.record(z.string(), z.string()).optional().describe('Type-specific metadata: flights → { airline, flight_number, departure_airport, arrival_airport }; trains → { train_number, platform, seat }'),
+      endpoints: endpointSchema,
+      needs_review: z.boolean().optional(),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'reservations', mode: 'write' },
+  })
+  async updateTransport(
+    { tripId, reservationId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, needs_review }: {
+      tripId: number; reservationId: number; type?: 'flight' | 'train' | 'car' | 'cruise'; title?: string;
+      status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
+      reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; notes?: string;
+      metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; needs_review?: boolean;
+    },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+
+    const existing = this.reservations.getReservation(reservationId, tripId);
+    if (!existing) return errorResult('Transport not found.');
+
+    const resolvedType = type ?? existing.type;
+    if (!(TRANSPORT_TYPES as readonly string[]).includes(resolvedType))
+      return errorResult('Reservation is not a transport type. Use update_reservation instead.');
+
+    if (start_day_id && !this.days.getDay(start_day_id, tripId))
+      return errorResult('start_day_id does not belong to this trip.');
+    if (end_day_id && !this.days.getDay(end_day_id, tripId))
+      return errorResult('end_day_id does not belong to this trip.');
+
+    // Only resolve when endpoints are explicitly provided; undefined leaves them untouched.
+    let resolvedEndpoints: EndpointInput[] | undefined;
+    if (endpoints !== undefined) {
+      const resolved = resolveEndpointCoords(endpoints);
+      if ('error' in resolved) return errorResult(resolved.error);
+      resolvedEndpoints = resolved.endpoints;
+    }
+
+    const { reservation } = this.reservations.update(reservationId, tripId, {
+      title,
+      type,
+      reservation_time,
+      reservation_end_time,
+      confirmation_number,
+      notes,
+      day_id: start_day_id,
+      end_day_id,
+      status,
+      metadata,
+      endpoints: resolvedEndpoints,
+      needs_review,
+    }, existing);
+    safeBroadcast(tripId, 'reservation:updated', { reservation });
+    return ok({ reservation });
+  }
+
+  @Tool({
+    name: 'delete_transport',
+    description: 'Delete a transport booking from a trip.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      reservationId: z.number().int().positive(),
+    },
+    annotations: TOOL_ANNOTATIONS_DELETE,
+    access: { group: 'reservations', mode: 'write' },
+  })
+  async deleteTransport({ tripId, reservationId }: { tripId: number; reservationId: number }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+    const { deleted } = this.reservations.remove(reservationId, tripId);
+    if (!deleted) return errorResult('Transport not found.');
+    safeBroadcast(tripId, 'reservation:deleted', { reservationId });
+    return ok({ success: true });
   }
 }

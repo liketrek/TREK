@@ -110,6 +110,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Nejprve vytvořte seznam, abyste mohli ukládat místa.',
   'collections.removedFromAll': 'Odebráno ze sbírky',
   'collections.picker.title': 'Uložená místa',
+  'collections.picker.showMore': 'Zobrazit dalších {count}',
   'collections.picker.search': 'Prohledat uložená místa',
   'collections.picker.empty': 'Žádná uložená místa k přidání',
   'collections.picker.hint': 'Vyberte místo ze svých sbírek',

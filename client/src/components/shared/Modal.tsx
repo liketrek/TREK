@@ -9,6 +9,10 @@ const sizeClasses: Record<string, string> = {
   xl: 'max-w-2xl',
   '2xl': 'max-w-4xl',
   '3xl': 'max-w-5xl',
+  // Wide enough for the add-place dialog to carry a detail column beside the
+  // form, and both together beside the collection picker.
+  '4xl': 'max-w-6xl',
+  '5xl': 'max-w-7xl',
 }
 
 interface ModalProps {

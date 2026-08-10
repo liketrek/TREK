@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { FilesService } from './files.service';
+import { Public } from '../auth/public.decorator';
 
 /**
  * GET /api/trips/:tripId/files/:id/download — authenticated file download.
@@ -12,6 +13,7 @@ import { FilesService } from './files.service';
  * the legacy authenticateDownload helper. Byte-identical to the legacy route:
  * 401 token, 404 trip/file, 403 path traversal, .pkpass served inline for Wallet.
  */
+@Public('authenticates itself: the download link carries a short-lived ?token the client mints')
 @Controller('api/trips/:tripId/files')
 export class FilesDownloadController {
   constructor(private readonly files: FilesService) {}

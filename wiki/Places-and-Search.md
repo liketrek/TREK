@@ -27,6 +27,32 @@ When a key is present, the autocomplete uses the Google Places API, which can re
 
 TREK falls back to OpenStreetMap (Nominatim) automatically — no API key needed. A notice appears above the search box explaining that OpenStreetMap is in use and that photos, ratings, and opening hours are unavailable. Results include name, address, and coordinates.
 
+## Place details while searching
+
+On desktop the Place form carries a **Place details** column to the left of the form. Pick a search result and it fills in on its own — no extra click, and nothing changes about the usual add-a-place flow of searching, picking and saving. If you already know the place, ignore the column and save as before.
+
+The column shows:
+
+- **Pictures** near or of the place. Click one to make it that place's thumbnail; click it again to clear the choice. The picture then appears everywhere the place does — list, map marker, itinerary, PDF export and shared trips — exactly like a [custom place image](#custom-place-image).
+- **A description**, when one is available. It is *not* written into the place automatically. Use **Use this text** to copy it into the description field; the button is disabled while you already have a description of your own, so nothing you wrote gets overwritten.
+
+Every picture is credited under its thumbnail with its author, its licence and a link to the source page. Most Wikimedia Commons pictures are CC BY or CC BY-SA, which means the credit has to travel with the picture — so once you pick one, the credit stays visible under the thumbnail in the place's detail panel too.
+
+### Where the information comes from
+
+Wikipedia and OpenStreetMap are always used and need no configuration:
+
+- Pictures from **Wikimedia Commons**, found by coordinate.
+- Descriptions from the OpenStreetMap `description` tag, or from the Wikipedia article the place is tagged with. TREK resolves the article from that tag rather than guessing it from the name, so an ambiguous name never pulls in the wrong article. A place with no such tag simply gets no description.
+
+With a Google Maps API key, and only if the matching admin switches are on, up to three **Google Places** photos and Google's editorial summary are added on top.
+
+Pictures are copied to your own server and served from there — nothing is loaded directly from Google or Wikimedia while you browse, so no visitor's address leaves your instance.
+
+> **Admin:** the column is controlled by **Place Enrichment** in Admin → Settings → API Keys, and it is on by default. The Google half additionally follows **Place Photos** and **Place Details**. Turning Place Enrichment off leaves the column with a short note and makes no outbound calls.
+
+The column is desktop-only; the mobile place sheet is unchanged.
+
 ## Pasting a Google Maps URL
 
 Paste a `maps.app.goo.gl/…`, `goo.gl/maps/…`, or `maps.google.*/…` URL directly into the search box and press the search button. TREK resolves it server-side and populates the name, address, and coordinates.

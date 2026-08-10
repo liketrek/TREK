@@ -7,19 +7,19 @@ const { canAccessTrip, pluginsEnabled } = vi.hoisted(() => ({
 vi.mock('../../../src/db/database', () => ({ db: {}, canAccessTrip }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { TripWarningsController } from '../../../src/nest/plugins/trip-warnings.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { TripWarningsController } from '../../../src/nest/plugins/contributions/trip-warnings.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
-function controller(over: Partial<PluginRuntimeService> = {}) {
+function controller(over: Partial<PluginHooks> = {}) {
   const runtime = {
     providersOf: vi.fn(() => ['p1', 'p2']),
-    invokeHook: vi.fn(async (id: string) =>
+    tripWarnings: vi.fn(async (id: string) =>
       id === 'p2' ? [{ level: 'error', message: 'Day 3 is overpacked', dayId: 3 }] : [{ level: 'warning', message: 'Museum closed Mon', placeId: 7 }]),
     ...over,
-  } as unknown as PluginRuntimeService;
+  } as unknown as PluginHooks;
   return { c: new TripWarningsController(runtime, { canAccessTrip } as unknown as DatabaseService), runtime };
 }
 
@@ -37,8 +37,8 @@ describe('TripWarningsController', () => {
 
   it('merges provider warnings, tags each with the plugin id, defaults an odd level to warning', async () => {
     const { c } = controller({
-      invokeHook: vi.fn(async (id: string) =>
-        id === 'p1' ? [{ level: 'bogus', message: 'Check timings' }, { message: '' }] : [{ level: 'info', message: 'Rainy week' }]) as unknown as PluginRuntimeService['invokeHook'],
+      tripWarnings: vi.fn(async (id: string) =>
+        id === 'p1' ? [{ level: 'bogus', message: 'Check timings' }, { message: '' }] : [{ level: 'info', message: 'Rainy week' }]) as unknown as PluginHooks['tripWarnings'],
     });
     const res = await c.get('1', req(5));
     expect(res.warnings).toEqual([
@@ -49,17 +49,17 @@ describe('TripWarningsController', () => {
 
   it('skips a provider that throws (graceful) and calls the hook with the trip + acting user', async () => {
     const { c, runtime } = controller({
-      invokeHook: vi.fn(async (id: string) => { if (id === 'p2') throw new Error('slow'); return [{ level: 'warning', message: 'ok' }]; }) as unknown as PluginRuntimeService['invokeHook'],
+      tripWarnings: vi.fn(async (id: string) => { if (id === 'p2') throw new Error('slow'); return [{ level: 'warning', message: 'ok' }]; }) as unknown as PluginHooks['tripWarnings'],
     });
     const res = await c.get('1', req(5));
     expect(res.warnings).toEqual([{ pluginId: 'p1', level: 'warning', message: 'ok', dayId: undefined, placeId: undefined }]);
-    expect(runtime.invokeHook).toHaveBeenCalledWith('p1', 'warningProvider', 'getWarnings', [1], 5, 5000);
+    expect(runtime.tripWarnings).toHaveBeenCalledWith('p1', 1, 5);
   });
 
   it('strips emojis from the warning message (rendered natively in TREK chrome)', async () => {
     const { c } = controller({
       providersOf: vi.fn(() => ['p1']),
-      invokeHook: vi.fn(async () => [{ level: 'error', message: '🔥 Overbooked!' }]) as unknown as PluginRuntimeService['invokeHook'],
+      tripWarnings: vi.fn(async () => [{ level: 'error', message: '🔥 Overbooked!' }]) as unknown as PluginHooks['tripWarnings'],
     });
     const res = await c.get('1', req(5));
     expect(res.warnings[0].message).toBe('Overbooked!');
@@ -68,10 +68,10 @@ describe('TripWarningsController', () => {
   it('caps a flooding provider at 20 warnings and truncates an oversized message', async () => {
     const { c } = controller({
       providersOf: vi.fn(() => ['flood']),
-      invokeHook: vi.fn(async () => [
+      tripWarnings: vi.fn(async () => [
         { level: 'warning', message: 'z'.repeat(1000) },
         ...Array.from({ length: 50 }, (_v, i) => ({ level: 'info', message: `w${i}` })),
-      ]) as unknown as PluginRuntimeService['invokeHook'],
+      ]) as unknown as PluginHooks['tripWarnings'],
     });
     const res = await c.get('1', req(5));
     expect(res.warnings).toHaveLength(20);       // per-provider count cap

@@ -19,11 +19,11 @@ vi.mock('../../../src/db/database', () => ({
 }));
 import { db as dbConn } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-vi.mock('../../../src/services/journeyService', () => ({ canAccessJourney }));
+import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { JournalEntryRowsController } from '../../../src/nest/plugins/journal-entry-rows.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { JournalEntryRowsController } from '../../../src/nest/plugins/contributions/journal-entry-rows.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 
 const addonsStub = { isAddonEnabled } as unknown as AddonsService;
@@ -33,9 +33,9 @@ const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) a
 function controller(invoke: (id: string) => unknown, providers = ['p1']) {
   const runtime = {
     providersOf: vi.fn(() => providers),
-    invokeHook: vi.fn(async (id: string) => invoke(id)),
-  } as unknown as PluginRuntimeService;
-  return { c: new JournalEntryRowsController(runtime, new DatabaseService(dbConn), addonsStub), runtime };
+    journalRows: vi.fn(async (id: string) => invoke(id)),
+  } as unknown as PluginHooks;
+  return { c: new JournalEntryRowsController(runtime, new DatabaseService(dbConn), addonsStub, { canAccessJourney } as unknown as JourneyDomainService), runtime };
 }
 const row = (over: Record<string, unknown> = {}) => ({ label: 'Distance', value: '12 km', ...over });
 
@@ -77,7 +77,7 @@ describe('JournalEntryRowsController', () => {
         { label: 'Steps', value: '9000', url: 'mailto:x@y.z' },
       ],
     }]);
-    expect(runtime.invokeHook).toHaveBeenCalledWith('p1', 'journalEntryProvider', 'getRows', [7], 5, 5000);
+    expect(runtime.journalRows).toHaveBeenCalledWith('p1', 7, 5);
   });
 
   it('drops javascript:/empty/unparseable urls, caps lengths, drops label-less rows and non-objects', async () => {

@@ -10,6 +10,7 @@ import { AuditService } from '../audit/audit.service';
 import { PasskeyService } from './passkey.service';
 import { PasskeyRegisterOptionsDto, PasskeyRegisterVerifyDto, PasskeyLoginVerifyDto, PasskeyRenameDto, PasskeyDeleteDto } from './auth.dto';
 import type { User } from '../../types';
+import { MfaExempt } from './mfa-policy.guard';
 
 const WINDOW = 15 * 60 * 1000;
 const LOGIN_MIN_LATENCY_MS = 350;
@@ -43,6 +44,7 @@ export class PasskeyController {
 
   // ── Registration (authenticated) ──
   @Post('register/options')
+  @MfaExempt('a user-verified passkey satisfies require_mfa, so enrolling one is a way out')
   @HttpCode(200)
   @UseGuards(PasskeyEnabledGuard, JwtAuthGuard)
   async registerOptions(@CurrentUser() user: User, @Body() body: PasskeyRegisterOptionsDto, @Req() req: Request) {
@@ -53,6 +55,7 @@ export class PasskeyController {
   }
 
   @Post('register/verify')
+  @MfaExempt('a user-verified passkey satisfies require_mfa, so enrolling one is a way out')
   @HttpCode(200)
   @UseGuards(PasskeyEnabledGuard, JwtAuthGuard)
   async registerVerify(@CurrentUser() user: User, @Body() body: PasskeyRegisterVerifyDto, @Req() req: Request) {
@@ -64,6 +67,7 @@ export class PasskeyController {
 
   // ── Authentication (public — primary login) ──
   @Post('login/options')
+  @MfaExempt('unauthenticated passkey login ceremony')
   @HttpCode(200)
   @UseGuards(PasskeyEnabledGuard)
   async loginOptions(@Req() req: Request) {
@@ -74,6 +78,7 @@ export class PasskeyController {
   }
 
   @Post('login/verify')
+  @MfaExempt('unauthenticated passkey login ceremony')
   @HttpCode(200)
   @UseGuards(PasskeyEnabledGuard)
   async loginVerify(@Body() body: PasskeyLoginVerifyDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -95,6 +100,7 @@ export class PasskeyController {
 
   // ── Management (authenticated, owner-scoped — NOT toggle-gated) ──
   @Get('credentials')
+  @MfaExempt('the setup screen lists what the user already has')
   @UseGuards(JwtAuthGuard)
   list(@CurrentUser() user: User) {
     return { credentials: this.passkeys.listPasskeys(user.id) };

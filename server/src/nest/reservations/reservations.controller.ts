@@ -14,6 +14,7 @@ import type { User } from '../../types';
 import { ReservationsService } from './reservations.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { pushReservationToAirtrail } from '../../services/airtrail/airtrailSync';
 import {
   ReservationCreateDto,
@@ -40,30 +41,21 @@ type ReservationBody = Record<string, unknown> & {
  * /positions is declared before /:id so it wins over the param.
  */
 @Controller('api/trips/:tripId/reservations')
-@UseGuards(JwtAuthGuard)
+// TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
+// add @RequirePermission('reservation_edit'), the same action string the service's canEdit
+// passes, so the HTTP and MCP paths cannot demand different rights.
+@UseGuards(JwtAuthGuard, TripAccessGuard)
 export class ReservationsController {
   constructor(private readonly reservations: ReservationsService) {}
 
-  private requireTrip(tripId: string, user: User) {
-    const trip = this.reservations.verifyTripAccess(tripId, user.id);
-    if (!trip) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    return trip;
-  }
 
-  private requireEdit(trip: ReturnType<ReservationsService['verifyTripAccess']>, user: User): void {
-    if (!this.reservations.canEdit(trip!, user)) {
-      throw new HttpException({ error: 'No permission' }, 403);
-    }
-  }
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.requireTrip(tripId, user);
     return { reservations: this.reservations.list(tripId) };
   }
 
+  @RequirePermission('reservation_edit')
   @Post()
   create(
     @CurrentUser() user: User,
@@ -72,8 +64,6 @@ export class ReservationsController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const body = rawBody as ReservationBody & { title: string };
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const { reservation, accommodationCreated } = this.reservations.create(tripId, body as never);
     if (accommodationCreated) {
       this.reservations.broadcast(tripId, 'accommodation:created', {}, socketId);
@@ -84,6 +74,7 @@ export class ReservationsController {
     return { reservation };
   }
 
+  @RequirePermission('reservation_edit')
   @Put('positions')
   updatePositions(
     @CurrentUser() user: User,
@@ -91,8 +82,6 @@ export class ReservationsController {
     @Body() body: ReservationPositionsDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     // The legacy signature declares day_plan_position required, but the wire
     // contract tolerates absent values (bind NULL) — see the shared schema.
     this.reservations.updatePositions(tripId, body.positions as { id: number; day_plan_position: number }[], body.day_id);
@@ -100,6 +89,7 @@ export class ReservationsController {
     return { success: true };
   }
 
+  @RequirePermission('reservation_edit')
   @Put(':id')
   update(
     @CurrentUser() user: User,
@@ -109,8 +99,6 @@ export class ReservationsController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const body = rawBody as ReservationBody;
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const current = this.reservations.getReservation(id, tripId);
     if (!current) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
@@ -131,6 +119,7 @@ export class ReservationsController {
     return { reservation };
   }
 
+  @RequirePermission('reservation_edit')
   @Put(':id/travelers')
   updateTravelers(
     @CurrentUser() user: User,
@@ -139,8 +128,6 @@ export class ReservationsController {
     @Body() body: ReservationTravelersDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const result = this.reservations.setTravelers(id, tripId, body.user_ids);
     if (!result) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
@@ -149,6 +136,7 @@ export class ReservationsController {
     return { travelers: result.travelers, reservation: result.reservation };
   }
 
+  @RequirePermission('reservation_edit')
   @Delete(':id')
   remove(
     @CurrentUser() user: User,
@@ -156,8 +144,6 @@ export class ReservationsController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const { deleted, accommodationDeleted, deletedBudgetItemId } = this.reservations.remove(id, tripId);
     if (!deleted) {
       throw new HttpException({ error: 'Reservation not found' }, 404);

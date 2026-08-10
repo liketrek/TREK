@@ -14,11 +14,14 @@ import { AddonsModule } from '../addons/addons.module';
  * reaches the domain through oauth.bridge.ts, which is why the pending
  * authorization codes live in a module, not on the provider.
  *
- * No `exports`: nothing inside the container injects this domain.
+ * Exports OauthService for AdminController, which serves the admin OAuth-session
+ * panel under /api/admin. That is the one in-container consumer; everything
+ * outside the container still goes through oauth.bridge.ts.
  */
 @Module({
   imports: [RateLimitModule, AuditModule, AddonsModule],
   controllers: [OauthPublicController, OauthApiController],
   providers: [OauthService],
+  exports: [OauthService],
 })
 export class OauthModule {}

@@ -110,6 +110,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': '먼저 목록을 만들어 장소를 저장하세요.',
   'collections.removedFromAll': '컬렉션에서 제거됨',
   'collections.picker.title': '저장된 장소',
+  'collections.picker.showMore': '{count}개 더 보기',
   'collections.picker.search': '저장된 장소 검색',
   'collections.picker.empty': '추가할 저장된 장소가 없습니다',
   'collections.picker.hint': '컬렉션에서 장소를 선택하세요',

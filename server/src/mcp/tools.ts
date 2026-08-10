@@ -1,8 +1,4 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import { registerJourneyTools } from './tools/journey';
-import { registerMapsWeatherTools } from './tools/mapsWeather';
-import { registerTransportTools } from './tools/transports';
-import { registerMcpPrompts } from './tools/prompts';
 import { getMcpRegistry } from './registry-handoff';
 
 export function registerTools(server: McpServer, userId: number, scopes: string[] | null, isStaticToken = false, getDeprecationNotice: () => string | null = () => null): void {
@@ -32,7 +28,9 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   // The assignment tools moved to the DI-discovered src/nest/assignments/
   // assignments.mcp.ts (@McpController, attached via the nest-mcp registry below).
 
-  registerMapsWeatherTools(server, userId, scopes);
+  // The weather tools moved to the DI-discovered src/nest/weather/weather.mcp.ts
+  // and the airport tools to src/nest/airports/airports.mcp.ts (@McpController,
+  // attached via the nest-mcp registry below).
 
   // The notification tools moved to the DI-discovered src/nest/notifications/
   // notifications.mcp.ts (@McpController, attached via the nest-mcp registry below).
@@ -43,12 +41,14 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   // The collab tools moved to the DI-discovered src/nest/collab/collab.mcp.ts
   // (@McpController, attached via the nest-mcp registry below).
 
-  registerTransportTools(server, userId, scopes);
+  // The transport tools moved to the DI-discovered
+  // src/nest/reservations/reservations.mcp.ts — a transport is a reservation,
+  // same table and same service (@McpController, attached via the nest-mcp
+  // registry below).
 
   // The transit tools moved to the DI-discovered src/nest/transit/transit.mcp.ts
   // (@McpController, attached via the nest-mcp registry below).
 
-  registerJourneyTools(server, userId, scopes);
 
   // The vacay tools moved to the DI-discovered src/nest/vacay/vacay.mcp.ts
   // (@McpController, attached via the nest-mcp registry below).
@@ -56,7 +56,10 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   // The todo tools moved to the DI-discovered src/nest/todo/todo.mcp.ts
   // (@McpController, attached via the nest-mcp registry below).
 
-  registerMcpPrompts(server, userId, isStaticToken);
+  // The prompts moved to the DI-discovered @McpController classes:
+  // packing-list to packing.mcp.ts, budget-overview to budget.mcp.ts and the
+  // static-token notice to auth.mcp.ts (its `if (isStaticToken)` became a
+  // `when` gate — the registry hands `when` the session context).
 
   // Decorator-registered domains (@trek/nest-mcp) — migrating off the legacy
   // registrar fan-out above, one domain at a time. Unset registry (direct

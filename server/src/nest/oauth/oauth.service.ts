@@ -641,4 +641,43 @@ export class OauthService {
     if (!timingSafeEqualHex(hashToken(clientSecret), client.client_secret_hash)) return null;
     return client;
   }
+  // ---------------------------------------------------------------------------
+  // Admin view of live sessions
+  //
+  // Moved from AdminService, which owned the oauth_tokens SQL only because the
+  // panel route is under /api/admin. The route keeps its path and its guard.
+  // ---------------------------------------------------------------------------
+
+  listAllOAuthSessions() {
+    const rows = this.db.all<Record<string, unknown> & { scopes: string }>(`
+    SELECT ot.id, ot.client_id, oc.name AS client_name, ot.user_id, u.username,
+           ot.scopes, ot.access_token_expires_at, ot.refresh_token_expires_at, ot.created_at
+    FROM oauth_tokens ot
+    JOIN oauth_clients oc ON ot.client_id = oc.client_id
+    JOIN users u ON u.id = ot.user_id
+    WHERE ot.revoked_at IS NULL
+      AND ot.refresh_token_expires_at > CURRENT_TIMESTAMP
+    ORDER BY ot.created_at DESC
+  `);
+    // One malformed row must not 500 the whole admin OAuth-sessions panel.
+    return rows.map((r) => {
+      let scopes: unknown;
+      try {
+        scopes = JSON.parse(r.scopes);
+      } catch {
+        scopes = null;
+      }
+      return { ...r, scopes };
+    });
+  }
+
+  adminRevokeOAuthSession(id: string) {
+    const row = this.db.get<{ id: number; user_id: number; client_id: string }>(
+      'SELECT id, user_id, client_id FROM oauth_tokens WHERE id = ?', id,
+    );
+    if (!row) return { error: 'Session not found', status: 404 };
+    this.db.run('UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE id = ?', id);
+    revokeUserSessionsForClient(row.user_id, row.client_id);
+    return {};
+  }
 }

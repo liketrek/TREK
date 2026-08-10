@@ -124,6 +124,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Відомості про місце',
   'admin.placesDetails.subtitle':
     'Завантаження детальної інформації про місце (години роботи, рейтинг, веб-сайт) з Google Places API. Вимкніть для економії квоти API.',
+  'admin.placesEnrich.title': 'Збагачення місць',
+  'admin.placesEnrich.subtitle':
+    'Показує зображення та опис під час додавання місця. Wikipedia та OpenStreetMap використовуються завжди; Google додається, якщо ввімкнено «Фото місць» або «Деталі місць».',
   'admin.bagTracking.title': 'Відстеження багажу',
   'admin.bagTracking.subtitle': 'Увімкнути вагу та прив’язку до багажу для речей',
   'admin.collab.chat.title': 'Чат',

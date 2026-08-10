@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DatabaseService } from '../database/database.service';
-import { TripsService } from '../trips/trips.service';
+import { CalendarService, CALENDAR_HEADER, foldICS } from '../calendar/calendar.service';
+
+/** Subscribable calendars advertise how often to re-fetch; the one-time download does not. */
+const FEED_REFRESH_HINTS = 'REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\nX-PUBLISHED-TTL:PT1H\r\n';
 
 const ninetyDaysAgo = () => {
   const d = new Date();
@@ -17,7 +20,7 @@ function feedUrl(token: string, scope: 'trip' | 'user', base: string): string {
 export class FeedsService {
   constructor(
     private readonly dbs: DatabaseService,
-    private readonly trips: TripsService,
+    private readonly calendar: CalendarService,
   ) {}
 
   private get db() {
@@ -95,15 +98,19 @@ export class FeedsService {
       | undefined;
     if (!row) return null;
     try {
-      const { ics, filename } = this.trips.exportICS(row.id);
-      // Inject calendar-subscription refresh hints into the VCALENDAR header so
-      // clients re-fetch hourly. The one-time download path (exportICS) is left
-      // untouched; this is feed-only.
-      const withHints = ics.replace(
-        'METHOD:PUBLISH\r\n',
-        'METHOD:PUBLISH\r\nREFRESH-INTERVAL;VALUE=DURATION:PT1H\r\nX-PUBLISHED-TTL:PT1H\r\n',
+      const cal = this.calendar.buildTripCalendar(row.id);
+      // Same document as the one-time download, plus the subscription refresh
+      // hints so clients re-fetch hourly. Assembled from the calendar's parts
+      // rather than string-surgeried into the finished text.
+      const ics = foldICS(
+        CALENDAR_HEADER +
+          FEED_REFRESH_HINTS +
+          `X-WR-CALNAME:${cal.calName}\r\n` +
+          [...cal.timezones.values()].join('') +
+          cal.events.join('') +
+          'END:VCALENDAR\r\n',
       );
-      return { ics: withHints, filename };
+      return { ics, filename: cal.filename };
     } catch {
       return null;
     }
@@ -133,68 +140,32 @@ export class FeedsService {
       s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
     const calName = `${user.username} – All Trips`;
-    let header =
-      'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
+    let header = CALENDAR_HEADER;
     header += `X-WR-CALNAME:${esc(calName)}\r\n`;
-    header += 'REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\nX-PUBLISHED-TTL:PT1H\r\n';
+    header += FEED_REFRESH_HINTS;
 
     // VTIMEZONE blocks are deduped by TZID across all trips and emitted once in
     // the combined header, before any VEVENT, so per-trip TZID references still
-    // resolve after extractVEvents strips everything but the events (#1453).
+    // resolve (#1453). The parts come from the calendar itself now — this used
+    // to scan each finished document back apart line by line.
     const zones = new Map<string, string>();
     let events = '';
     for (const { id } of trips) {
       try {
-        const { ics } = this.trips.exportICS(id);
-        for (const vtz of extractVTimezones(ics)) {
-          const tzid = vtz.match(/\r\nTZID:(.+)\r\n/)?.[1];
-          if (tzid && !zones.has(tzid)) zones.set(tzid, vtz);
+        const cal = this.calendar.buildTripCalendar(id);
+        for (const [tzid, block] of cal.timezones) {
+          if (!zones.has(tzid)) zones.set(tzid, block);
         }
-        events += extractVEvents(ics);
+        events += cal.events.join('');
       } catch {
         // skip failed trips
       }
     }
 
-    const combined = header + [...zones.values()].join('') + events + 'END:VCALENDAR\r\n';
+    // Only the body is folded. The header carries a user-chosen display name and
+    // has never been folded here; folding it now would wrap X-WR-CALNAME for
+    // anyone with a long username.
+    const combined = header + foldICS([...zones.values()].join('') + events) + 'END:VCALENDAR\r\n';
     return { ics: combined, calName };
   }
-}
-
-// Pull the VEVENT blocks out of a single-trip calendar by structural line
-// scanning rather than a lazy regex on "END:VEVENT". User-supplied text (escaped
-// onto a SUMMARY/DESCRIPTION line) can legitimately contain the literal
-// "END:VEVENT", which a non-greedy regex would mistake for a terminator and
-// truncate the event. Folded continuation lines always begin with a space, so a
-// bare "BEGIN:VEVENT"/"END:VEVENT" only ever appears as a real delimiter.
-function extractVEvents(ics: string): string {
-  let out = '';
-  let inside = false;
-  for (const line of ics.split('\r\n')) {
-    if (line === 'BEGIN:VEVENT') inside = true;
-    if (inside) out += line + '\r\n';
-    if (line === 'END:VEVENT') inside = false;
-  }
-  return out;
-}
-
-// Pull out each VTIMEZONE block (same structural line scan as extractVEvents) so
-// the combined all-trips feed can carry the zone definitions its events' TZID
-// parameters reference.
-function extractVTimezones(ics: string): string[] {
-  const blocks: string[] = [];
-  let current = '';
-  let inside = false;
-  for (const line of ics.split('\r\n')) {
-    if (line === 'BEGIN:VTIMEZONE') {
-      inside = true;
-      current = '';
-    }
-    if (inside) current += line + '\r\n';
-    if (line === 'END:VTIMEZONE') {
-      inside = false;
-      blocks.push(current);
-    }
-  }
-  return blocks;
 }

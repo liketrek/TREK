@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { NotificationsController } from './notifications.controller';
+import { AdminNotificationPreferencesController, NotificationsController } from './notifications.controller';
 import { NotificationsMcp } from './notifications.mcp';
 import { NotificationsService } from './notifications.service';
 import { NotificationPreferencesService } from './notification-preferences.service';
@@ -14,10 +14,10 @@ import { AuthModule } from '../auth/auth.module';
  *  mail without AuthModule and NotificationsModule importing each other.
  *  NotificationsService and NotificationPreferencesService are exported for
  *  in-container consumers (AdminController's dev test send and preferences tab,
- *  the plugin RPC host's PluginHostDepsFactory). */
+ *  the plugin RPC surface, HostSurfaceRpc). */
 @Module({
   imports: [AuthModule, MailerModule],
-  controllers: [NotificationsController],
+  controllers: [NotificationsController, AdminNotificationPreferencesController],
   providers: [NotificationsService, NotificationPreferencesService, WebhookService, NtfyService, NotificationsMcp],
   exports: [NotificationsService, NotificationPreferencesService],
 })

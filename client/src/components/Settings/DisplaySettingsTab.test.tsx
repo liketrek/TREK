@@ -1,4 +1,4 @@
-// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-048
+// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-052
 import { render, screen, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -393,5 +393,54 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
     await user.click(screen.getByRole('button', { name: /24h/ }));
 
     expect(screen.getAllByText('Nope').length).toBeGreaterThan(0);
+  });
+});
+
+describe('DisplaySettingsTab – startup destination', () => {
+  it('FE-COMP-DISPLAY-049: defaults to the dashboard and hides the tab picker', () => {
+    seedStore(useSettingsStore, { settings: buildSettings() });
+    render(<DisplaySettingsTab />);
+    const block = optionBlock(/^Start page$/);
+
+    expect(within(block).getByText('Dashboard').closest('button')!.style.border).toContain('var(--text-primary)');
+    // Nothing to pick a tab for while TREK opens on the dashboard.
+    expect(screen.queryByText('Start tab')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-DISPLAY-050: choosing the active trip saves it and reveals the tab picker', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings(), updateSetting });
+    render(<DisplaySettingsTab />);
+
+    await user.click(within(optionBlock(/^Start page$/)).getByText('Active trip'));
+
+    expect(updateSetting).toHaveBeenCalledWith('start_page', 'active_trip');
+  });
+
+  it('FE-COMP-DISPLAY-051: with the active trip chosen, the tab picker stores the planner tab id', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, {
+      settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'plan' }),
+      updateSetting,
+    });
+    render(<DisplaySettingsTab />);
+
+    await user.click(screen.getByRole('button', { name: 'Plan' }));
+    await user.click(await screen.findByText('Costs'));
+
+    // The German legacy id, not the English label the user sees.
+    expect(updateSetting).toHaveBeenCalledWith('start_trip_tab', 'finanzplan');
+  });
+
+  it('FE-COMP-DISPLAY-052: a rejected start-page change surfaces the error', async () => {
+    const user = userEvent.setup();
+    seedFailing('Start locked');
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(within(optionBlock(/^Start page$/)).getByText('Active trip'));
+
+    await screen.findByText('Start locked');
   });
 });

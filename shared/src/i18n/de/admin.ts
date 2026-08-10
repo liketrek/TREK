@@ -124,6 +124,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Ortsdetails',
   'admin.placesDetails.subtitle':
     'Detaillierte Ortsinformationen (Öffnungszeiten, Bewertung, Website) von der Google Places API laden. Deaktivieren, um API-Kontingent zu sparen.',
+  'admin.placesEnrich.title': 'Ortsanreicherung',
+  'admin.placesEnrich.subtitle':
+    'Bilder und eine Beschreibung beim Hinzufügen eines Ortes anzeigen. Wikipedia und OpenStreetMap werden immer genutzt; Google kommt zusätzlich dazu, wenn Ortsfotos oder Ortsdetails aktiv sind.',
   'admin.bagTracking.title': 'Gepäck-Tracking',
   'admin.bagTracking.subtitle': 'Gewicht und Gepäckstück-Zuordnung für Packlisteneinträge aktivieren',
   'admin.collab.chat.title': 'Chat',

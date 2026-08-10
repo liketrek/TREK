@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import type { Addon } from '../../types';
-import { getPhotoProviderConfig } from '../../services/memories/helpersService';
+import { getPhotoProviderConfig } from '../memories/memories.helpers';
 
 /**
  * Thin wrapper around the enabled-addons + photo-provider read that the legacy
@@ -149,4 +149,51 @@ export class AddonsService {
       ],
     };
   }
+
+  // ── Places provider flags ──────────────────────────────────────────────────
+  // These three sat as raw app_settings SQL on AdminService, next to the
+  // bag-tracking and collab flags it already delegated here. They read
+  // `=== 'true'` — fail-closed, matching getBagTracking(). They read
+  // `!== 'false'` (fail-open) before the 2026-08 quirk fix; a migration
+  // backfills 'true' for installs that never touched the switches, so nobody
+  // loses a feature on upgrade.
+
+  private readFlag(key: string) {
+    const row = this.db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
+    return { enabled: row?.value === 'true' };
+  }
+
+  private writeFlag(key: string, enabled: boolean) {
+    this.db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, enabled ? 'true' : 'false');
+    return { enabled: !!enabled };
+  }
+
+  getPlacesPhotos() { return this.readFlag('places_photos_enabled'); }
+  updatePlacesPhotos(enabled: boolean) { return this.writeFlag('places_photos_enabled', enabled); }
+  getPlacesAutocomplete() { return this.readFlag('places_autocomplete_enabled'); }
+  updatePlacesAutocomplete(enabled: boolean) { return this.writeFlag('places_autocomplete_enabled', enabled); }
+  getPlacesDetails() { return this.readFlag('places_details_enabled'); }
+  updatePlacesDetails(enabled: boolean) { return this.writeFlag('places_details_enabled', enabled); }
+
+  /**
+   * Enrichment reads fail-OPEN, unlike the three switches above.
+   *
+   * Those needed migration 185 to backfill 'true' precisely because they read
+   * `=== 'true'`: without a row, an install that had been happily using the
+   * feature would have lost it on upgrade. This switch is new, so there is no
+   * row to backfill anywhere and no migration worth writing for one boolean —
+   * reading it the other way round gets the same outcome for free.
+   *
+   * It has to agree with PlaceEnrichmentService.enrichDisabled(), which reads
+   * the same key the same way. If these two ever disagree the admin panel shows
+   * "off" while the feature runs, which is worse than either default.
+   */
+  getPlacesEnrich() {
+    const row = this.db.prepare("SELECT value FROM app_settings WHERE key = 'places_enrich_enabled'").get() as
+      | { value: string }
+      | undefined;
+    return { enabled: row?.value !== 'false' };
+  }
+
+  updatePlacesEnrich(enabled: boolean) { return this.writeFlag('places_enrich_enabled', enabled); }
 }

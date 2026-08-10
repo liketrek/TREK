@@ -15,6 +15,7 @@ import { memoryStorage } from 'multer';
 import type { User } from '../../types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { BookingImportService } from './booking-import.service';
 import { ImportJobsService } from './import-jobs.service';
 import { bookingImportModeSchema } from '@trek/shared';
@@ -30,29 +31,20 @@ const UPLOAD = {
 };
 
 @Controller('api/trips/:tripId/reservations/import')
-@UseGuards(JwtAuthGuard)
+// TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
+// add @RequirePermission('reservation_edit'), the same action string the service's canEdit
+// passes, so the HTTP and MCP paths cannot demand different rights.
+@UseGuards(JwtAuthGuard, TripAccessGuard)
 export class BookingImportController {
   constructor(
     private readonly bookingImport: BookingImportService,
     private readonly importJobs: ImportJobsService,
   ) {}
 
-  private requireTrip(tripId: string, user: User) {
-    const trip = this.bookingImport.verifyTripAccess(tripId, user.id);
-    if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);
-    return trip;
-  }
 
-  private requireEdit(trip: ReturnType<BookingImportService['verifyTripAccess']>, user: User): void {
-    if (!this.bookingImport.canEdit(trip!, user)) {
-      throw new HttpException({ error: 'No permission' }, 403);
-    }
-  }
 
   /** Shared validation for both the sync and async import endpoints; returns the parsed mode. */
   private validateImport(tripId: string, user: User, files: Express.Multer.File[] | undefined, rawMode?: string): BookingImportMode {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
 
     const modeResult = bookingImportModeSchema.safeParse(rawMode ?? 'no-ai');
     if (!modeResult.success) throw new HttpException({ error: 'Invalid mode' }, 400);
@@ -79,6 +71,7 @@ export class BookingImportController {
    * Accepts up to 5 booking confirmation files (EML, PDF, PKPass, HTML, TXT).
    * Returns a preview list without persisting anything.
    */
+  @RequirePermission('reservation_edit')
   @Post('booking')
   @UseInterceptors(FilesInterceptor('files', MAX_FILES, UPLOAD))
   async preview(
@@ -98,6 +91,7 @@ export class BookingImportController {
    * (import:progress / import:done / import:error). Lets the upload modal close at
    * once and a background widget track the work while the user keeps navigating.
    */
+  @RequirePermission('reservation_edit')
   @Post('booking/async')
   @UseInterceptors(FilesInterceptor('files', MAX_FILES, UPLOAD))
   async previewAsync(
@@ -127,6 +121,7 @@ export class BookingImportController {
    * POST /api/trips/:tripId/reservations/import/booking/confirm
    * Persists the user-confirmed subset of parsed items.
    */
+  @RequirePermission('reservation_edit')
   @Post('booking/confirm')
   async confirm(
     @CurrentUser() user: User,
@@ -134,8 +129,6 @@ export class BookingImportController {
     @Body() body: { items?: BookingImportPreviewItem[] },
     @Headers('x-socket-id') socketId?: string,
   ): Promise<BookingImportConfirmResponse> {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
 
     const items = body?.items;
     if (!Array.isArray(items) || items.length === 0) {

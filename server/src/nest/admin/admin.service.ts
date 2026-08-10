@@ -18,16 +18,13 @@ import type { User, Addon } from '../../types';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { avatarUrl } from '../common/avatarUrl';
 import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
-import { getPhotoProviderConfig } from '../../services/memories/helpersService';
+import { getPhotoProviderConfig } from '../memories/memories.helpers';
 import { validatePassword } from '../common/passwordPolicy';
 import { UserCleanupService } from '../auth/user-cleanup.service';
-import { NotificationPreferencesService } from '../notifications/notification-preferences.service';
 import { DatabaseService } from '../database/database.service';
 import { AddonsService } from '../addons/addons.service';
-import { SettingsService } from '../settings/settings.service';
 import { PasskeyService } from '../auth/passkey.service';
 import { AuthService } from '../auth/auth.service';
-import { PackingService } from '../packing/packing.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PERMISSION_ACTIONS } from '../permissions/permissions.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -70,15 +67,12 @@ const VERSION_FAILURE_TTL = 60_000;
 export class AdminService {
   constructor(
     private readonly db: DatabaseService,
-    private readonly settings: SettingsService,
     private readonly addons: AddonsService,
     private readonly passkeys: PasskeyService,
-    private readonly packing: PackingService,
     private readonly auth: AuthService,
     private readonly permissions: PermissionsService,
     private readonly notifications: NotificationsService,
     private readonly userCleanup: UserCleanupService,
-    private readonly notifPrefs: NotificationPreferencesService,
   ) {}
 
   // ── User CRUD ──────────────────────────────────────────────────────────────
@@ -320,50 +314,6 @@ export class AdminService {
     return { entries, total, limit, offset };
   }
 
-  // ── OIDC Settings ──────────────────────────────────────────────────────────
-
-  getOidcSettings() {
-    const get = (key: string) =>
-      this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', key)?.value || '';
-    const secret = decrypt_api_key(get('oidc_client_secret'));
-    return {
-      issuer: get('oidc_issuer'),
-      client_id: get('oidc_client_id'),
-      client_secret_set: !!secret,
-      display_name: get('oidc_display_name'),
-      oidc_only: get('oidc_only') === 'true',
-      discovery_url: get('oidc_discovery_url'),
-    };
-  }
-
-  updateOidcSettings(data: {
-    issuer?: string;
-    client_id?: string;
-    client_secret?: string;
-    display_name?: string;
-    discovery_url?: string;
-  }): { error?: string; status?: number; success?: boolean } {
-    // Lockout prevention: can't remove OIDC config when password login is disabled
-    if ((data.issuer === '' || data.client_id === '') && !this.auth.resolveAuthToggles().password_login) {
-      return {
-        error: 'Cannot remove SSO configuration while password login is disabled. Enable password login first.',
-        status: 400,
-      };
-    }
-
-    const set = (key: string, val: string) =>
-      this.db.run('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', key, val || '');
-    // All five writes are one SSO config — a partial apply would leave the
-    // instance with an issuer but no client id (or vice versa).
-    this.db.transaction(() => {
-      set('oidc_issuer', data.issuer ?? '');
-      set('oidc_client_id', data.client_id ?? '');
-      if (data.client_secret !== undefined) set('oidc_client_secret', maybe_encrypt_api_key(data.client_secret) ?? '');
-      set('oidc_display_name', data.display_name ?? '');
-      set('oidc_discovery_url', data.discovery_url ?? '');
-    });
-    return { success: true };
-  }
 
   // ── Demo Baseline ──────────────────────────────────────────────────────────
 
@@ -505,129 +455,6 @@ export class AdminService {
       // Silently ignore — version check is non-critical
     }
   }
-
-  // ── Invite Tokens ──────────────────────────────────────────────────────────
-
-  listInvites() {
-    return this.db.all(`
-    SELECT i.*, u.username as created_by_name, t.title as trip_title
-    FROM invite_tokens i
-    JOIN users u ON i.created_by = u.id
-    LEFT JOIN trips t ON i.trip_id = t.id
-    ORDER BY i.created_at DESC
-  `);
-  }
-
-  /** Trips an admin can bind an invite to — id + title only, for the picker (#1402). */
-  listTripsForInvite() {
-    return this.db.all('SELECT id, title FROM trips ORDER BY title COLLATE NOCASE ASC');
-  }
-
-  createInvite(
-    createdBy: number,
-    data: { max_uses?: string | number; expires_in_days?: string | number; trip_id?: string | number | null },
-  ) {
-    const rawUses = parseInt(String(data.max_uses));
-    const uses = rawUses === 0 ? 0 : Math.min(Math.max(rawUses || 1, 1), 5);
-    const token = crypto.randomBytes(16).toString('hex');
-    const expiresAt = data.expires_in_days
-      ? new Date(Date.now() + parseInt(String(data.expires_in_days)) * 86400000).toISOString()
-      : null;
-
-    // Optional trip binding: only persist a trip that actually exists, so a stale
-    // or forged id can never bind (and never auto-adds anyone on registration).
-    let tripId: number | null = null;
-    if (data.trip_id != null && String(data.trip_id).trim() !== '') {
-      const parsed = parseInt(String(data.trip_id));
-      if (!Number.isInteger(parsed) || !this.db.get('SELECT id FROM trips WHERE id = ?', parsed)) {
-        // Used to bind null silently, handing back a plain registration invite
-        // the admin never asked for.
-        return { error: 'Trip not found', status: 404 };
-      }
-      tripId = parsed;
-    }
-
-    const ins = this.db.run(
-      'INSERT INTO invite_tokens (token, max_uses, expires_at, created_by, trip_id) VALUES (?, ?, ?, ?, ?)',
-      token, uses, expiresAt, createdBy, tripId,
-    );
-
-    const inviteId = Number(ins.lastInsertRowid);
-    const invite = this.db.get(`
-    SELECT i.*, u.username as created_by_name, t.title as trip_title
-    FROM invite_tokens i
-    JOIN users u ON i.created_by = u.id
-    LEFT JOIN trips t ON i.trip_id = t.id
-    WHERE i.id = ?
-  `, inviteId);
-
-    return { invite, inviteId, uses, expiresInDays: data.expires_in_days ?? null, tripId };
-  }
-
-  deleteInvite(id: string) {
-    const invite = this.db.get('SELECT id FROM invite_tokens WHERE id = ?', id);
-    if (!invite) return { error: 'Invite not found', status: 404 };
-    this.db.run('DELETE FROM invite_tokens WHERE id = ?', id);
-    return {};
-  }
-
-  // ── Feature toggles ────────────────────────────────────────────────────────
-  // Bag-tracking and the collab features are owned by AddonsService (finding
-  // `admin-1`). The three places flags read `=== 'true'` — fail-closed, matching
-  // AddonsService.getBagTracking(). They read `!== 'false'` (fail-open) before
-  // the 2026-08 quirk fix; a migration backfills 'true' for installs that never
-  // touched the switches, so nobody loses a feature on upgrade.
-
-  getBagTracking() { return this.addons.getBagTracking(); }
-  updateBagTracking(enabled: unknown) { return this.addons.updateBagTracking(enabled as boolean); }
-  getCollabFeatures() { return this.addons.getCollabFeatures(); }
-  updateCollabFeatures(body: unknown) { return this.addons.updateCollabFeatures(body as Parameters<AddonsService['updateCollabFeatures']>[0]); }
-
-  getPlacesPhotos() {
-    const row = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_photos_enabled'");
-    return { enabled: row?.value === 'true' };
-  }
-
-  updatePlacesPhotos(enabled: boolean) {
-    this.db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_photos_enabled', ?)", enabled ? 'true' : 'false');
-    return { enabled: !!enabled };
-  }
-
-  getPlacesAutocomplete() {
-    const row = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_autocomplete_enabled'");
-    return { enabled: row?.value === 'true' };
-  }
-
-  updatePlacesAutocomplete(enabled: boolean) {
-    this.db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_autocomplete_enabled', ?)", enabled ? 'true' : 'false');
-    return { enabled: !!enabled };
-  }
-
-  getPlacesDetails() {
-    const row = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_details_enabled'");
-    return { enabled: row?.value === 'true' };
-  }
-
-  updatePlacesDetails(enabled: boolean) {
-    this.db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_details_enabled', ?)", enabled ? 'true' : 'false');
-    return { enabled: !!enabled };
-  }
-
-  // ── Packing templates ──────────────────────────────────────────────────────
-  // The SQL lives in PackingService, which owns all three template tables (see
-  // its "Admin Template CRUD" block).
-
-  listPackingTemplates() { return this.packing.listPackingTemplates(); }
-  getPackingTemplate(id: string) { return this.packing.getPackingTemplate(id); }
-  createPackingTemplate(name: unknown, userId: number) { return this.packing.createPackingTemplate(name as string, userId); }
-  updatePackingTemplate(id: string, body: unknown) { return this.packing.updatePackingTemplate(id, body as Parameters<PackingService['updatePackingTemplate']>[1]); }
-  deletePackingTemplate(id: string) { return this.packing.deletePackingTemplate(id); }
-  createTemplateCategory(templateId: string, name: unknown) { return this.packing.createTemplateCategory(templateId, name as string); }
-  updateTemplateCategory(templateId: string, catId: string, body: unknown) { return this.packing.updateTemplateCategory(templateId, catId, body as Parameters<PackingService['updateTemplateCategory']>[2]); }
-  deleteTemplateCategory(templateId: string, catId: string) { return this.packing.deleteTemplateCategory(templateId, catId); }
-  createTemplateItem(templateId: string, catId: string, name: unknown) { return this.packing.createTemplateItem(templateId, catId, name as string); }
-  updateTemplateItem(templateId: string, itemId: string, body: unknown) { return this.packing.updateTemplateItem(templateId, itemId, body as Parameters<PackingService['updateTemplateItem']>[2]); }
-  deleteTemplateItem(templateId: string, itemId: string) { return this.packing.deleteTemplateItem(templateId, itemId); }
 
   // ── Addons ─────────────────────────────────────────────────────────────────
 
@@ -775,60 +602,6 @@ export class AdminService {
     };
   }
 
-  // ── MCP Tokens ─────────────────────────────────────────────────────────────
-
-  listMcpTokens() {
-    return this.db.all(`
-    SELECT t.id, t.name, t.token_prefix, t.created_at, t.last_used_at, t.user_id, u.username
-    FROM mcp_tokens t
-    JOIN users u ON u.id = t.user_id
-    ORDER BY t.created_at DESC
-  `);
-  }
-
-  deleteMcpToken(id: string) {
-    const token = this.db.get<{ id: number; user_id: number }>('SELECT id, user_id FROM mcp_tokens WHERE id = ?', id);
-    if (!token) return { error: 'Token not found', status: 404 };
-    this.db.run('DELETE FROM mcp_tokens WHERE id = ?', id);
-    revokeUserSessions(token.user_id);
-    return {};
-  }
-
-  // ── OAuth Sessions ─────────────────────────────────────────────────────────
-
-  listOAuthSessions() {
-    const rows = this.db.all<Record<string, unknown> & { scopes: string }>(`
-    SELECT ot.id, ot.client_id, oc.name AS client_name, ot.user_id, u.username,
-           ot.scopes, ot.access_token_expires_at, ot.refresh_token_expires_at, ot.created_at
-    FROM oauth_tokens ot
-    JOIN oauth_clients oc ON ot.client_id = oc.client_id
-    JOIN users u ON u.id = ot.user_id
-    WHERE ot.revoked_at IS NULL
-      AND ot.refresh_token_expires_at > CURRENT_TIMESTAMP
-    ORDER BY ot.created_at DESC
-  `);
-    // One malformed row must not 500 the whole admin OAuth-sessions panel.
-    return rows.map((r) => {
-      let scopes: unknown;
-      try {
-        scopes = JSON.parse(r.scopes);
-      } catch {
-        scopes = null;
-      }
-      return { ...r, scopes };
-    });
-  }
-
-  revokeOAuthSession(id: string) {
-    const row = this.db.get<{ id: number; user_id: number; client_id: string }>(
-      'SELECT id, user_id, client_id FROM oauth_tokens WHERE id = ?', id,
-    );
-    if (!row) return { error: 'Session not found', status: 404 };
-    this.db.run('UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE id = ?', id);
-    revokeUserSessionsForClient(row.user_id, row.client_id);
-    return {};
-  }
-
   // ── JWT Rotation ───────────────────────────────────────────────────────────
 
   rotateJwtSecret(): { error?: string; status?: number } {
@@ -850,8 +623,4 @@ export class AdminService {
 
   // ── Settings + notification preference helpers (non-admin-service modules) ──
 
-  getAdminUserDefaults() { return this.settings.getAdminUserDefaults(); }
-  setAdminUserDefaults(body: Record<string, unknown>) { return this.settings.setAdminUserDefaults(body); }
-  getPreferencesMatrix(userId: number, role: string) { return this.notifPrefs.getPreferencesMatrix(userId, role, 'admin'); }
-  setAdminPreferences(userId: number, body: unknown) { return this.notifPrefs.setAdminPreferences(userId, body as Parameters<NotificationPreferencesService['setAdminPreferences']>[1]); }
 }

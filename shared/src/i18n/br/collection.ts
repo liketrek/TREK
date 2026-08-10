@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Crie uma lista primeiro para salvar lugares.',
   'collections.removedFromAll': 'Removido da coleção',
   'collections.picker.title': 'Lugares salvos',
+  'collections.picker.showMore': 'Mostrar mais {count}',
   'collections.picker.search': 'Buscar nos seus lugares salvos',
   'collections.picker.empty': 'Nenhum lugar salvo para adicionar',
   'collections.picker.hint': 'Escolha um lugar das suas coleções',

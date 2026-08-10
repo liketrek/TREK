@@ -9,17 +9,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { pluginsEnabled } = vi.hoisted(() => ({ pluginsEnabled: vi.fn(() => true) }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { PluginPhotosController } from '../../../src/nest/plugins/plugin-photos.controller';
-import { PluginCalendarController } from '../../../src/nest/plugins/plugin-calendar.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginPhotosController } from '../../../src/nest/plugins/contributions/plugin-photos.controller';
+import { PluginCalendarController } from '../../../src/nest/plugins/contributions/plugin-calendar.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
 function runtime(providers: string[], invoke: (id: string, fn: string, args: unknown[]) => unknown) {
   return {
     providersOf: vi.fn(() => providers),
-    invokeHook: vi.fn(async (id: string, _hook: string, fn: string, args: unknown[]) => invoke(id, fn, args)),
-  } as unknown as PluginRuntimeService;
+    searchPhotos: vi.fn(async (id: string, query: string, page: number, limit: number) => invoke(id, 'search', [query, { page, limit }])),
+    getPhoto: vi.fn(async (id: string, photoId: string) => invoke(id, 'getById', [photoId])),
+    calendarName: vi.fn(async (id: string) => invoke(id, 'getName', [])),
+    calendarEvents: vi.fn(async (id: string, userId: number, start: string, end: string) => invoke(id, 'getEvents', [userId, start, end])),
+  } as unknown as PluginHooks;
 }
 
 describe('PluginPhotosController (photoProvider hook)', () => {
@@ -54,7 +57,7 @@ describe('PluginPhotosController (photoProvider hook)', () => {
     const c = new PluginPhotosController(rt);
     const out = (await c.search('beach', '3', req(7))).providers;
     expect(out.map((p) => p.pluginId)).toEqual(['ok']);
-    expect(rt.invokeHook).toHaveBeenCalledWith('ok', 'photoProvider', 'search', ['beach', { page: 3, limit: 60 }], 7, 5000);
+    expect(rt.searchPhotos).toHaveBeenCalledWith('ok', 'beach', 3, 60, 7);
   });
 
   it('item: returns one normalized photo from a known provider, null for an unknown one', async () => {
@@ -81,7 +84,7 @@ describe('PluginCalendarController (calendarSource hook)', () => {
     expect(out[0].events).toHaveLength(1);
     expect(out[0].events[0]).toMatchObject({ id: 'e1', title: 'Flight', allDay: false });
     // getEvents got the user + the window
-    expect(rt.invokeHook).toHaveBeenCalledWith('cal', 'calendarSource', 'getEvents', [9, '2026-07-01T00:00:00Z', '2026-08-01T00:00:00Z'], 9, 5000);
+    expect(rt.calendarEvents).toHaveBeenCalledWith('cal', 9, '2026-07-01T00:00:00Z', '2026-08-01T00:00:00Z');
   });
 
   it('gates on user + plugins-enabled, and skips a failing source', async () => {

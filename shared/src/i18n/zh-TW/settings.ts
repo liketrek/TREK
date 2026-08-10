@@ -420,6 +420,13 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': '已隱藏',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': '啟動',
+  'settings.startPage': '啟動頁面',
+  'settings.startPageDashboard': '儀表板',
+  'settings.startPageActiveTrip': '進行中的旅行',
+  'settings.startPageHint': 'TREK 會直接開啟正在進行的旅行，沒有則開啟最近要開始的那次。與儀表板突顯的是同一次旅行。',
+  'settings.startTripTab': '啟動分頁',
+  'settings.startTripTabHint': '旅行開啟時所在的分頁。如果該分頁屬於已關閉的附加元件，則改為開啟計劃檢視。',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': '離線快取',

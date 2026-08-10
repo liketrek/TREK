@@ -456,6 +456,15 @@ const settings: TranslationStrings = {
   'settings.appearance.dashOrder.hidden': 'Κρυφό',
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
+  'settings.general.startup': 'Εκκίνηση',
+  'settings.startPage': 'Αρχική σελίδα',
+  'settings.startPageDashboard': 'Πίνακας ελέγχου',
+  'settings.startPageActiveTrip': 'Ενεργό ταξίδι',
+  'settings.startPageHint':
+    'Το TREK ανοίγει απευθείας στο ταξίδι που είναι σε εξέλιξη ή στο επόμενο που ξεκινά. Είναι το ίδιο ταξίδι που προβάλλει ο πίνακας ελέγχου.',
+  'settings.startTripTab': 'Αρχική καρτέλα',
+  'settings.startTripTabHint':
+    'Η καρτέλα με την οποία ανοίγει το ταξίδι. Αν ανήκει σε απενεργοποιημένο πρόσθετο, ανοίγει το πλάνο.',
 
   // ── Offline (#1135)
   'settings.offline.cache.title': 'Προσωρινή μνήμη εκτός σύνδεσης',

@@ -125,7 +125,7 @@ type AccommodationTimesMeta = {
  * Non-Nest consumers (legacy tripService, airtrail import/sync, the transit +
  * transports MCP registrars) go through reservations.bridge.ts instead of
  * importing this class directly; the plugin RPC host injects it via
- * PluginHostDepsFactory.
+ * ReservationsRpc.
  */
 @Injectable()
 export class ReservationsService {

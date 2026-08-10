@@ -1,4 +1,4 @@
-import { db } from '../../../db/database';
+import type Database from 'better-sqlite3';
 import { PluginDataDb } from './plugin-data.service';
 import { DailyBudget, DEFAULT_DAILY_BUDGET } from './daily-budget';
 
@@ -6,9 +6,14 @@ import { DailyBudget, DEFAULT_DAILY_BUDGET } from './daily-budget';
  * Process-wide plugin host state, deliberately module-level (NOT a Nest
  * provider): the data-DB and budget maps must be the single shared instance
  * across host recreations (disable/re-enable builds a NEW rpc host — see the
- * `get data()` comment in plugin-host-deps.factory.ts), and pluginBudgetUsage
+ * `get data()` comment in plugin-rpc-host.factory.ts), and pluginBudgetUsage
  * is read by PluginsService, which the factory itself imports from — folding
  * this state into the injectable would create a provider cycle for no gain.
+ *
+ * It does NOT reach for the `db` singleton, though: the one read it needs is the
+ * budget seed, so the caller passes its own injected connection in. That keeps the
+ * module-level state (which is the point) without a second route to the database
+ * that no test can substitute.
  */
 
 const dataDbs = new Map<string, PluginDataDb>();
@@ -39,12 +44,12 @@ export function closePluginDataDb(id: string): void {
 // nothing persisted or phoned home.
 const budgets = new Map<string, DailyBudget>();
 
-export function budgetFor(id: string): DailyBudget {
+export function budgetFor(id: string, conn: Database.Database): DailyBudget {
   let b = budgets.get(id);
   if (!b) {
     const now = Date.now();
     const since = new Date(now).toISOString().slice(0, 10) + 'T00:00:00';
-    const rows = db
+    const rows = conn
       .prepare("SELECT method, COUNT(*) AS n FROM plugin_capability_audit WHERE plugin_id = ? AND code = 'ok' AND ts >= ? AND method IN ('ai.complete','ai.extract','notify.send') GROUP BY method")
       .all(id, since) as Array<{ method: string; n: number }>;
     let ai = 0, notify = 0;
@@ -59,6 +64,6 @@ export function budgetFor(id: string): DailyBudget {
 }
 
 /** Today's broker usage for one plugin (admin view). Seeds the counter if unseen. */
-export function pluginBudgetUsage(id: string): ReturnType<DailyBudget['used']> {
-  return budgetFor(id).used(Date.now());
+export function pluginBudgetUsage(id: string, conn: Database.Database): ReturnType<DailyBudget['used']> {
+  return budgetFor(id, conn).used(Date.now());
 }

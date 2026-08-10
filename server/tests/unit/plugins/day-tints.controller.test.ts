@@ -20,16 +20,16 @@ import { db as dbConn } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { DayTintsController } from '../../../src/nest/plugins/day-tints.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { DayTintsController } from '../../../src/nest/plugins/contributions/day-tints.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
 function controller(invoke: (id: string) => unknown, providers = ['p1']) {
   const runtime = {
     providersOf: vi.fn(() => providers),
-    invokeHook: vi.fn(async (id: string) => invoke(id)),
-  } as unknown as PluginRuntimeService;
+    dayTints: vi.fn(async (id: string) => invoke(id)),
+  } as unknown as PluginHooks;
   return { c: new DayTintsController(runtime, new DatabaseService(dbConn)), runtime };
 }
 const tint = (over: Record<string, unknown> = {}) => ({ dayId: 10, tone: 'success', ...over });
@@ -222,6 +222,6 @@ describe('DayTintsController', () => {
   it('skips the day lookup entirely when no provider is active', async () => {
     const { c, runtime } = controller(() => [tint()], []);
     expect((await c.get('1', req(5))).tints).toEqual([]);
-    expect(runtime.invokeHook).not.toHaveBeenCalled();
+    expect(runtime.dayTints).not.toHaveBeenCalled();
   });
 });

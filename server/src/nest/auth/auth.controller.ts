@@ -23,6 +23,8 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuid } from 'uuid';
 import { AuthService } from './auth.service';
+import { TokenService } from '../tokens/token.service';
+import { UserProfileService } from './user-profile.service';
 import { avatarDir } from './auth.helpers';
 import {
   ChangePasswordDto,
@@ -41,6 +43,7 @@ import { CurrentUser } from './current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import type { User } from '../../types';
+import { MfaExempt } from './mfa-policy.guard';
 
 const WINDOW = 15 * 60 * 1000;
 const ALLOWED_AVATAR_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -72,7 +75,7 @@ const AVATAR_UPLOAD = {
 @Controller('api/auth')
 @UseGuards(JwtAuthGuard)
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly rl: RateLimitService, private readonly audit: AuditService, private readonly env: RuntimeEnvService) {}
+  constructor(private readonly auth: AuthService, private readonly profile: UserProfileService, private readonly tokens: TokenService, private readonly rl: RateLimitService, private readonly audit: AuditService, private readonly env: RuntimeEnvService) {}
 
   private limit(bucket: string, req: Request, max: number): void {
     if (!this.rl.check(bucket, req.ip || 'unknown', max, WINDOW, Date.now())) {
@@ -81,6 +84,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @MfaExempt('the client needs to know who it is to render the setup screen')
   me(@CurrentUser() user: User) {
     const loaded = this.auth.getCurrentUser(user.id);
     if (!loaded) {
@@ -115,17 +119,17 @@ export class AuthController {
 
   @Put('me/maps-key')
   mapsKey(@CurrentUser() user: User, @Body() body: MapsKeyUpdateDto) {
-    return this.auth.updateMapsKey(user.id, body.maps_api_key);
+    return this.profile.updateMapsKey(user.id, body.maps_api_key);
   }
 
   @Put('me/api-keys')
   apiKeys(@CurrentUser() user: User, @Body() body: ApiKeysUpdateDto) {
-    return this.auth.updateApiKeys(user.id, body);
+    return this.profile.updateApiKeys(user.id, body);
   }
 
   @Put('me/settings')
   updateSettings(@CurrentUser() user: User, @Body() body: SettingsUpdateDto) {
-    const result = this.auth.updateSettings(user.id, body);
+    const result = this.profile.updateSettings(user.id, body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -134,7 +138,7 @@ export class AuthController {
 
   @Get('me/settings')
   getSettings(@CurrentUser() user: User) {
-    const result = this.auth.getSettings(user.id);
+    const result = this.profile.getSettings(user.id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -151,22 +155,22 @@ export class AuthController {
     if (!file) {
       throw new HttpException({ error: 'No image uploaded' }, 400);
     }
-    return this.auth.saveAvatar(user.id, file.filename);
+    return this.profile.saveAvatar(user.id, file.filename);
   }
 
   @Delete('avatar')
   async deleteAvatar(@CurrentUser() user: User) {
-    return this.auth.deleteAvatar(user.id);
+    return this.profile.deleteAvatar(user.id);
   }
 
   @Get('users')
   users(@CurrentUser() user: User) {
-    return { users: this.auth.listUsers(user.id) };
+    return { users: this.profile.listUsers(user.id) };
   }
 
   @Get('validate-keys')
   async validateKeys(@CurrentUser() user: User) {
-    const result = await this.auth.validateKeys(user.id);
+    const result = await this.profile.validateKeys(user.id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -174,6 +178,7 @@ export class AuthController {
   }
 
   @Get('app-settings')
+  @MfaExempt('the setup screen reads the policy it is asking the user to satisfy')
   getAppSettings(@CurrentUser() user: User) {
     const result = this.auth.getAppSettings(user.id);
     if (result.error) {
@@ -183,6 +188,7 @@ export class AuthController {
   }
 
   @Put('app-settings')
+  @MfaExempt('an admin locked out by their own policy must still be able to lift it')
   updateAppSettings(@CurrentUser() user: User, @Body() body: AppSettingsUpdateDto, @Req() req: Request) {
     const result = this.auth.updateAppSettings(user.id, body);
     if (result.error) {
@@ -192,12 +198,12 @@ export class AuthController {
     return { success: true };
   }
 
-  @Get('travel-stats')
-  travelStats(@CurrentUser() user: User) {
-    return this.auth.getTravelStats(user.id);
-  }
+  // GET travel-stats moved to atlas/travel-stats.controller.ts. Same path, same
+  // guard, same response — only the owner changed, so AuthModule can drop its
+  // AtlasModule import.
 
   @Post('mfa/setup')
+  @MfaExempt('completing setup is the way out of the policy')
   @HttpCode(200)
   async mfaSetup(@CurrentUser() user: User) {
     const result = this.auth.setupMfa(user.id, user.email);
@@ -214,6 +220,7 @@ export class AuthController {
   }
 
   @Post('mfa/enable')
+  @MfaExempt('completing setup is the way out of the policy')
   @HttpCode(200)
   mfaEnable(@CurrentUser() user: User, @Body() body: MfaEnableDto, @Req() req: Request) {
     this.limit('mfa', req, 5);
@@ -239,14 +246,14 @@ export class AuthController {
 
   @Get('mcp-tokens')
   listMcpTokens(@CurrentUser() user: User) {
-    return { tokens: this.auth.listMcpTokens(user.id) };
+    return { tokens: this.tokens.listMcpTokens(user.id) };
   }
 
   @Post('mcp-tokens')
   @HttpCode(201)
   createMcpToken(@CurrentUser() user: User, @Body() body: McpTokenCreateDto, @Req() req: Request) {
     this.limit('login', req, 5);
-    const result = this.auth.createMcpToken(user.id, body.name);
+    const result = this.tokens.createMcpToken(user.id, body.name);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -255,7 +262,7 @@ export class AuthController {
 
   @Delete('mcp-tokens/:id')
   deleteMcpToken(@CurrentUser() user: User, @Param('id') id: string) {
-    const result = this.auth.deleteMcpToken(user.id, id);
+    const result = this.tokens.deleteMcpToken(user.id, id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -265,7 +272,7 @@ export class AuthController {
   @Post('ws-token')
   @HttpCode(200)
   wsToken(@CurrentUser() user: User) {
-    const result = this.auth.createWsToken(user.id);
+    const result = this.tokens.createWsToken(user.id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -275,7 +282,7 @@ export class AuthController {
   @Post('resource-token')
   @HttpCode(200)
   resourceToken(@CurrentUser() user: User, @Body() body: ResourceTokenDto) {
-    const token = this.auth.createResourceToken(user.id, body.purpose);
+    const token = this.tokens.createResourceToken(user.id, body.purpose);
     if (!token) {
       throw new HttpException({ error: 'Service unavailable' }, 503);
     }
