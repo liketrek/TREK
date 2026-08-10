@@ -83,9 +83,21 @@ import type { CollabService } from '../../../src/nest/collab/collab.service';
 // getTripSummary is the same controllable mock the legacy path used.
 const tripsStub = {
   canAccessTrip: (tripId: number, userId: number) => dbMock.canAccessTrip(tripId, userId),
-  getTripSummary: (tripId: number, viewerUserId?: number) => mockGetTripSummary(tripId, viewerUserId),
 } as unknown as TripsService;
-const tripsMcp = new TripsMcp(tripsStub, { listItems: () => [] } as unknown as TodoService, { listPolls: () => [], countMessages: () => 0 } as unknown as CollabService);
+// getTripSummary moved to TripReadModelService with the trip split; the mock is
+// the same controllable one, one constructor slot further along.
+const readModelStub = {
+  getTripSummary: (tripId: number, viewerUserId?: number) => mockGetTripSummary(tripId, viewerUserId),
+} as never;
+const tripsMcp = new TripsMcp(
+  tripsStub,
+  { listItems: () => [] } as unknown as TodoService,
+  { listPolls: () => [], countMessages: () => 0 } as unknown as CollabService,
+  undefined as never,
+  undefined as never,
+  undefined as never,
+  readModelStub,
+);
 
 // The three remaining prompts moved to their domains' @McpController classes:
 // packing-list, budget-overview and the static-token notice. Built over the same

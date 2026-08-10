@@ -9,6 +9,7 @@ import { DatabaseService } from '../database/database.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { DaysService } from '../days/days.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
+import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
 
@@ -40,6 +41,7 @@ export class TripsRpc {
     private readonly guards: PluginGuards,
     // Appended: the hand-wired plugin-host harnesses build this positionally.
     private readonly accommodations: AccommodationsService,
+    private readonly roster: TripMembersService,
   ) {}
 
   @PluginMethod('trips.getById', { permission: 'db:read:trips' })
@@ -183,7 +185,7 @@ export class TripsRpc {
     // Ownership transfer is a separate, deliberate action.
     const trip = this.db.prepare('SELECT user_id FROM trips WHERE id = ?').get(tripId) as { user_id: number } | undefined;
     if (trip && trip.user_id === targetUserId) throw new ForbiddenResource('cannot remove the trip owner');
-    this.trips.removeMember(tripId, targetUserId);
+    this.roster.removeMember(tripId, targetUserId);
     return { removed: true };
   }
 }

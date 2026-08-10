@@ -60,6 +60,8 @@ import { UserCleanupService } from '../../src/nest/auth/user-cleanup.service';
 import { CalendarService } from '../../src/nest/calendar/calendar.service';
 import { AccommodationsService } from '../../src/nest/accommodations/accommodations.service';
 import { AccommodationsMcp } from '../../src/nest/accommodations/accommodations.mcp';
+import { TripMembersService } from '../../src/nest/trip-members/trip-members.service';
+import { TripReadModelService } from '../../src/nest/trip-read-model/trip-read-model.service';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
 import { makeNotificationsService, makeNotificationPreferencesService } from './notifications';
@@ -97,25 +99,21 @@ export function createMcpTestRegistry(): McpRegistry {
   );
   const reservationsService = new ReservationsService(dbService, permissionsService, budgetService, realtimeService);
   const accommodationsService = new AccommodationsService(dbService, permissionsService, realtimeService);
+  const membersService = new TripMembersService(dbService, budgetService, new UserCleanupService(dbService), permissionsService, realtimeService);
   const tripsService = new TripsService(
     dbService,
-    todoService,
-    packingService,
-    new FilesService(dbService, permissionsService, realtimeService),
-    new ReservationsService(dbService, permissionsService, budgetService, realtimeService),
+    reservationsService,
     daysService,
     permissionsService,
     budgetService,
-    collabService,
     new VacayService(dbService, realtimeService),
     realtimeService,
-    placesService,
-    // These two were missing: the call passed 12 arguments to a 14-parameter
-    // constructor, so unsplash and userCleanup were undefined here. tsconfig
-    // has include:['src'], so tsc never saw it.
     new UnsplashService(dbService, new RuntimeEnvService()),
-    new UserCleanupService(dbService),
-    accommodationsService,
+  );
+  const readModelService = new TripReadModelService(
+    dbService, membersService, daysService, accommodationsService, budgetService,
+    packingService, reservationsService, collabService, placesService, todoService,
+    new FilesService(dbService, permissionsService, realtimeService),
   );
   const calendarService = new CalendarService(dbService, reservationsService);
   return createTestRegistry(
@@ -136,7 +134,7 @@ export function createMcpTestRegistry(): McpRegistry {
       new AssignmentsMcp(new AssignmentsService(dbService, permissionsService, realtimeService, queryHelpersService, journeyDomain), daysService, authService),
       new CollabMcp(collabService, authService),
       new VacayMcp(new VacayService(dbService, realtimeService), authService),
-      new TripsMcp(tripsService, todoService, collabService, authService, calendarService),
+      new TripsMcp(tripsService, todoService, collabService, authService, calendarService, membersService, readModelService),
       new ShareMcp(new ShareService(dbService, new SettingsService(dbService), permissionsService, queryHelpersService), authService),
       new MapsMcp(mapsService),
       new PlacesMcp(placesService, mapsService, dbService, authService, journeyDomain),

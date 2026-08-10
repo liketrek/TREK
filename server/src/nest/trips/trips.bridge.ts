@@ -22,6 +22,8 @@ import { PlacesService } from '../places/places.service';
 import { MapsService } from '../maps/maps.service';
 import { UserCleanupService } from '../auth/user-cleanup.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
+import { TripMembersService } from '../trip-members/trip-members.service';
+import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
 
 /**
  * Non-Nest entry point for the trip domain — for the two consumers that cannot
@@ -44,22 +46,35 @@ const dbs = () => new DatabaseService(db);
 const photoCache = new PlacePhotoCacheService(dbs(), new RuntimeEnvService());
 const journeyDomain = new JourneyDomainService(dbs(), new RealtimeService(), new TrekPhotosRepository(dbs()));
 const budget = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
+const permissions = new PermissionsService(dbs());
+const realtime = new RealtimeService();
+const days = new DaysService(dbs(), permissions, realtime, new QueryHelpersService(dbs()));
+const accommodations = new AccommodationsService(dbs(), permissions, realtime);
+const reservations = new ReservationsService(dbs(), permissions, budget, realtime);
+const places = new PlacesService(dbs(), permissions, realtime, new MapsService(dbs(), photoCache), new QueryHelpersService(dbs()), new UnsplashService(dbs(), new RuntimeEnvService()), photoCache, journeyDomain);
 const trips = new TripsService(
   dbs(),
-  new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new ReservationsService(dbs(), new PermissionsService(dbs()), budget, new RealtimeService()),
-  new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs())),
-  new PermissionsService(dbs()),
+  reservations,
+  days,
+  permissions,
   budget,
-  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new VacayService(dbs(), new RealtimeService()),
-  new RealtimeService(),
-  new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs(), photoCache), new QueryHelpersService(dbs()), new UnsplashService(dbs(), new RuntimeEnvService()), photoCache, journeyDomain),
+  new VacayService(dbs(), realtime),
+  realtime,
   new UnsplashService(dbs(), new RuntimeEnvService()),
-  new UserCleanupService(dbs()),
-  new AccommodationsService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+);
+const members = new TripMembersService(dbs(), budget, new UserCleanupService(dbs()), permissions, realtime);
+const readModel = new TripReadModelService(
+  dbs(),
+  members,
+  days,
+  accommodations,
+  budget,
+  new PackingService(dbs(), permissions, realtime),
+  reservations,
+  new CollabService(dbs(), permissions, realtime),
+  places,
+  new TodoService(dbs(), permissions, realtime),
+  new FilesService(dbs(), permissions, realtime),
 );
 
 export function getTripOwner(tripId: string | number) {
@@ -67,11 +82,11 @@ export function getTripOwner(tripId: string | number) {
 }
 
 export function listMembers(tripId: string | number, tripOwnerId: number) {
-  return trips.listMembers(tripId, tripOwnerId);
+  return members.listMembers(tripId, tripOwnerId);
 }
 
 export function getTripSummary(tripId: number, viewerUserId?: number) {
-  return trips.getTripSummary(tripId, viewerUserId);
+  return readModel.getTripSummary(tripId, viewerUserId);
 }
 
 /**

@@ -51,6 +51,7 @@ import { PlacesRpc } from '../../src/nest/places/places.rpc';
 import { DaysRpc } from '../../src/nest/days/days.rpc';
 import { AccommodationsRpc } from '../../src/nest/accommodations/accommodations.rpc';
 import { AccommodationsService } from '../../src/nest/accommodations/accommodations.service';
+import { TripMembersService } from '../../src/nest/trip-members/trip-members.service';
 import { ItineraryRpc } from '../../src/nest/assignments/itinerary.rpc';
 import { TripsRpc } from '../../src/nest/trips/trips.rpc';
 import { CostsRpc } from '../../src/nest/budget/costs.rpc';
@@ -99,7 +100,8 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const accommodations = new AccommodationsService(dbs, permissions, realtime);
   // Was 12 arguments for a 14-parameter constructor; unsplash and userCleanup were
   // undefined here and tsconfig only typechecks src, so nothing said so.
-  const trips = new TripsService(dbs, todos, packing, files, reservations, days, permissions, budget, collab, vacay, realtime, places, undefined as never, undefined as never, accommodations);
+  const trips = new TripsService(dbs, reservations, days, permissions, budget, vacay, realtime, undefined as never);
+  const members = new TripMembersService(dbs, budget, undefined as never, permissions, realtime);
   const guards = new PluginGuards(dbs, permissions, addons);
 
   const registry = createTestPluginRegistry([
@@ -115,7 +117,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
     new DaysRpc(days, realtime, guards),
     new AccommodationsRpc(accommodations, realtime, guards),
     new ItineraryRpc(assignments, realtime, guards),
-    new TripsRpc(trips, reservations, days, membership, dbs, realtime, guards, accommodations),
+    new TripsRpc(trips, reservations, days, membership, dbs, realtime, guards, accommodations, members),
     new CostsRpc(budget, dbs, realtime, guards),
     new ReservationsRpc(reservations, realtime, guards),
     new CollabRpc(collab, realtime, guards),

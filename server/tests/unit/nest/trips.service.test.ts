@@ -7,6 +7,11 @@
  * summary/list/create/delete/copy SQL; 051–053 pin the post-fold quirk fixes
  * (transactional deletes, owner display_name)). Uses a real in-memory SQLite
  * DB so SQL logic is exercised faithfully.
+ *
+ * The membership and read-aggregate cases now drive TripMembersService and
+ * TripReadModelService, which is where that code went when the aggregate root
+ * was split. They stayed in this file, over the same in-memory DB, so the diff
+ * shows the move rather than a rewrite.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -65,6 +70,8 @@ import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { TripsService } from '../../../src/nest/trips/trips.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
+import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { getTripOwner, listMembers as bridgeListMembers } from '../../../src/nest/trips/trips.bridge';
@@ -82,21 +89,25 @@ const createAccommodation = accommodationsSvc.createAccommodation.bind(accommoda
 
 const svc = new TripsService(
   dbs(),
-  new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
   daysSvc,
   new PermissionsService(dbs()),
   budgetSvc,
-  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new VacayService(dbs(), new RealtimeService()),
   new RealtimeService(),
-  placesSvc,
   undefined as never, // unsplash — not exercised here
-  new UserCleanupService(dbs()),
-  accommodationsSvc,
 );
+const membersSvc = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService());
+const readModelSvc = new TripReadModelService(
+  dbs(), membersSvc, daysSvc, accommodationsSvc, budgetSvc,
+  new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
+  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  placesSvc,
+  new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+);
+
 
 beforeAll(() => {
   createTables(testDb);
@@ -492,7 +503,7 @@ describe('transferOwnership (#973)', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
 
-    const result = svc.transferOwnership(trip.id, member.id, owner.id);
+    const result = membersSvc.transferOwnership(trip.id, member.id, owner.id);
     expect(result.toEmail).toBe(member.email);
 
     const updated = testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number };
@@ -510,20 +521,20 @@ describe('transferOwnership (#973)', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
     // member (not the owner) attempts the transfer
-    expect(() => svc.transferOwnership(trip.id, member.id, member.id)).toThrow();
+    expect(() => membersSvc.transferOwnership(trip.id, member.id, member.id)).toThrow();
   });
 
   it('TRIP-SVC-022: rejects a transfer to someone who is not a member', () => {
     const { user: owner } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    expect(() => svc.transferOwnership(trip.id, stranger.id, owner.id)).toThrow('New owner must be a trip member');
+    expect(() => membersSvc.transferOwnership(trip.id, stranger.id, owner.id)).toThrow('New owner must be a trip member');
   });
 
   it('TRIP-SVC-023: rejects transferring to yourself', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    expect(() => svc.transferOwnership(trip.id, owner.id, owner.id)).toThrow('You already own this trip');
+    expect(() => membersSvc.transferOwnership(trip.id, owner.id, owner.id)).toThrow('You already own this trip');
   });
 });
 
@@ -532,7 +543,7 @@ describe('guest members (#1362)', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const { member } = svc.createGuest(trip.id, '  Anna  ', owner.id);
+    const { member } = membersSvc.createGuest(trip.id, '  Anna  ', owner.id);
     expect(member.username).toBe('Anna');
     expect(member.is_guest).toBe(true);
 
@@ -547,7 +558,7 @@ describe('guest members (#1362)', () => {
     expect(m).toBeTruthy();
 
     // Surfaces in listMembers with is_guest=true and the typed display name.
-    const { members } = svc.listMembers(trip.id, owner.id) as any;
+    const { members } = membersSvc.listMembers(trip.id, owner.id) as any;
     const guest = members.find((x: any) => x.id === member.id);
     expect(guest.username).toBe('Anna');
     expect(guest.is_guest).toBe(true);
@@ -556,8 +567,8 @@ describe('guest members (#1362)', () => {
   it('TRIP-SVC-031: the same guest name is allowed, not suffixed (#1446)', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const a = svc.createGuest(trip.id, 'Sam', owner.id);
-    const b = svc.createGuest(trip.id, 'Sam', owner.id);
+    const a = membersSvc.createGuest(trip.id, 'Sam', owner.id);
+    const b = membersSvc.createGuest(trip.id, 'Sam', owner.id);
     // both keep the plain display name; only the internal (uuid) username differs
     expect(a.member.username).toBe('Sam');
     expect(b.member.username).toBe('Sam');
@@ -571,26 +582,26 @@ describe('guest members (#1362)', () => {
     const { user: other } = createUser(testDb);
     const otherTrip = createTrip(testDb, other.id);
     const trip = createTrip(testDb, owner.id);
-    const { member } = svc.createGuest(trip.id, 'Bob', owner.id);
+    const { member } = membersSvc.createGuest(trip.id, 'Bob', owner.id);
 
-    expect(svc.renameGuest(trip.id, member.id, 'Robert')).toBe(true);
+    expect(membersSvc.renameGuest(trip.id, member.id, 'Robert')).toBe(true);
     expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(member.id) as any).display_name).toBe('Robert');
 
     // A real user cannot be renamed through the guest path…
-    expect(svc.renameGuest(trip.id, owner.id, 'Hacked')).toBe(false);
+    expect(membersSvc.renameGuest(trip.id, owner.id, 'Hacked')).toBe(false);
     // …and a guest cannot be renamed from a different trip.
-    expect(svc.renameGuest(otherTrip.id, member.id, 'Nope')).toBe(false);
+    expect(membersSvc.renameGuest(otherTrip.id, member.id, 'Nope')).toBe(false);
   });
 
   it('TRIP-SVC-033: deleteGuest removes the user (cascading membership), guest-only + trip-scoped', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const { member } = svc.createGuest(trip.id, 'Carol', owner.id);
+    const { member } = membersSvc.createGuest(trip.id, 'Carol', owner.id);
 
     // Real members are not deletable via the guest path.
-    expect(svc.deleteGuest(trip.id, owner.id)).toBe(false);
+    expect(membersSvc.deleteGuest(trip.id, owner.id)).toBe(false);
 
-    expect(svc.deleteGuest(trip.id, member.id)).toBe(true);
+    expect(membersSvc.deleteGuest(trip.id, member.id)).toBe(true);
     expect(testDb.prepare('SELECT id FROM users WHERE id = ?').get(member.id)).toBeUndefined();
     expect(testDb.prepare('SELECT id FROM trip_members WHERE user_id = ?').get(member.id)).toBeUndefined();
   });
@@ -598,12 +609,12 @@ describe('guest members (#1362)', () => {
   it('TRIP-SVC-034: a guest is never invitable (addMember) nor a transfer target', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const { member } = svc.createGuest(trip.id, 'Dora', owner.id);
+    const { member } = membersSvc.createGuest(trip.id, 'Dora', owner.id);
 
     // The synthetic username/email must not resolve through the invite box.
-    expect(() => svc.addMember(trip.id, 'Dora', owner.id, owner.id)).toThrow('User not found');
+    expect(() => membersSvc.addMember(trip.id, 'Dora', owner.id, owner.id)).toThrow('User not found');
     // Ownership can never be handed to a guest.
-    expect(() => svc.transferOwnership(trip.id, member.id, owner.id)).toThrow('Cannot transfer ownership to a guest');
+    expect(() => membersSvc.transferOwnership(trip.id, member.id, owner.id)).toThrow('Cannot transfer ownership to a guest');
   });
 });
 
@@ -639,7 +650,7 @@ describe('folded trip CRUD', () => {
     testDb.prepare("INSERT INTO budget_items (trip_id, category, name, total_price) VALUES (?, 'food', 'Dinner', 40)").run(trip.id);
     testDb.prepare("INSERT INTO packing_items (trip_id, name, checked) VALUES (?, 'Socks', 1)").run(trip.id);
 
-    const summary = svc.getTripSummary(trip.id, owner.id)!;
+    const summary = readModelSvc.getTripSummary(trip.id, owner.id)!;
     expect(summary).toBeTruthy();
     expect((summary.trip as any).id).toBe(trip.id);
     expect(summary.members.owner.id).toBe(owner.id);
@@ -653,7 +664,7 @@ describe('folded trip CRUD', () => {
     expect(summary.collab_notes).toEqual([]);
 
     // Missing trips return null instead of throwing.
-    expect(svc.getTripSummary(99999)).toBeNull();
+    expect(readModelSvc.getTripSummary(99999)).toBeNull();
   });
 
   it('TRIP-SVC-043: list returns owned + shared trips with is_owner, honoring the archived filter', () => {
@@ -781,14 +792,14 @@ describe('TripsService wrapper helpers', () => {
     testDb.prepare("INSERT INTO packing_items (trip_id, name, is_private, owner_id) VALUES (?, 'Secret', 1, ?)").run(trip.id, owner.id);
     testDb.prepare("INSERT INTO packing_items (trip_id, name) VALUES (?, 'Shared')").run(trip.id);
 
-    const result = svc.bundle(String(trip.id), { user_id: owner.id }, viewer.id) as any;
+    const result = readModelSvc.bundle(String(trip.id), { user_id: owner.id }, viewer.id) as any;
     expect(result.days).toHaveLength(2);
     expect(result.members.map((m: any) => m.id).sort()).toEqual([owner.id, viewer.id].sort());
     expect(result.packingItems.map((p: any) => p.name)).toEqual(['Shared']);
   });
 
   it('notifyInvite is fire-and-forget (no throw)', () => {
-    expect(() => svc.notifyInvite('9', { id: 1, email: 'a@b.c' } as never, 2, 'T', 'b@x.y')).not.toThrow();
+    expect(() => membersSvc.notifyInvite('9', { id: 1, email: 'a@b.c' } as never, 2, 'T', 'b@x.y')).not.toThrow();
   });
 });
 
@@ -820,17 +831,17 @@ describe('folded quirk branches', () => {
     const { user: invitee } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: 'Joinable' });
 
-    const result = svc.addMember(trip.id, invitee.email, owner.id, owner.id);
+    const result = membersSvc.addMember(trip.id, invitee.email, owner.id, owner.id);
     expect(result.member.id).toBe(invitee.id);
     expect(result.tripTitle).toBe('Joinable');
     expect(result.targetUserId).toBe(invitee.id);
 
     // Duplicate + owner + missing identifier reject with the byte-identical errors.
-    expect(() => svc.addMember(trip.id, invitee.email, owner.id, owner.id)).toThrow('User already has access');
-    expect(() => svc.addMember(trip.id, owner.email, owner.id, owner.id)).toThrow('Trip owner is already a member');
-    expect(() => svc.addMember(trip.id, '', owner.id, owner.id)).toThrow('Email or username required');
+    expect(() => membersSvc.addMember(trip.id, invitee.email, owner.id, owner.id)).toThrow('User already has access');
+    expect(() => membersSvc.addMember(trip.id, owner.email, owner.id, owner.id)).toThrow('Trip owner is already a member');
+    expect(() => membersSvc.addMember(trip.id, '', owner.id, owner.id)).toThrow('Email or username required');
 
-    svc.removeMember(trip.id, invitee.id);
+    membersSvc.removeMember(trip.id, invitee.id);
     expect(testDb.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, invitee.id)).toBeUndefined();
   });
 
@@ -886,7 +897,7 @@ describe('folded quirk branches', () => {
 
 describe('quirk fixes', () => {
   /** A TripsService whose connection throws when preparing SQL matching `match`. */
-  function failingTrips(match: string) {
+  function failingConnection(match: string) {
     const conn = new Proxy(testDb, {
       get(target, prop) {
         if (prop === 'prepare') {
@@ -899,23 +910,28 @@ describe('quirk fixes', () => {
         return typeof v === 'function' ? v.bind(target) : v;
       },
     });
-    const fdbs = { connection: conn, canAccessTrip: dbMock.canAccessTrip, isOwner: dbMock.isOwner } as unknown as import('../../../src/nest/database/database.service').DatabaseService;
+    return { connection: conn, canAccessTrip: dbMock.canAccessTrip, isOwner: dbMock.isOwner } as unknown as import('../../../src/nest/database/database.service').DatabaseService;
+  }
+
+  function failingTrips(match: string) {
+    const fdbs = failingConnection(match);
     return new TripsService(
       fdbs,
-      new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-      new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-      new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
       new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
       daysSvc,
       new PermissionsService(dbs()),
       budgetSvc,
-      new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
       new VacayService(dbs(), new RealtimeService()),
       new RealtimeService(),
-      placesSvc,
-      undefined as never, // unsplash — not exercised here
-      new UserCleanupService(dbs()),
-      new AccommodationsService(fdbs, new PermissionsService(dbs()), new RealtimeService()),
+      undefined as never,
+    );
+  }
+
+  /** Same frozen connection, for the guest deletion that now lives on the roster. */
+  function failingMembers(match: string) {
+    return new TripMembersService(
+      failingConnection(match), budgetSvc, new UserCleanupService(dbs()),
+      new PermissionsService(dbs()), new RealtimeService(),
     );
   }
 
@@ -940,10 +956,10 @@ describe('quirk fixes', () => {
   it('TRIP-SVC-052: deleteGuest is atomic — a failed user DELETE rolls the budget re-split back', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const { member: guest } = svc.createGuest(trip.id, 'Gia', owner.id);
+    const { member: guest } = membersSvc.createGuest(trip.id, 'Gia', owner.id);
     const item = budgetSvc.createBudgetItem(trip.id, { name: 'Dinner', total_price: 80, member_ids: [owner.id, guest.id] });
 
-    const broken = failingTrips('DELETE FROM users WHERE id = ? AND is_guest = 1');
+    const broken = failingMembers('DELETE FROM users WHERE id = ? AND is_guest = 1');
     expect(() => broken.deleteGuest(trip.id, guest.id)).toThrow('boom');
 
     // Neither the guest nor their split membership was touched.
@@ -956,7 +972,7 @@ describe('quirk fixes', () => {
     const { user: owner } = createUser(testDb, { username: 'owner-handle' });
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('Olive Displayed', owner.id);
     const trip = createTrip(testDb, owner.id);
-    const { owner: row } = svc.listMembers(trip.id, owner.id);
+    const { owner: row } = membersSvc.listMembers(trip.id, owner.id);
     expect(row.username).toBe('Olive Displayed');
   });
 });

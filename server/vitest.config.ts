@@ -112,6 +112,8 @@ export default defineConfig({
         'src/nest/transit/**/*.ts': { statements: 92, branches: 83, functions: 97, lines: 94 },
         'src/nest/trip-invite/**/*.ts': { statements: 91, branches: 93, functions: 93, lines: 89 },
         'src/nest/trip-membership/**/*.ts': { statements: 99, branches: 86, functions: 99, lines: 99 },
+        'src/nest/trip-members/**/*.ts': { statements: 92, branches: 82, functions: 91, lines: 94 },
+        'src/nest/trip-read-model/**/*.ts': { statements: 92, branches: 82, functions: 91, lines: 94 },
         'src/nest/trips/**/*.ts': { statements: 92, branches: 82, functions: 91, lines: 94 },
         'src/nest/unsplash/**/*.ts': { statements: 97, branches: 82, functions: 99, lines: 96 },
         'src/nest/vacay/**/*.ts': { statements: 82, branches: 66, functions: 89, lines: 86 },

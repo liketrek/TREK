@@ -145,7 +145,7 @@ describe('service errors are translated into the RPC taxonomy', () => {
       create: vi.fn(() => { if (createThrows) throw createThrows; return { trip: { id: 99 } }; }),
       removeMember: vi.fn(),
     } as never;
-    const rpc = new TripsRpc(trips, {} as never, {} as never, {} as never, db, realtime(), guards, {} as never);
+    const rpc = new TripsRpc(trips, {} as never, {} as never, {} as never, db, realtime(), guards, {} as never, {} as never);
     return new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([rpc]));
   }
 
@@ -246,7 +246,7 @@ describe('every schema-validated method rejects a payload its schema refuses', (
       new PlacesRpc(anything, anything, realtime(), guards),
       new DaysRpc(anything, realtime(), guards),
       new PackingRpc(anything, realtime(), guards),
-      new TripsRpc(anything, anything, anything, anything, db, realtime(), guards, anything),
+      new TripsRpc(anything, anything, anything, anything, db, realtime(), guards, anything, anything),
       new AccommodationsRpc(anything, realtime(), guards),
       new ReservationsRpc(anything, realtime(), guards),
     ]);
