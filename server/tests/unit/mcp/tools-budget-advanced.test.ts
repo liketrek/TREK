@@ -49,9 +49,14 @@ beforeEach(() => {
   resetTestDb(testDb);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
+  // get_settlement_summary calls getRates(), which is a real fetch to
+  // api.frankfurter.dev with a 10 s abort. One case used to stub this inline;
+  // hoisted so a second settlement case cannot quietly reintroduce the call.
+  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
 });
 
 afterAll(() => {
+  vi.unstubAllGlobals();
   testDb.close();
 });
 
@@ -328,8 +333,6 @@ describe('Settlement tools', () => {
   });
 
   it('get_settlement_summary returns balances and flows', async () => {
-    // Avoid a real exchange-rate network call: force getRates() to fail closed.
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
     try {
       const { user, other, trip } = tripWithTwo();
       // user paid 100 for an item split between both → other owes user 50.

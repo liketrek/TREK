@@ -63,9 +63,17 @@ beforeAll(async () => {
 beforeEach(() => {
   resetTestDb(testDb);
   resetRateLimits(nestApp);
+  // GET /budget/settlement reaches ExchangeRatesService.getRates unconditionally
+  // (budget.service.ts settlement()), and that is a real fetch to
+  // api.frankfurter.dev with a 10 s abort. Without this stub the suite talks to
+  // the internet: slow, offline-dependent, and it makes the run take minutes
+  // longer on a machine that cannot reach it. Fail closed — every assertion here
+  // is single-currency, so rates never enter the arithmetic.
+  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
 });
 
 afterAll(async () => {
+  vi.unstubAllGlobals();
   await nestApp.close();
   testDb.close();
 });

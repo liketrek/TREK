@@ -141,6 +141,23 @@ afterEach(() => {
 
 // ── parseOpeningHours ─────────────────────────────────────────────────────────
 
+/**
+ * CPU milliseconds burned by `fn`.
+ *
+ * The ReDoS budgets below used to measure wall-clock time, which on a loaded
+ * machine reports how long the test waited for a core rather than how long the
+ * regex ran — MAPS-024 has gone red at 523 ms on an unchanged file for exactly
+ * that reason. Catastrophic backtracking burns CPU, so CPU time is both the
+ * honest signal and a STRICTER one: cpu <= wall always, so no budget here got
+ * looser. vitest.config.ts uses pool:'forks', so this counts only this file.
+ */
+function cpuMillis(fn: () => void): number {
+  const before = process.cpuUsage();
+  fn();
+  const d = process.cpuUsage(before);
+  return (d.user + d.system) / 1000;
+}
+
 describe('parseOpeningHours', () => {
   it('MAPS-001: returns 7 weekday descriptions and openNow', () => {
     const result = parseOpeningHours('Mo-Fr 09:00-18:00');
@@ -214,12 +231,9 @@ describe('parseOpeningHours', () => {
     expect(result.weekdayDescriptions[1]).toContain('?');
   });
 
-  it('MAPS-007 (ReDoS): opening hours regex on adversarial input < 100ms', () => {
+  it('MAPS-007 (ReDoS): opening hours regex on adversarial input < 100ms of CPU', () => {
     const adversarial = 'Mo' + ',Mo'.repeat(500) + ' closed';
-    const start = Date.now();
-    parseOpeningHours(adversarial);
-    const elapsed = Date.now() - start;
-    expect(elapsed).toBeLessThan(100);
+    expect(cpuMillis(() => { parseOpeningHours(adversarial); })).toBeLessThan(100);
   });
 
   it('MAPS-007b: emits machine-readable periods in Google day numbering (Sunday = 0)', () => {
@@ -545,32 +559,24 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
     expect(result.lng).toBeCloseTo(-74.0445, 3);
   });
 
-  it('MAPS-024 (ReDoS): /@(-?\\d+\\.?\\d*),(-?\\d+\\.?\\d*)/ on adversarial input < 500ms', () => {
+  it('MAPS-024 (ReDoS): /@(-?\\d+\\.?\\d*),(-?\\d+\\.?\\d*)/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '/@' + '1'.repeat(10000) + '.';
-    const start = Date.now();
-    adversarial.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-    expect(Date.now() - start).toBeLessThan(500);
+    expect(cpuMillis(() => { adversarial.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/); })).toBeLessThan(500);
   });
 
-  it('MAPS-025 (ReDoS): /!3d(-?\\d+\\.?\\d*)!4d/ on adversarial input < 500ms', () => {
+  it('MAPS-025 (ReDoS): /!3d(-?\\d+\\.?\\d*)!4d/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '!3d' + '1'.repeat(10000) + '.';
-    const start = Date.now();
-    adversarial.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
-    expect(Date.now() - start).toBeLessThan(500);
+    expect(cpuMillis(() => { adversarial.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/); })).toBeLessThan(500);
   });
 
-  it('MAPS-026 (ReDoS): /[?&]q=(-?\\d+\\.?\\d*)/ on adversarial input < 500ms', () => {
+  it('MAPS-026 (ReDoS): /[?&]q=(-?\\d+\\.?\\d*)/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '?q=' + '1'.repeat(10000) + '.';
-    const start = Date.now();
-    adversarial.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-    expect(Date.now() - start).toBeLessThan(500);
+    expect(cpuMillis(() => { adversarial.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/); })).toBeLessThan(500);
   });
 
-  it('MAPS-027 (ReDoS): /<[^>]+>/ HTML strip on adversarial input < 100ms', () => {
+  it('MAPS-027 (ReDoS): /<[^>]+>/ HTML strip on adversarial input < 100ms of CPU', () => {
     const adversarial = '<' + 'a'.repeat(10000);
-    const start = Date.now();
-    adversarial.replace(/<[^>]+>/g, '');
-    expect(Date.now() - start).toBeLessThan(100);
+    expect(cpuMillis(() => { adversarial.replace(/<[^>]+>/g, ''); })).toBeLessThan(100);
   });
 
   it('MAPS-028: throws when no coordinates found in URL', async () => {
