@@ -379,6 +379,86 @@ describe('folded quirk branches', () => {
 });
 
 
+// The snapshot below was taken from the implementation as it stood when the code
+// moved out of TripsService, before the calendar grew a structured model. It is
+// the parity net for any change to how the calendar is assembled: the 20 cases
+// above pin individual lines, this one pins the whole document including the
+// order of the VTIMEZONE blocks and the folding.
+describe('serialised output', () => {
+  it('CAL-010: a trip with a zoned assignment, a note day and a flight serialises byte for byte', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, {
+      title: 'Golden Trip',
+      description: 'Line one',
+      start_date: '2026-05-01',
+      end_date: '2026-05-01',
+    });
+    const day = createDay(testDb, trip.id, { date: '2026-05-01' });
+    const place = createPlace(testDb, trip.id, { name: 'Tokyo Tower', address: 'Minato', lat: 35.6586, lng: 139.7454 });
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+    testDb.prepare('UPDATE day_assignments SET assignment_time=?, assignment_end_time=? WHERE id=?')
+      .run('09:00', '10:30', assignment.id);
+    createDayNote(testDb, day.id, trip.id, { text: 'Bring the tickets', time: '08:00' });
+    createReservation(testDb, trip.id, {
+      title: 'NH 203',
+      type: 'flight',
+      reservation_time: '2026-05-01T06:15',
+      confirmation_number: 'ABC123',
+      location: 'HND',
+    });
+
+    // DTSTAMP is the wall clock and the UID numbers are autoincrement state shared
+    // with every case above, so both are normalised: this pins the document, not
+    // the minute it ran in or its position in the file.
+    const ics = svc.exportICS(trip.id).ics
+      .replace(/DTSTAMP:\d{8}T\d{6}Z/g, 'DTSTAMP:<stamp>')
+      .replace(/UID:trek-([a-z]+)-\d+@trek/g, 'UID:trek-$1-<n>@trek');
+
+    expect(ics).toMatchInlineSnapshot(`
+      "BEGIN:VCALENDAR
+      VERSION:2.0
+      PRODID:-//TREK//Travel Planner//EN
+      CALSCALE:GREGORIAN
+      METHOD:PUBLISH
+      X-WR-CALNAME:Golden Trip
+      BEGIN:VTIMEZONE
+      TZID:Asia/Tokyo
+      BEGIN:STANDARD
+      DTSTART:19700101T000000
+      TZOFFSETFROM:+0900
+      TZOFFSETTO:+0900
+      TZNAME:Asia/Tokyo
+      END:STANDARD
+      END:VTIMEZONE
+      BEGIN:VEVENT
+      UID:trek-trip-<n>@trek
+      DTSTAMP:<stamp>
+      DTSTART;VALUE=DATE:20260501
+      DTEND;VALUE=DATE:20260502
+      SUMMARY:Golden Trip
+      DESCRIPTION:Line one
+      END:VEVENT
+      BEGIN:VEVENT
+      UID:trek-assign-<n>@trek
+      DTSTAMP:<stamp>
+      DTSTART;TZID=Asia/Tokyo:20260501T090000
+      DTEND;TZID=Asia/Tokyo:20260501T103000
+      SUMMARY:Tokyo Tower
+      END:VEVENT
+      BEGIN:VEVENT
+      UID:trek-day-<n>@trek
+      DTSTAMP:<stamp>
+      DTSTART;VALUE=DATE:20260501
+      DTEND;VALUE=DATE:20260502
+      SUMMARY:Day 2
+      DESCRIPTION:Notes:\\n08:00 — Bring the tickets
+      END:VEVENT
+      END:VCALENDAR
+      "
+    `);
+  });
+});
+
 describe('CalendarService wiring', () => {
   it('CAL-001: the module registers the service, so injection cannot silently fail', () => {
     expectRegisteredProvider(CalendarModule, CalendarService);

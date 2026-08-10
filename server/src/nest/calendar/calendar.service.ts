@@ -5,6 +5,22 @@ import { addDays } from '../days/days.service';
 import { resolveTimeZone } from '../common/timezoneService';
 import { NotFoundError } from '../common/domain-errors';
 
+/** The VCALENDAR preamble every TREK calendar starts with, single-trip or merged. */
+export const CALENDAR_HEADER =
+  'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
+
+/** One trip's calendar in parts, so callers can merge several without re-parsing text. */
+export interface TripCalendar {
+  /** Already escaped for the X-WR-CALNAME line. */
+  calName: string;
+  /** Filename for the Content-Disposition of the one-time download. */
+  filename: string;
+  /** VTIMEZONE block per TZID. Merging calendars means merging these by key. */
+  timezones: Map<string, string>;
+  /** One complete BEGIN:VEVENT…END:VEVENT block each, unfolded, in emission order. */
+  events: string[];
+}
+
 // ── ICS folding ─────────────────────────────────────────────────────────────
 
 // RFC 5545 §3.1: content lines longer than 75 octets must be folded with a CRLF
@@ -12,7 +28,7 @@ import { NotFoundError } from '../common/domain-errors';
 // never split a multi-byte codepoint, so non-ASCII titles/notes (accents, CJK,
 // emoji) stay intact. Applied to the whole calendar, so both the one-time
 // download and the subscribable feed emit spec-compliant output.
-function foldICS(ics: string): string {
+export function foldICS(ics: string): string {
   const foldLine = (line: string): string => {
     const bytes = Buffer.from(line, 'utf8');
     if (bytes.length <= 75) return line;
@@ -117,7 +133,17 @@ export class CalendarService {
 
   // ── ICS export ────────────────────────────────────────────────────────────
 
-  exportICS(tripId: string | number): { ics: string; filename: string } {
+  /**
+   * A trip's calendar as parts rather than as one string.
+   *
+   * The all-trips feed needs to merge many trips into one document: it has to
+   * drop each trip's VCALENDAR wrapper, keep the VEVENTs, and emit each
+   * VTIMEZONE once. It used to do that by scanning the finished text back apart
+   * line by line — and that scan had to be structural rather than a regex,
+   * because a user-supplied SUMMARY can legitimately contain the literal
+   * "END:VEVENT". Handing out the parts removes the need to reassemble them.
+   */
+  buildTripCalendar(tripId: string | number): TripCalendar {
     const trip = this.db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as any;
     if (!trip) throw new NotFoundError('Trip not found');
 
@@ -177,17 +203,17 @@ export class CalendarService {
       return `${prop}:${val}\r\n`;
     };
 
-    let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
-    ics += `X-WR-CALNAME:${esc(trip.title || 'TREK Trip')}\r\n`;
+    const events: string[] = [];
 
     // Trip as all-day event. DTEND is exclusive, so it must be the day *after* the last
     // day. addDays() stays in UTC — building a local-time Date here dropped the trip's
     // last day on any server east of Greenwich (#1453).
     if (trip.start_date && trip.end_date) {
       const endStr = fmtDate(addDays(trip.end_date, 1));
-      ics += `BEGIN:VEVENT\r\nUID:${uid(trip.id, 'trip')}\r\nDTSTAMP:${now}\r\nDTSTART;VALUE=DATE:${fmtDate(trip.start_date)}\r\nDTEND;VALUE=DATE:${endStr}\r\nSUMMARY:${esc(trip.title || 'Trip')}\r\n`;
-      if (trip.description) ics += `DESCRIPTION:${esc(trip.description)}\r\n`;
-      ics += `END:VEVENT\r\n`;
+      let ev = `BEGIN:VEVENT\r\nUID:${uid(trip.id, 'trip')}\r\nDTSTAMP:${now}\r\nDTSTART;VALUE=DATE:${fmtDate(trip.start_date)}\r\nDTEND;VALUE=DATE:${endStr}\r\nSUMMARY:${esc(trip.title || 'Trip')}\r\n`;
+      if (trip.description) ev += `DESCRIPTION:${esc(trip.description)}\r\n`;
+      ev += `END:VEVENT\r\n`;
+      events.push(ev);
     }
 
     // Days with assignments and notes
@@ -216,18 +242,19 @@ export class CalendarService {
       // Timed assignments → individual events
       for (const a of timed) {
         const zone = resolveTimeZone(a.place_lat, a.place_lng);
-        ics += `BEGIN:VEVENT\r\nUID:${uid(a.id, 'assign')}\r\nDTSTAMP:${now}\r\n`;
-        ics += dtLine('DTSTART', a.effective_time, zone, day.date + 'T00:00');
+        let ev = `BEGIN:VEVENT\r\nUID:${uid(a.id, 'assign')}\r\nDTSTAMP:${now}\r\n`;
+        ev += dtLine('DTSTART', a.effective_time, zone, day.date + 'T00:00');
         if (a.effective_end_time) {
-          ics += dtLine('DTEND', a.effective_end_time, zone, day.date + 'T00:00');
+          ev += dtLine('DTEND', a.effective_end_time, zone, day.date + 'T00:00');
         }
-        ics += `SUMMARY:${esc(a.place_name)}\r\n`;
+        ev += `SUMMARY:${esc(a.place_name)}\r\n`;
         let desc = '';
         if (a.notes) desc += a.notes;
         if (a.place_address) desc += (desc ? '\n' : '') + a.place_address;
-        if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;
-        if (a.place_address) ics += `LOCATION:${esc(a.place_address)}\r\n`;
-        ics += `END:VEVENT\r\n`;
+        if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
+        if (a.place_address) ev += `LOCATION:${esc(a.place_address)}\r\n`;
+        ev += `END:VEVENT\r\n`;
+        events.push(ev);
       }
 
       // Build all-day summary event if there are untimed activities or notes
@@ -235,9 +262,9 @@ export class CalendarService {
         const dayTitle = day.title || `Day ${day.day_number}`;
         const endStr = fmtDate(addDays(day.date, 1));
 
-        ics += `BEGIN:VEVENT\r\nUID:${uid(day.id, 'day')}\r\nDTSTAMP:${now}\r\n`;
-        ics += `DTSTART;VALUE=DATE:${fmtDate(day.date)}\r\nDTEND;VALUE=DATE:${endStr}\r\n`;
-        ics += `SUMMARY:${esc(dayTitle)}\r\n`;
+        let ev = `BEGIN:VEVENT\r\nUID:${uid(day.id, 'day')}\r\nDTSTAMP:${now}\r\n`;
+        ev += `DTSTART;VALUE=DATE:${fmtDate(day.date)}\r\nDTEND;VALUE=DATE:${endStr}\r\n`;
+        ev += `SUMMARY:${esc(dayTitle)}\r\n`;
 
         let desc = '';
         if (untimed.length > 0) {
@@ -255,8 +282,9 @@ export class CalendarService {
             return line;
           }).join('\n');
         }
-        if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;
-        ics += `END:VEVENT\r\n`;
+        if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
+        ev += `END:VEVENT\r\n`;
+        events.push(ev);
       }
     }
 
@@ -312,9 +340,9 @@ export class CalendarService {
       if (!timeLines) continue;
       const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
 
-      ics += `BEGIN:VEVENT\r\nUID:${uid(r.id, 'res')}\r\nDTSTAMP:${now}\r\n`;
-      ics += timeLines;
-      ics += `SUMMARY:${esc(r.title)}\r\n`;
+      let ev = `BEGIN:VEVENT\r\nUID:${uid(r.id, 'res')}\r\nDTSTAMP:${now}\r\n`;
+      ev += timeLines;
+      ev += `SUMMARY:${esc(r.title)}\r\n`;
 
       let desc = r.type ? `Type: ${r.type}` : '';
       if (r.confirmation_number) desc += `\nConfirmation: ${r.confirmation_number}`;
@@ -337,22 +365,36 @@ export class CalendarService {
       }
       if (meta.train_number) desc += `\nTrain: ${meta.train_number}`;
       if (r.notes) desc += `\n${r.notes}`;
-      if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;
-      if (r.location) ics += `LOCATION:${esc(r.location)}\r\n`;
-      ics += `END:VEVENT\r\n`;
+      if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
+      if (r.location) ev += `LOCATION:${esc(r.location)}\r\n`;
+      ev += `END:VEVENT\r\n`;
+      events.push(ev);
     }
 
-    ics += 'END:VCALENDAR\r\n';
-
-    // Define every referenced zone with a VTIMEZONE, inserted before the first
-    // event so TZID references resolve. No-op when no timed event carried a zone.
-    if (usedZones.size > 0) {
-      let vtz = '';
-      for (const [zone, yyyymmdd] of usedZones) vtz += buildVTimezone(zone, yyyymmdd);
-      ics = ics.replace('BEGIN:VEVENT', vtz + 'BEGIN:VEVENT');
-    }
+    // Every referenced zone gets a VTIMEZONE. They are emitted before the first
+    // event so the TZID references resolve; keyed by TZID so a merged calendar
+    // can define each one once.
+    const timezones = new Map<string, string>();
+    for (const [zone, yyyymmdd] of usedZones) timezones.set(zone, buildVTimezone(zone, yyyymmdd));
 
     const safeFilename = (trip.title || 'trek-trip').replace(/["\r\n]/g, '').replace(/[^\w\s.-]/g, '_');
-    return { ics: foldICS(ics), filename: `${safeFilename}.ics` };
+    return {
+      calName: esc(trip.title || 'TREK Trip'),
+      filename: `${safeFilename}.ics`,
+      timezones,
+      events,
+    };
+  }
+
+  /** One trip's calendar as a finished, foldable VCALENDAR document. */
+  exportICS(tripId: string | number): { ics: string; filename: string } {
+    const cal = this.buildTripCalendar(tripId);
+    const ics =
+      CALENDAR_HEADER +
+      `X-WR-CALNAME:${cal.calName}\r\n` +
+      [...cal.timezones.values()].join('') +
+      cal.events.join('') +
+      'END:VCALENDAR\r\n';
+    return { ics: foldICS(ics), filename: cal.filename };
   }
 }
