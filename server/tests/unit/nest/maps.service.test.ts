@@ -160,9 +160,27 @@ describe('parseOpeningHours', () => {
     expect(result.weekdayDescriptions[0]).toContain('Monday: 09:00-18:00');
   });
 
-  it('MAPS-004: handles 24/7 string gracefully (no crash)', () => {
+  it('MAPS-004: reads 24/7 as open around the clock, every day', () => {
+    // This case used to assert only that nothing crashed, and nothing did: all
+    // seven lines came back as "?", buildOsmDetails then dropped the hours
+    // entirely, and airports, main stations and petrol stations — the places
+    // most likely to be tagged this way — showed no opening hours at all.
     const result = parseOpeningHours('24/7');
+
     expect(result.weekdayDescriptions).toHaveLength(7);
+    expect(result.weekdayDescriptions[0]).toBe('Monday: 00:00-24:00');
+    expect(result.weekdayDescriptions[6]).toBe('Sunday: 00:00-24:00');
+    expect(result.openNow).toBe(true);
+    // A single period with no close is how "never closes" is spelled.
+    expect(result.periods).toEqual([{ open: { day: 0, hour: 0, minute: 0 }, close: null }]);
+  });
+
+  it('MAPS-004b: reads a bare "open" the same way, and leaves other strings alone', () => {
+    expect(parseOpeningHours('open').openNow).toBe(true);
+    // Only a bare "24/7" short-circuits. Anything with weekdays in front of it
+    // is an ordinary segment and keeps going through the normal parser.
+    expect(parseOpeningHours('Mo-Fr 24/7').weekdayDescriptions[0]).toBe('Monday: 24/7');
+    expect(parseOpeningHours('Mo-Fr 24/7').weekdayDescriptions[6]).toBe('Sunday: ?');
   });
 
   it('MAPS-005: returns openNow null for unparseable format', () => {

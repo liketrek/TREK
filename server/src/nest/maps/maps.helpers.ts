@@ -326,6 +326,21 @@ export function parseOpeningHours(ohString: string): {
   const result: string[] = LONG.map((d) => `${d}: ?`);
   const periods: OpeningPeriod[] = [];
 
+  // "24/7" — and it is not an edge case. Every segment below needs a weekday
+  // prefix to match, so this fell straight through, all seven lines stayed "?",
+  // and `buildOsmDetails` then threw the whole thing away as unparseable. Which
+  // is why airports, main stations and petrol stations — the places most likely
+  // to be tagged this way — showed no opening hours at all.
+  if (/^\s*(24\/7|open)\s*$/i.test(ohString)) {
+    return {
+      weekdayDescriptions: LONG.map((d) => `${d}: 00:00-24:00`),
+      openNow: true,
+      // One period that never closes. `close: null` is how the client's
+      // open/closed logic already spells "does not close".
+      periods: [{ open: { day: 0, hour: 0, minute: 0 }, close: null }],
+    };
+  }
+
   // Parse segments like "Mo-Fr 09:00-18:00; Sa 10:00-14:00"
   for (const segment of ohString.split(';')) {
     const trimmed = segment.trim();

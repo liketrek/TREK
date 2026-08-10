@@ -5,12 +5,14 @@ import type {
   MapsPlaceEnrichmentResult,
   PlaceDescription,
   PlaceFact,
+  PlaceHours,
   PlacePhotoCandidate,
+  PlaceRating,
 } from '@trek/shared';
 import { safeFetchFollow } from '../../utils/ssrfGuard';
 import { DatabaseService } from '../database/database.service';
 import { MapsService, readWikiIdentity, withPhotoFetchSlot, type CommonsCandidate, type WikiIdentity } from '../maps/maps.service';
-import { isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
+import { buildOsmDetails, isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 
 /**
@@ -38,7 +40,7 @@ const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
  * from before the change — which is exactly what happened when the facts and
  * Wikivoyage landed.
  */
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4;
 
 /**
  * Cache key for one candidate picture. Deliberately not a bare place id.
@@ -100,6 +102,8 @@ interface CachedEnrichment {
   photos: PlacePhotoCandidate[];
   description: PlaceDescription | null;
   facts: PlaceFact[];
+  hours: PlaceHours | null;
+  rating: PlaceRating | null;
 }
 
 interface CachePayload extends CachedEnrichment {
@@ -129,16 +133,10 @@ export function collectFacts(details: Record<string, unknown> | null): PlaceFact
   const push = (kind: PlaceFact['kind'], value: string | null, url: string | null = null) =>
     facts.push({ kind, value, url });
 
-  // Google supplies a rating and hours as well; both come back from the same
-  // details lookup and were simply going unused.
-  const rating = typeof details.rating === 'number' ? details.rating : null;
-  if (rating) {
-    const count = typeof details.rating_count === 'number' ? details.rating_count : null;
-    push('rating', count ? `${rating} (${count})` : String(rating));
-  }
-
-  const hours = Array.isArray(details.opening_hours) ? (details.opening_hours as string[]) : null;
-  if (hours?.length) push('openingHours', hours.join(' · '));
+  // Rating and opening hours used to be squeezed in here as chips. They are not
+  // chips: a rating wants stars and a week of hours wants a week of hours, and
+  // flattening seven lines into one string produced "Monday: 11:30 AM – 11:00 PM
+  // · Tuesday:…" truncated mid-word. Both now travel as their own fields.
 
   // Everything below is OpenStreetMap tagging and has no Google equivalent.
   if (details.source !== 'openstreetmap') return facts;
@@ -164,6 +162,34 @@ export function collectFacts(details: Record<string, unknown> | null): PlaceFact
   if (internet && internet !== 'no') push('internetAccess', null);
 
   return facts;
+}
+
+/**
+ * The week's opening hours, both as the provider phrased them and as data.
+ *
+ * The two are not redundant. `weekdayDescriptions` is localised display text —
+ * Google writes it in the requested language and it is unusable as a source.
+ * `periods` is what "open now" has to be computed from, in the timezone of the
+ * place rather than of the server; a boolean the provider computed and we then
+ * cached for a week is wrong twice over when read from another continent.
+ */
+export function collectHours(details: Record<string, unknown> | null): PlaceHours | null {
+  if (!details) return null;
+  const lines = Array.isArray(details.opening_hours) ? (details.opening_hours as string[]) : null;
+  if (!lines?.length) return null;
+  return {
+    weekdayDescriptions: lines,
+    periods: (details.opening_periods as PlaceHours['periods']) ?? null,
+    // buildOsmDetails does not set this at all; only Google reports it.
+    specialDays: (details.opening_special_days as string[] | undefined) ?? null,
+  };
+}
+
+/** The provider's star rating, with its count when there is one. */
+export function collectRating(details: Record<string, unknown> | null): PlaceRating | null {
+  const value = typeof details?.rating === 'number' ? details.rating : null;
+  if (value == null) return null;
+  return { value, count: typeof details?.rating_count === 'number' ? details.rating_count : null };
 }
 
 /**
@@ -220,7 +246,20 @@ export class PlaceEnrichmentService {
       this.collectDescription(userId, placeId, req, details, identity),
     ]);
 
-    const result: CachedEnrichment = { photos, description, facts: collectFacts(details) };
+    // The OSM record found while resolving the identity carries the same tags
+    // an Overpass lookup would — cuisine, opening_hours, wheelchair. Reading
+    // them here is what gives a Google place its hours and its facts without a
+    // second billed Details call, and without an Overpass round trip that has
+    // no transport deadline at all.
+    const osmDetails = identity.osmTags ? buildOsmDetails(identity.osmTags, '', '') : null;
+
+    const result: CachedEnrichment = {
+      photos,
+      description,
+      facts: collectFacts(details),
+      hours: collectHours(details) ?? collectHours(osmDetails),
+      rating: collectRating(details),
+    };
     this.writeCache(placeId, lang, result);
     return result;
   }
@@ -565,7 +604,13 @@ export class PlaceEnrichmentService {
       // of the week for a place that has pictures perfectly available.
       const photos = parsed.photos.filter((photo) => this.photoCache.get(photo.key));
       if (photos.length !== parsed.photos.length) return null;
-      return { photos, description: parsed.description ?? null, facts: parsed.facts ?? [] };
+      return {
+        photos,
+        description: parsed.description ?? null,
+        facts: parsed.facts ?? [],
+        hours: parsed.hours ?? null,
+        rating: parsed.rating ?? null,
+      };
     } catch {
       return null;
     }

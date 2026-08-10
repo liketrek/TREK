@@ -4,6 +4,8 @@ import {
   Bike,
   Check,
   ChefHat,
+  ChevronDown,
+  ChevronUp,
   Clock,
   ExternalLink,
   ImageOff,
@@ -17,8 +19,10 @@ import {
   Sun,
   Wifi,
 } from 'lucide-react'
-import type { MapsPlaceEnrichmentResult, PlaceFact, PlacePhotoCandidate } from '@trek/shared'
+import type { MapsPlaceEnrichmentResult, PlaceFact, PlaceHours, PlacePhotoCandidate, PlaceRating } from '@trek/shared'
 import { mapsApi } from '../../api/client'
+import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
+import { convertHoursLine, isUnknownHoursLine, splitHoursLine } from './placeHoursFormat'
 import type { TranslationFn } from '../../types'
 
 /** The place the column is describing. Null while nothing is selected. */
@@ -40,6 +44,10 @@ interface PlaceDetailsColumnProps {
   /** True once the form's description field has something in it. */
   hasDescription: boolean
   language: string
+  /** The user's clock preference, so hours read the same as in the inspector. */
+  timeFormat?: string
+  /** For grouping the rating count's digits. */
+  locale?: string
   t: TranslationFn
 }
 
@@ -77,7 +85,7 @@ function writeSession(key: string, value: MapsPlaceEnrichmentResult): void {
  * without it the tab that was open while the fix shipped keeps replaying the
  * answer the fix was about — and reports it as still broken.
  */
-const ENRICH_CACHE_V = 3
+const ENRICH_CACHE_V = 4
 
 function cacheKeyFor(selection: PlaceDetailsSelection, language: string): string {
   const id = selection.placeId || `coords:${selection.lat}:${selection.lng}`
@@ -103,6 +111,8 @@ export default function PlaceDetailsColumn({
   onAdoptDescription,
   hasDescription,
   language,
+  timeFormat = '24h',
+  locale = 'en-US',
   t,
 }: PlaceDetailsColumnProps): React.ReactElement {
   const [data, setData] = useState<MapsPlaceEnrichmentResult | null>(null)
@@ -171,7 +181,13 @@ export default function PlaceDetailsColumn({
   useEffect(() => () => abortRef.current?.abort(), [])
 
   const isEmpty =
-    state === 'ready' && !data?.disabled && !data?.photos.length && !data?.description && !data?.facts.length
+    state === 'ready' &&
+    !data?.disabled &&
+    !data?.photos.length &&
+    !data?.description &&
+    !data?.facts.length &&
+    !data?.hours &&
+    !data?.rating
 
   return (
     <aside className="w-full sm:w-72 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
@@ -206,6 +222,14 @@ export default function PlaceDetailsColumn({
         {selection && state === 'ready' && !data?.disabled && !isEmpty && (
           <>
             <PhotoStrip photos={data?.photos ?? []} selectedImageUrl={selectedImageUrl} onPickImage={onPickImage} t={t} />
+            <RatingRow rating={data?.rating ?? null} locale={locale} />
+            <OpeningHoursBlock
+              hours={data?.hours ?? null}
+              lat={selection.lat}
+              lng={selection.lng}
+              timeFormat={timeFormat}
+              t={t}
+            />
             <FactList facts={data?.facts ?? []} t={t} />
             <DescriptionBlock
               description={data?.description ?? null}
@@ -356,6 +380,137 @@ function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElem
   )
 }
 
+/**
+ * The star rating, as stars.
+ *
+ * It used to be a chip reading "3.8 (873)", which is the same information and
+ * none of the recognition — a row of stars is read at a glance and a decimal in
+ * a pill is read as text. The count only appears when there is one: Google's
+ * search results carry a rating without a count, and empty brackets look broken.
+ */
+function RatingRow({ rating, locale }: { rating: PlaceRating | null; locale: string }): React.ReactElement | null {
+  if (!rating) return null
+  const filled = Math.round(rating.value)
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="flex items-center gap-0.5" aria-hidden>
+        {[1, 2, 3, 4, 5].map((step) => (
+          <Star
+            key={step}
+            className={`w-3 h-3 ${step <= filled ? 'fill-current text-accent-on' : 'text-content-faint'}`}
+          />
+        ))}
+      </span>
+      <span className="text-caption font-semibold text-content">{rating.value.toFixed(1)}</span>
+      {rating.count != null && (
+        <span className="text-caption text-content-faint">({rating.count.toLocaleString(locale)})</span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The week's opening hours: today up front, the rest a click away.
+ *
+ * This replaces a single chip holding the entire week joined with dots, which
+ * in a 288px column truncated to "Monday: 11:30 AM – 11:00 PM · Tuesday:…" and
+ * told a reader nothing at all.
+ *
+ * Open/closed is recomputed from the structured periods in the place's own
+ * timezone rather than taken from whatever the provider reported when the
+ * payload was cached — read from another continent that flag is wrong twice
+ * over (#1680). When the periods do not support an answer there is no badge:
+ * an hours line the parser could not read is not evidence that somewhere is
+ * closed, and a confident wrong badge is worse than a missing one.
+ */
+function OpeningHoursBlock({
+  hours,
+  lat,
+  lng,
+  timeFormat,
+  t,
+}: {
+  hours: PlaceHours | null
+  lat: number
+  lng: number
+  timeFormat: string
+  t: TranslationFn
+}): React.ReactElement | null {
+  const [expanded, setExpanded] = useState(false)
+  const lines = hours?.weekdayDescriptions
+  if (!lines?.length) return null
+
+  const today = placeWeekdayIndex(new Date(), resolvePlaceTimeZone(lat, lng))
+  const openNow = resolveOpenNow({ periods: hours?.periods, specialDays: hours?.specialDays }, lat, lng, null)
+  const [, todayTimes] = splitHoursLine(convertHoursLine(lines[today] ?? '', timeFormat))
+  const todayLabel = todayTimes && !isUnknownHoursLine(todayTimes) ? todayTimes : t('inspector.showHours')
+
+  return (
+    <div className="space-y-2">
+      <Overline>{t('inspector.openingHours')}</Overline>
+      <div className="rounded-lg border border-edge bg-surface overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-surface-hover transition-colors"
+        >
+          <Clock className="w-3.5 h-3.5 shrink-0 text-content-faint" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-caption font-medium text-content truncate">{todayLabel}</span>
+            {openNow !== null && (
+              <span
+                className={`mt-1 inline-flex items-center rounded-full px-1.5 py-px text-caption font-semibold ${
+                  openNow ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'
+                }`}
+              >
+                {openNow ? t('inspector.opened') : t('inspector.closed')}
+              </span>
+            )}
+          </span>
+          {expanded ? (
+            <ChevronUp className="w-3.5 h-3.5 shrink-0 text-content-faint" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 shrink-0 text-content-faint" />
+          )}
+        </button>
+        {expanded && (
+          <ul className="border-t border-edge-faint px-2.5 py-1.5 space-y-0.5">
+            {lines.map((line, i) => {
+              const [day, times] = splitHoursLine(convertHoursLine(line, timeFormat))
+              // No day part means the provider did not phrase it as
+              // "Day: times" — render it whole rather than inventing columns.
+              if (!day) {
+                return (
+                  <li key={i} className="text-caption text-content-muted break-words">
+                    {times}
+                  </li>
+                )
+              }
+              return (
+                <li
+                  key={i}
+                  className={`flex items-baseline justify-between gap-2 text-caption ${
+                    i === today ? 'text-content font-semibold' : 'text-content-muted'
+                  }`}
+                >
+                  <span className="shrink-0">{day}</span>
+                  {/* Wraps rather than truncates: this is the view someone
+                      opened on purpose, and split shifts run long. */}
+                  <span className="min-w-0 text-right break-words tabular-nums">
+                    {isUnknownHoursLine(times) ? '–' : times}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
 const FACT_ICONS: Record<PlaceFact['kind'], typeof ChefHat> = {
   rating: Star,
   cuisine: ChefHat,
@@ -385,7 +540,9 @@ function FactList({ facts, t }: { facts: PlaceFact[]; t: TranslationFn }): React
     <div className="space-y-2">
       <Overline>{t('places.details.facts')}</Overline>
       <div className="flex flex-wrap gap-1.5">
-        {facts.map((fact) => {
+        {facts
+          .filter((fact) => fact.kind !== 'openingHours' && fact.kind !== 'rating')
+          .map((fact) => {
           const Icon = FACT_ICONS[fact.kind]
           const label = fact.value || t(`places.details.fact.${fact.kind}`)
           const body = (

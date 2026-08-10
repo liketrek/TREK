@@ -169,6 +169,50 @@ export const placeFactSchema = z.object({
 });
 export type PlaceFact = z.infer<typeof placeFactSchema>;
 
+/**
+ * Opening hours as data rather than as a sentence.
+ *
+ * `PlaceHours`, not `PlaceOpeningHours`: the client already has an interface by
+ * that name in `placeOpenState.ts` with a different shape, and two types with
+ * one name in the same import graph is a trap for whoever reads it next.
+ *
+ * Both halves are needed and neither replaces the other. The weekday lines are
+ * display text the provider localised for us and cannot be computed from;
+ * `periods` is machine-readable and is the only thing that can answer "open
+ * now" in the place's own timezone rather than the server's. Issue #1680 was
+ * exactly this distinction.
+ */
+export const placeHoursTimePointSchema = z.object({
+  /** Sunday is 0, the way Google numbers days. */
+  day: z.number().int().min(0).max(6),
+  hour: z.number().int().min(0).max(23),
+  minute: z.number().int().min(0).max(59),
+});
+export type PlaceHoursTimePoint = z.infer<typeof placeHoursTimePointSchema>;
+
+export const placeHoursPeriodSchema = z.object({
+  open: placeHoursTimePointSchema,
+  /** Absent or null means the place never closes (a 24/7 tag, an all-night bar). */
+  close: placeHoursTimePointSchema.nullable().optional(),
+});
+export type PlaceHoursPeriod = z.infer<typeof placeHoursPeriodSchema>;
+
+export const placeHoursSchema = z.object({
+  /** Monday first, localised by the provider. Deliberately not fixed at seven entries. */
+  weekdayDescriptions: z.array(z.string()),
+  periods: z.array(placeHoursPeriodSchema).nullable().optional(),
+  /** YYYY-MM-DD dates the weekly pattern does not describe (holidays and the like). */
+  specialDays: z.array(z.string()).nullable().optional(),
+});
+export type PlaceHours = z.infer<typeof placeHoursSchema>;
+
+export const placeRatingSchema = z.object({
+  value: z.number(),
+  /** Google's search results carry a rating but no count, so this is often null. */
+  count: z.number().int().nullable(),
+});
+export type PlaceRating = z.infer<typeof placeRatingSchema>;
+
 export const mapsPlaceEnrichmentRequestSchema = z.object({
   /** Google place id or `osm:<type>/<id>`; empty for a coordinate-only lookup. */
   placeId: z.string().max(300).optional(),
@@ -194,6 +238,14 @@ export const mapsPlaceEnrichmentResultSchema = z.object({
   photos: z.array(placePhotoCandidateSchema),
   description: placeDescriptionSchema.nullable(),
   facts: z.array(placeFactSchema),
+  /**
+   * Additive, and the `openingHours` / `rating` fact kinds stay in the enum
+   * above even though nothing emits them any more: a cached payload written
+   * before this landed is still valid, and so is an older server talking to a
+   * newer client.
+   */
+  hours: placeHoursSchema.nullable().optional(),
+  rating: placeRatingSchema.nullable().optional(),
   /** True when the admin switched enrichment off; the column then stays quiet. */
   disabled: z.boolean().optional(),
 });

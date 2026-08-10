@@ -5,6 +5,7 @@ import { mapsApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
+import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import CollectionPicker from '../Collections/CollectionPicker'
 import PlaceDetailsColumn, { type PlaceDetailsSelection } from './PlaceDetailsColumn'
@@ -95,9 +96,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const acDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const acAbortRef = useRef<AbortController | null>(null)
   const toast = useToast()
-  const { t, language } = useTranslation()
+  const { t, language, locale } = useTranslation()
   const { hasMapsKey, placesEnrichEnabled } = useAuthStore()
   const can = useCanDo()
+  const timeFormat = useSettingsStore((s) => s.settings.time_format) || '24h'
   const tripObj = useTripStore((s) => s.trip)
   const canUploadFiles = can('file_upload', tripObj)
   const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
@@ -493,6 +495,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     toast,
     t,
     language,
+    locale,
+    timeFormat,
     hasMapsKey,
     placesEnrichEnabled,
     can,
@@ -625,6 +629,8 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           onAdoptDescription={(text) => setForm(prev => ({ ...prev, description: text }))}
           hasDescription={!!form.description.trim()}
           language={language}
+          timeFormat={S.timeFormat}
+          locale={S.locale}
           t={t}
         />
       )}

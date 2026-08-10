@@ -122,7 +122,7 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
   it('200 with an empty result when no provider has anything (POST stays 200)', async () => {
     const res = await request(server).post('/api/maps/enrichment').set('Cookie', sessionCookie(1)).send(BODY);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ photos: [], description: null, facts: [] });
+    expect(res.body).toEqual({ photos: [], description: null, facts: [], hours: null, rating: null });
   });
 
   it('200 with a Commons candidate carrying its licence', async () => {

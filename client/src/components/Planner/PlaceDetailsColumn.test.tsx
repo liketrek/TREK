@@ -189,6 +189,8 @@ describe('PlaceDetailsColumn', () => {
       description: null,
       facts: [
         { kind: 'cuisine', value: 'regional', url: null },
+        // A payload written before hours became a field of their own. The chip
+        // list drops it rather than showing a truncated week beside the block.
         { kind: 'openingHours', value: 'Mo-Sa 17:30+', url: null },
         { kind: 'menu', value: null, url: 'https://example.org/menu' },
         { kind: 'outdoorSeating', value: null, url: null },
@@ -198,7 +200,7 @@ describe('PlaceDetailsColumn', () => {
 
     // A value is shown verbatim; a plain yes falls back to the translated label.
     expect(await screen.findByText('regional')).toBeInTheDocument()
-    expect(screen.getByText('Mo-Sa 17:30+')).toBeInTheDocument()
+    expect(screen.queryByText('Mo-Sa 17:30+')).not.toBeInTheDocument()
     expect(screen.getByText('places.details.fact.outdoorSeating')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /places.details.fact.menu/ })).toHaveAttribute(
       'href',
@@ -274,5 +276,129 @@ describe('PlaceDetailsColumn', () => {
 
     await waitFor(() => expect(firstSignal.aborted).toBe(true))
     expect(placeEnrichment).toHaveBeenCalledTimes(2)
+  })
+})
+
+/**
+ * FE-PDC-019..026 — opening hours and the rating.
+ *
+ * Both used to be chips in the fact row: a whole week joined with dots inside a
+ * `truncate` span, which in a 288px column read "Monday: 11:30 AM – 11:00 PM ·
+ * Tuesday:…", and a rating rendered as the text "3.8 (873)".
+ */
+describe('PlaceDetailsColumn — hours and rating', () => {
+  const WEEK = [
+    'Monday: 09:00-18:00',
+    'Tuesday: 09:00-18:00',
+    'Wednesday: 09:00-18:00',
+    'Thursday: 09:00-18:00',
+    'Friday: 09:00-18:00',
+    'Saturday: 10:00-14:00',
+    'Sunday: ?',
+  ]
+
+  const withHours = (over: Record<string, unknown> = {}) => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: null,
+      hours: { weekdayDescriptions: WEEK, periods: null, specialDays: null },
+      ...over,
+    })
+  }
+
+  it('FE-PDC-019: shows only today collapsed, not the whole week', async () => {
+    withHours()
+    renderColumn()
+
+    // Tuesday and Wednesday carry the same text as Monday, so count instead of
+    // asserting absence: exactly one line is on screen before expanding.
+    await screen.findByText('inspector.openingHours')
+    expect(screen.queryAllByText('09:00-18:00')).toHaveLength(1)
+    expect(screen.queryByText('10:00-14:00')).not.toBeInTheDocument()
+  })
+
+  it('FE-PDC-020: opens the full week on click', async () => {
+    withHours()
+    renderColumn()
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    // Assert on the list rather than on text counts: the collapsed header shows
+    // today's line too, so a count would depend on which day the suite runs.
+    const rows = screen.getAllByRole('listitem')
+    expect(rows).toHaveLength(7)
+    expect(rows[5]).toHaveTextContent('10:00-14:00')
+    // A day the tag said nothing about reads as a dash, not a question mark.
+    expect(rows[6]).toHaveTextContent('–')
+  })
+
+  it('FE-PDC-021: honours the 12-hour clock preference', async () => {
+    withHours()
+    renderColumn({ timeFormat: '12h' })
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent('9:00 AM-6:00 PM')
+  })
+
+  it('FE-PDC-022: says nothing about open or closed without usable periods', async () => {
+    // An hours line the parser could not read is not evidence that somewhere is
+    // shut, and a confident wrong badge is worse than a missing one.
+    withHours()
+    renderColumn()
+
+    await screen.findByText('inspector.openingHours')
+    expect(screen.queryByText('inspector.opened')).not.toBeInTheDocument()
+    expect(screen.queryByText('inspector.closed')).not.toBeInTheDocument()
+  })
+
+  it('FE-PDC-023: reports a place open around the clock as open', async () => {
+    // The 24/7 shape: one period that never closes. Airports and main stations
+    // are tagged this way, and they showed no hours at all before.
+    withHours({
+      hours: {
+        weekdayDescriptions: WEEK.map((_, i) => `${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i]}: 00:00-24:00`),
+        periods: [{ open: { day: 0, hour: 0, minute: 0 }, close: null }],
+        specialDays: null,
+      },
+    })
+    renderColumn()
+
+    expect(await screen.findByText('inspector.opened')).toBeInTheDocument()
+  })
+
+  it('FE-PDC-024: renders the rating as stars with its count', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: null,
+      rating: { value: 3.8, count: 873 },
+    })
+    renderColumn({ locale: 'de-DE' })
+
+    expect(await screen.findByText('3.8')).toBeInTheDocument()
+    expect(screen.getByText('(873)')).toBeInTheDocument()
+  })
+
+  it('FE-PDC-025: leaves the brackets off when there is no count', async () => {
+    // Google's search results carry a rating but never a count.
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: null,
+      rating: { value: 4, count: null },
+    })
+    renderColumn()
+
+    expect(await screen.findByText('4.0')).toBeInTheDocument()
+    expect(screen.queryByText('()')).not.toBeInTheDocument()
+  })
+
+  it('FE-PDC-026: hours alone are content, not an empty column', async () => {
+    withHours()
+    renderColumn()
+
+    await screen.findByText('inspector.openingHours')
+    expect(screen.queryByText('places.details.nothing')).not.toBeInTheDocument()
   })
 })

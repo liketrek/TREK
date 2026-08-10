@@ -36,7 +36,14 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 
 import { db } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { candidateKey, PlaceEnrichmentService, creditLine, collectFacts } from '../../../src/nest/place-enrichment/place-enrichment.service';
+import {
+  candidateKey,
+  PlaceEnrichmentService,
+  creditLine,
+  collectFacts,
+  collectHours,
+  collectRating,
+} from '../../../src/nest/place-enrichment/place-enrichment.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
@@ -511,7 +518,7 @@ describe('collectDescription', () => {
 describe('result cache', () => {
   // v is the cache format version; an entry written before a release that
   // changes the shape or the sources is discarded rather than served.
-  const cachedRow = (photos: unknown[], fetchedAt = Date.now(), v: number | undefined = 3) => ({
+  const cachedRow = (photos: unknown[], fetchedAt = Date.now(), v: number | undefined = 4) => ({
     payload_json: JSON.stringify({ photos, description: null, facts: [], v }),
     fetched_at: fetchedAt,
   });
@@ -686,8 +693,8 @@ describe('collectFacts', () => {
     );
 
     expect(facts).toEqual([
-      // Hours come from the block shared with Google, so they lead.
-      { kind: 'openingHours', value: 'Mo-Sa 17:30+', url: null },
+      // No hours chip: a week of opening times is its own block now, because
+      // seven lines joined with dots truncated to nothing in a 288px column.
       // Semicolons and underscores are OSM syntax, not something to show a reader.
       { kind: 'cuisine', value: 'regional, german', url: null },
       { kind: 'menu', value: null, url: 'https://example.org/menu' },
@@ -716,25 +723,38 @@ describe('collectFacts', () => {
     expect(facts.find((f) => f.kind === 'internetAccess')).toEqual({ kind: 'internetAccess', value: null, url: null });
   });
 
-  it('ENRICH-053: takes the rating and hours from a Google place, but not its OSM-only tags', () => {
+  it('ENRICH-053: takes no chips at all from a Google place', () => {
     expect(collectFacts(null)).toEqual([]);
-    // cuisine/outdoor_seating are OSM tagging and never appear on a Google blob.
+    // cuisine/outdoor_seating are OSM tagging and never appear on a Google blob;
+    // rating and hours are fields of their own.
     expect(collectFacts({ source: 'google', cuisine: 'italian', outdoor_seating: 'yes' })).toEqual([]);
     expect(
       collectFacts({ source: 'google', rating: 4.5, rating_count: 1234, opening_hours: ['Mo-Fr 09:00-18:00'] }),
-    ).toEqual([
-      { kind: 'rating', value: '4.5 (1234)', url: null },
-      { kind: 'openingHours', value: 'Mo-Fr 09:00-18:00', url: null },
-    ]);
+    ).toEqual([]);
   });
 
-  it('ENRICH-053b: omits the review count when there is none', () => {
-    expect(collectFacts({ source: 'google', rating: 4 })).toEqual([{ kind: 'rating', value: '4', url: null }]);
+  it('ENRICH-053b: reads the rating as a number and a count, not as a sentence', () => {
+    expect(collectRating({ source: 'google', rating: 4.5, rating_count: 1234 })).toEqual({ value: 4.5, count: 1234 });
+    // Google's search results carry a rating but never a count.
+    expect(collectRating({ source: 'google', rating: 4 })).toEqual({ value: 4, count: null });
+    expect(collectRating({ source: 'google' })).toBeNull();
+    expect(collectRating(null)).toBeNull();
   });
 
-  it('ENRICH-054: joins multi-day opening hours into one readable line', () => {
-    const facts = collectFacts(osm({ opening_hours: ['Mo-Fr 09:00-18:00', 'Sa 10:00-14:00'] }));
-    expect(facts[0]).toEqual({ kind: 'openingHours', value: 'Mo-Fr 09:00-18:00 · Sa 10:00-14:00', url: null });
+  it('ENRICH-054: hands the week over whole, with the periods that go with it', () => {
+    // The lines are localised display text and the periods are what "open now"
+    // is computed from — neither substitutes for the other.
+    const periods = [{ open: { day: 1, hour: 9, minute: 0 }, close: { day: 1, hour: 18, minute: 0 } }];
+    expect(
+      collectHours(osm({ opening_hours: ['Mo-Fr 09:00-18:00', 'Sa 10:00-14:00'], opening_periods: periods })),
+    ).toEqual({
+      weekdayDescriptions: ['Mo-Fr 09:00-18:00', 'Sa 10:00-14:00'],
+      periods,
+      // buildOsmDetails never sets this; only Google reports special days.
+      specialDays: null,
+    });
+    expect(collectHours(osm({}))).toBeNull();
+    expect(collectHours(null)).toBeNull();
   });
 });
 

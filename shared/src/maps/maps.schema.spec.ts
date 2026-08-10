@@ -142,12 +142,44 @@ describe('placeDescriptionSchema', () => {
 
 describe('mapsPlaceEnrichmentResultSchema', () => {
   it('accepts an empty result, which is what a keyless instance with no Commons hit returns', () => {
-    expect(mapsPlaceEnrichmentResultSchema.safeParse({ photos: [], description: null }).success).toBe(true);
+    expect(mapsPlaceEnrichmentResultSchema.safeParse({ photos: [], description: null, facts: [] }).success).toBe(true);
+  });
+
+  it('treats hours and rating as additive, so an older payload still parses', () => {
+    // They arrived after the first release of this endpoint; a cached result
+    // written before that has neither and must stay valid.
+    expect(mapsPlaceEnrichmentResultSchema.safeParse({ photos: [], description: null, facts: [] }).success).toBe(true);
+    expect(
+      mapsPlaceEnrichmentResultSchema.safeParse({
+        photos: [],
+        description: null,
+        facts: [],
+        hours: { weekdayDescriptions: ['Monday: 09:00-18:00'], periods: null, specialDays: null },
+        rating: { value: 4.5, count: 1234 },
+      }).success,
+    ).toBe(true);
+    // A place that never closes has a period with no close time.
+    expect(
+      mapsPlaceEnrichmentResultSchema.safeParse({
+        photos: [],
+        description: null,
+        facts: [],
+        hours: {
+          weekdayDescriptions: ['Monday: 00:00-24:00'],
+          periods: [{ open: { day: 0, hour: 0, minute: 0 }, close: null }],
+        },
+      }).success,
+    ).toBe(true);
+    // Google's search results carry a rating but no count.
+    expect(
+      mapsPlaceEnrichmentResultSchema.safeParse({ photos: [], description: null, facts: [], rating: { value: 4, count: null } })
+        .success,
+    ).toBe(true);
   });
 
   it('accepts the kill-switch response', () => {
     expect(
-      mapsPlaceEnrichmentResultSchema.safeParse({ photos: [], description: null, disabled: true }).success,
+      mapsPlaceEnrichmentResultSchema.safeParse({ photos: [], description: null, facts: [], disabled: true }).success,
     ).toBe(true);
   });
 
