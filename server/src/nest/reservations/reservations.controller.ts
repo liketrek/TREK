@@ -15,7 +15,7 @@ import { ReservationsService } from './reservations.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { pushReservationToAirtrail } from '../../services/airtrail/airtrailSync';
+import { pushReservationToAirtrail } from '../integrations/airtrail.bridge';
 import {
   ReservationCreateDto,
   ReservationUpdateDto,

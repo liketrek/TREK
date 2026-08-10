@@ -1,5 +1,5 @@
-import { localParts } from '../../nest/common/timezoneService';
-import type { AirtrailAirport, AirtrailFlightRaw, AirtrailNamedCode } from './airtrailClient';
+import { localParts } from '../common/timezoneService';
+import type { AirtrailAirport, AirtrailFlightRaw, AirtrailNamedCode } from './airtrail.client';
 import type { AirtrailFlight } from '@trek/shared';
 
 import * as crypto from 'node:crypto';

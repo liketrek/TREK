@@ -8,20 +8,48 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * doesn't actually chain.
  */
 
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-vi.mock('../../../src/services/airtrail/airtrailService', () => ({
-  getAirtrailCredentials: vi.fn(() => ({ baseUrl: 'https://at.example', apiKey: 'k', allowInsecureTls: false })),
-}));
-vi.mock('../../../src/services/airtrail/airtrailClient', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../src/services/airtrail/airtrailClient')>();
-  return { ...actual, listFlights: vi.fn() };
-});
-
 import { db } from '../../../src/db/database';
 import { createUser, createTrip } from '../../helpers/factories';
-import { listFlights } from '../../../src/services/airtrail/airtrailClient';
-import type { AirtrailAirport, AirtrailFlightRaw } from '../../../src/services/airtrail/airtrailClient';
-import { importAirtrailFlights } from '../../../src/services/airtrail/airtrailImport';
+import type { AirtrailAirport, AirtrailFlightRaw } from '../../../src/nest/integrations/airtrail.client';
+import { AirtrailImportService } from '../../../src/nest/integrations/airtrail-import.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
+import type { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
+
+// The client and the per-user credentials are the only stubs; the reservation
+// writes go through the real service against the real test DB, as before. They
+// were module mocks until the fold made them injected collaborators.
+const listFlights = vi.fn();
+const broadcast = vi.fn();
+
+function makeImportService(): AirtrailImportService {
+  const dbs = () => new DatabaseService(db);
+  const permissions = new PermissionsService(dbs());
+  const realtime = { broadcast } as unknown as RealtimeService;
+  return new AirtrailImportService(
+    dbs(),
+    realtime,
+    new ReservationsService(
+      dbs(),
+      permissions,
+      new BudgetService(dbs(), permissions, new ExchangeRatesService(), realtime),
+      realtime,
+    ),
+    { listFlights } as unknown as AirtrailClient,
+    {
+      getAirtrailCredentials: () => ({ baseUrl: 'https://at.example', apiKey: 'k', allowInsecureTls: false }),
+    } as unknown as AirtrailService,
+  );
+}
+
+const importAirtrailFlights = (
+  ...args: Parameters<AirtrailImportService['importAirtrailFlights']>
+) => makeImportService().importAirtrailFlights(...args);
 
 const BRU: AirtrailAirport = { id: 1, icao: 'EBBR', iata: 'BRU', name: 'Brussels', lat: 50.9014, lon: 4.4844, tz: 'Europe/Brussels', country: 'BE' };
 const HEL: AirtrailAirport = { id: 2, icao: 'EFHK', iata: 'HEL', name: 'Helsinki-Vantaa', lat: 60.3172, lon: 24.9633, tz: 'Europe/Helsinki', country: 'FI' };
@@ -93,7 +121,7 @@ beforeEach(() => {
 
 describe('importAirtrailFlights connection joining (#1535)', () => {
   it('imports a connection chain as ONE multi-leg reservation, detached from live sync', async () => {
-    (listFlights as any).mockResolvedValue([legBruHel(), legHelJfk()]);
+    listFlights.mockResolvedValue([legBruHel(), legHelJfk()]);
 
     // Deliberately unordered — the server orders the chain by departure itself.
     const result = await importAirtrailFlights(tripId, userId, ['101', '102'], undefined, [['102', '101']]);
@@ -131,7 +159,7 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
       departure: '2026-08-02T07:00:00.000+00:00',
       arrival: '2026-08-02T15:00:00.000+00:00',
     };
-    (listFlights as any).mockResolvedValue([legBruHel(), overnightLeg2]);
+    listFlights.mockResolvedValue([legBruHel(), overnightLeg2]);
 
     await importAirtrailFlights(tripId, userId, ['101', '102'], undefined, [['101', '102']]);
     const [r] = tripReservations(tripId);
@@ -152,7 +180,7 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
       arrival: '2026-08-01T21:30:00.000+00:00',
       flightNumber: 'AY1503',
     };
-    (listFlights as any).mockResolvedValue([legBruHel(), returnFlight]);
+    listFlights.mockResolvedValue([legBruHel(), returnFlight]);
 
     const result = await importAirtrailFlights(tripId, userId, ['101', '104'], undefined, [['101', '104']]);
     expect([...result.imported].sort()).toEqual(['101', '104']);
@@ -160,7 +188,7 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
   });
 
   it('skips every member of a joined booking on a later import attempt', async () => {
-    (listFlights as any).mockResolvedValue([legBruHel(), legHelJfk()]);
+    listFlights.mockResolvedValue([legBruHel(), legHelJfk()]);
     await importAirtrailFlights(tripId, userId, ['101', '102'], undefined, [['101', '102']]);
 
     // Only leg 2 carries no external_id of its own — it must still be recognized
@@ -172,13 +200,13 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
   });
 
   it('recognizes a joined leg imported by another member via its per-leg signature', async () => {
-    (listFlights as any).mockResolvedValue([legBruHel(), legHelJfk()]);
+    listFlights.mockResolvedValue([legBruHel(), legHelJfk()]);
     await importAirtrailFlights(tripId, userId, ['101', '102'], undefined, [['101', '102']]);
 
     // The same physical HEL→JFK flight from another member's AirTrail carries a
     // different id there — the flight-number@date signature must catch it.
     const { user: other } = createUser(db);
-    (listFlights as any).mockResolvedValue([{ ...legHelJfk(), id: 999 }]);
+    listFlights.mockResolvedValue([{ ...legHelJfk(), id: 999 }]);
     const result = await importAirtrailFlights(tripId, other.id, ['999'], undefined);
     expect(result.imported).toEqual([]);
     expect(result.skipped).toEqual([{ flightId: '999', reason: 'already-in-trip', detail: expect.any(String) }]);
@@ -186,7 +214,7 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
   });
 
   it('falls back to individual imports when the requested join does not chain', async () => {
-    (listFlights as any).mockResolvedValue([legBruHel(), legLhrJfk()]);
+    listFlights.mockResolvedValue([legBruHel(), legLhrJfk()]);
 
     const result = await importAirtrailFlights(tripId, userId, ['101', '103'], undefined, [['101', '103']]);
     expect([...result.imported].sort()).toEqual(['101', '103']);
@@ -201,7 +229,7 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
 
   it('falls back to individual imports when the layover exceeds 24 h', async () => {
     const lateLeg2 = { ...legHelJfk(), departure: '2026-08-03T11:00:00.000+00:00', arrival: '2026-08-03T19:00:00.000+00:00', date: '2026-08-03' };
-    (listFlights as any).mockResolvedValue([legBruHel(), lateLeg2]);
+    listFlights.mockResolvedValue([legBruHel(), lateLeg2]);
 
     const result = await importAirtrailFlights(tripId, userId, ['101', '102'], undefined, [['101', '102']]);
     expect([...result.imported].sort()).toEqual(['101', '102']);
@@ -209,7 +237,7 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
   });
 
   it('imports singles exactly as before when no join is requested', async () => {
-    (listFlights as any).mockResolvedValue([legBruHel()]);
+    listFlights.mockResolvedValue([legBruHel()]);
 
     const result = await importAirtrailFlights(tripId, userId, ['101'], undefined);
     expect(result.imported).toEqual(['101']);

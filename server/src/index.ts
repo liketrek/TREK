@@ -11,6 +11,7 @@ import type { INestApplication } from '@nestjs/common';
 import { buildApp } from './bootstrap';
 import { BackupService } from './nest/backup/backup.service';
 import { PlacePhotoCacheService } from './nest/place-photos/place-photo-cache.service';
+import { AirtrailSyncService } from './nest/integrations/airtrail-sync.service';
 
 // Create upload and data directories on startup.
 // Every uploads subdir the app writes to must be listed here (#1762): a dir
@@ -97,6 +98,10 @@ const onListen = () => {
     // The container singleton, not a fresh instance: the in-flight dedup and the
     // known-on-disk set only work if the whole process shares one.
     placePhotos: nestApp.get(PlacePhotoCacheService),
+    // The last lazy require() in the cron path. It used to fail inside the tick,
+    // logged as "AirTrail sync tick failed", where a boot-time wiring mistake
+    // belongs at boot.
+    airtrail: nestApp.get(AirtrailSyncService),
   });
   scheduler.start();
   scheduler.startTripReminders();

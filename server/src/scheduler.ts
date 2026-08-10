@@ -74,6 +74,7 @@ function saveSettings(settings: BackupSettings): void {
 export interface SchedulerDeps {
   backups: { createBackup(prefix?: 'backup' | 'auto-backup'): Promise<{ filename: string }> };
   placePhotos: { sweepOrphans(): number };
+  airtrail: { runAirtrailSync(): Promise<void> };
 }
 
 let deps: SchedulerDeps | undefined;
@@ -434,8 +435,11 @@ function startAirTrailSync(): void {
 
   airtrailSyncTask = cron.schedule(`*/${minutes} * * * *`, async () => {
     try {
-      const { runAirtrailSync } = require('./services/airtrail/airtrailSync');
-      await runAirtrailSync();
+      if (!deps) {
+        logError('AirTrail sync: skipped, the scheduler was started without its container dependencies');
+        return;
+      }
+      await deps.airtrail.runAirtrailSync();
     } catch (err: unknown) {
       logError(`AirTrail sync tick failed: ${err instanceof Error ? err.message : err}`);
     }

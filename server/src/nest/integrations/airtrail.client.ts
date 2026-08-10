@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import { safeFetch } from '../../utils/ssrfGuard';
 
 /**
@@ -166,38 +167,50 @@ async function request(creds: AirtrailCreds, path: string, init: RequestInit): P
   return resp;
 }
 
-export async function listFlights(creds: AirtrailCreds): Promise<AirtrailFlightRaw[]> {
-  const resp = await request(creds, '/flight/list', { method: 'GET' });
-  if (!resp.ok) throw new AirtrailRequestError(`AirTrail list failed (HTTP ${resp.status})`, resp.status);
-  const data = await parseJson<{ flights?: AirtrailFlightRaw[] }>(resp);
-  return data.flights ?? [];
-}
 
-export async function getFlight(creds: AirtrailCreds, id: number): Promise<AirtrailFlightRaw | null> {
-  const resp = await request(creds, `/flight/get/${id}`, { method: 'GET' });
-  if (resp.status === 404) return null;
-  if (!resp.ok) throw new AirtrailRequestError(`AirTrail get failed (HTTP ${resp.status})`, resp.status);
-  const data = await parseJson<{ flight?: AirtrailFlightRaw }>(resp);
-  return data.flight ?? null;
-}
-
-export async function saveFlight(creds: AirtrailCreds, payload: AirtrailSavePayload): Promise<{ id?: number }> {
-  const resp = await request(creds, '/flight/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!resp.ok) {
-    let msg = `AirTrail save failed (HTTP ${resp.status})`;
-    try {
-      const body = (await resp.json()) as { message?: string; errors?: unknown };
-      if (body?.message) msg = body.message;
-      else if (body?.errors) msg = JSON.stringify(body.errors);
-    } catch {
-      /* keep the generic message */
-    }
-    throw new AirtrailRequestError(msg, resp.status);
+/**
+ * The AirTrail HTTP surface, as a provider.
+ *
+ * It has no constructor dependencies: `safeFetch` is the SSRF guard, a plain
+ * util that fifteen other nest services import directly. The error classes stay
+ * exported classes rather than becoming anything injectable, because four call
+ * sites branch on `instanceof` and on `err.status === 400`.
+ */
+@Injectable()
+export class AirtrailClient {
+  async listFlights(creds: AirtrailCreds): Promise<AirtrailFlightRaw[]> {
+    const resp = await request(creds, '/flight/list', { method: 'GET' });
+    if (!resp.ok) throw new AirtrailRequestError(`AirTrail list failed (HTTP ${resp.status})`, resp.status);
+    const data = await parseJson<{ flights?: AirtrailFlightRaw[] }>(resp);
+    return data.flights ?? [];
   }
-  const data = await parseJson<{ id?: number }>(resp);
-  return { id: data.id };
+
+  async getFlight(creds: AirtrailCreds, id: number): Promise<AirtrailFlightRaw | null> {
+    const resp = await request(creds, `/flight/get/${id}`, { method: 'GET' });
+    if (resp.status === 404) return null;
+    if (!resp.ok) throw new AirtrailRequestError(`AirTrail get failed (HTTP ${resp.status})`, resp.status);
+    const data = await parseJson<{ flight?: AirtrailFlightRaw }>(resp);
+    return data.flight ?? null;
+  }
+
+  async saveFlight(creds: AirtrailCreds, payload: AirtrailSavePayload): Promise<{ id?: number }> {
+    const resp = await request(creds, '/flight/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      let msg = `AirTrail save failed (HTTP ${resp.status})`;
+      try {
+        const body = (await resp.json()) as { message?: string; errors?: unknown };
+        if (body?.message) msg = body.message;
+        else if (body?.errors) msg = JSON.stringify(body.errors);
+      } catch {
+        /* keep the generic message */
+      }
+      throw new AirtrailRequestError(msg, resp.status);
+    }
+    const data = await parseJson<{ id?: number }>(resp);
+    return { id: data.id };
+  }
 }

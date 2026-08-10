@@ -86,7 +86,7 @@ export default defineConfig({
         'src/nest/files/**/*.ts': { statements: 97, branches: 95, functions: 99, lines: 98 },
         'src/nest/health/**/*.ts': { statements: 99, branches: 65, functions: 99, lines: 99 },
         'src/nest/help/**/*.ts': { statements: 81, branches: 70, functions: 99, lines: 86 },
-        'src/nest/integrations/**/*.ts': { statements: 19, branches: 0, functions: 10, lines: 19 },
+        'src/nest/integrations/**/*.ts': { statements: 69, branches: 52, functions: 72, lines: 71 },
         'src/nest/journey/**/*.ts': { statements: 90, branches: 84, functions: 83, lines: 91 },
         'src/nest/llm-parse/**/*.ts': { statements: 91, branches: 85, functions: 85, lines: 94 },
         'src/nest/maps/**/*.ts': { statements: 92, branches: 85, functions: 95, lines: 95 },

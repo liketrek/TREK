@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildSavePayload } from '../../../src/services/airtrail/airtrailSync';
-import type { AirtrailAirport, AirtrailFlightRaw } from '../../../src/services/airtrail/airtrailClient';
+import { buildSavePayload } from '../../../src/nest/integrations/airtrail-sync.service';
+import type { AirtrailAirport, AirtrailFlightRaw } from '../../../src/nest/integrations/airtrail.client';
 
 function airport(over: Partial<AirtrailAirport> = {}): AirtrailAirport {
   return {

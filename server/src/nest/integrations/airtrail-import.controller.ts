@@ -9,7 +9,7 @@ import { AirtrailImportDto } from './airtrail.dto';
 import type { AirtrailImportResult } from '@trek/shared';
 import { PermissionsService } from '../permissions/permissions.service';
 import { DatabaseService } from '../database/database.service';
-import { importAirtrailFlights } from '../../services/airtrail/airtrailImport';
+import { AirtrailImportService } from './airtrail-import.service';
 
 /**
  * POST /api/trips/:tripId/reservations/import/airtrail — turn selected AirTrail
@@ -23,6 +23,7 @@ export class AirtrailImportController {
   constructor(
     private readonly permissions: PermissionsService,
     private readonly db: DatabaseService,
+    private readonly imports: AirtrailImportService,
   ) {}
 
   private requireEdit(tripId: string, user: User): void {
@@ -42,7 +43,7 @@ export class AirtrailImportController {
   ): Promise<AirtrailImportResult> {
     this.requireEdit(tripId, user);
     try {
-      return await importAirtrailFlights(tripId, user.id, body.flightIds, socketId, body.connections ?? []);
+      return await this.imports.importAirtrailFlights(tripId, user.id, body.flightIds, socketId, body.connections ?? []);
     } catch (err: any) {
       throw new HttpException({ error: err?.message || 'AirTrail import failed' }, err?.status === 400 ? 400 : 502);
     }

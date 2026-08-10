@@ -8,14 +8,8 @@ import { RequireAddon } from '../addons/require-addon.decorator';
 import { ADDON_IDS } from '../../addons';
 import { AirtrailSettingsDto } from './airtrail.dto';
 import { getClientIp } from '../audit/client-ip';
-import {
-  getConnectionSettings,
-  getConnectionStatus,
-  getFlightsForPicker,
-  saveSettings,
-  testConnection,
-} from '../../services/airtrail/airtrailService';
-import { runAirtrailSyncForUser } from '../../services/airtrail/airtrailSync';
+import { AirtrailService } from './airtrail.service';
+import { AirtrailSyncService } from './airtrail-sync.service';
 
 /**
  * /api/integrations/airtrail — per-user AirTrail connection (#214).
@@ -29,9 +23,14 @@ import { runAirtrailSyncForUser } from '../../services/airtrail/airtrailSync';
 @UseGuards(AddonGuard, JwtAuthGuard)
 @RequireAddon(ADDON_IDS.AIRTRAIL, 'AirTrail')
 export class AirtrailController {
+  constructor(
+    private readonly airtrail: AirtrailService,
+    private readonly syncService: AirtrailSyncService,
+  ) {}
+
   @Get('settings')
   getSettings(@CurrentUser() user: User) {
-    return getConnectionSettings(user.id);
+    return this.airtrail.getConnectionSettings(user.id);
   }
 
   @Put('settings')
@@ -40,7 +39,7 @@ export class AirtrailController {
     @Body() body: AirtrailSettingsDto,
     @Req() req: Request,
   ) {
-    const result = await saveSettings(
+    const result = await this.airtrail.saveSettings(
       user.id,
       body.url,
       body.apiKey,
@@ -56,13 +55,13 @@ export class AirtrailController {
 
   @Get('status')
   getStatus(@CurrentUser() user: User) {
-    return getConnectionStatus(user.id);
+    return this.airtrail.getConnectionStatus(user.id);
   }
 
   @Get('flights')
   async flights(@CurrentUser() user: User) {
     try {
-      return { flights: await getFlightsForPicker(user.id) };
+      return { flights: await this.airtrail.getFlightsForPicker(user.id) };
     } catch (err: any) {
       throw new HttpException({ error: err?.message || 'Could not load AirTrail flights' }, err?.status === 400 ? 400 : 502);
     }
@@ -72,7 +71,7 @@ export class AirtrailController {
   @Post('sync')
   @HttpCode(200)
   sync(@CurrentUser() user: User) {
-    return runAirtrailSyncForUser(user.id);
+    return this.syncService.runAirtrailSyncForUser(user.id);
   }
 
   @Post('test')
@@ -81,6 +80,6 @@ export class AirtrailController {
     @CurrentUser() user: User,
     @Body() body: AirtrailSettingsDto,
   ) {
-    return testConnection(user.id, body.url, body.apiKey, !!body.allowInsecureTls);
+    return this.airtrail.testConnection(user.id, body.url, body.apiKey, !!body.allowInsecureTls);
   }
 }
