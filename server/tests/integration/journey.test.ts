@@ -52,7 +52,6 @@ vi.mock('../../src/config', () => ({
 vi.mock('../../src/websocket', () => ({
   broadcast: vi.fn(),
   broadcastToUser: vi.fn(),
-  setupWebSocket: vi.fn(),
   getOnlineUserIds: vi.fn(() => []),
 }));
 vi.mock('../../src/services/memories/immichService', () => ({

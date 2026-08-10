@@ -1,0 +1,161 @@
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
+  SubscribeMessage,
+  WebSocketGateway,
+} from '@nestjs/websockets';
+import type { IncomingMessage } from 'node:http';
+import type { WebSocketServer } from 'ws';
+import { DatabaseService } from '../database/database.service';
+import { EphemeralTokenService } from '../auth/ephemeral-token.service';
+import { User } from '../../types';
+import {
+  joinRoom,
+  leaveAllRooms,
+  leaveRoom,
+  registerSocket,
+  userOf,
+  type TrekWebSocket,
+} from './ws-state';
+
+const HEARTBEAT_INTERVAL = 30_000;
+
+/**
+ * The /ws transport, as a Nest gateway.
+ *
+ * It replaces the hand-rolled `setupWebSocket(server)` that index.ts kicked off
+ * with a dynamic import after listen(). What moved is ownership: the handshake
+ * reads its collaborators from the container instead of importing the db
+ * singleton and the token store, and the heartbeat is a lifecycle hook rather
+ * than an interval nobody stops.
+ *
+ * What did NOT move is the socket registry. It stays module-scoped in
+ * ws-state.ts because seventeen bridges construct `new RealtimeService()`
+ * outside the container and must see the same rooms; see the note there.
+ *
+ * The wire protocol is unchanged, down to the frame names. TrekWsAdapter maps
+ * `{ type }` onto @SubscribeMessage, because the stock adapter dispatches on
+ * `{ event, data }` and every deployed client speaks the former.
+ */
+@Injectable()
+@WebSocketGateway({ path: '/ws' })
+export class RealtimeGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
+{
+  private heartbeat: ReturnType<typeof setInterval> | null = null;
+
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly tokens: EphemeralTokenService,
+  ) {}
+
+  afterInit(server: WebSocketServer): void {
+    this.heartbeat = setInterval(() => {
+      server.clients.forEach((ws) => {
+        const tws = ws as TrekWebSocket;
+        if (tws.isAlive === false) return tws.terminate();
+        tws.isAlive = false;
+        tws.ping();
+      });
+    }, HEARTBEAT_INTERVAL);
+    this.heartbeat.unref?.();
+  }
+
+  onModuleDestroy(): void {
+    if (this.heartbeat) clearInterval(this.heartbeat);
+    this.heartbeat = null;
+  }
+
+  /**
+   * Authenticate the upgrade, then admit the socket.
+   *
+   * Every rejection closes with the code the client already handles: 4001 for
+   * anything about identity, 4403 for the MFA policy. The order matters and is
+   * unchanged — a missing token is refused before the store is touched, and the
+   * password-version gate runs before the MFA one.
+   */
+  handleConnection(socket: TrekWebSocket, request: IncomingMessage): void {
+    const url = new URL(request.url ?? '/', 'http://localhost');
+    const token = url.searchParams.get('token');
+    if (!token) {
+      socket.close(4001, 'Authentication required');
+      return;
+    }
+
+    const consumed = this.tokens.consumeWithMeta(token, 'ws');
+    if (!consumed) {
+      socket.close(4001, 'Invalid or expired token');
+      return;
+    }
+
+    const row = this.db.get<User & { password_version?: number }>(
+      'SELECT id, username, email, role, mfa_enabled, password_version FROM users WHERE id = ?',
+      consumed.userId,
+    );
+    if (!row) {
+      socket.close(4001, 'User not found');
+      return;
+    }
+
+    // Session gate (defence-in-depth): reject a ws-token minted before a
+    // password change. Tokens carry the pv they were issued with; tokens minted
+    // without a pv (legacy) are treated as version 0, matching the JWT `pv`
+    // claim semantics in verifyJwtAndLoadUser.
+    const tokenPv = typeof consumed.pv === 'number' ? consumed.pv : 0;
+    const currentPv = typeof row.password_version === 'number' ? row.password_version : 0;
+    if (tokenPv !== currentPv) {
+      socket.close(4001, 'Invalid or expired token');
+      return;
+    }
+
+    // Don't leak password_version beyond the handshake.
+    const { password_version: _pv, ...user } = row;
+    const requireMfa =
+      this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'require_mfa'")?.value === 'true';
+    const mfaOk = user.mfa_enabled === 1 || user.mfa_enabled === true;
+    if (requireMfa && !mfaOk) {
+      socket.close(4403, 'MFA required');
+      return;
+    }
+
+    socket.isAlive = true;
+    const sid = registerSocket(socket, user as User);
+    socket.send(JSON.stringify({ type: 'welcome', socketId: sid }));
+    socket.on('pong', () => { socket.isAlive = true; });
+  }
+
+  handleDisconnect(socket: TrekWebSocket): void {
+    leaveAllRooms(socket);
+  }
+
+  @SubscribeMessage('join')
+  handleJoin(
+    @MessageBody() message: { tripId?: number | string },
+    @ConnectedSocket() socket: TrekWebSocket,
+  ): { type: string; tripId?: number; message?: string } | undefined {
+    const user = userOf(socket);
+    if (!user || !message?.tripId) return undefined;
+
+    const tripId = Number(message.tripId);
+    if (!this.db.canAccessTrip(tripId, user.id)) {
+      return { type: 'error', message: 'Access denied' };
+    }
+    joinRoom(socket, tripId);
+    return { type: 'joined', tripId };
+  }
+
+  @SubscribeMessage('leave')
+  handleLeave(
+    @MessageBody() message: { tripId?: number | string },
+    @ConnectedSocket() socket: TrekWebSocket,
+  ): { type: string; tripId?: number; message?: string } | undefined {
+    if (!message?.tripId) return undefined;
+    const tripId = Number(message.tripId);
+    leaveRoom(socket, tripId);
+    return { type: 'left', tripId };
+  }
+}

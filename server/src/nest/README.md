@@ -145,6 +145,44 @@ tools, which never pass through an HTTP guard. In the five domains piloted for
     files of import churn, and `scripts/coverage-thresholds.mjs` buckets on one
     path segment, so merging `photos/` into it would collapse two ratchet
     entries into one and drop the stricter of the two.
+- `realtime/` — the /ws transport, as a Nest gateway.
+  - `realtime.gateway.ts` owns the connection lifecycle and the handshake, with
+    `DatabaseService` and `EphemeralTokenService` injected instead of imported.
+    It replaced `setupWebSocket(server)`, which index.ts kicked off with a
+    dynamic import after listen().
+  - `ws-state.ts` holds the socket registry, and that is **module state on
+    purpose**. Seventeen `*.bridge.ts` files and `notifications.instance.ts`
+    build `new RealtimeService()` outside the container; rooms on a provider
+    instance would leave their broadcasts going to an empty map, with no error
+    and no log. Same reasoning as the geo throttle cursor.
+  - `trek-ws.adapter.ts` exists because the stock `WsAdapter` dispatches on
+    `{ event, data }` and every deployed client sends `{ type, tripId }`. It
+    also builds the ws server itself rather than delegating: the base's port-0
+    branch uses `noServer: true` and performs the upgrade from its own registry,
+    which never consults `verifyClient`, so delegating would silently drop the
+    origin check. The per-socket `error` listener is attached FIRST, because an
+    unhandled one kills the process (#1576), and the flood guard counts every
+    inbound frame before parsing, because malformed frames are the ones worth
+    limiting.
+  - The socket id stays a **monotonic integer**. The client echoes it as
+    `X-Socket-Id` and `broadcast` excludes the originator with
+    `Number(excludeSid)`; a uuid is `NaN`, `NaN === NaN` is false, and every
+    client would receive its own writes back. It shows up as drag-and-drop that
+    jumps, not as an error.
+  - `RealtimeGatewayModule` is imported by AppModule alone. RealtimeModule is
+    @Global, so a gateway there follows into every hand-assembled TestingModule,
+    and Nest's SocketModule then loads an adapter none of them set: it reaches
+    for `@nestjs/platform-socket.io` and calls `process.exit(1)` when it is
+    absent.
+  - `buildApp()` creates the http server and binds the adapter to it BEFORE
+    `app.init()`, and callers take it from `getHttpServer()`. Nest binds gateways
+    during init, so an adapter registered later binds nothing, and one given the
+    app instead of the server binds to Nest's internal server, which this process
+    never listens on. Either way the boot is green and no browser can connect.
+  - `src/websocket.ts` survives as a re-export. 115 test files `vi.mock` that
+    path to assert on broadcasts; repointing them all would be a large diff that
+    proves nothing.
+
 - `geo/` — the ONE Nominatim client (#576). There used to be two: atlas
   throttled to the published 1.1s and cached its answers, maps did neither, so
   five interactive routes fired straight at the service while the atlas loops

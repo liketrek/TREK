@@ -1,3 +1,4 @@
+import nodeHttp from 'node:http';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter, type NestExpressApplication } from '@nestjs/platform-express';
 import type { INestApplication } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { McpRegistryService } from '@trek/nest-mcp';
 import { setMcpRegistry } from './mcp/registry-handoff';
 import { validateBodyContracts } from './nest/common/validate-body-contracts';
 import { validateRouteGuards } from './nest/common/validate-route-guards';
+import { TrekWsAdapter } from './nest/realtime/trek-ws.adapter';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -43,12 +45,35 @@ import { validateRouteGuards } from './nest/common/validate-route-guards';
  * SpaFallbackFilter (APP_FILTER in AppModule); the global error envelope is the
  * TrekExceptionFilter (also APP_FILTER).
  */
+let boundHttpServer: nodeHttp.Server | null = null;
+
+/**
+ * The http server buildApp created and bound the ws gateway to.
+ *
+ * index.ts listens on it; the websocket suites connect to it. Anyone creating a
+ * second server around the same express instance would get a working REST API
+ * and a /ws that no client can reach.
+ */
+export function getHttpServer(): nodeHttp.Server {
+  if (!boundHttpServer) throw new Error('buildApp() has not run yet');
+  return boundHttpServer;
+}
+
 export async function buildApp(): Promise<INestApplication> {
   // rawBody keeps the unparsed request bytes on req.rawBody so a plugin webhook
   // route can verify a provider's HMAC signature over the exact payload (the
   // parsed JSON alone can't be re-serialised byte-for-byte).
   const app = await NestFactory.create(AppModule, new ExpressAdapter(), { rawBody: true });
   const instance = app.getHttpAdapter().getInstance();
+  // The http server is created HERE, not by the caller after buildApp returns,
+  // and that ordering is the whole point: Nest binds gateways during app.init(),
+  // so the ws adapter has to exist before it and has to already know which
+  // server to attach to. Handing it the app instead would bind the ws server to
+  // Nest's own internal http server, which this process never listens on: the
+  // boot succeeds, the gateway logs as registered, every test passes, and no
+  // browser can connect. Callers take the server from getHttpServer() below.
+  boundHttpServer = nodeHttp.createServer(instance);
+  app.useWebSocketAdapter(new TrekWsAdapter(boundHttpServer));
   // ConfigModule.forRoot's load factories already ran inside NestFactory.create,
   // so the boot-stable snapshot is resolvable here, BEFORE app.init() — this is
   // the one bridge that lets the pre-init Express layer consume the validated

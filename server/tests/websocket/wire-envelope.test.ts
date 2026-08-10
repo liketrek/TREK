@@ -50,12 +50,12 @@ vi.mock('../../src/config', () => ({
 }));
 
 import type { INestApplication } from '@nestjs/common';
-import { buildApp } from '../../src/bootstrap';
+import { buildApp, getHttpServer } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
 import { createUser, createTrip } from '../helpers/factories';
-import { setupWebSocket, broadcast, broadcastToUser } from '../../src/websocket';
+import { broadcast, broadcastToUser } from '../../src/websocket';
 import { createEphemeralToken } from '../../src/nest/auth/ephemeral-tokens';
 
 let server: http.Server;
@@ -66,8 +66,8 @@ beforeAll(async () => {
   createTables(testDb);
   runMigrations(testDb);
   nestApp = await buildApp();
-  server = http.createServer(nestApp.getHttpAdapter().getInstance());
-  setupWebSocket(server);
+  // buildApp binds /ws to the server it creates, before app.init().
+  server = getHttpServer();
   await new Promise<void>(resolve => server.listen(0, resolve));
   const addr = server.address() as { port: number };
   wsUrl = `ws://127.0.0.1:${addr.port}/ws`;
