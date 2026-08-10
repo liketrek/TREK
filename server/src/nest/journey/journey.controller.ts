@@ -34,31 +34,41 @@ import {
   JourneyReorderEntriesDto, JourneyShareLinkDto, JourneyUpdateDto,
 } from './journey.dto';
 import { isVideoMime, isVideoExtension, MAX_VIDEO_SIZE } from '../files/files.constants';
-import { getAllowedExtensions } from '../files/files.bridge';
+import { AllowedFileTypesService } from '../files/allowed-file-types.service';
 
 const uploadsBase = path.join(__dirname, '../../../uploads/journey');
-const IMAGE_UPLOAD = {
-  storage: diskStorage({
-    destination: (_req, _file, cb) => { if (!fs.existsSync(uploadsBase)) fs.mkdirSync(uploadsBase, { recursive: true }); cb(null, uploadsBase); },
-    filename: (_req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || '.jpg'}`),
-  }),
-  limits: { fileSize: 20 * 1024 * 1024 },
-  fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
-    if (!file.mimetype.startsWith('image/') || file.mimetype.includes('svg')) {
-      const err: Error & { statusCode?: number } = new Error('Only image files are allowed');
-      err.statusCode = 400;
-      return cb(err, false);
-    }
-    const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
-    const allowed = getAllowedExtensions().split(',').map((e) => e.trim().toLowerCase());
-    if (!allowed.includes('*') && !allowed.includes(ext)) {
-      const err: Error & { statusCode?: number } = new Error(`File type .${ext} is not allowed`);
-      err.statusCode = 400;
-      return cb(err, false);
-    }
-    cb(null, true);
-  },
-};
+/**
+ * Journey image upload options, built from the container.
+ *
+ * Same reason as the trip-file factory: the fileFilter reads the operator's
+ * allowed-extension list at request time. Note this config carries NO
+ * defParamCharset, unlike the trip-file one; that difference is deliberate and
+ * predates the move, so the two are not folded into one shared object.
+ */
+export function buildJourneyImageUploadOptions(allowedTypes: AllowedFileTypesService) {
+  return {
+    storage: diskStorage({
+      destination: (_req, _file, cb) => { if (!fs.existsSync(uploadsBase)) fs.mkdirSync(uploadsBase, { recursive: true }); cb(null, uploadsBase); },
+      filename: (_req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || '.jpg'}`),
+    }),
+    limits: { fileSize: 20 * 1024 * 1024 },
+    fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
+      if (!file.mimetype.startsWith('image/') || file.mimetype.includes('svg')) {
+        const err: Error & { statusCode?: number } = new Error('Only image files are allowed');
+        err.statusCode = 400;
+        return cb(err, false);
+      }
+      const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+      const allowed = allowedTypes.get().split(',').map((e) => e.trim().toLowerCase());
+      if (!allowed.includes('*') && !allowed.includes(ext)) {
+        const err: Error & { statusCode?: number } = new Error(`File type .${ext} is not allowed`);
+        err.statusCode = 400;
+        return cb(err, false);
+      }
+      cb(null, true);
+    },
+  };
+}
 
 // Gallery video upload (#823): one video plus an optional client-captured poster
 // image, written to the same uploads/journey store. Larger cap than images since
@@ -161,7 +171,7 @@ export class JourneyController {
   }
 
   @Post('entries/:entryId/photos')
-  @UseInterceptors(FilesInterceptor('photos', undefined, IMAGE_UPLOAD))
+  @UseInterceptors(FilesInterceptor('photos'))
   async uploadEntryPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @UploadedFiles() files: Express.Multer.File[] | undefined, @Body() body: JourneyEntryPhotoUploadDto) {
     if (!files?.length) {
       throw new HttpException({ error: 'No files uploaded' }, 400);
@@ -257,7 +267,7 @@ export class JourneyController {
 
   // ── Gallery (prefix /:id/gallery — before /:id) ─────────────────────────
   @Post(':id/gallery/photos')
-  @UseInterceptors(FilesInterceptor('photos', undefined, IMAGE_UPLOAD))
+  @UseInterceptors(FilesInterceptor('photos'))
   uploadGalleryPhotos(@CurrentUser() user: User, @Param('id') id: string, @UploadedFiles() files: Express.Multer.File[] | undefined) {
     if (!files?.length) {
       throw new HttpException({ error: 'No files uploaded' }, 400);
@@ -360,7 +370,7 @@ export class JourneyController {
 
   @Post(':id/cover')
   @HttpCode(200) // Express answers cover with res.json (200).
-  @UseInterceptors(FileInterceptor('cover', IMAGE_UPLOAD))
+  @UseInterceptors(FileInterceptor('cover'))
   cover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
     if (!file) {
       throw new HttpException({ error: 'No file uploaded' }, 400);

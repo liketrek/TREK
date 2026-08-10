@@ -180,8 +180,8 @@ describe('AdminController read-only getters', () => {
 
 describe('AdminController tokens + sessions', () => {
   it('mcp token + oauth session deletes return success and map errors', () => {
-    expect(adminCtl(svc(), undefined, undefined, { adminDeleteMcpToken: vi.fn().mockReturnValue({}) }).deleteMcpToken('2')).toEqual({ success: true });
-    expect(thrown(() => adminCtl(svc(), undefined, undefined, { adminDeleteMcpToken: vi.fn().mockReturnValue({ error: 'no token', status: 404 }) }).deleteMcpToken('9'))).toEqual({ status: 404, body: { error: 'no token' } });
+    expect(adminCtl(svc(), undefined, undefined, { adminDeleteMcpToken: vi.fn().mockReturnValue({}) }).deleteMcpToken(user, '2', req)).toEqual({ success: true });
+    expect(thrown(() => adminCtl(svc(), undefined, undefined, { adminDeleteMcpToken: vi.fn().mockReturnValue({ error: 'no token', status: 404 }) }).deleteMcpToken(user, '9', req))).toEqual({ status: 404, body: { error: 'no token' } });
     expect(thrown(() => adminCtl(svc(), undefined, undefined, {}, {}, { adminRevokeOAuthSession: vi.fn().mockReturnValue({ error: 'no session', status: 404 }) }).revokeOAuthSession(user, '9', req))).toEqual({ status: 404, body: { error: 'no session' } });
   });
 });

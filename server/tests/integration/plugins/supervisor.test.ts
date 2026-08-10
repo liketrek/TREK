@@ -16,6 +16,15 @@ import { PluginRpcHost, type HostDeps } from '../../../src/nest/plugins/host/rpc
 import { PluginDataDb } from '../../../src/nest/plugins/host/plugin-data.service';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+
+/**
+ * DbRpc also carries `settings.get`, which needs the per-user settings store. No
+ * fixture below calls it, and none of these plugins has a stored setting anyway, so
+ * the stub is the one read DbRpc makes, typed off the real signature and answering
+ * "nothing stored" exactly as the real service would.
+ */
+const stubUserSettings: Pick<PluginUserSettingsService, 'readOne'> = { readOne: () => undefined };
 
 let codeRoot: string;
 let dataRoot: string;
@@ -38,7 +47,7 @@ function makeSupervisor(events: Array<{ topic: string; data: unknown }>, tuning:
     };
     // Only db.* is exercised from a child here; the rest of the surface has its own
     // unit suites and would drag every domain service into this integration test.
-    return new PluginRpcHost(id, granted, deps, createTestPluginRegistry([new DbRpc()]));
+    return new PluginRpcHost(id, granted, deps, createTestPluginRegistry([new DbRpc(stubUserSettings as PluginUserSettingsService)]));
   };
   const hooks: SupervisorHooks = {
     onEvent: (_id, topic, data) => events.push({ topic, data }),

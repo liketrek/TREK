@@ -211,6 +211,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': '更新 → v{version}',
   'admin.plugins.enabledToggle': '启用插件',
   'plugins.notFound': '未找到插件',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': '插件',
   'admin.plugins.subtitle': '在你的实例上安装和管理第三方插件。',
   'admin.plugins.disabledTitle': '插件功能已禁用',

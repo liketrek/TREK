@@ -251,6 +251,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': '更新 → v{version}',
   'admin.plugins.enabledToggle': 'プラグインを有効にする',
   'plugins.notFound': 'プラグインが見つかりません',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'プラグイン',
   'admin.plugins.subtitle': 'サードパーティ製プラグインをインスタンスにインストール・管理します。',
   'admin.plugins.disabledTitle': 'プラグインは無効になっています',

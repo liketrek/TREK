@@ -237,6 +237,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'تفعيل الإضافة',
   'plugins.notFound': 'الإضافة غير موجودة',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'الإضافات الخارجية',
   'admin.plugins.subtitle': 'ثبّت وأدر إضافات الجهات الخارجية على خادمك.',
   'admin.plugins.disabledTitle': 'الإضافات الخارجية معطّلة',

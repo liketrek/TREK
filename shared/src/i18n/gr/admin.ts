@@ -266,6 +266,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'Ενεργοποίηση plugin',
   'plugins.notFound': 'Το plugin δεν βρέθηκε',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Εγκαταστήστε και διαχειριστείτε plugins τρίτων στην εγκατάστασή σας.',
   'admin.plugins.disabledTitle': 'Τα plugins είναι απενεργοποιημένα',

@@ -30,34 +30,45 @@ import { TripAccessGuard } from '../permissions/trip-access.guard';
 import type { TripAccess } from '../database/database.service';
 import { Trip } from '../permissions/trip.decorator';
 import { MAX_FILE_SIZE, MAX_VIDEO_SIZE, BLOCKED_EXTENSIONS, filesDir, isVideoExtension } from './files.constants';
-import { getAllowedExtensions } from './files.bridge';
 import { FileUploadDto, FileUpdateDto, FileLinkDto } from './files.dto';
+import { AllowedFileTypesService } from './allowed-file-types.service';
 
-const UPLOAD = {
-  storage: diskStorage({
-    destination: (_req, _file, cb) => { if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true }); cb(null, filesDir); },
-    filename: (_req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`),
-  }),
-  // Allow up to the video cap; non-video files are still held to MAX_FILE_SIZE by
-  // the per-type guard in the upload handler (#823).
-  limits: { fileSize: MAX_VIDEO_SIZE },
-  defParamCharset: 'utf8', // parity with legacy routes/files.ts — preserve non-ASCII original filenames
-  fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const reject = () => {
-      // i18n key — the client resolves it via t() (see translateApiError).
-      const err: Error & { statusCode?: number } = new Error('files.uploadErrorType');
-      err.statusCode = 400;
-      cb(err, false);
-    };
-    if (BLOCKED_EXTENSIONS.includes(ext) || file.mimetype.includes('svg')) return reject();
-    const allowed = getAllowedExtensions().split(',').map((e) => e.trim().toLowerCase());
-    const fileExt = ext.replace('.', '');
-    // Video is accepted as media regardless of the admin doc-types allowlist (#823).
-    if (allowed.includes(fileExt) || isVideoExtension(fileExt) || (allowed.includes('*') && !BLOCKED_EXTENSIONS.includes(ext))) return cb(null, true);
-    reject();
-  },
-};
+/**
+ * Trip-file upload options, built from the container.
+ *
+ * A factory rather than a module-scope literal because the fileFilter reads the
+ * operator's allowed-extension list at request time, and that list lives in the
+ * database. It used to reach it through files.bridge.ts, which built a second
+ * FilesService outside the injector; MulterModule.registerAsync gives the
+ * closure the real one.
+ */
+export function buildFilesUploadOptions(allowedTypes: AllowedFileTypesService) {
+  return {
+    storage: diskStorage({
+      destination: (_req, _file, cb) => { if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true }); cb(null, filesDir); },
+      filename: (_req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`),
+    }),
+    // Allow up to the video cap; non-video files are still held to MAX_FILE_SIZE by
+    // the per-type guard in the upload handler (#823).
+    limits: { fileSize: MAX_VIDEO_SIZE },
+    defParamCharset: 'utf8', // parity with legacy routes/files.ts — preserve non-ASCII original filenames
+    fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const reject = () => {
+        // i18n key — the client resolves it via t() (see translateApiError).
+        const err: Error & { statusCode?: number } = new Error('files.uploadErrorType');
+        err.statusCode = 400;
+        cb(err, false);
+      };
+      if (BLOCKED_EXTENSIONS.includes(ext) || file.mimetype.includes('svg')) return reject();
+      const allowed = allowedTypes.get().split(',').map((e) => e.trim().toLowerCase());
+      const fileExt = ext.replace('.', '');
+      // Video is accepted as media regardless of the admin doc-types allowlist (#823).
+      if (allowed.includes(fileExt) || isVideoExtension(fileExt) || (allowed.includes('*') && !BLOCKED_EXTENSIONS.includes(ext))) return cb(null, true);
+      reject();
+    },
+  };
+}
 
 /**
  * /api/trips/:tripId/files — trip file manager (upload, metadata, starring,
@@ -105,7 +116,7 @@ export class FilesController {
   }
 
   @Post()
-  @UseInterceptors(FileInterceptor('file', UPLOAD))
+  @UseInterceptors(FileInterceptor('file'))
   upload(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,

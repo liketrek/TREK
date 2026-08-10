@@ -26,6 +26,7 @@ import { AirtrailImportDto } from '../integrations/airtrail.dto';
 import type { AirtrailImportResult } from '@trek/shared';
 import { bookingImportModeSchema } from '@trek/shared';
 import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode } from '@trek/shared';
+import { BookingImportConfirmDto, BookingImportPreviewDto } from './reservation-import.dto';
 
 const ACCEPTED_EXTS = new Set(['.eml', '.pdf', '.pkpass', '.html', '.htm', '.txt']);
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -127,9 +128,9 @@ export class ReservationImportController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @UploadedFiles() files: Express.Multer.File[] | undefined,
-    @Body('mode') rawMode?: string,
+    @Body() body: BookingImportPreviewDto,
   ): Promise<BookingImportPreviewResponse> {
-    const mode = this.validateImport(tripId, user, files, rawMode);
+    const mode = this.validateImport(tripId, user, files, body?.mode);
     return this.bookingImport.preview(files!, mode, user.id);
   }
 
@@ -147,9 +148,9 @@ export class ReservationImportController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @UploadedFiles() files: Express.Multer.File[] | undefined,
-    @Body('mode') rawMode?: string,
+    @Body() body: BookingImportPreviewDto,
   ): Promise<{ jobId: string }> {
-    const mode = this.validateImport(tripId, user, files, rawMode);
+    const mode = this.validateImport(tripId, user, files, body?.mode);
     const jobId = this.importJobs.start(tripId, files!, mode, user.id);
     return { jobId };
   }
@@ -175,7 +176,7 @@ export class ReservationImportController {
   async confirm(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { items?: BookingImportPreviewItem[] },
+    @Body() body: BookingImportConfirmDto,
     @Headers('x-socket-id') socketId?: string,
   ): Promise<BookingImportConfirmResponse> {
 

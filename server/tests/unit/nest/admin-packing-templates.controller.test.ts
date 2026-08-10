@@ -35,6 +35,16 @@ function controller(over: Partial<PackingService> = {}) {
   return { c: new AdminPackingTemplatesController(packing, { writeAudit } as unknown as AuditService), packing };
 }
 
+/**
+ * An override whose return value the real method signature cannot produce. Every error
+ * branch in PackingService sets a status, so an error envelope without one is not part
+ * of the service's return type, yet the controller still has a fallback for it and
+ * PACKTPL-003 is the case that covers that fallback.
+ */
+function offContract<K extends keyof PackingService>(name: K, impl: () => unknown) {
+  return { [name]: vi.fn(impl) } as unknown as Partial<PackingService>;
+}
+
 const thrown = (run: () => unknown) => {
   try {
     run();
@@ -54,12 +64,12 @@ describe('AdminPackingTemplatesController', () => {
   });
 
   it('PACKTPL-002 a service {error,status} becomes that HTTP status, not a 200 body', () => {
-    const { c } = controller({ getPackingTemplate: vi.fn(() => ({ error: 'not found', status: 404 })) } as Partial<PackingService>);
+    const { c } = controller({ getPackingTemplate: vi.fn(() => ({ error: 'not found', status: 404 })) });
     expect(thrown(() => c.get('9'))).toEqual({ status: 404, body: { error: 'not found' } });
   });
 
   it('PACKTPL-003 an error without a status defaults to 400', () => {
-    const { c } = controller({ createTemplateCategory: vi.fn(() => ({ error: 'name required' })) } as Partial<PackingService>);
+    const { c } = controller(offContract('createTemplateCategory', () => ({ error: 'name required' })));
     expect(thrown(() => c.createCategory('1', { name: '' }))).toEqual({ status: 400, body: { error: 'name required' } });
   });
 

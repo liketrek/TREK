@@ -218,6 +218,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'Povolit plugin',
   'plugins.notFound': 'Plugin nenalezen',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Pluginy',
   'admin.plugins.subtitle': 'Instalujte a spravujte pluginy třetích stran na své instanci.',
   'admin.plugins.disabledTitle': 'Pluginy jsou zakázány',

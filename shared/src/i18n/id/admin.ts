@@ -262,6 +262,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'Aktifkan plugin',
   'plugins.notFound': 'Plugin tidak ditemukan',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Pasang dan kelola plugin pihak ketiga di instans kamu.',
   'admin.plugins.disabledTitle': 'Plugin dinonaktifkan',

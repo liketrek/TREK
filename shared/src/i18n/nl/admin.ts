@@ -220,6 +220,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'Plugin inschakelen',
   'plugins.notFound': 'Plugin niet gevonden',
+  'plugins.frameLoadFailed': 'Deze plug-in kon niet worden geladen.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Installeer en beheer plugins van derden op je instantie.',
   'admin.plugins.disabledTitle': 'Plugins zijn uitgeschakeld',

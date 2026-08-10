@@ -66,7 +66,7 @@ vi.mock('../../../src/scheduler', () => ({
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';

@@ -9,6 +9,7 @@
     "start:prod": "node --require tsconfig-paths/register dist/index.js",
     "reset-admin": "node reset-admin.js",
     "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit",
     "gen:plugin-facts": "node --import tsx scripts/gen-plugin-facts.ts",
     "check:plugin-facts": "node --import tsx scripts/gen-plugin-facts.ts --check",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

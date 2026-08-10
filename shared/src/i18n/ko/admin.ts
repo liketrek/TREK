@@ -256,6 +256,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': '업데이트 → v{version}',
   'admin.plugins.enabledToggle': '플러그인 활성화',
   'plugins.notFound': '플러그인을 찾을 수 없습니다',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': '플러그인',
   'admin.plugins.subtitle': '인스턴스에 서드파티 플러그인을 설치하고 관리하세요.',
   'admin.plugins.disabledTitle': '플러그인이 비활성화되어 있습니다',

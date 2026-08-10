@@ -5,6 +5,7 @@ import { pluginsEnabled } from './kill-switch';
 import { PluginsService } from './plugins.service';
 import { PluginRuntimeService } from './plugin-runtime.service';
 import { DatabaseService } from '../database/database.service';
+import { PluginUserSettingsUpdateDto } from './plugins.dto';
 
 /**
  * GET/POST /api/plugin-settings/:id — a USER's own `scope:'user'` settings for a
@@ -74,7 +75,7 @@ export class PluginUserSettingsController {
   @Post(':id')
   update(
     @Param('id') id: string,
-    @Body() body: { config?: Record<string, unknown> },
+    @Body() body: PluginUserSettingsUpdateDto,
     @Req() req: Request & { user?: { id: number } },
   ): { config: Record<string, unknown> } {
     const userId = req.user?.id;

@@ -9,6 +9,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import type { User } from '../../types';
 import type { AuthorizeParams } from './oauth.service';
+import { OauthClientCreateDto, OauthConsentDto } from './oauth.dto';
 
 const MIN = 60_000;
 
@@ -67,10 +68,7 @@ export class OauthApiController {
   @Post('authorize')
   @HttpCode(200) // Express answers consent with res.json (200), not the POST-default 201.
   @UseGuards(CookieAuthGuard)
-  authorize(@CurrentUser() user: User, @Body() body: {
-    client_id: string; redirect_uri: string; scope: string; state?: string;
-    code_challenge: string; code_challenge_method: string; approved: boolean; resource?: string;
-  }, @Req() req: Request) {
+  authorize(@CurrentUser() user: User, @Body() body: OauthConsentDto, @Req() req: Request) {
     const ip = getClientIp(req);
     if (!this.oauth.mcpEnabled()) {
       throw new HttpException({ error: 'MCP is not enabled' }, 403);
@@ -126,7 +124,7 @@ export class OauthApiController {
   @Post('clients')
   @HttpCode(201)
   @UseGuards(CookieAuthGuard)
-  createClient(@CurrentUser() user: User, @Body() body: { name: string; redirect_uris?: string[]; allowed_scopes: string[]; allows_client_credentials?: boolean }, @Req() req: Request) {
+  createClient(@CurrentUser() user: User, @Body() body: OauthClientCreateDto, @Req() req: Request) {
     this.requireMcp403();
     const result = this.oauth.createOAuthClient(user.id, body.name, body.redirect_uris ?? [], body.allowed_scopes, getClientIp(req), { allowsClientCredentials: body.allows_client_credentials });
     if (result.error) {

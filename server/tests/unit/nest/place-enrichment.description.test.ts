@@ -10,7 +10,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockDbGet, mockDbRun } = vi.hoisted(() => ({
-  mockDbGet: vi.fn(() => undefined as any),
+  // The prepare() stub below forwards the SQL and then the bound values, so the
+  // spy has to declare that shape. Inferred from a zero-arg implementation it
+  // would reject the spread at the call site.
+  mockDbGet: vi.fn((_sql: string, ..._params: unknown[]): unknown => undefined),
   mockDbRun: vi.fn(),
 }));
 

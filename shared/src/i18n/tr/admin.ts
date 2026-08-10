@@ -264,6 +264,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Güncelle → v{version}',
   'admin.plugins.enabledToggle': 'Eklentiyi etkinleştir',
   'plugins.notFound': 'Eklenti bulunamadı',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Örneğinizde üçüncü taraf eklentileri yükleyin ve yönetin.',
   'admin.plugins.disabledTitle': 'Eklentiler devre dışı',

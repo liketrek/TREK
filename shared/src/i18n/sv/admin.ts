@@ -276,6 +276,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Uppdatera → v{version}',
   'admin.plugins.enabledToggle': 'Aktivera plugin',
   'plugins.notFound': 'Pluginet hittades inte',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Installera och hantera tredjepartsplugins på din instans.',
   'admin.plugins.disabledTitle': 'Plugins är inaktiverade',

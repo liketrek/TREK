@@ -221,6 +221,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'Plugin aktivieren',
   'plugins.notFound': 'Plugin nicht gefunden',
+  'plugins.frameLoadFailed': 'Dieses Plugin konnte nicht geladen werden.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Plugins von Drittanbietern auf deiner Instanz installieren und verwalten.',
   'admin.plugins.disabledTitle': 'Plugins sind deaktiviert',

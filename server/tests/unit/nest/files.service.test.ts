@@ -62,7 +62,7 @@ import { createUser, createTrip, addTripMember, createPlace, createReservation, 
 import { DatabaseService, type TripAccess } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { FilesService } from '../../../src/nest/files/files.service';
-import { getAllowedExtensions as bridgeGetAllowedExtensions } from '../../../src/nest/files/files.bridge';
+import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
 import {
   DEFAULT_ALLOWED_EXTENSIONS,
   MAX_FILE_SIZE,
@@ -558,8 +558,13 @@ describe('verifyTripAccess / can / files.bridge', () => {
     expect(checkPermission).toHaveBeenLastCalledWith('file_upload', 'user', user.id, user.id, false);
   });
 
-  it('FILE-SVC-038: files.bridge getAllowedExtensions delegates to the service over the shared db', () => {
+  it('FILE-SVC-038: the allowed-extension list is a live read, not a boot snapshot', () => {
+    // Was asserted against files.bridge, which built its own FilesService. The
+    // list moved to a leaf service the multer factories inject, and the property
+    // that matters is unchanged: an admin editing the list in settings applies
+    // to the next upload, with no invalidation wiring.
+    const allowed = new AllowedFileTypesService(new DatabaseService(testDb));
     setAppSetting(testDb, 'allowed_file_types', 'md,markdown');
-    expect(bridgeGetAllowedExtensions()).toBe('md,markdown');
+    expect(allowed.get()).toBe('md,markdown');
   });
 });

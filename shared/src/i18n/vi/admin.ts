@@ -275,6 +275,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Cập nhật → v{version}',
   'admin.plugins.enabledToggle': 'Bật plugin',
   'plugins.notFound': 'Không tìm thấy plugin',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Cài đặt và quản lý các plugin bên thứ ba trên hệ thống của bạn.',
   'admin.plugins.disabledTitle': 'Plugin đang bị tắt',

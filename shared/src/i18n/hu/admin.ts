@@ -220,6 +220,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Frissítés → v{version}',
   'admin.plugins.enabledToggle': 'Plugin engedélyezése',
   'plugins.notFound': 'A plugin nem található',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Pluginok',
   'admin.plugins.subtitle': 'Harmadik féltől származó pluginok telepítése és kezelése a példányodon.',
   'admin.plugins.disabledTitle': 'A pluginok le vannak tiltva',

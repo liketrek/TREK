@@ -251,6 +251,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': '更新 → v{version}',
   'admin.plugins.enabledToggle': '啟用外掛',
   'plugins.notFound': '找不到外掛',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': '外掛',
   'admin.plugins.subtitle': '在你的執行個體上安裝並管理第三方外掛。',
   'admin.plugins.disabledTitle': '外掛已停用',

@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { buildSavePayload } from '../../../src/nest/integrations/airtrail-sync.service';
-import type { AirtrailAirport, AirtrailFlightRaw } from '../../../src/nest/integrations/airtrail.client';
+import type { AirtrailAirport, AirtrailFlightRaw, AirtrailSavePayload } from '../../../src/nest/integrations/airtrail.client';
+
+/**
+ * buildSavePayload spreads the raw flight, so the body also carries the
+ * AirTrail-owned keys the save type deliberately leaves unmodelled (terminal,
+ * gate, actual times, customFields, track). Read those through this view.
+ */
+type SavePayloadWithPassthrough = AirtrailSavePayload & Record<string, unknown>;
 
 function airport(over: Partial<AirtrailAirport> = {}): AirtrailAirport {
   return {
@@ -125,7 +132,7 @@ describe('airtrailSync.buildSavePayload', () => {
         metadata: JSON.stringify({ airline: 'BAW', flight_number: 'BA999', seat: '3C' }),
       }),
       existingFlight(),
-    );
+    ) as SavePayloadWithPassthrough | null;
     expect(payload).toMatchObject({
       id: 42,
       from: 'JFK',

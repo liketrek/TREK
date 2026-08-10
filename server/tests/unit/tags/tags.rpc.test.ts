@@ -24,6 +24,15 @@ const ctx = (actingUserId: number | undefined): PluginRpcContext => ({
   pluginId: 'p',
   actingUserId,
   data: {} as PluginRpcContext['data'],
+  // No tags handler reaches for a peer plugin, but the peers are a real collaborator on
+  // the context, so they get functions that throw rather than an object whose methods
+  // would silently be undefined if a handler ever did reach for one.
+  plugins: {
+    call: () => Promise.reject(new Error('ctx: no peer plugin router in these cases')),
+    emit: () => {
+      throw new Error('ctx: no peer plugin router in these cases');
+    },
+  },
 });
 
 /** Tag 1 belongs to user 42, nothing else does. */

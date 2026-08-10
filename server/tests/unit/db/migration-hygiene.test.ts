@@ -17,12 +17,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { createTestDb } from '../../helpers/test-db';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const MIGRATIONS_PATH = resolve(here, '../../../src/db/migrations.ts');
+const MIGRATIONS_PATH = resolve(__dirname, '../../../src/db/migrations.ts');
 const migrationsSource = readFileSync(MIGRATIONS_PATH, 'utf8');
 
 /**

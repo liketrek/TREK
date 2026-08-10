@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { PluginRouteDto } from '../plugins.dto';
 
 /**
  * POST /api/plugin-routes/:pluginId/:profileId — ask ONE routeProvider plugin to
@@ -158,7 +159,7 @@ export class PluginRoutesController {
   async route(
     @Param('pluginId') pluginId: string,
     @Param('profileId') profileId: string,
-    @Body() body: Record<string, unknown> | undefined,
+    @Body() body: PluginRouteDto,
     @Req() req: Request & { user?: { id: number } },
   ): Promise<{ route: PluginRouteOut | null }> {
     if (!pluginsEnabled()) return { route: null };

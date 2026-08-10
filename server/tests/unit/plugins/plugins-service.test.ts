@@ -215,19 +215,19 @@ describe('PluginsController M2 endpoints', () => {
 
   it('activate spawns via the runtime when enabled', async () => {
     const rt = { activate: vi.fn(async () => {}), isActive: vi.fn(() => true) } as never;
-    const out = await new PluginsController(svc, rt, {} as never).activate('x');
+    const out = await new PluginsController(svc, rt, {} as never).activate('x', {});
     expect(out).toEqual({ status: 'active' });
   });
 
   it('activate is 503 when the runtime is disabled', async () => {
     process.env.TREK_PLUGINS_ENABLED = 'false';
     const rt = { activate: vi.fn(), isActive: vi.fn() } as never;
-    await expect(new PluginsController(svc, rt, {} as never).activate('x')).rejects.toMatchObject({ status: 503 });
+    await expect(new PluginsController(svc, rt, {} as never).activate('x', {})).rejects.toMatchObject({ status: 503 });
   });
 
   it('activate surfaces an activation error as 400', async () => {
     const rt = { activate: vi.fn(async () => { throw new Error('bad code'); }), isActive: vi.fn(() => false) } as never;
-    await expect(new PluginsController(svc, rt, {} as never).activate('x')).rejects.toMatchObject({ status: 400 });
+    await expect(new PluginsController(svc, rt, {} as never).activate('x', {})).rejects.toMatchObject({ status: 400 });
   });
 
   it('deactivate stops the plugin (and cascades to dependents)', async () => {

@@ -68,6 +68,11 @@ import { MapsService } from '../../../src/nest/maps/maps.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { notificationsStub } from '../../helpers/notifications';
 import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
+import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
 
 // Real sibling services over the same in-memory DB — the aggregation runs the
 // actual SQL of every domain it fans out to, so a shape change downstream shows
@@ -75,7 +80,15 @@ import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.se
 const dbs = () => new DatabaseService(testDb);
 const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
 const daysSvc = new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs()));
-const placesSvc = new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs()), new QueryHelpersService(dbs()));
+// One shared cache instance, as in trips.bridge.ts: the in-flight dedup in
+// PlacePhotoCacheService only works while both consumers hold the same object.
+const photoCache = new PlacePhotoCacheService(dbs(), new RuntimeEnvService());
+const placesSvc = new PlacesService(
+  dbs(), new PermissionsService(dbs()), new RealtimeService(),
+  new MapsService(dbs(), photoCache), new QueryHelpersService(dbs()),
+  new UnsplashService(dbs(), new RuntimeEnvService()), photoCache,
+  new JourneyDomainService(dbs(), new RealtimeService(), new TrekPhotosRepository(dbs())),
+);
 const accommodationsSvc = new AccommodationsService(dbs(), new PermissionsService(dbs()), new RealtimeService());
 const membersSvc = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs()), new PermissionsService(dbs()), new RealtimeService(), notificationsStub());
 

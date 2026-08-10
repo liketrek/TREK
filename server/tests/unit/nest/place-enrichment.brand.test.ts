@@ -12,7 +12,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockDbGet, mockDbRun } = vi.hoisted(() => ({
-  mockDbGet: vi.fn(() => undefined as any),
+  // Declared with the shape the fake statement below calls it with (the SQL plus
+  // whatever the caller bound), otherwise the spread has no rest parameter to land in.
+  mockDbGet: vi.fn((_sql: string, ..._params: unknown[]): unknown => undefined),
   mockDbRun: vi.fn(),
 }));
 

@@ -74,6 +74,11 @@ import { TripMembersService } from '../../../src/nest/trip-members/trip-members.
 import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
+import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { getTripOwner, listMembers as bridgeListMembers } from '../../../src/nest/trips/trips.bridge';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import fs from 'fs';
@@ -85,7 +90,24 @@ import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.se
 const dbs = () => new DatabaseService(testDb);
 const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
 const daysSvc = new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs()));
-const placesSvc = new PlacesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new MapsService(dbs()), new QueryHelpersService(dbs()));
+// Same collaborator set the container hands PlacesService (see trips.bridge.ts).
+// Only the read-model aggregation reaches into places here, but the photo cache,
+// Unsplash and journey domain are real instances over the same in-memory DB
+// rather than casts: the place hooks are fire-and-forget behind a catch, so a
+// missing collaborator would look like a pass while swallowing a TypeError.
+// One PlacePhotoCacheService for both PlacesService and MapsService, matching
+// production, where the in-flight dedup only works on a shared instance.
+const photoCache = new PlacePhotoCacheService(dbs(), new RuntimeEnvService());
+const placesSvc = new PlacesService(
+  dbs(),
+  new PermissionsService(dbs()),
+  new RealtimeService(),
+  new MapsService(dbs(), photoCache),
+  new QueryHelpersService(dbs()),
+  new UnsplashService(dbs(), new RuntimeEnvService()),
+  photoCache,
+  new JourneyDomainService(dbs(), new RealtimeService(), new TrekPhotosRepository(dbs())),
+);
 const accommodationsSvc = new AccommodationsService(dbs(), new PermissionsService(dbs()), new RealtimeService());
 const createAccommodation = accommodationsSvc.createAccommodation.bind(accommodationsSvc);
 

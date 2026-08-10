@@ -219,6 +219,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Aggiorna → v{version}',
   'admin.plugins.enabledToggle': 'Abilita plugin',
   'plugins.notFound': 'Plugin non trovato',
+  'plugins.frameLoadFailed': 'Impossibile caricare questo plugin.',
   'admin.plugins.title': 'Plugin',
   'admin.plugins.subtitle': 'Installa e gestisci plugin di terze parti sulla tua istanza.',
   'admin.plugins.disabledTitle': 'I plugin sono disabilitati',

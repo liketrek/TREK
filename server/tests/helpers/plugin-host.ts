@@ -64,6 +64,11 @@ import { CollectionsRpc } from '../../src/nest/collections/collections.rpc';
 import { makeNotificationsService } from './notifications';
 import { notificationsStub } from './notifications';
 import { EphemeralTokenService } from '../../src/nest/auth/ephemeral-token.service';
+import { UserCleanupService } from '../../src/nest/auth/user-cleanup.service';
+import { UnsplashService } from '../../src/nest/unsplash/unsplash.service';
+import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
+import { TrekPhotosRepository } from '../../src/nest/photos/trek-photos.repository';
+import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
 
 /**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
@@ -89,21 +94,21 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const collab = new CollabService(dbs, permissions, realtime, notificationsStub());
   const vacay = new VacayService(dbs, realtime, notificationsStub());
   const days = new DaysService(dbs, permissions, realtime, queryHelpers);
-  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs), queryHelpers);
+  const photoCache = new PlacePhotoCacheService(dbs, new RuntimeEnvService());
+  const unsplash = new UnsplashService(dbs, new RuntimeEnvService());
+  const journey = new JourneyDomainService(dbs, realtime, new TrekPhotosRepository(dbs));
+  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs, photoCache), queryHelpers, unsplash, photoCache, journey);
   const collections = new CollectionsService(dbs, permissions, realtime, notificationsStub());
   const atlas = new AtlasService(dbs);
   const dayNotes = new DayNotesService(dbs, permissions, realtime);
-  const assignments = new AssignmentsService(dbs, permissions, realtime, queryHelpers);
-  const journey = new JourneyDomainService(dbs);
-  const membership = new TripMembershipService(dbs, permissions, realtime);
+  const assignments = new AssignmentsService(dbs, permissions, realtime, queryHelpers, journey);
+  const membership = new TripMembershipService(dbs);
   const notifications = makeNotificationsService(dbs, realtime);
   const llmConfig = new LlmConfigResolver(new SettingsService(dbs), dbs, addons);
   const oauth = new PluginOAuthService(dbs);
   const accommodations = new AccommodationsService(dbs, permissions, realtime);
-  // Was 12 arguments for a 14-parameter constructor; unsplash and userCleanup were
-  // undefined here and tsconfig only typechecks src, so nothing said so.
-  const trips = new TripsService(dbs, reservations, days, permissions, budget, vacay, realtime, undefined as never);
-  const members = new TripMembersService(dbs, budget, undefined as never, permissions, realtime, notificationsStub());
+  const trips = new TripsService(dbs, reservations, days, permissions, budget, vacay, realtime, unsplash);
+  const members = new TripMembersService(dbs, budget, new UserCleanupService(dbs), permissions, realtime, notificationsStub());
   const guards = new PluginGuards(dbs, permissions, addons);
 
   const registry = createTestPluginRegistry([

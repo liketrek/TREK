@@ -220,6 +220,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Обновить → v{version}',
   'admin.plugins.enabledToggle': 'Включить плагин',
   'plugins.notFound': 'Плагин не найден',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Плагины',
   'admin.plugins.subtitle': 'Устанавливайте сторонние плагины и управляйте ими на вашем экземпляре.',
   'admin.plugins.disabledTitle': 'Плагины отключены',
