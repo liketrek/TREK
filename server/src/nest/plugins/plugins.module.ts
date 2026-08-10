@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PoiCategoriesController } from './poi-categories.controller';
 import { PluginsController } from './plugins.controller';
 import { PluginsFeedController } from './plugins-feed.controller';
 import { PluginsProxyController } from './plugins-proxy.controller';
@@ -58,7 +59,7 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
   // The DI-native domain services the plugin host wiring injects
   // (PluginHostDepsFactory); DatabaseModule is @Global, so not listed.
   imports: [TagsModule, CategoriesModule, BudgetModule, ReservationsModule, TodoModule, PackingModule, DaysModule, AssignmentsModule, LlmParseModule, FilesModule, CollabModule, VacayModule, TripsModule, PermissionsModule, AuditModule, AddonsModule, PlacesModule, CollectionsModule, AtlasModule, NotificationsModule, TripMembershipModule],
-  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, TripCardContributionsController, PluginPhotosController, PluginCalendarController, MapMarkersController, MapLayersController, PluginRoutesController, DayScheduleController, DayTintsController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController],
+  controllers: [PluginsController, PluginsFeedController, PluginsProxyController, PluginFrameController, PlaceDetailsController, TripWarningsController, ViewContributionsController, TripCardContributionsController, PluginPhotosController, PluginCalendarController, MapMarkersController, MapLayersController, PluginRoutesController, DayScheduleController, DayTintsController, PdfSectionsController, AtlasLayersController, JournalEntryRowsController, PluginUserSettingsController, PluginOAuthController, PluginActivityController, PoiCategoriesController],
   providers: [PluginsService, PluginRuntimeService, PluginRegistryService, PluginOAuthService, PluginHostDepsFactory],
   // Exported so the admin addon-toggle handler can cascade-disable plugins whose
   // required addon was just turned off (#plugins dependencies).

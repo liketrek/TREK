@@ -1,0 +1,15 @@
+{
+  "id": "poi-demo",
+  "name": "POI Demo",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "trek": ">=3.5.0 <4.0.0",
+  "type": "integration",
+  "description": "Demonstrates the poiCategoryProvider hook: registers a 'Cheese Shops' category and returns hardcoded results for any query.",
+  "permissions": [
+    "hook:poi-category-provider"
+  ],
+  "egress": [],
+  "requiredAddons": [],
+  "pluginDependencies": []
+}

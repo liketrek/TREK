@@ -113,6 +113,7 @@ const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   journalEntryProvider: 'hook:journal-entry-provider',
   tripCardProvider: 'hook:trip-card-provider',
   notificationChannel: 'hook:notification-channel',
+  poiCategoryProvider: 'hook:poi-category-provider',
 };
 
 export class PluginSupervisor {

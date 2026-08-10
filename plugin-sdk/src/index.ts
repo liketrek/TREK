@@ -700,6 +700,50 @@ export interface JournalEntryProvider {
   getRows(entryId: number, ctx: PluginContext): Promise<JournalEntryRow[]>;
 }
 
+/** One POI category a plugin registers. */
+export interface PoiCategory {
+  id: string;      // stable plugin-local id (e.g. 'charging-station')
+  name: string;    // display name shown in the UI
+  icon?: string;   // a lucide icon name, resolved by the host
+  color?: string;  // #rrggbb
+}
+/** One search result returned by a `poiCategoryProvider` plugin. */
+export interface PoiResult {
+  id: string;
+  categoryId: string;      // must be one of the provider's declared category ids
+  name: string;
+  lat: number;             // -90..90
+  lng: number;             // -180..180
+  address?: string;
+  description?: string;
+  url?: string;            // http/https/mailto only — the host rejects any other scheme
+  icon?: string;           // lucide icon name — overrides the category default
+}
+/** Options passed to `PoiCategoryProvider.search`. */
+export interface PoiSearchOptions {
+  query?: string;
+  bounds?: { north: number; south: number; east: number; west: number };
+  /** 1..100 (default 20). The host clamps the value before calling the provider. */
+  limit?: number;
+}
+/**
+ * Register one or more POI categories (with icon/color) and answer place-search
+ * queries against them. Needs `hook:poi-category-provider`.
+ *
+ * `getCategories` is called once after activation to collect the category
+ * definitions shown in the UI. `search` is called per user query; the host
+ * normalizes and caps every field in the returned results and skips a failing
+ * call — it is never fatal to the caller.
+ *
+ * Exposed at `GET /api/plugin-poi-categories`.
+ */
+export interface PoiCategoryProvider {
+  /** Return the categories this plugin registers. */
+  getCategories(ctx: PluginContext): Promise<PoiCategory[]> | PoiCategory[];
+  /** Search for POIs matching `opts`. */
+  search(opts: PoiSearchOptions, ctx: PluginContext): Promise<{ results: PoiResult[]; hasMore: boolean }>;
+}
+
 /** A core-event subscription (#1429 eco). Handlers run with NO user (like a job).
  * Needs `events:subscribe`. */
 export interface PluginEventSubscription {
@@ -766,6 +810,7 @@ export interface PluginDefinition {
     journalEntryProvider?: JournalEntryProvider;
     tripCardProvider?: TripCardProvider;
     notificationChannel?: NotificationChannel;
+    poiCategoryProvider?: PoiCategoryProvider;
   };
   /** Functions exposed to dependents (names must match manifest `capabilities.provides`). */
   exports?: Record<string, PluginExport>;

@@ -224,6 +224,7 @@ export const PERMISSION_FAMILIES: PermissionFamily[] = [
       { value: 'hook:journal-entry-provider', hint: 'Contribute entries to a journey' },
       { value: 'hook:trip-card-provider', hint: 'Add a badge/card to the trip list' },
       { value: 'hook:notification-channel', hint: 'Deliver TREK notifications over your own channel' },
+      { value: 'hook:poi-category-provider', hint: 'Register named POI categories and answer place-search queries' },
       { value: 'hook:user-data', hint: 'Implement GDPR erasure/export of the data you hold for a user' },
     ],
   },

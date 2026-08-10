@@ -86,6 +86,13 @@ describe('validateManifest', () => {
     expect(r.manifest?.permissions).toEqual(permissions);
   });
 
+  it('accepts hook:poi-category-provider (server accepts it)', () => {
+    const r = validateManifest({ ...base, permissions: ['hook:poi-category-provider'] });
+    expect(r.errors).toEqual([]);
+    expect(r.ok).toBe(true);
+    expect(r.manifest?.permissions).toEqual(['hook:poi-category-provider']);
+  });
+
   it('accepts hook:map-layer-provider, hook:day-schedule-provider, hook:day-tint-provider and geolocation:read', () => {
     const r = validateManifest({ ...base, permissions: ['hook:map-layer-provider', 'hook:day-schedule-provider', 'hook:day-tint-provider', 'geolocation:read'] });
     expect(r.errors).toEqual([]);

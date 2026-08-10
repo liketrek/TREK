@@ -676,6 +676,7 @@ module.exports = definePlugin({
 | `photoProvider.search(query, {page, limit}, ctx)` / `.getById(id, ctx)` | `hook:photo-provider` | **live** — plugin photo sources aggregated at `GET /api/plugin-photos/search` (+ `/sources`, `/item`) for the picker. Each `{id, title?, thumbnailUrl, fullUrl, takenAt?}`; thumbnail/full URLs must be http/https, per-source count capped, a failing source skipped |
 | `calendarSource.getName(ctx)` / `.getEvents(userId, start, end, ctx)` | `hook:calendar-source` | **live** — plugin calendar events aggregated for the signed-in user at `GET /api/plugin-calendar?start=&end=`. Each `{id, title, start, end, allDay}` (ISO dates); count capped, a failing source skipped |
 | `notificationChannel.send(msg, config, ctx)` / `.test(config, ctx)` | `hook:notification-channel` | **live** — registers a new notification channel. **Userless** (see below). See [Notification channels](#notification-channels) |
+| `poiCategoryProvider.getCategories(ctx)` → `PoiCategory[]`<br>`poiCategoryProvider.search(opts, ctx)` → `{ results: PoiResult[], hasMore }` | `hook:poi-category-provider` | **live** — registers named POI categories (name, icon, color) and answers place-search queries. `getCategories` is called once after activation; `search` is called per query with `{ query?, bounds?: { north, south, east, west }, limit? }` (limit clamped 1–100). Each result: `{ id, categoryId, name, lat, lng, address?, description?, url?, icon? }`. The host normalizes all fields, range-checks coordinates, and skips a failing call. Also `GET /api/plugin-poi-categories`. |
 
 Each hook method receives its args plus the per-invocation `ctx`, so any `ctx.trips.*`
 read it makes is membership-checked against the current user (like a route handler) —
@@ -1175,6 +1176,7 @@ guard optional `ctx.*` namespaces.
 | `db:read:users` | `ctx.users.getById` |
 | `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint, plus a whitelisted entity **snapshot** when the plugin also holds the family's `db:read:*` grant; never a user) |
 | `hook:trip-card-provider` | `hooks.tripCardProvider` — small badges on the dashboard trip cards |
+| `hook:poi-category-provider` | `hooks.poiCategoryProvider` — register named POI categories and answer place-search queries |
 | `jobs:run` | run declared background `jobs` on their cron schedule **and** `ctx.scheduler` runtime timers → `scheduled` handler (opt-in; no user, so trip reads are refused) |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
