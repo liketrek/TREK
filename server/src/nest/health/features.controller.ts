@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { KitineraryExtractorService } from './kitinerary-extractor.service';
+import { KitineraryExtractorService } from '../booking-import/kitinerary-extractor.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
 

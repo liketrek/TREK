@@ -4,8 +4,7 @@ import { ZodValidationPipe } from './common/zod-validation.pipe';
 import { AppConfigModule } from './app-config/app-config.module';
 import { DatabaseModule } from './database/database.module';
 import { RealtimeModule } from './realtime/realtime.module';
-import { HealthController } from './health/health.controller';
-import { HealthService } from './health/health.service';
+import { HealthModule } from './health/health.module';
 import { WeatherModule } from './weather/weather.module';
 import { HelpModule } from './help/help.module';
 import { AirportsModule } from './airports/airports.module';
@@ -61,10 +60,8 @@ import { IdempotencyInterceptor } from './common/idempotency.interceptor';
  * migrated.
  */
 @Module({
-  imports: [AppConfigModule, DatabaseModule, RealtimeModule, McpModule.forRoot({ accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess }), WeatherModule, HelpModule, AirportsModule, ConfigModule, SystemNoticesModule, MapsModule, PlaceEnrichmentModule, CategoriesModule, TagsModule, NotificationsModule, AtlasModule, VacayModule, PackingModule, TodoModule, BudgetModule, ReservationsModule, DaysModule, AssignmentsModule, PlacesModule, TripsModule, CollabModule, FilesModule, PhotosModule, MemoriesModule, AirtrailModule, JourneyModule, CollectionsModule, ShareModule, TripInviteModule, TransitModule, FeedsModule, SettingsModule, BackupModule, AuthModule, OidcModule, OauthModule, AdminModule, AddonsModule, AuditModule, PermissionsModule, PluginsModule, BookingImportModule, LlmParseModule],
-  controllers: [HealthController],
+  imports: [AppConfigModule, DatabaseModule, RealtimeModule, McpModule.forRoot({ accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess }), HealthModule, WeatherModule, HelpModule, AirportsModule, ConfigModule, SystemNoticesModule, MapsModule, PlaceEnrichmentModule, CategoriesModule, TagsModule, NotificationsModule, AtlasModule, VacayModule, PackingModule, TodoModule, BudgetModule, ReservationsModule, DaysModule, AssignmentsModule, PlacesModule, TripsModule, CollabModule, FilesModule, PhotosModule, MemoriesModule, AirtrailModule, JourneyModule, CollectionsModule, ShareModule, TripInviteModule, TransitModule, FeedsModule, SettingsModule, BackupModule, AuthModule, OidcModule, OauthModule, AdminModule, AddonsModule, AuditModule, PermissionsModule, PluginsModule, BookingImportModule, LlmParseModule],
   providers: [
-    HealthService,
     // Global error-envelope normaliser (DI-registered so it also catches
     // framework-level exceptions like the not-found handler).
     { provide: APP_FILTER, useClass: TrekExceptionFilter },
