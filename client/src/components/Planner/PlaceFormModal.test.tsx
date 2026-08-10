@@ -894,11 +894,11 @@ describe('PlaceFormModal', () => {
 
     // -1 → wraps to the last entry, then ArrowDown wraps back to the first.
     await user.keyboard('{ArrowUp}');
-    expect(screen.getByText('Eiffel Museum').closest('button')).toHaveClass('bg-slate-100');
+    expect(screen.getByText('Eiffel Museum').closest('button')).toHaveClass('bg-surface-tertiary');
     await user.keyboard('{ArrowDown}');
-    expect(screen.getByText('Eiffel Tower').closest('button')).toHaveClass('bg-slate-100');
+    expect(screen.getByText('Eiffel Tower').closest('button')).toHaveClass('bg-surface-tertiary');
     await user.keyboard('{ArrowDown}');
-    expect(screen.getByText('Eiffel Museum').closest('button')).toHaveClass('bg-slate-100');
+    expect(screen.getByText('Eiffel Museum').closest('button')).toHaveClass('bg-surface-tertiary');
 
     await user.keyboard('{Enter}');
     expect(await screen.findByDisplayValue('52.52')).toBeInTheDocument();

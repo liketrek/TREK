@@ -601,7 +601,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 text-sm text-content-secondary hover:text-content border border-edge rounded-lg hover:bg-surface-hover"
           >
             {t('common.cancel')}
           </button>
@@ -609,7 +609,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             type="button"
             onClick={handleSubmit}
             disabled={isSaving || hasTimeError}
-            className="px-6 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-700 disabled:opacity-60 font-medium"
+            className="px-6 py-2 bg-accent text-accent-text text-sm rounded-lg hover:bg-accent-hover disabled:opacity-60 font-medium"
           >
             {isSaving ? t('common.saving') : place ? t('common.update') : duplicateWarning ? t('places.addAnyway') : t('common.add')}
           </button>
@@ -630,7 +630,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
       )}
       <form onSubmit={handleSubmit} className={twoColumn || showDetails ? 'flex-1 min-w-0 space-y-3' : 'space-y-3'} onPaste={handlePaste}>
         {/* Place Search */}
-        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+        <div className="bg-surface-secondary rounded-xl p-3 border border-edge">
           {!hasMapsKey && (
             <p className="mb-2 text-xs text-content-faint">
               {t('places.osmActive')}
@@ -651,13 +651,13 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                   }
                 }}
                 placeholder={t('places.mapsSearchPlaceholder')}
-                className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
+                className="flex-1 border border-edge rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-surface-input"
               />
               <button
                 type="button"
                 onClick={() => { setAcSuggestions([]); handleMapsSearch() }}
                 disabled={isSearchingMaps}
-                className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-slate-700 disabled:opacity-60"
+                className="bg-accent text-accent-text px-3 py-1.5 rounded-lg text-sm hover:bg-accent-hover disabled:opacity-60"
               >
                 {isSearchingMaps ? '...' : <Search className="w-4 h-4" />}
               </button>
@@ -665,20 +665,20 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
             {/* Autocomplete dropdown */}
             {acSuggestions.length > 0 && (
-              <div className="absolute left-0 right-0 z-20 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden">
+              <div className="absolute left-0 right-0 z-20 mt-1 bg-surface-card rounded-lg border border-edge shadow-dropdown overflow-hidden">
                 {acSuggestions.map((s, idx) => (
                   <button
                     key={s.placeId}
                     type="button"
                     onMouseDown={() => handleSelectSuggestion(s)}
                     onMouseEnter={() => setAcHighlight(idx)}
-                    className={`w-full text-left px-3 py-2 border-b border-slate-100 last:border-0 ${
-                      idx === acHighlight ? 'bg-slate-100' : 'hover:bg-slate-50'
+                    className={`w-full text-left px-3 py-2 border-b border-edge-faint last:border-0 ${
+                      idx === acHighlight ? 'bg-surface-tertiary' : 'hover:bg-surface-hover'
                     }`}
                   >
                     <div className="font-medium text-sm">{s.mainText}</div>
                     {s.secondaryText && (
-                      <div className="text-xs text-slate-500 truncate">{s.secondaryText}</div>
+                      <div className="text-xs text-content-muted truncate">{s.secondaryText}</div>
                     )}
                   </button>
                 ))}
@@ -688,16 +688,16 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
           {/* Search results (populated after full search) */}
           {mapsResults.length > 0 && (
-            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden max-h-40 overflow-y-auto mt-2">
+            <div className="bg-surface-card rounded-lg border border-edge overflow-hidden max-h-40 overflow-y-auto mt-2">
               {mapsResults.map((result, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSelectMapsResult(result)}
-                  className="w-full text-left px-3 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0"
+                  className="w-full text-left px-3 py-2 hover:bg-surface-hover border-b border-edge-faint last:border-0"
                 >
                   <div className="font-medium text-sm">{result.name}</div>
-                  <div className="text-xs text-slate-500 truncate">{result.address}</div>
+                  <div className="text-xs text-content-muted truncate">{result.address}</div>
                 </button>
               ))}
             </div>
@@ -706,7 +706,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
         {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.formName')} *</label>
+          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.formName')} *</label>
           <div className="relative">
             <input
               type="text"
@@ -718,7 +718,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             />
             {isSearchingMaps && (
               <div className="absolute right-2.5 top-0 bottom-0 flex items-center" role="status" aria-label={t('places.loadingDetails')}>
-                <Loader2 className="w-4 h-4 animate-spin text-slate-400" aria-hidden="true" />
+                <Loader2 className="w-4 h-4 animate-spin text-content-faint" aria-hidden="true" />
               </div>
             )}
           </div>
@@ -726,7 +726,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.formDescription')}</label>
+          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.formDescription')}</label>
           <textarea
             value={form.description}
             onChange={e => handleChange('description', e.target.value)}
@@ -738,7 +738,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.formNotes')}</label>
+          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.formNotes')}</label>
           <textarea
             value={form.notes}
             onChange={e => handleChange('notes', e.target.value)}
@@ -751,7 +751,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
         {/* Address + Coordinates */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.formAddress')}</label>
+          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.formAddress')}</label>
           <input
             type="text"
             value={form.address}
@@ -788,7 +788,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.formCategory')}</label>
+          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.formCategory')}</label>
           {!showNewCategory ? (
             <div className="flex gap-2">
               <CustomSelect
@@ -813,7 +813,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                 onClick={() => setShowNewCategory(true)}
                 aria-label={t('places.newCategory')}
                 title={t('places.newCategory')}
-                className="text-gray-500 px-2 hover:text-gray-700"
+                className="text-content-muted px-2 hover:text-content-secondary"
               >
                 <Plus size={16} />
               </button>
@@ -827,10 +827,10 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                 placeholder={t('places.categoryNamePlaceholder')}
                 className="form-input" style={{ flex: 1 }}
               />
-              <button type="button" onClick={handleCreateCategory} className="bg-slate-900 text-white px-3 rounded-lg hover:bg-slate-700 text-sm">
+              <button type="button" onClick={handleCreateCategory} className="bg-accent text-accent-text px-3 rounded-lg hover:bg-accent-hover text-sm">
                 OK
               </button>
-              <button type="button" onClick={() => setShowNewCategory(false)} className="text-gray-500 px-2 text-sm">
+              <button type="button" onClick={() => setShowNewCategory(false)} className="text-content-muted px-2 text-sm">
                 {t('common.cancel')}
               </button>
             </div>
@@ -854,7 +854,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
         {/* Website */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.formWebsite')}</label>
+          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.formWebsite')}</label>
           <input
             type="url"
             value={form.website}
@@ -866,11 +866,11 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
         {/* File Attachments */}
         {canUploadFiles && (
-          <div className="border border-gray-200 rounded-xl p-3 space-y-2">
+          <div className="border border-edge rounded-xl p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-gray-700">{t('files.title')}</label>
+              <label className="block text-sm font-medium text-content-secondary">{t('files.title')}</label>
               <button type="button" onClick={() => fileRef.current?.click()}
-                className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors">
+                className="flex items-center gap-1 text-xs text-content-muted hover:text-content transition-colors">
                 <Paperclip size={12} /> {t('files.attach')}
               </button>
             </div>
@@ -878,10 +878,10 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             {pendingFiles.length > 0 && (
               <div className="space-y-1" data-testid="pending-files">
                 {pendingFiles.map((file, idx) => (
-                  <div key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-slate-50 text-xs">
-                    <Paperclip size={10} className="text-slate-400 shrink-0" />
-                    <span className="truncate flex-1 text-slate-600">{file.name}</span>
-                    <button type="button" onClick={() => handleRemoveFile(idx)} className="text-slate-400 hover:text-red-500 shrink-0">
+                  <div key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-surface-secondary text-xs">
+                    <Paperclip size={10} className="text-content-faint shrink-0" />
+                    <span className="truncate flex-1 text-content-secondary">{file.name}</span>
+                    <button type="button" onClick={() => handleRemoveFile(idx)} className="text-content-faint hover:text-red-500 shrink-0">
                       <X size={12} />
                     </button>
                   </div>
@@ -935,14 +935,14 @@ function TimeSection({ form, handleChange, assignmentId, dayAssignments, hasTime
     <div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.startTime')}</label>
+          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.startTime')}</label>
           <CustomTimePicker
             value={form.place_time}
             onChange={v => handleChange('place_time', v)}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.endTime')}</label>
+          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.endTime')}</label>
           <CustomTimePicker
             value={form.end_time}
             onChange={v => handleChange('end_time', v)}
@@ -950,13 +950,13 @@ function TimeSection({ form, handleChange, assignmentId, dayAssignments, hasTime
         </div>
       </div>
       {hasTimeError && (
-        <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: 'var(--bg-warning, #fef3c7)', color: 'var(--text-warning, #92400e)' }}>
+        <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg text-caption bg-warning-soft text-warning">
           <AlertTriangle size={13} className="shrink-0" />
           {t('places.endTimeBeforeStart')}
         </div>
       )}
       {collisions.length > 0 && (
-        <div className="flex items-start gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: 'var(--bg-warning, #fef3c7)', color: 'var(--text-warning, #92400e)' }}>
+        <div className="flex items-start gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg text-caption bg-warning-soft text-warning">
           <AlertTriangle size={13} className="shrink-0 mt-0.5" />
           <span>
             {t('places.timeCollision')}{' '}
