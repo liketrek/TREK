@@ -99,6 +99,8 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Önce açıklama alanını boşalt',
   'places.details.facts': 'Bilmekte fayda var',
   'places.details.nothing': 'Bu yer için bir şey bulunamadı.',
+  'places.details.noKeyTitle': 'Daha fazla ayrıntı mevcut',
+  'places.details.noKeyHint': 'Google API anahtarı olmadan bu örnek yalnızca özgür kaynakları kullanır. Puanlar, açılış saatleri ve fotoğraflar için TREK yöneticinizden bir anahtar eklemesini isteyin.',
   'places.details.fact.rating': 'Puan',
   'places.details.fact.cuisine': 'Mutfak',
   'places.details.fact.openingHours': 'Çalışma saatleri',

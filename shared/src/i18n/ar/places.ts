@@ -97,6 +97,8 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'أفرغ حقل الوصف أولًا',
   'places.details.facts': 'معلومات مفيدة',
   'places.details.nothing': 'لم يتم العثور على شيء لهذا المكان.',
+  'places.details.noKeyTitle': 'تتوفر تفاصيل أكثر',
+  'places.details.noKeyHint': 'بدون مفتاح Google API يستخدم هذا التثبيت المصادر الحرة فقط. اطلب من مسؤول TREK إضافة مفتاح للحصول على التقييمات وساعات العمل والصور.',
   'places.details.fact.rating': 'التقييم',
   'places.details.fact.cuisine': 'المطبخ',
   'places.details.fact.openingHours': 'ساعات العمل',

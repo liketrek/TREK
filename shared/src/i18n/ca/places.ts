@@ -95,6 +95,8 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Buida primer el camp de descripció',
   'places.details.facts': 'Bo saber',
   'places.details.nothing': "No s'ha trobat res per a aquest lloc.",
+  'places.details.noKeyTitle': 'Hi ha més detalls disponibles',
+  'places.details.noKeyHint': 'Sense una clau API de Google, aquesta instància només fa servir fonts lliures. Demana a l\'administració de TREK que n\'afegeixi una per a valoracions, horaris i fotos.',
   'places.details.fact.rating': 'Valoració',
   'places.details.fact.cuisine': 'Cuina',
   'places.details.fact.openingHours': 'Horari',

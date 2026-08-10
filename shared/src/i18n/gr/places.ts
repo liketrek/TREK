@@ -97,6 +97,8 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Άδειασε πρώτα το πεδίο περιγραφής',
   'places.details.facts': 'Καλό να ξέρεις',
   'places.details.nothing': 'Δεν βρέθηκε τίποτα για αυτήν την τοποθεσία.',
+  'places.details.noKeyTitle': 'Διατίθενται περισσότερες λεπτομέρειες',
+  'places.details.noKeyHint': 'Χωρίς κλειδί Google API, αυτή η εγκατάσταση χρησιμοποιεί μόνο ελεύθερες πηγές. Ζητήστε από τον διαχειριστή TREK να προσθέσει ένα για βαθμολογίες, ώρες λειτουργίας και φωτογραφίες.',
   'places.details.fact.rating': 'Βαθμολογία',
   'places.details.fact.cuisine': 'Κουζίνα',
   'places.details.fact.openingHours': 'Ωράριο',

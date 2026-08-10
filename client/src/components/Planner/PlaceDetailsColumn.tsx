@@ -14,6 +14,7 @@ import {
   Loader2,
   ScrollText,
   ShoppingBag,
+  Sparkles,
   Sprout,
   Star,
   Sun,
@@ -48,6 +49,8 @@ interface PlaceDetailsColumnProps {
   timeFormat?: string
   /** For grouping the rating count's digits. */
   locale?: string
+  /** False on an instance with no Google key, which is most of them. */
+  hasMapsKey?: boolean
   t: TranslationFn
 }
 
@@ -113,6 +116,7 @@ export default function PlaceDetailsColumn({
   language,
   timeFormat = '24h',
   locale = 'en-US',
+  hasMapsKey = false,
   t,
 }: PlaceDetailsColumnProps): React.ReactElement {
   const [data, setData] = useState<MapsPlaceEnrichmentResult | null>(null)
@@ -213,9 +217,15 @@ export default function PlaceDetailsColumn({
         )}
 
         {isEmpty && (
-          <div className="flex items-center gap-2 text-caption text-content-muted">
-            <ImageOff className="w-4 h-4 shrink-0" />
-            {t('places.details.nothing')}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-caption text-content-muted">
+              <ImageOff className="w-4 h-4 shrink-0" />
+              {t('places.details.nothing')}
+            </div>
+            {/* Only when both are true. With a key configured there is nothing
+                to suggest, and on a place the free sources DID describe the
+                suggestion would be an advert. */}
+            {!hasMapsKey && <NoKeyHint t={t} />}
           </div>
         )}
 
@@ -377,6 +387,30 @@ function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElem
         </>
       )}
     </p>
+  )
+}
+
+/**
+ * Shown when the free sources found nothing and no Google key is configured.
+ *
+ * Both halves matter. With a key there is nothing to suggest, and on a place
+ * the free sources did describe the same card would just be an advert — which
+ * is why it lives inside the empty state rather than at the foot of the column.
+ *
+ * It also names who to ask: the key is an instance-wide setting, so on most
+ * installs the person reading this cannot act on it themselves.
+ */
+function NoKeyHint({ t }: { t: TranslationFn }): React.ReactElement {
+  return (
+    <div className="rounded-xl border border-accent/25 bg-accent-subtle p-3">
+      <div className="flex items-center gap-2">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-text">
+          <Sparkles className="h-3 w-3" />
+        </span>
+        <p className="text-caption font-semibold text-content">{t('places.details.noKeyTitle')}</p>
+      </div>
+      <p className="mt-2 text-caption leading-relaxed text-content-secondary">{t('places.details.noKeyHint')}</p>
+    </div>
   )
 }
 

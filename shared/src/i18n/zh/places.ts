@@ -95,6 +95,8 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': '请先清空描述字段',
   'places.details.facts': '值得一看',
   'places.details.nothing': '未找到该地点的信息。',
+  'places.details.noKeyTitle': '可获取更多详情',
+  'places.details.noKeyHint': '没有 Google API 密钥时，此实例仅使用免费来源。请联系 TREK 管理员添加密钥，以获取评分、营业时间和照片。',
   'places.details.fact.rating': '评分',
   'places.details.fact.cuisine': '菜系',
   'places.details.fact.openingHours': '营业时间',

@@ -402,3 +402,41 @@ describe('PlaceDetailsColumn — hours and rating', () => {
     expect(screen.queryByText('places.details.nothing')).not.toBeInTheDocument()
   })
 })
+/**
+ * FE-PDC-027..029 — the nudge towards a Google key.
+ *
+ * Deliberately narrow: it appears only when the free sources came up empty AND
+ * no key is configured. On an instance with a key there is nothing to suggest,
+ * and on a place the free sources described it would read as an advert.
+ */
+describe('PlaceDetailsColumn — no Google key', () => {
+  const empty = () => placeEnrichment.mockResolvedValue({ photos: [], facts: [], description: null })
+
+  it('FE-PDC-027: suggests a key when nothing was found and none is set', async () => {
+    empty()
+    renderColumn({ hasMapsKey: false })
+
+    expect(await screen.findByText('places.details.noKeyTitle')).toBeInTheDocument()
+    expect(screen.getByText('places.details.noKeyHint')).toBeInTheDocument()
+  })
+
+  it('FE-PDC-028: stays quiet when a key is already configured', async () => {
+    empty()
+    renderColumn({ hasMapsKey: true })
+
+    await screen.findByText('places.details.nothing')
+    expect(screen.queryByText('places.details.noKeyTitle')).not.toBeInTheDocument()
+  })
+
+  it('FE-PDC-029: stays quiet when the free sources did find something', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: { text: 'Ein Museum.', source: 'wikipedia', sourceUrl: null, license: 'CC BY-SA 4.0' },
+    })
+    renderColumn({ hasMapsKey: false })
+
+    await screen.findByText('Ein Museum.')
+    expect(screen.queryByText('places.details.noKeyTitle')).not.toBeInTheDocument()
+  })
+})

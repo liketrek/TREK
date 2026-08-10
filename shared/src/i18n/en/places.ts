@@ -97,6 +97,8 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Clear the description field first',
   'places.details.facts': 'Good to know',
   'places.details.nothing': 'Nothing found for this place.',
+  'places.details.noKeyTitle': 'More detail is available',
+  'places.details.noKeyHint': 'Without a Google API key this instance can only use free sources. Ask your TREK administrator to add one for ratings, opening hours and photos.',
   'places.details.fact.rating': 'Rating',
   'places.details.fact.cuisine': 'Cuisine',
   'places.details.fact.openingHours': 'Opening hours',

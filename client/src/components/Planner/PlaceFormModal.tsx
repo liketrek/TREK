@@ -638,6 +638,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           language={language}
           timeFormat={S.timeFormat}
           locale={S.locale}
+          hasMapsKey={S.hasMapsKey}
           t={t}
         />
       )}

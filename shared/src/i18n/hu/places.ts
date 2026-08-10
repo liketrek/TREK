@@ -97,6 +97,8 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Előbb ürítsd ki a leírás mezőt',
   'places.details.facts': 'Jó tudni',
   'places.details.nothing': 'Ehhez a helyhez nem található semmi.',
+  'places.details.noKeyTitle': 'További részletek érhetők el',
+  'places.details.noKeyHint': 'Google API-kulcs nélkül ez a példány csak szabad forrásokat használ. Kérd a TREK rendszergazdáját, hogy adjon hozzá egyet az értékelésekhez, nyitvatartáshoz és fotókhoz.',
   'places.details.fact.rating': 'Értékelés',
   'places.details.fact.cuisine': 'Konyha',
   'places.details.fact.openingHours': 'Nyitvatartás',

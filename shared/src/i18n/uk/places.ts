@@ -97,6 +97,8 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Спершу очистіть поле опису',
   'places.details.facts': 'Корисно знати',
   'places.details.nothing': 'Для цього місця нічого не знайдено.',
+  'places.details.noKeyTitle': 'Доступно більше деталей',
+  'places.details.noKeyHint': 'Без ключа Google API цей екземпляр використовує лише вільні джерела. Попросіть адміністратора TREK додати ключ, щоб отримати оцінки, години роботи та фото.',
   'places.details.fact.rating': 'Рейтинг',
   'places.details.fact.cuisine': 'Кухня',
   'places.details.fact.openingHours': 'Години роботи',

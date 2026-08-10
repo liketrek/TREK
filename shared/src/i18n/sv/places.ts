@@ -97,6 +97,8 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Töm beskrivningsfältet först',
   'places.details.facts': 'Bra att veta',
   'places.details.nothing': 'Inget hittades för den här platsen.',
+  'places.details.noKeyTitle': 'Fler detaljer finns tillgängliga',
+  'places.details.noKeyHint': 'Utan en Google API-nyckel använder den här instansen bara fria källor. Be din TREK-administratör lägga till en för betyg, öppettider och foton.',
   'places.details.fact.rating': 'Betyg',
   'places.details.fact.cuisine': 'Kök',
   'places.details.fact.openingHours': 'Öppettider',
