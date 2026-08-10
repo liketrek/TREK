@@ -2,7 +2,7 @@
  * Unit tests for the DI-native ReservationsService — RESV-SVC-001+ (real-SQL
  * cases over the folded legacy services/reservationService.ts statements),
  * RES-TRAV-001..005 (moved 1:1 from tests/unit/services/reservationTravelers.test.ts)
- * and RESV-BRIDGE-001..009 (one delegation case per reservations.bridge export).
+ * and RESV-BRIDGE-001..009, which kept their assertions when the bridge went.
  * Uses a real in-memory SQLite DB so the SQL logic — falsy-coercion defaults,
  * COALESCE update semantics, day derivation, the accommodation/budget cascades
  * and the TEXT accommodation_id normalization — is exercised faithfully.
@@ -57,7 +57,26 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
 import type { BudgetService } from '../../../src/nest/budget/budget.service';
-import * as bridge from '../../../src/nest/reservations/reservations.bridge';
+// Was reservations.bridge, deleted along with the other three that had no
+// consumer outside the container. The cases below kept their assertions and
+// point at the service the bridge delegated to; only the delegation itself is
+// gone, and there was nothing left to delegate for.
+const bridge = {
+  listReservations: (tripId: string | number) => svc.list(tripId),
+  loadEndpointsByTrip: (tripId: string | number) => svc.loadEndpointsByTrip(tripId),
+  resyncReservationDays: (tripId: string | number) => svc.resyncReservationDays(tripId),
+  createReservation: (tripId: string | number, data: Parameters<ReservationsService['create']>[1]) => svc.create(tripId, data),
+  getReservation: (id: string | number, tripId: string | number) => svc.getReservation(id, tripId),
+  getReservationWithJoins: (id: string | number) => svc.getReservationWithJoins(id),
+  updateReservation: (
+    id: string | number,
+    tripId: string | number,
+    data: Parameters<ReservationsService['update']>[2],
+    current: Parameters<ReservationsService['update']>[3],
+  ) => svc.update(id, tripId, data, current),
+  deleteReservation: (id: string | number, tripId: string | number) => svc.remove(id, tripId),
+  notifyBookingChange: (...a: Parameters<ReservationsService['notifyBookingChange']>) => svc.notifyBookingChange(...a),
+};
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { notificationsStub } from '../../helpers/notifications';
 
@@ -513,7 +532,7 @@ describe('setReservationTravelers / loadTravelers (#1517)', () => {
   });
 });
 
-describe('reservations.bridge (legacy-named delegation for outside-container consumers)', () => {
+describe('ReservationsService — the surface the deleted bridge exposed', () => {
   it('RESV-BRIDGE-001: listReservations delegates to ReservationsService.list', () => {
     const { trip } = ownerTrip();
     createReservation(testDb, trip.id, { title: 'A' });

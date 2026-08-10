@@ -262,11 +262,14 @@ predicted: `MulterModule.registerAsync` over an `AllowedFileTypesService` leaf,
 and `files.controller.ts` / `journey.controller.ts` build their multer options
 from that.
 
-**Four bridges have no production consumer at all** — `days`, `packing`,
-`photos`, `reservations`. Only their own delegation tests import them, and each
-still builds a service outside the container at module load for nobody. They are
-deletable, along with the comments in `days.service.ts`, `packing.service.ts` and
-`reservations.service.ts` that still send readers to them.
+`days`, `packing`, `photos` and `reservations` had no production consumer left
+and are deleted. Each still built a service outside the container at module load
+for nobody, and three domain docblocks were still sending readers to them. The
+cases that exercised them kept their assertions and point at the service.
+
+Twelve bridges remain. When one loses its last outside-container consumer,
+delete it in the same change rather than leaving it as a courtesy: an unused
+bridge reads as a supported entry point.
 
 The nine fire-and-forget notification senders inject too. They were lazy
 `import('../notifications/notifications.bridge').then(({ send }) => …)` calls

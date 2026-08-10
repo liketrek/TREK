@@ -23,7 +23,16 @@ vi.mock('../../../src/config', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { createUser } from '../../helpers/factories';
-import { getOrCreateLocalTrekPhoto, getOrCreateTrekPhoto, resolveTrekPhoto } from '../../../src/nest/photos/photos.bridge';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { db as trekDb } from '../../../src/db/database';
+
+// Was photos.bridge, deleted with the other three that had no consumer outside
+// the container. These call the repository directly now.
+const trekPhotos = new TrekPhotosRepository(new DatabaseService(trekDb));
+const getOrCreateTrekPhoto = (...a: Parameters<TrekPhotosRepository['getOrCreate']>) => trekPhotos.getOrCreate(...a);
+const getOrCreateLocalTrekPhoto = (...a: Parameters<TrekPhotosRepository['getOrCreateLocal']>) => trekPhotos.getOrCreateLocal(...a);
+const resolveTrekPhoto = (id: number) => trekPhotos.resolve(id);
 
 beforeAll(() => {
   createTables(testDb);

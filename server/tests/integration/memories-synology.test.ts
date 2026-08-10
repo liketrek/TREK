@@ -1186,7 +1186,15 @@ describe('Synology SSRF blocked error handling', () => {
 
 // ── Passphrase persistence fixes ─────────────────────────────────────────────
 
-import { getOrCreateTrekPhoto, deleteTrekPhotoIfOrphan } from '../../src/nest/photos/photos.bridge';
+import { TrekPhotosRepository } from '../../src/nest/photos/trek-photos.repository';
+import { DatabaseService } from '../../src/nest/database/database.service';
+import { db as trekDb } from '../../src/db/database';
+
+// Was photos.bridge, which existed for consumers outside the container and had
+// none left. The repository is what it delegated to.
+const trekPhotos = new TrekPhotosRepository(new DatabaseService(trekDb));
+const getOrCreateTrekPhoto = (...a: Parameters<TrekPhotosRepository['getOrCreate']>) => trekPhotos.getOrCreate(...a);
+const deleteTrekPhotoIfOrphan = (id: number) => trekPhotos.deleteIfOrphan(id);
 import { decrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
 
 describe('trek_photos passphrase healing (SYNO-090)', () => {

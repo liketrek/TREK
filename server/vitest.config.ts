@@ -125,6 +125,26 @@ export default defineConfig({
         'src/nest/vacay/**/*.ts': { statements: 82, branches: 66, functions: 90, lines: 86 },
         'src/nest/weather/**/*.ts': { statements: 93, branches: 78, functions: 91, lines: 97 },
         'src/nest/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
+
+        // Outside the container. Coverage MEASURES src/**, but until now only
+        // src/nest/** was gated, so the boot path, the scheduler, the MCP
+        // handler and the migrations sat under no floor at all — which is
+        // exactly where the worst finding of the last audit lived (a swallowed
+        // EADDRINUSE that no test could have caught). These entries pin what is
+        // measured today so it cannot slide; they are floors to raise, not
+        // targets that have been met.
+        //
+        // src/demo/** is deliberately absent: it measures 0%, and a floor of
+        // zero asserts nothing. It needs tests before it needs a threshold.
+        'src/app-config/**/*.ts': { statements: 99, branches: 93, functions: 99, lines: 99 },
+        'src/db/**/*.ts': { statements: 73, branches: 38, functions: 59, lines: 80 },
+        'src/mcp/**/*.ts': { statements: 58, branches: 43, functions: 63, lines: 60 },
+        'src/middleware/**/*.ts': { statements: 91, branches: 89, functions: 87, lines: 94 },
+        'src/systemNotices/**/*.ts': { statements: 84, branches: 67, functions: 93, lines: 85 },
+        'src/utils/**/*.ts': { statements: 92, branches: 87, functions: 89, lines: 96 },
+        // index.ts, bootstrap.ts, scheduler.ts, config.ts, websocket.ts and the
+        // small top-level modules beside them.
+        'src/*.ts': { statements: 39, branches: 36, functions: 36, lines: 42 },
       },
     },
   },

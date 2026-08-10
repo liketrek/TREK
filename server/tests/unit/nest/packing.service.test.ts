@@ -63,7 +63,9 @@ import { createUser, createAdmin, createTrip, addTripMember } from '../../helper
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { PackingService } from '../../../src/nest/packing/packing.service';
-import { listItems as bridgeListItems } from '../../../src/nest/packing/packing.bridge';
+// Was packing.bridge, deleted with the other three that had no consumer outside the
+// container. The assertions stayed; they point at the service now.
+const bridgeListItems = (tripId: string | number, viewerId?: number) => svc.listItems(tripId, viewerId);
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { notificationsStub } from '../../helpers/notifications';
 
@@ -773,7 +775,7 @@ describe('notifyTagged', () => {
 
 // ── Bridge delegation ─────────────────────────────────────────────────────────
 
-describe('packing.bridge', () => {
+describe('PackingService — the surface the deleted bridge exposed', () => {
   it('PACK-SVC-050: listItems delegates to PackingService over the shared db Proxy', () => {
     const { user: owner } = createUser(testDb);
     const { user: other } = createUser(testDb);

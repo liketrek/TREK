@@ -56,9 +56,8 @@ export class DayReorderError extends Error {}
  * query per assignment. Trip access
  * rides DatabaseService.canAccessTrip; mutations use the
  * 'day_edit' permission; the WebSocket broadcast keeps its legacy call path.
- * Non-Nest consumers (legacy tripService and the transit/transports MCP
- * registrars) go through days.bridge.ts instead of importing this class
- * directly.
+ * There are no non-Nest consumers left. days.bridge.ts served them and was
+ * deleted once the last one folded into the container.
  */
 @Injectable()
 export class DaysService {

@@ -56,7 +56,10 @@ import { createUser, createTrip, createDay, createPlace, createDayAssignment, cr
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { DaysService, DayReorderError, addDays } from '../../../src/nest/days/days.service';
-import { getDay as bridgeGetDay, listDays as bridgeListDays } from '../../../src/nest/days/days.bridge';
+// Was days.bridge, deleted with the other three that had no consumer outside the
+// container. The assertions stayed; they point at the service now.
+const bridgeGetDay = (id: string | number, tripId: string | number) => svc.getDay(id, tripId);
+const bridgeListDays = (tripId: string | number) => svc.list(tripId);
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
@@ -252,7 +255,7 @@ describe('remove', () => {
 // consumer (legacy tripService) folded into the DI-native TripsService —
 // 029/031/032 pin the same behavior on the service.
 
-describe('days.bridge', () => {
+describe('DaysService — the surface the deleted bridge exposed', () => {
   it('DAY-SVC-027 — getDay delegates to DaysService.getDay', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

@@ -35,8 +35,8 @@ const BAG_COLORS = ['#6366f1', '#ec4899', '#f97316', '#10b981', '#06b6d4', '#8b5
  * legacy call paths. Post-migration fixes over the legacy code: a single
  * 'Other' category default, bodyKeys-gated weight_limit_grams (explicit null
  * clears it), and transactions around every multi-statement write. The
- * remaining non-Nest consumer (the legacy MCP prompts registrar) goes through
- * packing.bridge.ts instead of importing this class directly.
+ * remaining non-Nest consumer went with the legacy MCP prompts registrar, and
+ * packing.bridge.ts was deleted with it.
  */
 @Injectable()
 export class PackingService {

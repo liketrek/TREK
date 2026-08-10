@@ -123,10 +123,10 @@ type AccommodationTimesMeta = {
  * legacy call paths. The legacy route's budget side effects (auto-create /
  * update / delete a linked budget item) and the booking notification are
  * encapsulated here so the controller stays thin — behaviour is 1:1.
- * Non-Nest consumers (legacy tripService, airtrail import/sync, the transit +
- * transports MCP registrars) go through reservations.bridge.ts instead of
- * importing this class directly; the plugin RPC host injects it via
- * ReservationsRpc.
+ * Every consumer injects this class now. reservations.bridge.ts existed for
+ * the legacy tripService, airtrail import/sync and the transit/transports MCP
+ * registrars, all of which have folded in; the plugin RPC host reaches it
+ * through ReservationsRpc.
  */
 @Injectable()
 export class ReservationsService {
