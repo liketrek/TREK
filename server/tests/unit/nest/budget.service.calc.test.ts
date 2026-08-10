@@ -14,11 +14,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockDb = vi.hoisted(() => {
   return {
     db: {
-      prepare: vi.fn(() => ({
-        all: vi.fn(() => []),
-        get: vi.fn(() => undefined),
-        run: vi.fn(),
-      })),
+      // Typed as the real prepare(sql) rather than inferred from this default
+      // implementation: inferred, every later mockImplementation had to match
+      // the exact three-member object literal below, so widening one of them
+      // broke the other nine.
+      prepare: vi.fn<(sql: string) => import('better-sqlite3').Statement>(
+        () =>
+          ({
+            all: vi.fn(() => [] as unknown[]),
+            get: vi.fn(() => undefined as unknown),
+            run: vi.fn(),
+          }) as unknown as import('better-sqlite3').Statement,
+      ),
     },
     closeDb: () => {},
     reinitialize: () => {},
@@ -40,6 +47,16 @@ import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rat
 import type { BudgetItem, BudgetItemMember, BudgetItemPayer } from '../../../src/types';
 import type Database from 'better-sqlite3';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+
+/**
+ * A prepared-statement stub.
+ *
+ * better-sqlite3's Statement has a dozen members; these cases drive three of
+ * them. Naming the widening once beats a cast at each of the sixteen returns,
+ * and keeps `prepare`'s own signature honest so a genuinely wrong mock still
+ * fails to compile.
+ */
+const stmt = (impl: Partial<Database.Statement>) => impl as Database.Statement;
 
 const permissionsStub = { checkPermission: vi.fn(() => true) } as unknown as PermissionsService;
 
@@ -87,18 +104,18 @@ function setupDb(
 ) {
   mockDb.db.prepare.mockImplementation((sql: string) => {
     if (sql.includes('SELECT * FROM budget_items')) {
-      return { all: vi.fn(() => items), get: vi.fn(), run: vi.fn() };
+      return stmt({ all: vi.fn(() => items), get: vi.fn(), run: vi.fn() });
     }
     if (sql.includes('budget_item_members')) {
-      return { all: vi.fn(() => members), get: vi.fn(), run: vi.fn() };
+      return stmt({ all: vi.fn(() => members), get: vi.fn(), run: vi.fn() });
     }
     if (sql.includes('budget_item_payers')) {
-      return { all: vi.fn(() => payers), get: vi.fn(), run: vi.fn() };
+      return stmt({ all: vi.fn(() => payers), get: vi.fn(), run: vi.fn() });
     }
     if (sql.includes('budget_settlements')) {
-      return { all: vi.fn(() => settlements), get: vi.fn(), run: vi.fn() };
+      return stmt({ all: vi.fn(() => settlements), get: vi.fn(), run: vi.fn() });
     }
-    return { all: vi.fn(() => []), get: vi.fn(), run: vi.fn() };
+    return stmt({ all: vi.fn(() => []), get: vi.fn(), run: vi.fn() });
   });
 }
 
@@ -240,11 +257,11 @@ describe('calculateSettlement', () => {
     // bob paid alice 30 but every expense behind it was deleted: alice now owes bob.
     mockDb.db.prepare.mockImplementation((sql: string) => {
       if (sql.includes('FROM budget_settlements')) {
-        return { all: vi.fn(() => [
+        return stmt({ all: vi.fn(() => [
           { id: 1, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 30, from_username: 'bob', to_username: 'alice', from_avatar: null, to_avatar: null },
-        ]), get: vi.fn(), run: vi.fn() };
+        ]), get: vi.fn(), run: vi.fn() });
       }
-      return { all: vi.fn(() => []), get: vi.fn(), run: vi.fn() };
+      return stmt({ all: vi.fn(() => []), get: vi.fn(), run: vi.fn() });
     });
     const result = budget.calculateSettlement(1);
     const alice = result.balances.find(b => b.user_id === 1)!;
@@ -391,14 +408,13 @@ describe('calculateSettlement', () => {
 // ── freezeForeignRate (write-path FX freeze, #1445) ───────────────────────────
 
 describe('freezeForeignRate', () => {
-  const tripRow = (currency: string) => ({
-    get: vi.fn(() => ({ currency })), all: vi.fn(), run: vi.fn(),
-  });
+  const tripRow = (currency: string) =>
+    stmt({ get: vi.fn(() => ({ currency })), all: vi.fn(), run: vi.fn() });
 
   it('freezes the live rate for a foreign currency into exchange_rate', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) => {
       if (sql.includes('FROM trips')) return tripRow('EUR');
-      return { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() };
+      return stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
     });
     mockRates.getRates.mockResolvedValue({ EUR: 1, USD: 1.25 });
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'usd' };
@@ -409,7 +425,7 @@ describe('freezeForeignRate', () => {
 
   it('leaves the rate unset when the currency equals the trip currency', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
+      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }));
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'EUR' };
     await budget.freezeForeignRate(1, data);
     expect(mockRates.getRates).not.toHaveBeenCalled();
@@ -425,7 +441,7 @@ describe('freezeForeignRate', () => {
 
   it('degrades to live rates (no freeze) when the rate fetch fails', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
+      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }));
     mockRates.getRates.mockResolvedValue(null);
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
     await budget.freezeForeignRate(1, data);
@@ -434,9 +450,9 @@ describe('freezeForeignRate', () => {
 
   it('does not re-freeze on update when the currency is unchanged', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) => {
-      if (sql.includes('FROM budget_items')) return { get: vi.fn(() => ({ currency: 'USD' })), all: vi.fn(), run: vi.fn() };
+      if (sql.includes('FROM budget_items')) return stmt({ get: vi.fn(() => ({ currency: 'USD' })), all: vi.fn(), run: vi.fn() });
       if (sql.includes('FROM trips')) return tripRow('EUR');
-      return { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() };
+      return stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
     });
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
     await budget.freezeForeignRate(1, data, 9);
@@ -446,7 +462,7 @@ describe('freezeForeignRate', () => {
 
   it('does not re-freeze a settlement edit when its stored currency is unchanged (#1445)', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
+      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }));
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
     // the settlement already holds USD — pass it as existingCurrency → keep the frozen rate
     await budget.freezeForeignRate(1, data, undefined, 'USD');
@@ -456,7 +472,7 @@ describe('freezeForeignRate', () => {
 
   it('re-freezes a settlement edit when its currency actually changes', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
+      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }));
     mockRates.getRates.mockResolvedValue({ EUR: 1, USD: 1.25 });
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
     await budget.freezeForeignRate(1, data, undefined, 'GBP'); // was GBP → now USD → re-freeze
@@ -470,9 +486,9 @@ describe('applySettlementUpdate', () => {
   it('returns null when the settlement is not in the trip', () => {
     mockDb.db.prepare.mockImplementation((sql: string) => {
       if (sql.includes('SELECT id FROM budget_settlements')) {
-        return { get: vi.fn(() => undefined), all: vi.fn(), run: vi.fn() };
+        return stmt({ get: vi.fn(() => undefined), all: vi.fn(), run: vi.fn() });
       }
-      return { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() };
+      return stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
     });
     expect(budget.applySettlementUpdate(7, 1, { from_user_id: 2, to_user_id: 1, amount: 10 })).toBeNull();
   });
@@ -481,19 +497,19 @@ describe('applySettlementUpdate', () => {
     const run = vi.fn();
     mockDb.db.prepare.mockImplementation((sql: string) => {
       if (sql.includes('SELECT id FROM budget_settlements')) {
-        return { get: vi.fn(() => ({ id: 7 })), all: vi.fn(), run: vi.fn() };
+        return stmt({ get: vi.fn(() => ({ id: 7 })), all: vi.fn(), run: vi.fn() });
       }
       if (sql.includes('UPDATE budget_settlements')) {
-        return { get: vi.fn(), all: vi.fn(), run };
+        return stmt({ get: vi.fn(), all: vi.fn(), run });
       }
       if (sql.includes('FROM budget_settlements')) {
         // Quirk fix: the re-select is a targeted single-row get, not a full
         // listSettlements scan.
-        return { get: vi.fn(() => (
+        return stmt({ get: vi.fn(() => (
           { id: 7, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 10.13, from_username: 'bob', to_username: 'alice', from_avatar: null, to_avatar: null }
-        )), all: vi.fn(() => []), run: vi.fn() };
+        )), all: vi.fn(() => []), run: vi.fn() });
       }
-      return { get: vi.fn(), all: vi.fn(() => []), run: vi.fn() };
+      return stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
     });
 
     const res = budget.applySettlementUpdate(7, 1, { from_user_id: 2, to_user_id: 1, amount: 10.126 });
