@@ -20,14 +20,11 @@ export class ImmichPhotoProvider implements PhotoProvider {
 
   constructor(private readonly immich: ImmichService) {}
 
-  async streamAsset(res: Response, ref: PhotoAssetRef, kind: PhotoAssetKind): Promise<PhotoFetchError | void> {
-    const result = await this.immich.streamImmichAsset(res, ref.userId, ref.assetId, kind, ref.ownerId, {
+  streamAsset(res: Response, ref: PhotoAssetRef, kind: PhotoAssetKind): Promise<void> {
+    return this.immich.streamImmichAsset(res, ref.userId, ref.assetId, kind, ref.ownerId, {
       mediaType: ref.mediaType,
       range: ref.range,
     });
-    // The service types both fields optional; the one path that returns at all
-    // always fills them. Normalised here so the interface can require them.
-    if (result && result.error) return { error: result.error, status: result.status ?? 500 };
   }
 
   fetchThumbnailBytes(ref: PhotoAssetRef): Promise<PhotoBytes | PhotoFetchError> {

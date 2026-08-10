@@ -52,13 +52,12 @@ export interface PhotoProvider {
   /**
    * Write the asset to the response, headers and status included.
    *
-   * The error return is Immich's: it answers `{ error, status }` without
-   * touching the response when the owner has no credentials stored. Every
-   * caller has always ignored that — which leaves the request open until the
-   * client times out — so the shape is carried here rather than quietly
-   * dropped, and the pre-existing handling is left alone.
+   * Void, and that is a contract rather than an oversight: a provider that
+   * cannot serve the asset writes its own error status. Immich used to return
+   * `{ error, status }` on a missing connection and leave the response
+   * untouched, which hung the request in every one of its four callers.
    */
-  streamAsset(res: Response, ref: PhotoAssetRef, kind: PhotoAssetKind): Promise<PhotoFetchError | void>;
+  streamAsset(res: Response, ref: PhotoAssetRef, kind: PhotoAssetKind): Promise<void>;
 
   /** Thumbnail bytes for the cache, rather than straight to a response. */
   fetchThumbnailBytes(ref: PhotoAssetRef): Promise<PhotoBytes | PhotoFetchError>;

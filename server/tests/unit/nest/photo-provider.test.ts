@@ -93,19 +93,6 @@ describe('ImmichPhotoProvider', () => {
     expect(immich.fetchImmichThumbnailBytes).toHaveBeenCalledWith(7, 'asset-1', 42);
   });
 
-  it('PROV-005: normalises the credential-less answer, which the service types as optional', async () => {
-    immich.streamImmichAsset.mockResolvedValue({ error: 'Not found', status: 404 });
-    expect(await immichProvider.streamAsset(res, ref, 'original')).toEqual({ error: 'Not found', status: 404 });
-
-    immich.streamImmichAsset.mockResolvedValue({ error: 'Broken' });
-    expect(await immichProvider.streamAsset(res, ref, 'original')).toEqual({ error: 'Broken', status: 500 });
-  });
-
-  it('PROV-006: a written response reports nothing', async () => {
-    immich.streamImmichAsset.mockResolvedValue(undefined);
-    expect(await immichProvider.streamAsset(res, ref, 'thumbnail')).toBeUndefined();
-  });
-
   it('PROV-007: turns the service\'s {data,error} into a ServiceResult', async () => {
     immich.getAssetInfo.mockResolvedValue({ data: { id: 'a' } });
     expect(await immichProvider.getAssetInfo(ref)).toEqual({ success: true, data: { id: 'a' } });

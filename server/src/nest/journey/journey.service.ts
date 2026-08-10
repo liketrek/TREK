@@ -112,7 +112,7 @@ export class JourneyService {
     provider: string,
     ref: { userId: number; ownerId: number; assetId: string },
     kind: 'thumbnail' | 'original',
-  ): Promise<unknown> | null {
+  ): Promise<void> | null {
     const backend = this.providers.get(provider);
     if (!backend) return null;
     return backend.streamAsset(res, ref, kind);
