@@ -1,17 +1,31 @@
 import { createZodDto } from 'nestjs-zod';
-import { oauthClientCreateRequestSchema, oauthConsentRequestSchema } from '@trek/shared';
+import { z } from 'zod';
+import { oauthConsentRequestSchema } from '@trek/shared';
 
 /**
- * Server-side createZodDto wrappers over the @trek/shared OAuth contracts.
+ * Server-side createZodDto wrappers for the OAuth bodies.
  *
- * Both schemas already described these two bodies exactly; they were written
- * with the contracts and then never wired to the handlers, which declared the
- * same shape inline as an anonymous type. The inline types are gone now, so the
- * wire shape has one definition instead of two that could drift.
+ * Consent takes the shared schema unchanged: every field it requires is one the
+ * handler dereferences immediately (redirect_uri is parsed as a URL, the PKCE
+ * pair goes straight into the stored code), so a body missing them had no
+ * meaningful old behaviour to preserve.
  *
- * Neither handler owns a bespoke required-field message: consent redirects with
- * `error=access_denied` on a rejection, and client creation surfaces whatever
- * the service returns. So nothing user-visible moves in front of the pipe here.
+ * Client creation does NOT, and the difference is deliberate. The shared schema
+ * declares `name: z.string().min(1)` and `allowed_scopes` as required, but the
+ * handler answers 403 `{ error: 'MCP is not enabled' }` before it looks at the
+ * body at all, and the service owns `Name is required` and
+ * `At least one redirect URI is required`. The pipe runs first, so adopting the
+ * schema verbatim turned a 403 into a 400 on an instance with the addon off, and
+ * replaced two error strings a client shows the user. Describing the shape
+ * without demanding it keeps every one of those answers where it was.
  */
 export class OauthConsentDto extends createZodDto(oauthConsentRequestSchema) {}
-export class OauthClientCreateDto extends createZodDto(oauthClientCreateRequestSchema) {}
+
+export class OauthClientCreateDto extends createZodDto(
+  z.looseObject({
+    name: z.string().optional(),
+    redirect_uris: z.array(z.string()).optional(),
+    allowed_scopes: z.array(z.string()).optional(),
+    allows_client_credentials: z.boolean().optional(),
+  }),
+) {}

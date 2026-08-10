@@ -12,7 +12,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // The origin allowlist is env-driven and empty in the test environment, so the
 // branch that builds verifyClient would never run. Driving readEnv lets both
 // sides of it be asserted rather than assumed.
-const { wsOrigins } = vi.hoisted(() => ({ wsOrigins: { value: null as string[] | null } }));
+const { wsOrigins, logError } = vi.hoisted(() => ({
+  wsOrigins: { value: null as string[] | null },
+  logError: vi.fn(),
+}));
+vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ logError, logInfo: vi.fn(), logDebug: vi.fn(), logWarn: vi.fn() }));
 vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
@@ -243,12 +247,21 @@ describe('TrekWsAdapter server creation', () => {
     }
   });
 
-  it('WSAD-031c: a server-level error is absorbed, not rethrown at the process', () => {
+  it('WSAD-031c: a server-level error is LOGGED, never swallowed', () => {
+    // ws forwards the http server's errors here, so an empty handler eats the
+    // bind failure too and the process survives EADDRINUSE serving nothing.
+    // index.ts owns the fatal decision; this handler owes a log line.
     wsOrigins.value = null;
     const ad = new TrekWsAdapter(httpServer);
-    const server = ad.create(0, { path: '/ws' }) as { emit: (e: string, err: Error) => boolean };
+    const server = ad.create(0, { path: '/ws' }) as { emit: (e: string, err: unknown) => boolean };
     try {
       expect(() => server.emit('error', new Error('upstream reset'))).not.toThrow();
+      expect(logError).toHaveBeenCalledWith(expect.stringContaining('upstream reset'));
+
+      // A non-Error rejection reads as itself rather than as [object Object].
+      logError.mockClear();
+      server.emit('error', 'ECONNRESET');
+      expect(logError).toHaveBeenCalledWith(expect.stringContaining('ECONNRESET'));
     } finally {
       void ad.close(server as never);
     }

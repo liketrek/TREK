@@ -6,6 +6,7 @@ import { WebSocketServer } from 'ws';
 import type { Observable } from 'rxjs';
 import { readEnv } from '../../app-config';
 import { setServer, type TrekWebSocket } from './ws-state';
+import { logError } from '../audit/audit-log.logger';
 
 // Per-connection message rate limiting. It lives in the adapter, not in the
 // gateway's handlers, because the original counted EVERY inbound frame before
@@ -96,9 +97,16 @@ export class TrekWsAdapter extends WsAdapter {
         : {}),
     });
 
-    // A server-level error must not reach the process. The base binds one on the
-    // instances it creates; this one is ours, so it needs its own.
-    server.on('error', () => {});
+    // A server-level error is LOGGED, never swallowed.
+    //
+    // ws hangs its own `error: this.emit.bind(this, 'error')` on the http server
+    // (websocket-server.js), so from the moment this runs the http server has a
+    // listener and Node will not throw on one. Everything it forwards lands
+    // here. An empty handler therefore eats the http server's failures too,
+    // including EADDRINUSE at listen() — the process would stay up, serving
+    // nothing, with no output at all. index.ts owns the fatal decision for bind
+    // failures; this one keeps the transport's own errors visible.
+    server.on('error', (err) => logError(`ws server error: ${err instanceof Error ? err.message : String(err)}`));
 
     // The fan-out primitives reach the live server through here, and so do the
     // out-of-container bridges.

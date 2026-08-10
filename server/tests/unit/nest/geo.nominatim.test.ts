@@ -15,6 +15,7 @@ import {
   cacheKeyFor,
   clearGeoCache,
   getCached,
+  hasCached,
   nominatimFetch,
   setCached,
   setGeoThrottleInterval,
@@ -153,12 +154,17 @@ describe('geo cache', () => {
     expect(cacheKeyFor(52.53, 13.405, 'zoom18')).not.toBe(cacheKeyFor(52.52, 13.405, 'zoom18'));
   });
 
-  it('GEO-009: distinguishes a cached undefined from a miss', () => {
+  it('GEO-009: a cached negative answer is a HIT, not a miss', () => {
+    // The earlier version asserted `undefined` before and after the write, which
+    // is the same assertion twice and held with the `has` guard removed. What
+    // the guard buys is that the second lookup does not go back to the network:
+    // the ocean does not become a country, so a null answer is worth keeping.
     const key = cacheKeyFor(0, 0, 'zoom3');
-    expect(getCached(key)).toBeUndefined();
+    expect(hasCached(key)).toBe(false);
+
     setCached(key, undefined);
-    // A negative answer is worth caching: the ocean does not become a country.
-    // `has` rather than a truthy check is what keeps it from being re-fetched.
+
+    expect(hasCached(key)).toBe(true);
     expect(getCached(key)).toBeUndefined();
   });
 

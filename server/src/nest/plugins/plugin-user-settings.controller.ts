@@ -80,7 +80,7 @@ export class PluginUserSettingsController {
   ): { config: Record<string, unknown> } {
     const userId = req.user?.id;
     if (!pluginsEnabled() || userId == null || !this.activeWithUserFields(id)) return { config: {} };
-    const patch = body?.config && typeof body.config === 'object' ? body.config : {};
+    const patch = body?.config && typeof body.config === 'object' ? (body.config as Record<string, unknown>) : {};
     return { config: this.plugins.updateUserConfig(id, userId, patch) };
   }
 }

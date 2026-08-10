@@ -104,6 +104,20 @@ async function bootstrap(): Promise<void> {
   // would serve the REST API fine and leave the gateway attached to a socket
   // nobody listens on.
   server = getHttpServer();
+
+  // A bind failure has to be fatal and loud, and it needs saying explicitly.
+  // listen() reports failure by event, not by rejecting, so the catch around
+  // bootstrap() never sees it. And since buildApp attaches the ws server to this
+  // http server, ws has already registered its own `error` listener on it, which
+  // is enough for Node to stop throwing on an unhandled one. Without this the
+  // process would survive EADDRINUSE, never run onListen, and serve nothing
+  // while looking healthy.
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    const where = HOST ? `${HOST}:${PORT}` : `:${PORT}`;
+    console.error(`Fatal: cannot listen on ${where} — ${err.code ?? ''} ${err.message}`);
+    process.exit(1);
+  });
+
   if (HOST) server.listen(PORT, HOST, onListen);
   else server.listen(PORT, onListen);
 }

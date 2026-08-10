@@ -29,7 +29,6 @@ const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true)
 // The controller's pure helpers (isVideoExtension/isVideoMime/MAX_VIDEO_SIZE)
 // now come from the real files.constants; only the request-time app_settings
 // read is mocked, preserving the old '*'-allowlist semantics for the fixtures.
-vi.mock('../../src/nest/files/files.bridge', () => ({ getAllowedExtensions: () => '*' }));
 // The memories providers are injected since the fold — stubbed on the prototype
 // so JourneyModule still resolves them through DI.
 vi.mock('../../src/nest/memories/immich.service', async (importOriginal) => {

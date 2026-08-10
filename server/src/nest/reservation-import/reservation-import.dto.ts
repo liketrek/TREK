@@ -1,17 +1,18 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { bookingImportPreviewItemSchema } from '@trek/shared';
 
 /**
  * Server-side createZodDto wrappers for the booking-import bodies.
  *
- * Confirm validates each item against the shared contract but leaves `items`
- * itself optional, which is narrower than `bookingImportConfirmRequestSchema`
- * on purpose. That schema declares `.min(1)`, and the pipe reports a rejection
- * as `field: message` — so adopting it verbatim would replace the endpoint's
- * `{ error: 'items must be a non-empty array' }`. The handler keeps the check
- * that owns the message, and the DTO adds what the handler never did: per-item
- * shape validation.
+ * Confirm asserts that `items` is an array of objects, and nothing more.
+ *
+ * Two things pushed it there. `bookingImportConfirmRequestSchema` declares
+ * `.min(1)`, and the pipe reports a rejection as `field: message`, so adopting
+ * it verbatim would replace the endpoint's own
+ * `{ error: 'items must be a non-empty array' }`. And validating each item
+ * against `bookingImportPreviewItemSchema` demanded fields the service never
+ * reads, such as `source`: a caller assembling items itself rather than echoing
+ * a preview used to get a 201 and now got a 400 about a field nobody uses.
  *
  * Preview and its async twin carry a multipart body, so every field arrives as a
  * string and the real payload is the files. `mode` is described here for the
@@ -21,7 +22,7 @@ import { bookingImportPreviewItemSchema } from '@trek/shared';
  * adds and the handler ignores.
  */
 export class BookingImportConfirmDto extends createZodDto(
-  z.object({ items: z.array(bookingImportPreviewItemSchema).optional() }),
+  z.object({ items: z.array(z.looseObject({})).optional() }),
 ) {}
 
 export class BookingImportPreviewDto extends createZodDto(

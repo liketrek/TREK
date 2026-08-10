@@ -27,7 +27,10 @@ export class TagsController {
 
   @Post()
   create(@CurrentUser() user: User, @Body() body: TagCreateDto): { tag: Tag } {
-    const { name, color } = body;
+    // Cast rather than validate: the legacy route bound whatever arrived
+    // straight into SQLite, and a contract that rejected a numeric name here
+    // would be a new 400 for anything already sending one.
+    const { name, color } = body as { name?: string; color?: string };
     if (!name) {
       throw new HttpException({ error: 'Tag name is required' }, 400);
     }
@@ -40,7 +43,7 @@ export class TagsController {
     @Param('id') id: string,
     @Body() body: TagUpdateDto,
   ): { tag: Tag } {
-    const { name, color } = body;
+    const { name, color } = body as { name?: string; color?: string };
     if (!this.tags.getByIdAndUser(id, user.id)) {
       throw new HttpException({ error: 'Tag not found' }, 404);
     }

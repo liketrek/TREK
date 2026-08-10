@@ -243,8 +243,9 @@ through. `@trek/nest-mcp` hands the gate its declaring instance now, and
 `AddonsService`. `reservations.mcp.ts` (assignments) and `atlas.mcp.ts` /
 `journey.mcp.ts` (auth) went the same way.
 
-Three in-container uses are left, each a real module cycle that injection does
-not fix:
+Four in-container uses are left, each for a reason that injection does not fix.
+Keep this list current: an entry that outlives its cause reads as a standing
+exception and invites the next one.
 
 - `places.mcp.ts` → `assignments.bridge`: a real cycle, `DaysModule →
   PlacesModule → AssignmentsModule → DaysModule`.
@@ -252,11 +253,20 @@ not fix:
   `TripsModule` imports both, so importing it back closes the loop.
 - `auth/user-cleanup.service.ts` → `budget.bridge`: `BudgetModule` imports
   `AuthModule`, same shape.
+- `backup/backup.impl.ts` → `permissions.bridge`: free functions, not a
+  provider, so there is nothing for an injected service to hang off. Its second
+  caller, `src/scheduler.ts`, is gone; the cache invalidation is not.
 
-(A fourth — `files.controller.ts` / `journey.controller.ts` → `files.bridge` for
-multer's module-scope interceptor options — was resolved 2026-08-10 exactly as
+`files.bridge` used to be the fifth and is gone, resolved 2026-08-10 exactly as
 predicted: `MulterModule.registerAsync` over an `AllowedFileTypesService` leaf,
-and `files.bridge.ts` is deleted.)
+and `files.controller.ts` / `journey.controller.ts` build their multer options
+from that.
+
+**Four bridges have no production consumer at all** — `days`, `packing`,
+`photos`, `reservations`. Only their own delegation tests import them, and each
+still builds a service outside the container at module load for nobody. They are
+deletable, along with the comments in `days.service.ts`, `packing.service.ts` and
+`reservations.service.ts` that still send readers to them.
 
 The nine fire-and-forget notification senders inject too. They were lazy
 `import('../notifications/notifications.bridge').then(({ send }) => …)` calls

@@ -13,7 +13,7 @@ import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { DatabaseService } from '../database/database.service';
-import { nominatimFetch } from '../geo/nominatim.client';
+import { nominatimFetch, type GeoLane } from '../geo/nominatim.client';
 import {
   UA,
   toApiLang,
@@ -540,7 +540,17 @@ export class MapsService {
 
   // ── Nominatim search ───────────────────────────────────────────────────────
 
-  async searchNominatim(query: string, lang?: string) {
+  /**
+   * `lane` defaults to interactive because most callers are a keystroke.
+   *
+   * Bulk callers must pass 'background': booking-import geocodes every venue and
+   * every uncoordinated endpoint of an import in one request loop, which is up
+   * to thirty sequential calls. On the interactive lane those thirty take the
+   * next slot each time, so somebody typing in the place search waits behind the
+   * whole import. Yielding does not make the import faster, it stops it from
+   * being the only thing the process will do for half a minute.
+   */
+  async searchNominatim(query: string, lang?: string, lane: GeoLane = 'interactive') {
     const params = new URLSearchParams({
       q: query,
       format: 'json',
@@ -553,9 +563,8 @@ export class MapsService {
       limit: '10',
       'accept-language': toApiLang(lang),
     });
-    // Through the shared client: one throttle for the whole process, and the
-    // interactive lane so a keystroke does not queue behind the atlas backfill.
-    const response = await nominatimFetch('search', params);
+    // Through the shared client: one throttle for the whole process.
+    const response = await nominatimFetch('search', params, { lane });
     if (!response.ok) {
       const text = await response.text().catch(() => '');
       throw new Error(

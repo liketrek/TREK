@@ -185,6 +185,8 @@ export class ReservationImportController {
       throw new HttpException({ error: 'items must be a non-empty array' }, 400);
     }
 
-    return this.bookingImport.confirm(tripId, items, socketId);
+    // The DTO asserts an array of objects and stops there, so the per-item shape
+    // is still the service's to interpret — as it was before the contract landed.
+    return this.bookingImport.confirm(tripId, items as BookingImportPreviewItem[], socketId);
   }
 }

@@ -59,8 +59,13 @@ export class PluginEgressHostsDto extends createZodDto(
  */
 export class PluginConfigDto extends createZodDto(z.looseObject({})) {}
 
+/**
+ * `config` is unknown rather than a record: the handler answers 200 with the
+ * stored config for anything it cannot use, including a non-object, and a schema
+ * that rejected first would turn that into a 400.
+ */
 export class PluginUserSettingsUpdateDto extends createZodDto(
-  z.looseObject({ config: z.record(z.string(), z.unknown()).optional() }),
+  z.looseObject({ config: z.unknown().optional() }),
 ) {}
 
 /**

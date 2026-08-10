@@ -153,7 +153,7 @@ export class BookingImportService {
               ].filter((q): q is string => !!q);
 
               for (const q of queries) {
-                const results = await this.maps.searchNominatim(q);
+                const results = await this.maps.searchNominatim(q, undefined, 'background');
                 const hit = results[0];
                 if (hit?.lat != null && hit?.lng != null) {
                   lat = hit.lat;
@@ -185,7 +185,7 @@ export class BookingImportService {
           for (const ep of reservationData.endpoints) {
             if ((ep.lat == null || ep.lng == null) && ep.name) {
               try {
-                const hit = (await this.maps.searchNominatim(ep.name))[0];
+                const hit = (await this.maps.searchNominatim(ep.name, undefined, 'background'))[0];
                 if (hit?.lat != null && hit?.lng != null) {
                   ep.lat = hit.lat;
                   ep.lng = hit.lng;

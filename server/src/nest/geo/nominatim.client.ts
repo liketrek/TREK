@@ -99,6 +99,18 @@ export function getCached<T>(key: string): T | undefined {
   return cache.has(key) ? (cache.get(key) as T) : undefined;
 }
 
+/**
+ * Whether the key is present at all, negative answers included.
+ *
+ * `getCached` cannot express the difference: a cached `undefined` and a miss
+ * both read as `undefined`. Callers that only want the value do not care, but a
+ * caller deciding whether to go back to the network does, and so does any test
+ * asserting that a negative answer is retained.
+ */
+export function hasCached(key: string): boolean {
+  return cache.has(key);
+}
+
 export function setCached(key: string, value: unknown): void {
   cache.set(key, value);
 }

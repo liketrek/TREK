@@ -20,6 +20,7 @@ import {
   joinRoom,
   registerSocket,
   setServer,
+  userOf,
   type TrekWebSocket,
 } from '../../../src/nest/realtime/ws-state';
 import { emitPluginEvent } from '../../../src/plugin-event-sink';
@@ -134,10 +135,16 @@ describe('RealtimeGateway handshake', () => {
   });
 
   it('WSGW-008: never leaks password_version past the handshake', () => {
-    const { gw, ws } = connect('/ws?token=x');
-    gw.handleJoin({ tripId: 7 }, ws);
-    broadcast(7, 'trip:updated' as never, {} as never);
-    expect(ws.sent.join('')).not.toContain('password_version');
+    // Asserted on what the socket registry HOLDS, not on the frames it sends.
+    // The frames never carry the user object at all, so the earlier version of
+    // this case passed with the strip deleted: it proved nothing. What matters
+    // is that the retained identity is clean, because that object is what
+    // getOnlineUserIds and the onlyUserId filter read.
+    const { ws } = connect('/ws?token=x');
+    const held = userOf(ws) as unknown as Record<string, unknown> | undefined;
+    expect(held).toBeDefined();
+    expect(held).not.toHaveProperty('password_version');
+    expect(held).toMatchObject({ id: 3, email: 'm@x.test' });
   });
 });
 
