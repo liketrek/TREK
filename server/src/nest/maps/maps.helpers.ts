@@ -61,15 +61,9 @@ export function toWikiLang(lang: string | undefined, fallback = 'en'): string {
   return /^[a-z]{2,3}$/.test(base) ? base : fallback;
 }
 
-/** Metres between two coordinates. Spherical earth is plenty at this scale. */
-export function haversineMetres(aLat: number, aLng: number, bLat: number, bLng: number): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(bLat - aLat);
-  const dLng = toRad(bLng - aLng);
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
-}
+// Re-exported, not redefined: this was one of three copies. Kept as an export
+// here because callers and a test import it from maps.helpers.
+export { haversineMetres } from '../common/geo';
 
 /**
  * Whether two place names plausibly refer to the same thing.

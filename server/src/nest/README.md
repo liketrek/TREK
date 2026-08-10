@@ -101,9 +101,14 @@ tools, which never pass through an HTTP guard. In the five domains piloted for
   client's `X-Idempotency-Key` on mutations. It replaced the `applyIdempotency`
   middleware, which is deleted; this is the only implementation.
 - `common/` — the stateless helpers (`avatarUrl`, `conflictResult`, `demo`,
-  `passwordPolicy`, `timezoneService`, `cookie`, `rowShape`, `crypto/`). Free
-  functions, not providers: `db/migrations.ts` imports them from outside the
-  container and could not inject one.
+  `passwordPolicy`, `timezoneService`, `cookie`, `rowShape`, `geo`, `crypto/`).
+  Free functions, not providers: `db/migrations.ts` imports them from outside the
+  container and could not inject one. `geo.ts` holds the two haversines; there
+  were three implementations of the metre variant, differing by one clamp, and
+  the clamped form is the one kept — `asin` of a value a hair over 1 is NaN, and
+  a NaN distance silently fails every comparison it feeds instead of throwing.
+  `maps.helpers.ts` re-exports `haversineMetres` rather than defining it, because
+  callers and a test import it from there.
 - `auth/jwt-verify.ts` — `extractToken` + `verifyJwtAndLoadUser`, the canonical
   session check behind the four guards, the MCP bearer path and the file-download
   query token. Free functions for the same reason.
@@ -119,6 +124,35 @@ tools, which never pass through an HTTP guard. In the five domains piloted for
   answer 404 to anonymous callers, so the addon check must beat the 401.
 - `common/demo-write.ts` — `isDemoWriteBlocked`, the demo-mode upload block. A
   function and not a guard on purpose; see the gotcha below.
+- `geo/` — the ONE Nominatim client (#576). There used to be two: atlas
+  throttled to the published 1.1s and cached its answers, maps did neither, so
+  five interactive routes fired straight at the service while the atlas loops
+  politely waited and OSM saw a single instance ignoring its rate limit. Both
+  domains now go through `nominatimFetch`.
+  - The throttle cursor and the cache are **module state, not provider state**,
+    for the permissions-cache reason: the bridges build their collaborators with
+    `new`, outside the container, and a second copy of the cursor is the very bug
+    the fold removes. `GeoModule` is registered straight in AppModule and neither
+    `MapsModule` nor `AtlasModule` imports it — an import would claim an
+    injection edge that does not exist.
+  - `GeocodingService` owns exactly one thing: the cache-cleanup timer's
+    lifecycle, via `OnModuleInit`/`OnModuleDestroy`. Atlas used to start that
+    interval as an import-time side effect, documented as a parity exception. It
+    is not one any more.
+  - Two lanes over one cursor. Interactive calls (`/api/maps/search`,
+    `/autocomplete`, `/details`, `/reverse`, `/resolve-url`) take the next slot;
+    background calls (the atlas enrichment loops, which walk every uncached
+    place) yield to anything queued on a request path.
+  - The cache key carries the **query shape**, not coordinates alone. Atlas asks
+    at zoom 3 and zoom 8, maps at zoom 18; a coordinate-only key answered a
+    street lookup with a country.
+  - `AbortSignal.timeout` is built **after** the throttle wait. Built up front,
+    the 1.1s spent queueing would eat nearly half of the identity lookup's 2.5s
+    budget before the socket opens.
+  - `setGeoThrottleInterval(ms)` is a test seam, and `tests/setup.ts` zeroes it.
+    Nineteen maps cases drive these paths back to back with real timers; at the
+    real interval they slept nineteen seconds and covered nothing extra. A
+    function rather than a `NODE_ENV` check, for the reason app-config exists.
 
 ### Reaching the container from outside it
 

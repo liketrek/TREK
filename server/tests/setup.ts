@@ -23,3 +23,15 @@ const realSetImmediate = globalThis.setImmediate;
 afterEach(async () => {
   await new Promise((resolve) => realSetImmediate(resolve));
 });
+
+// Nominatim's rate limit is a property of the real service, not of the code
+// under test. Nineteen maps cases stub fetch and drive those paths back to back;
+// under the real 1.1s interval they would spend nineteen seconds asleep. The
+// cases that are actually about the throttle set it back for themselves.
+//
+// Imported dynamically, and down here rather than at the top: the client pulls
+// in maps.helpers, whose UA constant calls getAppUrl() at module load. A static
+// import is hoisted above the assignments above it, so the URL would be read
+// from an environment this file has not finished setting up yet.
+const { setGeoThrottleInterval } = await import('../src/nest/geo/nominatim.client');
+setGeoThrottleInterval(0);

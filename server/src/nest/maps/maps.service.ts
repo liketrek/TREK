@@ -13,6 +13,7 @@ import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { DatabaseService } from '../database/database.service';
+import { nominatimFetch } from '../geo/nominatim.client';
 import {
   UA,
   toApiLang,
@@ -552,9 +553,9 @@ export class MapsService {
       limit: '10',
       'accept-language': toApiLang(lang),
     });
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-      headers: { 'User-Agent': UA },
-    });
+    // Through the shared client: one throttle for the whole process, and the
+    // interactive lane so a keystroke does not queue behind the atlas backfill.
+    const response = await nominatimFetch('search', params);
     if (!response.ok) {
       const text = await response.text().catch(() => '');
       throw new Error(
@@ -626,9 +627,11 @@ export class MapsService {
     });
 
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-        headers: { 'User-Agent': UA },
-        signal: opts.signal ?? AbortSignal.timeout(IDENTITY_TIMEOUT_MS),
+      // The caller's deadline is handed in rather than built here, so the
+      // throttle wait cannot eat it before the request starts.
+      const res = await nominatimFetch('search', params, {
+        signal: opts.signal,
+        timeoutMs: IDENTITY_TIMEOUT_MS,
       });
       if (!res.ok) return null;
       // Nominatim answers rate limiting in plain text, not JSON.
@@ -692,9 +695,7 @@ export class MapsService {
       'accept-language': toApiLang(lang),
     });
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/lookup?${params}`, {
-        headers: { 'User-Agent': UA },
-      });
+      const res = await nominatimFetch('lookup', params);
       if (!res.ok) return null;
       const data = (await res.json()) as NominatimResult[];
       const item = data[0];
@@ -1899,9 +1900,7 @@ export class MapsService {
       zoom: '18',
       'accept-language': toApiLang(lang),
     });
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
-      headers: { 'User-Agent': UA },
-    });
+    const response = await nominatimFetch('reverse', params);
     if (!response.ok) return { name: null, address: null };
     const data = (await response.json()) as { name?: string; display_name?: string; address?: Record<string, string> };
     const addr = data.address || {};
@@ -1987,9 +1986,10 @@ export class MapsService {
     // Reverse geocode to get address. A non-ok answer (Nominatim 5xx/429) must
     // not fail the whole resolution — the coordinates are already extracted, so
     // fall back to the URL-derived name and a null address.
-    const nominatimRes = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
-      { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) },
+    const nominatimRes = await nominatimFetch(
+      'reverse',
+      new URLSearchParams({ lat: String(lat), lon: String(lng), format: 'json', addressdetails: '1' }),
+      { timeoutMs: 8000 },
     );
     const nominatim: { display_name?: string; name?: string; address?: Record<string, string> } = nominatimRes.ok
       ? await nominatimRes.json()
