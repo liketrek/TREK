@@ -13,7 +13,7 @@ import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import { TagsRpc } from '../../../src/nest/tags/tags.rpc';
-import { DayNotesRpc } from '../../../src/nest/days/day-notes.rpc';
+import { DayNotesRpc } from '../../../src/nest/day-notes/day-notes.rpc';
 import { PlacesRpc } from '../../../src/nest/places/places.rpc';
 import { PackingRpc } from '../../../src/nest/packing/packing.rpc';
 import { FilesRpc } from '../../../src/nest/files/files.rpc';

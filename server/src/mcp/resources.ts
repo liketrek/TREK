@@ -60,7 +60,7 @@ export function registerResources(server: McpServer, userId: number, scopes: str
   // src/nest/reservations/reservations.mcp.ts (@ResourceTemplate).
 
   // The day-notes resource moved to the DI-discovered
-  // src/nest/days/day-notes.mcp.ts (@ResourceTemplate).
+  // src/nest/day-notes/day-notes.mcp.ts (@ResourceTemplate).
 
   // The trip-accommodations resource moved to the DI-discovered
   // src/nest/days/days.mcp.ts (@ResourceTemplate).

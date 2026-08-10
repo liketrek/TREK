@@ -81,6 +81,10 @@ import { PermissionsService } from '../../src/nest/permissions/permissions.servi
 let checkPermission: MockInstance;
 
 import { DaysModule } from '../../src/nest/days/days.module';
+// The note routes nest under the days prefix but live in their own domain now;
+// this container has to assemble both or /days/:dayId/notes 404s here while
+// working in production.
+import { DayNotesModule } from '../../src/nest/day-notes/day-notes.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
@@ -89,7 +93,7 @@ describe('Days + day-notes e2e (real auth guard + temp SQLite, real day SQL)', (
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, DaysModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, DaysModule, DayNotesModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalPipes(new ZodValidationPipe());

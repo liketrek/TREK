@@ -48,7 +48,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createDay, addTripMember } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { DayNotesService } from '../../../src/nest/days/day-notes.service';
+import { DayNotesService } from '../../../src/nest/day-notes/day-notes.service';
 import type { DayNote } from '../../../src/types';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 

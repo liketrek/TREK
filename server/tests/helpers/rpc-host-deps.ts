@@ -5,7 +5,7 @@ import { CategoriesRpc } from '../../src/nest/categories/categories.rpc';
 import { WeatherRpc } from '../../src/nest/weather/weather.rpc';
 import { ExchangeRatesRpc } from '../../src/nest/budget/exchange-rates.rpc';
 import { TodoRpc } from '../../src/nest/todo/todo.rpc';
-import { DayNotesRpc } from '../../src/nest/days/day-notes.rpc';
+import { DayNotesRpc } from '../../src/nest/day-notes/day-notes.rpc';
 import { PackingRpc } from '../../src/nest/packing/packing.rpc';
 import { FilesRpc } from '../../src/nest/files/files.rpc';
 import { PlacesRpc } from '../../src/nest/places/places.rpc';

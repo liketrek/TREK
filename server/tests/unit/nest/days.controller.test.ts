@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import { DaysController } from '../../../src/nest/days/days.controller';
-import { DayNotesController } from '../../../src/nest/days/day-notes.controller';
-import { DayNoteCreateDto, DayNoteUpdateDto } from '../../../src/nest/days/day-notes.dto';
+import { DayNotesController } from '../../../src/nest/day-notes/day-notes.controller';
+import { DayNoteCreateDto, DayNoteUpdateDto } from '../../../src/nest/day-notes/day-notes.dto';
 import { DayReorderError } from '../../../src/nest/days/days.service';
 import type { DaysService } from '../../../src/nest/days/days.service';
-import type { DayNotesService } from '../../../src/nest/days/day-notes.service';
+import type { DayNotesService } from '../../../src/nest/day-notes/day-notes.service';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
