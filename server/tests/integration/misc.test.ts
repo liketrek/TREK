@@ -145,3 +145,24 @@ describe('Force HTTPS redirect', () => {
   });
 });
 
+
+describe('Request body ceiling', () => {
+  // The Express shell set '100kb' and stopped when the Nest instance took over
+  // parsing, which left the limit implicit. This pins it, so it cannot drift
+  // back to a framework default without somebody noticing.
+  it('MISC-009 — a body over 100kb is refused with 413', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .set('Content-Type', 'application/json')
+      .send({ email: 'a@b.c', password: 'x'.repeat(200 * 1024) });
+    expect(res.status).toBe(413);
+  });
+
+  it('MISC-010 — a body under it still reaches the handler', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .set('Content-Type', 'application/json')
+      .send({ email: 'a@b.c', password: 'x'.repeat(1024) });
+    expect(res.status).not.toBe(413);
+  });
+});
