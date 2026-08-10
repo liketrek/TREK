@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { HttpException } from '@nestjs/common';
+import { INTERCEPTORS_METADATA } from '@nestjs/common/constants';
+import fs from 'fs';
+import path from 'path';
 import type { Request } from 'express';
 
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
@@ -99,6 +102,41 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
       const res = tc(svc({ activeTrip: vi.fn().mockReturnValue(undefined) } as Partial<TripsService>)).active(user);
       expect(res).toEqual({ trip: null });
       expect(activeTripResponseSchema.safeParse(res).success).toBe(true);
+    });
+  });
+
+  describe('GET /cover-images/search', () => {
+    it('passes the caller through to the service and unwraps the photo list', async () => {
+      const searchCoverImages = vi.fn().mockResolvedValue({ photos: [{ id: 'p1' }] });
+      const s = svc({ searchCoverImages } as Partial<TripsService>);
+      expect(await tc(s).coverImages(user, 'kyoto')).toEqual({ photos: [{ id: 'p1' }] });
+      // The Unsplash key is resolved per user behind the service; dropping the id
+      // here would silently search every request with an admin's key.
+      expect(searchCoverImages).toHaveBeenCalledWith('kyoto', 1);
+    });
+
+    it('sends an absent query as "" so the service keeps owning the empty-query 400', async () => {
+      const searchCoverImages = vi.fn().mockResolvedValue({ error: 'Search query is required', status: 400 });
+      const s = svc({ searchCoverImages } as Partial<TripsService>);
+      expect(await thrownAsync(() => tc(s).coverImages(user, undefined))).toEqual({ status: 400, body: { error: 'Search query is required' } });
+      expect(searchCoverImages).toHaveBeenCalledWith('', 1);
+    });
+
+    it('keeps the upstream status instead of flattening it into the catch-all 500', async () => {
+      const s = svc({ searchCoverImages: vi.fn().mockResolvedValue({ error: 'Rate limit reached', status: 429 }) } as Partial<TripsService>);
+      // A 429 that arrives as a 500 makes the client retry immediately and burn
+      // the rest of the hourly Unsplash quota.
+      expect(await thrownAsync(() => tc(s).coverImages(user, 'kyoto'))).toEqual({ status: 429, body: { error: 'Rate limit reached' } });
+    });
+
+    it('maps an unexpected failure to a 500 that does not leak the cause', async () => {
+      const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const s = svc({ searchCoverImages: vi.fn().mockRejectedValue(new Error('ECONNREFUSED api.unsplash.com')) } as Partial<TripsService>);
+        expect(await thrownAsync(() => tc(s).coverImages(user, 'kyoto'))).toEqual({ status: 500, body: { error: 'Error searching for cover images' } });
+      } finally {
+        err.mockRestore();
+      }
     });
   });
 
@@ -284,6 +322,84 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
         if (prev === undefined) delete process.env.DEMO_MODE;
         else process.env.DEMO_MODE = prev;
       }
+    });
+
+    /**
+     * The multer options are a module-private const wired into the route through
+     * @UseInterceptors, so the handler tests above never reach them: a broken
+     * destination/filename/filter would still let every case in this file pass.
+     * Pulling the interceptor back off the route and reading the multer instance
+     * it built (multer keeps storage, limits and fileFilter verbatim) exercises
+     * the real callbacks instead of asserting an object literal.
+     */
+    type StorageCb = (err: Error | null, value: string) => void;
+    type CoverUpload = {
+      storage: {
+        getDestination: (req: unknown, file: Express.Multer.File, cb: StorageCb) => void;
+        getFilename: (req: unknown, file: Express.Multer.File, cb: StorageCb) => void;
+      };
+      limits: { fileSize: number };
+      fileFilter: (req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => void;
+    };
+    function coverUpload(): CoverUpload {
+      const [Interceptor] = Reflect.getMetadata(INTERCEPTORS_METADATA, TripsController.prototype.cover) as Array<new () => { multer: CoverUpload }>;
+      return new Interceptor().multer;
+    }
+    const coversDir = path.join('uploads', 'covers');
+
+    it('creates uploads/covers on the first upload and reuses it afterwards', () => {
+      // A fresh container has no uploads/covers, and multer does not create the
+      // destination itself, so without the mkdir the very first cover upload on
+      // a new instance fails with ENOENT.
+      const exists = vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      const mkdir = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+      try {
+        const { getDestination } = coverUpload().storage;
+        const cb = vi.fn();
+        getDestination(req, file, cb);
+        expect(mkdir).toHaveBeenCalledWith(expect.stringContaining(coversDir), { recursive: true });
+        expect(cb).toHaveBeenCalledWith(null, expect.stringContaining(coversDir));
+        exists.mockReturnValue(true);
+        mkdir.mockClear();
+        getDestination(req, file, cb);
+        expect(mkdir).not.toHaveBeenCalled();
+        expect(cb).toHaveBeenLastCalledWith(null, expect.stringContaining(coversDir));
+      } finally {
+        exists.mockRestore();
+        mkdir.mockRestore();
+      }
+    });
+
+    it('gives every stored cover a fresh name and keeps the original extension', () => {
+      const { getFilename } = coverUpload().storage;
+      const cb = vi.fn();
+      const upload = { originalname: 'sunset.JPG' } as Express.Multer.File;
+      getFilename(req, upload, cb);
+      getFilename(req, upload, cb);
+      const [first, second] = cb.mock.calls.map((c) => c[1] as string);
+      // Keeping the client's name would let one trip's upload overwrite another's;
+      // dropping the extension leaves the static handler with no mime to serve.
+      expect(first).toMatch(/^[0-9a-f-]{36}\.JPG$/);
+      expect(second).not.toBe(first);
+    });
+
+    it('accepts the four allowed image types and rejects svg, a faked extension and a non-image mime', () => {
+      const { fileFilter, limits } = coverUpload();
+      const verdict = (originalname: string, mimetype: string) => {
+        const cb = vi.fn();
+        fileFilter(req, { originalname, mimetype } as Express.Multer.File, cb);
+        return cb.mock.calls[0];
+      };
+      expect(verdict('a.jpg', 'image/jpeg')).toEqual([null, true]);
+      // The extension check is case-insensitive; phones hand up .JPG/.PNG.
+      expect(verdict('a.WEBP', 'image/webp')).toEqual([null, true]);
+      // svg passes the image/* prefix but runs script when the browser opens the
+      // stored cover, so it is rejected even under an allowed extension.
+      expect(verdict('logo.png', 'image/svg+xml')).toEqual([expect.any(Error), false]);
+      // A binary renamed to an image mime must still fail on the extension.
+      expect(verdict('payload.exe', 'image/png')).toEqual([expect.any(Error), false]);
+      expect(verdict('a.png', 'application/octet-stream')).toEqual([expect.any(Error), false]);
+      expect(limits.fileSize).toBe(20 * 1024 * 1024);
     });
   });
 
