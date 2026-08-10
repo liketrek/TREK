@@ -122,6 +122,11 @@ describe('detectBrowserLanguage', () => {
     expect(detectBrowserLanguage()).toBe('zh-TW')
   })
 
+  it('maps Hong Kong Chinese to Traditional Chinese', () => {
+    Object.defineProperty(navigator, 'languages', { value: ['zh-HK'], configurable: true })
+    expect(detectBrowserLanguage()).toBe('zh-TW')
+  })
+
   it('FE-COMP-I18N-018: prefix match (de-AT → de)', () => {
     Object.defineProperty(navigator, 'languages', { value: ['de-AT'], configurable: true })
     expect(detectBrowserLanguage()).toBe('de')

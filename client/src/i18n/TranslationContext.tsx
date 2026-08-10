@@ -59,6 +59,10 @@ export function detectBrowserLanguage(): string | null {
     const exactMatch = supported.find(s => s.toLowerCase() === lang.toLowerCase())
     if (exactMatch) return exactMatch
 
+    // Hong Kong browsers commonly report zh-HK. A generic prefix match would map
+    // that to `zh` (Simplified Chinese), but Hong Kong uses Traditional Chinese.
+    if (lang.toLowerCase() === 'zh-hk') return 'zh-TW'
+
     // pt-BR has no exact match (our code is 'br'), so map it explicitly.
     // pt-PT and bare 'pt' are NOT mapped — they fall through to null.
     if (lang.toLowerCase() === 'pt-br') return 'br'
