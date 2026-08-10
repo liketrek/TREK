@@ -129,7 +129,8 @@ export class PoiCategoriesController {
 
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number.isFinite(Number(q.limit)) ? Number(q.limit) : DEFAULT_LIMIT));
     const opts: Record<string, unknown> = { limit };
-    if (q.query) opts.query = q.query;
+    const query = q.query ? cap(q.query, 200) : undefined;
+    if (query) opts.query = query;
     if (q.north != null && q.south != null && q.east != null && q.west != null) {
       const [north, south, east, west] = [Number(q.north), Number(q.south), Number(q.east), Number(q.west)];
       if ([north, south, east, west].every(Number.isFinite)) {
